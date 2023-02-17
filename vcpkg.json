@@ -2,8 +2,11 @@
   "name": "tfc-framework",
   "version": "0.1.0",
   "dependencies": [
-    "spdlog",
+    "bext-ut",
+    "boost-asio",
+    "boost-program-options",
     "fmt",
-    "bext-ut"
+    "glaze",
+    "spdlog"
   ]
 }

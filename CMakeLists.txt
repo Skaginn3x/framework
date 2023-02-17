@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.25)
 project(tfc-framework)
 
 include(cmake/config.cmake)
