@@ -13,6 +13,7 @@
     },
     {
       "name": "dev-clang-debug-dynamic",
+      "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-libcxx-dynamic",
         "cfg-build-dir",
