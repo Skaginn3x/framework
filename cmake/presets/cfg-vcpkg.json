@@ -41,7 +41,8 @@
       "name": "cfg-vcpkg-libcxx-dynamic",
       "hidden": true,
       "inherits": [
-        "cfg-vcpkg-dynamic"
+        "cfg-vcpkg-dynamic",
+        "cfg-vcpkg-libcxx-common"
       ],
       "cacheVariables": {
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-libcxx-dynamic",
