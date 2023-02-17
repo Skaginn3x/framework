@@ -1,3 +1,5 @@
+include(FeatureSummary)
+
 
 option(ENABLE_CODE_COVERAGE_INSTRUMENTATION "Enable code instrumentation" OFF)
 add_feature_info("ENABLE_CODE_COVERAGE_INSTRUMENTATION" ENABLE_CODE_COVERAGE_INSTRUMENTATION
@@ -18,10 +20,10 @@ if(ENABLE_CODE_COVERAGE_INSTRUMENTATION)
 endif(ENABLE_CODE_COVERAGE_INSTRUMENTATION)
 
 
-option(ENABLE_ADDRESS_SANITIZATION "Enables clang address sanitizer mode" OFF)
-add_feature_info("ENABLE_ADDRESS_SANITIZATION" ENABLE_ADDRESS_SANITIZATION
-    "Enables address sanitizing on code")
-if(ENABLE_ADDRESS_SANITIZATION)
+option(ENABLE_SANITIZATION "Enables google sanitizer mode" OFF)
+add_feature_info("ENABLE_SANITIZATION" ENABLE_SANITIZATION
+    "Enables address, thread and leak sanitizing on code")
+if(ENABLE_SANITIZATION)
   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(
         -fsanitize=address
@@ -42,7 +44,7 @@ if(ENABLE_ADDRESS_SANITIZATION)
         -fPIC
         -fno-omit-frame-pointer
         -g )
-    add_link_options( -lasan -lubsan)
+    add_link_options( -lasan -lubsan -ltsan)
   endif()
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(
@@ -55,8 +57,16 @@ if(ENABLE_ADDRESS_SANITIZATION)
         -fPIC
         -fno-omit-frame-pointer
     )
-    add_link_options( -lasan -lubsan)
+    add_link_options( -lasan -lubsan -ltsan)
   endif()
-endif(ENABLE_ADDRESS_SANITIZATION)
+endif(ENABLE_SANITIZATION)
 
 
+if( CMAKE_BUILD_TYPE STREQUAL "Release")
+  option(ENABLE_DEBUG_SYMBOLS_IN_RELEASE "Compile with debug symbols for release build" OFF)
+  add_feature_info("ENABLE_DEBUG_SYMBOLS_IN_RELEASE" ENABLE_DEBUG_SYMBOLS_IN_RELEASE
+      "Compile with debug symbols for release build")
+  if(ENABLE_DEBUG_SYMBOLS_IN_RELEASE)
+    add_compile_options( -g )
+  endif()
+endif()

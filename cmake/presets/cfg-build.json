@@ -29,17 +29,10 @@
       }
     },
     {
-      "name": "cfg-asan",
+      "name": "cfg-san",
       "hidden": true,
       "cacheVariables": {
-        "ENABLE_ADDRESS_SANITIZATION": "ON"
-      }
-    },
-    {
-      "name": "cfg-tsan",
-      "hidden": true,
-      "cacheVariables": {
-        "ENABLE_THREAD_SANITIZATION": "ON"
+        "ENABLE_SANITIZATION": "ON"
       }
     }
   ]
