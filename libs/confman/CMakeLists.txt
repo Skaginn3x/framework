@@ -1,5 +1,5 @@
 project(confman)
-cmake_minimum_required(3.21)
+cmake_minimum_required(VERSION 3.21)
 
 add_library(confman STATIC
     src/confman.cpp

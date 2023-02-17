@@ -1,0 +1,64 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "cfg-vcpkg",
+      "hidden": true,
+      "cacheVariables": {
+        "VCPKG_OVERLAY_PORTS": "${fileDir}/vcpkg-overlays/ports",
+        "VCPKG_OVERLAY_TRIPLETS": "${fileDir}/vcpkg-overlays/triplets",
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot",
+        "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "cfg-vcpkg-dynamic",
+      "hidden": true,
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-dynamic",
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-dynamic",
+        "BUILD_SHARED_LIBS": "OFF",
+        "LINK_SHARED_LIBS": "ON"
+      },
+      "inherits": [
+        "cfg-vcpkg"
+      ]
+    },
+    {
+      "name": "cfg-vcpkg-libcxx-common",
+      "hidden": true,
+      "inherits": [
+        "cfg-vcpkg"
+      ],
+      "description": "vcpkg clang compiled with libc++.",
+      "cacheVariables": {
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang.cmake",
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-libcxx",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang"
+      }
+    },
+    {
+      "name": "cfg-vcpkg-libcxx-dynamic",
+      "hidden": true,
+      "inherits": [
+        "cfg-vcpkg-dynamic"
+      ],
+      "cacheVariables": {
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-libcxx-dynamic",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic"
+      }
+    },
+    {
+      "name": "cfg-vcpkg-aarch64",
+      "hidden": true,
+      "inherits": [
+        "cfg-vcpkg"
+      ],
+      "cacheVariables": {
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-aarch64",
+        "VCPKG_TARGET_TRIPLET": "arm64-linux",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/aarch64-linux-gcc.cmake"
+      }
+    }
+  ]
+}

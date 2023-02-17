@@ -1,0 +1,46 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "cfg-build-dir",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "cfg-debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "cfg-release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ENABLE_UNIT_TEST_EXCLUSION_FROM_ALL_BUILD":"ON"
+      }
+    },
+    {
+      "name": "cfg-code-coverage",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_CODE_COVERAGE_INSTRUMENTATION": "ON"
+      }
+    },
+    {
+      "name": "cfg-asan",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_ADDRESS_SANITIZATION": "ON"
+      }
+    },
+    {
+      "name": "cfg-tsan",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_THREAD_SANITIZATION": "ON"
+      }
+    }
+  ]
+}

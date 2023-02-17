@@ -1,0 +1,23 @@
+{
+  "version": 4,
+  "include": [
+    "./cmake/presets/cfg-vcpkg.json",
+    "./cmake/presets/cfg-build.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "ci-unix",
+      "hidden": true,
+      "inherits": [
+      ]
+    },
+    {
+      "name": "dev-clang-debug-dynamic",
+      "inherits": [
+        "cfg-vcpkg-libcxx-dynamic",
+        "cfg-build-dir",
+        "cfg-debug"
+      ]
+    }
+  ]
+}
