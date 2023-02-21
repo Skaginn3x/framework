@@ -4,12 +4,12 @@ project(tfc-framework)
 enable_testing()
 
 # Add the cmake folder so the FindSphinx module is found
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/findModules" ${CMAKE_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake" "${CMAKE_CURRENT_LIST_DIR}/cmake/findModules")
 
-include(cmake/config.cmake)
-include(cmake/options.cmake)
-include(cmake/warnings.cmake)
-include(cmake/docs.cmake)
+include(tfc_config)
+include(tfc_options)
+include(tfc_warnings)
+include(tfc_docs)
 
 add_subdirectory(exes)
 add_subdirectory(libs)

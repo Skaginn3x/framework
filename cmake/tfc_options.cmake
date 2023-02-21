@@ -1,5 +1,6 @@
 include(FeatureSummary)
 
+# Use option BUILD_TESTING to disable tests
 
 option(ENABLE_CODE_COVERAGE_INSTRUMENTATION "Enable code instrumentation" OFF)
 add_feature_info("ENABLE_CODE_COVERAGE_INSTRUMENTATION" ENABLE_CODE_COVERAGE_INSTRUMENTATION
@@ -62,11 +63,11 @@ if(ENABLE_SANITIZATION)
 endif(ENABLE_SANITIZATION)
 
 
-if( CMAKE_BUILD_TYPE STREQUAL "Release")
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
   option(ENABLE_DEBUG_SYMBOLS_IN_RELEASE "Compile with debug symbols for release build" OFF)
   add_feature_info("ENABLE_DEBUG_SYMBOLS_IN_RELEASE" ENABLE_DEBUG_SYMBOLS_IN_RELEASE
       "Compile with debug symbols for release build")
-  if(ENABLE_DEBUG_SYMBOLS_IN_RELEASE)
-    add_compile_options( -g )
-  endif()
-endif()
+  if (ENABLE_DEBUG_SYMBOLS_IN_RELEASE)
+    add_compile_options(-g)
+  endif ()
+endif ()

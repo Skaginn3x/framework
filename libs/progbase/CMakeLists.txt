@@ -1,21 +1,26 @@
 project(progbase)
 cmake_minimum_required(VERSION 3.21)
 
-add_library(progbase STATIC
+add_library(base
+  STATIC
     src/progbase.cpp
-    )
-add_library(tfc::progbase ALIAS progbase)
-target_include_directories(progbase
-    PUBLIC
+)
+add_library(tfc::base ALIAS base)
+target_include_directories(base
+  PUBLIC
     inc/public
-    PRIVATE
+  PRIVATE
     inc
-    )
+)
 
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
-target_link_libraries(progbase
-    PRIVATE
+target_link_libraries(base
+  PRIVATE
     Boost::boost
-    )
-add_library_to_docs(tfc::progbase)
+    Boost::program_options
+)
+
+add_library_to_docs(tfc::base)
+
+add_subdirectory(tests)
