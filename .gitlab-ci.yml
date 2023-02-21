@@ -1,4 +1,4 @@
-image: registry.gitlab.com/skaginn3x/tfc/os-containers/archlinux-cpp
+image: registry.gitlab.com/skaginn3x/tfc/os-containers/archlinux-cpp:latest
 
 stages:
 - build
