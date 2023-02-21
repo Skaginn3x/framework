@@ -18,3 +18,4 @@ target_link_libraries(progbase
     PRIVATE
     Boost::boost
     )
+add_library_to_docs(tfc::progbase)

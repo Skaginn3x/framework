@@ -13,3 +13,4 @@ target_include_directories(libconfman
         inc
 )
 
+add_library_to_docs(tfc::confman)

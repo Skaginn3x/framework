@@ -20,3 +20,7 @@ target_link_libraries(logger
     fmt::fmt
     spdlog::spdlog
 )
+
+add_library_to_docs(tfc::logger)
+
+add_subdirectory(tests)

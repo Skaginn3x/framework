@@ -13,7 +13,7 @@ To begin with executables will be statically linked to third party dependencies 
 yay -S vcpkg
 sudo gpasswd -a $USER vcpkg
 sudo pacman -S libc++ lld llvm base-devel
-# relogin or $ newgrp vcpkg in terminal
+# relogin or $ newgrp vcpkg in terminal or su <username>
 ```
 Please note the output of installing vcpkg:
 ```bash

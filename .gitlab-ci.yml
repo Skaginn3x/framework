@@ -1,0 +1,47 @@
+image: registry.gitlab.com/skaginn3x/tfc/framework/archlinux-cpp:latest
+
+stages:
+- build
+- test
+- deploy
+
+
+build:
+  stage: build
+  script:
+    - ls /root/
+    - cmake --preset dev-clang-debug-dynamic -DCMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
+    - cmake --build build/dev-clang-debug-dynamic
+  artifacts:
+    paths:
+      - build/
+      - vcpkg-sysroot-libcxx-dynamic/
+
+runCtest:
+  stage: test
+  dependencies:
+    - build
+  script:
+    # It looks like --test-dir sets the working directory for ctest. junit_ctest.xml is therefor inside the build dir.
+    - ctest --test-dir build/dev-clang-debug-dynamic --output-on-failure --output-junit junit_ctest.xml
+  artifacts:
+    when: always
+    paths:
+      - build/dev-clang-debug-dynamic/junit_ctest.xml
+    reports:
+      junit: build/dev-clang-debug-dynamic/junit_ctest.xml
+
+pages:
+  stage: deploy
+  script:
+    # Package the public data from the build nicely
+    - mkdir -p public/$CI_COMMIT_BRANCH
+    - cp -r build/dev-clang-debug-dynamic/docs/doxygen/html public/$CI_COMMIT_BRANCH/doxygen
+    # RTD is the default landing page for pages
+    - cp -r build/dev-clang-debug-dynamic/docs/sphinx/* public/$CI_COMMIT_BRANCH/
+  dependencies:
+    - build
+    - runCtest
+  artifacts:
+    paths:
+      - public

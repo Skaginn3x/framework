@@ -12,3 +12,4 @@ target_include_directories(ipc
         inc
 )
 
+add_library_to_docs(tfc::ipc)
