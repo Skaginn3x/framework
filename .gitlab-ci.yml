@@ -1,4 +1,4 @@
-image: registry.gitlab.com/skaginn3x/tfc/os-containers/archlinux-cpp:latest
+image: registry.gitlab.com/skaginn3x/tfc/framework/archlinux-cpp:latest
 
 stages:
 - build
@@ -45,3 +45,21 @@ pages:
   artifacts:
     paths:
       - public
+
+oci-container-build-archlinux-cpp:
+  image: quay.io/buildah/stable
+  stage: build
+  variables:
+    DOCKERFILE_NAME: "archlinux-cpp"
+    FQ_IMAGE_NAME: "archlinux-cpp:latest"
+  before_script:
+    - buildah version
+  script:
+    - echo ${CI_REGISTRY_IMAGE}/${FQ_IMAGE_NAME}
+    - buildah login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - buildah bud -f containers/${DOCKERFILE_NAME} -t ${DOCKERFILE_NAME} .
+    - CONTAINER_ID=$(buildah from ${DOCKERFILE_NAME})
+    - buildah commit --squash $CONTAINER_ID $FQ_IMAGE_NAME
+    - echo $FQ_IMAGE_NAME
+    - buildah push ${FQ_IMAGE_NAME} ${CI_REGISTRY_IMAGE}/${FQ_IMAGE_NAME}
+  when: manual

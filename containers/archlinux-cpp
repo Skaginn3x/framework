@@ -1,0 +1,8 @@
+# Build an arch imagge for compiling and testing Framework
+FROM archlinux:latest
+MAINTAINER omar email ohg at skaginn3x.com
+
+RUN echo "Updating package index"; pacman -Sy
+RUN echo "Installing utils"; pacman -S --noconfirm --needed clang base-devel curl git python-sphinx doxygen python-sphinx_rtd_theme ninja zip unzip tar cmake lld llvm libc++ python-breathe graphviz
+RUN echo "Installing vcpkg"; git clone https://github.com/Microsoft/vcpkg.git /opt/vcpkg && /opt/vcpkg/bootstrap-vcpkg.sh
+RUN echo "Installing some common vcpkg deps (statically)"; /opt/vcpkg/vcpkg install bext-ut boost-asio boost-program-options fmt spdlog
