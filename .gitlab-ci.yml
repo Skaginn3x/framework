@@ -5,11 +5,12 @@ stages:
 - test
 - deploy
 
+variables:
+  VCPKG_BINARY_SOURCES: "http,${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/{name}/{version}/{sha}.zip,readwrite,Authorization: Bearer $CI_JOB_TOKEN"
 
 build:
   stage: build
   script:
-    - ls /root/
     - cmake --preset dev-clang-debug-dynamic -DCMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
     - cmake --build build/dev-clang-debug-dynamic
   artifacts:
