@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <optional>
+#include <filesystem>
 
 namespace boost::program_options {
 class options_description;
