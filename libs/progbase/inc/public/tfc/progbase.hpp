@@ -34,6 +34,9 @@ namespace tfc::base {
 /// \return boost variables map if needed to get custom parameters from description
 [[maybe_unused, nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const &;
 
+/// \return path to root of application files
+[[maybe_unused, nodiscard]] auto get_root_path() -> std::filesystem::path;
+
 /// \brief supposed to be used by logger library to indicate log to terminal is enabled
 [[maybe_unused, nodiscard]] auto is_stdout_enabled() noexcept -> bool;
 

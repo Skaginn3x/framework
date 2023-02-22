@@ -10,6 +10,9 @@ namespace tfc::base {
 
 class options {
 public:
+  options(options const &) = delete;
+  void operator=(options const &) = delete;
+
   void init(int argc, char const *const *argv, bpo::options_description const &desc) {
     vm_ = {};
     bpo::store(bpo::parse_command_line(argc, argv, desc), vm_);
@@ -60,6 +63,7 @@ void init(int argc, char const *const *argv, bpo::options_description const &des
 auto get_exe_name() noexcept -> std::string_view { return options::instance().get_exe_name(); }
 auto get_proc_name() noexcept -> std::string_view { return options::instance().get_id(); }
 auto get_map() noexcept -> boost::program_options::variables_map const & { return options::instance().get_map(); }
+auto get_root_path() -> std::filesystem::path { return {"/var/tfc"}; }
 auto is_stdout_enabled() noexcept -> bool { return options::instance().get_stdout(); }
 auto is_noeffect_enabled() noexcept -> bool { return options::instance().get_noeffect(); }
 
