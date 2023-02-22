@@ -16,13 +16,7 @@ namespace tfc::base {
 [[maybe_unused, nodiscard]] auto default_description() -> boost::program_options::options_description;
 
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
-/// \example
-/// #include <boost/program_options.hpp>
-/// int main (int argc, char** argv) {
-///   auto prog_desc{tfc::base::default_description};
-///   prog_desc.add_options()("custom_opts,c", boost::program_options::value<bool>(), "This is a help text for custom_opts);
-///   tfc::base::init(argc, argv, prog_desc);
-/// }
+/// \example example_base.cpp
 [[maybe_unused]] void init(int argc, char const *const *argv, boost::program_options::options_description const &desc);
 
 /// \return stripped executable name
