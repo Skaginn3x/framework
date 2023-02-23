@@ -9,6 +9,10 @@ class options_description;
 class variables_map;
 } // namespace boost::program_options
 
+namespace tfc::logger {
+enum struct lvl_e : int;
+}
+
 namespace tfc::base {
 
 /// \brief Description of command line arguments for the program
@@ -25,6 +29,10 @@ namespace tfc::base {
 /// \brief default value is "def"
 /// \return stripped process identification name provided by the command line argument
 [[maybe_unused, nodiscard]] auto get_proc_name() noexcept -> std::string_view;
+
+/// \brief default value is tfc::logger::lvl_e::info
+/// \return log level
+[[maybe_unused, nodiscard]] auto get_log_lvl() noexcept -> tfc::logger::lvl_e;
 
 /// \return boost variables map if needed to get custom parameters from description
 [[maybe_unused, nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const &;

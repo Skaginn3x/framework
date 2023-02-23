@@ -20,6 +20,7 @@ target_link_libraries(base
     Boost::boost
     Boost::program_options
     tfc::stx
+    tfc::logger
 )
 
 add_library_to_docs(tfc::base)
