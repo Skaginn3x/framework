@@ -11,12 +11,11 @@ variables:
 build:
   stage: build
   script:
-    - cmake --preset dev-clang-debug-dynamic -DCMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
-    - cmake --build build/dev-clang-debug-dynamic
+    - cmake --preset ci-clang-debug
+    - cmake --build --preset build-ci-clang-debug
   artifacts:
     paths:
       - build/
-      - vcpkg-sysroot-libcxx-dynamic/
 
 runCtest:
   stage: test
@@ -24,7 +23,7 @@ runCtest:
     - build
   script:
     # It looks like --test-dir sets the working directory for ctest. junit_ctest.xml is therefor inside the build dir.
-    - ctest --test-dir build/dev-clang-debug-dynamic --output-on-failure --output-junit junit_ctest.xml
+    - ctest --test-dir build/ci-clang-debug --output-on-failure --output-junit junit_ctest.xml
   artifacts:
     when: always
     paths:
@@ -37,30 +36,12 @@ pages:
   script:
     # Package the public data from the build nicely
     - mkdir -p public/$CI_COMMIT_BRANCH
-    - cp -r build/dev-clang-debug-dynamic/docs/doxygen/html public/$CI_COMMIT_BRANCH/doxygen
+    - cp -r build/ci-clang-debug/docs/doxygen/html public/$CI_COMMIT_BRANCH/doxygen
     # RTD is the default landing page for pages
-    - cp -r build/dev-clang-debug-dynamic/docs/sphinx/* public/$CI_COMMIT_BRANCH/
+    - cp -r build/ci-clang-debug/docs/sphinx/* public/$CI_COMMIT_BRANCH/
   dependencies:
     - build
     - runCtest
   artifacts:
     paths:
       - public
-
-oci-container-build-archlinux-cpp:
-  image: quay.io/buildah/stable
-  stage: build
-  variables:
-    DOCKERFILE_NAME: "archlinux-cpp"
-    FQ_IMAGE_NAME: "archlinux-cpp:latest"
-  before_script:
-    - buildah version
-  script:
-    - echo ${CI_REGISTRY_IMAGE}/${FQ_IMAGE_NAME}
-    - buildah login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - buildah bud -f containers/${DOCKERFILE_NAME} -t ${DOCKERFILE_NAME} .
-    - CONTAINER_ID=$(buildah from ${DOCKERFILE_NAME})
-    - buildah commit --squash $CONTAINER_ID $FQ_IMAGE_NAME
-    - echo $FQ_IMAGE_NAME
-    - buildah push ${FQ_IMAGE_NAME} ${CI_REGISTRY_IMAGE}/${FQ_IMAGE_NAME}
-  when: manual

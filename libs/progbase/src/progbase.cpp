@@ -1,4 +1,5 @@
 #include "tfc/progbase.hpp"
+#include <tfc/utils/pragmas.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -22,10 +23,9 @@ public:
   }
 
   static auto instance() -> options & {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wexit-time-destructors"
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
     static options options_v;
-#pragma clang diagnostic pop
+    PRAGMA_CLANG_WARNING_POP
     return options_v;
   }
 

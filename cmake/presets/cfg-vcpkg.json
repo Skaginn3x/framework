@@ -25,7 +25,7 @@
       ]
     },
     {
-      "name": "cfg-vcpkg-libcxx-common",
+      "name": "cfg-vcpkg-clang-libcxx",
       "hidden": true,
       "inherits": [
         "cfg-vcpkg"
@@ -42,7 +42,7 @@
       "hidden": true,
       "inherits": [
         "cfg-vcpkg-dynamic",
-        "cfg-vcpkg-libcxx-common"
+        "cfg-vcpkg-clang-libcxx"
       ],
       "cacheVariables": {
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-libcxx-dynamic",

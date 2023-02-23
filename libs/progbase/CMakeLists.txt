@@ -19,6 +19,7 @@ target_link_libraries(base
   PRIVATE
     Boost::boost
     Boost::program_options
+    tfc::stx
 )
 
 add_library_to_docs(tfc::base)
