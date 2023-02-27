@@ -57,6 +57,27 @@
       "cacheVariables": {
         "ENABLE_SANITIZATION": "ON"
       }
+    },
+    {
+      "name": "cfg-cppcheck",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_CPPCHECK": "cppcheck"
+      }
+    },
+    {
+      "name": "cfg-clang-tidy",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--config-file=${fileDir}/.clang-tidy"
+      }
+    },
+    {
+      "name": "cfg-clang-tidy-fix",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--config-file=${fileDir}/.clang-tidy;--fix"
+      }
     }
   ]
 }

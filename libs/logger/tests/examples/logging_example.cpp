@@ -1,8 +1,8 @@
-#include "tfc/progbase.hpp"
-#include "tfc/logger.hpp"
 #include <boost/program_options.hpp>
+#include "tfc/logger.hpp"
+#include "tfc/progbase.hpp"
 
-int main(int argc, char** argv){
+auto main(int argc, char** argv) -> int {
   // base::init reads the log lvl, program id and stdout parameters from command line.
   auto prog_desc{tfc::base::default_description()};
   tfc::base::init(argc, argv, prog_desc);

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <string_view>
-#include <optional>
 #include <filesystem>
+#include <optional>
+#include <string_view>
 
 namespace boost::program_options {
 class options_description;
 class variables_map;
-} // namespace boost::program_options
+}  // namespace boost::program_options
 
 namespace tfc::logger {
 enum struct lvl_e : int;
@@ -21,7 +21,7 @@ namespace tfc::base {
 
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
 /// \example example_base.cpp
-[[maybe_unused]] void init(int argc, char const *const *argv, boost::program_options::options_description const &desc);
+[[maybe_unused]] void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);
 
 /// \return stripped executable name
 [[maybe_unused, nodiscard]] auto get_exe_name() noexcept -> std::string_view;
@@ -35,7 +35,7 @@ namespace tfc::base {
 [[maybe_unused, nodiscard]] auto get_log_lvl() noexcept -> tfc::logger::lvl_e;
 
 /// \return boost variables map if needed to get custom parameters from description
-[[maybe_unused, nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const &;
+[[maybe_unused, nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const&;
 
 /// \return path to root of application files
 [[maybe_unused, nodiscard]] auto get_root_path() -> std::filesystem::path;
@@ -46,4 +46,4 @@ namespace tfc::base {
 /// \brief supposed to be used by IPC layer to indicate that signals/publishers should not do anything
 [[maybe_unused, nodiscard]] auto is_noeffect_enabled() noexcept -> bool;
 
-} // namespace tfc::base
+}  // namespace tfc::base

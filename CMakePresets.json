@@ -11,7 +11,9 @@
       "inherits": [
         "cfg-vcpkg-libcxx-dynamic",
         "cfg-build-dir",
-        "cfg-debug"
+        "cfg-debug",
+        "cfg-cppcheck",
+        "cfg-clang-tidy"
       ]
     },
     {
@@ -20,7 +22,9 @@
       "inherits": [
         "cfg-vcpkg-clang-libcxx",
         "cfg-build-dir",
-        "cfg-debug"
+        "cfg-debug",
+        "cfg-cppcheck",
+        "cfg-clang-tidy"
       ]
     },
     {

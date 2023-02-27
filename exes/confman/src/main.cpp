@@ -1,4 +1,2 @@
 
-auto main() -> int {
-
-}
+auto main() -> int {}

@@ -1,18 +1,17 @@
 #pragma once
 
-#include <string_view>
-#include <string>
 #include <fmt/core.h>
-
+#include <string>
+#include <string_view>
 
 namespace spdlog {
 class async_logger;
 namespace details {
 class thread_pool;
 }
-}
+}  // namespace spdlog
 
-namespace tfc::logger{
+namespace tfc::logger {
 /*! Logging level*/
 enum struct lvl_e : int {
   trace = 0,
@@ -25,8 +24,8 @@ enum struct lvl_e : int {
 };
 
 /**
- * @brief tfc::logger class used for transmitting log messages with id aquired from tfc::base and keys from project components
- * see @example logging_example.cpp for how to use this class.
+ * @brief tfc::logger class used for transmitting log messages with id aquired from tfc::base and keys from project
+ * components see @example logging_example.cpp for how to use this class.
  * */
 class logger {
 public:
@@ -42,7 +41,7 @@ public:
    * @param parameters Variables embedded into the msg
    */
   template <lvl_e T, typename... P>
-  void log(fmt::format_string<P...> msg, P&&... parameters){
+  void log(fmt::format_string<P...> msg, P&&... parameters) {
     log_(T, fmt::vformat(msg, fmt::make_format_args(parameters...)));
   }
 
@@ -63,4 +62,4 @@ private:
   std::shared_ptr<spdlog::async_logger> async_logger_;
   std::shared_ptr<spdlog::details::thread_pool> tp_;
 };
-};
+};  // namespace tfc::logger

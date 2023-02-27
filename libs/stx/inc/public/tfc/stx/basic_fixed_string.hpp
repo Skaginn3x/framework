@@ -6,20 +6,21 @@
 
 namespace tfc::stx {
 
-template <typename CharType, unsigned N> struct [[nodiscard]] basic_fixed_string {
+template <typename CharType, unsigned N>
+struct [[nodiscard]] basic_fixed_string {
   using char_type = CharType;
 
   char_type data_[N + 1]{};
 
   [[nodiscard]] constexpr unsigned size() const noexcept { return N; }
 
-  [[nodiscard]] constexpr char_type const *begin() const noexcept { return &data_[0]; }
+  [[nodiscard]] constexpr char_type const* begin() const noexcept { return &data_[0]; }
 
-  [[nodiscard]] constexpr char_type *data() noexcept { return &data_[0]; }
+  [[nodiscard]] constexpr char_type* data() noexcept { return &data_[0]; }
 
-  [[nodiscard]] constexpr char_type const *data() const noexcept { return &data_[0]; }
+  [[nodiscard]] constexpr char_type const* data() const noexcept { return &data_[0]; }
 
-  [[nodiscard]] constexpr char_type const *end() const noexcept { return &data_[N]; }
+  [[nodiscard]] constexpr char_type const* end() const noexcept { return &data_[N]; }
 
   constexpr basic_fixed_string() noexcept : data_{} {}
 
@@ -31,7 +32,7 @@ template <typename CharType, unsigned N> struct [[nodiscard]] basic_fixed_string
 
   template <unsigned other_size>
     requires(N > other_size)
-  constexpr basic_fixed_string &operator=(basic_fixed_string<CharType, other_size> &&rhs) noexcept {
+  constexpr basic_fixed_string& operator=(basic_fixed_string<CharType, other_size>&& rhs) noexcept {
     data_ = {0};
     std::move(std::begin(rhs), std::end(rhs), std::begin(data_));
     return *this;
@@ -45,9 +46,10 @@ template <typename CharType, unsigned N> struct [[nodiscard]] basic_fixed_string
 
   constexpr std::basic_string_view<char_type> view() const noexcept { return {&data_[0], N}; }
 
-  constexpr auto operator<=>(basic_fixed_string<char_type, N> const &) const noexcept = default;
+  constexpr auto operator<=>(basic_fixed_string<char_type, N> const&) const noexcept = default;
 
-  template <unsigned M> constexpr auto operator==(basic_fixed_string<char_type, M> const &r) const noexcept {
+  template <unsigned M>
+  constexpr auto operator==(basic_fixed_string<char_type, M> const& r) const noexcept {
     return N == M && view() == r.view();
   }
 };
@@ -74,14 +76,16 @@ consteval auto operator+(basic_fixed_string<char_type, N> l, basic_fixed_string<
   return concat_fixed_string(l, r);
 }
 
-template <typename decl_chr_type, typename char_type, unsigned N> consteval auto fs(char_type const (&str)[N]) noexcept {
+template <typename decl_chr_type, typename char_type, unsigned N>
+consteval auto fs(char_type const (&str)[N]) noexcept {
   return basic_fixed_string<decl_chr_type, N - 1>(str);
 }
 
-template <std::size_t N> struct StringLiteral {
+template <std::size_t N>
+struct StringLiteral {
   constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
 
   char value[N];
 };
 
-} // namespace tfc::stx
+}  // namespace tfc::stx

@@ -2,6 +2,7 @@ image: registry.gitlab.com/skaginn3x/tfc/framework/archlinux-cpp:latest
 
 stages:
 - build
+- check
 - test
 - deploy
 
@@ -17,7 +18,11 @@ build:
     paths:
       - build/
 
-runCtest:
+check:cpp:format:
+  stage: check
+  script: find libs/ exes/ \( -name \*.cpp -o -name \*.hpp \) -print0 | xargs -0 -n 1 clang-format --Werror --verbose --dry-run
+
+test:ctest:
   stage: test
   dependencies:
     - build
@@ -41,7 +46,25 @@ pages:
     - cp -r build/ci-clang-debug/docs/sphinx/* public/$CI_COMMIT_BRANCH/
   dependencies:
     - build
-    - runCtest
+    - test:ctest
   artifacts:
     paths:
       - public
+
+oci_container_build_archlinux_cpp:
+  image: quay.io/buildah/stable
+  stage: build
+  variables:
+    DOCKERFILE_NAME: "archlinux-cpp"
+    FQ_IMAGE_NAME: "archlinux-cpp:latest"
+  before_script:
+    - buildah version
+  script:
+    - echo ${CI_REGISTRY_IMAGE}/${FQ_IMAGE_NAME}
+    - buildah login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - buildah bud -f containers/${DOCKERFILE_NAME} -t ${DOCKERFILE_NAME} .
+    - CONTAINER_ID=$(buildah from ${DOCKERFILE_NAME})
+    - buildah commit --squash $CONTAINER_ID $FQ_IMAGE_NAME
+    - echo $FQ_IMAGE_NAME
+    - buildah push ${FQ_IMAGE_NAME} ${CI_REGISTRY_IMAGE}/${FQ_IMAGE_NAME}
+  when: manual

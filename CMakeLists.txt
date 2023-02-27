@@ -14,3 +14,23 @@ include(tfc_docs)
 add_subdirectory(exes)
 add_subdirectory(libs)
 add_subdirectory(docs)
+
+# Clang format all files
+
+file(GLOB_RECURSE ALL_SOURCE_FILES libs/**/*.cpp libs/**/*.hpp exes/**/*.cpp exes/**/*.hpp)
+add_custom_target(
+  clangformat-fix
+  COMMAND clang-format
+  --style=file
+  -i
+  ${ALL_SOURCE_FILES}
+)
+add_custom_target(
+  clangformat-dry
+  COMMAND clang-format
+  --style=file
+  -i
+  --dry-run
+  ${ALL_SOURCE_FILES}
+)
+
