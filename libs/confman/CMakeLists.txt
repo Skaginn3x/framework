@@ -14,3 +14,5 @@ target_include_directories(libconfman
 )
 
 add_library_to_docs(tfc::confman)
+
+add_subdirectory(tests)
