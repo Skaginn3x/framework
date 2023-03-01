@@ -12,6 +12,7 @@ enum class Color {Red, Green, Blue};
 template<>
     struct glz::meta<Color> {
   using enum Color;
+  static constexpr std::string_view name = "Color";
   static constexpr auto value  = enumerate("Red", Red, "Green", Green, "Blue", Blue);
 };
 
@@ -25,6 +26,7 @@ struct my_struct
 
   struct glaze {
     using T = my_struct;
+    static constexpr std::string_view name = "my_struct";
     static constexpr auto value = glz::object(
         "i", &T::i,
         "d", &T::d,
@@ -62,7 +64,7 @@ int main(int argc, char** argv){
   logger a("Schema testing");
   a.log<lvl::info>("Let's get this party started");
   std::string schema = glz::write_json_schema<my_struct>();
-  a.log<lvl::info>("{}", schema);
+  a.log<lvl::info>("\n{}", glz::prettify(schema));
 }
 
 /**
