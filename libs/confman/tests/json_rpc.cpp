@@ -3,12 +3,14 @@
 #include <iostream>
 #include "tfc/glaze_json_rpc.hpp"
 
-auto main(int argc, char **argv) -> int {
-  using namespace boost::ut;
-  using namespace tfc::confman::rpc;
+auto main() -> int {
+  namespace rpc = tfc::confman::rpc;
+  namespace ut = boost::ut;
+
+  using boost::ut::operator""_test;
 
   "Valid requests are valid"_test = []() {
-    std::array valid_requests = {
+    const std::array valid_requests = {
         R"({
           "jsonrpc": "2.0",
           "method": "add",
@@ -37,11 +39,11 @@ auto main(int argc, char **argv) -> int {
     for(auto const& raw_json : valid_requests){
       glz::json_t object;
       glz::read_json(object, raw_json);
-      expect(valid_request( object ));
+      ut::expect(rpc::valid_request( object ));
     }
   };
   "Invalid requests are invalid"_test = []() {
-    std::array invalid_requests = {
+    const std::array invalid_requests = {
         // method name invalid, should be string and params should be structured type
         R"(
           {"jsonrpc": "2.0", "method": 1, "params": "bar"}
@@ -68,23 +70,21 @@ auto main(int argc, char **argv) -> int {
     for(auto const& raw_json : invalid_requests){
       glz::json_t object;
       glz::read_json(object, raw_json);
-      expect(!valid_request( object ));
+      ut::expect(!rpc::valid_request( object ));
     }
   };
   "Test invalid requests"_test = []() {
-    std::array invalid_requests_and_response = {
+    const std::array invalid_requests_and_response = {
         std::make_pair(
             R"(
           {"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]
         )",
-          response_error_code_e::PARSE_ERROR
-            ),
+          rpc::response_error_code_e::parse_error),
         std::make_pair(
             R"(
           {"jsonrpc": "2.0", "method": 1, "params": "bar"}
         )",
-            response_error_code_e::INVALID_REQUEST
-        ),
+            rpc::response_error_code_e::invalid_request),
         std::make_pair(
             R"(
           [
@@ -92,48 +92,46 @@ auto main(int argc, char **argv) -> int {
             {"jsonrpc": "2.0", "method"
           ]
         )",
-            response_error_code_e::PARSE_ERROR
-        ),
+            rpc::response_error_code_e::parse_error),
         std::make_pair(
             R"(
           []
         )",
-            response_error_code_e::INVALID_REQUEST
-        ),
+            rpc::response_error_code_e::invalid_request),
     };
     for(auto const& [raw_json, expected_error] : invalid_requests_and_response){
-      auto response_string = handle_request(raw_json);
-      auto response = glz::read_json<response_t>(response_string);
-      expect(response.error->code == expected_error);
+      auto response_string = rpc::handle_request(raw_json);
+      auto response = glz::read_json<rpc::response_t>(response_string);
+      ut::expect(response.error->code == expected_error);
     }
   };
   "Test invalid batch requests"_test = []() {
-    std::array<std::pair<std::string, std::vector<response_error_code_e>>, 2> invalid_requests_and_response_batch = {
-        std::make_pair<std::string, std::vector<response_error_code_e >>(
+    const std::array<std::pair<std::string, std::vector<rpc::response_error_code_e>>, 2> invalid_requests_and_response_batch = {
+        std::make_pair<std::string, std::vector<rpc::response_error_code_e >>( //NOLINT
             R"(
           [1]
         )",
             {
-                response_error_code_e::INVALID_REQUEST,
+                rpc::response_error_code_e::invalid_request,
             }
         ),
-        std::make_pair<std::string, std::vector<response_error_code_e >>(
+        std::make_pair<std::string, std::vector<rpc::response_error_code_e >>( //NOLINT
             R"(
           [1, 2, 3]
         )",
             {
-                response_error_code_e::INVALID_REQUEST,
-                response_error_code_e::INVALID_REQUEST,
-                response_error_code_e::INVALID_REQUEST,
+                rpc::response_error_code_e::invalid_request,
+                rpc::response_error_code_e::invalid_request,
+                rpc::response_error_code_e::invalid_request,
             }
         ),
     };
     for(auto const& [raw_json, expected_error] : invalid_requests_and_response_batch){
-      auto response_string = handle_request(raw_json);
-      auto response = glz::read_json<std::vector<response_t>>(response_string);
-      expect(response.size() == expected_error.size());
+      auto response_string = rpc::handle_request(raw_json);
+      auto response = glz::read_json<std::vector<rpc::response_t>>(response_string);
+      ut::expect(response.size() == expected_error.size());
       for (size_t i = 0; i < response.size(); i++){
-        expect(response[i].error->code == expected_error[i]);
+        ut::expect(response[i].error->code == expected_error[i]);
       }
     }
   };
