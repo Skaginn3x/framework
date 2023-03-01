@@ -12,6 +12,7 @@
 #include <array>
 #include <glaze/glaze.hpp>
 #include <variant>
+#include <expected>
 
 namespace tfc::confman::rpc {
 
@@ -61,72 +62,80 @@ struct response_t {
 
 // Check that parameters are available on the request
 // and that their types/values conform to the standard.
-auto valid_request(glz::json_t const &rqst) -> bool {
-  const auto* const object_ptr = std::get_if<glz::json_t::object_t>(&rqst.data);
+auto valid_request(glz::json_t const &rqst) -> std::expected<request_t, std::string> {
+  const auto* const object_ptr = rqst.get_if<glz::json_t::object_t>();
   if (object_ptr == nullptr){
-    return false;
+    return std::unexpected<std::string>("Invalid request");
   }
 
   // jsonrpc -> string must be "2.0"
   auto iterator = object_ptr->find("jsonrpc");
   if (iterator == object_ptr->end()){
-    return false;
+    return std::unexpected<std::string>("Invalid request - jsonrpc not found");
   }
-  const auto* string_ptr = std::get_if<std::string>(&iterator->second.data);
-  if (string_ptr == nullptr){
-    return false;
+  const auto* const json_rpc_ptr = iterator->second.get_if<std::string>();
+  if (json_rpc_ptr == nullptr){
+    return std::unexpected<std::string>("Invalid request - jsonrpc is null");
   }
-  if (*string_ptr != "2.0"){
-    return false;
+  if (*json_rpc_ptr != "2.0"){
+    return std::unexpected<std::string>("Invalid request - jsonrpc != 2.0");
   }
 
   // method -> string not starting with rpc
   iterator = object_ptr->find("method");
   if (iterator == object_ptr->end()){
-    return false;
+    return std::unexpected<std::string>("Invalid request - Method not found");
   }
-  string_ptr = std::get_if<std::string>(&iterator->second.data);
-  if (string_ptr == nullptr){
-    return false;
+  const auto* const method_ptr = iterator->second.get_if<std::string>();
+  if (method_ptr == nullptr){
+    return std::unexpected<std::string>("Invalid request - method is null");
   }
-  if (string_ptr->starts_with("rpc")){
-    return false;
+  if (method_ptr->starts_with("rpc")){
+    return std::unexpected<std::string>("Invalid request - method starts with rpc");
   }
 
   // params -> structure, either array or object. This may be omitted.
+  std::optional<glz::json_t> params;
   iterator = object_ptr->find("params");
   if (iterator != object_ptr->end()) {
-    const auto* const param_object_ptr = std::get_if<glz::json_t::object_t>(&iterator->second.data);
-    const auto* const param_array_ptr = std::get_if<glz::json_t::array_t>(&iterator->second.data);
+    const auto* const param_object_ptr = iterator->second.get_if<glz::json_t::object_t>();
+    const auto* const param_array_ptr = iterator->second.get_if<glz::json_t::array_t>();
     if (param_object_ptr == nullptr && param_array_ptr == nullptr) { // Parameters should be named parameters
-      return false;
+      return std::unexpected<std::string>("Invalid request - params is not a structured type");
     }
+    params = iterator->second;
     // TODO: Check internal types of the map
     // TODO: Check internal types of array
   }
 
+  std::optional<std::variant<double, std::string, glz::json_t::null_t>> id; //NOLINT
   iterator = object_ptr->find("id");
   if (iterator != object_ptr->end()) {
     // Check if id is a string, double or a null.
-    const bool hold_double = std::holds_alternative<double>(iterator->second.data);
-    if (!std::holds_alternative<std::string>(iterator->second.data) &&  !std::holds_alternative<glz::json_t::null_t>(iterator->second.data) && !hold_double) {
-      return false;
+    const bool hold_double = iterator->second.holds<double>();
+    if (!iterator->second.holds<std::string>() &&  !iterator->second.holds<glz::json_t::null_t>() && !hold_double) {
+      return std::unexpected<std::string>("Invalid request - id is neither string, double nor null");
     }
     if (hold_double){
       // id SHOULD NOT contain fractional parts.
-      const auto* const double_ptr = std::get_if<double>(&iterator->second.data);
+      const auto* const double_ptr = iterator->second.get_if<double>();
       if (double_ptr == nullptr) {
-        return false;
+        return std::unexpected<std::string>("Invalid request - id is null");
       }
       double int_part;
       if (std::modf(*double_ptr, &int_part) != 0){
-        return false;
+        return std::unexpected<std::string>("Invalid request - id is not integral");
       }
+      id = *double_ptr;
+    } else if (const auto* string_ptr = iterator->second.get_if<std::string>()){
+      id = *string_ptr;
+    } else {
+      id = nullptr;
     }
   }
 
-  // id may be omitted
-  return true;
+  // Return a request object
+  return request_t{*json_rpc_ptr, *method_ptr, params, id};
 }
 
 static auto build_error(const std::string& message, const response_error_code_e& error) -> response_t{
@@ -142,7 +151,7 @@ static auto build_string_error(const std::string&  message, const response_error
 // This method processes the request and verifies it.
 // After which the results are returned from the function again.
 // It has no side effect.
-static auto handle_request(std::string rqst_string) -> std::string {
+static auto handle_request(std::string rqst_string, const std::unordered_map<std::string, std::function<std::optional<glz::json_t>(std::optional<glz::json_t>)>>& methods = {}) -> std::string {
   // Parse the string as a generic type.
   // That is used to determine if this is a batch request or
   // a single request.
@@ -153,7 +162,7 @@ static auto handle_request(std::string rqst_string) -> std::string {
     return build_string_error(err.what(), response_error_code_e::parse_error);
   }
   // If request is a single request. place it into an array and take same path.
-  const bool is_single_request = std::holds_alternative<glz::json_t::object_t>(generic_parse.data);
+  const bool is_single_request = generic_parse.holds<glz::json_t::object_t>();
   if (is_single_request){
     generic_parse = glz::json_t({generic_parse});
   }
@@ -165,12 +174,21 @@ static auto handle_request(std::string rqst_string) -> std::string {
     }
     // Deal with each request
     std::vector<response_t> responses;
-    for (auto const& rqst : *array_ptr){
+    for (auto const& raw_rqst: *array_ptr){
       // Validate the request
-      if(!valid_request(rqst)){
-        //TODO: Exchange message for more detail when valid_request implements std::expected
-        //Optional data field in jsonrpc can be utilized
-        responses.emplace_back(build_error("Invalid Request", response_error_code_e::invalid_request));
+      if(auto validated_rqst = valid_request(raw_rqst)){
+        auto method_itr = methods.find(validated_rqst->method);
+        if (method_itr == methods.end()) {
+          return build_string_error("Method not found", response_error_code_e::method_not_found);
+        }
+        try{
+          auto result = method_itr->second.operator()(validated_rqst->params);
+          responses.emplace_back(response_t{"2.0", result, {}, validated_rqst->id}); //NOLINT
+        } catch (...){
+          return build_string_error("Internal error", response_error_code_e::internal_error);
+        }
+      } else {
+        responses.emplace_back(build_error(validated_rqst.error(), response_error_code_e::invalid_request));
       }
     }
     return is_single_request ? glz::write_json(responses[0]) : glz::write_json(responses);
