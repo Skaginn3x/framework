@@ -6,21 +6,28 @@
   ],
   "configurePresets": [
     {
+      "name": "dev-gcc-debug-dynamic",
+      "generator": "Ninja",
+      "inherits": [
+        "cfg-vcpkg-gcc-libstdcxx-dynamic",
+        "cfg-build-dir",
+        "cfg-debug"
+      ]
+    },
+    {
       "name": "dev-clang-debug-dynamic",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-libcxx-dynamic",
+        "cfg-vcpkg-clang-libstdcxx-dynamic",
         "cfg-build-dir",
-        "cfg-debug",
-        "cfg-cppcheck",
-        "cfg-clang-tidy"
+        "cfg-debug"
       ]
     },
     {
       "name": "ci-clang-debug",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-clang-libcxx",
+        "cfg-vcpkg-clang-libstdcxx",
         "cfg-build-dir",
         "cfg-debug",
         "cfg-cppcheck",
@@ -31,7 +38,7 @@
       "name": "ci-clang-release",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-clang-libcxx",
+        "cfg-vcpkg-clang-libstdcxx",
         "cfg-build-dir",
         "cfg-release"
       ]

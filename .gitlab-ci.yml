@@ -12,8 +12,8 @@ variables:
 build:
   stage: build
   script:
-    - cmake --preset ci-clang-debug
-    - cmake --build --preset build-ci-clang-debug
+    - cmake --preset ci-gcc-debug
+    - cmake --build --preset build-ci-gcc-debug
   artifacts:
     paths:
       - build/
@@ -28,22 +28,22 @@ test:ctest:
     - build
   script:
     # It looks like --test-dir sets the working directory for ctest. junit_ctest.xml is therefor inside the build dir.
-    - ctest --test-dir build/ci-clang-debug --output-on-failure --output-junit junit_ctest.xml
+    - ctest --test-dir build/ci-gcc-debug --output-on-failure --output-junit junit_ctest.xml
   artifacts:
     when: always
     paths:
-      - build/dev-clang-debug-dynamic/junit_ctest.xml
+      - build/ci-gcc-debug/junit_ctest.xml
     reports:
-      junit: build/dev-clang-debug-dynamic/junit_ctest.xml
+      junit: build/ci-gcc-debug/junit_ctest.xml
 
 pages:
   stage: deploy
   script:
     # Package the public data from the build nicely
     - mkdir -p public/$CI_COMMIT_BRANCH
-    - cp -r build/ci-clang-debug/docs/doxygen/html public/$CI_COMMIT_BRANCH/doxygen
+    - cp -r build/ci-gcc-debug/docs/doxygen/html public/$CI_COMMIT_BRANCH/doxygen
     # RTD is the default landing page for pages
-    - cp -r build/ci-clang-debug/docs/sphinx/* public/$CI_COMMIT_BRANCH/
+    - cp -r build/ci-gcc-debug/docs/sphinx/* public/$CI_COMMIT_BRANCH/
   dependencies:
     - build
     - test:ctest

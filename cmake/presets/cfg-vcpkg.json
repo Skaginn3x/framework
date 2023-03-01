@@ -50,6 +50,41 @@
       }
     },
     {
+      "name": "cfg-vcpkg-clang-libstdcxx",
+      "hidden": true,
+      "inherits": [
+        "cfg-vcpkg"
+      ],
+      "cacheVariables": {
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-libstdcxx.cmake",
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-libstdcxx",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-libstdcxx"
+      }
+    },
+    {
+      "name": "cfg-vcpkg-clang-libstdcxx-dynamic",
+      "hidden": true,
+      "inherits": [
+        "cfg-vcpkg-dynamic"
+      ],
+      "cacheVariables": {
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-libstdcxx.cmake",
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-libstdcxx-dynamic",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-libstdcxx-dynamic"
+      }
+    },
+    {
+      "name": "cfg-vcpkg-gcc-libstdcxx-dynamic",
+      "hidden": true,
+      "inherits": [
+        "cfg-vcpkg"
+      ],
+      "cacheVariables": {
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-gcc-libstdcxx-dynamic",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-dynamic"
+      }
+    },
+    {
       "name": "cfg-vcpkg-aarch64",
       "hidden": true,
       "inherits": [

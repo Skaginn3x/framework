@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/core.h>
+#include <memory>
 #include <string>
 #include <string_view>
 
