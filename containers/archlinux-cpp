@@ -6,3 +6,11 @@ RUN echo "Updating package index"; pacman -Sy
 RUN echo "Installing utils"; pacman -S --noconfirm --needed clang base-devel curl git python-sphinx doxygen python-sphinx_rtd_theme ninja zip unzip tar cmake lld llvm libc++ python-breathe graphviz cppcheck
 RUN echo "Initialize graphiz"; dot -c
 RUN echo "Installing vcpkg"; git clone https://github.com/Microsoft/vcpkg.git /opt/vcpkg && /opt/vcpkg/bootstrap-vcpkg.sh
+
+# Build clang from source. This is done temporarily 
+# to support building modern c++ features t.d. std::expected
+RUN echo "cloneing clang"; git clone --depth=1 https://github.com/llvm/llvm-project.git /opt/llvm
+RUN echo "Building clang"; mkdir /opt/llvm/build 
+cd /opt/llvm/build
+cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm
+make -j 8
