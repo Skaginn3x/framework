@@ -11,6 +11,6 @@ RUN echo "Installing vcpkg"; git clone https://github.com/Microsoft/vcpkg.git /o
 # to support building modern c++ features t.d. std::expected
 RUN echo "cloneing clang"; git clone --depth=1 https://github.com/llvm/llvm-project.git /opt/llvm
 RUN echo "Building clang"; mkdir /opt/llvm/build 
-cd /opt/llvm/build
-cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm
-make -j 8
+WORKDIR /opt/llvm/build
+RUN cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm
+RUN make -j 8
