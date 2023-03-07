@@ -7,22 +7,11 @@ add_executable(azmq_server_testing azmq_server_testing.cpp)
 
 target_include_directories(azmq_server_testing PRIVATE ${AZMQ_INCLUDE_DIRS})
 
-add_executable(json_rpc_parsing json_rpc.cpp)
-
-target_link_libraries(json_rpc_parsing PRIVATE tfc::confman Boost::ut glaze::glaze)
-
 add_test(
   NAME
   on_change_test
   COMMAND
   on_change_test
-)
-
-add_test(
-  NAME
-  json_rpc_parsing
-  COMMAND
-  json_rpc_parsing
 )
 
 add_subdirectory(examples)
