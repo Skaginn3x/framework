@@ -4,6 +4,8 @@ add_executable(confman
     src/main.cpp
 )
 target_link_libraries(confman
-    PUBLIC
-        tfc::confman
+  PUBLIC
+    tfc::confman
+    tfc::base
+    tfc::logger
 )
