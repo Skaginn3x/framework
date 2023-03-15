@@ -1,5 +1,9 @@
+#include <boost/asio.hpp>
 #include <glaze/glaze.hpp>
-#include "tfc/rpc.hpp"
+
+#include <tfc/rpc.hpp>
+
+namespace asio = boost::asio;
 
 struct get_config_request {
   std::string executable_name{};
@@ -33,7 +37,7 @@ struct set_config_request {
 };
 
 struct set_config_return {
-  bool succeeded{false};
+  bool succeeded{ false };
   std::string error{};
   struct glaze {
     using T = set_config_return;
@@ -48,17 +52,22 @@ auto main() -> int {
                                     glz::rpc::server_method_t<"set_config", set_config_request, set_config_return> > >
       server(ctx, "my_rpc_server");
 
+  server.converter().on<"get_config">([](get_config_request const& request) -> get_config_return {
+    fmt::print("Got get_config request:\nexe_name:{}\nid:{}\nkey:{}\n\n", request.executable_name, request.executable_id,
+               request.config_key);
+    return get_config_return{ .json = "this is my response" };
+  });
 
-  //  server.on<"get_config">([](get_config_request const& request) -> get_config_return {
-  //    fmt::print("Got get_config request:\nexe_name:{}\nid:{}\nkey:{}\n\n", request.executable_name, request.executable_id,
-  //    request.config_key); return get_config_return{.json="this is my response"};
-  //  });
-  //
-  //  server.on<"set_config">([](set_config_request const& request) -> set_config_return {
-  //    fmt::print("Got set_config request:\nexe_name:{}\nid:{}\nkey:{}\nvalue:{}\n\n", request.executable_name,
-  //    request.executable_id, request.config_key, request.value); return set_config_return{.succeeded=false, .error="can't
-  //    succeed straight away"};
-  //  });
+  server.converter().on<"set_config">([](set_config_request const& request) -> set_config_return {
+    fmt::print("Got set_config request:\nexe_name:{}\nid:{}\nkey:{}\nvalue:{}\n\n", request.executable_name,
+               request.executable_id, request.config_key, request.value);
+    return set_config_return{ .succeeded = false, .error = "can't succeed straight away" };
+  });
+
+  server.init();
+
+  ctx.run();
+
   //
   //  server.call("get_config", R"({"exe_name": "foo", "id": "bar", "key": "beers" })");
   //  server.call("set_config", R"({"exe_name": "foo", "id": "bar", "key": "beers", "value": "42" })");
