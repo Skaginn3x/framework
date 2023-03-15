@@ -1,0 +1,52 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7098778..b27ca96 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -11,16 +11,16 @@ set(CMAKE_MODULE_PATH
+   )
+   
+ include(FeatureSummary)
+-include(cmake/CPM.cmake)
++#include(cmake/CPM.cmake)
+ 
+ # ---- Add dependencies via CPM ----
+ # see https://github.com/cpm-cmake/CPM.cmake for more info
+ 
+-CPMAddPackage(
+-  NAME PackageProject.cmake
+-  GITHUB_REPOSITORY TheLartians/PackageProject.cmake
+-  VERSION 1.10.0
+-)
++#CPMAddPackage(
++#  NAME PackageProject.cmake
++#  GITHUB_REPOSITORY TheLartians/PackageProject.cmake
++#  VERSION 1.10.0
++#)
+ 
+ #-----------------------------------------------------------------------------
+ # options
+@@ -86,15 +86,15 @@ if( PROJECT_IS_TOP_LEVEL )
+       )
+   endif()
+ endif()
+-packageProject(
+-  NAME ${PROJECT_NAME}
+-  VERSION ${PROJECT_VERSION}
+-  NAMESPACE small_vectors
+-  BINARY_DIR ${PROJECT_BINARY_DIR}
+-  INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include
+-  INCLUDE_DESTINATION ${INCLUDE_INSTALL_DIR}
+-  COMPATIBILITY SameMajorVersion
+-)
++#packageProject(
++#  NAME ${PROJECT_NAME}
++#  VERSION ${PROJECT_VERSION}
++#  NAMESPACE small_vectors
++#  BINARY_DIR ${PROJECT_BINARY_DIR}
++#  INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include
++#  INCLUDE_DESTINATION ${INCLUDE_INSTALL_DIR}
++#  COMPATIBILITY SameMajorVersion
++#)
+ 
+ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${INCLUDE_INSTALL_DIR} )
+ 

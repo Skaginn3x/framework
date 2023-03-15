@@ -56,8 +56,8 @@ public:
 
 private:
   options() = default;
-  bool noeffect_{false};
-  bool stdout_{false};
+  bool noeffect_{ false };
+  bool stdout_{ false };
   std::string id_{};
   std::string exe_name_{};
   bpo::variables_map vm_{};
@@ -66,11 +66,12 @@ private:
 
 auto default_description() -> boost::program_options::options_description {
   bpo::options_description description{
-      "Time For Change executable. \n"
-      "Build: TODO <version>-<git hash>"};
+    "Time For Change executable. \n"
+    "Build: TODO <version>-<git hash>"
+  };
 
   // Dynamically fetch entries in log level
-  constexpr auto lvl_values{magic_enum::enum_entries<tfc::logger::lvl_e>()};
+  constexpr auto lvl_values{ magic_enum::enum_entries<tfc::logger::lvl_e>() };
   std::string help_text;
   std::for_each(lvl_values.begin(), lvl_values.end(), [&help_text](auto& pair) {
     help_text.append(" ");
@@ -102,7 +103,7 @@ auto get_map() noexcept -> boost::program_options::variables_map const& {
   return options::instance().get_map();
 }
 auto get_root_path() -> std::filesystem::path {
-  return {"/var/tfc"};
+  return { "/var/tfc" };
 }
 auto is_stdout_enabled() noexcept -> bool {
   return options::instance().get_stdout();

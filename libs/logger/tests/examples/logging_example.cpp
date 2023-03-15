@@ -4,7 +4,7 @@
 
 auto main(int argc, char** argv) -> int {
   // base::init reads the log lvl, program id and stdout parameters from command line.
-  auto prog_desc{tfc::base::default_description()};
+  auto prog_desc{ tfc::base::default_description() };
   tfc::base::init(argc, argv, prog_desc);
 
   // Create a instance of a logger

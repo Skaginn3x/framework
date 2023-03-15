@@ -1,0 +1,17 @@
+{
+  "name": "small-vectors",
+  "version-date": "2023-02-23",
+  "port-version": 1,
+  "description": "Small vectors, template meta utils, shared mem utils.",
+  "homepage": "https://github.com/arturbac/small_vectors",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

@@ -9,7 +9,7 @@ auto main(int argc, char** argv) -> int {
   namespace bpo = boost::program_options;
 
   "exe_name"_test = []() {
-    constexpr std::array<const char*, 4> argv_test({"foo", "--noeffect", "true", nullptr});
+    constexpr std::array<const char*, 4> argv_test({ "foo", "--noeffect", "true", nullptr });
     tfc::base::init(3, argv_test.data(), tfc::base::default_description());
     expect(tfc::base::get_exe_name() == "foo");
   };
@@ -19,7 +19,7 @@ auto main(int argc, char** argv) -> int {
     expect(tfc::base::get_proc_name() == "def");
   };
   "proc_name"_test = []() {
-    constexpr std::array<const char*, 4> argv_test({"foo", "--id", "hello-world", nullptr});
+    constexpr std::array<const char*, 4> argv_test({ "foo", "--id", "hello-world", nullptr });
     tfc::base::init(3, argv_test.data(), tfc::base::default_description());
     expect(tfc::base::get_proc_name() == "hello-world");
   };
@@ -29,7 +29,7 @@ auto main(int argc, char** argv) -> int {
     expect(!tfc::base::is_stdout_enabled());
   };
   "stdout_enabled"_test = []() {
-    constexpr std::array<const char*, 4> argv_test({"foo", "--stdout", "true", nullptr});
+    constexpr std::array<const char*, 4> argv_test({ "foo", "--stdout", "true", nullptr });
     tfc::base::init(3, argv_test.data(), tfc::base::default_description());
     expect(tfc::base::is_stdout_enabled());
   };
@@ -39,14 +39,14 @@ auto main(int argc, char** argv) -> int {
     expect(!tfc::base::is_noeffect_enabled());
   };
   "noeffect_enabled"_test = []() {
-    constexpr std::array<const char*, 4> argv_test({"foo", "--noeffect", "true", nullptr});
+    constexpr std::array<const char*, 4> argv_test({ "foo", "--noeffect", "true", nullptr });
     tfc::base::init(3, argv_test.data(), tfc::base::default_description());
     expect(tfc::base::is_noeffect_enabled());
   };
 
   "custom_options"_test = []() {
-    constexpr std::array<const char*, 4> argv_test({"foo", "--bar", "value", nullptr});
-    auto desc{tfc::base::default_description()};
+    constexpr std::array<const char*, 4> argv_test({ "foo", "--bar", "value", nullptr });
+    auto desc{ tfc::base::default_description() };
     std::string bar;
     desc.add_options()("bar", bpo::value<std::string>(&bar), "Help text");
     tfc::base::init(3, argv_test.data(), desc);

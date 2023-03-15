@@ -6,7 +6,7 @@
 
 auto main(int argc, char** argv) -> int {
   // Initilize framework
-  auto prog_desc{tfc::base::default_description()};
+  auto prog_desc{ tfc::base::default_description() };
   tfc::base::init(argc, argv, prog_desc);
 
   tfc::logger::logger foo("key");

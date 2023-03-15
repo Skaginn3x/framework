@@ -2,6 +2,7 @@
   "name": "tfc-framework",
   "version": "0.1.0",
   "dependencies": [
+    "azmq",
     "bext-ut",
     "boost-asio",
     "boost-program-options",

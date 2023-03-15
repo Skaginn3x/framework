@@ -36,6 +36,17 @@ public:
    * @param key The components key. f.e. "conveyor-left"
    * */
   explicit logger(std::string_view key);
+
+  // delete copy constructor and copy assignment
+  logger(logger const&) = delete;
+
+  auto operator=(logger const&) -> logger = delete;
+
+  // default move constructors
+  logger(logger&&) = default;
+
+  auto operator=(logger&&) -> logger& = default;
+
   /**
    * @brief Log and format messages
    * @param msg String to log

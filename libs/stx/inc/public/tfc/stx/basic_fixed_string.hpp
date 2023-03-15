@@ -33,7 +33,7 @@ struct [[nodiscard]] basic_fixed_string {
   template <unsigned other_size>
     requires(N > other_size)
   constexpr basic_fixed_string& operator=(basic_fixed_string<CharType, other_size>&& rhs) noexcept {
-    data_ = {0};
+    data_ = { 0 };
     std::move(std::begin(rhs), std::end(rhs), std::begin(data_));
     return *this;
   }
@@ -44,7 +44,7 @@ struct [[nodiscard]] basic_fixed_string {
     std::transform(foo, foo + N + 1, data_, [](other_char_type c) { return static_cast<char_type>(c); });
   }
 
-  constexpr std::basic_string_view<char_type> view() const noexcept { return {&data_[0], N}; }
+  constexpr std::basic_string_view<char_type> view() const noexcept { return { &data_[0], N }; }
 
   constexpr auto operator<=>(basic_fixed_string<char_type, N> const&) const noexcept = default;
 
@@ -60,7 +60,7 @@ basic_fixed_string(char_type const (&str)[N]) -> basic_fixed_string<char_type, N
 template <typename char_type, unsigned N, unsigned M>
 consteval auto concat_fixed_string(basic_fixed_string<char_type, N> l, basic_fixed_string<char_type, M> r) noexcept {
   basic_fixed_string<char_type, N + M> result;
-  auto it{std::copy(l.begin(), l.end(), result.data())};
+  auto it{ std::copy(l.begin(), l.end(), result.data()) };
   it = std::copy(r.begin(), r.end(), it);
   *it = {};
   return result;

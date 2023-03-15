@@ -24,14 +24,15 @@ template <typename mutex>
 class tfc_systemd_sink : public base_sink<mutex> {
 public:
   explicit tfc_systemd_sink(std::string key, bool enable_formatting = false)
-      : key_{std::move(key)}, enable_formatting_{enable_formatting}, syslog_levels_{
-                                                                         {/* spdlog::level::trace      */ LOG_DEBUG,
-                                                                          /* spdlog::level::debug      */ LOG_DEBUG,
-                                                                          /* spdlog::level::info       */ LOG_INFO,
-                                                                          /* spdlog::level::warn       */ LOG_WARNING,
-                                                                          /* spdlog::level::err        */ LOG_ERR,
-                                                                          /* spdlog::level::critical   */ LOG_CRIT,
-                                                                          /* spdlog::level::off        */ LOG_INFO}} {}
+      : key_{ std::move(key) }, enable_formatting_{ enable_formatting }, syslog_levels_{
+          { /* spdlog::level::trace      */ LOG_DEBUG,
+            /* spdlog::level::debug      */ LOG_DEBUG,
+            /* spdlog::level::info       */ LOG_INFO,
+            /* spdlog::level::warn       */ LOG_WARNING,
+            /* spdlog::level::err        */ LOG_ERR,
+            /* spdlog::level::critical   */ LOG_CRIT,
+            /* spdlog::level::off        */ LOG_INFO }
+        } {}
 
   ~tfc_systemd_sink() override = default;
 
