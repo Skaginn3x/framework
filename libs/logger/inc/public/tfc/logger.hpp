@@ -52,9 +52,27 @@ public:
    * @param msg String to log
    * @param parameters Variables embedded into the msg
    */
-  template <lvl_e T, typename... P>
-  void log(fmt::format_string<P...> msg, P&&... parameters) {
-    log_(T, fmt::vformat(msg, fmt::make_format_args(parameters...)));
+  template <lvl_e log_level, typename... args_t>
+  void log(fmt::format_string<args_t...> msg, args_t&&... parameters) {
+    log_(log_level, fmt::vformat(msg, fmt::make_format_args(parameters...)));
+  }
+  void trace(auto&& msg, auto&&... parameters) {
+    log<lvl_e::trace>(std::forward<decltype(msg)>(msg), std::forward<decltype(parameters)>(parameters)...);
+  }
+  void debug(auto&& msg, auto&&... parameters) {
+    log<lvl_e::debug>(std::forward<decltype(msg)>(msg), std::forward<decltype(parameters)>(parameters)...);
+  }
+  void info(auto&& msg, auto&&... parameters) {
+    log<lvl_e::info>(std::forward<decltype(msg)>(msg), std::forward<decltype(parameters)>(parameters)...);
+  }
+  void warn(auto&& msg, auto&&... parameters) {
+    log<lvl_e::warn>(std::forward<decltype(msg)>(msg), std::forward<decltype(parameters)>(parameters)...);
+  }
+  void error(auto&& msg, auto&&... parameters) {
+    log<lvl_e::error>(std::forward<decltype(msg)>(msg), std::forward<decltype(parameters)>(parameters)...);
+  }
+  void critical(auto&& msg, auto&&... parameters) {
+    log<lvl_e::critical>(std::forward<decltype(msg)>(msg), std::forward<decltype(parameters)>(parameters)...);
   }
 
   /**
