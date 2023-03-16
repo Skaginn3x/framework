@@ -1,5 +1,6 @@
 #include <boost/asio.hpp>
 #include <glaze/glaze.hpp>
+#include <glaze/ext/jsonrpc.hpp>
 
 #include <tfc/rpc.hpp>
 
@@ -63,6 +64,13 @@ auto main() -> int {
                request.executable_id, request.config_key, request.value);
     return set_config_return{ .succeeded = false, .error = "can't succeed straight away" };
   });
+
+
+  tfc::rpc::client<glz::rpc::client<glz::rpc::client_method_t<"get_config", get_config_request, get_config_return>,
+                                    glz::rpc::client_method_t<"set_config", set_config_request, set_config_return> > >
+      client(ctx, "/tmp/my_rpc_server");
+
+
 
   ctx.run();
 
