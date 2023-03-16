@@ -93,9 +93,13 @@ public:
       return attempted_serialize.error();
     }
     const auto serialized = attempted_serialize.value();
-    std::size_t size = socket_.send(asio::buffer(serialized, serialized.size()));
+    boost::system::error_code code{};
+    std::size_t size = socket_.send(asio::buffer(serialized, serialized.size()), code);
+    if (code) {
+      return code;
+    }
     if (size != serialized.size()) {
-      // todo: create custom error codes and retrun here
+      // todo: create custom error codes and return here
       std::terminate();
     }
     return {};

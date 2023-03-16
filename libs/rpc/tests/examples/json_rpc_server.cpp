@@ -1,7 +1,9 @@
 #include <boost/asio.hpp>
-#include <glaze/glaze.hpp>
+#include <boost/program_options.hpp>
 #include <glaze/ext/jsonrpc.hpp>
+#include <glaze/glaze.hpp>
 
+#include <tfc/progbase.hpp>
 #include <tfc/rpc.hpp>
 
 namespace asio = boost::asio;
@@ -46,7 +48,9 @@ struct set_config_return {
   };
 };
 
-auto main() -> int {
+auto main(int argc, char** argv) -> int {
+  tfc::base::init(argc, argv, tfc::base::default_description());
+
   asio::io_context ctx{};
 
   tfc::rpc::server<glz::rpc::server<glz::rpc::server_method_t<"get_config", get_config_request, get_config_return>,
@@ -65,18 +69,33 @@ auto main() -> int {
     return set_config_return{ .succeeded = false, .error = "can't succeed straight away" };
   });
 
-
   tfc::rpc::client<glz::rpc::client<glz::rpc::client_method_t<"get_config", get_config_request, get_config_return>,
                                     glz::rpc::client_method_t<"set_config", set_config_request, set_config_return> > >
       client(ctx, "/tmp/my_rpc_server");
 
+  client.converter().on<"get_config">([]([[maybe_unused]] glz::expected<get_config_return, glz::rpc::error> const& response,
+                                         glz::rpc::jsonrpc_id_type const&) -> void {
+    if (response.has_value()) {
+      fmt::print("{}\n", response->json);
+    } else {
+      fmt::print("{}\n", response.error().get_message());
+    }
+  });
 
+  client.converter().on<"set_config">([]([[maybe_unused]] glz::expected<set_config_return, glz::rpc::error> const& response,
+                                         glz::rpc::jsonrpc_id_type const&) -> void {
+    if (response.has_value()) {
+      fmt::print("{} {}\n", response->error, response->succeeded);
+    } else {
+      fmt::print("{}\n", response.error().get_message());
+    }
+  });
+
+  auto req_id = client.async_request<"get_config">(
+      get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+      [](auto const&, auto const&) { fmt::print("Request sent\n"); });
 
   ctx.run();
-
-  //
-  //  server.call("get_config", R"({"exe_name": "foo", "id": "bar", "key": "beers" })");
-  //  server.call("set_config", R"({"exe_name": "foo", "id": "bar", "key": "beers", "value": "42" })");
 
   return 0;
 }
