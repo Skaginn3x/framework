@@ -11,6 +11,7 @@
     "glaze",
     "spdlog",
     "magic-enum",
-    "azmq"
+    "bext-sml",
+    "ethercat"
   ]
 }
