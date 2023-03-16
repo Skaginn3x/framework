@@ -50,7 +50,7 @@ auto main() -> int {
 
   tfc::rpc::server<glz::rpc::server<glz::rpc::server_method_t<"get_config", get_config_request, get_config_return>,
                                     glz::rpc::server_method_t<"set_config", set_config_request, set_config_return> > >
-      server(ctx, "my_rpc_server");
+      server(ctx, "/tmp/my_rpc_server");
 
   server.converter().on<"get_config">([](get_config_request const& request) -> get_config_return {
     fmt::print("Got get_config request:\nexe_name:{}\nid:{}\nkey:{}\n\n", request.executable_name, request.executable_id,
@@ -63,8 +63,6 @@ auto main() -> int {
                request.executable_id, request.config_key, request.value);
     return set_config_return{ .succeeded = false, .error = "can't succeed straight away" };
   });
-
-  server.init();
 
   ctx.run();
 
