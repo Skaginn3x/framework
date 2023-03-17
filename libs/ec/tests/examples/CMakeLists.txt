@@ -1,0 +1,2 @@
+tfc_add_example(ec_example_run_motor run_motor.cpp)
+target_link_libraries(ec_example_run_motor tfc::ec)
