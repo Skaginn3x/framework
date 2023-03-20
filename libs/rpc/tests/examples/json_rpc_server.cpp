@@ -96,36 +96,35 @@ auto main(int argc, char** argv) -> int {
   asio::deadline_timer verification_timer{ ctx };
   verification_timer.expires_from_now(boost::posix_time::milliseconds(1));
   verification_timer.async_wait([&client](auto) {
-//
-//      for (int i = 0; i < 1; ++i) {
-//        client.async_request<"get_config">(
-//            get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
-//            [](glz::expected<get_config_return, glz::rpc::error> const& response,
-//               glz::rpc::jsonrpc_id_type const&) -> void {
-//              if (response.has_value()) {
-//                fmt::print("Got response: {}\n", response->json);
-//              } else {
-//                fmt::print("Got error man: {}\n", response.error().get_message());
-//              }
-//            });
-//      }
-//      client.async_request<"set_config">(
-//          set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
-//          [](glz::expected<set_config_return, glz::rpc::error> const& response,
-//             glz::rpc::jsonrpc_id_type const&) -> void {
-//            if (response.has_value()) {
-//              fmt::print("Got response:{} {}\n", response->error, response->succeeded);
-//            } else {
-//              fmt::print("Got error man:{}\n", response.error().get_message());
-//            }
-//          });
+    //
+    for (int i = 0; i < 1; ++i) {
+      client.async_request<"get_config">(
+          get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+          [](glz::expected<get_config_return, glz::rpc::error> const& response, glz::rpc::jsonrpc_id_type const&) -> void {
+            if (response.has_value()) {
+              fmt::print("Got response: {}\n", response->json);
+            } else {
+              fmt::print("Got error man: {}\n", response.error().get_message());
+            }
+          });
+    }
 
-      client.async_notify<"set_config">(
-          set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" });
+    client.async_notify<"set_config">(
+        set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" });
 
+    client.async_request<"set_config">(
+        set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+        [](glz::expected<set_config_return, glz::rpc::error> const& response, glz::rpc::jsonrpc_id_type const&) -> void {
+          if (response.has_value()) {
+            fmt::print("Got response:{} {}\n", response->error, response->succeeded);
+          } else {
+            fmt::print("Got error man:{}\n", response.error().get_message());
+          }
+        });
 
+    client.async_notify<"set_config">(
+        set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" });
   });
-
 
   ctx.run();
 
