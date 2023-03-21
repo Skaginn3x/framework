@@ -73,26 +73,6 @@ auto main(int argc, char** argv) -> int {
                                     glz::rpc::client_method_t<"set_config", set_config_request, set_config_return> > >
       client(ctx, "/tmp/my_rpc_server");
 
-  //  client.converter().on<"get_config">([]([[maybe_unused]] glz::expected<get_config_return, glz::rpc::error> const&
-  //  response,
-  //                                         glz::rpc::jsonrpc_id_type const&) -> void {
-  //    if (response.has_value()) {
-  //      fmt::print("{}\n", response->json);
-  //    } else {
-  //      fmt::print("{}\n", response.error().get_message());
-  //    }
-  //  });
-  //
-  //  client.converter().on<"set_config">([]([[maybe_unused]] glz::expected<set_config_return, glz::rpc::error> const&
-  //  response,
-  //                                         glz::rpc::jsonrpc_id_type const&) -> void {
-  //    if (response.has_value()) {
-  //      fmt::print("{} {}\n", response->error, response->succeeded);
-  //    } else {
-  //      fmt::print("{}\n", response.error().get_message());
-  //    }
-  //  });
-
   asio::deadline_timer verification_timer{ ctx };
   verification_timer.expires_from_now(boost::posix_time::milliseconds(1));
   verification_timer.async_wait([&client](auto) {
@@ -110,7 +90,7 @@ auto main(int argc, char** argv) -> int {
     }
 
     client.async_notify<"set_config">(
-        set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" });
+        set_config_request{ .executable_name = "notify1", .executable_id = "notify1", .config_key = "notify1" });
 
     client.async_request<"set_config">(
         set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
@@ -123,7 +103,7 @@ auto main(int argc, char** argv) -> int {
         });
 
     client.async_notify<"set_config">(
-        set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" });
+        set_config_request{ .executable_name = "notify2", .executable_id = "notify2", .config_key = "notify2" });
   });
 
   ctx.run();
