@@ -64,7 +64,8 @@ auto main(int argc, char** argv) -> int {
   desc.add_options()("client", bpo::bool_switch(&make_client)->default_value(false), "Make client.")(
       "server", bpo::bool_switch(&make_server)->default_value(false), "Make server.")(
       "faulty-server", bpo::bool_switch(&make_faulty_server)->default_value(false),
-      "Make faulty server. FYI, cannot make both faulty and normal server, faulty server throws(crashes) during any request.");
+      "Make faulty server. FYI, cannot make both faulty and normal server, faulty server throws(crashes) during any "
+      "request.");
   tfc::base::init(argc, argv, desc);
 
   asio::io_context ctx{};
@@ -84,14 +85,13 @@ auto main(int argc, char** argv) -> int {
                  request.executable_id, request.config_key, request.value);
       return set_config_return{ .succeeded = false, .error = "can't succeed straight away" };
     });
-  }
-  else if(make_faulty_server) {
+  } else if (make_faulty_server) {
     server = std::make_shared<server_t>(ctx, "/tmp/my_rpc_server");
     server->converter().on<"get_config">([](get_config_request const& request) -> get_config_return {
-      throw std::runtime_error{"get_config Faulty server"};
+      throw std::runtime_error{ "get_config Faulty server" };
     });
     server->converter().on<"set_config">([](set_config_request const& request) -> set_config_return {
-      throw std::runtime_error{"set_config Faulty server"};
+      throw std::runtime_error{ "set_config Faulty server" };
     });
   }
 
@@ -103,7 +103,7 @@ auto main(int argc, char** argv) -> int {
     a_timer.expires_from_now(boost::posix_time::milliseconds(1));
     a_timer.async_wait([&client](auto) {
       //
-      for (int i = 0; i < 1; ++i) {
+      for (int i = 0; i < 2; ++i) {
         client->async_request<"get_config">(
             get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
             [](glz::expected<get_config_return, glz::rpc::error> const& response, glz::rpc::jsonrpc_id_type const&) -> void {
@@ -124,7 +124,7 @@ auto main(int argc, char** argv) -> int {
             if (response.has_value()) {
               fmt::print("Got response:{} {}\n", response->error, response->succeeded);
             } else {
-              fmt::print("Got error man:{}\n", response.error().get_message());
+              fmt::print("Got set error man:{}\n", response.error().get_message());
             }
           });
 
@@ -132,8 +132,6 @@ auto main(int argc, char** argv) -> int {
           set_config_request{ .executable_name = "notify2", .executable_id = "notify2", .config_key = "notify2" });
     });
   }
-
-
 
   ctx.run();
 
