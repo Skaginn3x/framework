@@ -106,11 +106,24 @@ auto main(int argc, char** argv) -> int {
       for (int i = 0; i < 2; ++i) {
         client->async_request<"get_config">(
             get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
-            [](glz::expected<get_config_return, glz::rpc::error> const& response, glz::rpc::jsonrpc_id_type const&) -> void {
+            [&client](glz::expected<get_config_return, glz::rpc::error> const& response,
+                      glz::rpc::jsonrpc_id_type const&) -> void {
               if (response.has_value()) {
                 fmt::print("Got response: {}\n", response->json);
               } else {
                 fmt::print("Got error man: {}\n", response.error().get_message());
+
+                // let's try if we can re-request and reconnect to server seamlessly
+                client->async_request<"get_config">(
+                    get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+                    [](glz::expected<get_config_return, glz::rpc::error> const& inner_response,
+                       glz::rpc::jsonrpc_id_type const&) -> void {
+                      if (inner_response.has_value()) {
+                        fmt::print("Got inner_response: {}\n", inner_response->json);
+                      } else {
+                        fmt::print("Got error man: {}\n", inner_response.error().get_message());
+                      }
+                    });
               }
             });
       }
