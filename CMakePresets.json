@@ -79,5 +79,19 @@
       "name": "build-ci-gcc-release",
       "configurePreset": "ci-gcc-release"
     }
+  ],
+  "testPresets": [
+    {
+      "name": "test-ci-clang-debug",
+      "configurePreset": "ci-clang-debug",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "test-ci-gcc-debug",
+      "configurePreset": "ci-gcc-debug",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
   ]
 }
