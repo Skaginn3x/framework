@@ -87,63 +87,57 @@ auto main(int argc, char** argv) -> int {
     });
   } else if (make_faulty_server) {
     server = std::make_shared<server_t>(ctx, "/tmp/my_rpc_server");
-    server->converter().on<"get_config">([](get_config_request const&  /*request*/) -> get_config_return {
-      throw std::runtime_error{ "get_config Faulty server" };
-    });
-    server->converter().on<"set_config">([](set_config_request const&  /*request*/) -> set_config_return {
-      throw std::runtime_error{ "set_config Faulty server" };
-    });
+    server->converter().on<"get_config">(
+        [](get_config_request const&) -> get_config_return { throw std::runtime_error{ "get_config Faulty server" }; });
+    server->converter().on<"set_config">(
+        [](set_config_request const&) -> set_config_return { throw std::runtime_error{ "set_config Faulty server" }; });
   }
 
   std::shared_ptr<client_t> client{};
 
   if (make_client) {
     client = std::make_shared<client_t>(ctx, "/tmp/my_rpc_server");
-    asio::deadline_timer a_timer{ ctx };
-    a_timer.expires_from_now(boost::posix_time::milliseconds(1));
-    a_timer.async_wait([&client](auto) {
-      //
-      for (int i = 0; i < 2; ++i) {
-        client->async_request<"get_config">(
-            get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
-            [&client](glz::expected<get_config_return, glz::rpc::error> const& response,
-                      glz::rpc::jsonrpc_id_type const&) -> void {
-              if (response.has_value()) {
-                fmt::print("Got response: {}\n", response->json);
-              } else {
-                fmt::print("Got error man: {}\n", response.error().get_message());
-
-                // let's try if we can re-request and reconnect to server seamlessly
-                client->async_request<"get_config">(
-                    get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
-                    [](glz::expected<get_config_return, glz::rpc::error> const& inner_response,
-                       glz::rpc::jsonrpc_id_type const&) -> void {
-                      if (inner_response.has_value()) {
-                        fmt::print("Got inner_response: {}\n", inner_response->json);
-                      } else {
-                        fmt::print("Got error man: {}\n", inner_response.error().get_message());
-                      }
-                    });
-              }
-            });
-      }
-
-      client->async_notify<"set_config">(
-          set_config_request{ .executable_name = "notify1", .executable_id = "notify1", .config_key = "notify1" });
-
-      client->async_request<"set_config">(
-          set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
-          [](glz::expected<set_config_return, glz::rpc::error> const& response, glz::rpc::jsonrpc_id_type const&) -> void {
+    //
+    for (int i = 0; i < 2; ++i) {
+      client->async_request<"get_config">(
+          get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+          [&client](glz::expected<get_config_return, glz::rpc::error> const& response,
+                    glz::rpc::jsonrpc_id_type const&) -> void {
             if (response.has_value()) {
-              fmt::print("Got response:{} {}\n", response->error, response->succeeded);
+              fmt::print("Got response: {}\n", response->json);
             } else {
-              fmt::print("Got set error man:{}\n", response.error().get_message());
+              fmt::print("Got error man: {}\n", response.error().get_message());
+
+              // let's try if we can re-request and reconnect to server seamlessly
+              client->async_request<"get_config">(
+                  get_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+                  [](glz::expected<get_config_return, glz::rpc::error> const& inner_response,
+                     glz::rpc::jsonrpc_id_type const&) -> void {
+                    if (inner_response.has_value()) {
+                      fmt::print("Got inner_response: {}\n", inner_response->json);
+                    } else {
+                      fmt::print("Got error man: {}\n", inner_response.error().get_message());
+                    }
+                  });
             }
           });
+    }
 
-      client->async_notify<"set_config">(
-          set_config_request{ .executable_name = "notify2", .executable_id = "notify2", .config_key = "notify2" });
-    });
+    client->async_notify<"set_config">(
+        set_config_request{ .executable_name = "notify1", .executable_id = "notify1", .config_key = "notify1" });
+
+    client->async_request<"set_config">(
+        set_config_request{ .executable_name = "hello world", .executable_id = "bar", .config_key = "foo" },
+        [](glz::expected<set_config_return, glz::rpc::error> const& response, glz::rpc::jsonrpc_id_type const&) -> void {
+          if (response.has_value()) {
+            fmt::print("Got response:{} {}\n", response->error, response->succeeded);
+          } else {
+            fmt::print("Got set error man:{}\n", response.error().get_message());
+          }
+        });
+
+    client->async_notify<"set_config">(
+        set_config_request{ .executable_name = "notify2", .executable_id = "notify2", .config_key = "notify2" });
   }
 
   ctx.run();

@@ -54,7 +54,7 @@ auto main(int, char**) -> int {
   using client_t = rpc::client<glz::rpc::client<glz::rpc::client_method_t<method_name, std::string, int>>>;
 
   [[maybe_unused]] ut::suite const rpc_test_cases = [] {
-    "happy path"_test = [] {
+    "rpc happy path"_test = [] {
       asio::io_context ctx{};
       server_t server{ ctx, "/tmp/fthis" };
 
@@ -75,6 +75,26 @@ auto main(int, char**) -> int {
           ut::expect(value.value() == expected_output);
         }
       });
+
+      ctx.run_for(std::chrono::milliseconds(1));
+      ut::expect(called);
+    };
+
+    "notify happy path"_test = [] {
+      asio::io_context ctx{};
+      server_t server{ ctx, "/tmp/notify_test" };
+
+      std::string expected_input{ "hello world"s };
+      bool called{};
+
+      server.converter().on<method_name>([expected_input, &called](std::string const& input) -> int {
+        called = true;
+        ut::expect(input == expected_input);
+        return 0;
+      });
+
+      client_t client{ ctx, "/tmp/notify_test" };
+      client.async_notify<method_name>(expected_input);
 
       ctx.run_for(std::chrono::milliseconds(1));
       ut::expect(called);

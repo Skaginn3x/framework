@@ -52,13 +52,11 @@ constexpr auto operator==(server_error_e const& lhs, glz::rpc::error_e const& rh
 template <typename owner_t,
           concepts::jsonrpc_type jsonrpc_server_t,
           zmq_socket_type_e rpc_type,
-          zmq_socket_type_e notify_type,
           bool optimize_single_threaded>
 class rpc_skeleton {
 public:
   explicit rpc_skeleton(asio::io_context& ctx, std::string_view name)
-      : name_{ name }, logger_{ name }, rpc_socket_{ ctx, std::to_underlying(rpc_type), optimize_single_threaded },
-        notifications_{ ctx, std::to_underlying(notify_type), optimize_single_threaded } {
+      : name_{ name }, logger_{ name }, rpc_socket_{ ctx, std::to_underlying(rpc_type), optimize_single_threaded } {
     static_cast<owner_t*>(this)->init();
   }
 
@@ -75,7 +73,6 @@ protected:
   std::string name_{};
   tfc::logger::logger logger_;
   azmq::socket rpc_socket_;
-  azmq::socket notifications_;
   static constexpr auto qualified_endpoint(std::string_view name) -> std::string { return fmt::format("ipc://{}", name); }
 };
 
@@ -83,18 +80,16 @@ template <concepts::jsonrpc_type jsonrpc_server_t, bool optimize_single_threaded
 class server : public rpc_skeleton<server<jsonrpc_server_t, optimize_single_threaded>,
                                    jsonrpc_server_t,
                                    zmq_socket_type_e::rep,
-                                   zmq_socket_type_e::sub,
                                    optimize_single_threaded> {
 public:
   explicit server(asio::io_context& ctx, std::string_view name)
-      : rpc_skeleton<server, jsonrpc_server_t, zmq_socket_type_e::rep, zmq_socket_type_e::sub, optimize_single_threaded>{
-          ctx, name
-        } {}
+      : rpc_skeleton<server, jsonrpc_server_t, zmq_socket_type_e::rep, optimize_single_threaded>{ ctx, name } {}
+
+  ~server() { this->rpc_socket_.unbind(this->qualified_endpoint(this->name_)); }
 
   friend class rpc_skeleton<server<jsonrpc_server_t, optimize_single_threaded>,
                             jsonrpc_server_t,
                             zmq_socket_type_e::rep,
-                            zmq_socket_type_e::sub,
                             optimize_single_threaded>;
 
 private:
@@ -102,16 +97,9 @@ private:
     this->rpc_socket_.bind(this->qualified_endpoint(this->name_));
     this->rpc_socket_.async_receive(
         [this](std::error_code const& err_code, azmq::message const& msg, size_t bytes_transferred) {
-          this->receive_handler<false>(err_code, msg, bytes_transferred);
-        });
-    this->notifications_.set_option(azmq::socket::subscribe(""));
-    this->notifications_.bind(this->qualified_endpoint(fmt::format("{}.notify", this->name_)));
-    this->notifications_.async_receive(
-        [this](std::error_code const& err_code, azmq::message const& msg, size_t bytes_transferred) {
-          this->receive_handler<true>(err_code, msg, bytes_transferred);
+          this->receive_handler(err_code, msg, bytes_transferred);
         });
   }
-  template <bool notification>
   void receive_handler(std::error_code const& err_code, azmq::message const& msg, size_t bytes_transferred) noexcept {
     if (err_code) {
       this->logger_.warn("Got error: '{}'", err_code.message());
@@ -125,32 +113,23 @@ private:
       auto const response{ this->jsonrpc_converter_.call(
           std::string_view(static_cast<char const*>(msg.data()), bytes_transferred)) };
 
-      if constexpr (!notification) {
-        auto const response_shared{ std::make_shared<std::string>(std::move(response)) };
-        this->rpc_socket_.async_send(
-            azmq::message(*response_shared),
-            [this, response_shared](std::error_code const& err, std::size_t socket_bytes_transferred) {
-              if (err) {
-                this->logger_.warn("Error: '{}' while sending: '{}'. Sent nr of bytes: {}", err.message(), *response_shared,
-                                   socket_bytes_transferred);
-              }
-            });
-      }
+      auto const response_shared{ std::make_shared<std::string>(std::move(response)) };
+      this->rpc_socket_.async_send(
+          azmq::message(*response_shared),
+          [this, response_shared](std::error_code const& err, std::size_t socket_bytes_transferred) {
+            if (err) {
+              this->logger_.warn("Error: '{}' while sending: '{}'. Sent nr of bytes: {}", err.message(), *response_shared,
+                                 socket_bytes_transferred);
+            }
+          });
     } catch (std::exception const& exc) {
       this->logger_.warn("Exception: '{}' will terminate program", exc.what());
       std::terminate();  // maybe instead do io_context stop/restart
     }
-    if constexpr (notification) {
-      this->notifications_.async_receive(
-          [this](std::error_code const& err, azmq::message const& new_msg, size_t notify_bytes_transferred) {
-            this->receive_handler<notification>(err, new_msg, notify_bytes_transferred);
-          });
-    } else {
-      this->rpc_socket_.async_receive(
-          [this](std::error_code const& err, azmq::message const& new_msg, size_t socket_bytes_transferred) {
-            this->receive_handler<notification>(err, new_msg, socket_bytes_transferred);
-          });
-    }
+    this->rpc_socket_.async_receive(
+        [this](std::error_code const& err, azmq::message const& new_msg, size_t socket_bytes_transferred) {
+          this->receive_handler(err, new_msg, socket_bytes_transferred);
+        });
   }
 };
 
@@ -158,17 +137,12 @@ template <concepts::jsonrpc_type jsonrpc_client_t, bool optimize_single_threaded
 class client : public rpc_skeleton<client<jsonrpc_client_t, optimize_single_threaded>,
                                    jsonrpc_client_t,
                                    zmq_socket_type_e::req,
-                                   zmq_socket_type_e::pub,
                                    optimize_single_threaded> {
 public:
   using uuid = std::string;
 
   explicit client(asio::io_context& ctx, std::string_view name)
-      : rpc_skeleton<client,
-                     jsonrpc_client_t,
-                     zmq_socket_type_e::req,
-                     zmq_socket_type_e::pub,
-                     optimize_single_threaded>{ ctx, name },
+      : rpc_skeleton<client, jsonrpc_client_t, zmq_socket_type_e::req, optimize_single_threaded>{ ctx, name },
         uuid_prefix_{ fmt::format("{}.{}.{}", base::get_exe_name(), base::get_proc_name(), this->name_) },
         rpc_socket_monitor_{ this->rpc_socket_.monitor(ctx, ZMQ_EVENT_DISCONNECTED) } {
     rpc_socket_monitor_.async_receive(std::bind(&client::on_disconnect_do_reconnect, this, std::placeholders::_1,
@@ -241,26 +215,25 @@ public:
     auto request_str_ptr = std::make_shared<std::string>(
         this->jsonrpc_converter_.template notify<method_name>(std::forward<decltype(params)>(params)));
 
-    this->notifications_.async_send(asio::buffer(*request_str_ptr, request_str_ptr->size()),
-                                    [request_str_ptr, this](std::error_code const& err, std::size_t) {
-                                      if (err) {
-                                        this->logger_.warn("Error: '{}' during async send of RPC notification",
-                                                           err.message());
-                                      }
-                                    });
+    this->rpc_socket_.async_send(
+        asio::buffer(*request_str_ptr, request_str_ptr->size()),
+        [request_str_ptr, this](std::error_code const& err, std::size_t) {
+          if (err) {
+            this->logger_.warn("Error: '{}' during async send of RPC notification", err.message());
+            return;
+          }
+          // We don't really care about the async receive here, we need to acknowledge the empty answer
+          this->rpc_socket_.async_receive([](std::error_code const&, azmq::message const&, std::size_t) {});
+        });
   }
 
   friend class rpc_skeleton<client<jsonrpc_client_t, optimize_single_threaded>,
                             jsonrpc_client_t,
                             zmq_socket_type_e::req,
-                            zmq_socket_type_e::pub,
                             optimize_single_threaded>;
 
 private:
-  auto init() noexcept(false) -> void {
-    this->rpc_socket_.connect(this->qualified_endpoint(this->name_));
-    this->notifications_.connect(this->qualified_endpoint(fmt::format("{}.notify", this->name_)));
-  }
+  auto init() noexcept(false) -> void { this->rpc_socket_.connect(this->qualified_endpoint(this->name_)); }
 
   auto reconstruct_rpc_socket() noexcept -> void {
     try {
