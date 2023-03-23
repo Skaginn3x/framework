@@ -3,7 +3,8 @@
 #include "tfc/utils/pragmas.hpp"
 
 #include <boost/program_options.hpp>
-#include <iostream>
+#include <boost/stacktrace.hpp>
+#include <fmt/printf.h>
 #include <magic_enum.hpp>
 
 namespace bpo = boost::program_options;
@@ -111,5 +112,12 @@ auto is_stdout_enabled() noexcept -> bool {
 auto is_noeffect_enabled() noexcept -> bool {
   return options::instance().get_noeffect();
 }
+
+void terminate() {
+  boost::stacktrace::stacktrace const trace{};
+  fmt::fprintf(stderr, "%s\n", to_string(trace).data());
+  std::terminate();
+}
+
 
 }  // namespace tfc::base

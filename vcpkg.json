@@ -6,6 +6,7 @@
     "bext-ut",
     "boost-asio",
     "boost-program-options",
+    "boost-stacktrace",
     "fmt",
     "glaze",
     "spdlog",
