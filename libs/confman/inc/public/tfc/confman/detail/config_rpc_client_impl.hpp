@@ -1,5 +1,7 @@
 #pragma once
 
+#include <expected>
+
 #include <tfc/confman/detail/common.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/rpc.hpp>
@@ -24,22 +26,22 @@ public:
     notifications_.async_receive([this](auto const& err, auto const& msg, auto bytes) { on_notification(err, msg, bytes); });
   }
 
-  void subscribe(std::invocable<std::error_code, std::string_view> auto&& callback) {
+  void subscribe(std::invocable<std::expected<std::string_view, std::error_code>> auto&& callback) {
     on_notify_ = std::forward<decltype(callback)>(callback);
   }
 
 private:
   void on_notification(std::error_code const& err, azmq::message const& msg, std::size_t bytes_received) {
     if (err) {
-      on_notify_(err, "");
+      on_notify_(std::unexpected(err));
       return;
     }
     std::string_view const msg_str{ static_cast<char const*>(msg.data()), bytes_received };
     if (!msg_str.starts_with(topic_)) [[unlikely]] {
-      on_notify_(std::make_error_code(std::errc::no_message), "");  // todo custom error code
+      on_notify_(std::unexpected(std::make_error_code(std::errc::no_message)));  // todo custom error code
       return;
     }
-    on_notify_(err, msg_str.substr(topic_.size()));
+    on_notify_(msg_str.substr(topic_.size()));
 
     notifications_.async_receive([this](auto const& inner_err, auto const& inner_msg, auto inner_bytes) {
       on_notification(inner_err, inner_msg, inner_bytes);
@@ -49,7 +51,9 @@ private:
   std::string topic_{};
   client_t client_;
   azmq::sub_socket notifications_;
-  std::function<void(std::error_code, std::string_view)> on_notify_{ [](std::error_code, std::string_view) {} };
+  std::function<void(std::expected<std::string_view, std::error_code>)> on_notify_{
+    [](std::expected<std::string_view, std::error_code>) {}
+  };
 };
 
 }  // namespace tfc::confman::detail
