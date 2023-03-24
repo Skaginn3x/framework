@@ -15,7 +15,9 @@ template <observable_type conf_param_t>
 class [[nodiscard]] observable {
 public:
   observable() = default;
+  /// \brief construct observable with default value
   explicit observable(conf_param_t&& value) : value_{ std::forward<decltype(value)>(value) } {}
+  /// \brief construct observable with default value and changes callback
   observable(conf_param_t&& value, std::function<void(conf_param_t)>&& callback)
       : value_{ std::forward<decltype(value)>(value) }, callback_{ std::move(callback) } {}
 
@@ -24,6 +26,7 @@ public:
   observable(observable&&) noexcept = default;
   auto operator=(observable&&) noexcept -> observable& = default;
 
+  /// \brief subscribe to changes
   void observe(std::invocable<conf_param_t const&> auto&& callback) const {
     callback_ = std::forward<decltype(callback)>(callback);
   }

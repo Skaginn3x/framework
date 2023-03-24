@@ -5,7 +5,6 @@ add_subdirectory(confman)
 add_subdirectory(ipc)
 add_subdirectory(rpc)
 add_subdirectory(stx)
-add_subdirectory(rpc)
 
 add_library(tfc INTERFACE)
 add_library(tfc::tfc ALIAS tfc)

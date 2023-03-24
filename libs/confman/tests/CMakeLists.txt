@@ -10,4 +10,15 @@ add_test(
     observer_test
 )
 
+add_executable(confman_test confman_test.cpp)
+
+target_link_libraries(confman_test PRIVATE tfc::confman Boost::ut glaze::glaze)
+
+add_test(
+  NAME
+    confman_test
+  COMMAND
+    confman_test
+)
+
 add_subdirectory(examples)
