@@ -61,7 +61,7 @@ public:
   }
 
   rpc_skeleton(rpc_skeleton const&) = delete;
-  auto operator=(rpc_skeleton const&) -> rpc_skeleton = delete;
+  auto operator=(rpc_skeleton const&) -> rpc_skeleton& = delete;
   rpc_skeleton(rpc_skeleton&&) = delete;
   auto operator=(rpc_skeleton&&) -> rpc_skeleton& = delete;
 
