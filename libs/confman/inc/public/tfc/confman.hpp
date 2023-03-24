@@ -1,38 +1,51 @@
 #pragma once
-#include <functional>
-#include <type_traits>
-#include <string_view>
 
-constexpr std::string_view confman_socket = "/var/run/confman.sock";
+#include <functional>
+#include <string_view>
+#include <type_traits>
+
+#include <glaze/core/common.hpp>
+
+#include <tfc/confman/observable.hpp>
 
 namespace tfc::confman {
-template<typename conf_param_t>
-concept non_floating = std::equality_comparable<conf_param_t> && !std::is_floating_point_v<conf_param_t>;
 
-template<non_floating conf_param_t>
-class on_change {
+constexpr std::string_view socket_path = "/var/run/confman.sock";
+
+template <typename storage_t>
+class config {
 public:
-  on_change(const conf_param_t&& value, std::function< void (conf_param_t)>&& callback) : value_{std::move(value)}, callback_{std::move(callback)} {}
-  void set(const conf_param_t&& value){
-    if (value != value_){
-      value_ = std::move(value);
-      callback_(value_);
-    }
-  }
-  auto value() const noexcept -> conf_param_t const & { return value_; }
+  explicit config(std::string_view key) : key_(key) {}
+  config(std::string_view key, storage_t&& def) : key_(key), storage_(std::forward<decltype(def)>(def)) {}
+
+  [[nodiscard]] auto get() const noexcept -> storage_t const& { return storage_; }
+  void set(storage_t&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
+
 private:
-  conf_param_t value_;
-  std::function<void(conf_param_t const&)> callback_;
+  std::string key_{};
+  storage_t storage_{};
 };
 
-template<typename service_t>
-concept service = std::is_class_v<service_t> && std::is_trivially_copyable_v<service_t> && std::is_default_constructible_v<service_t>;
+struct storage_example {
+  int a{};
+  double b{};
+  observable<bool> active{};
+  struct glaze {
+    using T = storage_example;
+    static constexpr auto value = glz::object("a", &T::a, "b", &T::b, "active", &T::active);
+  };
+};
 
-template<service service_t>
-class confman {
+class use_case {
 public:
-  confman() = default;
+  use_case() {
+    config_.get().active.observe([](bool new_value) {
+      // do something
+    });
+  }
 
-  void register_service(service_t to_register) {}
+private:
+  config<storage_example> config_{ "key.1", storage_example{ .a = 1 } };
 };
+
 }  // namespace tfc::confman
