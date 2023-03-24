@@ -3,8 +3,6 @@ name: gcc
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -93,3 +91,37 @@ jobs:
 #
 #          # (Optional) cppcheck args
 #          cppcheck_args: --enable=all --suppress=missingInclude
+
+      - name: Move doxygen into read the docs
+        run: |
+          mkdir ./build/ci-gcc-debug/docs/sphinx/doxygen
+          mv ./build/ci-gcc-debug/docs/doxygen/html/* ./build/ci-gcc-debug/docs/sphinx/doxygen/ 
+
+      - name: Upload read the docs
+        uses: actions/upload-pages-artifact@v0
+        with:
+          name: github-pages
+          path: ./build/ci-gcc-debug/docs/sphinx
+          retention-days: 1
+
+  deploy:
+    if: ${{ github.event.action }} == 'opened'
+    name: 'Deploy github pages'
+    # Add a dependency to the build job
+    needs: build
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
