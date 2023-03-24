@@ -4,5 +4,7 @@
 
 
 int main(){
-  tfc::ec::master::request(0);
+  return 0;
 }
+
+

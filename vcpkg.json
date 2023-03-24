@@ -12,6 +12,6 @@
     "spdlog",
     "magic-enum",
     "bext-sml",
-    "ethercat"
+    "soem-master"
   ]
 }
