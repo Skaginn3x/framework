@@ -6,7 +6,6 @@
 
 #include <glaze/core/common.hpp>
 
-#include <tfc/confman/detail/config_rpc_client_impl.hpp>
 #include <tfc/confman/observable.hpp>
 
 namespace tfc::confman {
