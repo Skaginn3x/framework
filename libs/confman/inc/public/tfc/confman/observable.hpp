@@ -4,14 +4,27 @@
 #include <concepts>
 #include <functional>
 #include <type_traits>
+#include <compare>
 
 namespace tfc::confman {
 template <typename conf_param_t>
-concept observable_type = std::equality_comparable<conf_param_t> && !
-std::is_floating_point_v<conf_param_t>&& std::is_default_constructible_v<conf_param_t>;
+concept observable_type = requires {
+  requires std::is_default_constructible_v<conf_param_t>;
+  requires std::equality_comparable<conf_param_t>;
+//  requires std::three_way_comparable<conf_param_t>;
+  requires !std::is_floating_point_v<conf_param_t>; // todo why not
+};
 
 /// \brief observable variable, the user can get notified if it is changed
 /// \tparam conf_param_t equality comparable and default constructible type
+/// Limitations:
+///   1. recurrent observable ownership like
+///     struct foo{ observable<int> integer{}; };
+///     struct bar{ observable<foo> instance{}; };
+///     // given that you have already set observing callbacks you would only get callback for integer not instance
+///     bar{}.instance.integer.set(32);
+///     // workaround is to use assignment operators at top level of the recurrence
+///     bar obj{}; obj = bar{ .instance = { .integer = 32 } };
 template <observable_type conf_param_t>
 class [[nodiscard]] observable {
 public:
@@ -59,7 +72,7 @@ public:
       }
     }
     return *this;
-  };
+  }
   /// \brief set new value, if changed notify observer
   auto operator=(conf_param_t&& value) -> observable& {
     set(std::move(value));
@@ -69,6 +82,20 @@ public:
   auto operator=(conf_param_t const& value) -> observable& {
     set({ value });
     return *this;
+  }
+
+  friend auto constexpr operator==(observable const& lhs, observable const& rhs) noexcept -> bool {
+    return lhs.value_ == rhs.value_;
+  }
+  friend auto constexpr operator==(observable const& lhs, conf_param_t const& rhs) noexcept -> bool {
+    return lhs.value_ == rhs;
+  }
+  // todo how to determine at compile time whether conf_param_t is three_way_comparable
+  friend auto constexpr operator<=>(observable const& lhs, observable const& rhs) noexcept {
+    return lhs.value_ <=> rhs.value_;
+  }
+  friend auto constexpr operator<=>(observable const& lhs, conf_param_t const& rhs) noexcept {
+    return lhs.value_ <=> rhs;
   }
 
   /// \brief subscribe to changes

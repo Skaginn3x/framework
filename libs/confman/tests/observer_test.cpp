@@ -104,4 +104,56 @@ auto main(int, char**) -> int {
     expect(called_b);
     expect(called_c);
   };
+
+  "recursive move assignment struct test"_test = [] {
+    struct foo {
+      int_observable a{ 0 };
+      int non_observable{ 1 };
+      int_observable b{ 2 };
+      int_observable c{ 3 };
+
+      auto operator==(foo const& rhs) const noexcept -> bool {
+        return a == rhs.a && non_observable == rhs.non_observable && b == rhs.b && c == rhs.c;
+      }
+    };
+    struct bar {
+      tfc::confman::observable<foo> foo_instance{};
+    };
+    bool called_a{};
+    bool called_b{};
+    bool called_c{};
+    bool called_foo_instance{};
+
+    bar test_obj{
+      .foo_instance = { foo{ .a = { 0, [&called_a](int, int) { called_a = true; } },
+                             .non_observable = 32,
+                             .b = { 0, [&called_b](int, int) { called_b = true; } },
+                             .c = { 0, [&called_c](int, int) { called_c = true; } } },
+                        [&called_foo_instance](auto&, auto&) { called_foo_instance = true; } },
+    };
+    expect(!called_a);
+    expect(!called_b);
+    expect(!called_c);
+    expect(!called_foo_instance);
+    test_obj = bar{};
+    expect(!called_a);
+    expect(called_b);
+    expect(called_c);
+    expect(called_foo_instance);
+  };
+
+  "three way comparable"_test = [] {
+    int_observable const var{32};
+    int_observable const less_than_var{30};
+    expect(var > less_than_var);
+    expect(less_than_var < var);
+    expect(var != less_than_var);
+    int const still_less_than_var{30};
+    expect(var > still_less_than_var);
+    expect(still_less_than_var < var);
+    expect(var != still_less_than_var);
+    // equality
+    expect(var == 32);
+    expect(var == int_observable{32});
+  };
 }
