@@ -8,10 +8,10 @@ constexpr std::string_view rpc_socket = "/tmp/confman.rpc.sock";
 constexpr std::string_view notify_socket = "/tmp/confman.notify.sock";
 
 struct alive {
-  glz::raw_json_view defaults{};
+  glz::raw_json_view schema{};
   std::string identity{};
   struct glaze {
-    static auto constexpr value{ glz::object("id", &alive::identity, "defaults", &alive::defaults) };
+    static auto constexpr value{ glz::object("id", &alive::identity, "schema", &alive::schema) };
   };
 };
 
