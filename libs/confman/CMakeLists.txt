@@ -19,9 +19,11 @@ target_include_directories(libconfman
 )
 
 target_link_libraries(libconfman
-  PRIVATE
+  PUBLIC
     glaze::glaze
+    tfc::base
     tfc::rpc
+    tfc::stx
 )
 add_library_to_docs(tfc::confman)
 

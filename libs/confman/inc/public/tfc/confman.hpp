@@ -21,7 +21,7 @@ public:
   /// \brief construct config and deliver it to config manager
   /// \param key identification of this config storage, requires to be unique
   config(asio::io_context& ctx, std::string_view key) : key_(key), client_(ctx, key) {
-
+    client_.alive(glz::write_json_schema<storage_t>(), std::bind(&config::on_alive, this, std::placeholders::_1));
   }
 
   /// \brief construct config and deliver it to config manager
@@ -39,6 +39,11 @@ public:
   void set(storage_t&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
 
 private:
+
+  void on_alive(std::expected<detail::alive_result, glz::rpc::error> const& ) {
+
+  }
+
   std::string key_{};
   storage_t storage_{};
   detail::config_rpc_client client_;

@@ -6,6 +6,7 @@
 #include <tfc/confman/detail/common.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/rpc.hpp>
+#include <tfc/stx/concepts.hpp>
 
 #include <fmt/format.h>
 #include <azmq/socket.hpp>
@@ -17,9 +18,6 @@ namespace tfc::confman::detail {
 
 using client_t = tfc::rpc::client<glz::rpc::client<glz::rpc::client_method_t<"alive", alive, alive_result>>>;
 
-template<typename func, typename ...args>
-concept nothrow_invocable = requires { std::is_nothrow_invocable_v<func, args...>; };
-
 class config_rpc_client {
 public:
   explicit config_rpc_client(asio::io_context& ctx, std::string_view key)
@@ -30,18 +28,14 @@ public:
     notifications_.async_receive([this](auto const& err, auto const& msg, auto bytes) { on_notification(err, msg, bytes); });
   }
 
-  void alive_request(alive&& msg, std::function<void(glz::expected<alive_result, glz::rpc::error>)> const& callback) {
-    client_.async_request<"alive">(
-        std::move(msg),
-      [callback](glz::expected<alive_result, glz::rpc::error> const& result,
-                glz::rpc::jsonrpc_id_type const&) -> void {
-          std::invoke(callback, )
-        });
-
-
-//    client_.async_request<"alive">(std::move(msg), [](auto const&,auto&) {
-//
-//    });
+  void alive(std::string_view schema, stx::nothrow_invocable<std::expected<alive_result, glz::rpc::error>> auto&& callback) {
+    client_.async_request<"alive">(tfc::confman::detail::alive{.schema=schema, .identity=topic_},
+                                   [callback](glz::expected<alive_result, glz::rpc::error> const& result,
+                                              glz::rpc::jsonrpc_id_type const&) -> void {
+                                     std::expected<int, double> test = glz::expected<int, double>{};
+                                     callback(result);
+//                                     std::invoke(callback, result);
+                                   });
   }
 
   void subscribe(std::invocable<std::expected<std::string_view, std::error_code>> auto&& callback) {
