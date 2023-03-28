@@ -19,7 +19,7 @@ template <typename storage_t>
 class config {
 public:
   /// \brief construct config and deliver it to config manager
-  /// \param ctx context to which the config shall run in
+  /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   /// \param alive_cb callback called after the storage has been populated
   ///                 the input parameter of the callback is reference to `this` (self)
@@ -28,7 +28,7 @@ public:
   }
 
   /// \brief construct config and deliver it to config manager
-  /// \param ctx context to which the config shall run in
+  /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   /// \param alive_cb callback called after the storage has been populated
   ///                 the input parameter of the callback is reference to `this` (self)
@@ -39,7 +39,7 @@ public:
          std::string_view key,
          std::invocable<config const&> auto&& alive_cb,
          storage_type&& def)
-      : storage_(std::forward<storage_type>(def)), client_(ctx, key) {
+      : storage_{std::forward<storage_type>(def)}, client_{ctx, key} {
     init(std::forward<decltype(alive_cb)>(alive_cb));
   }
 
