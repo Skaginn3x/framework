@@ -2,9 +2,9 @@
 #include "tfc/logger.hpp"
 #include "tfc/utils/pragmas.hpp"
 
+#include <fmt/printf.h>
 #include <boost/program_options.hpp>
 #include <boost/stacktrace.hpp>
-#include <fmt/printf.h>
 #include <magic_enum.hpp>
 
 namespace bpo = boost::program_options;
@@ -121,6 +121,5 @@ void terminate() {
   fmt::fprintf(stderr, "%s\n", to_string(trace).data());
   std::terminate();
 }
-
 
 }  // namespace tfc::base

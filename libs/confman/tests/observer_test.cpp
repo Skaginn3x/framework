@@ -143,17 +143,17 @@ auto main(int, char**) -> int {
   };
 
   "three way comparable"_test = [] {
-    int_observable const var{32};
-    int_observable const less_than_var{30};
+    int_observable const var{ 32 };
+    int_observable const less_than_var{ 30 };
     expect(var > less_than_var);
     expect(less_than_var < var);
     expect(var != less_than_var);
-    int const still_less_than_var{30};
+    int const still_less_than_var{ 30 };
     expect(var > still_less_than_var);
     expect(still_less_than_var < var);
     expect(var != still_less_than_var);
     // equality
     expect(var == 32);
-    expect(var == int_observable{32});
+    expect(var == int_observable{ 32 });
   };
 }

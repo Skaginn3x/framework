@@ -1,19 +1,20 @@
 #pragma once
 
-#include <fmt/printf.h>
+#include <compare>
 #include <concepts>
 #include <functional>
 #include <type_traits>
-#include <compare>
+
+#include <fmt/printf.h>
 
 namespace tfc::confman {
 template <typename conf_param_t>
 concept observable_type = requires {
-  requires std::is_default_constructible_v<conf_param_t>;
-  requires std::equality_comparable<conf_param_t>;
-//  requires std::three_way_comparable<conf_param_t>;
-  requires !std::is_floating_point_v<conf_param_t>; // todo why not
-};
+                            requires std::is_default_constructible_v<conf_param_t>;
+                            requires std::equality_comparable<conf_param_t>;
+                            //  requires std::three_way_comparable<conf_param_t>;
+                            requires !std::is_floating_point_v<conf_param_t>;  // todo why not
+                          };
 
 /// \brief observable variable, the user can get notified if it is changed
 /// \tparam conf_param_t equality comparable and default constructible type
@@ -94,9 +95,7 @@ public:
   friend auto constexpr operator<=>(observable const& lhs, observable const& rhs) noexcept {
     return lhs.value_ <=> rhs.value_;
   }
-  friend auto constexpr operator<=>(observable const& lhs, conf_param_t const& rhs) noexcept {
-    return lhs.value_ <=> rhs;
-  }
+  friend auto constexpr operator<=>(observable const& lhs, conf_param_t const& rhs) noexcept { return lhs.value_ <=> rhs; }
 
   /// \brief subscribe to changes
   void observe(std::invocable<conf_param_t const&> auto&& callback) const {

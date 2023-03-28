@@ -10,14 +10,16 @@ inline constexpr std::string_view notify_socket{ "/tmp/confman.notify.sock" };
 
 namespace method {
 
-inline constexpr tfc::stx::basic_fixed_string alive_tag{"alive"};
+inline constexpr tfc::stx::basic_fixed_string alive_tag{ "alive" };
 
 struct alive {
   glz::raw_json_view schema{};
-  glz::raw_json_view defaults{}; // todo this should not be necessary, we should be able to inject defaults to schema
+  glz::raw_json_view defaults{};  // todo this should not be necessary, we should be able to inject defaults to schema
   std::string identity{};
   struct glaze {
-    static auto constexpr value{ glz::object("id", &alive::identity, "schema", &alive::schema, "defaults", &alive::defaults) };
+    static auto constexpr value{
+      glz::object("id", &alive::identity, "schema", &alive::schema, "defaults", &alive::defaults)
+    };
   };
 };
 

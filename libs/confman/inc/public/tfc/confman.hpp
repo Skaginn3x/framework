@@ -19,17 +19,26 @@ template <typename storage_t>
 class config {
 public:
   /// \brief construct config and deliver it to config manager
+  /// \param ctx context to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
-  config(asio::io_context& ctx, std::string_view key) : client_{ ctx, key } {
-    init();
+  /// \param alive_cb callback called after the storage has been populated
+  ///                 the input parameter of the callback is reference to `this` (self)
+  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb) : client_{ ctx, key } {
+    init(std::forward<decltype(alive_cb)>(alive_cb));
   }
 
   /// \brief construct config and deliver it to config manager
+  /// \param ctx context to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
+  /// \param alive_cb callback called after the storage has been populated
+  ///                 the input parameter of the callback is reference to `this` (self)
   /// \param def default values of given storage type
-  config(asio::io_context& ctx, std::string_view key, std::same_as<storage_t> auto&& def)
+  config(asio::io_context& ctx,
+         std::string_view key,
+         std::invocable<config const&> auto&& alive_cb,
+         std::same_as<storage_t> auto&& def)
       : storage_(std::forward<decltype(def)>(def)), client_(ctx, key) {
-    init();
+    init(std::forward<decltype(alive_cb)>(alive_cb));
   }
 
   /// \brief get const access to storage
@@ -40,14 +49,16 @@ public:
   /// \param storage to be overridden with
   void set(std::same_as<storage_t> auto&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
 
-  auto key() const noexcept -> std::string_view {
-    return client_.topic();
-  }
+  auto key() const noexcept -> std::string_view { return client_.topic(); }
 
 private:
-  void init() {
-    client_.alive(glz::write_json_schema<storage_t>(), glz::write_json(storage_), [this](auto const& val){ on_alive(val); });
-    client_.subscribe([this](std::expected<std::string_view, std::error_code> const& res){
+  void init(std::invocable<config const&> auto&& alive_cb) {
+    client_.alive(glz::write_json_schema<storage_t>(), glz::write_json(storage_),
+                  [this, callback = alive_cb](auto const& val) {
+                    on_alive(val);
+                    std::invoke(callback, *this);
+                  });
+    client_.subscribe([this](std::expected<std::string_view, std::error_code> const& res) {
       if (res) {
         auto storage{ glz::read_json<storage_t>(res.value()) };
         if (storage) {
