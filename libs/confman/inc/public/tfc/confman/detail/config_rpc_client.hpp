@@ -16,7 +16,7 @@ namespace asio = boost::asio;
 
 namespace tfc::confman::detail {
 
-using client_t = tfc::rpc::client<glz::rpc::client<glz::rpc::client_method_t<"alive", alive, alive_result>>>;
+using client_t = tfc::rpc::client<glz::rpc::client<glz::rpc::client_method_t<method::alive_tag.data_, method::alive, method::alive_result>>>;
 
 class config_rpc_client {
 public:
@@ -28,14 +28,16 @@ public:
     notifications_.async_receive([this](auto const& err, auto const& msg, auto bytes) { on_notification(err, msg, bytes); });
   }
 
-  void alive(std::string_view schema, stx::nothrow_invocable<std::expected<alive_result, glz::rpc::error>> auto&& callback) {
-    client_.async_request<"alive">(tfc::confman::detail::alive{.schema=schema, .identity=topic_},
-                                   [callback](glz::expected<alive_result, glz::rpc::error> const& result,
+  void alive(std::string_view schema, std::string_view defaults, stx::nothrow_invocable<std::expected<method::alive_result, glz::rpc::error>> auto&& callback) {
+    client_.async_request<"alive">(tfc::confman::detail::method::alive{.schema=schema, .defaults=defaults, .identity=topic_},
+                                   [callback](std::expected<method::alive_result, glz::rpc::error> const& result,
                                               glz::rpc::jsonrpc_id_type const&) -> void {
-                                     std::expected<int, double> test = glz::expected<int, double>{};
-                                     callback(result);
-//                                     std::invoke(callback, result);
+                                     std::invoke(callback, result);
                                    });
+  }
+
+  auto topic() const noexcept -> std::string_view {
+    return topic_;
   }
 
   void subscribe(std::invocable<std::expected<std::string_view, std::error_code>> auto&& callback) {

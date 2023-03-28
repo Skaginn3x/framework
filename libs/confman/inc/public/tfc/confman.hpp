@@ -20,15 +20,17 @@ class config {
 public:
   /// \brief construct config and deliver it to config manager
   /// \param key identification of this config storage, requires to be unique
-  config(asio::io_context& ctx, std::string_view key) : key_(key), client_(ctx, key) {
-    client_.alive(glz::write_json_schema<storage_t>(), std::bind(&config::on_alive, this, std::placeholders::_1));
+  config(asio::io_context& ctx, std::string_view key) : client_{ ctx, key } {
+    init();
   }
 
   /// \brief construct config and deliver it to config manager
   /// \param key identification of this config storage, requires to be unique
   /// \param def default values of given storage type
-  config(asio::io_context& ctx, std::string_view key, storage_t&& def)
-      : key_(key), storage_(std::forward<decltype(def)>(def)), client_(ctx, key) {}
+  config(asio::io_context& ctx, std::string_view key, std::same_as<storage_t> auto&& def)
+      : storage_(std::forward<decltype(def)>(def)), client_(ctx, key) {
+    init();
+  }
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
@@ -36,15 +38,38 @@ public:
 
   /// \brief override current config with the given value
   /// \param storage to be overridden with
-  void set(storage_t&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
+  void set(std::same_as<storage_t> auto&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
 
-private:
-
-  void on_alive(std::expected<detail::alive_result, glz::rpc::error> const& ) {
-
+  auto key() const noexcept -> std::string_view {
+    return client_.topic();
   }
 
-  std::string key_{};
+private:
+  void init() {
+    client_.alive(glz::write_json_schema<storage_t>(), glz::write_json(storage_), [this](auto const& val){ on_alive(val); });
+    client_.subscribe([this](std::expected<std::string_view, std::error_code> const& res){
+      if (res) {
+        auto storage{ glz::read_json<storage_t>(res.value()) };
+        if (storage) {
+          set(std::move(storage.value()));
+          return;
+        }
+      }
+      // todo log error
+    });
+  }
+
+  void on_alive(std::expected<detail::method::alive_result, glz::rpc::error> const& res) {
+    if (res) {
+      auto storage{ glz::read_json<storage_t>(res.value().config.str) };
+      if (storage) {
+        set(std::move(storage.value()));
+        return;
+      }
+    }
+    // Todo log error
+  }
+
   storage_t storage_{};
   detail::config_rpc_client client_;
 };

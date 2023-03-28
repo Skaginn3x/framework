@@ -90,6 +90,9 @@ auto default_description() -> boost::program_options::options_description {
 void init(int argc, char const* const* argv, bpo::options_description const& desc) {
   options::instance().init(argc, argv, desc);
 }
+void init(int argc, char const* const* argv) {
+  options::instance().init(argc, argv, default_description());
+}
 
 auto get_exe_name() noexcept -> std::string_view {
   return options::instance().get_exe_name();

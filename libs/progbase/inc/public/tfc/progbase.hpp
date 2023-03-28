@@ -22,6 +22,7 @@ namespace tfc::base {
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
 /// \example example_base.cpp
 void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);
+void init(int argc, char const* const* argv);
 
 /// \return stripped executable name
 [[nodiscard]] auto get_exe_name() noexcept -> std::string_view;
