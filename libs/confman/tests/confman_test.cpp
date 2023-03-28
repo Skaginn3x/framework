@@ -33,22 +33,22 @@ auto main(int argc, char** argv) -> int {
       asio::io_context ctx{};
       bool a_called{};
       config_rpc_server server{ ctx };
-      config<storage> const config_storage{ ctx, "my-key",
+      auto defaults = storage{ .a = { 11, [&a_called]([[maybe_unused]] int new_a, int old_a) {
+                                       ut::expect(old_a == 11);
+                                       ut::expect(new_a == 12);
+                                       a_called = true;
+                                     } } };
+      config<storage> const config_storage( ctx, "my-key",
                                             [&server](config<storage> const& self) {
                                               // This is the alive callback
-                                              // The default value is set as the fourth arg to config<storage>
-                                              ut::expect(self.get().a == 11);
+                                              ut::expect(self.get().a == 11);  // this is from `defaults` above
                                               ut::expect(self.get().b == storage{}.b);
                                               ut::expect(self.get().c == storage{}.c);
                                               // Here we write new value of `a`
                                               server.update(self.key(),
                                                             glz::write_json(storage{ .a = observable<int>{ 12 } }));
                                             },
-                                            storage{ .a = { 11, [&a_called]([[maybe_unused]] int new_a, int old_a) {
-                                                             ut::expect(old_a == 11);
-                                                             ut::expect(new_a == 12);
-                                                             a_called = true;
-                                                           } } } };
+                                            defaults );
 
       ctx.run_for(std::chrono::milliseconds(10));
       ut::expect(a_called);

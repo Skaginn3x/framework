@@ -33,11 +33,13 @@ public:
   /// \param alive_cb callback called after the storage has been populated
   ///                 the input parameter of the callback is reference to `this` (self)
   /// \param def default values of given storage type
+  template<typename storage_type>
+  requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context& ctx,
          std::string_view key,
          std::invocable<config const&> auto&& alive_cb,
-         std::same_as<storage_t> auto&& def)
-      : storage_(std::forward<decltype(def)>(def)), client_(ctx, key) {
+         storage_type&& def)
+      : storage_(std::forward<storage_type>(def)), client_(ctx, key) {
     init(std::forward<decltype(alive_cb)>(alive_cb));
   }
 
