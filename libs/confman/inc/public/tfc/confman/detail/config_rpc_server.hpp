@@ -1,6 +1,7 @@
 #pragma once
 
 #include <expected>
+#include <filesystem>
 #include <unordered_map>
 
 #include <tfc/confman/detail/common.hpp>
@@ -16,6 +17,8 @@
 namespace asio = boost::asio;
 
 namespace tfc::confman::detail {
+
+inline std::string_view constexpr absolute_config_filename{ "/var/tfc/config/confman.json" };
 
 using server_t = tfc::rpc::server<
     glz::rpc::server<glz::rpc::server_method_t<method::alive_tag.data_, method::alive, method::alive_result>>>;
@@ -37,6 +40,10 @@ public:
     server_.converter().on<method::alive_tag.data_>(
         [this](auto&& PH1) { return on_alive_request(std::forward<decltype(PH1)>(PH1)); });
     notifications_.bind(fmt::format("ipc://{}", notify_socket));
+
+    std::filesystem::path const path{ absolute_config_filename };
+    std::filesystem::create_directories(path.parent_path());
+    glz::read_file_json(config_, absolute_config_filename);
   }
 
   auto update(std::string_view key, glz::raw_json_view json) -> std::error_code {
@@ -66,10 +73,23 @@ private:
     return method::alive_result{ .config = config_.at(req.identity).config.str };
   }
 
+  auto write_to_file() -> std::error_code {
+    std::string buffer{};
+    glz::write<glz::opts{ .prettify = true }>(config_, buffer);
+    auto glz_err{ glz::buffer_to_file(buffer, absolute_config_filename.data()) };
+    if (glz_err != glz::error_code::none) {
+      return std::make_error_code(std::errc::io_error);
+      // todo implicitly convert glaze error_code to std::error_code
+      // todo at least add logging
+    }
+    return {};
+  }
+
   server_t server_;
   azmq::pub_socket notifications_;
 
   std::unordered_map<application_id_t, map_obj_t> config_{};
+
 };
 
 }  // namespace tfc::confman::detail
