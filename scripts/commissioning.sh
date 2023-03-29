@@ -17,8 +17,15 @@ groupadd tfc || echo ""
 echo "Creating directory /var/tfc"
 mkdir -p /var/tfc
 
+echo "Creating directory /run/tfc"
+mkdir -p /run/tfc
+
 echo "Assigning directory /var/tfc to group tfc"
 chgrp tfc /var/tfc
+
+echo "Write permissions to /var/tfc and /run/tfc"
+chmod g+w /var/tfc
+chmod g+w /run/tfc
 
 if [[ -n "$SUDO_USER" ]]; then
   echo "Adding user $SUDO_USER to tfc group"

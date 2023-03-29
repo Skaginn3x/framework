@@ -57,6 +57,7 @@ public:
         fmt::fprintf(stderr, "RPC server notification send error: %s\n", err.message().data());
       }
     });
+    write_to_file();
     return {};
   }
 
@@ -69,6 +70,7 @@ private:
         return std::unexpected(glz::rpc::error{ glz::rpc::error_e::internal,
                                                 fmt::format("Unable to insert key: {} to config map", req.identity) });
       }
+      write_to_file();
     }
     return method::alive_result{ .config = config_.at(req.identity).config.str };
   }
@@ -89,7 +91,6 @@ private:
   azmq::pub_socket notifications_;
 
   std::unordered_map<application_id_t, map_obj_t> config_{};
-
 };
 
 }  // namespace tfc::confman::detail
