@@ -38,17 +38,17 @@ auto main(int argc, char** argv) -> int {
                                        ut::expect(new_a == 12);
                                        a_called = true;
                                      } } };
-      config<storage> const config_storage( ctx, "my-key",
-                                            [&server](config<storage> const& self) {
-                                              // This is the alive callback
-                                              ut::expect(self.get().a == 11);  // this is from `defaults` above
-                                              ut::expect(self.get().b == storage{}.b);
-                                              ut::expect(self.get().c == storage{}.c);
-                                              // Here we write new value of `a`
-                                              server.update(self.key(),
-                                                            glz::write_json(storage{ .a = observable<int>{ 12 } }));
-                                            },
-                                            defaults );
+      config<storage> const config_storage(
+          ctx, "my-key",
+          [&server](config<storage> const& self) {
+            // This is the alive callback
+            ut::expect(self.get().a == 11);  // this is from `defaults` above
+            ut::expect(self.get().b == storage{}.b);
+            ut::expect(self.get().c == storage{}.c);
+            // Here we write new value of `a`
+            server.update(self.key(), glz::write_json(storage{ .a = observable<int>{ 12 } }));
+          },
+          defaults);
 
       ctx.run_for(std::chrono::milliseconds(10));
       ut::expect(a_called);
