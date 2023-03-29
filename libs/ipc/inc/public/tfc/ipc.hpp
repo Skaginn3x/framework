@@ -15,6 +15,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <tfc/utils/pragmas.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
@@ -47,7 +48,7 @@ struct type_description {
  * */
 class transmission_base {
 public:
-  explicit transmission_base(std::string_view name) : name_(name){};
+  explicit transmission_base(std::string_view name) : name_(name){}
 
 protected:
   [[nodiscard]] auto endpoint() const -> std::string { return fmt::format("ipc://{}", ipc_path(name_)); }
@@ -121,7 +122,7 @@ public:
 
 private:
   signal(asio::io_context& ctx, std::string_view name)
-      : transmission_base(name), socket_(ctx), socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)){};
+      : transmission_base(name), socket_(ctx), socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)){}
 
   auto init() -> std::error_code {
     boost::system::error_code error_code;
@@ -169,7 +170,7 @@ private:
   value_t last_value_{};
 };
 
-/**@brief
+/**@brief slot
  *
  * */
 template <typename type_desc>
@@ -177,7 +178,7 @@ class slot : public transmission_base {
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
-  slot(asio::io_context& ctx, std::string_view name) : transmission_base(name), socket_(ctx){};
+  slot(asio::io_context& ctx, std::string_view name) : transmission_base(name), socket_(ctx){}
   /**
    * @brief
    * connect to the signal indicated by name
@@ -267,7 +268,9 @@ private:
       return;
     }
     // Don't retransmit transmitted things.
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
     if (value.value() != last_value_) {
+    PRAGMA_CLANG_WARNING_POP
       last_value_ = value.value();
       cb_(last_value_);
     }

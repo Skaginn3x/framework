@@ -34,3 +34,9 @@ add_custom_target(
   ${ALL_SOURCE_FILES}
 )
 
+# from https://stackoverflow.com/questions/18968979/how-to-make-colorized-message-with-cmake
+string(ASCII 27 Esc)
+set(ColourReset "${Esc}[m")
+set(Red         "${Esc}[31m")
+set(Green       "${Esc}[32m")
+message("${Green}Using ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}${ColourReset}")
