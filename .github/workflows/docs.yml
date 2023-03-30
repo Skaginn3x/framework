@@ -1,4 +1,4 @@
-name: gcc
+name: docs
 
 on:
   push:
@@ -78,8 +78,7 @@ jobs:
           configurePreset: 'ci-gcc-debug'
 
           # This is the name of the CMakePresets.json's configuration to build the project.
-          buildPreset: 'build-ci-gcc-debug'
-          testPreset: 'test-ci-gcc-debug'
+          buildPreset: 'build-docs'
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master

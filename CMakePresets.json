@@ -87,6 +87,14 @@
     {
       "name": "build-ci-gcc-release",
       "configurePreset": "ci-gcc-release"
+    },
+    {
+      "name": "build-docs",
+      "configurePreset": "ci-gcc-debug",
+      "targets": [
+        "Doxygen",
+        "Sphinx"
+      ]
     }
   ],
   "testPresets": [
