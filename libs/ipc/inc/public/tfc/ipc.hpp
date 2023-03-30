@@ -55,10 +55,10 @@ protected:
   [[nodiscard]] static auto endpoint_connect(const std::string_view& name) -> std::string {
     return fmt::format("ipc://{}", ipc_path(name));
   }
+  static constexpr std::string_view path_prefix{ "/tmp/" };
 
 private:
   std::string name_;  // name of signal/slot
-  static constexpr std::string_view path_prefix{ "/tmp/" };
   [[nodiscard]] static auto ipc_path(const std::string_view& name) -> std::string {
     return fmt::format("{0}{2}.{3}.{1}", path_prefix, name, base::get_exe_name(), base::get_proc_name());
   }
@@ -118,7 +118,8 @@ public:
 
 private:
   signal(asio::io_context& ctx, std::string_view name)
-      : transmission_base(name), socket_(ctx), socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)) {}
+      : transmission_base(name), last_value_(), timer(ctx), socket_(ctx),
+        socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)){};
 
   auto init() -> std::error_code {
     boost::system::error_code error_code;
@@ -137,11 +138,12 @@ private:
     }
     std::array<std::byte, 1024> buffer;
     socket_monitor_.receive(asio::buffer(buffer), 0);
-
-    auto timer = std::make_shared<boost::asio::steady_timer>(socket_monitor_.get_io_context());
     // TODO: This sleep is the worst.
-    timer->expires_after(std::chrono::milliseconds(1));
-    timer->async_wait([&, timer](std::error_code) {
+    timer.expires_after(std::chrono::milliseconds(1));
+    timer.async_wait([this](std::error_code const& error) {
+      if (error) {
+        return;
+      }
       async_send(last_value_, [&](std::error_code error, size_t) {
         if (error) {
           assert(false && "Handle event accept (send) canceled!");
@@ -161,9 +163,10 @@ private:
           }
         });
   }
+  value_t last_value_{};
+  boost::asio::steady_timer timer;
   azmq::pub_socket socket_;
   azmq::socket socket_monitor_;
-  value_t last_value_{};
 };
 
 /**@brief slot
@@ -183,7 +186,8 @@ public:
     // TODO: Find out if these mutexes inside optimize single threaded are really needed
     socket_ = azmq::sub_socket(socket_.get_io_context(), true);
     boost::system::error_code error_code;
-    socket_.connect(endpoint_connect(signal_name), error_code);
+    std::string const socket_path = fmt::format("ipc://{}{}", path_prefix, signal_name);
+    socket_.connect(socket_path, error_code);
     if (error_code) {
       return error_code;
     }
@@ -299,6 +303,13 @@ using double_send = signal<type_double>;
 using string_send = signal<type_string>;
 using json_send = signal<type_json>;
 
+using bool_send_ptr   = std::shared_ptr<signal<type_bool>>;
+using int_send_ptr    = std::shared_ptr<signal<type_int>>;
+using uint_send_ptr   = std::shared_ptr<signal<type_uint>>;
+using double_send_ptr = std::shared_ptr<signal<type_double>>;
+using string_send_ptr = std::shared_ptr<signal<type_string>>;
+using json_send_ptr   = std::shared_ptr<signal<type_json>>;
+
 using bool_recv = slot<type_bool>;
 using int_recv = slot<type_int>;
 using uint_recv = slot<type_uint>;
@@ -312,5 +323,12 @@ using uint_recv_cb = slot_callback<type_uint>;
 using double_recv_cb = slot_callback<type_double>;
 using string_recv_cb = slot_callback<type_string>;
 using json_recv_cb = slot_callback<type_json>;
+
+using bool_recv_cb_ptr = std::shared_ptr<slot_callback<type_bool>>;
+using int_recv_cb_ptr = std::shared_ptr<slot_callback<type_int>>;
+using uint_recv_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
+using double_recv_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
+using string_recv_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
+using json_recv_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
 
 }  // namespace tfc::ipc

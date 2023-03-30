@@ -11,6 +11,8 @@
     "glaze",
     "spdlog",
     "magic-enum",
-    "azmq"
+    "bext-sml",
+    "soem-master",
+    "mp-units"
   ]
 }

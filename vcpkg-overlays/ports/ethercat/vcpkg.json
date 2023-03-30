@@ -1,0 +1,17 @@
+{
+  "name": "ethercat",
+  "version-date": "2023-03-14",
+  "port-version": 1,
+  "description": "Ethercat field device library",
+  "homepage": "https://gitlab.com/etherlab.org/ethercat",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
