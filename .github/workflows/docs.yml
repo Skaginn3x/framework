@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: 'build and run tests'
+    name: 'build documentation'
     runs-on: ubuntu-latest
     env:
       CC: gcc-12
