@@ -2,7 +2,7 @@
 
 #include <boost/ut.hpp>
 
-#include <tfc/devices/util.hpp>
+#include <tfc/ec/devices/util.hpp>
 
 auto main(int, char**) -> int {
   using boost::ut::operator""_test;
