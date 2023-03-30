@@ -188,6 +188,9 @@ private:
     if (processdata(ecx::constants::timeout_tx_to_rx) < expected_wkc) {
       check_state();
     }
+    while(ecx_iserror(&context_) != 0U){
+      logger_.error("Ethercat context error: {}", ecx_elist2string(&context_));
+    }
     async_wait();
   }
   /**

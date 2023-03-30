@@ -41,14 +41,6 @@ public:
 
       uint16_t const settings_index = 0x8000 + (i * 0x10);
       auto wkc = ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // Enable - siemens mode
-
-      // TODO: we need more error checking all around this layer to soem.
-      //  This is just an example of how to fetch error strings from soem
-      if (wkc != 1) {
-        while (ecx_iserror(context) != 0U) {
-          printf(ecx_elist2string(context));
-        }
-      }
     }
     // Set rx pdo size to size
     ecx::sdo_write<uint8_t>(context, slave, ecx::rx_pdo_assign<0x00>, size);
