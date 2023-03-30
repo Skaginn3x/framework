@@ -15,14 +15,18 @@ macro(add_example_to_docs target_example)
   set(TFC_FRAMEWORK_EXAMPLES ${TFC_FRAMEWORK_EXAMPLES} CACHE INTERNAL "")
 endmacro()
 
-function(tfc_add_example EXAMPLE_TARGET cpp_file)
+function(tfc_add_example_no_test EXAMPLE_TARGET cpp_file)
   add_executable(${EXAMPLE_TARGET} ${cpp_file})
+  # Tell doxygen where to find this example
+  add_example_to_docs(${EXAMPLE_TARGET})
+endfunction()
+
+function(tfc_add_example EXAMPLE_TARGET cpp_file)
+  tfc_add_example_no_test(${EXAMPLE_TARGET} ${cpp_file})
   add_test(
     NAME
     ${EXAMPLE_TARGET}
     COMMAND
     ${EXAMPLE_TARGET}
   )
-  # Tell doxygen where to find this example
-  add_example_to_docs(${EXAMPLE_TARGET})
 endfunction()

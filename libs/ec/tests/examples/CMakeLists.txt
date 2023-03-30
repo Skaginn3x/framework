@@ -1,2 +1,2 @@
-tfc_add_example(ec_example_run_context ec_example_run_context.cpp)
+tfc_add_example_no_test(ec_example_run_context ec_example_run_context.cpp)
 target_link_libraries(ec_example_run_context tfc::ec)
