@@ -43,6 +43,9 @@ add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
   COMMENT "Generating docs")
 
 add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
+set_target_properties(Doxygen PROPERTIES
+  EXCLUDE_FROM_ALL ON
+)
 
 set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
@@ -68,6 +71,9 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
 
 # Nice named target so we can run the job easily
 add_custom_target(Sphinx ALL DEPENDS ${SPHINX_INDEX_FILE})
+set_target_properties(Doxygen PROPERTIES
+  EXCLUDE_FROM_ALL ON
+)
 
 # Add an install target to install the docs
 include(GNUInstallDirs)

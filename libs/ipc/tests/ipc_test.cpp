@@ -94,7 +94,7 @@ auto main(int, char**) -> int {
   "ipc"_test = [] {
     asio::io_context ctx;
     auto sender = tfc::ipc::uint_send::create(ctx, "name").value();
-    auto receiver = tfc::ipc::uint_recv_cb::create(ctx, "name");
+    auto receiver = tfc::ipc::uint_recv_cb::create(ctx, "unused");
 
     constexpr auto time_point_to_uint64 = [](auto const& time_point) -> std::uint64_t {
       auto duration = time_point.time_since_epoch();
@@ -106,13 +106,14 @@ auto main(int, char**) -> int {
     };
 
     bool receiver_called{ false };
-    receiver->init("name", [&receiver_called, &uint64_to_time_point](auto val) {
-      auto now{ std::chrono::high_resolution_clock::now() };
-      auto past{ uint64_to_time_point(val) };
-      auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past).count();
-      fmt::print("Round time took: {} ns\n", duration_ns);
-      receiver_called = true;
-    });
+    receiver->init(fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), "name"),
+                   [&receiver_called, &uint64_to_time_point](auto val) {
+                     auto now{ std::chrono::high_resolution_clock::now() };
+                     auto past{ uint64_to_time_point(val) };
+                     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past).count();
+                     fmt::print("Round time took: {} ns\n", duration_ns);
+                     receiver_called = true;
+                   });
     asio::deadline_timer timer{ ctx };
     boost::system::error_code error_code;
     timer.expires_from_now(boost::posix_time::milliseconds(1), error_code);
@@ -122,25 +123,23 @@ auto main(int, char**) -> int {
     });
     asio::deadline_timer verification_timer{ ctx };
     verification_timer.expires_from_now(boost::posix_time::milliseconds(80), error_code);
-    verification_timer.async_wait([&receiver_called, &ctx](auto) {
-      expect(receiver_called);
-      ctx.stop();
-    });
+    verification_timer.async_wait([&ctx](auto) { ctx.stop(); });
 
     ctx.run_for(std::chrono::milliseconds(100));
+    expect(receiver_called);
   };
 
   "code_example"_test = []() {
     auto ctx{ asio::io_context() };
     auto sender{ tfc::ipc::string_send::create(ctx, "name").value() };
-    auto receiver{ tfc::ipc::string_recv_cb::create(ctx, "name") };
-    receiver->init("name", [&ctx](std::string const& value) {
-      fmt::print("received: {}\n", value);
-      ctx.stop();
-    });
-    asio::deadline_timer timer{ ctx };
-    boost::system::error_code error_code;
-    timer.expires_from_now(boost::posix_time::milliseconds(1), error_code);
+    auto receiver{ tfc::ipc::string_recv_cb::create(ctx, "unused") };
+    receiver->init(fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), "name"),
+                   [&ctx](std::string const& value) {
+                     fmt::print("received: {}\n", value);
+                     ctx.stop();
+                   });
+    asio::steady_timer timer{ ctx };
+    timer.expires_from_now(std::chrono::milliseconds(100));
     timer.async_wait([&sender](auto) { sender->send("hello-world"); });
     ctx.run();
   };

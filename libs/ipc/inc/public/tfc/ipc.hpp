@@ -60,7 +60,7 @@ protected:
 private:
   std::string name_;  // name of signal/slot
   [[nodiscard]] static auto ipc_path(const std::string_view& name) -> std::string {
-    return fmt::format("{0}{2}.{3}.{1}", path_prefix, name, base::get_exe_name(), base::get_proc_name());
+    return fmt::format("{}{}.{}.{}", path_prefix, base::get_exe_name(), base::get_proc_name(), name);
   }
 };
 
@@ -268,9 +268,11 @@ private:
       return;
     }
     // Don't retransmit transmitted things.
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat - equal)
+    // clang-format off
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
     if (value.value() != last_value_) {
       PRAGMA_CLANG_WARNING_POP
+      // clang-format on
       last_value_ = value.value();
       cb_(last_value_);
     }
