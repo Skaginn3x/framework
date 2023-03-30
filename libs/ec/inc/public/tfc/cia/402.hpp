@@ -1,10 +1,11 @@
 #pragma once
 
-#include <boost/sml.hpp>
+#include <cstdint>
+#include <string>
 
 namespace tfc::ec::cia_402 {
 
-enum commands_e : uint16_t {
+enum struct commands_e : uint16_t {
   disable_voltage = 0x0000,
   shutdown = 0x0006,
   quick_stop = 0x0002,
@@ -16,23 +17,23 @@ enum commands_e : uint16_t {
 auto to_string(commands_e value) -> std::string {
   using std::string_literals::operator""s;
   switch (value) {
-    case disable_voltage:
+    case commands_e::disable_voltage:
       return "Disable voltage"s;
-    case shutdown:
+    case commands_e::shutdown:
       return "Shutdown"s;
-    case quick_stop:
+    case commands_e::quick_stop:
       return "Quick stop"s;
-    case switch_on:
+    case commands_e::switch_on:
       return "Switch on"s;
-    case enable_operation:
+    case commands_e::enable_operation:
       return "Enable operation"s;
-    case fault_reset:
+    case commands_e::fault_reset:
       return "Fault reset"s;
   }
   return "Unknown"s;
 }
 
-enum struct states_e {
+enum struct states_e : uint16_t {
   not_ready_to_switch_on = 1,
   switch_on_disabled = 2,
   ready_to_switch_on = 3,
@@ -51,7 +52,7 @@ auto to_string(states_e value) -> std::string {
     case states_e::switch_on_disabled:
       return "Switch on disabled"s;
     case states_e::ready_to_switch_on:
-      return "ready to switch on"s;
+      return "Ready to switch on"s;
     case states_e::switched_on:
       return "Switched on"s;
     case states_e::operation_enabled:
@@ -108,19 +109,21 @@ auto transition(states_e current_state, bool quick_stop) -> commands_e {
     case states_e::ready_to_switch_on:
       return commands_e::enable_operation;  // This is a shortcut marked as 3B in ethercat manual for atv320
     case states_e::operation_enabled:
-      if (quick_stop)
+      if (quick_stop) {
         return commands_e::quick_stop;
+      }
       return commands_e::enable_operation;
     case states_e::switched_on:
       return commands_e::enable_operation;
     case states_e::fault:
       return commands_e::fault_reset;
     case states_e::quick_stop_active:
-      if (quick_stop)
+      if (quick_stop) {
         return commands_e::quick_stop;
+      }
       return commands_e::disable_voltage;
     default:
-      return static_cast<commands_e>(0);
+      return commands_e::disable_voltage;
   }
 }
 

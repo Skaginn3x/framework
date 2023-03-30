@@ -303,6 +303,13 @@ using double_send = signal<type_double>;
 using string_send = signal<type_string>;
 using json_send = signal<type_json>;
 
+using bool_send_ptr   = std::shared_ptr<signal<type_bool>>;
+using int_send_ptr    = std::shared_ptr<signal<type_int>>;
+using uint_send_ptr   = std::shared_ptr<signal<type_uint>>;
+using double_send_ptr = std::shared_ptr<signal<type_double>>;
+using string_send_ptr = std::shared_ptr<signal<type_string>>;
+using json_send_ptr   = std::shared_ptr<signal<type_json>>;
+
 using bool_recv = slot<type_bool>;
 using int_recv = slot<type_int>;
 using uint_recv = slot<type_uint>;
@@ -316,5 +323,12 @@ using uint_recv_cb = slot_callback<type_uint>;
 using double_recv_cb = slot_callback<type_double>;
 using string_recv_cb = slot_callback<type_string>;
 using json_recv_cb = slot_callback<type_json>;
+
+using bool_recv_cb_ptr = std::shared_ptr<slot_callback<type_bool>>;
+using int_recv_cb_ptr = std::shared_ptr<slot_callback<type_int>>;
+using uint_recv_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
+using double_recv_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
+using string_recv_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
+using json_recv_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
 
 }  // namespace tfc::ipc

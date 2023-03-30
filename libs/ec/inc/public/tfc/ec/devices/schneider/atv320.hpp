@@ -5,36 +5,37 @@
 #include <memory>
 #include <optional>
 
-#include "tfc/devices/base.hpp"
+#include "tfc/ec/devices/base.hpp"
 
 #include "tfc/cia/402.hpp"
-#include "tfc/ecx.hpp"
+#include "tfc/ec/soem_interface.hpp"
 #include "tfc/ipc.hpp"
 
 namespace tfc::ec::devices::schneider {
 class atv320 : public base {
 public:
-  explicit atv320(boost::asio::io_context& ctx) : base(ctx) {
-    state_transmitter_ = tfc::ipc::string_send::create(ctx_, "atv320.string.state").value();
-    command_transmitter_ = tfc::ipc::string_send::create(ctx_, "atv320.string.command").value();
+  static constexpr uint32_t vendor_id = 0x0800005a;
+  static constexpr uint32_t product_code = 0x389;
+
+  explicit atv320(boost::asio::io_context& ctx, uint16_t slave_index) : base(slave_index) {
+    state_transmitter_ = tfc::ipc::string_send::create(ctx, "atv320.string.state").value();
+    command_transmitter_ = tfc::ipc::string_send::create(ctx, "atv320.string.command").value();
     for (size_t i = 0; i < 6; i++) {
-      di_transmitters_.emplace_back(tfc::ipc::bool_send::create(ctx_, fmt::format("atv320.bool.in.{}", i)).value());
+      di_transmitters_.emplace_back(tfc::ipc::bool_send::create(ctx, fmt::format("atv320.bool.in.{}", i)).value());
     }
     for (size_t i = 0; i < 2; i++) {
-      ai_transmitters_.emplace_back(tfc::ipc::int_send::create(ctx_, fmt::format("atv320.int.in.{}", i)).value());
+      ai_transmitters_.emplace_back(tfc::ipc::int_send::create(ctx, fmt::format("atv320.int.in.{}", i)).value());
     }
-    quick_stop_recv_ = tfc::ipc::bool_recv_cb::create(ctx_, "atv320.bool.quick_stop");
+    quick_stop_recv_ = tfc::ipc::bool_recv_cb::create(ctx, "atv320.bool.quick_stop");
     quick_stop_recv_->init(fmt::format("{}.{}.easyecat.1.bool.in.0", tfc::base::get_exe_name(), tfc::base::get_proc_name()),
                            [this](bool value) { quick_stop_ = value; });
-    reference_frequency_recv_ = tfc::ipc::double_recv_cb::create(ctx_, "atv320.double.out.freq");
+    reference_frequency_recv_ = tfc::ipc::double_recv_cb::create(ctx, "atv320.double.out.freq");
     reference_frequency_recv_->init("tfcctl.def.atv320.freq.double",
                                     [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
   }
-  static constexpr auto vendor_id = 0x0800005a;
-  static constexpr auto product_code = 0x00000389;
   auto process_data(uint8* input, uint8* output) noexcept -> void override {
     if (input == nullptr || output == nullptr) {
-      std::cerr << "ATV320 in/out, nullptr" << std::endl;
+      logger_.error("ATV320 input or output is nullptr. This should not happen");
       return;
     }
     // All registers in the ATV320 ar uint16, create a pointer to this memory
@@ -44,12 +45,12 @@ public:
 
     auto state = tfc::ec::cia_402::parse_state(status_word_);
     if (cia_402::to_string(state) != last_state_) {
-      state_transmitter_->async_send(cia_402::to_string(state), async_send_callback);
+      state_transmitter_->async_send(cia_402::to_string(state), [this](auto && PH1, auto && PH2) { async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
     }
     std::bitset<6> const value(in[3]);
     for (size_t i = 0; i < 6; i++) {
       if (value.test(i) != last_bool_values_.test(i)) {
-        di_transmitters_[i]->async_send(value.test(i), async_send_callback);
+        di_transmitters_[i]->async_send(value.test(i), [this](auto&& PH1, auto && PH2){ async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
       }
     }
     last_bool_values_ = value;
@@ -57,7 +58,7 @@ public:
     auto* analog_ptr = reinterpret_cast<int16_t*>(in) + 4;
     for (size_t i = 0; i < 2; i++) {
       if (last_analog_inputs_[i] != analog_ptr[i]) {
-        ai_transmitters_[i]->async_send(analog_ptr[i], async_send_callback);
+        ai_transmitters_[i]->async_send(analog_ptr[i], [this](auto&& PH1, auto && PH2){ async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
       }
       last_analog_inputs_[i] = analog_ptr[i];
     }
@@ -67,16 +68,16 @@ public:
     auto command = tfc::ec::cia_402::transition(state, quick_stop_);
 
     if (cia_402::to_string(command) != last_command_) {
-      command_transmitter_->async_send(cia_402::to_string(command), async_send_callback);
+      command_transmitter_->async_send(cia_402::to_string(command), [this](auto&& PH1, auto && PH2){ async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
     }
 
     auto* data_ptr = reinterpret_cast<uint16_t*>(output);
     *data_ptr++ = static_cast<uint16_t>(command);
     *data_ptr++ = quick_stop_ ? 0 : reference_frequency_;
   }
-  static auto async_send_callback(std::error_code const& error, size_t) -> void {
+  auto async_send_callback(std::error_code const& error, size_t) -> void {
     if (error) {
-      printf("ATV320, error transmitting : %s\n", error.message().c_str());
+      logger_.error("Ethercat ATV320 error: {}", error.message());
     }
   }
   auto setup(ecx_contextt* context, uint16_t slave) -> int override {

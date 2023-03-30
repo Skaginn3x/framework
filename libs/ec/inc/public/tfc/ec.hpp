@@ -1,13 +1,13 @@
 #pragma once
 
 #include <array>
-#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
 #include <cassert>
 #include <chrono>
 #include <vector>
 
-#include "devices/device.hpp"
-#include "ecx.hpp"
+#include "ec/devices/device.hpp"
+#include "ec/soem_interface.hpp"
 
 namespace tfc::ec {
 using std::chrono::duration_cast;
@@ -27,7 +27,8 @@ public:
   // interacting with groups.
   static constexpr uint8_t all_groups = 0;
   static constexpr uint16_t all_slaves = 0;
-  explicit context_t(boost::asio::io_context& ctx, std::string_view iface) : ctx_(ctx), iface_(iface) {
+  explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
+      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)) {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -86,10 +87,10 @@ public:
     // Insert the base device into the vector.
     slaves_ = std::vector<std::unique_ptr<devices::base>>();
     slaves_.reserve(slave_count_ + 1);
-    slaves_.emplace_back(std::make_unique<devices::default_device>(ctx_));
+    slaves_.emplace_back(std::make_unique<devices::default_device>(0));
     // Attach the callback to each slave
     for (int i = 1; i <= slave_count_; i++) {
-      slaves_.emplace_back(devices::get(ctx_, slavelist_[i].eep_man, slavelist_[i].eep_id));
+      slaves_.emplace_back(devices::get(ctx_, i, slavelist_[i].eep_man, slavelist_[i].eep_id));
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     return true;
@@ -206,38 +207,38 @@ private:
       } else if (slave.state != EC_STATE_OPERATIONAL) {
         grp.docheckstate = TRUE;
         if (slave.state == EC_STATE_SAFE_OP + EC_STATE_ERROR) {
-          printf("* Slave %zu is in SAFE_OP+ERROR, attempting ACK\n", i);
+          logger_.warn("Slave {}, {} is in SAFE_OP+ERROR, attempting ACK", i, context_.slavelist[i].name);
           slave.state = EC_STATE_SAFE_OP + EC_STATE_ACK;
           ecx_writestate(&context_, i);
         } else if (slave.state == EC_STATE_SAFE_OP) {
-          printf("* Slave %zu is in SAFE_OP, change to OPERATIONAL\n", i);
+          logger_.warn("Slave {}, {} is in SAFE_OP, change to OPERATIONAL", i, context_.slavelist[i].name);
           slave.state = EC_STATE_OPERATIONAL;
           ecx_writestate(&context_, i);
         } else if (slave.state > EC_STATE_NONE) {
           if (ecx_reconfig_slave(&context_, i, EC_TIMEOUTRET) != 0) {
             slave.islost = FALSE;
-            printf("* Slave %zu reconfigured\n", i);
+            logger_.warn("Slave {}, {} reconfigured", i, context_.slavelist[i].name);
           }
         } else if (slave.islost == 0) {
           ecx_statecheck(&context_, i, EC_STATE_OPERATIONAL, EC_TIMEOUTRET);
           if (slave.state == EC_STATE_NONE) {
             slave.islost = TRUE;
-            printf("* Slave %zu lost\n", i);
+            logger_.warn("Slave {}, {} lost", i, context_.slavelist[i].name);
           }
         }
       } else if (slave.islost != 0) {
         if (slave.state != EC_STATE_NONE) {
           slave.islost = FALSE;
-          printf("* Slave %zu found\n", i);
+          logger_.info("Slave {}, {} found", i, context_.slavelist[i].name);
         } else if (ecx_recover_slave(&context_, i, EC_TIMEOUTRET) != 0) {
           slave.islost = FALSE;
-          printf("* Slave %zu recovered\n", i);
+          logger_.info("Slave {}, {} recovered", i, context_.slavelist[i].name);
         }
       }
     }
 
     if (context_.grouplist->docheckstate == 0) {
-      printf("All slaves resumed OPERATIONAL\n");
+      logger_.info("All slaves resumed OPERATIONAL");
     }
   }
   /**
@@ -254,14 +255,15 @@ private:
   static auto slave_config_callback(ecx_contextt* context, uint16_t slave_index) -> int {
     auto* instance = static_cast<context_t*>(context->userdata);
     ec_slavet& sl = context->slavelist[slave_index];  // NOLINT
-    printf("product code: 0x%x\tvendor id: 0x%x\t slave index: %d name: %s, aliasaddr: %d\n", sl.eep_id, sl.eep_man,
-           slave_index, sl.name, sl.aliasadr);
+    instance->logger_.info("product code: {:#x}\tvendor id: {:#x}\t slave index: {} name: {}, aliasaddr: {}", sl.eep_id,
+                           sl.eep_man, slave_index, sl.name, sl.aliasadr);
     instance->slaves_[slave_index]->setup(context, slave_index);
     return 1;
   }
 
   boost::asio::io_context& ctx_;
   std::string iface_;
+  tfc::logger::logger logger_;
   ecx_contextt context_{};
   std::vector<std::unique_ptr<devices::base>> slaves_;
 

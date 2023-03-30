@@ -4,9 +4,9 @@ namespace tfc::ec::devices::beckhoff {
 template <size_t size, auto p_code>
 class el400x : public base {
 public:
-  explicit el400x(boost::asio::io_context& ctx) : base(ctx) {}
-  static constexpr auto product_code = p_code;
-  static constexpr auto vendor_id = 0x2;
+  explicit el400x(boost::asio::io_context&, uint16_t const slave_index) : base(slave_index) {}
+  static constexpr uint32_t product_code = p_code;
+  static constexpr uint32_t vendor_id = 0x2;
 
   void process_data(uint8_t*, uint8_t* output) noexcept final {
     if (output == nullptr)

@@ -2,11 +2,10 @@
 
 #include <units/isq/si/electric_current.h>
 #include <units/quantity_io.h>
-#include <iostream>
 #include <string>
 
-#include "tfc/devices/util.hpp"
-#include "tfc/ecx.hpp"
+#include "tfc/ec/devices/util.hpp"
+#include "tfc/ec/soem_interface.hpp"
 
 namespace tfc::ec::devices::beckhoff {
 struct siemens_status {
@@ -20,9 +19,11 @@ using units::isq::si::electric_current_references::mA;
 template <size_t size, auto p_code>
 class el305x : public base {
 public:
-  explicit el305x(boost::asio::io_context& ctx) : base(ctx) {}
-  static constexpr auto product_code = p_code;
-  static constexpr auto vendor_id = 0x2;
+  explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base(slave_index) {
+
+  }
+  static constexpr uint32_t product_code = p_code;
+  static constexpr uint32_t vendor_id = 0x2;
 
   auto setup(ecx_contextt* context, uint16_t slave) -> int final {
     // Clean rx pdo assign
