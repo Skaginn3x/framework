@@ -2,8 +2,9 @@
 #include "tfc/logger.hpp"
 #include "tfc/utils/pragmas.hpp"
 
+#include <fmt/printf.h>
 #include <boost/program_options.hpp>
-#include <iostream>
+#include <boost/stacktrace.hpp>
 #include <magic_enum.hpp>
 
 namespace bpo = boost::program_options;
@@ -89,6 +90,9 @@ auto default_description() -> boost::program_options::options_description {
 void init(int argc, char const* const* argv, bpo::options_description const& desc) {
   options::instance().init(argc, argv, desc);
 }
+void init(int argc, char const* const* argv) {
+  options::instance().init(argc, argv, default_description());
+}
 
 auto get_exe_name() noexcept -> std::string_view {
   return options::instance().get_exe_name();
@@ -110,6 +114,12 @@ auto is_stdout_enabled() noexcept -> bool {
 }
 auto is_noeffect_enabled() noexcept -> bool {
   return options::instance().get_noeffect();
+}
+
+void terminate() {
+  boost::stacktrace::stacktrace const trace{};
+  fmt::fprintf(stderr, "%s\n", to_string(trace).data());
+  std::terminate();
 }
 
 }  // namespace tfc::base

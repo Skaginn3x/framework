@@ -1,3 +1,5 @@
+#pragma once
+
 #include <concepts>
 #include <expected>
 #include <memory>
@@ -61,7 +63,7 @@ public:
   }
 
   rpc_skeleton(rpc_skeleton const&) = delete;
-  auto operator=(rpc_skeleton const&) -> rpc_skeleton = delete;
+  auto operator=(rpc_skeleton const&) -> rpc_skeleton& = delete;
   rpc_skeleton(rpc_skeleton&&) = delete;
   auto operator=(rpc_skeleton&&) -> rpc_skeleton& = delete;
 
@@ -160,7 +162,7 @@ public:
       std::invoke(callback_copy,
                   glz::unexpected{
                       glz::rpc::error(glz::rpc::error_e::internal, fmt::format("Unique id: {} is not unique", new_uuid)) },
-                  std::string{});
+                  glz::json_t::null_t{});
       return;
     }
     auto request_str_ptr{ std::make_shared<std::string>(std::move(request_str)) };

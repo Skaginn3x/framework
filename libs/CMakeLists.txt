@@ -14,4 +14,5 @@ target_link_libraries(tfc
     tfc::confman,
     tfc::base,
     tfc::ipc,
+    tfc::rpc,
 )
