@@ -19,7 +19,7 @@ target_include_directories(ec
   PRIVATE
     inc/
 )
-target_link_directories(ec PUBLIC /home/omar/source/repos/framework/vcpkg-sysroot-gcc-libstdcxx-dynamic/x64-linux-gcc-dynamic/lib)
+target_link_directories(ec PUBLIC ${SOEM_INCLUDE_DIRS}/../lib/)
 
 target_link_libraries(ec
   PUBLIC
