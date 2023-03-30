@@ -24,14 +24,14 @@ echo "Assigning directory /var/tfc to group tfc"
 chgrp tfc /var/tfc
 
 echo "Write permissions to /var/tfc and /run/tfc"
-chmod g+w /var/tfc
-chmod g+w /run/tfc
+chmod 775 /var/tfc
+chmod 775 /run/tfc
 
 if [[ -n "$SUDO_USER" ]]; then
   echo "Adding user $SUDO_USER to tfc group"
   usermod -aG tfc "$SUDO_USER"
+  su "$SUDO_USER"
 else
   # todo try some other way
   echo "The script was run by the root user, unable to add user to tfc group"
 fi
-
