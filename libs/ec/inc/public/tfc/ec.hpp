@@ -14,6 +14,7 @@ using std::chrono::duration_cast;
 using std::chrono::microseconds;
 using std::chrono::nanoseconds;
 
+template<size_t pdo_buffer_size = 4096>
 class context_t {
 public:
   // There is support in SOEM and ethercat to split
@@ -253,11 +254,11 @@ private:
    * @return the number of slaves configured
    */
   static auto slave_config_callback(ecx_contextt* context, uint16_t slave_index) -> int {
-    auto* instance = static_cast<context_t*>(context->userdata);
+    auto* self = static_cast<context_t*>(context->userdata);
     ec_slavet& sl = context->slavelist[slave_index];  // NOLINT
-    instance->logger_.info("product code: {:#x}\tvendor id: {:#x}\t slave index: {} name: {}, aliasaddr: {}", sl.eep_id,
+    self->logger_.info("product code: {:#x}\tvendor id: {:#x}\t slave index: {} name: {}, aliasaddr: {}", sl.eep_id,
                            sl.eep_man, slave_index, sl.name, sl.aliasadr);
-    instance->slaves_[slave_index]->setup(context, slave_index);
+    self->slaves_[slave_index]->setup(context, slave_index);
     return 1;
   }
 
@@ -290,6 +291,6 @@ private:
   std::chrono::nanoseconds last_cycle_;
   std::chrono::nanoseconds cycle_sum_;
   size_t number_of_cycles_;
-  std::array<std::byte, 4096> io_;
+  std::array<std::byte, pdo_buffer_size> io_;
 };
 }  // namespace tfc::ec

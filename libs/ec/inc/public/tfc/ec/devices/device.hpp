@@ -12,14 +12,13 @@
 
 namespace tfc::ec::devices {
 
-using tfc::ec::devices::default_device;
-using tfc::ec::devices::abt::easyecat;
-using tfc::ec::devices::beckhoff::ek1100;
-using tfc::ec::devices::beckhoff::el1008;
-using tfc::ec::devices::beckhoff::el2008;
-using tfc::ec::devices::beckhoff::el3054;
-using tfc::ec::devices::beckhoff::el4002;
-using tfc::ec::devices::schneider::atv320;
+using abt::easyecat;
+using beckhoff::ek1100;
+using beckhoff::el1008;
+using beckhoff::el2008;
+using beckhoff::el3054;
+using beckhoff::el4002;
+using schneider::atv320;
 
 template <typename device>
 auto devices_equal(auto vendor_id, auto product_code) {
