@@ -8,6 +8,7 @@
 
 #include <ranges>
 
+#include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
 
 #include "tfc/ec.hpp"
