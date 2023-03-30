@@ -29,9 +29,10 @@ public:
     quick_stop_recv_ = tfc::ipc::bool_recv_cb::create(ctx, "atv320.bool.quick_stop");
     quick_stop_recv_->init(fmt::format("{}.{}.easyecat.1.bool.in.0", tfc::base::get_exe_name(), tfc::base::get_proc_name()),
                            [this](bool value) { quick_stop_ = value; });
-    reference_frequency_recv_ = tfc::ipc::double_recv_cb::create(ctx, "atv320.double.out.freq");
-    reference_frequency_recv_->init("tfcctl.def.atv320.freq.double",
-                                    [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
+    frequency_recv_ = tfc::ipc::double_recv_cb::create(ctx, "atv320.double.out.freq");
+    frequency_recv_->init("tfcctl.def.atv320.freq.double",
+                          [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
+    frequency_transmit_ = tfc::ipc::double_send::create(ctx, "atv320.double.out.current_freq").value();
   }
   auto process_data(uint8* input, uint8* output) noexcept -> void override {
     if (input == nullptr || output == nullptr) {
@@ -68,7 +69,14 @@ public:
       }
       last_analog_inputs_[i] = analog_ptr[i];
     }
+    auto* frequency = reinterpret_cast<int16_t*>(input) + 1;
+    if (last_frequency_ != *frequency) {
+      frequency_transmit_->async_send(static_cast<double>(*frequency) / 10, [this](auto&& PH1, auto&& PH2) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+      });
+    }
 
+    last_frequency_ = *frequency;
     using tfc::ec::cia_402::commands_e;
     using tfc::ec::cia_402::states_e;
     auto command = tfc::ec::cia_402::transition(state, quick_stop_);
@@ -136,8 +144,8 @@ public:
     ecx::sdo_write<uint16_t>(context, slave, { 0x2014, 0x16 }, 0);  // 0 - Not configured
     // Set AO1 output to current
     ecx::sdo_write<uint16_t>(context, slave, { 0x2010, 0x02 }, 2);  // 2 - Current
-    // Set AI1 input to current
-    ecx::sdo_write<uint16_t>(context, slave, { 0x200E, 0x03 }, 2);  // 2 - Current
+    // Set AI3 input to current
+    ecx::sdo_write<uint16_t>(context, slave, { 0x200E, 0x05 }, 2);  // 2 - Current
     // Set AI3 input to positive
     ecx::sdo_write<uint16_t>(context, slave, { 0x200E, 0x55 }, 0);
 
@@ -151,16 +159,18 @@ public:
 private:
   uint16_t status_word_;
   std::array<int16_t, 2> last_analog_inputs_;
-  std::vector<std::shared_ptr<tfc::ipc::int_send>> ai_transmitters_;
+  std::vector<tfc::ipc::int_send_ptr> ai_transmitters_;
   std::bitset<6> last_bool_values_;
-  std::vector<std::shared_ptr<tfc::ipc::bool_send>> di_transmitters_;
+  std::vector<tfc::ipc::bool_send_ptr> di_transmitters_;
   std::string last_state_;
-  std::shared_ptr<tfc::ipc::string_send> state_transmitter_;
+  tfc::ipc::string_send_ptr state_transmitter_;
   std::string last_command_;
-  std::shared_ptr<tfc::ipc::string_send> command_transmitter_;
+  tfc::ipc::string_send_ptr command_transmitter_;
   bool quick_stop_ = false;
-  std::shared_ptr<tfc::ipc::bool_recv_cb> quick_stop_recv_;
+  tfc::ipc::bool_recv_cb_ptr quick_stop_recv_;
   int16_t reference_frequency_;
-  std::shared_ptr<tfc::ipc::double_recv_cb> reference_frequency_recv_;
+  tfc::ipc::double_recv_cb_ptr frequency_recv_;
+  int16_t last_frequency_;
+  tfc::ipc::double_send_ptr frequency_transmit_;
 };
 }  // namespace tfc::ec::devices::schneider

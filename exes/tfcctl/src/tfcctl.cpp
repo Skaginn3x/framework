@@ -137,13 +137,15 @@ auto main(int argc, char** argv) -> int {
   std::string signal{};
   std::string slot{};
 
-  description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
-      "slot", po::value<std::string>(&slot), "IPC slot channel (input)");
+  std::vector<std::string> connect;
 
+  description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
+      "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
+      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
   tfc::base::init(argc, argv, description);
 
   // Must provide an argument
-  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end()) {
+  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
     std::stringstream out;
     description.print(out);
     fmt::print("Usage: tfcctl [options] \n{}", out.str());
@@ -153,30 +155,33 @@ auto main(int argc, char** argv) -> int {
 
   asio::io_context ctx;
 
-  if (!signal.empty() && slot.empty()) {
+  // For sending a signal
+  if (!signal.empty()) {
     asio::co_spawn(ctx, stdin_coro(ctx, logger, signal), asio::detached);
   }
 
-  auto slot_ipc = [&ctx, &logger, &signal](std::string_view slot_name) -> any_recv {
-    if (slot_name.empty()) {
-      return std::monostate{};
-    }
-    auto ipc{ create_ipc_recv<any_recv>(ctx, slot_name) };
-    std::visit(
-        [&](auto&& receiver) {
-          using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-          if constexpr (!std::same_as<std::monostate, receiver_t>) {
-            logger.log<tfc::logger::lvl_e::trace>("Slot {} connecting to signal {}", slot_name, signal);
-            auto error =
-                receiver->init(signal, [&](auto const& val) { logger.log<tfc::logger::lvl_e::info>("Received {}", val); });
-            if (error) {
-              logger.log<tfc::logger::lvl_e::error>("Failed to connect: {}", error.message());
+  std::vector<any_recv> connect_slots;
+  for (auto& signal_connect : connect) {
+    // For listening to connections
+    connect_slots.emplace_back([&ctx, &logger](std::string_view signal) -> any_recv {
+      std::string slot_name = fmt::format("tfcctl_slot_{}", signal);
+      auto ipc{ create_ipc_recv<any_recv>(ctx, slot_name) };
+      std::visit(
+          [&](auto&& receiver) {
+            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+            if constexpr (!std::same_as<std::monostate, receiver_t>) {
+              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", slot_name, signal);
+              auto error = receiver->init(
+                  signal, [&, signal](auto const& val) { logger.log<tfc::logger::lvl_e::info>("{}: {}", signal, val); });
+              if (error) {
+                logger.log<tfc::logger::lvl_e::error>("Failed to connect: {}", error.message());
+              }
             }
-          }
-        },
-        ipc);
-    return ipc;
-  }(slot);
+          },
+          ipc);
+      return ipc;
+    }(signal_connect));
+  }
 
   asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
   signal_set.async_wait([&](const std::error_code& error, int signal_number) {

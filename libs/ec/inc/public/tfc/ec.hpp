@@ -259,8 +259,8 @@ private:
   static auto slave_config_callback(ecx_contextt* context, uint16_t slave_index) -> int {
     auto* self = static_cast<context_t*>(context->userdata);
     ec_slavet& sl = context->slavelist[slave_index];  // NOLINT
-    self->logger_.info("product code: {:#x}\tvendor id: {:#x}\t slave index: {} name: {}, aliasaddr: {}", sl.eep_id,
-                       sl.eep_man, slave_index, sl.name, sl.aliasadr);
+    self->logger_.trace("Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}",
+                        sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr);
     self->slaves_[slave_index]->setup(context, slave_index);
     return 1;
   }
