@@ -12,6 +12,7 @@
     "spdlog",
     "magic-enum",
     "bext-sml",
-    "soem-master"
+    "soem-master",
+    "mp-units"
   ]
 }

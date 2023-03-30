@@ -1,10 +1,10 @@
-
 #pragma once
+
 #include <array>
+#include <boost/asio.hpp>
 #include <cassert>
 #include <chrono>
 #include <vector>
-#include <boost/asio.hpp>
 
 #include "devices/device.hpp"
 #include "ecx.hpp"
@@ -16,7 +16,18 @@ using std::chrono::nanoseconds;
 
 class context_t {
 public:
-  explicit context_t(std::string_view iface) : iface_(iface) {
+  // There is support in SOEM and ethercat to split
+  // your network into groups. There can even be
+  // Many processing loops operating on the same
+  // network at different frequencies and with
+  // different slaves. This is neat but currently
+  // Not beneficial to our use case.
+  // This number indicates that "all" groups
+  // are to be addressed when our code is
+  // interacting with groups.
+  static constexpr uint8_t all_groups = 0;
+  static constexpr uint16_t all_slaves = 0;
+  explicit context_t(boost::asio::io_context& ctx, std::string_view iface) : ctx_(ctx), iface_(iface) {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -55,9 +66,8 @@ public:
   }
   [[nodiscard]] auto init() -> bool { return ecx::init(&context_, iface_); }
   auto processdata(std::chrono::microseconds timeout) -> ecx::working_counter_t {
-
     auto retval = ecx::recieve_processdata(&context_, timeout);
-    for(int i = 1; i < slave_count_+1; i++){
+    for (int i = 1; i < slave_count_ + 1; i++) {
       slaves_[i]->process_data(slavelist_[i].inputs, slavelist_[i].outputs);
     }
     ecx_send_processdata(&context_);
@@ -74,20 +84,20 @@ public:
       return false;
     }
     // Insert the base device into the vector.
-    slaves_ = std::vector<std::unique_ptr<device_base>>();
+    slaves_ = std::vector<std::unique_ptr<devices::base>>();
     slaves_.reserve(slave_count_ + 1);
-    slaves_.emplace_back(std::make_unique<default_device>());
+    slaves_.emplace_back(std::make_unique<devices::default_device>(ctx_));
     // Attach the callback to each slave
     for (int i = 1; i <= slave_count_; i++) {
-      slaves_.emplace_back(get_device(slavelist_[i].eep_man, slavelist_[i].eep_id));
+      slaves_.emplace_back(devices::get(ctx_, slavelist_[i].eep_man, slavelist_[i].eep_id));
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     return true;
   };
   [[nodiscard]] auto iface() -> std::string_view { return iface_; }
   [[nodiscard]] auto slave_count() const -> size_t { return slave_count_; };
-  [[nodiscard]] auto config_overlap_map_group(uint8_t group_index = 0) -> size_t {
-    return ecx::config_overlap_map_group(&context_, std::span(io_.data(), io_.size()), group_index);
+  auto config_map_group(uint8_t group_index = all_groups) -> size_t {
+    return ecx::config_map_group(&context_, std::span(io_.data(), io_.size()), group_index);
   }
   auto configdc() -> bool { return ecx::configdc(&context_); }
   auto statecheck(uint16_t slave_index,
@@ -108,27 +118,128 @@ public:
     }
     return static_cast<ec_state>(slavelist_[slave_index].state);
   }
+
   /**
-   * run the fieldbus evet cycle interval
+   * Start the async cycle of monitoring the fieldbus
+   * and processing IO's
+   */
+  auto async_start() -> std::error_code {
+    if (!init()) {
+      // TODO: swith for error_code
+      throw std::runtime_error("Failed to init, no socket connection");
+    }
+    if (!config_init(false)) {
+      // TODO: Switch for error_code
+      throw std::runtime_error("No slaves found!");
+    }
+
+    config_map_group();
+
+    if (!configdc()) {
+      throw std::runtime_error("Failed to configure dc");
+    }
+
+    statecheck(all_slaves, EC_STATE_SAFE_OP, ecx::constants::timeout_state * 4);
+
+    // Do a single read/write on the slaves to activate their outputs.
+    processdata(ecx::constants::timeout_tx_to_rx);
+
+    write_state(all_slaves, EC_STATE_OPERATIONAL);
+
+    for (int i = 0; i < 10; i++) {
+      processdata(ecx::constants::timeout_tx_to_rx);
+      if (slave_state(all_slaves) == EC_STATE_OPERATIONAL) {
+        // Start async loop
+        async_wait();
+        return {};
+      }
+    }
+
+    std::string slave_status;
+    ecx_readstate(&context_);
+    for (size_t i = 0; i < slave_count(); i++) {
+      auto& slave = context_.slavelist[i];
+      if (slave.state != EC_STATE_OPERATIONAL) {
+        slave_status += fmt::format("slave({}) -> {} is 0x{} (AL-status=0x{} {}\n", i, slave.name, slave.state,
+                                    slave.ALstatuscode, ec_ALstatuscode2string(slave.ALstatuscode));
+      }
+    }
+    throw std::runtime_error(slave_status);
+  };
+
+private:
+  /**
+   * run the fieldbus event cycle interval
    * @param ctx
    * @return
    */
-  auto async_run (boost::asio::io_context& ctx, std::chrono::microseconds cycle) -> void{
-    boost::asio::post([&](){
-      auto timer = std::make_shared<boost::asio::steady_timer>(ctx);
-      timer->expires_after(cycle);
-      timer->async_wait([&, timer](std::error_code err){
-        printf("HERE");
-        if (err) {
-          throw std::runtime_error(err.message());
-        }
-        printf("HERE");
-        async_run(ctx, cycle);
-      });
-      processdata(ecx::constants::timeout_tx_to_rx);
-    });
+  auto async_wait() -> void {
+    auto timer = std::make_shared<boost::asio::steady_timer>(ctx_);
+    timer->expires_after(std::chrono::microseconds(1000));
+    timer->async_wait([this, timer](auto&& PH1) { fieldbus_roundtrip(std::forward<decltype(PH1)>(PH1)); });
   }
-private:
+  auto fieldbus_roundtrip(std::error_code err) -> void {
+    if (err) {
+      return;
+    }
+    size_t const expected_wkc = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
+    if (processdata(ecx::constants::timeout_tx_to_rx) < expected_wkc) {
+      check_state();
+    }
+    async_wait();
+  }
+  /**
+   * Check the state of attached slaves.
+   * If the slaves are no longer in operational mode. Attempt to
+   * switch them to operational mode. And if the slaves have
+   * been lost attempt to add them again.
+   * @param group_index 0 for all groups
+   */
+  auto check_state(uint8_t group_index = all_groups) -> void {
+    auto& grp = context_.grouplist[group_index];
+    grp.docheckstate = FALSE;
+    ecx_readstate(&context_);
+    for (size_t i = 1; i <= slave_count(); ++i) {
+      auto& slave = context_.slavelist[i];
+      if (slave.group != group_index) {
+        /* This slave is part of another group: do nothing */
+      } else if (slave.state != EC_STATE_OPERATIONAL) {
+        grp.docheckstate = TRUE;
+        if (slave.state == EC_STATE_SAFE_OP + EC_STATE_ERROR) {
+          printf("* Slave %zu is in SAFE_OP+ERROR, attempting ACK\n", i);
+          slave.state = EC_STATE_SAFE_OP + EC_STATE_ACK;
+          ecx_writestate(&context_, i);
+        } else if (slave.state == EC_STATE_SAFE_OP) {
+          printf("* Slave %zu is in SAFE_OP, change to OPERATIONAL\n", i);
+          slave.state = EC_STATE_OPERATIONAL;
+          ecx_writestate(&context_, i);
+        } else if (slave.state > EC_STATE_NONE) {
+          if (ecx_reconfig_slave(&context_, i, EC_TIMEOUTRET) != 0) {
+            slave.islost = FALSE;
+            printf("* Slave %zu reconfigured\n", i);
+          }
+        } else if (slave.islost == 0) {
+          ecx_statecheck(&context_, i, EC_STATE_OPERATIONAL, EC_TIMEOUTRET);
+          if (slave.state == EC_STATE_NONE) {
+            slave.islost = TRUE;
+            printf("* Slave %zu lost\n", i);
+          }
+        }
+      } else if (slave.islost != 0) {
+        if (slave.state != EC_STATE_NONE) {
+          slave.islost = FALSE;
+          printf("* Slave %zu found\n", i);
+        } else if (ecx_recover_slave(&context_, i, EC_TIMEOUTRET) != 0) {
+          slave.islost = FALSE;
+          printf("* Slave %zu recovered\n", i);
+        }
+      }
+    }
+
+    if (context_.grouplist->docheckstate == 0) {
+      printf("All slaves resumed OPERATIONAL\n");
+    }
+  }
   /**
    * A callback function used to get passed the void* behaviour
    * of the underlying library. We only get a single void*
@@ -142,16 +253,17 @@ private:
    */
   static auto slave_config_callback(ecx_contextt* context, uint16_t slave_index) -> int {
     auto* instance = static_cast<context_t*>(context->userdata);
-    ec_slavet& sl = context->slavelist[slave_index]; //NOLINT
-    printf("product code: 0x%x\tvendor id: 0x%x\t slave index: %d name: %s, aliasaddr: %d\n", sl.eep_id,
-           sl.eep_man, slave_index, sl.name, sl.aliasadr);
+    ec_slavet& sl = context->slavelist[slave_index];  // NOLINT
+    printf("product code: 0x%x\tvendor id: 0x%x\t slave index: %d name: %s, aliasaddr: %d\n", sl.eep_id, sl.eep_man,
+           slave_index, sl.name, sl.aliasadr);
     instance->slaves_[slave_index]->setup(context, slave_index);
     return 1;
   }
 
+  boost::asio::io_context& ctx_;
   std::string iface_;
   ecx_contextt context_{};
-  std::vector<std::unique_ptr<device_base>> slaves_;
+  std::vector<std::unique_ptr<devices::base>> slaves_;
 
   // Stack allocations for pointers inside ec_contextt.
   ecx_portt port_;

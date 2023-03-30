@@ -1,10 +1,7 @@
-#include "tfc/ec.hpp"
-#include <memory>
 #include <iostream>
+#include <memory>
+#include "tfc/ec.hpp"
 
-
-int main(){
+int main() {
   return 0;
 }
-
-

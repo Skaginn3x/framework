@@ -1,7 +1,6 @@
 #pragma once
 
 #include <boost/sml.hpp>
-#include <cstdint>
 
 namespace tfc::ec::cia_402 {
 
@@ -97,35 +96,29 @@ auto parse_state(uint16_t const& status_word) -> states_e {
 }
 
 /**
- * Provide the command for transitioning to the destination state.
- * For destination_state = Fault reaction active, Fault, Not ready to switch on.
- * The function will return the command for transitioning to switch on disabled ( Disable voltage ).
- * @param current_state
- * @param destination_state
- * @return Returns the command to apply in trying to move the vfd/servo closer to the destination state
- */
-auto transition(states_e current_state, states_e destination_state) -> commands_e {
-  if (current_state == destination_state) {
-    return commands_e::shutdown;
-  }
-  return commands_e::shutdown;
-}
-/**
  * Transition to operational mode
- * @param current_state
- * @return the command to transition to operational mode
+ * @param current_state State parsed from status word determined to be the current status of a drive
+ * @param quick_stop if the drive should be placed in quick_stop mode.
+ * @return the command to transition to operational mode / stick in quick stop mode.
  */
-auto transition(states_e current_state) -> commands_e {
+auto transition(states_e current_state, bool quick_stop) -> commands_e {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands_e::shutdown;
     case states_e::ready_to_switch_on:
-      return commands_e::switch_on;
+      return commands_e::enable_operation;  // This is a shortcut marked as 3B in ethercat manual for atv320
     case states_e::operation_enabled:
+      if (quick_stop)
+        return commands_e::quick_stop;
+      return commands_e::enable_operation;
     case states_e::switched_on:
       return commands_e::enable_operation;
     case states_e::fault:
       return commands_e::fault_reset;
+    case states_e::quick_stop_active:
+      if (quick_stop)
+        return commands_e::quick_stop;
+      return commands_e::disable_voltage;
     default:
       return static_cast<commands_e>(0);
   }

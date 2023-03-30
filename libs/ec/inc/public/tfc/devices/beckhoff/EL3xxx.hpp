@@ -1,17 +1,32 @@
 #pragma once
 
+#include <units/isq/si/electric_current.h>
+#include <units/quantity_io.h>
+#include <iostream>
+#include <string>
+
+#include "tfc/devices/util.hpp"
 #include "tfc/ecx.hpp"
-auto debug_print(const std::string& name, bool state) -> std::string {
-  return name + (state ? ": true" : ": false");
-}
+
+namespace tfc::ec::devices::beckhoff {
+struct siemens_status {
+  bool out_of_range = false;
+  bool unknown_1 = false;
+  bool unknown_2 = false;
+};
+
+using units::isq::si::electric_current_references::mA;
 
 template <size_t size, auto p_code>
-class el305x : public device_base {
+class el305x : public base {
 public:
+  explicit el305x(boost::asio::io_context& ctx) : base(ctx) {}
   static constexpr auto product_code = p_code;
   static constexpr auto vendor_id = 0x2;
 
-  int setup(ecx_contextt * context, uint16_t slave) override {
+  auto setup(ecx_contextt* context, uint16_t slave) -> int final {
+    // Clean rx pdo assign
+    ecx::sdo_write<uint8_t>(context, slave, ecx::rx_pdo_assign<0x00>, 0);
     // Set siemens bits true
     // and enable compact mode
     // Each input settings field is in 0x8000 + offset * 0x10
@@ -19,71 +34,62 @@ public:
     // 1 -> 0x8010
     // 2 -> 0x8020
     // This depends on size
-    for(size_t i = 0; i < size; i++){
+    for (size_t i = 0; i < size; i++) {
+      // Set rx pdo to compact mode
+      ecx::sdo_write<uint16_t>(context, slave, { 0x1C13, i + 1 }, 0x1A00 + (i * 2) + 1);
+
       uint16_t const settings_index = 0x8000 + (i * 0x10);
-      auto wkc = ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // 2 - Current
+      auto wkc = ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // Enable - siemens mode
 
-
-      //TODO: we need more error checking all around this layer to soem.
-      // This is just an example of how to fetch error strings from soem
-      if (wkc != 1){
-        while (ecx_iserror(context) != 0U){
+      // TODO: we need more error checking all around this layer to soem.
+      //  This is just an example of how to fetch error strings from soem
+      if (wkc != 1) {
+        while (ecx_iserror(context) != 0U) {
           printf(ecx_elist2string(context));
         }
       }
     }
+    // Set rx pdo size to size
+    ecx::sdo_write<uint8_t>(context, slave, ecx::rx_pdo_assign<0x00>, size);
 
-
+    // printf("Processdatasize: %d", context->slavelist[slave].Obytes);
     // This is can be used to restore default parameters
-    //ecx::sdo_write<uint32_t>(context, slave, { 0x1011, 0x01 }, 0x64616F6C );  // RESTORE PARAMETERS TO DELIVERY STATE
+    // ecx::sdo_write<uint32_t>(context, slave, { 0x1011, 0x01 }, 0x64616F6C );  // RESTORE PARAMETERS TO DELIVERY STATE
     return 1;
   }
 
   void process_data(uint8_t* input, uint8_t*) noexcept final {
     // Cast pointer type to uint16_t
-    bool chg = false;
-    auto* in = reinterpret_cast<uint16_t*>(input);  // NOLINT
+    auto* in_ptr = reinterpret_cast<int16_t*>(input);
+
+    // The value is setup in compact mode and siemens bits
+    // are enabled. This means that there are three
+    // status bits in the LSB the other 13 are split
+    // up as one unused sign bit and then 12 bits data.
     for (size_t i = 0; i < size; i++) {
-      auto temp = *in++;
-      if ((status_[i] & 0x00ff) != (temp & 0x00ff)) {  // Don't compare the expdo_x
-        chg = true;
-      }
-      status_[i] = temp;
-      temp = *in++;
-      if (value_[i] != temp)
-        chg = true;
-      value_[i] = temp;
+      uint16_t const raw_value = *in_ptr++;
+      std::bitset<3> const status_bits(raw_value);
+      status_[i] = siemens_status{ .out_of_range = status_bits.test(0),
+                                   .unknown_1 = status_bits.test(1),
+                                   .unknown_2 = status_bits.test(2) };
+      value_[i] = units::isq::si::electric_current<units::isq::si::milliampere>(map<double>(raw_value >> 3, 0, 4096, 4, 20));
     }
-
-    if (chg) {
-      printf("\nValue: ");
-      for (auto& val : value_) {
-        printf("0x%x\t", val);
-      }
-      printf("\n");
-
-      printf("Status:\n");
-      for (auto& val : status_) {
-        auto status_parse = std::bitset<16>(val);
-        bool const under_range = status_parse.test(0);
-        bool const over_range = status_parse.test(1);
-        bool const limit_1 = status_parse.test(2);
-        bool const limit_2 = status_parse.test(3);
-        bool const error = status_parse.test(4);
-        bool const txpdo_state = status_parse.test(14);
-        bool const txpdo_toggle = status_parse.test(15);
-        printf("%s\t%s\t%s\t%s\t%s\t%s\t%s", debug_print("under_range", under_range).c_str(),
-               debug_print("over_range", over_range).c_str(), debug_print("limit_1", limit_1).c_str(),
-               debug_print("limit_2", limit_2).c_str(), debug_print("error", error).c_str(),
-               debug_print("txpdo_state", txpdo_state).c_str(), debug_print("txpdo_toggle", txpdo_toggle).c_str());
-        printf("\n");
-      }
-    }
+    // size_t counter = 0;
+    // for (auto milli_ampere : value_) {
+    //   auto error_bits = std::bitset<3>(milli_ampere);
+    //   value_[counter] = milli_ampere >> 3;
+    //   double m_amp = map<uint64_t>(value_[counter], 0, 4096, 4000, 20000);
+    //   printf("(%lu)->0x%x\t0x%x\t%s\t%f°\t", counter, milli_ampere, value_[counter], error_bits.to_string().c_str(),
+    //          celsius);
+    //   counter++;
+    // }
   }
 
 private:
-  std::array<uint16_t, size> status_;
-  std::array<uint16_t, size> value_;
+  std::array<siemens_status, size> status_;  // Three status bits
+  std::array<units::isq::si::electric_current<units::isq::si::milliampere>, size> value_;
 };
 
 using el3054 = el305x<4, 0xbee3052>;
+
+}  // namespace tfc::ec::devices::beckhoff

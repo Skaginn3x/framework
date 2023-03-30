@@ -1,8 +1,8 @@
-// Drop V1 interface
-#define EC_VER2
-
 // attempt at c++ typesafe api for SOEM functions
 #pragma once
+
+// Drop V1 interface
+#define EC_VER2
 
 #include <chrono>
 #include <memory>
@@ -83,8 +83,7 @@ static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
  * @param use_config_table
  * @return IOmap size
  */
-[[nodiscard]] auto config_overlap_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index)
-    -> size_t {
+auto config_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
   return ecx_config_map_group(context, buffer.data(), group_index) > 0;
 }
 

@@ -104,7 +104,7 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
       try {
         using value_t = typename decltype(in_sender)::element_type::value_t;
         auto value = boost::lexical_cast<value_t>(input);
-        in_sender->async_send(value, [&](std::error_code code, size_t bytes) {
+        in_sender->async_send(value, [&, value](std::error_code code, size_t bytes) {
           if (code) {
             in_logger.template log<tfc::logger::lvl_e::error>("Error: {}", code.message());
           } else {

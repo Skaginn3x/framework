@@ -1,8 +1,10 @@
 #pragma once
 
+namespace tfc::ec::devices::beckhoff {
 template <size_t size, auto p_code>
-class el400x : public device_base {
+class el400x : public base {
 public:
+  explicit el400x(boost::asio::io_context& ctx) : base(ctx) {}
   static constexpr auto product_code = p_code;
   static constexpr auto vendor_id = 0x2;
 
@@ -12,7 +14,7 @@ public:
 
     // if (std::chrono::high_resolution_clock::now() - point_ > std::chrono::microseconds (250)){
     for (size_t i = 0; i < size; i++) {
-        value_[i] += 50;
+      value_[i] += 50;
     }
     point_ = std::chrono::high_resolution_clock::now();
 
@@ -31,3 +33,5 @@ private:
 };
 
 using el4002 = el400x<4, 0xfa23052>;
+
+}  // namespace tfc::ec::devices::beckhoff
