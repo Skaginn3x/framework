@@ -22,7 +22,7 @@ public:
   static constexpr uint32_t vendor_id = 0x2;
 
   void process_data(uint8_t*, uint8_t* output) noexcept final {
-    if (output == nullptr){
+    if (output == nullptr) {
       return;
     }
     static_assert(size <= 8);

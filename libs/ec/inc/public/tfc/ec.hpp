@@ -14,7 +14,7 @@ using std::chrono::duration_cast;
 using std::chrono::microseconds;
 using std::chrono::nanoseconds;
 
-template<size_t pdo_buffer_size = 4096>
+template <size_t pdo_buffer_size = 4096>
 class context_t {
 public:
   // There is support in SOEM and ethercat to split
@@ -188,7 +188,7 @@ private:
     if (processdata(ecx::constants::timeout_tx_to_rx) < expected_wkc) {
       check_state();
     }
-    while(ecx_iserror(&context_) != 0U){
+    while (ecx_iserror(&context_) != 0U) {
       logger_.error("Ethercat context error: {}", ecx_elist2string(&context_));
     }
     async_wait();
@@ -260,7 +260,7 @@ private:
     auto* self = static_cast<context_t*>(context->userdata);
     ec_slavet& sl = context->slavelist[slave_index];  // NOLINT
     self->logger_.info("product code: {:#x}\tvendor id: {:#x}\t slave index: {} name: {}, aliasaddr: {}", sl.eep_id,
-                           sl.eep_man, slave_index, sl.name, sl.aliasadr);
+                       sl.eep_man, slave_index, sl.name, sl.aliasadr);
     self->slaves_[slave_index]->setup(context, slave_index);
     return 1;
   }

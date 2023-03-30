@@ -45,12 +45,16 @@ public:
 
     auto state = tfc::ec::cia_402::parse_state(status_word_);
     if (cia_402::to_string(state) != last_state_) {
-      state_transmitter_->async_send(cia_402::to_string(state), [this](auto && PH1, auto && PH2) { async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
+      state_transmitter_->async_send(cia_402::to_string(state), [this](auto&& PH1, auto&& PH2) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+      });
     }
     std::bitset<6> const value(in[3]);
     for (size_t i = 0; i < 6; i++) {
       if (value.test(i) != last_bool_values_.test(i)) {
-        di_transmitters_[i]->async_send(value.test(i), [this](auto&& PH1, auto && PH2){ async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
+        di_transmitters_[i]->async_send(value.test(i), [this](auto&& PH1, auto&& PH2) {
+          async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+        });
       }
     }
     last_bool_values_ = value;
@@ -58,7 +62,9 @@ public:
     auto* analog_ptr = reinterpret_cast<int16_t*>(in) + 4;
     for (size_t i = 0; i < 2; i++) {
       if (last_analog_inputs_[i] != analog_ptr[i]) {
-        ai_transmitters_[i]->async_send(analog_ptr[i], [this](auto&& PH1, auto && PH2){ async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
+        ai_transmitters_[i]->async_send(analog_ptr[i], [this](auto&& PH1, auto&& PH2) {
+          async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+        });
       }
       last_analog_inputs_[i] = analog_ptr[i];
     }
@@ -68,7 +74,9 @@ public:
     auto command = tfc::ec::cia_402::transition(state, quick_stop_);
 
     if (cia_402::to_string(command) != last_command_) {
-      command_transmitter_->async_send(cia_402::to_string(command), [this](auto&& PH1, auto && PH2){ async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2)); });
+      command_transmitter_->async_send(cia_402::to_string(command), [this](auto&& PH1, auto&& PH2) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+      });
     }
 
     auto* data_ptr = reinterpret_cast<uint16_t*>(output);

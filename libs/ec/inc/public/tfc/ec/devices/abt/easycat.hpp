@@ -24,9 +24,8 @@ public:
       // TODO: Don't supply ipc signal name. IPC should do this by itself using confman?
       // As a test now, just connect it with the example signal that the test program creates
       bool_receivers_.back()->init(
-          fmt::format("{}.{}.easyecat.1.bool.in.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), i), [this, i](bool value){
-            output_states_.set(i, value);
-          });
+          fmt::format("{}.{}.easyecat.1.bool.in.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), i),
+          [this, i](bool value) { output_states_.set(i, value); });
     }
     for (size_t i = 0; i < 2; i++) {
       std::expected<std::shared_ptr<tfc::ipc::uint_send>, std::error_code> ptr =

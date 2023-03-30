@@ -16,7 +16,7 @@ public:
   virtual auto setup(ecx_contextt*, uint16_t) -> int { return 1; };
 
 protected:
-  explicit base(uint16_t slave_index) : slave_index_(slave_index), logger_(fmt::format("Ethercat slave {}", slave_index)){}
+  explicit base(uint16_t slave_index) : slave_index_(slave_index), logger_(fmt::format("Ethercat slave {}", slave_index)) {}
   const uint16_t slave_index_;
   tfc::logger::logger logger_;
 };

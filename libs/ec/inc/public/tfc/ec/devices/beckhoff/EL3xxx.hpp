@@ -19,9 +19,7 @@ using units::isq::si::electric_current_references::mA;
 template <size_t size, auto p_code>
 class el305x : public base {
 public:
-  explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base(slave_index) {
-
-  }
+  explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base(slave_index) {}
   static constexpr uint32_t product_code = p_code;
   static constexpr uint32_t vendor_id = 0x2;
 
