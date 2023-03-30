@@ -33,6 +33,6 @@ target_link_libraries(ec
     mp-units::si-cgs
   )
 
-#add_library_to_docs(tfc::ec)
+add_library_to_docs(tfc::ec)
 
 add_subdirectory(tests)
