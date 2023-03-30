@@ -38,7 +38,7 @@ public:
       ecx::sdo_write<uint16_t>(context, slave, { 0x1C13, i + 1 }, 0x1A00 + (i * 2) + 1);
 
       uint16_t const settings_index = 0x8000 + (i * 0x10);
-      auto wkc = ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // Enable - siemens mode
+      ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // Enable - siemens mode
     }
     // Set rx pdo size to size
     ecx::sdo_write<uint8_t>(context, slave, ecx::rx_pdo_assign<0x00>, size);
