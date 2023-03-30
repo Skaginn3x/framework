@@ -19,6 +19,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install libsystemd-dev doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck
       - uses: actions/checkout@v3
+      - name: commissioning
+        run: |
+          sudo ./${{ github.workspace }}/scripts/commissioning.sh
         #with:
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
