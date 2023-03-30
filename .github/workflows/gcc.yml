@@ -24,6 +24,8 @@ jobs:
       - name: commissioning
         run: |
           sudo ./scripts/commissioning.sh
+          sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
+          sudo chown $USER:$USER -R /run/tfc
         #with:
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
