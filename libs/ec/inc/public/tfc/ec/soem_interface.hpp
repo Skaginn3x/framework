@@ -9,7 +9,11 @@
 #include <span>
 #include <vector>
 
+#include <tfc/utils/pragmas.hpp>
+
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wreserved-macro-identifier)
 #include <ethercat.h>
+PRAGMA_CLANG_WARNING_POP
 
 namespace ecx {
 

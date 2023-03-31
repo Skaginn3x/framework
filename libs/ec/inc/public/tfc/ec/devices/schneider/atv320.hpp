@@ -5,11 +5,11 @@
 #include <memory>
 #include <optional>
 
-#include "tfc/ec/devices/base.hpp"
+#include <tfc/ipc.hpp"
 
-#include "tfc/cia/402.hpp"
-#include "tfc/ec/soem_interface.hpp"
-#include "tfc/ipc.hpp"
+#include <tfc/ec/devices/base.hpp>
+#include <tfc/cia/402.hpp>
+#include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::devices::schneider {
 class atv320 : public base {

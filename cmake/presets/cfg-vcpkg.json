@@ -25,56 +25,32 @@
       ]
     },
     {
-      "name": "cfg-vcpkg-clang-libcxx",
+      "name": "cfg-vcpkg-clang-16.0.0",
       "hidden": true,
       "inherits": [
         "cfg-vcpkg"
       ],
       "description": "vcpkg clang compiled with libc++.",
       "cacheVariables": {
-        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-cpproot.cmake",
-        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-libcxx",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang"
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-16.0.0.cmake",
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-16.0.0"
       }
     },
     {
-      "name": "cfg-vcpkg-clang-libcxx-dynamic",
+      "name": "cfg-vcpkg-clang-16.0.0-dynamic",
       "hidden": true,
       "inherits": [
         "cfg-vcpkg-dynamic",
-        "cfg-vcpkg-clang-libcxx"
+        "cfg-vcpkg-clang-16.0.0"
       ],
       "cacheVariables": {
-        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-libcxx-dynamic",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic"
+        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-dynamic",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-16.0.0-dynamic"
       }
     },
     {
-      "name": "cfg-vcpkg-clang-libstdcxx",
-      "hidden": true,
-      "inherits": [
-        "cfg-vcpkg"
-      ],
-      "cacheVariables": {
-        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-libstdcxx.cmake",
-        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-libstdcxx",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-libstdcxx"
-      }
-    },
-    {
-      "name": "cfg-vcpkg-clang-libstdcxx-dynamic",
-      "hidden": true,
-      "inherits": [
-        "cfg-vcpkg-dynamic"
-      ],
-      "cacheVariables": {
-        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-libstdcxx.cmake",
-        "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-libstdcxx-dynamic",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-libstdcxx-dynamic"
-      }
-    },
-    {
-      "name": "cfg-vcpkg-gcc-libstdcxx-dynamic",
+      "name": "cfg-vcpkg-gcc-dynamic",
       "hidden": true,
       "inherits": [
         "cfg-vcpkg"

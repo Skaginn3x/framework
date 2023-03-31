@@ -2,10 +2,11 @@
 
 #include <bitset>
 
-#include "ethercat.h"
-#include "tfc/ec/devices/base.hpp"
+#include <tfc/ipc.hpp>
 
-#include "tfc/ipc.hpp"
+#include <tfc/ec/soem_interface.hpp>
+#include <tfc/ec/devices/base.hpp>
+
 
 namespace tfc::ec::devices::abt {
 class easyecat final : public base {

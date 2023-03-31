@@ -14,6 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [debug, release]
+        # compilers: []
     env:
       CC: gcc-12
       CXX: g++-12
@@ -34,7 +35,7 @@ jobs:
         uses: lukka/run-vcpkg@v10
         with:
           vcpkgDirectory: '/opt/vcpkg'
-          vcpkgGitCommitId: 'a7b6122f6b6504d16d96117336a0562693579933'
+          vcpkgGitCommitId: 'c9f906558f9bb12ee9811d6edc98ec9255c6cda5'
           vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.

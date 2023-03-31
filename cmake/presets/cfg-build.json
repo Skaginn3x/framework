@@ -29,22 +29,6 @@
       }
     },
     {
-      "name": "cfg-clang",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++"
-      }
-    },
-    {
-      "name": "cfg-gcc",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++"
-      }
-    },
-    {
       "name": "cfg-code-coverage",
       "hidden": true,
       "cacheVariables": {

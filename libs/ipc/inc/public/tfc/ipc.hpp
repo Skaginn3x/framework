@@ -119,7 +119,7 @@ public:
 private:
   signal(asio::io_context& ctx, std::string_view name)
       : transmission_base(name), last_value_(), timer(ctx), socket_(ctx),
-        socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)){};
+        socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)){}
 
   auto init() -> std::error_code {
     boost::system::error_code error_code;
@@ -144,8 +144,8 @@ private:
       if (error) {
         return;
       }
-      async_send(last_value_, [&](std::error_code error, size_t) {
-        if (error) {
+      async_send(last_value_, [&](std::error_code err, size_t) {
+        if (err) {
           assert(false && "Handle event accept (send) canceled!");
           return;
         }
