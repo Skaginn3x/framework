@@ -11,7 +11,6 @@ jobs:
     name: 'build and run tests'
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         build_type: [debug, release]
     env:
@@ -41,9 +40,9 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          configurePreset: 'ci-gcc-${{build_type}}'
-          buildPreset: 'build-ci-gcc-${{build_type}}'
-          testPreset: 'test-ci-gcc-${{build_type}}'
+          configurePreset: 'ci-gcc-${{matrix.build_type}}'
+          buildPreset: 'build-ci-gcc-${{matrix.build_type}}'
+          testPreset: 'test-ci-gcc-${{matrix.build_type}}'
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master
