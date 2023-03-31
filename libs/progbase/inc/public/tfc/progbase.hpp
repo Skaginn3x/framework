@@ -4,10 +4,18 @@
 #include <optional>
 #include <string_view>
 
-namespace boost::program_options {
+namespace boost {
+namespace program_options {
 class options_description;
 class variables_map;
-}  // namespace boost::program_options
+}  // namespace program_options
+namespace asio {
+class any_io_executor;
+template <typename return_t, typename executor_t>
+class awaitable;
+class io_context;
+}  // namespace asio
+}  // namespace boost
 
 namespace tfc::logger {
 enum struct lvl_e : int;
@@ -49,5 +57,8 @@ void init(int argc, char const* const* argv);
 
 /// \brief print stacktrace to stderr and terminate program
 [[noreturn]] void terminate();
+
+/// \brief stop context for predefined exit signals
+auto exit_signals(boost::asio::io_context&) -> boost::asio::awaitable<void, boost::asio::any_io_executor>;
 
 }  // namespace tfc::base

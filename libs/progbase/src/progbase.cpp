@@ -3,11 +3,13 @@
 #include "tfc/utils/pragmas.hpp"
 
 #include <fmt/printf.h>
+#include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/stacktrace.hpp>
 #include <magic_enum.hpp>
 
 namespace bpo = boost::program_options;
+namespace asio = boost::asio;
 
 namespace tfc::base {
 class options {
@@ -120,6 +122,14 @@ void terminate() {
   boost::stacktrace::stacktrace const trace{};
   fmt::fprintf(stderr, "%s\n", to_string(trace).data());
   std::terminate();
+}
+
+auto exit_signals(asio::io_context& ctx) -> asio::awaitable<void> {
+  auto executor = co_await asio::this_coro::executor;
+  asio::signal_set signal_set{ executor, SIGINT, SIGTERM, SIGQUIT };
+  co_await signal_set.async_wait(asio::use_awaitable);
+  fmt::print("\nShutting down gracefully.\nMay you have a pleasant remainder of your day.\n");
+  ctx.stop();
 }
 
 }  // namespace tfc::base
