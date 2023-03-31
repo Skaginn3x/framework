@@ -62,6 +62,13 @@
       ]
     },
     {
+      "name": "ci-docs",
+      "inherits": ["ci-gcc-debug"],
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
+      }
+    },
+    {
       "name": "ci-gcc-release",
       "generator": "Ninja",
       "inherits": [
@@ -90,7 +97,7 @@
     },
     {
       "name": "build-docs",
-      "configurePreset": "ci-gcc-debug",
+      "configurePreset": "ci-docs",
       "targets": [
         "Doxygen",
         "Sphinx"
