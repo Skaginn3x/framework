@@ -15,7 +15,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck
+          sudo apt-get install libsystemd-dev doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck python3-myst-parser
       - uses: actions/checkout@v3
         #with:
       # Install latest CMake.
