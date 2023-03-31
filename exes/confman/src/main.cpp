@@ -15,7 +15,7 @@ auto main(int argc, char** argv) -> int {
   std::string file_name{};
   desc.add_options()(
       "file,f", bpo::value<std::string>(&file_name)->default_value(tfc::confman::detail::default_config_filename.data()),
-      "Name of configuration file.");
+      "Configuration file name and position, either relative or absolute.");
   tfc::base::init(argc, argv, desc);
 
   asio::io_context ctx{};

@@ -22,6 +22,7 @@ mkdir -p /run/tfc
 
 echo "Assigning directory /var/tfc to group tfc"
 chgrp tfc /var/tfc
+chgrp tfc /run/tfc
 
 echo "Write permissions to /var/tfc and /run/tfc"
 chmod 775 /var/tfc

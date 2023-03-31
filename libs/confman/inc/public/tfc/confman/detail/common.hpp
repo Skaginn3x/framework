@@ -2,14 +2,20 @@
 
 #include <string_view>
 
+#include <tfc/progbase.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
+#include <tfc/stx/string_view_join.hpp>
+#include <tfc/utils/sockets.hpp>
 
 #include <glaze/glaze.hpp>
 
 namespace tfc::confman::detail {
 
-inline constexpr std::string_view rpc_socket{ "/tmp/confman.rpc.sock" };
-inline constexpr std::string_view notify_socket{ "/tmp/confman.notify.sock" };
+using std::string_view_literals::operator""sv;
+
+// If changed remind to update systemd socket unit
+inline constexpr std::string_view rpc_socket_path{ utils::sockets::ipc_zmq_socket_endpoint_v<"confman.rpc.sock"> };
+inline constexpr std::string_view notify_socket_path{ utils::sockets::ipc_zmq_socket_endpoint_v<"confman.notify.sock"> };
 
 namespace method {
 

@@ -23,8 +23,8 @@ class config_rpc_client {
 public:
   explicit config_rpc_client(asio::io_context& ctx, std::string_view key)
       : topic_{ fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), key) },
-        client_{ ctx, rpc_socket }, notifications_{ ctx } {
-    notifications_.connect(fmt::format("ipc://{}", notify_socket));
+        client_{ ctx, rpc_socket_path }, notifications_{ ctx } {
+    notifications_.connect(notify_socket_path.data());
     notifications_.set_option(azmq::socket::subscribe(topic_));
     notifications_.async_receive([this](auto const& err, auto const& msg, auto bytes) { on_notification(err, msg, bytes); });
   }
