@@ -1,22 +1,15 @@
-Welcome to TFC Framework's documentation!
-=========================================
+#############
+TFC Framework
+#############
+
+Table of Contents
+-----------------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :caption: Design
+    :maxdepth: 3
+    :glob:
 
-   :glob:
-   design/*
-
-Docs
-====
-.. dox
-.. doxygenclass:: tfc::logger::logger
-   :members:
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    design/overview.md
+    design/cm.md
+    design/ipc.md
