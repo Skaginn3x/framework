@@ -1,7 +1,10 @@
 #pragma once
 
 #include <string_view>
+
 #include <tfc/stx/basic_fixed_string.hpp>
+
+#include <glaze/glaze.hpp>
 
 namespace tfc::confman::detail {
 

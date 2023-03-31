@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 
 find_package(glaze CONFIG REQUIRED)
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
+find_package(fmt CONFIG REQUIRED)
 
 add_library(libconfman
   STATIC
@@ -20,6 +21,7 @@ target_include_directories(libconfman
 
 target_link_libraries(libconfman
   PUBLIC
+    fmt::fmt
     glaze::glaze
     tfc::base
     tfc::rpc
