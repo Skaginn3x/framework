@@ -14,11 +14,13 @@ target_include_directories(base
 )
 
 find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(fmt CONFIG REQUIRED)
 
 target_link_libraries(base
   PRIVATE
     Boost::boost
     Boost::program_options
+    fmt::fmt
     tfc::stx
     tfc::logger
 )
