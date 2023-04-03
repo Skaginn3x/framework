@@ -11,8 +11,6 @@
 
 namespace tfc::confman::detail {
 
-using std::string_view_literals::operator""sv;
-
 // If changed remind to update systemd socket unit
 inline constexpr std::string_view rpc_socket_path{ utils::socket::zmq::ipc_endpoint_v<"confman.rpc.sock"> };
 inline constexpr std::string_view notify_socket_path{ utils::socket::zmq::ipc_endpoint_v<"confman.notify.sock"> };
