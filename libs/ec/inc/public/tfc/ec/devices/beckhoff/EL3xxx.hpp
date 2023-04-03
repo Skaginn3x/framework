@@ -51,14 +51,14 @@ public:
 
   void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final {
     // Cast pointer type to uint16_t
-    auto* in_ptr = reinterpret_cast<uint16_t*>(&input);
+    std::span<uint16_t> input_aligned(reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
 
     // The value is setup in compact mode and siemens bits
     // are enabled. This means that there are three
     // status bits in the LSB the other 13 are split
     // up as one unused sign bit and then 12 bits data.
     for (size_t i = 0; i < size; i++) {
-      uint16_t const raw_value = *in_ptr++;
+      uint16_t const raw_value = input_aligned[i];
       std::bitset<3> const status_bits(raw_value);
       status_[i] = siemens_status{ .out_of_range = status_bits.test(0),
                                    .unknown_1 = status_bits.test(1),

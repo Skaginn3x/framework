@@ -35,7 +35,7 @@ struct ipc_endpoint {
 
 /// \brief Utility to extract the value of the IPC socket endpoint
 /// \tparam name The name of the IPC socket endpoint
-/// \return fully qualified string_view of ZeroMQ IPC socket
+/// \var fully qualified string_view of ZeroMQ IPC socket
 template <tfc::stx::basic_fixed_string name>
 static constexpr auto ipc_endpoint_v = ipc_endpoint<name>::value;
 
@@ -55,21 +55,21 @@ struct generic_endpoint {
 /// \brief Utility to extract the value of the TCP socket endpoint
 /// \tparam endpoint_url The URL of the socket endpoint
 /// \tparam endpoint_port The port of the socket endpoint
-/// \return fully qualified string_view of ZeroMQ TCP socket
+/// \var fully qualified string_view of ZeroMQ TCP socket
 template <tfc::stx::basic_fixed_string endpoint_url, endpoint_port_t endpoint_port>
 static constexpr auto tcp_endpoint_v = generic_endpoint<endpoint_url, endpoint_port, zmq::tcp_prefix>::value;
 
 /// \brief Utility to extract the value of the UDP socket endpoint
 /// \tparam endpoint_url The URL of the socket endpoint
 /// \tparam endpoint_port The port of the socket endpoint
-/// \return fully qualified string_view of ZeroMQ UDP socket
+/// \var fully qualified string_view of ZeroMQ UDP socket
 template <tfc::stx::basic_fixed_string endpoint_url, endpoint_port_t endpoint_port>
 static constexpr auto udp_endpoint_v = generic_endpoint<endpoint_url, endpoint_port, zmq::udp_prefix>::value;
 
 /// \brief Runtime utility to create name of IPC socket endpoint
 /// \param name The name of the IPC socket endpoint
 /// \return fully qualified string of ZeroMQ IPC socket
-auto ipc_endpoint_str(std::string_view name) -> std::string {
+[[maybe_unused]] static auto ipc_endpoint_str(std::string_view name) -> std::string {
   constexpr auto prefix{ ipc_endpoint_v<""> };
   return std::string{ prefix.data(), prefix.size() } + std::string{ name.data(), name.size() };
 }
@@ -78,7 +78,7 @@ auto ipc_endpoint_str(std::string_view name) -> std::string {
 /// \param endpoint_url The URL of the socket endpoint
 /// \param endpoint_port The port of the socket endpoint
 /// \return fully qualified string of ZeroMQ TCP socket
-auto tcp_endpoint_str(std::string_view endpoint_url, endpoint_port_t endpoint_port) -> std::string {
+[[maybe_unused]] static auto tcp_endpoint_str(std::string_view endpoint_url, endpoint_port_t endpoint_port) -> std::string {
   constexpr auto prefix{ zmq::tcp_prefix };
   return std::string{ prefix.data(), prefix.size() } + std::string{ endpoint_url.data(), endpoint_url.size() } +
          std::string{ endpoint_port_delimiter.data(), endpoint_port_delimiter.size() } + std::to_string(endpoint_port);
@@ -88,7 +88,7 @@ auto tcp_endpoint_str(std::string_view endpoint_url, endpoint_port_t endpoint_po
 /// \param endpoint_url The URL of the socket endpoint
 /// \param endpoint_port The port of the socket endpoint
 /// \return fully qualified string of ZeroMQ UDP socket
-auto udp_endpoint_str(std::string_view endpoint_url, endpoint_port_t endpoint_port) -> std::string {
+[[maybe_unused]] static auto udp_endpoint_str(std::string_view endpoint_url, endpoint_port_t endpoint_port) -> std::string {
   constexpr auto prefix{ zmq::udp_prefix };
   return std::string{ prefix.data(), prefix.size() } + std::string{ endpoint_url.data(), endpoint_url.size() } +
          std::string{ endpoint_port_delimiter.data(), endpoint_port_delimiter.size() } + std::to_string(endpoint_port);

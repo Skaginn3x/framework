@@ -9,18 +9,16 @@ public:
   static constexpr uint32_t vendor_id = 0x2;
 
   void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final {
-    // if (std::chrono::high_resolution_clock::now() - point_ > std::chrono::microseconds (250)){
     for (size_t i = 0; i < size; i++) {
       value_[i] += 50;
     }
     point_ = std::chrono::high_resolution_clock::now();
 
-    //}
 
     // Cast pointer type to uint16_t
-    auto* out = reinterpret_cast<uint16_t*>(&output);  // NOLINT
+    std::span<uint16_t> const output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
     for (size_t i = 0; i < size; i++) {
-      out[i] = value_[i];
+      output_aligned[i] = value_[i];
     }
   }
 

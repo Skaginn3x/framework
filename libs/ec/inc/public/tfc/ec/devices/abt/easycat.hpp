@@ -7,6 +7,7 @@
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 namespace tfc::ec::devices::abt {
 class easyecat : public base {
 public:
@@ -85,3 +86,4 @@ private:
 };
 
 }  // namespace tfc::ec::devices::abt
+PRAGMA_CLANG_WARNING_POP

@@ -14,7 +14,7 @@ struct string_view_join {
     constexpr auto len = (strs.size() + ... + 0);
     std::array<char, len + 1> array{};
     // clang-format off
-    auto append = [idx = 0, &array](auto const& view) mutable {
+    auto append = [idx = 0UL, &array](auto const& view) mutable {
       for (auto character : view) {
         array[idx++] = character;
       }

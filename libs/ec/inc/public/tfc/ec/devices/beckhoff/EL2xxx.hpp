@@ -24,7 +24,7 @@ public:
   void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final {
     static_assert(size <= 8);
 
-    output[0] = output_states_.to_ulong() & 0xff;
+    output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
   }
 
 private:

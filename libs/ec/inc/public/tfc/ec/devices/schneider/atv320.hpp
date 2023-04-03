@@ -11,6 +11,7 @@
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 namespace tfc::ec::devices::schneider {
 class atv320 : public base {
 public:
@@ -43,15 +44,15 @@ public:
 
     auto state = tfc::ec::cia_402::parse_state(status_word_);
     if (cia_402::to_string(state) != last_state_) {
-      state_transmitter_->async_send(cia_402::to_string(state), [this](auto&& PH1, auto&& PH2) {
-        async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+      state_transmitter_->async_send(cia_402::to_string(state), [this](auto&& PH1, size_t bytes_transfered) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
     }
     std::bitset<6> const value(input_aligned[3]);
     for (size_t i = 0; i < 6; i++) {
       if (value.test(i) != last_bool_values_.test(i)) {
-        di_transmitters_[i]->async_send(value.test(i), [this](auto&& PH1, auto&& PH2) {
-          async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+        di_transmitters_[i]->async_send(value.test(i), [this](auto&& PH1, size_t bytes_transfered) {
+          async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
         });
       }
     }
@@ -60,16 +61,16 @@ public:
     std::span<int16_t> const analog_ptr(reinterpret_cast<int16_t*>(&input_aligned[4]), 2);
     for (size_t i = 0; i < 2; i++) {
       if (last_analog_inputs_[i] != analog_ptr[i]) {
-        ai_transmitters_[i]->async_send(analog_ptr[i], [this](auto&& PH1, auto&& PH2) {
-          async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+        ai_transmitters_[i]->async_send(analog_ptr[i], [this](auto&& PH1, size_t const bytes_transfered) {
+          async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
         });
       }
       last_analog_inputs_[i] = analog_ptr[i];
     }
     auto frequency = static_cast<int16_t>(input_aligned[1]);
     if (last_frequency_ != frequency) {
-      frequency_transmit_->async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, auto&& PH2) {
-        async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+      frequency_transmit_->async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, size_t const bytes_transfered) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
     }
 
@@ -79,8 +80,8 @@ public:
     auto command = tfc::ec::cia_402::transition(state, quick_stop_);
 
     if (cia_402::to_string(command) != last_command_) {
-      command_transmitter_->async_send(cia_402::to_string(command), [this](auto&& PH1, auto&& PH2) {
-        async_send_callback(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+      command_transmitter_->async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
     }
 
@@ -92,7 +93,7 @@ public:
       logger_.error("Ethercat ATV320 error: {}", error.message());
     }
   }
-  auto setup(ecx_contextt* context, uint16_t slave) -> int override {
+  auto setup(ecx_contextt* context, uint16_t slave) -> int final {
     // Set PDO variables
     // Clean rx and tx prod assign
     ecx::sdo_write<uint8_t>(context, slave, ecx::rx_pdo_assign<0x00>, 0);
@@ -170,3 +171,4 @@ private:
   tfc::ipc::double_send_ptr frequency_transmit_;
 };
 }  // namespace tfc::ec::devices::schneider
+PRAGMA_CLANG_WARNING_POP
