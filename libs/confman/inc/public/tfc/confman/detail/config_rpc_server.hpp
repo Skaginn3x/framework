@@ -41,7 +41,7 @@ public:
       : server_{ ctx, rpc_socket_path }, notifications_{ ctx }, config_file_{ filename } {
     server_.converter().on<method::alive_tag.data_>(
         [this](auto&& PH1) { return on_alive_request(std::forward<decltype(PH1)>(PH1)); });
-    notifications_.bind(notify_socket_path.data());
+    notifications_.bind(std::string{notify_socket_path.data(), notify_socket_path.size()});
 
     std::filesystem::create_directories(config_file_.parent_path());
     glz::read_file_json(config_, config_file_.string());
