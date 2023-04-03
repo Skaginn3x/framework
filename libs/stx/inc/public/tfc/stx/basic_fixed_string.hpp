@@ -52,6 +52,8 @@ struct [[nodiscard]] basic_fixed_string {
   constexpr auto operator==(basic_fixed_string<char_type, M> const& r) const noexcept {
     return N == M && view() == r.view();
   }
+
+  constexpr operator std::basic_string_view<char_type>() const noexcept { return { &data_[0], N }; }
 };
 
 template <typename char_type, unsigned N>

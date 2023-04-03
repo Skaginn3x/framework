@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/ut.hpp>
@@ -30,6 +32,10 @@ auto main(int argc, char** argv) -> int {
 
   [[maybe_unused]] ut::suite const rpc_test_cases = [] {
     "happy path confman"_test = [] {
+      // remove config file so we can re-run this test
+      std::error_code ignore{};
+      std::filesystem::remove(tfc::confman::detail::default_config_filename, ignore);
+
       asio::io_context ctx{};
       bool a_called{};
       config_rpc_server server{ ctx };

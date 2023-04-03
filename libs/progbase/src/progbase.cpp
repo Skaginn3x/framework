@@ -108,9 +108,6 @@ auto get_log_lvl() noexcept -> tfc::logger::lvl_e {
 auto get_map() noexcept -> boost::program_options::variables_map const& {
   return options::instance().get_map();
 }
-auto get_root_path() -> std::filesystem::path {
-  return { "/var/tfc" };
-}
 auto is_stdout_enabled() noexcept -> bool {
   return options::instance().get_stdout();
 }

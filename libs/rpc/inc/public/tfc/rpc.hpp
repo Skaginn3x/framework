@@ -57,8 +57,9 @@ template <typename owner_t,
           bool optimize_single_threaded>
 class rpc_skeleton {
 public:
-  explicit rpc_skeleton(asio::io_context& ctx, std::string_view name)
-      : name_{ name }, logger_{ name }, rpc_socket_{ ctx, std::to_underlying(rpc_type), optimize_single_threaded } {
+  explicit rpc_skeleton(asio::io_context& ctx, std::string_view endpoint)
+      : endpoint_{ endpoint }, logger_{ endpoint }, rpc_socket_{ ctx, std::to_underlying(rpc_type),
+                                                                 optimize_single_threaded } {
     static_cast<owner_t*>(this)->init();
   }
 
@@ -72,10 +73,9 @@ public:
 
 protected:
   jsonrpc_server_t jsonrpc_converter_{};
-  std::string name_{};
+  std::string endpoint_{};
   tfc::logger::logger logger_;
   azmq::socket rpc_socket_;
-  static constexpr auto qualified_endpoint(std::string_view name) -> std::string { return fmt::format("ipc://{}", name); }
 };
 
 template <concepts::jsonrpc_type jsonrpc_server_t, bool optimize_single_threaded = false>
@@ -87,7 +87,7 @@ public:
   explicit server(asio::io_context& ctx, std::string_view name)
       : rpc_skeleton<server, jsonrpc_server_t, zmq_socket_type_e::rep, optimize_single_threaded>{ ctx, name } {}
 
-  ~server() { this->rpc_socket_.unbind(this->qualified_endpoint(this->name_)); }
+  ~server() { this->rpc_socket_.unbind(this->endpoint_); }
 
   friend class rpc_skeleton<server<jsonrpc_server_t, optimize_single_threaded>,
                             jsonrpc_server_t,
@@ -96,7 +96,7 @@ public:
 
 private:
   auto init() noexcept(false) -> void {
-    this->rpc_socket_.bind(this->qualified_endpoint(this->name_));
+    this->rpc_socket_.bind(this->endpoint_);
     this->rpc_socket_.async_receive(
         [this](std::error_code const& err_code, azmq::message const& msg, size_t bytes_transferred) {
           this->receive_handler(err_code, msg, bytes_transferred);
@@ -145,7 +145,7 @@ public:
 
   explicit client(asio::io_context& ctx, std::string_view name)
       : rpc_skeleton<client, jsonrpc_client_t, zmq_socket_type_e::req, optimize_single_threaded>{ ctx, name },
-        uuid_prefix_{ fmt::format("{}.{}.{}", base::get_exe_name(), base::get_proc_name(), this->name_) },
+        uuid_prefix_{ fmt::format("{}.{}.{}", base::get_exe_name(), base::get_proc_name(), this->endpoint_) },
         rpc_socket_monitor_{ this->rpc_socket_.monitor(ctx, ZMQ_EVENT_DISCONNECTED) } {
     rpc_socket_monitor_.async_receive(std::bind(&client::on_disconnect_do_reconnect, this, std::placeholders::_1,
                                                 std::placeholders::_2, std::placeholders::_3));
@@ -235,14 +235,14 @@ public:
                             optimize_single_threaded>;
 
 private:
-  auto init() noexcept(false) -> void { this->rpc_socket_.connect(this->qualified_endpoint(this->name_)); }
+  auto init() noexcept(false) -> void { this->rpc_socket_.connect(this->endpoint_); }
 
   auto reconstruct_rpc_socket() noexcept -> void {
     try {
       this->rpc_socket_.cancel();  // Fire cancel callbacks to user for all requests
       this->rpc_socket_ = azmq::socket{ this->rpc_socket_.get_io_context(), std::to_underlying(zmq_socket_type_e::req),
                                         optimize_single_threaded };
-      this->rpc_socket_.connect(this->qualified_endpoint(this->name_));
+      this->rpc_socket_.connect(this->endpoint_);
       rpc_socket_monitor_ = this->rpc_socket_.monitor(this->rpc_socket_.get_io_context(), ZMQ_EVENT_DISCONNECTED);
       rpc_socket_monitor_.async_receive(std::bind(&client::on_disconnect_do_reconnect, this, std::placeholders::_1,
                                                   std::placeholders::_2, std::placeholders::_3));

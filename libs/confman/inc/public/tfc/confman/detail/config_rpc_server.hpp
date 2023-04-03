@@ -19,8 +19,7 @@ namespace asio = boost::asio;
 
 namespace tfc::confman::detail {
 
-inline std::string_view constexpr absolute_config_filepath{ "/var/tfc/config/" };
-inline std::string_view constexpr default_config_filename{ "confman.json" };
+static std::string_view constexpr default_config_filename{ "/var/tfc/config/confman.json" };
 
 using server_t = tfc::rpc::server<
     glz::rpc::server<glz::rpc::server_method_t<method::alive_tag.data_, method::alive, method::alive_result>>>;
@@ -39,12 +38,10 @@ public:
   };
 
   explicit config_rpc_server(asio::io_context& ctx, std::string_view filename = default_config_filename)
-      : server_{ ctx, rpc_socket }, notifications_{ ctx }, config_file_{
-          fmt::format("{}{}", absolute_config_filepath, filename)
-        } {
+      : server_{ ctx, rpc_socket_path }, notifications_{ ctx }, config_file_{ filename } {
     server_.converter().on<method::alive_tag.data_>(
         [this](auto&& PH1) { return on_alive_request(std::forward<decltype(PH1)>(PH1)); });
-    notifications_.bind(fmt::format("ipc://{}", notify_socket));
+    notifications_.bind(std::string{ notify_socket_path.data(), notify_socket_path.size() });
 
     std::filesystem::create_directories(config_file_.parent_path());
     glz::read_file_json(config_, config_file_.string());
