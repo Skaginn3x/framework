@@ -5,10 +5,10 @@
 #include <memory>
 #include <optional>
 
-#include <tfc/ipc.hpp"
+#include <tfc/ipc.hpp>
 
-#include <tfc/ec/devices/base.hpp>
 #include <tfc/cia/402.hpp>
+#include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::devices::schneider {

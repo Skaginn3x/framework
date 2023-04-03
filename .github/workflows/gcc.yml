@@ -9,12 +9,11 @@ on:
 jobs:
   build:
     name: 'build and run tests'
-    runs-on: ubuntu-latest
+    runs-on: skaginn3x/archlinux-ci
     strategy:
       fail-fast: false
       matrix:
         build_type: [debug, release]
-        # compilers: []
     env:
       CC: gcc-12
       CXX: g++-12

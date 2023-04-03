@@ -14,7 +14,7 @@ enum struct commands_e : uint16_t {
   fault_reset = 0x0080
 };
 
-static auto to_string(commands_e value) -> std::string {
+[[maybe_unused]] static auto to_string(commands_e value) -> std::string {
   using std::string_literals::operator""s;
   switch (value) {
     case commands_e::disable_voltage:
@@ -44,7 +44,7 @@ enum struct states_e : uint16_t {
   fault = 8
 };
 
-static auto to_string(states_e value) -> std::string {
+[[maybe_unused]] static auto to_string(states_e value) -> std::string {
   using std::string_literals::operator""s;
   switch (value) {
     case states_e::not_ready_to_switch_on:
@@ -123,10 +123,11 @@ static auto transition(states_e current_state, bool quick_stop) -> commands_e {
       }
       return commands_e::disable_voltage;
     case states_e::not_ready_to_switch_on:
-      return commands_e::disable_voltage;
     case states_e::fault_reaction_active:
       return commands_e::disable_voltage;
   }
+  // Can only occur if someone casts an integer for state_e that is not defined in the enum
+  return commands_e::disable_voltage;
 }
 
 }  // namespace tfc::ec::cia_402

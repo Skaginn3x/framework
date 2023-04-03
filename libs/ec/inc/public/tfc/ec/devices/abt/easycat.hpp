@@ -4,9 +4,8 @@
 
 #include <tfc/ipc.hpp>
 
-#include <tfc/ec/soem_interface.hpp>
 #include <tfc/ec/devices/base.hpp>
-
+#include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::devices::abt {
 class easyecat final : public base {

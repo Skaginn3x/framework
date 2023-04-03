@@ -11,7 +11,9 @@
 
 #include <tfc/utils/pragmas.hpp>
 
+// clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wreserved-macro-identifier)
+// clang-format on
 #include <ethercat.h>
 PRAGMA_CLANG_WARNING_POP
 
