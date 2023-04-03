@@ -69,17 +69,19 @@ public:
   [[nodiscard]] auto init() -> bool { return ecx::init(&context_, iface_); }
   auto processdata(std::chrono::microseconds timeout) -> ecx::working_counter_t {
     auto retval = ecx::recieve_processdata(&context_, timeout);
-    for (int i = 1; i < slave_count_ + 1; i++) {
-      slaves_[i]->process_data(slavelist_[i].inputs, slavelist_[i].outputs);
+    for (size_t i = 1; i < slave_count_ + 1; i++) {
+      slaves_[i]->process_data(
+          std::span<std::byte>(reinterpret_cast<std::byte*>(slavelist_[i].inputs),  static_cast<size_t>(slavelist_[i].Ibytes)),
+          std::span<std::byte>(reinterpret_cast<std::byte*>(slavelist_[i].outputs), static_cast<size_t>(slavelist_[i].Obytes)));
     }
     ecx_send_processdata(&context_);
 
     return retval;
-  };
+  }
   /**
    * Scans the ethercat network and populates the slaves.
-   * @param use_config_table
-   * @return
+   * @param use_config_table bool weather to use config table or not
+   * @return returns true for success
    */
   [[nodiscard]] auto config_init(bool use_config_table) -> bool {
     if (!ecx::config_init(&context_, use_config_table)) {
@@ -95,9 +97,9 @@ public:
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     return true;
-  };
+  }
   [[nodiscard]] auto iface() -> std::string_view { return iface_; }
-  [[nodiscard]] auto slave_count() const -> size_t { return slave_count_; };
+  [[nodiscard]] auto slave_count() const -> size_t { return slave_count_; }
   auto config_map_group(uint8_t group_index = all_groups) -> size_t {
     return ecx::config_map_group(&context_, std::span(io_.data(), io_.size()), group_index);
   }
@@ -112,7 +114,7 @@ public:
       return 0;
     }
     context_.slavelist[slave_index].state = rqstState;
-    return ecx_writestate(&context_, slave_index);
+    return static_cast<ecx::working_counter_t>(ecx_writestate(&context_, slave_index));
   }
   auto slave_state(uint16_t slave_index) -> ec_state {
     if (slave_index >= slave_count_) {
@@ -167,14 +169,9 @@ public:
       }
     }
     throw std::runtime_error(slave_status);
-  };
+  }
 
 private:
-  /**
-   * run the fieldbus event cycle interval
-   * @param ctx
-   * @return
-   */
   auto async_wait() -> void {
     auto timer = std::make_shared<boost::asio::steady_timer>(ctx_);
     timer->expires_after(std::chrono::microseconds(1000));
@@ -252,8 +249,8 @@ private:
    * is embeded in the void* userdata. This function is a middle
    * function to relay the callbacks to the correct slave functions
    * with data.
-   * @param context
-   * @param slave_index
+   * @param context pointer to soem context
+   * @param slave_index index of slave
    * @return the number of slaves configured
    */
   static auto slave_config_callback(ecx_contextt* context, uint16_t slave_index) -> int {

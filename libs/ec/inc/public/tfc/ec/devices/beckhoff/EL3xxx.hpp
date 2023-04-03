@@ -35,9 +35,9 @@ public:
     // This depends on size
     for (size_t i = 0; i < size; i++) {
       // Set rx pdo to compact mode
-      ecx::sdo_write<uint16_t>(context, slave, { 0x1C13, i + 1 }, 0x1A00 + (i * 2) + 1);
+      ecx::sdo_write<uint16_t>(context, slave, { 0x1C13, i + 1 }, 0x1A00 + (static_cast<uint16_t>(i) * 2) + 1);
 
-      uint16_t const settings_index = 0x8000 + (i * 0x10);
+      uint16_t const settings_index = 0x8000 + (static_cast<uint16_t>(i) * 0x10);
       ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // Enable - siemens mode
     }
     // Set rx pdo size to size
@@ -49,9 +49,9 @@ public:
     return 1;
   }
 
-  void process_data(uint8_t* input, uint8_t*) noexcept final {
+  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final {
     // Cast pointer type to uint16_t
-    auto* in_ptr = reinterpret_cast<int16_t*>(input);
+    auto* in_ptr = reinterpret_cast<uint16_t*>(&input);
 
     // The value is setup in compact mode and siemens bits
     // are enabled. This means that there are three

@@ -20,12 +20,9 @@ public:
   static constexpr uint32_t product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
-  void process_data(uint8_t* input, uint8_t*) noexcept final {
-    if (input == nullptr) {
-      return;
-    }
+  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final {
     static_assert(size <= 8);
-    std::bitset<size> const in_bits(*input);
+    std::bitset<size> const in_bits(input[0]);
     for (size_t i = 0; i < size; i++) {
       bool const value = in_bits.test(i);
       if (value != last_values_[i]) {

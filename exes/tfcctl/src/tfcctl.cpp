@@ -163,16 +163,16 @@ auto main(int argc, char** argv) -> int {
   std::vector<any_recv> connect_slots;
   for (auto& signal_connect : connect) {
     // For listening to connections
-    connect_slots.emplace_back([&ctx, &logger](std::string_view signal) -> any_recv {
-      std::string slot_name = fmt::format("tfcctl_slot_{}", signal);
+    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> any_recv {
+      std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
       auto ipc{ create_ipc_recv<any_recv>(ctx, slot_name) };
       std::visit(
           [&](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<std::monostate, receiver_t>) {
-              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", slot_name, signal);
+              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", slot_name, sig);
               auto error = receiver->init(
-                  signal, [&, signal](auto const& val) { logger.log<tfc::logger::lvl_e::info>("{}: {}", signal, val); });
+                  sig, [&, sig](auto const& val) { logger.log<tfc::logger::lvl_e::info>("{}: {}", sig, val); });
               if (error) {
                 logger.log<tfc::logger::lvl_e::error>("Failed to connect: {}", error.message());
               }
