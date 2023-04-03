@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.25)
-project(tfc-framework)
+project(tfc-framework
+  VERSION
+    0.1.1 # This populates CMAKE_PROJECT_VERSION lower projects will inherit from this one
+  DESCRIPTION
+    "The tfc framework eases the integration of often used components in different context with mappable IPC and config."
+  HOMEPAGE_URL
+    https://skaginn3x.github.io/framework/
+  LANGUAGES
+    CXX
+)
 
 enable_testing()
 
@@ -10,6 +19,7 @@ include(tfc_config)
 include(tfc_options)
 include(tfc_warnings)
 include(tfc_docs)
+include(tfc_install)
 
 add_subdirectory(exes)
 add_subdirectory(libs)
