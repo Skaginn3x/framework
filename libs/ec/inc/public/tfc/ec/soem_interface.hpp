@@ -11,8 +11,8 @@
 
 #include <tfc/utils/pragmas.hpp>
 
-//TODO: Contribute upstream a working clang build pipeline and
-// Try to advicate having these things cleaned up.
+// TODO: Contribute upstream a working clang build pipeline and
+//  Try to advicate having these things cleaned up.
 
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wpacked)
@@ -60,8 +60,9 @@ using working_counter_t = uint32_t;
                              bool complete_access,
                              std::ranges::view auto data,
                              microseconds timeout) -> working_counter_t {
-  return static_cast<working_counter_t>(ecx_SDOwrite(context, slave_index, index.first, index.second, complete_access, static_cast<int>(data.size()), data.data(),
-                      static_cast<int>(timeout.count())));
+  return static_cast<working_counter_t>(ecx_SDOwrite(context, slave_index, index.first, index.second, complete_access,
+                                                     static_cast<int>(data.size()), data.data(),
+                                                     static_cast<int>(timeout.count())));
 }
 template <std::integral t>
 auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
@@ -77,13 +78,14 @@ static constexpr index_t rx_pdo_mapping = { 0x1A00, subindex };
 template <uint8_t subindex = 0>
 static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
 
-[[nodiscard]] static auto recieve_processdata(ecx_contextt* context, microseconds timeout = constants::timeout_tx_to_rx)
+[[nodiscard, maybe_unused]] static auto recieve_processdata(ecx_contextt* context,
+                                                            microseconds timeout = constants::timeout_tx_to_rx)
     -> working_counter_t {
   return static_cast<working_counter_t>(ecx_receive_processdata(context, static_cast<int>(timeout.count())));
 }
 
 // TODO: It would be better to use std::error_code here
-[[nodiscard]] static auto init(ecx_contextt* context, std::string_view iface) -> bool {
+[[nodiscard, maybe_unused]] static auto init(ecx_contextt* context, std::string_view iface) -> bool {
   return ecx_init(context, iface.data()) > 0;
 }
 
@@ -94,7 +96,7 @@ static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
  * @param use_config_table use the config table
  * @return true if successful
  */
-[[nodiscard]] static auto config_init(ecx_contextt* context, bool use_config_table) -> bool {
+[[nodiscard, maybe_unused]] static auto config_init(ecx_contextt* context, bool use_config_table) -> bool {
   return ecx_config_init(context, use_config_table ? 1 : 0) > 0;
 }
 /**
@@ -106,12 +108,14 @@ auto config_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint
   return ecx_config_map_group(context, buffer.data(), group_index) > 0;
 }
 
-static auto configdc(ecx_contextt* context) -> bool {
+[[maybe_unused]] static auto configdc(ecx_contextt* context) -> bool {
   return ecx_configdc(context) == 1;
 }
 
-static auto statecheck(ecx_contextt* context, uint16_t slave_index, ec_state requested_state, std::chrono::microseconds timeout)
-    -> ec_state {
+[[maybe_unused]] static auto statecheck(ecx_contextt* context,
+                                        uint16_t slave_index,
+                                        ec_state requested_state,
+                                        std::chrono::microseconds timeout) -> ec_state {
   return static_cast<ec_state>(ecx_statecheck(context, slave_index, requested_state, static_cast<int>(timeout.count())));
 }
 

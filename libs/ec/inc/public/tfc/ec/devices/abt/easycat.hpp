@@ -7,10 +7,10 @@
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 namespace tfc::ec::devices::abt {
-class easyecat : public base {
+class easyecat final : public base {
 public:
+  ~easyecat() final;
   explicit easyecat(boost::asio::io_context& ctx_, uint16_t const slave_index) : base(slave_index) {
     for (size_t i = 0; i < 4; i++) {
       std::expected<std::shared_ptr<tfc::ipc::bool_send>, std::error_code> ptr =
@@ -86,4 +86,3 @@ private:
 };
 
 }  // namespace tfc::ec::devices::abt
-PRAGMA_CLANG_WARNING_POP

@@ -8,7 +8,9 @@
         "VCPKG_OVERLAY_PORTS": "${fileDir}/vcpkg-overlays/ports",
         "VCPKG_OVERLAY_TRIPLETS": "${fileDir}/vcpkg-overlays/triplets",
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot",
-        "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-gcc.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-gcc"
       }
     },
     {
@@ -25,28 +27,28 @@
       ]
     },
     {
-      "name": "cfg-vcpkg-clang-16.0.0",
+      "name": "cfg-vcpkg-clang",
       "hidden": true,
       "inherits": [
         "cfg-vcpkg"
       ],
       "description": "vcpkg clang compiled with libc++.",
       "cacheVariables": {
-        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang-16.0.0.cmake",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang.cmake",
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-16.0.0"
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang"
       }
     },
     {
-      "name": "cfg-vcpkg-clang-16.0.0-dynamic",
+      "name": "cfg-vcpkg-clang-dynamic",
       "hidden": true,
       "inherits": [
         "cfg-vcpkg-dynamic",
-        "cfg-vcpkg-clang-16.0.0"
+        "cfg-vcpkg-clang"
       ],
       "cacheVariables": {
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-dynamic",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-16.0.0-dynamic"
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic"
       }
     },
     {

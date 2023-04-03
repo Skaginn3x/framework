@@ -14,7 +14,6 @@ public:
     }
     point_ = std::chrono::high_resolution_clock::now();
 
-
     // Cast pointer type to uint16_t
     std::span<uint16_t> const output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
     for (size_t i = 0; i < size; i++) {

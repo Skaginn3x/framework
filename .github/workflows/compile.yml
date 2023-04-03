@@ -1,4 +1,4 @@
-name: gcc
+name: compile
 
 on:
   push:
@@ -9,27 +9,27 @@ on:
 jobs:
   build:
     name: 'build and run tests'
-    runs-on: skaginn3x/archlinux-ci
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         build_type: [debug, release]
-    env:
-      CC: gcc-12
-      CXX: g++-12
+        compiler: [gcc, clang]
     steps:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck 
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build
+          curl https://apt.llvm.org/llvm.sh -o llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 16 all
+
       - uses: actions/checkout@v3
       - name: commissioning
         run: |
           sudo ./scripts/commissioning.sh
           sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
           sudo chown $USER:$USER -R /run/tfc
-
-      - uses: lukka/get-cmake@latest
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
@@ -44,9 +44,9 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          configurePreset: 'ci-gcc-${{matrix.build_type}}'
-          buildPreset: 'build-ci-gcc-${{matrix.build_type}}'
-          testPreset: 'test-ci-gcc-${{matrix.build_type}}'
+          configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master

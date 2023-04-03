@@ -6,11 +6,10 @@
 
 #include "tfc/ec/soem_interface.hpp"
 
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 namespace tfc::ec::devices {
 class base {
 public:
-  virtual ~base() = default;
+  virtual ~base();
   // Default behaviour no data processing
   virtual void process_data(std::span<std::byte>, std::span<std::byte>) = 0;
   // Default behaviour, no setup
@@ -22,11 +21,11 @@ protected:
   tfc::logger::logger logger_;
 };
 
-class default_device : public base {
+class default_device final : public base {
 public:
+  ~default_device() final;
   explicit default_device(uint16_t const slave_index) : base(slave_index) {}
-  void process_data(std::span<std::byte>, std::span<std::byte>) noexcept override{}
-  auto setup(ecx_contextt*, uint16_t) -> int override { return 1; }
+  void process_data(std::span<std::byte>, std::span<std::byte>) noexcept final {}
+  auto setup(ecx_contextt*, uint16_t) -> int final { return 1; }
 };
 }  // namespace tfc::ec::devices
-PRAGMA_CLANG_WARNING_POP

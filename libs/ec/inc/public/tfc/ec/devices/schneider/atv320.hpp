@@ -11,10 +11,10 @@
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 namespace tfc::ec::devices::schneider {
-class atv320 : public base {
+class atv320 final : public base {
 public:
+  ~atv320() final;
   static constexpr uint32_t vendor_id = 0x0800005a;
   static constexpr uint32_t product_code = 0x389;
 
@@ -38,7 +38,7 @@ public:
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     // All registers in the ATV320 ar uint16, create a pointer to this memory
     // With the same size
-    std::span<uint16_t> const input_aligned( reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
+    std::span<uint16_t> const input_aligned(reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
     std::span<uint16_t> output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
     status_word_ = input_aligned[0];
 
@@ -69,9 +69,10 @@ public:
     }
     auto frequency = static_cast<int16_t>(input_aligned[1]);
     if (last_frequency_ != frequency) {
-      frequency_transmit_->async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, size_t const bytes_transfered) {
-        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-      });
+      frequency_transmit_->async_send(static_cast<double>(frequency) / 10,
+                                      [this](auto&& PH1, size_t const bytes_transfered) {
+                                        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
+                                      });
     }
 
     last_frequency_ = frequency;
@@ -171,4 +172,3 @@ private:
   tfc::ipc::double_send_ptr frequency_transmit_;
 };
 }  // namespace tfc::ec::devices::schneider
-PRAGMA_CLANG_WARNING_POP
