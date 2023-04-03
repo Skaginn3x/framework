@@ -1,6 +1,9 @@
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/ut.hpp>
+
 #include <tfc/rpc.hpp>
+#include <tfc/utils/socket.hpp>
+
 namespace asio = boost::asio;
 namespace rpc = tfc::rpc;
 namespace ut = boost::ut;
@@ -48,6 +51,9 @@ struct set_config_return {
   };
 };
 
+static constexpr auto rpc_endpoint{ tfc::utils::socket::zmq::ipc_endpoint_v<"rpc_test"> };
+static constexpr auto notify_endpoint{ tfc::utils::socket::zmq::ipc_endpoint_v<"notify_test"> };
+
 auto main(int, char**) -> int {
   static constexpr glz::rpc::detail::basic_fixed_string method_name{ "foo" };
   using server_t = rpc::server<glz::rpc::server<glz::rpc::server_method_t<method_name, std::string, int>>>;
@@ -56,7 +62,7 @@ auto main(int, char**) -> int {
   [[maybe_unused]] ut::suite const rpc_test_cases = [] {
     "rpc happy path"_test = [] {
       asio::io_context ctx{};
-      server_t server{ ctx, "/tmp/fthis" };
+      server_t server{ ctx, rpc_endpoint };
 
       std::string expected_input{ "hello world"s };
       int constexpr expected_output{ 1337 };
@@ -68,7 +74,7 @@ auto main(int, char**) -> int {
         return expected_output;
       });
 
-      client_t client{ ctx, "/tmp/fthis" };
+      client_t client{ ctx, rpc_endpoint };
       client.async_request<method_name>(expected_input, [](glz::expected<int, glz::rpc::error> const& value, auto const&) {
         ut::expect(value.has_value());
         if (value.has_value()) {
@@ -82,7 +88,7 @@ auto main(int, char**) -> int {
 
     "notify happy path"_test = [] {
       asio::io_context ctx{};
-      server_t server{ ctx, "/tmp/notify_test" };
+      server_t server{ ctx, notify_endpoint };
 
       std::string expected_input{ "hello world"s };
       bool called{};
@@ -93,7 +99,7 @@ auto main(int, char**) -> int {
         return 0;
       });
 
-      client_t client{ ctx, "/tmp/notify_test" };
+      client_t client{ ctx, notify_endpoint };
       client.async_notify<method_name>(expected_input);
 
       ctx.run_for(std::chrono::milliseconds(1));
@@ -105,5 +111,5 @@ auto main(int, char**) -> int {
     };
   };
 
-  return boost::ut::cfg<>.run({ .report_errors = true });
+  return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));
 }
