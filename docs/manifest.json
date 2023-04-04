@@ -1,0 +1,9 @@
+{
+  "version": 0,
+  "tools": {
+    "pinger": {
+      "label": "TFC Docs",
+      "path": "index.html"
+    }
+  }
+}

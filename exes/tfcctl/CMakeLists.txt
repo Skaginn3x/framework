@@ -10,6 +10,7 @@ target_link_libraries(tfcctl
     Boost::program_options
 )
 
+include(GNUInstallDirs)
 install(
   TARGETS
     tfcctl

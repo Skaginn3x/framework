@@ -62,6 +62,13 @@
       "cacheVariables": {
         "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--config-file=${fileDir}/.clang-tidy;--fix"
       }
+    },
+    {
+      "name": "cfg-enable-docs",
+      "hidden": true,
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
+      }
     }
   ]
 }

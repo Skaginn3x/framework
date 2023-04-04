@@ -1,3 +1,4 @@
+project(tfc-docs)
 find_package(Doxygen REQUIRED)
 find_package(Sphinx REQUIRED)
 
@@ -78,5 +79,17 @@ set_target_properties(Doxygen PROPERTIES
 
 # Add an install target to install the docs
 include(GNUInstallDirs)
-install(DIRECTORY ${SPHINX_BUILD}
-  DESTINATION ${CMAKE_INSTALL_DOCDIR})
+install(
+  DIRECTORY
+    ${SPHINX_BUILD}/
+  DESTINATION
+    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/${PROJECT_NAME}
+  CONFIGURATIONS Release
+)
+install(
+  FILES
+    manifest.json
+  DESTINATION
+    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/${PROJECT_NAME}/
+  CONFIGURATIONS Release
+)

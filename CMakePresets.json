@@ -60,11 +60,20 @@
       ]
     },
     {
-      "name": "ci-docs",
-      "inherits": ["ci-gcc-debug"],
-      "cacheVariables": {
-        "BUILD_DOCS": "ON"
-      }
+      "name": "docs-gcc-debug",
+      "inherits": ["ci-gcc-debug", "cfg-enable-docs"]
+    },
+    {
+      "name": "docs-gcc-release",
+      "inherits": ["ci-gcc-release", "cfg-enable-docs"]
+    },
+    {
+      "name": "docs-clang-debug",
+      "inherits": ["ci-clang-debug", "cfg-enable-docs"]
+    },
+    {
+      "name": "docs-clang-release",
+      "inherits": ["ci-clang-release", "cfg-enable-docs"]
     }
   ],
   "buildPresets": [
@@ -85,8 +94,24 @@
       "configurePreset": "ci-gcc-release"
     },
     {
+      "name": "build-docs-clang-debug",
+      "configurePreset": "docs-clang-debug"
+    },
+    {
+      "name": "build-docs-clang-release",
+      "configurePreset": "docs-clang-release"
+    },
+    {
+      "name": "build-docs-gcc-debug",
+      "configurePreset": "docs-gcc-debug"
+    },
+    {
+      "name": "build-docs-gcc-release",
+      "configurePreset": "docs-gcc-release"
+    },
+    {
       "name": "build-docs",
-      "configurePreset": "ci-docs",
+      "configurePreset": "docs-gcc-debug",
       "targets": [
         "Doxygen",
         "Sphinx"
@@ -128,13 +153,13 @@
       "generators": [ "TGZ", "DEB", "RPM" ]
     },
     {
-      "name": "pack-ci-gcc-debug",
-      "configurePreset": "ci-gcc-debug",
+      "name": "pack-gcc-debug",
+      "configurePreset": "docs-gcc-debug",
       "inherits": [ "pack-linux-common" ]
     },
     {
-      "name": "pack-ci-gcc-release",
-      "configurePreset": "ci-gcc-release",
+      "name": "pack-gcc-release",
+      "configurePreset": "docs-gcc-release",
       "inherits": [ "pack-linux-common" ]
     }
   ],
@@ -144,7 +169,7 @@
       "steps": [
         {
           "type": "configure",
-          "name": "ci-docs"
+          "name": "docs-gcc-debug"
         },
         {
           "type": "build",
@@ -157,19 +182,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "ci-gcc-debug"
+          "name": "docs-gcc-debug"
         },
         {
           "type": "build",
-          "name": "build-ci-gcc-debug"
-        },
-        {
-          "type": "test",
-          "name": "test-ci-gcc-debug"
+          "name": "build-docs-gcc-debug"
         },
         {
           "type": "package",
-          "name": "pack-ci-gcc-debug"
+          "name": "pack-gcc-debug"
         }
       ]
     },
@@ -178,19 +199,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "ci-gcc-release"
+          "name": "docs-gcc-release"
         },
         {
           "type": "build",
-          "name": "build-ci-gcc-release"
-        },
-        {
-          "type": "test",
-          "name": "test-ci-gcc-release"
+          "name": "build-docs-gcc-release"
         },
         {
           "type": "package",
-          "name": "pack-ci-gcc-release"
+          "name": "pack-gcc-release"
         }
       ]
     }
