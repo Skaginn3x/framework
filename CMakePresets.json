@@ -140,6 +140,19 @@
   ],
   "workflowPresets": [
     {
+      "name": "buildflow-docs",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci-docs"
+        },
+        {
+          "type": "build",
+          "name": "build-docs"
+        }
+      ]
+    },
+    {
       "name": "packflow-gcc-debug",
       "steps": [
         {
