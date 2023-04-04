@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-inline constexpr std::string_view logging_pattern = "*** [%H:%M:%S %z] (thread %t) {} *** \n\t %v ";
+inline constexpr std::string_view logging_pattern = "*** %l [%H:%M:%S %z] (thread %t) {0}.{1} *** \n\t %v ";
 inline constexpr size_t tp_queue_size = 128;
 inline constexpr size_t tp_worker_count = 1;
 
@@ -19,7 +19,7 @@ tfc::logger::logger::logger(std::string_view key) : key_{ key } {
     auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
 
     // customize formatting for stdout messages
-    stdout_sink->set_pattern(fmt::format(logging_pattern, tfc::base::get_proc_name()));
+    stdout_sink->set_pattern(fmt::format(logging_pattern, tfc::base::get_proc_name(), key));
     sinks.emplace_back(stdout_sink);
   }
 
