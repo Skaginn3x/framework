@@ -12,7 +12,11 @@ To begin with executables will be statically linked to third party dependencies 
 ```bash
 yay -S vcpkg
 sudo gpasswd -a $USER vcpkg
-sudo pacman -S libc++ lld llvm base-devel
+sudo pacman -S libc++ lld llvm base-devel ccache
+# for building documentation
+sudo pacman -S python-sphinx_rtd_theme python-myst-parser python-breathe
+# for packaging
+sudo pacman -S rpm-tools
 # relogin or $ newgrp vcpkg in terminal or su <username>
 ```
 Please note the output of installing vcpkg:

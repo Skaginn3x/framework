@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 6,
   "include": [
     "./cmake/presets/cfg-vcpkg.json",
     "./cmake/presets/cfg-build.json"
@@ -95,28 +95,91 @@
   ],
   "testPresets": [
     {
-      "name": "test-ci-clang-debug",
-      "configurePreset": "ci-clang-debug",
+      "name": "test-common",
+      "hidden": true,
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "test-ci-clang-debug",
+      "configurePreset": "ci-clang-debug",
+      "inherits": ["test-common"]
     },
     {
       "name": "test-ci-gcc-debug",
       "configurePreset": "ci-gcc-debug",
-      "output": {"outputOnFailure": true},
-      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+      "inherits": ["test-common"]
     },
     {
       "name": "test-ci-clang-release",
       "configurePreset": "ci-clang-release",
-      "output": {"outputOnFailure": true},
-      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+      "inherits": ["test-common"]
     },
     {
       "name": "test-ci-gcc-release",
       "configurePreset": "ci-gcc-release",
-      "output": {"outputOnFailure": true},
-      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+      "inherits": ["test-common"]
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "pack-linux-common",
+      "hidden": true,
+      "generators": [ "TGZ", "DEB", "RPM" ]
+    },
+    {
+      "name": "pack-ci-gcc-debug",
+      "configurePreset": "ci-gcc-debug",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-ci-gcc-release",
+      "configurePreset": "ci-gcc-release",
+      "inherits": [ "pack-linux-common" ]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "packflow-gcc-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci-gcc-debug"
+        },
+        {
+          "type": "build",
+          "name": "build-ci-gcc-debug"
+        },
+        {
+          "type": "test",
+          "name": "test-ci-gcc-debug"
+        },
+        {
+          "type": "package",
+          "name": "pack-ci-gcc-debug"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci-gcc-release"
+        },
+        {
+          "type": "build",
+          "name": "build-ci-gcc-release"
+        },
+        {
+          "type": "test",
+          "name": "test-ci-gcc-release"
+        },
+        {
+          "type": "package",
+          "name": "pack-ci-gcc-release"
+        }
+      ]
     }
   ]
 }

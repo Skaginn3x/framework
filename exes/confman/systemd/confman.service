@@ -4,7 +4,7 @@ Requires=confman.socket
 After=confman.socket
 
 [Service]
-ExecStart=/usr/bin/myprogram
+ExecStart=/usr/bin/confman
 StandardOutput=journal
 StandardError=journal
 
