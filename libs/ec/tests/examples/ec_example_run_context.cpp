@@ -21,7 +21,7 @@ auto main(int argc, char* argv[]) -> int {
   tfc::base::init(argc, argv, prog_desc);
 
   boost::asio::io_context io_ctx;
-  tfc::ec::context_t<> ctx(io_ctx, iface);
+  tfc::ec::context_t ctx(io_ctx, iface);
 
   ctx.async_start();
 

@@ -83,7 +83,7 @@ public:
   }
   /**
    * Scans the ethercat network and populates the slaves.
-   * @param use_config_table bool weather to use config table or not
+   * @param use_config_table bool whether to use config table or not
    * @return returns true for success
    */
   [[nodiscard]] auto config_init(bool use_config_table) -> bool {
@@ -205,7 +205,7 @@ private:
     grp.docheckstate = FALSE;
     ecx_readstate(&context_);
     auto slaves = slave_list_as_span();
-    [[maybe_unused]] uint16_t slave_index = 1;
+    uint16_t slave_index = 1;
     for (ec_slave& slave : slaves) {
       if (slave.group != group_index) {
         /* This slave is part of another group: do nothing */
@@ -309,4 +309,8 @@ private:
   size_t number_of_cycles_;
   std::array<std::byte, pdo_buffer_size> io_;
 };
+
+// Template deduction guide
+template <size_t pdo_buffer_size = 4096>
+context_t(boost::asio::io_context&, std::string_view) -> context_t<pdo_buffer_size>;
 }  // namespace tfc::ec
