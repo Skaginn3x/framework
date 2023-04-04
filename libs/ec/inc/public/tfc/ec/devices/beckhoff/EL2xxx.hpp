@@ -21,13 +21,10 @@ public:
   static constexpr uint32_t product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
-  void process_data(uint8_t*, uint8_t* output) noexcept final {
-    if (output == nullptr) {
-      return;
-    }
+  void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final {
     static_assert(size <= 8);
 
-    *output = output_states_.to_ulong();
+    output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
   }
 
 private:

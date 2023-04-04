@@ -2,6 +2,8 @@ include(FeatureSummary)
 
 # Use option BUILD_TESTING to disable tests
 
+option(BUILD_DOCS "Indicates whether documentation should be built." OFF)
+
 option(ENABLE_CODE_COVERAGE_INSTRUMENTATION "Enable code instrumentation" OFF)
 add_feature_info("ENABLE_CODE_COVERAGE_INSTRUMENTATION" ENABLE_CODE_COVERAGE_INSTRUMENTATION
     "Enable code instrumentation to allow generating code coverage after running tests")

@@ -3,14 +3,28 @@ FROM archlinux:latest
 MAINTAINER omar email ohg at skaginn3x.com
 
 RUN echo "Updating package index"; pacman -Sy
-RUN echo "Installing utils"; pacman -S --noconfirm --needed clang base-devel curl git python-sphinx doxygen python-sphinx_rtd_theme ninja zip unzip tar cmake lld llvm libc++ python-breathe graphviz cppcheck
+RUN echo "Installing utils"; pacman -S --noconfirm --needed clang base-devel curl git python-sphinx doxygen python-sphinx_rtd_theme ninja zip unzip tar cmake lld llvm libc++ python-breathe graphviz cppcheck ccache
 RUN echo "Initialize graphiz"; dot -c
 RUN echo "Installing vcpkg"; git clone https://github.com/Microsoft/vcpkg.git /opt/vcpkg && /opt/vcpkg/bootstrap-vcpkg.sh
-
-# Build clang from source. This is done temporarily 
-# to support building modern c++ features t.d. std::expected
-RUN echo "cloneing clang"; git clone --depth=1 https://github.com/llvm/llvm-project.git /opt/llvm
-RUN echo "Building clang"; mkdir /opt/llvm/build 
-WORKDIR /opt/llvm/build
-RUN cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm
-RUN make -j 8
+ARG VERSION=16.0.0
+RUN echo "Setting version to $VERSION"
+RUN echo "Downloading llvm sources"; curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-$VERSION/llvm-project-$VERSION.src.tar.xz | tar xJf -
+RUN mkdir -p llvm-build
+RUN sudo mkdir -p /opt/clang-$VERSION
+RUN echo "Configuring clang"; cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;lld" \
+  -DLLVM_ENABLE_RUNTIMES=all \
+  -DCOMPILER_RT_BUILD_SANITIZERS=ON \
+  -DCOMPILER_RT_BUILD_XRAY=ON \
+  -DCOMPILER_RT_BUILD_ORC=ON \
+  -DCOMPILER_RT_BUILD_MEMPROF=ON \
+  -DCOMPILER_RT_BUILD_PROFILE=ON \
+  -DCOMPILER_RT_BUILD_GWP_ASAN=ON \
+  -DCOMPILER_RT_BUILD_LIBFUZZER=ON \
+  -DCOMPILER_RT_BUILD_PROFILE=ON \
+  -DCMAKE_INSTALL_PREFIX=/opt/clang-$VERSION/ \
+  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+  -S llvm-project-$VERSION.src/llvm -B llvm-build
+RUN echo "Building clang"; cmake --build llvm-build
+RUN echo "Installing clang"; sudo cmake --install llvm-build
+RUN echo "Cleanup"; rm -rf llvm-project-$VERSION.src; rm -rf llvm-build

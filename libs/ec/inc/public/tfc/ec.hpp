@@ -69,17 +69,22 @@ public:
   [[nodiscard]] auto init() -> bool { return ecx::init(&context_, iface_); }
   auto processdata(std::chrono::microseconds timeout) -> ecx::working_counter_t {
     auto retval = ecx::recieve_processdata(&context_, timeout);
-    for (int i = 1; i < slave_count_ + 1; i++) {
-      slaves_[i]->process_data(slavelist_[i].inputs, slavelist_[i].outputs);
+    for (size_t i = 1; i < slave_count() + 1; i++) {
+      if (slavelist_[i].inputs != nullptr && slavelist_[i].outputs != nullptr) {
+        slaves_[i]->process_data(std::span<std::byte>(reinterpret_cast<std::byte*>(slavelist_[i].inputs),
+                                                      static_cast<size_t>(slavelist_[i].Ibytes)),
+                                 std::span<std::byte>(reinterpret_cast<std::byte*>(slavelist_[i].outputs),
+                                                      static_cast<size_t>(slavelist_[i].Obytes)));
+      }
     }
     ecx_send_processdata(&context_);
 
     return retval;
-  };
+  }
   /**
    * Scans the ethercat network and populates the slaves.
-   * @param use_config_table
-   * @return
+   * @param use_config_table bool whether to use config table or not
+   * @return returns true for success
    */
   [[nodiscard]] auto config_init(bool use_config_table) -> bool {
     if (!ecx::config_init(&context_, use_config_table)) {
@@ -87,17 +92,17 @@ public:
     }
     // Insert the base device into the vector.
     slaves_ = std::vector<std::unique_ptr<devices::base>>();
-    slaves_.reserve(slave_count_ + 1);
+    slaves_.reserve(slave_count() + 1);
     slaves_.emplace_back(std::make_unique<devices::default_device>(0));
     // Attach the callback to each slave
-    for (int i = 1; i <= slave_count_; i++) {
-      slaves_.emplace_back(devices::get(ctx_, i, slavelist_[i].eep_man, slavelist_[i].eep_id));
+    for (size_t i = 1; i <= slave_count(); i++) {
+      slaves_.emplace_back(devices::get(ctx_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     return true;
-  };
+  }
   [[nodiscard]] auto iface() -> std::string_view { return iface_; }
-  [[nodiscard]] auto slave_count() const -> size_t { return slave_count_; };
+  [[nodiscard]] auto slave_count() const -> size_t { return static_cast<size_t>(slave_count_); }
   auto config_map_group(uint8_t group_index = all_groups) -> size_t {
     return ecx::config_map_group(&context_, std::span(io_.data(), io_.size()), group_index);
   }
@@ -111,8 +116,8 @@ public:
     if (slave_index >= slave_count_) {
       return 0;
     }
-    context_.slavelist[slave_index].state = rqstState;
-    return ecx_writestate(&context_, slave_index);
+    slave_list_as_span_with_master()[slave_index].state = rqstState;
+    return static_cast<ecx::working_counter_t>(ecx_writestate(&context_, slave_index));
   }
   auto slave_state(uint16_t slave_index) -> ec_state {
     if (slave_index >= slave_count_) {
@@ -159,22 +164,17 @@ public:
 
     std::string slave_status;
     ecx_readstate(&context_);
-    for (size_t i = 0; i < slave_count(); i++) {
-      auto& slave = context_.slavelist[i];
+    auto slave_list = slave_list_as_span_with_master();
+    for (auto& slave : slave_list) {
       if (slave.state != EC_STATE_OPERATIONAL) {
-        slave_status += fmt::format("slave({}) -> {} is 0x{} (AL-status=0x{} {}\n", i, slave.name, slave.state,
-                                    slave.ALstatuscode, ec_ALstatuscode2string(slave.ALstatuscode));
+        slave_status += fmt::format("slave -> {} is 0x{} (AL-status=0x{} {})\n", slave.name, slave.state, slave.ALstatuscode,
+                                    ec_ALstatuscode2string(slave.ALstatuscode));
       }
     }
     throw std::runtime_error(slave_status);
-  };
+  }
 
 private:
-  /**
-   * run the fieldbus event cycle interval
-   * @param ctx
-   * @return
-   */
   auto async_wait() -> void {
     auto timer = std::make_shared<boost::asio::steady_timer>(ctx_);
     timer->expires_after(std::chrono::microseconds(1000));
@@ -201,44 +201,46 @@ private:
    * @param group_index 0 for all groups
    */
   auto check_state(uint8_t group_index = all_groups) -> void {
-    auto& grp = context_.grouplist[group_index];
+    auto& grp = group_list_as_span()[group_index];
     grp.docheckstate = FALSE;
     ecx_readstate(&context_);
-    for (size_t i = 1; i <= slave_count(); ++i) {
-      auto& slave = context_.slavelist[i];
+    auto slaves = slave_list_as_span();
+    uint16_t slave_index = 1;
+    for (ec_slave& slave : slaves) {
       if (slave.group != group_index) {
         /* This slave is part of another group: do nothing */
       } else if (slave.state != EC_STATE_OPERATIONAL) {
         grp.docheckstate = TRUE;
         if (slave.state == EC_STATE_SAFE_OP + EC_STATE_ERROR) {
-          logger_.warn("Slave {}, {} is in SAFE_OP+ERROR, attempting ACK", i, context_.slavelist[i].name);
+          logger_.warn("Slave {}, {} is in SAFE_OP+ERROR, attempting ACK", slave_index, slave.name);
           slave.state = EC_STATE_SAFE_OP + EC_STATE_ACK;
-          ecx_writestate(&context_, i);
+          ecx_writestate(&context_, slave_index);
         } else if (slave.state == EC_STATE_SAFE_OP) {
-          logger_.warn("Slave {}, {} is in SAFE_OP, change to OPERATIONAL", i, context_.slavelist[i].name);
+          logger_.warn("Slave {}, {} is in SAFE_OP, change to OPERATIONAL", slave_index, slave.name);
           slave.state = EC_STATE_OPERATIONAL;
-          ecx_writestate(&context_, i);
+          ecx_writestate(&context_, slave_index);
         } else if (slave.state > EC_STATE_NONE) {
-          if (ecx_reconfig_slave(&context_, i, EC_TIMEOUTRET) != 0) {
+          if (ecx_reconfig_slave(&context_, slave_index, EC_TIMEOUTRET) != 0) {
             slave.islost = FALSE;
-            logger_.warn("Slave {}, {} reconfigured", i, context_.slavelist[i].name);
+            logger_.warn("Slave {}, {} reconfigured", slave_index, slave.name);
           }
         } else if (slave.islost == 0) {
-          ecx_statecheck(&context_, i, EC_STATE_OPERATIONAL, EC_TIMEOUTRET);
+          ecx_statecheck(&context_, slave_index, EC_STATE_OPERATIONAL, EC_TIMEOUTRET);
           if (slave.state == EC_STATE_NONE) {
             slave.islost = TRUE;
-            logger_.warn("Slave {}, {} lost", i, context_.slavelist[i].name);
+            logger_.warn("Slave {}, {} lost", slave_index, slave.name);
           }
         }
       } else if (slave.islost != 0) {
         if (slave.state != EC_STATE_NONE) {
           slave.islost = FALSE;
-          logger_.info("Slave {}, {} found", i, context_.slavelist[i].name);
-        } else if (ecx_recover_slave(&context_, i, EC_TIMEOUTRET) != 0) {
+          logger_.info("Slave {}, {} found", slave_index, slave.name);
+        } else if (ecx_recover_slave(&context_, slave_index, EC_TIMEOUTRET) != 0) {
           slave.islost = FALSE;
-          logger_.info("Slave {}, {} recovered", i, context_.slavelist[i].name);
+          logger_.info("Slave {}, {} recovered", slave_index, slave.name);
         }
       }
+      slave_index++;
     }
 
     if (context_.grouplist->docheckstate == 0) {
@@ -252,18 +254,29 @@ private:
    * is embeded in the void* userdata. This function is a middle
    * function to relay the callbacks to the correct slave functions
    * with data.
-   * @param context
-   * @param slave_index
+   * @param context pointer to soem context
+   * @param slave_index index of slave
    * @return the number of slaves configured
    */
   static auto slave_config_callback(ecx_contextt* context, uint16_t slave_index) -> int {
     auto* self = static_cast<context_t*>(context->userdata);
-    ec_slavet& sl = context->slavelist[slave_index];  // NOLINT
+    ec_slavet& sl = self->slave_list_as_span_with_master()[slave_index];
     self->logger_.trace("Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}",
                         sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr);
     self->slaves_[slave_index]->setup(context, slave_index);
     return 1;
   }
+
+  [[nodiscard]] auto slave_list_as_span() -> std::span<ec_slave> {
+    // Slave at index 0 is reserved for actions on all slaves.
+    return { &std::span<ec_slave>(context_.slavelist, slave_count() + 1)[1], slave_count() };
+  }
+
+  [[nodiscard]] auto slave_list_as_span_with_master() -> std::span<ec_slave> {
+    return { context_.slavelist, slave_count() + 1 };
+  }
+
+  [[nodiscard]] auto group_list_as_span() -> std::span<ec_group> { return { context_.grouplist, 1 }; }
 
   boost::asio::io_context& ctx_;
   std::string iface_;
@@ -296,4 +309,8 @@ private:
   size_t number_of_cycles_;
   std::array<std::byte, pdo_buffer_size> io_;
 };
+
+// Template deduction guide
+template <size_t pdo_buffer_size = 4096>
+context_t(boost::asio::io_context&, std::string_view) -> context_t<pdo_buffer_size>;
 }  // namespace tfc::ec

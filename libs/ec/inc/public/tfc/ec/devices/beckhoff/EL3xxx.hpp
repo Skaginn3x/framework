@@ -35,9 +35,9 @@ public:
     // This depends on size
     for (size_t i = 0; i < size; i++) {
       // Set rx pdo to compact mode
-      ecx::sdo_write<uint16_t>(context, slave, { 0x1C13, i + 1 }, 0x1A00 + (i * 2) + 1);
+      ecx::sdo_write<uint16_t>(context, slave, { 0x1C13, i + 1 }, 0x1A00 + (static_cast<uint16_t>(i) * 2) + 1);
 
-      uint16_t const settings_index = 0x8000 + (i * 0x10);
+      uint16_t const settings_index = 0x8000 + (static_cast<uint16_t>(i) * 0x10);
       ecx::sdo_write<bool>(context, slave, { settings_index, 0x05 }, true);  // Enable - siemens mode
     }
     // Set rx pdo size to size
@@ -49,16 +49,16 @@ public:
     return 1;
   }
 
-  void process_data(uint8_t* input, uint8_t*) noexcept final {
+  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final {
     // Cast pointer type to uint16_t
-    auto* in_ptr = reinterpret_cast<int16_t*>(input);
+    std::span<uint16_t> input_aligned(reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
 
     // The value is setup in compact mode and siemens bits
     // are enabled. This means that there are three
     // status bits in the LSB the other 13 are split
     // up as one unused sign bit and then 12 bits data.
     for (size_t i = 0; i < size; i++) {
-      uint16_t const raw_value = *in_ptr++;
+      uint16_t const raw_value = input_aligned[i];
       std::bitset<3> const status_bits(raw_value);
       status_[i] = siemens_status{ .out_of_range = status_bits.test(0),
                                    .unknown_1 = status_bits.test(1),

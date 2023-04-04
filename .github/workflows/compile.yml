@@ -1,0 +1,60 @@
+name: compile
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: 'build and run tests'
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [debug, release]
+        compiler: [gcc, clang]
+    steps:
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build
+          curl https://apt.llvm.org/llvm.sh -o llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 16 all
+
+      - uses: actions/checkout@v3
+      - name: commissioning
+        run: |
+          sudo ./scripts/commissioning.sh
+          sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
+          sudo chown $USER:$USER -R /run/tfc
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@v10
+        with:
+          vcpkgDirectory: '/opt/vcpkg'
+          # If not using a submodule for vcpkg sources, this specifies which commit
+          # id must be checkout from a Git repo. It must not set if using a submodule
+          # for vcpkg.
+          vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
+          vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
+
+      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
+        uses: lukka/run-cmake@v10
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+
+#      - name: Run static analysis
+#        uses: JacobDomagala/StaticAnalysis@master
+#        with:
+#          use_cmake: true
+#
+#          # (Optional) clang-tidy args
+#          clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
+#
+#          # (Optional) cppcheck args
+#          cppcheck_args: --enable=all --suppress=missingInclude

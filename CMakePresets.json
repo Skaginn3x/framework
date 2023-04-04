@@ -9,16 +9,7 @@
       "name": "dev-gcc-debug-dynamic",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-gcc-libstdcxx-dynamic",
-        "cfg-build-dir",
-        "cfg-debug"
-      ]
-    },
-    {
-      "name": "dev-clang-libstdcxx-debug-dynamic",
-      "generator": "Ninja",
-      "inherits": [
-        "cfg-vcpkg-clang-libstdcxx-dynamic",
+        "cfg-vcpkg-gcc-dynamic",
         "cfg-build-dir",
         "cfg-debug"
       ]
@@ -27,7 +18,7 @@
       "name": "dev-clang-debug-dynamic",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-clang-libcxx-dynamic",
+        "cfg-vcpkg-clang-dynamic",
         "cfg-build-dir",
         "cfg-debug"
       ]
@@ -36,18 +27,25 @@
       "name": "ci-clang-debug",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-clang-libstdcxx",
+        "cfg-vcpkg-clang",
         "cfg-build-dir",
-        "cfg-debug",
-        "cfg-cppcheck",
-        "cfg-clang-tidy"
+        "cfg-debug"
       ]
     },
     {
       "name": "ci-clang-release",
       "generator": "Ninja",
       "inherits": [
-        "cfg-vcpkg-clang-libstdcxx",
+        "cfg-vcpkg-clang",
+        "cfg-build-dir",
+        "cfg-release"
+      ]
+    },
+    {
+      "name": "ci-gcc-release",
+      "generator": "Ninja",
+      "inherits": [
+        "cfg-vcpkg",
         "cfg-build-dir",
         "cfg-release"
       ]
@@ -62,13 +60,11 @@
       ]
     },
     {
-      "name": "ci-gcc-release",
-      "generator": "Ninja",
-      "inherits": [
-        "cfg-vcpkg",
-        "cfg-build-dir",
-        "cfg-release"
-      ]
+      "name": "ci-docs",
+      "inherits": ["ci-gcc-debug"],
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -90,7 +86,7 @@
     },
     {
       "name": "build-docs",
-      "configurePreset": "ci-gcc-debug",
+      "configurePreset": "ci-docs",
       "targets": [
         "Doxygen",
         "Sphinx"
@@ -107,6 +103,18 @@
     {
       "name": "test-ci-gcc-debug",
       "configurePreset": "ci-gcc-debug",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "test-ci-clang-release",
+      "configurePreset": "ci-clang-release",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "test-ci-gcc-release",
+      "configurePreset": "ci-gcc-release",
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     }

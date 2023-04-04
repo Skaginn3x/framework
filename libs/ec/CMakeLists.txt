@@ -8,7 +8,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)
 
 
-add_library(ec STATIC src/ec.cpp)
+add_library(ec STATIC src/ec.cpp src/base.cpp)
 add_library(tfc::ec ALIAS ec)
 
 target_include_directories(ec

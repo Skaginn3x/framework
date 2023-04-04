@@ -20,7 +20,7 @@ struct [[nodiscard]] basic_fixed_string {
 
   [[nodiscard]] constexpr char_type const* data() const noexcept { return &data_[0]; }
 
-  [[nodiscard]] constexpr char_type const* end() const noexcept { return &data_[N]; }
+  //[[nodiscard]] constexpr char_type const* end() const noexcept { return &data_[N]; }
 
   constexpr basic_fixed_string() noexcept : data_{} {}
 

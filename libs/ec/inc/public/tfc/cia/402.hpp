@@ -14,7 +14,7 @@ enum struct commands_e : uint16_t {
   fault_reset = 0x0080
 };
 
-auto to_string(commands_e value) -> std::string {
+[[maybe_unused]] static auto to_string(commands_e value) -> std::string {
   using std::string_literals::operator""s;
   switch (value) {
     case commands_e::disable_voltage:
@@ -44,7 +44,7 @@ enum struct states_e : uint16_t {
   fault = 8
 };
 
-auto to_string(states_e value) -> std::string {
+[[maybe_unused]] static auto to_string(states_e value) -> std::string {
   using std::string_literals::operator""s;
   switch (value) {
     case states_e::not_ready_to_switch_on:
@@ -71,7 +71,7 @@ auto to_string(states_e value) -> std::string {
  * @param status_word ETA of the vfd/servo
  * @return cia 402 state drive status_word represents
  */
-auto parse_state(uint16_t const& status_word) -> states_e {
+static auto parse_state(uint16_t const& status_word) -> states_e {
   uint16_t const status_low = status_word & 0xff;
   switch (status_low % 0x10) {
     case 0x01:
@@ -102,7 +102,7 @@ auto parse_state(uint16_t const& status_word) -> states_e {
  * @param quick_stop if the drive should be placed in quick_stop mode.
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-auto transition(states_e current_state, bool quick_stop) -> commands_e {
+static auto transition(states_e current_state, bool quick_stop) -> commands_e {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands_e::shutdown;
@@ -122,9 +122,12 @@ auto transition(states_e current_state, bool quick_stop) -> commands_e {
         return commands_e::quick_stop;
       }
       return commands_e::disable_voltage;
-    default:
+    case states_e::not_ready_to_switch_on:
+    case states_e::fault_reaction_active:
       return commands_e::disable_voltage;
   }
+  // Can only occur if someone casts an integer for state_e that is not defined in the enum
+  return commands_e::disable_voltage;
 }
 
 }  // namespace tfc::ec::cia_402

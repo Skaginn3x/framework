@@ -13,7 +13,10 @@ include(tfc_docs)
 
 add_subdirectory(exes)
 add_subdirectory(libs)
-add_subdirectory(docs)
+
+if (BUILD_DOCS)
+  add_subdirectory(docs)
+endif()
 
 # Clang format all files
 
@@ -33,6 +36,7 @@ add_custom_target(
   --dry-run
   ${ALL_SOURCE_FILES}
 )
+
 
 # from https://stackoverflow.com/questions/18968979/how-to-make-colorized-message-with-cmake
 string(ASCII 27 Esc)
