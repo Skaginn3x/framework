@@ -161,6 +161,16 @@
       "name": "pack-gcc-release",
       "configurePreset": "docs-gcc-release",
       "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-clang-debug",
+      "configurePreset": "docs-clang-debug",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-clang-release",
+      "configurePreset": "docs-clang-release",
+      "inherits": [ "pack-linux-common" ]
     }
   ],
   "workflowPresets": [
@@ -208,6 +218,40 @@
         {
           "type": "package",
           "name": "pack-gcc-release"
+        }
+      ]
+    },
+    {
+      "name": "packflow-clang-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs-clang-debug"
+        },
+        {
+          "type": "build",
+          "name": "build-docs-clang-debug"
+        },
+        {
+          "type": "package",
+          "name": "pack-clang-debug"
+        }
+      ]
+    },
+    {
+      "name": "packflow-clang-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs-clang-release"
+        },
+        {
+          "type": "build",
+          "name": "build-docs-clang-release"
+        },
+        {
+          "type": "package",
+          "name": "pack-clang-release"
         }
       ]
     }
