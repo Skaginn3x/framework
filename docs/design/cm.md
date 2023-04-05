@@ -60,3 +60,20 @@ JSON BLOB
 JSON BLOB
 ==================<>
 ```
+
+## Confman description of underlying communication
+In order to provide this service confman creates
+two unix socket which transport zeromq messages.
+
+One socket is a json-rpc request-response socket
+used for notifying confman of a services existance
+and settings configuration parameters.
+
+The other one is for confman to provide configuration
+updates to services live in a publish subscribe fashion.
+
+
+### Socket placement
+Socket files are placed inside of ```$RUNTIME_DIR``` enviornment variable, this can be
+set by systemd for example. If RUNTIME_DIR is not set then sockets are placed in
+the working directory.
