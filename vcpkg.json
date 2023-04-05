@@ -15,6 +15,10 @@
     "magic-enum",
     "bext-sml",
     "soem-master",
-    "mp-units"
+    "mp-units",
+    {
+      "name": "libgpiod",
+      "features": ["cxx-bindings"]
+    }
   ]
 }

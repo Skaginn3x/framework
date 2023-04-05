@@ -19,7 +19,7 @@
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-linux-dynamic",
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-dynamic",
-        "BUILD_SHARED_LIBS": "OFF",
+        "BUILD_SHARED_LIBS": "ON",
         "LINK_SHARED_LIBS": "ON"
       },
       "inherits": [
