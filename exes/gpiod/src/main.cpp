@@ -6,7 +6,7 @@
 
 #include <tfc/progbase.hpp>
 
-#include "gpio.h"
+#include "gpio.hpp"
 
 namespace bpo = boost::program_options;
 namespace asio = boost::asio;

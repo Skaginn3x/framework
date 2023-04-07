@@ -27,7 +27,7 @@ target_link_libraries(gpiod
     tfc::confman
     Boost::program_options
     glaze::glaze
-    libgpiod.so # todo cmake expression for .a or .so
+    libgpiodcxx.so # todo cmake expression for .a or .so
 )
 
 install(

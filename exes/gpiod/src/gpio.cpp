@@ -1,48 +1,44 @@
-#include "gpio.h"
-
-#include <gpiod.hpp>
+#include "gpio.hpp"
 
 namespace tfc {
 
-// clang-format off
-static const storage raspberry_pi_4{ .pins = tfc::confman::observable<std::unordered_map<std::string, gpio_pin_behaviour_e>>{ {
-                                         { "GPIO0", gpio_pin_behaviour_e::input },
-                                         { "GPIO1", gpio_pin_behaviour_e::input },
-                                         { "GPIO2", gpio_pin_behaviour_e::i2c },
-                                         { "GPIO3", gpio_pin_behaviour_e::i2c },
-                                         { "GPIO4", gpio_pin_behaviour_e::input },
-                                         { "GPIO5", gpio_pin_behaviour_e::input },
-                                         { "GPIO6", gpio_pin_behaviour_e::input },
-                                         { "GPIO7", gpio_pin_behaviour_e::input },
-                                         { "GPIO8", gpio_pin_behaviour_e::input },
-                                         { "GPIO9", gpio_pin_behaviour_e::pwm },
-                                         { "GPIO10", gpio_pin_behaviour_e::spi },
-                                         { "GPIO11", gpio_pin_behaviour_e::spi },
-                                         { "GPIO12", gpio_pin_behaviour_e::pwm },
-                                         { "GPIO13", gpio_pin_behaviour_e::spi },
-                                         { "GPIO14", gpio_pin_behaviour_e::clock },
-                                         { "GPIO15", gpio_pin_behaviour_e::clock },
-                                         { "GPIO16", gpio_pin_behaviour_e::input },
-                                         { "GPIO17", gpio_pin_behaviour_e::input },
-                                         { "GPIO18", gpio_pin_behaviour_e::pcm },
-                                         { "GPIO19", gpio_pin_behaviour_e::pcm },
-                                         { "GPIO20", gpio_pin_behaviour_e::output },
-                                         { "GPIO21", gpio_pin_behaviour_e::output },
-                                         { "GPIO22", gpio_pin_behaviour_e::output },
-                                         { "GPIO23", gpio_pin_behaviour_e::output },
-                                         { "GPIO24", gpio_pin_behaviour_e::output },
-                                         { "GPIO25", gpio_pin_behaviour_e::output },
-                                         { "GPIO26", gpio_pin_behaviour_e::output },
-                                         { "GPIO27", gpio_pin_behaviour_e::output }
-                                     } } };
-// clang-format on
+gpio::gpio(asio::io_context& ctx, std::filesystem::path const& char_device)
+    : ctx_{ ctx }, chip_{ char_device },
+      config_{ ctx, "gpio-map", std::bind_front(&gpio::init, this), config_t::storage_t{ chip_.get_info().num_lines() } },
+      pins_{ config_->size() }, logger_{ "gpio" } {
+  for (std::size_t idx{ 0 }; auto const& pin_config : config_.get()) {
+    pin_config.active.observe(std::bind_front(&gpio::pin_active_change, this, idx));
+    pin_config.direction.observe(std::bind_front(&gpio::pin_direction_change, this, idx));
+    idx++;
+  }
+}
 
-gpio::gpio(asio::io_context& ctx, std::filesystem::path char_device)
-    : ctx_{ ctx }, char_device_{ std::move(char_device) },
-      config_{ ctx, "gpio-map", [this]([[maybe_unused]] auto const& self) { this->init(); }, raspberry_pi_4 }, logger_{"gpio"} {}
-
-void gpio::init() {
+void gpio::init(config_t const&) {
   logger_.info("GPIO started");
 }
+void gpio::pin_active_change(pin_index_t idx,
+                             [[maybe_unused]] gpiod::line::value new_value,
+                             [[maybe_unused]] gpiod::line::value old_value) {
+  if (new_value == gpiod::line::value::INACTIVE) {
+//    config_->at(idx).in_or_out = std::monostate{};
+    pins_.at(idx) = std::monostate{};
+  }
+}
+void gpio::pin_direction_change(pin_index_t,
+                                [[maybe_unused]] gpiod::line::direction new_value,
+                                [[maybe_unused]] gpiod::line::direction old_value) {}
+void gpio::pin_edge_change(pin_index_t,
+                           [[maybe_unused]] gpiod::line::edge new_value,
+                           [[maybe_unused]] gpiod::line::edge old_value) {}
+void gpio::pin_bias_change(pin_index_t,
+                           [[maybe_unused]] gpiod::line::bias new_value,
+                           [[maybe_unused]] gpiod::line::bias old_value) {}
+void gpio::pin_force_change(pin_index_t,
+                            [[maybe_unused]] pin::out::force_e new_value,
+                            [[maybe_unused]] pin::out::force_e old_value) {}
+void gpio::pin_drive_change(pin_index_t,
+                            [[maybe_unused]] gpiod::line::drive new_value,
+                            [[maybe_unused]] gpiod::line::drive old_value) {}
+void gpio::pin_event(pin_index_t, bool) {}
 
 }  // namespace tfc
