@@ -20,13 +20,18 @@ void gpio::pin_active_change(pin_index_t idx,
                              [[maybe_unused]] gpiod::line::value new_value,
                              [[maybe_unused]] gpiod::line::value old_value) {
   if (new_value == gpiod::line::value::INACTIVE) {
-//    config_->at(idx).in_or_out = std::monostate{};
+    config_.make_changes()->at(idx).in_or_out = std::monostate{};
     pins_.at(idx) = std::monostate{};
+    return;
   }
 }
-void gpio::pin_direction_change(pin_index_t,
+void gpio::pin_direction_change(pin_index_t idx,
                                 [[maybe_unused]] gpiod::line::direction new_value,
-                                [[maybe_unused]] gpiod::line::direction old_value) {}
+                                [[maybe_unused]] gpiod::line::direction old_value) {
+  if (config_->at(idx).active == gpiod::line::value::INACTIVE) {
+    return;
+  }
+}
 void gpio::pin_edge_change(pin_index_t,
                            [[maybe_unused]] gpiod::line::edge new_value,
                            [[maybe_unused]] gpiod::line::edge old_value) {}
