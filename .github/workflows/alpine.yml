@@ -21,7 +21,7 @@ jobs:
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: sh symbolic link
         run: ln -s /bin/sh /usr/bin/sh
-        shell: alpine.sh {0}
+        shell: alpine.sh --root {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
