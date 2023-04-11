@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     name: Build static artifacts
     steps:
+      - uses: actions/checkout@v3
       - uses: jirutka/setup-alpine@v1
         id: alpine
         name: Alpine maker
