@@ -1,0 +1,21 @@
+name: alpine static
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_static_artifacts:
+    runs-on: ubuntu-22.04
+    name: Build static artifacts
+    steps:
+      - uses: jirutka/setup-alpine@v1
+        name: Alpine maker
+        with:
+          branch: v3.17
+          packages: >
+            g++ curl zip unzip tar build-base musl ninja python3 make linux-headers openssl-dev git rpm-dev
+            doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+
