@@ -20,7 +20,9 @@ jobs:
             g++ curl zip unzip tar build-base musl ninja python3 cmake make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: Prepare vcpkg
-        run: ln -s /bin/sh /usr/bin/sh
+        run: |
+          ln -s /bin/sh /usr/bin/sh
+          rm -r /opt/vcpkg
 #          cd /opt/
 #          git clone https://github.com/microsoft/vcpkg.git
 #          cd vcpkg
