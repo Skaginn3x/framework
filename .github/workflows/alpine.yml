@@ -21,7 +21,9 @@ jobs:
             g++ curl zip unzip tar build-base musl ninja python3 cmake make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: sh symbolic link
-        run: ln -s /bin/sh /usr/bin/sh
+        run: | 
+          ln -s /bin/sh /usr/bin/sh
+          ln -s /usr/bin/cmake /usr/local/bin/cmake
         shell: alpine.sh --root {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10

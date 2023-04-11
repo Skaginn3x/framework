@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 4,
   "include": [
     "./cmake/presets/cfg-vcpkg.json",
     "./cmake/presets/cfg-build.json"
@@ -144,116 +144,6 @@
       "name": "test-ci-gcc-release",
       "configurePreset": "ci-gcc-release",
       "inherits": ["test-common"]
-    }
-  ],
-  "packagePresets": [
-    {
-      "name": "pack-linux-common",
-      "hidden": true,
-      "generators": [ "TGZ", "DEB", "RPM" ]
-    },
-    {
-      "name": "pack-gcc-debug",
-      "configurePreset": "docs-gcc-debug",
-      "inherits": [ "pack-linux-common" ]
-    },
-    {
-      "name": "pack-gcc-release",
-      "configurePreset": "docs-gcc-release",
-      "inherits": [ "pack-linux-common" ]
-    },
-    {
-      "name": "pack-clang-debug",
-      "configurePreset": "docs-clang-debug",
-      "inherits": [ "pack-linux-common" ]
-    },
-    {
-      "name": "pack-clang-release",
-      "configurePreset": "docs-clang-release",
-      "inherits": [ "pack-linux-common" ]
-    }
-  ],
-  "workflowPresets": [
-    {
-      "name": "buildflow-docs",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "docs-gcc-debug"
-        },
-        {
-          "type": "build",
-          "name": "build-docs"
-        }
-      ]
-    },
-    {
-      "name": "packflow-gcc-debug",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "docs-gcc-debug"
-        },
-        {
-          "type": "build",
-          "name": "build-docs-gcc-debug"
-        },
-        {
-          "type": "package",
-          "name": "pack-gcc-debug"
-        }
-      ]
-    },
-    {
-      "name": "packflow-gcc-release",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "docs-gcc-release"
-        },
-        {
-          "type": "build",
-          "name": "build-docs-gcc-release"
-        },
-        {
-          "type": "package",
-          "name": "pack-gcc-release"
-        }
-      ]
-    },
-    {
-      "name": "packflow-clang-debug",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "docs-clang-debug"
-        },
-        {
-          "type": "build",
-          "name": "build-docs-clang-debug"
-        },
-        {
-          "type": "package",
-          "name": "pack-clang-debug"
-        }
-      ]
-    },
-    {
-      "name": "packflow-clang-release",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "docs-clang-release"
-        },
-        {
-          "type": "build",
-          "name": "build-docs-clang-release"
-        },
-        {
-          "type": "package",
-          "name": "pack-clang-release"
-        }
-      ]
     }
   ]
 }
