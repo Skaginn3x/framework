@@ -21,8 +21,8 @@ jobs:
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
-          useShell: alpine.sh --root 
-          vcpkgDirectory: '/opt/vcpkg'
+          useShell: alpine.sh
+#          vcpkgDirectory: '/opt/vcpkg'
           # If not using a submodule for vcpkg sources, this specifies which commit
           # id must be checkout from a Git repo. It must not set if using a submodule
           # for vcpkg.
