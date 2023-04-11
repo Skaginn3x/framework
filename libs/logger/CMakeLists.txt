@@ -35,6 +35,7 @@ target_link_libraries(logger
     spdlog::spdlog
     tfc::base
     systemdlib
+    tfc::stx
 )
 
 add_library_to_docs(tfc::logger)

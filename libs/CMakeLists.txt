@@ -1,10 +1,9 @@
-
+add_subdirectory(stx)
 add_subdirectory(progbase)
 add_subdirectory(logger)
 add_subdirectory(confman)
 add_subdirectory(ipc)
 add_subdirectory(rpc)
-add_subdirectory(stx)
 add_subdirectory(ec)
 
 add_library(tfc INTERFACE)

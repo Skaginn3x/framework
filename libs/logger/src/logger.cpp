@@ -7,15 +7,21 @@
 #include <spdlog/spdlog.h>
 #include <iostream>
 #include <string>
+#include <tfc/utils/pragmas.hpp>
 
 inline constexpr std::string_view logging_pattern = "*** %l [%H:%M:%S %z] (thread %t) {0}.{1} *** \n\t %v ";
 inline constexpr size_t tp_queue_size = 128;
 inline constexpr size_t tp_worker_count = 1;
 
-
 namespace {
+// clang-format off
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
+// clang-format on
 std::shared_ptr<spdlog::details::thread_pool> thread_pool;
-}
+PRAGMA_CLANG_WARNING_POP
+PRAGMA_CLANG_WARNING_POP
+}  // namespace
 
 tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   // Create sinks
