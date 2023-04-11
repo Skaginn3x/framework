@@ -7,9 +7,6 @@
 
 namespace spdlog {
 class async_logger;
-namespace details {
-class thread_pool;
-}
 }  // namespace spdlog
 
 namespace tfc::logger {
