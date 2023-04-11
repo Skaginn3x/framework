@@ -27,7 +27,7 @@ jobs:
 #          ./bootstrap-vcpkg.sh
         shell: alpine.sh --root {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@v11
+        uses: lukka/run-vcpkg@v10
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
           vcpkgDirectory: '/opt/vcpkg'
