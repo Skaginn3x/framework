@@ -18,18 +18,13 @@ jobs:
           packages: >
             g++ curl zip unzip tar build-base musl ninja python3 make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
-      - name: No shell uname
-        run: |
-          uname -a
-      - name: Alpine uname
-        run: |
-          uname -a
-        shell: alpine.sh {0}
-
-      - name: Change bash
-        run: |
-          chsh -s alpine.sh
-        shell: alpine.sh {0}
-      - name: No shell 2 uname
-        run: |
-          uname -a
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@v10
+        with:
+          useShell: alpine.sh {0}
+          vcpkgDirectory: '/opt/vcpkg'
+          # If not using a submodule for vcpkg sources, this specifies which commit
+          # id must be checkout from a Git repo. It must not set if using a submodule
+          # for vcpkg.
+          vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
+          vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
