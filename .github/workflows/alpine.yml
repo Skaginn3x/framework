@@ -36,6 +36,7 @@ jobs:
         run: |
           pwd
           ls -alh
+          ls ..
         shell: alpine.sh {0}
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
         uses: lukka/run-cmake@v10
