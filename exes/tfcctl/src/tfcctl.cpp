@@ -16,83 +16,15 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
 
-using any_send = std::variant<std::monostate,
-                              std::shared_ptr<ipc::bool_send>,
-                              std::shared_ptr<ipc::int_send>,
-                              std::shared_ptr<ipc::uint_send>,
-                              std::shared_ptr<ipc::double_send>,
-                              std::shared_ptr<ipc::string_send>,
-                              std::shared_ptr<ipc::json_send>>;
-using any_recv = std::variant<std::monostate,
-                              std::shared_ptr<ipc::bool_recv_cb>,
-                              std::shared_ptr<ipc::int_recv_cb>,
-                              std::shared_ptr<ipc::uint_recv_cb>,
-                              std::shared_ptr<ipc::double_recv_cb>,
-                              std::shared_ptr<ipc::string_recv_cb>,
-                              std::shared_ptr<ipc::json_recv_cb>>;
 
-inline constexpr std::string_view invalid_type{
-  "\nInvalid name {}, it must include one qualified type name.\n"  // should inject slot or signal as {}
-  "Any of the following: \n"
-  "bool\n"
-  "int\n"
-  "uint\n"
-  "double\n"
-  "string\n"
-  "json\n"
-};
 
-template <typename return_t>
-inline auto create_ipc_recv(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return ipc::bool_recv_cb::create(ctx, name);
-  }
-  if (name.contains("int")) {
-    return ipc::int_recv_cb::create(ctx, name);
-  }
-  if (name.contains("uint")) {
-    return ipc::uint_recv_cb::create(ctx, name);
-  }
-  if (name.contains("double")) {
-    return ipc::double_recv_cb::create(ctx, name);
-  }
-  if (name.contains("string")) {
-    return ipc::string_recv_cb::create(ctx, name);
-  }
-  if (name.contains("json")) {
-    return ipc::json_recv_cb::create(ctx, name);
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
-}
-template <typename return_t>
-inline auto create_ipc_send(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return ipc::bool_send::create(ctx, name).value();
-  }
-  if (name.contains("int")) {
-    return ipc::int_send::create(ctx, name).value();
-  }
-  if (name.contains("uint")) {
-    return ipc::uint_send::create(ctx, name).value();
-  }
-  if (name.contains("double")) {
-    return ipc::double_send::create(ctx, name).value();
-  }
-  if (name.contains("string")) {
-    return ipc::string_send::create(ctx, name).value();
-  }
-  if (name.contains("json")) {
-    return ipc::json_send::create(ctx, name).value();
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
-}
 
 inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::string_view signal_name)
     -> asio::awaitable<void> {
   auto executor = co_await asio::this_coro::executor;
   asio::posix::stream_descriptor input_stream(executor, STDIN_FILENO);
 
-  auto sender{ create_ipc_send<any_send>(ctx, signal_name) };
+  auto sender{ tfc::ipc::create_ipc_send<tfc::ipc::any_send>(ctx, signal_name) };
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
@@ -160,12 +92,12 @@ auto main(int argc, char** argv) -> int {
     asio::co_spawn(ctx, stdin_coro(ctx, logger, signal), asio::detached);
   }
 
-  std::vector<any_recv> connect_slots;
+  std::vector<tfc::ipc::any_recv_cb> connect_slots;
   for (auto& signal_connect : connect) {
     // For listening to connections
-    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> any_recv {
+    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::any_recv_cb {
       std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
-      auto ipc{ create_ipc_recv<any_recv>(ctx, slot_name) };
+      auto ipc{ tfc::ipc::create_ipc_recv_cb<tfc::ipc::any_recv_cb>(ctx, slot_name) };
       std::visit(
           [&](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;

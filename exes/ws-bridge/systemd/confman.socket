@@ -1,0 +1,9 @@
+[Unit]
+Description=Confman service socket
+
+[Socket]
+ListenStream=/run/tfc/confman.rpc.sock
+Accept=yes
+
+[Install]
+WantedBy=sockets.target
