@@ -26,7 +26,7 @@ jobs:
         uses: lukka/run-vcpkg@v10
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
-          #          vcpkgDirectory: '/opt/vcpkg'
+          vcpkgDirectory: '/opt/vcpkg'
           # If not using a submodule for vcpkg sources, this specifies which commit
           # id must be checkout from a Git repo. It must not set if using a submodule
           # for vcpkg.
