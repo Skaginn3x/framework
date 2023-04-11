@@ -22,10 +22,11 @@ jobs:
             cmake
       - name: Prepare vcpkg
         run: |
-          cd /opt/
-          git clone https://github.com/microsoft/vcpkg.git
-          cd vcpkg
-          ./bootstrap-vcpkg.sh
+#          cd /opt/
+#          git clone https://github.com/microsoft/vcpkg.git
+#          cd vcpkg
+#          ./bootstrap-vcpkg.sh
+          ln -s /bin/sh /usr/bin/sh
         shell: alpine.sh --root {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
