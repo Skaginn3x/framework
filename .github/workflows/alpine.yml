@@ -17,24 +17,18 @@ jobs:
         with:
           branch: v3.17
           packages: >
-            g++ curl zip unzip tar build-base musl ninja python3 cmake make linux-headers openssl-dev git rpm-dev
+            g++ curl zip unzip tar build-base musl ninja python3 make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
-      - name: Prepare vcpkg
-        run: |
-          ln -s /bin/sh /usr/bin/sh
-#          cd /opt/
-#          git clone https://github.com/microsoft/vcpkg.git
-#          cd vcpkg
-#          ./bootstrap-vcpkg.sh
-        shell: alpine.sh --root {0}
+      - name: UNAME
+        run: uname -m
+        shell: alpine.sh {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
-          vcpkgDirectory: '/opt/vcpkg1'
+          #          vcpkgDirectory: '/opt/vcpkg'
           # If not using a submodule for vcpkg sources, this specifies which commit
           # id must be checkout from a Git repo. It must not set if using a submodule
           # for vcpkg.
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
-#          vcpkgJsonIgnores: "['**/vcpkg-overlays/**']"
