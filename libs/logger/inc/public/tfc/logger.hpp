@@ -96,6 +96,5 @@ private:
   void log_(lvl_e log_lvl, std::string_view msg);
   std::string key_;
   std::shared_ptr<spdlog::async_logger> async_logger_;
-  std::shared_ptr<spdlog::details::thread_pool> tp_;
 };
 };  // namespace tfc::logger
