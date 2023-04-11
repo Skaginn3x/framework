@@ -25,7 +25,7 @@ jobs:
           git clone https://github.com/microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.sh
-        shell: alpine.sh {0}
+        shell: alpine.sh --root {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
