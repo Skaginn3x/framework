@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+
+FROM alpine:latest
+
+RUN apk add g++ curl zip unzip tar build-base musl ninja python3 make linux-headers openssl-dev git rpm-dev
+RUN apk add elogind-dev # libsystemd
+RUN apk add doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+
+WORKDIR /builder
+
+ENV PATH=/cpproot/bin:$PATH
+ENV LD_LIBRARY_PATH=/cpproot/lib64:/cpproot/lib32:/cpproot/lib
+ENV PKG_CONFIG_PATH=/cpproot/lib/pkgconfig
+
+ENV CMAKE=3.26.3
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v$CMAKE/cmake-$CMAKE.tar.gz | tar xzf -
+
+RUN mkdir cmake-build
+RUN cd cmake-build && ../cmake-$CMAKE/configure --prefix=/cpproot && make -j32 && make install
+
+RUN rm -rf cmake-build
+RUN rm -rf cmake-$CMAKE
+
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg
+RUN /opt/vcpkg/bootstrap-vcpkg.sh -musl
