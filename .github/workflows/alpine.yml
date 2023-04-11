@@ -36,7 +36,7 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
-          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+#          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 #          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 #          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
