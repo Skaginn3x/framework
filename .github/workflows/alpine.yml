@@ -12,20 +12,20 @@ jobs:
     name: Build static artifacts
     steps:
       - uses: jirutka/setup-alpine@v1
+        id: alpine
         name: Alpine maker
         with:
           branch: v3.17
           packages: >
             g++ curl zip unzip tar build-base musl ninja python3 make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
-      - name: Hello
-        run: |
-          echo "hello world"
-        shell: alpine.sh
+      - name: UNAME
+        run: uname -m
+        shell: alpine.sh {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
-          useShell: alpine.sh
+          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
 #          vcpkgDirectory: '/opt/vcpkg'
           # If not using a submodule for vcpkg sources, this specifies which commit
           # id must be checkout from a Git repo. It must not set if using a submodule
