@@ -19,6 +19,7 @@ jobs:
           packages: >
             g++ curl zip unzip tar build-base musl ninja python3 make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+            cmake
       - name: Prepare vcpkg
         run: |
           cd /opt/
