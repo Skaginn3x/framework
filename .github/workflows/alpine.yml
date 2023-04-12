@@ -45,7 +45,7 @@ jobs:
           echo "${{ github.workspace }}"
         shell: alpine.sh {0}
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
-        uses: lukka/run-cmake@v10
+        uses: lukka/run-cmake@v10.3
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
 #          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
