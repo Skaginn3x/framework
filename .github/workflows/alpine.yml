@@ -45,7 +45,7 @@ jobs:
 
       - name: commissioning
         run: |
-          ./scripts/commissioning.sh
+          ${{ github.workspace }}/scripts/commissioning.sh
           chown $SUDO_USER:$SUDO_USER -R /var/tfc  # todo fix this differently
           chown $SUDO_USER:$SUDO_USER -R /run/tfc
         shell: alpine.sh --root {0}
