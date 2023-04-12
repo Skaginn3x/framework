@@ -39,8 +39,8 @@ jobs:
           vcpkgJsonGlob: 'vcpkg.json'
       - name: Override vcpkg glibc ninja with muslc ninja
         run: |
-          rm vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
-          ln -s /usr/bin/ninja vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
+          rm ${{ github.workspace }}/vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
+          ln -s /usr/bin/ninja ${{ github.workspace }}/vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
         shell: alpine.sh {0}
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
         uses: lukka/run-cmake@v10.3
