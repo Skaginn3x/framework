@@ -9,7 +9,7 @@ on:
 jobs:
   build_static_artifacts:
     runs-on: ubuntu-22.04
-    name: Build static artifacts
+    name: static packaging
     strategy:
       fail-fast: false
       matrix:
