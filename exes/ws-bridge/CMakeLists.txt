@@ -30,13 +30,6 @@ install(
   CONFIGURATIONS Release
 )
 install(
-  FILES
-    systemd/ws-bridge.socket
-  DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}/systemd/user/
-  CONFIGURATIONS Release
-)
-install(
   TARGETS
     ws-bridge
   DESTINATION
