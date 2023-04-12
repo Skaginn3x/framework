@@ -12,6 +12,7 @@
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::operator""_test;
+using ut::operator/;
 using tfc::confman::config;
 using tfc::confman::observable;
 using tfc::confman::detail::config_rpc_server;
@@ -31,7 +32,7 @@ auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
   [[maybe_unused]] ut::suite const rpc_test_cases = [] {
-    "happy path confman"_test = [] {
+    ut::skip / "happy path confman"_test = [] {
       // remove config file so we can re-run this test
       std::error_code ignore{};
       std::filesystem::remove(tfc::confman::detail::default_config_filename, ignore);

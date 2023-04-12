@@ -43,14 +43,6 @@ jobs:
           ln -s /usr/bin/cmake /usr/local/bin/cmake
         shell: alpine.sh --root {0}
 
-      - name: commissioning
-        run: |
-          mkdir -p /var/tfc
-          mkdir -p /run/tfc
-          chown $SUDO_USER:$SUDO_USER -R /var/tfc  # todo fix this differently
-          chown $SUDO_USER:$SUDO_USER -R /run/tfc
-        shell: alpine.sh --root {0}
-
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
