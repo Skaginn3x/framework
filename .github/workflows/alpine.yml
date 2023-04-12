@@ -27,7 +27,7 @@ jobs:
           VERSION=1.11.1
           curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
           cd ninja-$VERSION
-          cmake -B build-cmake -H .
+          cmake -B build-cmake -S .
           cmake --build build-cmake
           cmake --install build-cmake
           cd ..
