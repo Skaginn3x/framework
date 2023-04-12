@@ -63,6 +63,3 @@ jobs:
 #          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 #          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           workflowPreset: packflow-gcc-debug
-VERSION=1:
-  11:
-    0:
