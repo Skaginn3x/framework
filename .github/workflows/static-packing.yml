@@ -1,4 +1,4 @@
-name: alpine static
+name: static packaging
 
 on:
   push:
@@ -67,15 +67,15 @@ jobs:
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
-          name: tfc-framework-${{matrix.build_type}}
+          name: tfc-framework-${{matrix.build_type}}-static
           path: build/pack-gcc-${{matrix.build_type}}-static/*.deb
       - name: Upload rpm package
         uses: actions/upload-artifact@v3
         with:
-          name: tfc-framework-${{matrix.build_type}}
+          name: tfc-framework-${{matrix.build_type}}-static
           path: build/pack-gcc-${{matrix.build_type}}-static/*.rpm
       - name: Upload tar package
         uses: actions/upload-artifact@v3
         with:
-          name: tfc-framework-${{matrix.build_type}}
+          name: tfc-framework-${{matrix.build_type}}-static
           path: build/pack-gcc-${{matrix.build_type}}-static/*.tar.gz
