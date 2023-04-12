@@ -69,6 +69,13 @@
       "cacheVariables": {
         "BUILD_DOCS": "ON"
       }
+    },
+    {
+      "name": "cfg-static",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_STATIC_LINKING": "ON"
+      }
     }
   ]
 }

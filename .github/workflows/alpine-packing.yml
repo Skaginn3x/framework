@@ -61,21 +61,21 @@ jobs:
       # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
         run: |
-          cmake --workflow --preset packflow-gcc-${{matrix.build_type}}
+          cmake --workflow --preset packflow-gcc-${{matrix.build_type}}-static
         shell: alpine.sh --root {0}
 
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-gcc-${{matrix.build_type}}/*.deb
+          path: build/pack-gcc-${{matrix.build_type}}-static/*.deb
       - name: Upload rpm package
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-gcc-${{matrix.build_type}}/*.rpm
+          path: build/pack-gcc-${{matrix.build_type}}-static/*.rpm
       - name: Upload tar package
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-gcc-${{matrix.build_type}}/*.tar.gz
+          path: build/pack-gcc-${{matrix.build_type}}-static/*.tar.gz

@@ -72,6 +72,14 @@
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }
+    },
+    {
+      "name": "pack-gcc-debug-static",
+      "inherits": ["pack-gcc-debug", "cfg-enable-static"]
+    },
+    {
+      "name": "pack-gcc-release-static",
+      "inherits": ["pack-gcc-release", "cfg-enable-static"]
     }
   ],
   "buildPresets": [
@@ -98,6 +106,14 @@
     {
       "name": "build-pack-gcc-release",
       "configurePreset": "pack-gcc-release"
+    },
+    {
+      "name": "build-pack-gcc-debug-static",
+      "configurePreset": "pack-gcc-debug-static"
+    },
+    {
+      "name": "build-pack-gcc-release-static",
+      "configurePreset": "pack-gcc-release-static"
     },
     {
       "name": "build-docs",
@@ -144,6 +160,16 @@
       "name": "test-pack-gcc-release",
       "configurePreset": "pack-gcc-release",
       "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-debug-static",
+      "configurePreset": "pack-gcc-debug-static",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-release-static",
+      "configurePreset": "pack-gcc-release-static",
+      "inherits": ["test-common"]
     }
   ],
   "packagePresets": [
@@ -160,6 +186,16 @@
     {
       "name": "pack-gcc-release",
       "configurePreset": "pack-gcc-release",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-gcc-debug-static",
+      "configurePreset": "pack-gcc-debug-static",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-gcc-release-static",
+      "configurePreset": "pack-gcc-release-static",
       "inherits": [ "pack-linux-common" ]
     }
   ],
@@ -208,6 +244,40 @@
         {
           "type": "package",
           "name": "pack-gcc-release"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-debug-static",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-debug-static"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-gcc-debug-static"
+        },
+        {
+          "type": "package",
+          "name": "pack-gcc-debug-static"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-release-static",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-release-static"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-gcc-release-static"
+        },
+        {
+          "type": "package",
+          "name": "pack-gcc-release-static"
         }
       ]
     }
