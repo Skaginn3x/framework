@@ -43,12 +43,12 @@ jobs:
           ln -s /usr/bin/cmake /usr/local/bin/cmake
         shell: alpine.sh --root {0}
 
-#      - name: commissioning
-#        run: |
-#          sudo ./scripts/commissioning.sh
-#          sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
-#          sudo chown $USER:$USER -R /run/tfc
-#        shell: alpine.sh --root {0}
+      - name: commissioning
+        run: |
+          ./scripts/commissioning.sh
+          chown $SUDO_USER:$SUDO_USER -R /var/tfc  # todo fix this differently
+          chown $SUDO_USER:$SUDO_USER -R /run/tfc
+        shell: alpine.sh --root {0}
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
@@ -60,16 +60,6 @@ jobs:
           # for vcpkg.
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
-#      - name: Run raw cmake
-#        run: |
-#          python --version
-#          echo version
-#          ls /usr/lib/
-#          echo breathe
-#          python -m breathe
-#          echo foo
-#          cmake --workflow --preset packflow-gcc-debug
-#        shell: alpine.sh {0}
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
         uses: lukka/run-cmake@v10.3
