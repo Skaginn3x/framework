@@ -28,7 +28,7 @@ jobs:
           ln -s /usr/bin/cmake /usr/local/bin/cmake
         shell: alpine.sh --root {0}
       - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@v10
+        uses: lukka/run-vcpkg@v11
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
 #          vcpkgDirectory: '${{ steps.alpine.outputs.root-path }}/opt/vcpkg'
