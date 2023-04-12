@@ -20,8 +20,20 @@ jobs:
           extra-repositories: |
             https://dl-cdn.alpinelinux.org/alpine/edge/main/
           packages: >
-            g++ curl zip unzip tar build-base musl ninja python3 cmake make linux-headers openssl-dev git rpm-dev
+            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+      - name: Build ninja
+        run: |
+          VERSION=1.11.1
+          curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
+          cd ninja-$VERSION
+          cmake -B build-cmake -H .
+          cmake --build build-cmake
+          cmake --install build-cmake
+          cd ..
+          rm -rf ninja-$VERSION
+        shell: alpine.sh --root {0}
+
       - name: Hacking alpine virtual env
         run: | 
           ln -s /bin/sh /usr/bin/sh
@@ -51,3 +63,6 @@ jobs:
 #          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 #          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           workflowPreset: packflow-gcc-debug
+VERSION=1:
+  11:
+    0:
