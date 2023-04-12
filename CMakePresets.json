@@ -61,11 +61,17 @@
     },
     {
       "name": "pack-gcc-debug",
-      "inherits": ["ci-gcc-debug", "cfg-enable-docs"]
+      "inherits": ["ci-gcc-debug", "cfg-enable-docs"],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
     },
     {
       "name": "pack-gcc-release",
-      "inherits": ["ci-gcc-release", "cfg-enable-docs"]
+      "inherits": ["ci-gcc-release", "cfg-enable-docs"],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
     }
   ],
   "buildPresets": [
