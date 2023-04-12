@@ -21,7 +21,11 @@ jobs:
             https://dl-cdn.alpinelinux.org/alpine/edge/main/
           packages: >
             g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev
-            doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+            doxygen py3-pip graphviz
+      - name: Pip install dependencies
+        run: |
+          pip install sphinx breathe myst-parser sphinx_rtd_theme
+        shell: alpine.sh --root {0}
       - name: Build ninja
         run: |
           VERSION=1.11.1
@@ -39,6 +43,13 @@ jobs:
           ln -s /bin/sh /usr/bin/sh
           ln -s /usr/bin/cmake /usr/local/bin/cmake
         shell: alpine.sh --root {0}
+
+#      - name: commissioning
+#        run: |
+#          sudo ./scripts/commissioning.sh
+#          sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
+#          sudo chown $USER:$USER -R /run/tfc
+#        shell: alpine.sh --root {0}
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
