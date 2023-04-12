@@ -91,7 +91,7 @@ public:
     }
   }
 
-  void handle_read(boost::system::error_code const& error_code, size_t bytes_received) {
+  void handle_read(boost::system::error_code const& error_code, size_t const bytes_received) {
     if (error_code && error_code != boost::asio::error::eof) {
       logger_.trace("handle_read error - {}", error_code.message());
       return;
@@ -103,10 +103,10 @@ public:
     buffer_.consume(bytes_received);
 
     // retrigger the read
-    ws_.async_read_some(buffer_, 150, [weak_self = weak_from_this()](std::error_code const& err, size_t bytes_received) {
+    ws_.async_read_some(buffer_, 150, [weak_self = weak_from_this()](std::error_code const& err, size_t const count) {
       auto self = weak_self.lock();
       if (self) {
-        self->handle_read(err, bytes_received);
+        self->handle_read(err, count);
       }
     });
   }
