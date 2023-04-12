@@ -49,6 +49,7 @@ jobs:
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
 #          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          configurePreset: 'docs-gcc-debug'
+#          configurePreset: 'docs-gcc-debug'
 #          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 #          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+          workflowPreset: packflow-gcc-debug

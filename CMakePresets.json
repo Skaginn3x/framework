@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 6,
   "include": [
     "./cmake/presets/cfg-vcpkg.json",
     "./cmake/presets/cfg-build.json"
@@ -60,20 +60,12 @@
       ]
     },
     {
-      "name": "docs-gcc-debug",
+      "name": "pack-gcc-debug",
       "inherits": ["ci-gcc-debug", "cfg-enable-docs"]
     },
     {
-      "name": "docs-gcc-release",
+      "name": "pack-gcc-release",
       "inherits": ["ci-gcc-release", "cfg-enable-docs"]
-    },
-    {
-      "name": "docs-clang-debug",
-      "inherits": ["ci-clang-debug", "cfg-enable-docs"]
-    },
-    {
-      "name": "docs-clang-release",
-      "inherits": ["ci-clang-release", "cfg-enable-docs"]
     }
   ],
   "buildPresets": [
@@ -94,24 +86,16 @@
       "configurePreset": "ci-gcc-release"
     },
     {
-      "name": "build-docs-clang-debug",
-      "configurePreset": "docs-clang-debug"
+      "name": "build-pack-gcc-debug",
+      "configurePreset": "pack-gcc-debug"
     },
     {
-      "name": "build-docs-clang-release",
-      "configurePreset": "docs-clang-release"
-    },
-    {
-      "name": "build-docs-gcc-debug",
-      "configurePreset": "docs-gcc-debug"
-    },
-    {
-      "name": "build-docs-gcc-release",
-      "configurePreset": "docs-gcc-release"
+      "name": "build-pack-gcc-release",
+      "configurePreset": "pack-gcc-release"
     },
     {
       "name": "build-docs",
-      "configurePreset": "docs-gcc-debug",
+      "configurePreset": "pack-gcc-debug",
       "targets": [
         "Doxygen",
         "Sphinx"
@@ -131,19 +115,103 @@
       "inherits": ["test-common"]
     },
     {
-      "name": "test-ci-gcc-debug",
-      "configurePreset": "ci-gcc-debug",
+      "name": "test-ci-clang-release",
+      "configurePreset": "ci-clang-release",
       "inherits": ["test-common"]
     },
     {
-      "name": "test-ci-clang-release",
-      "configurePreset": "ci-clang-release",
+      "name": "test-ci-gcc-debug",
+      "configurePreset": "ci-gcc-debug",
       "inherits": ["test-common"]
     },
     {
       "name": "test-ci-gcc-release",
       "configurePreset": "ci-gcc-release",
       "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-debug",
+      "configurePreset": "pack-gcc-debug",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-release",
+      "configurePreset": "pack-gcc-release",
+      "inherits": ["test-common"]
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "pack-linux-common",
+      "hidden": true,
+      "generators": [ "TGZ", "DEB", "RPM" ]
+    },
+    {
+      "name": "pack-gcc-debug",
+      "configurePreset": "pack-gcc-debug",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-gcc-release",
+      "configurePreset": "pack-gcc-release",
+      "inherits": [ "pack-linux-common" ]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "workflow-docs",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-debug"
+        },
+        {
+          "type": "build",
+          "name": "build-docs"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-debug"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-gcc-debug"
+        },
+        {
+          "type": "test",
+          "name": "test-pack-gcc-debug"
+        },
+        {
+          "type": "package",
+          "name": "pack-gcc-debug"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-release"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-gcc-release"
+        },
+        {
+          "type": "test",
+          "name": "test-pack-gcc-release"
+        },
+        {
+          "type": "package",
+          "name": "pack-gcc-release"
+        }
+      ]
     }
   ]
 }
