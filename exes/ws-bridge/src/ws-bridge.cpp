@@ -1,46 +1,44 @@
-#include <boost/program_options.hpp>
-
-#include <tfc/ipc.hpp>
-#include <tfc/logger.hpp>
-#include <tfc/progbase.hpp>
+#include <cstdlib>
+#include <string>
+#include <vector>
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
+#include <boost/program_options.hpp>
 #include <boost/url/src.hpp>
-#include <cstdlib>
-#include <string>
-#include <vector>
+
+#include <tfc/ipc.hpp>
+#include <tfc/logger.hpp>
+#include <tfc/progbase.hpp>
 
 namespace beast = boost::beast;          // from <boost/beast.hpp>
 namespace http = beast::http;            // from <boost/beast/http.hpp>
 namespace websocket = beast::websocket;  // from <boost/beast/websocket.hpp>
-namespace net = boost::asio;             // from <boost/asio.hpp>
+namespace asio = boost::asio;            // from <boost/asio.hpp>
 namespace bpo = boost::program_options;
 using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
-class session : public std::enable_shared_from_this<session> {
-  websocket::stream<beast::tcp_stream> ws_;
-  beast::flat_buffer buffer_;
-  net::io_context& ctx_;
-  tfc::ipc::any_recv_cb recv_;
-  char ping_state_ = 0;
-  boost::asio::steady_timer timer_;
-  tfc::logger::logger logger_;
+enum struct ping_state : uint8_t {
+  not_sent_e = 0,
+  sent_e = 1,
+  waiting_e = 2,
+};
 
+class session : public std::enable_shared_from_this<session> {
 public:
   ~session() { std::cerr << "Session dtor"; }
 
   // Take ownership of the socket
-  explicit session(tcp::socket&& socket, net::io_context& ctx)
+  explicit session(tcp::socket&& socket, asio::io_context& ctx)
       : ws_(std::move(socket)), ctx_(ctx), timer_(ctx_, std::chrono::steady_clock::time_point::max()),
         logger_(fmt::format("session-{}:{}",
                             ws_.next_layer().socket().remote_endpoint().address().to_string(),
                             ws_.next_layer().socket().remote_endpoint().port())) {}
 
   // Get on the correct executor
-  void run() { net::dispatch(ws_.get_executor(), beast::bind_front_handler(&session::on_run, shared_from_this())); }
+  void run() { asio::dispatch(ws_.get_executor(), std::bind_front(&session::on_run, shared_from_this())); }
 
   // Start the asynchronous operation
   void on_run() {
@@ -57,16 +55,14 @@ public:
     http::request<http::string_body> req;
     boost::beast::flat_buffer buffer;
     http::read(ws_.next_layer(), buffer, req);
-    std::cout << req << std::endl;
     if (websocket::is_upgrade(req)) {
       try {
         std::string protocol = req[http::field::sec_websocket_protocol];
 
         logger_.trace("URI '{}'", req.base().target());
-        boost::urls::url_view uv(req.base().target());
-        auto url_params = uv.params();
-        auto connect = url_params.find("connect");
-        if (protocol.empty() || protocol != "tfc-ipc" || connect == url_params.end() || !(*connect).has_value ||
+        auto const url_params = boost::urls::url_view(req.base().target()).params();
+        auto const connect = url_params.find("connect");
+        if (protocol.empty() || protocol != "tfc-ipc" || connect == url_params.end() || (*connect).has_value ||
             (*connect).value.empty()) {
           logger_.warn("Refusing connection");
           http::response<http::string_body> res;
@@ -75,17 +71,16 @@ public:
           http::write(ws_.next_layer(), res);
         } else {
           logger_.trace("Accepting connection for tfc-ipc protocol");
-          // Set the websocket protocol in the response
+          // Set the websocket protocol in the response, chrome requires this.
           ws_.set_option(websocket::stream_base::decorator([](http::response<http::string_body>& res) {
             res.set(http::field::sec_websocket_protocol, "tfc-ipc");
             res.set(http::field::server, "ws-bridge");
           }));
           std::string connect_value = (*connect).value;
-          ws_.async_accept(
-              req, beast::bind_front_handler(&session::on_accept_ipc_slot, shared_from_this(), std::string(connect_value)));
+          ws_.async_accept(req, std::bind_front(&session::on_accept_ipc_slot, shared_from_this(), connect_value));
         }
 
-      } catch (std::exception& err) {
+      } catch (std::exception const& err) {
         logger_.error("error - {}", err.what());
       }
     }
@@ -111,7 +106,7 @@ public:
     });
   }
 
-  void on_accept_ipc_slot(std::string const slot_name, beast::error_code error_code) {
+  void on_accept_ipc_slot(std::string const slot_name, beast::error_code const& error_code) {
     if (error_code) {
       logger_.error("accept - {}", error_code.message());
       return;
@@ -152,7 +147,7 @@ public:
                     // Boost beast only supports a single async_write operation
                     // in flight at any given moment. Send this sync for now.
                     try {
-                      size_t bytes_transfered = self->ws_.write(net::buffer(to_send));
+                      size_t bytes_transfered = self->ws_.write(asio::buffer(to_send));
                       if (bytes_transfered < to_send.size()) {
                         self->logger_.error("Wrote less than to send");
                       }
@@ -160,7 +155,7 @@ public:
                       self->logger_.error("Write - {}", err.what());
                       // Drop the connection by setting the timeout to current time and then canceling the timer.
                       // And setting ping state to 2
-                      self->ping_state_ = 2;
+                      self->ping_state_ = ping_state::waiting_e;
                       self->timer_.expires_after(std::chrono::seconds(0));
                       self->timer_.cancel();
                     }
@@ -187,20 +182,20 @@ public:
     }
 
     // Note that the ping was sent.
-    if (ping_state_ == 1) {
-      ping_state_ = 2;
+    if (ping_state_ == ping_state::sent_e) {
+      ping_state_ = ping_state::waiting_e;
     } else {
       // ping_state_ could have been set to 0
       // if an incoming control frame was received
       // at exactly the same time we sent a ping.
-      BOOST_ASSERT(ping_state_ == 0);
+      BOOST_ASSERT(ping_state_ == ping_state::not_sent_e);
     }
   }
 
   void on_control_callback(websocket::frame_type kind, boost::beast::string_view payload) {
     logger_.trace("received control event {}", payload);
     // Note there is activity
-    ping_state_ = 0;
+    ping_state_ = ping_state::not_sent_e;
     if (kind == websocket::frame_type::pong) {
       on_timer({});
     }
@@ -217,9 +212,9 @@ public:
     if (timer_.expiry() <= std::chrono::steady_clock::now()) {
       // If this is the first time the timer expired,
       // send a ping to see if the other end is there.
-      if (ws_.is_open() && ping_state_ == 0) {
+      if (ws_.is_open() && ping_state_ == ping_state::not_sent_e) {
         // Note that we are sending a ping
-        ping_state_ = 1;
+        ping_state_ = ping_state::sent_e;
 
         // Set the timer
         timer_.expires_after(std::chrono::seconds(15));
@@ -250,18 +245,27 @@ public:
     timer_.async_wait(boost::asio::bind_executor(
         ctx_, [capture0 = shared_from_this()](auto&& PH1) { capture0->on_timer(std::forward<decltype(PH1)>(PH1)); }));
   }
+
+private:
+  websocket::stream<beast::tcp_stream> ws_;
+  beast::flat_buffer buffer_;
+  asio::io_context& ctx_;
+  tfc::ipc::any_recv_cb recv_;
+  ping_state ping_state_ = ping_state::not_sent_e;
+  boost::asio::steady_timer timer_;
+  tfc::logger::logger logger_;
 };
 
 //------------------------------------------------------------------------------
 
 // Accepts incoming connections and launches the sessions
 class listener : public std::enable_shared_from_this<listener> {
-  net::io_context& ioc_;
+  asio::io_context& ioc_;
   tcp::acceptor acceptor_;
   tfc::logger::logger logger_;
 
 public:
-  listener(net::io_context& ioc, const tcp::endpoint& endpoint) : ioc_(ioc), acceptor_(ioc), logger_("listener") {
+  listener(asio::io_context& ioc, const tcp::endpoint& endpoint) : ioc_(ioc), acceptor_(ioc), logger_("listener") {
     beast::error_code error_code;
 
     // Open the acceptor
@@ -272,7 +276,7 @@ public:
     }
 
     // Allow address reuse
-    acceptor_.set_option(net::socket_base::reuse_address(true), error_code);
+    acceptor_.set_option(asio::socket_base::reuse_address(true), error_code);
     if (error_code) {
       logger_.error("set_option - {}", error_code.message());
       return;
@@ -286,7 +290,7 @@ public:
     }
 
     // Start listening for connections
-    acceptor_.listen(net::socket_base::max_listen_connections, error_code);
+    acceptor_.listen(asio::socket_base::max_listen_connections, error_code);
     if (error_code) {
       logger_.error("listen - {}", error_code.message());
       return;
@@ -299,7 +303,7 @@ public:
 private:
   void do_accept() {
     // The new connection gets its own strand
-    acceptor_.async_accept(net::make_strand(ioc_), beast::bind_front_handler(&listener::on_accept, shared_from_this()));
+    acceptor_.async_accept(asio::make_strand(ioc_), std::bind_front(&listener::on_accept, shared_from_this()));
   }
 
   void on_accept(beast::error_code error_code, tcp::socket socket) {
@@ -325,10 +329,10 @@ auto main(int argc, char* argv[]) -> int {
                                                                                bpo::value<uint16_t>(&port)->required());
   tfc::base::init(argc, argv, desc);
 
-  auto const address = net::ip::make_address(addr_str);
+  auto const address = asio::ip::make_address(addr_str);
 
   // The io_context is required for all I/O
-  net::io_context ioc{};
+  asio::io_context ioc{};
 
   // Create and launch a listening port
   std::make_shared<listener>(ioc, tcp::endpoint{ address, port })->run();
