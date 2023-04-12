@@ -17,11 +17,14 @@ jobs:
         name: Alpine maker
         with:
           branch: v3.17
-          extra-repositories: |
-            https://dl-cdn.alpinelinux.org/alpine/edge/main/
           packages: >
             g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+      - name: Get new cmake
+        run: |
+          apk add cmake --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
+        shell: alpine.sh --root {0}
+
       - name: Build ninja
         run: |
           VERSION=1.11.1
