@@ -178,8 +178,7 @@ class slot : public transmission_base {
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
-  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
-  -> std::shared_ptr<slot<type_desc>> {
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
   }
   slot(asio::io_context& ctx, std::string_view name) : transmission_base(name), socket_(ctx) {}
@@ -324,12 +323,12 @@ using double_recv = slot<type_double>;
 using string_recv = slot<type_string>;
 using json_recv = slot<type_json>;
 
-using bool_recv_ptr    = std::shared_ptr<slot<type_bool>>;
-using int_recv_ptr     = std::shared_ptr<slot<type_int>>;
-using uint_recv_ptr    = std::shared_ptr<slot<type_uint>>;
-using double_recv_ptr  = std::shared_ptr<slot<type_double>>;
-using string_recv_ptr  = std::shared_ptr<slot<type_string>>;
-using json_recv_ptr     = std::shared_ptr<slot<type_json>>;
+using bool_recv_ptr = std::shared_ptr<slot<type_bool>>;
+using int_recv_ptr = std::shared_ptr<slot<type_int>>;
+using uint_recv_ptr = std::shared_ptr<slot<type_uint>>;
+using double_recv_ptr = std::shared_ptr<slot<type_double>>;
+using string_recv_ptr = std::shared_ptr<slot<type_string>>;
+using json_recv_ptr = std::shared_ptr<slot<type_json>>;
 
 using bool_recv_cb = slot_callback<type_bool>;
 using int_recv_cb = slot_callback<type_int>;
@@ -353,30 +352,30 @@ using any_send = std::variant<std::monostate,
                               ipc::string_send_ptr,
                               ipc::json_send_ptr>;
 using any_recv_cb = std::variant<std::monostate,
-                              ipc::bool_recv_cb_ptr,
-                              ipc::int_recv_cb_ptr,
-                              ipc::uint_recv_cb_ptr,
-                              ipc::double_recv_cb_ptr,
-                              ipc::string_recv_cb_ptr,
-                              ipc::json_recv_cb_ptr>;
+                                 ipc::bool_recv_cb_ptr,
+                                 ipc::int_recv_cb_ptr,
+                                 ipc::uint_recv_cb_ptr,
+                                 ipc::double_recv_cb_ptr,
+                                 ipc::string_recv_cb_ptr,
+                                 ipc::json_recv_cb_ptr>;
 
 using any_recv = std::variant<std::monostate,
-                                 ipc::bool_recv_ptr,
-                                 ipc::int_recv_ptr,
-                                 ipc::uint_recv_ptr,
-                                 ipc::double_recv_ptr,
-                                 ipc::string_recv_ptr,
-                                 ipc::json_recv_ptr>;
+                              ipc::bool_recv_ptr,
+                              ipc::int_recv_ptr,
+                              ipc::uint_recv_ptr,
+                              ipc::double_recv_ptr,
+                              ipc::string_recv_ptr,
+                              ipc::json_recv_ptr>;
 
 inline constexpr std::string_view invalid_type{
-    "\nInvalid name {}, it must include one qualified type name.\n"  // should inject slot or signal as {}
-    "Any of the following: \n"
-    "bool\n"
-    "int\n"
-    "uint\n"
-    "double\n"
-    "string\n"
-    "json\n"
+  "\nInvalid name {}, it must include one qualified type name.\n"  // should inject slot or signal as {}
+  "Any of the following: \n"
+  "bool\n"
+  "int\n"
+  "uint\n"
+  "double\n"
+  "string\n"
+  "json\n"
 };
 
 template <typename return_t>

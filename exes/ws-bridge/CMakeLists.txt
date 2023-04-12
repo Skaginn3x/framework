@@ -7,7 +7,7 @@ project(tfc-ws-bridge
 )
 
 add_executable(ws-bridge
-    src/main.cpp
+  src/ws-bridge.cpp
 )
 
 find_package(Boost REQUIRED COMPONENTS program_options)
