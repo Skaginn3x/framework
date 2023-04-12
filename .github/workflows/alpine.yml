@@ -39,6 +39,7 @@ jobs:
           ln -s /bin/sh /usr/bin/sh
           ln -s /usr/bin/cmake /usr/local/bin/cmake
         shell: alpine.sh --root {0}
+
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
@@ -49,11 +50,6 @@ jobs:
           # for vcpkg.
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
-      - name: Override vcpkg glibc ninja with muslc ninja
-        run: |
-          mkdir -p ${{ github.workspace }}/vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
-          ln -s /usr/bin/ninja ${{ github.workspace }}/vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
-        shell: alpine.sh {0}
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
         uses: lukka/run-cmake@v10.3
         with:
