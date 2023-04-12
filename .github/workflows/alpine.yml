@@ -21,11 +21,7 @@ jobs:
             https://dl-cdn.alpinelinux.org/alpine/edge/main/
           packages: >
             g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev
-            doxygen py3-pip graphviz
-      - name: Pip install dependencies
-        run: |
-          pip install sphinx breathe myst-parser sphinx_rtd_theme
-        shell: alpine.sh --root {0}
+            doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: Build ninja
         run: |
           VERSION=1.11.1
@@ -63,6 +59,10 @@ jobs:
           vcpkgJsonGlob: 'vcpkg.json'
       - name: Run raw cmake
         run: |
+          python --version
+          echo version
+          ls /usr/lib/
+          echo breathe
           python -m breathe
           echo foo
           cmake --workflow --preset packflow-gcc-debug
