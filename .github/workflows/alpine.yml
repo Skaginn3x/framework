@@ -22,7 +22,7 @@ jobs:
           packages: >
             g++ curl zip unzip tar build-base musl ninja python3 cmake make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
-      - name: sh symbolic link
+      - name: Hacking alpine virtual env
         run: | 
           ln -s /bin/sh /usr/bin/sh
           ln -s /usr/bin/cmake /usr/local/bin/cmake
@@ -37,12 +37,10 @@ jobs:
           # for vcpkg.
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
-      - name: where am I
+      - name: Override vcpkg glibc ninja with muslc ninja
         run: |
-          pwd
-          ls -alh
-          ls ${{ github.workspace }}
-          echo "${{ github.workspace }}"
+          rm vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
+          ln -s /usr/bin/ninja vcpkg/downloads/tools/ninja/1.10.2-linux/ninja
         shell: alpine.sh {0}
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
         uses: lukka/run-cmake@v10.3
