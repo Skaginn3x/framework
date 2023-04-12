@@ -1,4 +1,4 @@
-webSocket = new WebSocket("ws://127.0.0.1:4096?connect=ec_example_run_context.test.easyecat.1.uint.in.0", ["tfc-ipc"]);
+webSocket = new WebSocket("ws://127.0.0.1:4096/?connect=ec_example_run_context.test.easyecat.1.uint.in.0", ["tfc-ipc"]);
 //webSocket = new WebSocket("ws://127.0.0.1:4096?connect=ec_example_run_context.test.atv320.string.command", ["tfc-ipc"]);
 
 webSocket.onmessage = (event) => {

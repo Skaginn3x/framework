@@ -51,16 +51,16 @@ public:
 
     // Start the asynchronous operation
     void on_run() {
-        ws_.set_option(websocket::stream_base::timeout{std::chrono::seconds(10), std::chrono::seconds(30), true});
-        // ws_.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
-
-        // Set a decorator to change the Server of the handshake
-        ws_.set_option(websocket::stream_base::decorator([](websocket::response_type &res) {
-            res.set(http::field::server, "ws-bridge");
-        }));
+        // Disable internal ping sending and idle monitoring. first parameter here is for handshake timeout.
+        // The underlying ipc socket azmq hangs if there is an outstanding read.
+        // We therefor keep a shared_ptr reference inside the ping-pong sequence. That socket
+        // Calls with an error on socket close. Then the read operation on azmq has a weak_ptr reference
+        // Causing that socket to deconstruct if the ping-pong operation cancels. That is why the internal
+        // mechanism is not utilized.
+        ws_.set_option(websocket::stream_base::timeout{std::chrono::seconds(10), websocket::stream_base::none(), false});
 
         // Recieve the upgrade request as a normal http request to parse out
-        // the uri parameters rather then use beasts internal accept mechanism
+        // the uri parameters rather than use beasts internal accept mechanism
         http::request<http::string_body> req;
         boost::beast::flat_buffer buffer;
         http::read(ws_.next_layer(), buffer, req);
@@ -81,7 +81,14 @@ public:
                     res.body() = "Either a valid protocol is missing or a parameter for that protocol is missing";
                     http::write(ws_.next_layer(), res);
                 } else {
-                    logger_.trace("Accepting connection");
+                    logger_.trace("Accepting connection for tfc-ipc protocol");
+                    // Set the websocket protocol in the response
+                    ws_.set_option(websocket::stream_base::decorator(
+                            [](http::response<http::string_body>& res){
+                                res.set(http::field::sec_websocket_protocol, "tfc-ipc");
+                                res.set(http::field::server, "ws-bridge");
+                            }
+                            ));
                     std::string connect_value = (*connect).value;
                     ws_.async_accept(
                             req, beast::bind_front_handler(&session::on_accept_ipc_slot, shared_from_this(),
@@ -94,21 +101,21 @@ public:
         }
     }
 
-    void handle_read(boost::system::error_code const &error_code, size_t bytes_recived) {
+    void handle_read(boost::system::error_code const &error_code, size_t bytes_received) {
         if (error_code && error_code != boost::asio::error::eof){
             logger_.trace("handle_read error - {}", error_code.message());
             return;
         }
-        logger_.info("Client sent {} to a write only websocket!", beast::buffers_to_string(buffer_.data()));
+        logger_.info("Client sent {} of size {} to a write only websocket!", beast::buffers_to_string(buffer_.data()), bytes_received);
 
         // Clear the buffer again
-        buffer_.consume(bytes_recived);
+        buffer_.consume(bytes_received);
 
         // retrigger the read
-        ws_.async_read_some(buffer_, 150, [weak_self = weak_from_this()](std::error_code const& err, size_t bytes_recived){
+        ws_.async_read_some(buffer_, 150, [weak_self = weak_from_this()](std::error_code const& err, size_t bytes_received){
             auto self = weak_self.lock();
             if (self){
-                self->handle_read(err, bytes_recived);
+                self->handle_read(err, bytes_received);
             }
         });
     }
@@ -127,10 +134,10 @@ public:
         });
 
         // Always have a read in the background to recieve control events
-        ws_.async_read_some(buffer_, 150, [weak_self = weak_from_this()](std::error_code const& err, size_t bytes_recived){
+        ws_.async_read_some(buffer_, 150, [weak_self = weak_from_this()](std::error_code const& err, size_t bytes_received){
             auto self = weak_self.lock();
             if (self){
-                self->handle_read(err, bytes_recived);
+                self->handle_read(err, bytes_received);
             }
         });
 
@@ -202,12 +209,9 @@ public:
     }
 
     void on_control_callback(websocket::frame_type kind, boost::beast::string_view payload) {
-        boost::ignore_unused(kind, payload);
-
+        logger_.trace("received control event {}", payload);
         // Note there is activity
         ping_state_ = 0;
-
-        logger_.trace("recived control event");
         if (kind == websocket::frame_type::pong) {
             on_timer({});
         }
