@@ -6,10 +6,10 @@ add_subdirectory(ipc)
 add_subdirectory(rpc)
 add_subdirectory(ec)
 
-add_library(tfc INTERFACE)
+add_library(tfc STATIC)
 add_library(tfc::tfc ALIAS tfc)
 target_link_libraries(tfc
-  INTERFACE
+  PUBLIC
     tfc::logger,
     tfc::confman,
     tfc::base,
