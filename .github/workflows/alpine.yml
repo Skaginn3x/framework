@@ -18,7 +18,7 @@ jobs:
         with:
           branch: v3.17
           extra-repositories: |
-            https://dl-cdn.alpinelinux.org/alpine/edge/testing
+            http://dl-cdn.alpinelinux.org/alpine/edge/testing
           packages: >
             g++ curl zip unzip tar build-base musl ninja python3 cmake make linux-headers openssl-dev git rpm-dev
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
