@@ -24,7 +24,7 @@ add_subdirectory(exes)
 add_subdirectory(libs)
 
 if (BUILD_DOCS)
-#  add_subdirectory(docs)
+  add_subdirectory(docs)
 endif()
 
 # Clang format all files
