@@ -71,7 +71,7 @@
       }
     },
     {
-      "name": "cfg-static",
+      "name": "cfg-enable-static",
       "hidden": true,
       "cacheVariables": {
         "ENABLE_STATIC_LINKING": "ON"
