@@ -21,3 +21,5 @@ else()
   set(ENV{CC} gcc)
   set(ENV{CXX} g++)
 endif ()
+
+set(CMAKE_CXX_FLAGS -D_GNU_SOURCE=1)
