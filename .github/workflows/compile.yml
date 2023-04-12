@@ -19,7 +19,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build
           curl https://apt.llvm.org/llvm.sh -o llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 16 all
@@ -47,15 +47,6 @@ jobs:
           configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-
-      - name: packit
-        run: |
-          cmake --workflow --preset packflow-${{ matrix.compiler }}-${{matrix.build_type}}
-      - name: Upload package
-        uses: actions/upload-artifact@v3
-        with:
-          name: deb-${{ matrix.compiler }}-${{matrix.build_type}}
-          path: build/docs-${{ matrix.compiler }}-${{matrix.build_type}}/*.deb
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master
