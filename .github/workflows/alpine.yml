@@ -10,6 +10,10 @@ jobs:
   build_static_artifacts:
     runs-on: ubuntu-22.04
     name: Build static artifacts
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [ debug, release ]
     steps:
       - uses: actions/checkout@v3
       - uses: jirutka/setup-alpine@v1
@@ -54,23 +58,24 @@ jobs:
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
 
-#      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
-#        uses: lukka/run-cmake@v10.3
-#        with:
-#          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
-##          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-#          configurePreset: 'pack-gcc-debug'
-#          buildPreset: 'build-pack-gcc-debug'
-##          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-##          workflowPreset: packflow-gcc-debug
-
+      # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
         run: |
-          cmake --workflow --preset packflow-gcc-debug
+          cmake --workflow --preset packflow-gcc-${{matrix.build_type}}
         shell: alpine.sh --root {0}
 
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
-          name: tfc-framework-dbg.deb
-          path: build/pack-gcc-debug/*.deb
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-gcc-${{matrix.build_type}}/*.deb
+      - name: Upload rpm package
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-gcc-${{matrix.build_type}}/*.rpm
+      - name: Upload tar package
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-gcc-${{matrix.build_type}}/*.tar.gz
