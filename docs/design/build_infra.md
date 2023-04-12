@@ -78,9 +78,9 @@ Note: the debug packages do only include executables and library files.
 Packages are built on latest Alpine Linux with static linking to `muslc` and `libstdc++`.
 Both debug and release packages are deployed where debug packages have postfix with `-dbg`.
 
-All static packages have postfix `-static`.
-
 Note: the debug packages do only include executables and library files.
+
+Todo debugging static binaries howto.
 
 ### Hosted repository
 
