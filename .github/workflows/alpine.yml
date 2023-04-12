@@ -72,5 +72,5 @@ jobs:
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
-          name: deb-${{ matrix.compiler }}-${{matrix.build_type}}
+          name: tfc-framework-dbg.deb
           path: build/pack-gcc-debug/*.deb
