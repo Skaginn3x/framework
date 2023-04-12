@@ -20,7 +20,6 @@ namespace net = boost::asio;             // from <boost/asio.hpp>
 namespace bpo = boost::program_options;
 using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
-// Echoes back all received WebSocket messages
 class session : public std::enable_shared_from_this<session> {
   websocket::stream<beast::tcp_stream> ws_;
   beast::flat_buffer buffer_;
@@ -41,13 +40,7 @@ public:
                             ws_.next_layer().socket().remote_endpoint().port())) {}
 
   // Get on the correct executor
-  void run() {
-    // We need to be executing within a strand to perform async operations
-    // on the I/O objects in this session. Although not strictly necessary
-    // for single-threaded contexts, this example code is written to be
-    // thread-safe by default.
-    net::dispatch(ws_.get_executor(), beast::bind_front_handler(&session::on_run, shared_from_this()));
-  }
+  void run() { net::dispatch(ws_.get_executor(), beast::bind_front_handler(&session::on_run, shared_from_this())); }
 
   // Start the asynchronous operation
   void on_run() {
@@ -139,7 +132,6 @@ public:
       }
     });
 
-    // Trigger a read for control frames
     on_timer({});
     timer_.expires_after(std::chrono::seconds(15));
 
@@ -166,7 +158,7 @@ public:
                       }
                     } catch (std::exception const& err) {
                       self->logger_.error("Write - {}", err.what());
-                      // Drop the connection by setting the timeout in the past and then canceling the timer.
+                      // Drop the connection by setting the timeout to current time and then canceling the timer.
                       // And setting ping state to 2
                       self->ping_state_ = 2;
                       self->timer_.expires_after(std::chrono::seconds(0));
