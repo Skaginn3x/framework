@@ -54,12 +54,17 @@ jobs:
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
 
-      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
-        uses: lukka/run-cmake@v10.3
-        with:
-          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
-#          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-#          configurePreset: 'docs-gcc-debug'
-#          buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-#          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-          workflowPreset: packflow-gcc-debug
+#      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
+#        uses: lukka/run-cmake@v10.3
+#        with:
+#          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
+##          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+#          configurePreset: 'pack-gcc-debug'
+#          buildPreset: 'build-pack-gcc-debug'
+##          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+##          workflowPreset: packflow-gcc-debug
+
+      - name: Pack it
+        run: |
+          cmake --workflow --preset packflow-gcc-debug
+        shell: alpine.sh --root {0}
