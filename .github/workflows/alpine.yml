@@ -68,3 +68,9 @@ jobs:
         run: |
           cmake --workflow --preset packflow-gcc-debug
         shell: alpine.sh --root {0}
+
+      - name: Upload debian package
+        uses: actions/upload-artifact@v3
+        with:
+          name: deb-${{ matrix.compiler }}-${{matrix.build_type}}
+          path: build/pack-gcc-debug/*.deb
