@@ -37,7 +37,7 @@ auto main(int argc, char** argv) -> int {
 
     my_signal->async_send("helloworld", [](auto const&, auto) {});
 
-    ctx.run_for(std::chrono::milliseconds(1000));
+    ctx.run_for(std::chrono::milliseconds(100));
 
     expect(called);
   };

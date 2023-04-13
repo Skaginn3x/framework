@@ -233,6 +233,14 @@ public:
         0);
   }
 
+  /**
+   * @brief disconnect from signal
+   */
+  auto disconnect(std::string_view signal_name) {
+    [[maybe_unused]] boost::system::error_code code;
+    return socket_.disconnect(signal_name.data(), code);
+  }
+
 private:
   azmq::sub_socket socket_;
 };
@@ -258,6 +266,13 @@ public:
     return {};
   }
   [[nodiscard]] auto get() const noexcept -> value_t const& { return last_value_; }
+
+  /**
+   * @brief disconnect from signal
+   */
+  auto disconnect(std::string_view signal_name) {
+    return slot_.disconnect(signal_name.data());
+  }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}

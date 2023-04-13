@@ -18,9 +18,9 @@ public:
           if (!config->signal_name.value().empty()) {
             slot_->init(config->signal_name.value(), callback);
           }
-          config->signal_name.observe([this, callback](auto const& new_signal_name, auto const& /* old_signal_name */) {
+          config->signal_name.observe([this, callback](auto const& new_signal_name, auto const& old_signal_name) {
             if (new_signal_name.empty()) {
-              // todo disconnect
+              slot_->disconnect(old_signal_name);
             } else {
               slot_->init(new_signal_name, callback);
             }
