@@ -44,7 +44,9 @@
       "inherits": [
         "cfg-vcpkg-clang",
         "cfg-build-dir",
-        "cfg-debug"
+        "cfg-debug",
+        "cfg-cppcheck",
+        "cfg-clang-tidy"
       ]
     },
     {
@@ -71,7 +73,9 @@
       "inherits": [
         "cfg-vcpkg",
         "cfg-build-dir",
-        "cfg-debug"
+        "cfg-debug",
+        "cfg-cppcheck",
+        "cfg-clang-tidy"
       ]
     },
     {

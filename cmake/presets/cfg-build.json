@@ -53,7 +53,7 @@
       "name": "cfg-clang-tidy",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--config-file=${fileDir}/.clang-tidy"
+        "CMAKE_CXX_CLANG_TIDY": "/opt/clang-16.0.0/bin/clang-tidy;--config-file=${fileDir}/.clang-tidy"
       }
     },
     {

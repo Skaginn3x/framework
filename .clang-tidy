@@ -17,6 +17,8 @@ Checks: >
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
 
+HeaderFilterRegex: "(libs/*.(h|hpp|c|cpp)$|exes/*.(h|hpp|c|cpp)$)$"
+
 CheckOptions:
 # naming convention
   - { key: readability-identifier-naming.TemplateParameterIgnoredRegexp, value: 'expr-type' }
