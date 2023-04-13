@@ -77,14 +77,14 @@
       "name": "pack-gcc-debug-static",
       "inherits": ["pack-gcc-debug", "cfg-enable-static"],
       "cacheVariables": {
-        "VCPKG_ENV_PASSTHROUGH": "FORCE_DIFFERENT_BINARY_CACHE=1"
+        "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-alpine"
       }
     },
     {
       "name": "pack-gcc-release-static",
       "inherits": ["pack-gcc-release", "cfg-enable-static"],
       "cacheVariables": {
-        "VCPKG_ENV_PASSTHROUGH": "FORCE_DIFFERENT_BINARY_CACHE=1"
+        "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-alpine"
       }
     }
   ],
