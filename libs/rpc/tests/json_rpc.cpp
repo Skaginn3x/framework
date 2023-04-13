@@ -9,7 +9,6 @@ namespace rpc = tfc::rpc;
 namespace ut = boost::ut;
 using boost::ut::operator""_test;
 using std::string_literals::operator""s;
-using std::string_view_literals::operator""sv;
 
 struct get_config_request {
   std::string executable_name{};
@@ -54,7 +53,7 @@ struct set_config_return {
 static constexpr auto rpc_endpoint{ tfc::utils::socket::zmq::ipc_endpoint_v<"rpc_test"> };
 static constexpr auto notify_endpoint{ tfc::utils::socket::zmq::ipc_endpoint_v<"notify_test"> };
 
-auto main(int, char**) -> int {
+auto main(int, char**) -> int { // NOLINT:bugprone-exception-escape
   static constexpr glz::rpc::detail::basic_fixed_string method_name{ "foo" };
   using server_t = rpc::server<glz::rpc::server<glz::rpc::server_method_t<method_name, std::string, int>>>;
   using client_t = rpc::client<glz::rpc::client<glz::rpc::client_method_t<method_name, std::string, int>>>;
@@ -68,7 +67,7 @@ auto main(int, char**) -> int {
       int constexpr expected_output{ 1337 };
       bool called{};
 
-      server.converter().on<method_name>([expected_input, &called](std::string const& input) -> int {
+      server.converter().on<method_name>([&expected_input, &called](std::string const& input) noexcept -> int {
         called = true;
         ut::expect(input == expected_input);
         return expected_output;
@@ -93,7 +92,7 @@ auto main(int, char**) -> int {
       std::string expected_input{ "hello world"s };
       bool called{};
 
-      server.converter().on<method_name>([expected_input, &called](std::string const& input) -> int {
+      server.converter().on<method_name>([&expected_input, &called](std::string const& input) noexcept -> int {
         called = true;
         ut::expect(input == expected_input);
         return 0;
