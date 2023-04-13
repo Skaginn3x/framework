@@ -4,9 +4,11 @@
   "dependencies": [
     "azmq",
     "bext-ut",
+    "boost-url",
     "boost-asio",
     "boost-program-options",
     "boost-stacktrace",
+    "boost-beast",
     "fmt",
     "glaze",
     "spdlog",
