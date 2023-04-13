@@ -1,0 +1,98 @@
+name: static packaging
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_static_artifacts:
+    runs-on: ubuntu-${{ matrix.ubuntu_version }}.04
+    name: static packaging
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu_version: [20, 22]
+        build_type: [ debug, release ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jirutka/setup-alpine@v1
+        id: alpine
+        name: Alpine maker
+        with:
+          branch: v3.17
+          packages: >
+            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev
+            doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+      - name: Get new cmake
+        run: |
+          apk upgrade cmake --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
+        shell: alpine.sh --root {0}
+
+      - name: Cache Ninja
+        id: cache-ninja
+        uses: actions/cache@v3
+        with:
+          path: build-ninja
+          key: ninja-1.11.1
+
+      - name: Build ninja
+        run: |
+          VERSION=1.11.1
+          curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
+          cmake -B build-ninja -S ninja-$VERSION
+          cmake --build build-ninja
+        shell: alpine.sh {0}
+        if: steps.cache-ninja.outputs.cache-hit != 'true'
+
+      - name: Install ninja
+        run: |
+          cmake --install build-ninja
+        shell: alpine.sh --root {0}
+
+      - name: Hacking alpine chroot
+        run: | 
+          ln -s /bin/sh /usr/bin/sh
+          ln -s /usr/bin/cmake /usr/local/bin/cmake
+        shell: alpine.sh --root {0}
+
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@v11
+        with:
+          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
+#          vcpkgDirectory: '${{ steps.alpine.outputs.root-path }}/opt/vcpkg'
+          # If not using a submodule for vcpkg sources, this specifies which commit
+          # id must be checkout from a Git repo. It must not set if using a submodule
+          # for vcpkg.
+          vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
+          vcpkgJsonGlob: 'vcpkg.json'
+
+      # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
+      - name: Pack it
+        run: |
+          cmake --workflow --preset packflow-gcc-${{matrix.build_type}}-static
+        shell: alpine.sh --root {0}
+
+      - name: Test install
+        run: |
+          sudo apt-get install ./build/pack-gcc-${{matrix.build_type}}-static/*.deb
+
+      - name: Upload debian package
+        if: matrix.ubuntu_version == 22
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}-static
+          path: build/pack-gcc-${{matrix.build_type}}-static/*.deb
+      - name: Upload rpm package
+        if: matrix.ubuntu_version == 22
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}-static
+          path: build/pack-gcc-${{matrix.build_type}}-static/*.rpm
+      - name: Upload tar package
+        if: matrix.ubuntu_version == 22
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}-static
+          path: build/pack-gcc-${{matrix.build_type}}-static/*.tar.gz

@@ -73,3 +73,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(-g)
   endif ()
 endif ()
+
+
+option(ENABLE_STATIC_LINKING "Globally add -static link flag to all targets" OFF)
+add_feature_info("ENABLE_STATIC_LINKING" ENABLE_STATIC_LINKING
+    "Globally add -static link flag to all targets")

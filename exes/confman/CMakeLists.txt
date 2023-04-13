@@ -21,6 +21,7 @@ target_link_libraries(confman
     tfc::logger
 )
 
+include(GNUInstallDirs)
 install(
   FILES
     systemd/confman.service

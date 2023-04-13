@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+
+# run with docker run -it --rm --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host --name tfc tfc:v1
+
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y systemd
+
+# Todo can we copy build debian to container and build it in the pipeline
+
+RUN ([ -d /lib/systemd/system/sysinit.target.wants ] && cd /lib/systemd/system/sysinit.target.wants/ && for i in *; do [ $i == \
+systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+rm -f /lib/systemd/system/multi-user.target.wants/*;\
+rm -f /etc/systemd/system/*.wants/*;\
+rm -f /lib/systemd/system/local-fs.target.wants/*; \
+rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+rm -f /lib/systemd/system/basic.target.wants/*;\
+rm -f /lib/systemd/system/anaconda.target.wants/*
+
+VOLUME [ "/sys/fs/cgroup" ]
+CMD ["/lib/systemd/systemd", "--system"]

@@ -1,0 +1,9 @@
+{
+  "version": 0,
+  "tools": {
+    "tfc": {
+      "label": "TFC Docs",
+      "path": "index.html"
+    }
+  }
+}

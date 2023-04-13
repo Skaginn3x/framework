@@ -19,7 +19,8 @@ file(REMOVE_RECURSE
   "${CURRENT_PACKAGES_DIR}/bin"
   "${CURRENT_PACKAGES_DIR}/debug/bin"
   "${CURRENT_PACKAGES_DIR}/debug/include"
-  )
+  "${CURRENT_PACKAGES_DIR}/debug/share"
+)
 
 # Handle copyright
 file(INSTALL "${SOURCE_PATH}/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)

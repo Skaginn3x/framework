@@ -17,3 +17,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 else()
   add_compile_options(-fvisibility=default)
 endif()
+
+if(ENABLE_STATIC_LINKING)
+  add_link_options(-static)
+endif ()

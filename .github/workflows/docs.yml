@@ -35,7 +35,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake --workflow --preset buildflow-docs
+          cmake --workflow --preset workflow-docs
 
       - name: Upload read the docs
         uses: actions/upload-pages-artifact@v0

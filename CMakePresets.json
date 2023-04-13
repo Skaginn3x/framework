@@ -60,10 +60,31 @@
       ]
     },
     {
-      "name": "ci-docs",
-      "inherits": ["ci-gcc-debug"],
+      "name": "pack-gcc-debug",
+      "inherits": ["ci-gcc-debug", "cfg-enable-docs"],
       "cacheVariables": {
-        "BUILD_DOCS": "ON"
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "pack-gcc-release",
+      "inherits": ["ci-gcc-release", "cfg-enable-docs"],
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "pack-gcc-debug-static",
+      "inherits": ["pack-gcc-debug", "cfg-enable-static"],
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-alpine"
+      }
+    },
+    {
+      "name": "pack-gcc-release-static",
+      "inherits": ["pack-gcc-release", "cfg-enable-static"],
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-alpine"
       }
     }
   ],
@@ -85,8 +106,24 @@
       "configurePreset": "ci-gcc-release"
     },
     {
+      "name": "build-pack-gcc-debug",
+      "configurePreset": "pack-gcc-debug"
+    },
+    {
+      "name": "build-pack-gcc-release",
+      "configurePreset": "pack-gcc-release"
+    },
+    {
+      "name": "build-pack-gcc-debug-static",
+      "configurePreset": "pack-gcc-debug-static"
+    },
+    {
+      "name": "build-pack-gcc-release-static",
+      "configurePreset": "pack-gcc-release-static"
+    },
+    {
       "name": "build-docs",
-      "configurePreset": "ci-docs",
+      "configurePreset": "pack-gcc-debug",
       "targets": [
         "Doxygen",
         "Sphinx"
@@ -106,18 +143,38 @@
       "inherits": ["test-common"]
     },
     {
-      "name": "test-ci-gcc-debug",
-      "configurePreset": "ci-gcc-debug",
-      "inherits": ["test-common"]
-    },
-    {
       "name": "test-ci-clang-release",
       "configurePreset": "ci-clang-release",
       "inherits": ["test-common"]
     },
     {
+      "name": "test-ci-gcc-debug",
+      "configurePreset": "ci-gcc-debug",
+      "inherits": ["test-common"]
+    },
+    {
       "name": "test-ci-gcc-release",
       "configurePreset": "ci-gcc-release",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-debug",
+      "configurePreset": "pack-gcc-debug",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-release",
+      "configurePreset": "pack-gcc-release",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-debug-static",
+      "configurePreset": "pack-gcc-debug-static",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-pack-gcc-release-static",
+      "configurePreset": "pack-gcc-release-static",
       "inherits": ["test-common"]
     }
   ],
@@ -128,23 +185,33 @@
       "generators": [ "TGZ", "DEB", "RPM" ]
     },
     {
-      "name": "pack-ci-gcc-debug",
-      "configurePreset": "ci-gcc-debug",
+      "name": "pack-gcc-debug",
+      "configurePreset": "pack-gcc-debug",
       "inherits": [ "pack-linux-common" ]
     },
     {
-      "name": "pack-ci-gcc-release",
-      "configurePreset": "ci-gcc-release",
+      "name": "pack-gcc-release",
+      "configurePreset": "pack-gcc-release",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-gcc-debug-static",
+      "configurePreset": "pack-gcc-debug-static",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-gcc-release-static",
+      "configurePreset": "pack-gcc-release-static",
       "inherits": [ "pack-linux-common" ]
     }
   ],
   "workflowPresets": [
     {
-      "name": "buildflow-docs",
+      "name": "workflow-docs",
       "steps": [
         {
           "type": "configure",
-          "name": "ci-docs"
+          "name": "pack-gcc-debug"
         },
         {
           "type": "build",
@@ -157,19 +224,19 @@
       "steps": [
         {
           "type": "configure",
-          "name": "ci-gcc-debug"
+          "name": "pack-gcc-debug"
         },
         {
           "type": "build",
-          "name": "build-ci-gcc-debug"
+          "name": "build-pack-gcc-debug"
         },
         {
           "type": "test",
-          "name": "test-ci-gcc-debug"
+          "name": "test-pack-gcc-debug"
         },
         {
           "type": "package",
-          "name": "pack-ci-gcc-debug"
+          "name": "pack-gcc-debug"
         }
       ]
     },
@@ -178,19 +245,61 @@
       "steps": [
         {
           "type": "configure",
-          "name": "ci-gcc-release"
+          "name": "pack-gcc-release"
         },
         {
           "type": "build",
-          "name": "build-ci-gcc-release"
+          "name": "build-pack-gcc-release"
         },
         {
           "type": "test",
-          "name": "test-ci-gcc-release"
+          "name": "test-pack-gcc-release"
         },
         {
           "type": "package",
-          "name": "pack-ci-gcc-release"
+          "name": "pack-gcc-release"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-debug-static",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-debug-static"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-gcc-debug-static"
+        },
+        {
+          "type": "test",
+          "name": "test-pack-gcc-debug-static"
+        },
+        {
+          "type": "package",
+          "name": "pack-gcc-debug-static"
+        }
+      ]
+    },
+    {
+      "name": "packflow-gcc-release-static",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-gcc-release-static"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-gcc-release-static"
+        },
+        {
+          "type": "test",
+          "name": "test-pack-gcc-release-static"
+        },
+        {
+          "type": "package",
+          "name": "pack-gcc-release-static"
         }
       ]
     }
