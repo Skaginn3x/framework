@@ -30,7 +30,8 @@ set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
 # set dependencies to hosts libc version and cockpit for UI
 if (LDD_RESULT EQUAL 0)
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "cockpit, libc6 (>= ${LIBC_VERSION})")
+  # todo depend on libc version  (>= ${LIBC_VERSION})
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "cockpit, libc6")
   set(CPACK_RPM_PACKAGE_REQUIRES "cockpit, glibc >= ${LIBC_VERSION}")
 else ()
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "cockpit")
