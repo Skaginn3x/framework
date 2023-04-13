@@ -3,6 +3,7 @@ add_subdirectory(progbase)
 add_subdirectory(logger)
 add_subdirectory(confman)
 add_subdirectory(ipc)
+add_subdirectory(ipc_connector)
 add_subdirectory(rpc)
 add_subdirectory(ec)
 

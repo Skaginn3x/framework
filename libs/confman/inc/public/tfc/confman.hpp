@@ -14,10 +14,12 @@ namespace asio = boost::asio;
 namespace tfc::confman {
 
 /// \brief configuration storage which maintains and keeps a storage type up to date
-/// \tparam storage_t equality comparable and default constructible type
-template <typename storage_t>
+/// \tparam config_storage_t equality comparable and default constructible type
+template <typename config_storage_t>
 class config {
 public:
+  using storage_t = config_storage_t;
+
   /// \brief construct config and deliver it to config manager
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
@@ -48,7 +50,39 @@ public:
   /// \param storage to be overridden with
   void set(std::same_as<storage_t> auto&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
 
+  /// \brief get config key used to index the given object of type storage_t
   auto key() const noexcept -> std::string_view { return client_.topic(); }
+
+  /// \brief accessor to given storage
+  auto operator->() const noexcept -> storage_t const* { return std::addressof(get()); }
+
+  friend struct change;
+  /// \struct
+  /// Make config changes within the process. Changes will be executed during deconstruction.
+  /// This generally should not be needed.
+  /// \note should never be used as long living object.
+  ///       as it owns reference to config.
+  struct change {
+    explicit change(config& owner) : config_{ owner } {}
+
+    /// \brief let owner know of the changes
+    ~change() {
+      config_.set(std::move(config_.storage_));
+      // todo config_.update_server();
+    }
+
+    /// \brief get access to storage
+    /// \note can be used to assign observer to observable even though it is const
+    [[nodiscard]] auto get() noexcept -> storage_t& { return config_.storage_; }
+
+    /// \brief accessor to given storage
+    auto operator->() noexcept -> storage_t* { return std::addressof(get()); }
+
+  private:
+    config& config_;
+  };
+
+  auto make_changes() noexcept -> change { return change{ *this }; }
 
 private:
   void init(std::invocable<config const&> auto&& alive_cb) {

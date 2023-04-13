@@ -34,6 +34,7 @@ public:
   observable() = default;
   /// \brief construct observable with default value
   explicit observable(conf_param_t&& value) : value_{ std::forward<decltype(value)>(value) } {}
+  explicit observable(conf_param_t& value) : value_{ std::forward<decltype(value)>(value) } {}
   /// \brief construct observable with default value and changes callback
   observable(conf_param_t&& value, callback_t&& callback)
       : value_{ std::forward<decltype(value)>(value) }, callback_{ std::move(callback) } {}
@@ -98,7 +99,7 @@ public:
   friend auto constexpr operator<=>(observable const& lhs, conf_param_t const& rhs) noexcept { return lhs.value_ <=> rhs; }
 
   /// \brief subscribe to changes
-  void observe(std::invocable<conf_param_t const&> auto&& callback) const {
+  void observe(std::invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
     callback_ = std::forward<decltype(callback)>(callback);
   }
 
