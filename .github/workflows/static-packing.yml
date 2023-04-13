@@ -80,19 +80,19 @@ jobs:
           sudo apt-get install ./build/pack-gcc-${{matrix.build_type}}-static/*.deb
 
       - name: Upload debian package
-        if: ${{ matrix.ubuntu_version }} == 22
+        if: matrix.ubuntu_version == 22
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}-static
           path: build/pack-gcc-${{matrix.build_type}}-static/*.deb
       - name: Upload rpm package
-        if: ${{ matrix.ubuntu_version }} == 22
+        if: matrix.ubuntu_version == 22
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}-static
           path: build/pack-gcc-${{matrix.build_type}}-static/*.rpm
       - name: Upload tar package
-        if: ${{ matrix.ubuntu_version }} == 22
+        if: matrix.ubuntu_version == 22
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}-static
