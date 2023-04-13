@@ -9,7 +9,7 @@
 #include <string>
 #include <tfc/utils/pragmas.hpp>
 
-inline constexpr std::string_view logging_pattern = "*** %l [%H:%M:%S %z] (thread %t) {0}.{1} *** \n\t %v ";
+inline constexpr std::string_view logging_pattern = "*** %l [%H:%M:%S %z] (thread %t) {0}.{1} *** \t\t %v ";
 inline constexpr size_t tp_queue_size = 128;
 inline constexpr size_t tp_worker_count = 1;
 
@@ -42,7 +42,6 @@ tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   async_logger_ = std::make_shared<spdlog::async_logger>("async_logger", sinks.begin(), sinks.end(), thread_pool,
                                                          spdlog::async_overflow_policy::overrun_oldest);
   async_logger_->set_level(static_cast<spdlog::level::level_enum>(tfc::base::get_log_lvl()));
-  async_logger_->info(fmt::format("tfc::logger {} initialized", key_));
 }
 void tfc::logger::logger::log_(lvl_e log_lvl, std::string_view msg) {
   async_logger_->log(static_cast<spdlog::level::level_enum>(log_lvl), msg);

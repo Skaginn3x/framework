@@ -8,6 +8,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include <fmt/format.h>
 #include <azmq/socket.hpp>
@@ -118,7 +119,7 @@ public:
 
 private:
   signal(asio::io_context& ctx, std::string_view name)
-      : transmission_base(name), last_value_(), timer(ctx), socket_(ctx),
+      : transmission_base(name), last_value_(), timer_(ctx), socket_(ctx),
         socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)) {}
 
   auto init() -> std::error_code {
@@ -139,8 +140,8 @@ private:
     std::array<std::byte, 1024> buffer;
     socket_monitor_.receive(asio::buffer(buffer), 0);
     // TODO: This sleep is the worst.
-    timer.expires_after(std::chrono::milliseconds(1));
-    timer.async_wait([this](std::error_code const& error) {
+    timer_.expires_after(std::chrono::milliseconds(1));
+    timer_.async_wait([this](std::error_code const& error) {
       if (error) {
         return;
       }
@@ -164,7 +165,7 @@ private:
         });
   }
   value_t last_value_{};
-  boost::asio::steady_timer timer;
+  boost::asio::steady_timer timer_;
   azmq::pub_socket socket_;
   azmq::socket socket_monitor_;
 };
@@ -177,6 +178,9 @@ class slot : public transmission_base {
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
+    return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
+  }
   slot(asio::io_context& ctx, std::string_view name) : transmission_base(name), socket_(ctx) {}
   /**
    * @brief
@@ -319,6 +323,13 @@ using double_recv = slot<type_double>;
 using string_recv = slot<type_string>;
 using json_recv = slot<type_json>;
 
+using bool_recv_ptr = std::shared_ptr<slot<type_bool>>;
+using int_recv_ptr = std::shared_ptr<slot<type_int>>;
+using uint_recv_ptr = std::shared_ptr<slot<type_uint>>;
+using double_recv_ptr = std::shared_ptr<slot<type_double>>;
+using string_recv_ptr = std::shared_ptr<slot<type_string>>;
+using json_recv_ptr = std::shared_ptr<slot<type_json>>;
+
 using bool_recv_cb = slot_callback<type_bool>;
 using int_recv_cb = slot_callback<type_int>;
 using uint_recv_cb = slot_callback<type_uint>;
@@ -333,4 +344,106 @@ using double_recv_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
 using string_recv_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
 using json_recv_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
 
+using any_send = std::variant<std::monostate,
+                              ipc::bool_send_ptr,
+                              ipc::int_send_ptr,
+                              ipc::uint_send_ptr,
+                              ipc::double_send_ptr,
+                              ipc::string_send_ptr,
+                              ipc::json_send_ptr>;
+using any_recv_cb = std::variant<std::monostate,
+                                 ipc::bool_recv_cb_ptr,
+                                 ipc::int_recv_cb_ptr,
+                                 ipc::uint_recv_cb_ptr,
+                                 ipc::double_recv_cb_ptr,
+                                 ipc::string_recv_cb_ptr,
+                                 ipc::json_recv_cb_ptr>;
+
+using any_recv = std::variant<std::monostate,
+                              ipc::bool_recv_ptr,
+                              ipc::int_recv_ptr,
+                              ipc::uint_recv_ptr,
+                              ipc::double_recv_ptr,
+                              ipc::string_recv_ptr,
+                              ipc::json_recv_ptr>;
+
+inline constexpr std::string_view invalid_type{
+  "\nInvalid name {}, it must include one qualified type name.\n"  // should inject slot or signal as {}
+  "Any of the following: \n"
+  "bool\n"
+  "int\n"
+  "uint\n"
+  "double\n"
+  "string\n"
+  "json\n"
+};
+
+template <typename return_t>
+inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name) -> return_t {
+  if (name.contains("bool")) {
+    return ipc::bool_recv_cb::create(ctx, name);
+  }
+  if (name.contains("int")) {
+    return ipc::int_recv_cb::create(ctx, name);
+  }
+  if (name.contains("uint")) {
+    return ipc::uint_recv_cb::create(ctx, name);
+  }
+  if (name.contains("double")) {
+    return ipc::double_recv_cb::create(ctx, name);
+  }
+  if (name.contains("string")) {
+    return ipc::string_recv_cb::create(ctx, name);
+  }
+  if (name.contains("json")) {
+    return ipc::json_recv_cb::create(ctx, name);
+  }
+  throw std::runtime_error{ fmt::format(invalid_type, name) };
+}
+
+template <typename return_t>
+inline auto create_ipc_recv(asio::io_context& ctx, std::string_view name) -> return_t {
+  if (name.contains("bool")) {
+    return ipc::bool_recv::create(ctx, name);
+  }
+  if (name.contains("int")) {
+    return ipc::int_recv::create(ctx, name);
+  }
+  if (name.contains("uint")) {
+    return ipc::uint_recv::create(ctx, name);
+  }
+  if (name.contains("double")) {
+    return ipc::double_recv::create(ctx, name);
+  }
+  if (name.contains("string")) {
+    return ipc::string_recv::create(ctx, name);
+  }
+  if (name.contains("json")) {
+    return ipc::json_recv::create(ctx, name);
+  }
+  throw std::runtime_error{ fmt::format(invalid_type, name) };
+}
+
+template <typename return_t>
+inline auto create_ipc_send(asio::io_context& ctx, std::string_view name) -> return_t {
+  if (name.contains("bool")) {
+    return ipc::bool_send::create(ctx, name).value();
+  }
+  if (name.contains("int")) {
+    return ipc::int_send::create(ctx, name).value();
+  }
+  if (name.contains("uint")) {
+    return ipc::uint_send::create(ctx, name).value();
+  }
+  if (name.contains("double")) {
+    return ipc::double_send::create(ctx, name).value();
+  }
+  if (name.contains("string")) {
+    return ipc::string_send::create(ctx, name).value();
+  }
+  if (name.contains("json")) {
+    return ipc::json_send::create(ctx, name).value();
+  }
+  throw std::runtime_error{ fmt::format(invalid_type, name) };
+}
 }  // namespace tfc::ipc
