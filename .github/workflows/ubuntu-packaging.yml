@@ -43,7 +43,7 @@ jobs:
 
       - name: Test install
         run: |
-          sudo apt-get install build/pack-gcc-${{matrix.build_type}}/*.deb
+          sudo apt-get install ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
       - name: Upload debian package
         uses: actions/upload-artifact@v3
