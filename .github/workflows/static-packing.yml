@@ -8,11 +8,12 @@ on:
 
 jobs:
   build_static_artifacts:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-${{ matrix.ubuntu_version }}.04
     name: static packaging
     strategy:
       fail-fast: false
       matrix:
+        ubuntu_version: [18, 20, 22]
         build_type: [ debug, release ]
     steps:
       - uses: actions/checkout@v3
@@ -47,10 +48,6 @@ jobs:
 
       - name: Install ninja
         run: |
-          VERSION=1.11.1
-          curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
-          cmake -B build-ninja -S ninja-$VERSION
-          cmake --build build-ninja
           cmake --install build-ninja
         shell: alpine.sh --root {0}
 
