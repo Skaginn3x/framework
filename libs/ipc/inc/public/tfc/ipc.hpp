@@ -270,9 +270,7 @@ public:
   /**
    * @brief disconnect from signal
    */
-  auto disconnect(std::string_view signal_name) {
-    return slot_.disconnect(signal_name.data());
-  }
+  auto disconnect(std::string_view signal_name) { return slot_.disconnect(signal_name.data()); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}
