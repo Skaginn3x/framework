@@ -25,14 +25,14 @@ PRAGMA_CLANG_WARNING_POP
 
 tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   // Create sinks
-  std::vector<spdlog::sink_ptr> sinks{ std::make_shared<spdlog::sinks::stderr_color_sink_mt>() };
-  if (tfc::base::is_stdout_enabled()) {
-    auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+  std::vector<spdlog::sink_ptr> sinks{};
+  //  if (tfc::base::is_stdout_enabled()) {
+  auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
 
-    // customize formatting for stdout messages
-    stdout_sink->set_pattern(fmt::format(logging_pattern, tfc::base::get_proc_name(), key));
-    sinks.emplace_back(stdout_sink);
-  }
+  // customize formatting for stdout messages
+  stdout_sink->set_pattern(fmt::format(logging_pattern, tfc::base::get_proc_name(), key));
+  sinks.emplace_back(stdout_sink);
+  //  }
 
   // Wrap them into an async logger
   if (!thread_pool) {
