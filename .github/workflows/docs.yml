@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-pages-artifact@v0
         with:
           name: github-pages
-          path: './build/ci-docs/docs/sphinx'
+          path: './build/pack-gcc-debug/docs/sphinx'
           retention-days: 1
 
   deploy:
