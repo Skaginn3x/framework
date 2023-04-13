@@ -231,6 +231,10 @@
           "name": "build-pack-gcc-debug"
         },
         {
+          "type": "test",
+          "name": "test-pack-gcc-debug"
+        },
+        {
           "type": "package",
           "name": "pack-gcc-debug"
         }
@@ -246,6 +250,10 @@
         {
           "type": "build",
           "name": "build-pack-gcc-release"
+        },
+        {
+          "type": "test",
+          "name": "test-pack-gcc-release"
         },
         {
           "type": "package",
@@ -265,6 +273,10 @@
           "name": "build-pack-gcc-debug-static"
         },
         {
+          "type": "test",
+          "name": "test-pack-gcc-debug-static"
+        },
+        {
           "type": "package",
           "name": "pack-gcc-debug-static"
         }
@@ -280,6 +292,10 @@
         {
           "type": "build",
           "name": "build-pack-gcc-release-static"
+        },
+        {
+          "type": "test",
+          "name": "test-pack-gcc-release-static"
         },
         {
           "type": "package",
