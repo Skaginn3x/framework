@@ -29,16 +29,29 @@ jobs:
           apk upgrade cmake --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
         shell: alpine.sh --root {0}
 
+      - name: Cache Ninja
+        id: cache-ninja
+        uses: actions/cache@v3
+        with:
+          path: build-ninja
+          key: ninja-1.11.1
+
       - name: Build ninja
         run: |
           VERSION=1.11.1
           curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
-          cd ninja-$VERSION
-          cmake -B build-cmake -S .
-          cmake --build build-cmake
-          cmake --install build-cmake
-          cd ..
-          rm -rf ninja-$VERSION
+          cmake -B build-ninja -S ninja-$VERSION
+          cmake --build build-ninja
+        shell: alpine.sh {0}
+        if: steps.cache-ninja.outputs.cache-hit != 'true'
+
+      - name: Install ninja
+        run: |
+          VERSION=1.11.1
+          curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
+          cmake -B build-ninja -S ninja-$VERSION
+          cmake --build build-ninja
+          cmake --install build-ninja
         shell: alpine.sh --root {0}
 
       - name: Hacking alpine virtual env
@@ -66,6 +79,7 @@ jobs:
 
       - name: Test install
         run: |
+          ls build
           sudo apt install build/pack-gcc-${{matrix.build_type}}-static/*.deb
 
       - name: Upload debian package
