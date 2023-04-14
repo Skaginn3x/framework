@@ -52,17 +52,11 @@ public:
   explicit transmission_base(std::string_view name) : name_(name) {}
 
 protected:
-  [[nodiscard]] auto endpoint() const -> std::string { return fmt::format("ipc://{}", ipc_path(name_)); }
-  [[nodiscard]] static auto endpoint_connect(const std::string_view& name) -> std::string {
-    return fmt::format("ipc://{}", ipc_path(name));
-  }
+  [[nodiscard]] auto endpoint() const -> std::string;
   static constexpr std::string_view path_prefix{ "/tmp/" };
 
 private:
   std::string name_;  // name of signal/slot
-  [[nodiscard]] static auto ipc_path(const std::string_view& name) -> std::string {
-    return fmt::format("{}{}.{}.{}", path_prefix, base::get_exe_name(), base::get_proc_name(), name);
-  }
 };
 
 /**@brief
@@ -239,6 +233,14 @@ public:
         0);
   }
 
+  /**
+   * @brief disconnect from signal
+   */
+  auto disconnect(std::string_view signal_name) {
+    [[maybe_unused]] boost::system::error_code code;
+    return socket_.disconnect(signal_name.data(), code);
+  }
+
 private:
   azmq::sub_socket socket_;
 };
@@ -264,6 +266,11 @@ public:
     return {};
   }
   [[nodiscard]] auto get() const noexcept -> value_t const& { return last_value_; }
+
+  /**
+   * @brief disconnect from signal
+   */
+  auto disconnect(std::string_view signal_name) { return slot_.disconnect(signal_name.data()); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}
