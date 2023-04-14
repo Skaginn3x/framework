@@ -37,7 +37,7 @@ auto main(int argc, char** argv) -> int {
     timer.async_wait([&server, &foo, &signal_name](auto const&) {
       // Wait for client to be alive otherwise we send notification into the emptiness
       server.update(foo.config().key(),
-                    glz::write_json(tfc::ipc::connect_storage{
+                    glz::write_json(tfc::ipc::storage::connect{
                         .signal_name = tfc::confman::observable<std::string>{ fmt::format(
                             "{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), signal_name) } }));
     });

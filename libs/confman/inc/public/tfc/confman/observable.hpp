@@ -7,6 +7,8 @@
 
 #include <fmt/printf.h>
 
+#include <tfc/stx/concepts.hpp>
+
 namespace tfc::confman {
 template <typename conf_param_t>
 concept observable_type = requires {
@@ -32,13 +34,22 @@ public:
   using callback_t = std::function<void(conf_param_t const& new_value, conf_param_t const& former_value)>;
 
   observable() = default;
-  /// \brief construct observable with default value
-  explicit observable(conf_param_t&& value) : value_{ std::forward<decltype(value)>(value) } {}
-  explicit observable(conf_param_t& value) : value_{ std::forward<decltype(value)>(value) } {}
-  /// \brief construct observable with default value and changes callback
-  observable(conf_param_t&& value, callback_t&& callback)
-      : value_{ std::forward<decltype(value)>(value) }, callback_{ std::move(callback) } {}
 
+  /// \brief construct observable with default value
+  /// \param value default value
+  explicit observable(conf_param_t&& value) : value_{ std::move(value) } {}
+
+  /// \brief construct observable with default value
+  /// \param value default value
+  explicit observable(conf_param_t& value) : value_{ value } {}
+
+  /// \brief construct observable with default value and changes callback
+  /// \param value default value
+  /// \param callback observer function of type void(conf_param_t const& new_value, conf_param_t const& former_value)
+  observable(conf_param_t&& value, tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback)
+      : value_{ std::forward<decltype(value)>(value) }, callback_{ std::forward<decltype(callback)>(callback) } {}
+
+  // todo default copy&move constructor differs from copy&move assignments
   observable(observable const&) = default;
   observable(observable&&) noexcept = default;
   /// \brief copy assignment
@@ -99,7 +110,10 @@ public:
   friend auto constexpr operator<=>(observable const& lhs, conf_param_t const& rhs) noexcept { return lhs.value_ <=> rhs; }
 
   /// \brief subscribe to changes
-  void observe(std::invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
+  /// \param callback calling function for all changes, this function cannot throw.
+  /// \note Reason for callback being nothrow is that when calling multiple observers it is
+  ///       not known which observer is called first and it is expected that all observers will be called.
+  void observe(tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
     callback_ = std::forward<decltype(callback)>(callback);
   }
 

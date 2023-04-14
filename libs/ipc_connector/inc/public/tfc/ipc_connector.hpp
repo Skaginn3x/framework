@@ -2,7 +2,8 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/ipc_connector/connect_storage.hpp>
+#include <tfc/ipc_connector/storage/connect.hpp>
+#include <tfc/ipc_connector/storage/name.hpp>
 
 namespace tfc::ipc {
 
@@ -12,9 +13,11 @@ template <typename type_desc>
 class slot_configurable {
 public:
   using value_t = slot_callback<type_desc>::value_t;
+  static constexpr std::string_view type_name{ type_desc::type_name };
 
   slot_configurable(asio::io_context& ctx, std::string_view name, auto&& callback)
-      : slot_(slot_callback<type_desc>::create(ctx, name)), config_(ctx, name, [this, callback](auto const& config) {
+      : slot_(slot_callback<type_desc>::create(ctx, name)), name_config_{ ctx, name, [](auto&) {} },
+        config_(ctx, name, [this, callback](auto const& config) {
           if (!config->signal_name.value().empty()) {
             slot_->init(config->signal_name.value(), callback);
           }
@@ -28,11 +31,28 @@ public:
         }) {}
   [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
 
-  [[nodiscard]] auto config() const noexcept -> confman::config<connect_storage> const& { return config_; }
+  [[nodiscard]] auto config() const noexcept -> confman::config<storage::connect> const& { return config_; }
 
 private:
+  static constexpr std::string_view self_name{ "slot" };
   std::shared_ptr<slot_callback<type_desc>> slot_;
-  confman::config<connect_storage> config_;
+  confman::config<storage::name<self_name, type_name>> name_config_;
+  confman::config<storage::connect> config_;
+};
+
+template <typename type_desc>
+class signal_exposed {
+public:
+  using value_t = signal<type_desc>::value_t;
+  static constexpr std::string_view type_name{ type_desc::type_name };
+
+  signal_exposed(asio::io_context& ctx, std::string_view name)
+      : name_config_{ ctx, name, [](auto&) {} }, signal_{ signal<type_desc>::create(ctx, name).value() } {}
+
+private:
+  static constexpr std::string_view self_name{ "signal" };
+  confman::config<storage::name<self_name, type_name>> name_config_;
+  std::shared_ptr<signal<type_desc>> signal_;
 };
 
 using bool_recv_conf_cb = slot_configurable<type_bool>;

@@ -7,6 +7,7 @@
 #include <ranges>
 #include <type_traits>
 #include <vector>
+#include <array>
 
 namespace tfc::ipc {
 
@@ -38,6 +39,16 @@ enum struct type_e : std::uint8_t {
   //  _temperature = 10,
   //  _humitidy = 11,
 
+};
+
+static constexpr std::array<std::string_view, 7> type_e_iterable {
+  "unknown",
+  "bool",
+  "int64_t",
+  "uint64_t",
+  "double",
+  "string",
+  "json"
 };
 
 /// \brief packet struct to de/serialize data to socket

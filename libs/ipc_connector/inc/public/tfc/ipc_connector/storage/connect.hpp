@@ -6,12 +6,12 @@
 
 #include <tfc/confman/observable.hpp>
 
-namespace tfc::ipc {
+namespace tfc::ipc::storage {
 
-struct connect_storage {
+struct connect {
   tfc::confman::observable<std::string> signal_name{};
   struct glaze {
-    static constexpr auto value{ glz::object("signal_name", &connect_storage::signal_name) };
+    static constexpr auto value{ glz::object("signal_name", &connect::signal_name) };
   };
 };
 

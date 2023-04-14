@@ -41,6 +41,7 @@ template <concepts::is_supported_type value_type, type_e type_enum>
 struct type_description {
   using value_t = value_type;
   static constexpr auto value_e = type_enum;
+  static constexpr std::string_view type_name{ type_e_iterable[std::to_underlying(type_enum)] };
 };
 
 /**@brief
