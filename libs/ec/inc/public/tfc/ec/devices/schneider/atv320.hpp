@@ -42,6 +42,8 @@ public:
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     // All registers in the ATV320 ar uint16, create a pointer to this memory
     // With the same size
+    if (input.size() != 6 || output.size() != 3)
+      return;
     std::span<uint16_t> const input_aligned(reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
     std::span<uint16_t> output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
     status_word_ = input_aligned[0];
@@ -115,7 +117,7 @@ public:
                              0x20020510);                                             // LCR  - CURRENT USAGE ( A )
     ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
     ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x05>,
-                             0x20162B10);  // AI1C - Physical value AI1
+                             0x20162B10);                                             // AI1C - Physical value AI1
     // ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x06>, 0x20165E10);  // AI3C - Physical value without
     // filter AI3
     ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x06>,
@@ -129,7 +131,7 @@ public:
     // Assign tx variables
     ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x01>, 0x60400010);  // CMD - CONTROL WORD
     ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x02>,
-                             0x20370310);  // LFR - REFERENCE SPEED HZ
+                             0x20370310);                                             // LFR - REFERENCE SPEED HZ
     ecx::sdo_write<uint32_t>(
         context, slave, ecx::tx_pdo_mapping<0x03>,
         0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )

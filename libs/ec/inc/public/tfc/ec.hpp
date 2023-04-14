@@ -70,12 +70,17 @@ public:
   auto processdata(std::chrono::microseconds timeout) -> ecx::working_counter_t {
     auto retval = ecx::recieve_processdata(&context_, timeout);
     for (size_t i = 1; i < slave_count() + 1; i++) {
-      if (slavelist_[i].inputs != nullptr && slavelist_[i].outputs != nullptr) {
-        slaves_[i]->process_data(std::span<std::byte>(reinterpret_cast<std::byte*>(slavelist_[i].inputs),
-                                                      static_cast<size_t>(slavelist_[i].Ibytes)),
-                                 std::span<std::byte>(reinterpret_cast<std::byte*>(slavelist_[i].outputs),
-                                                      static_cast<size_t>(slavelist_[i].Obytes)));
+      std::span<std::byte> input;
+      std::span<std::byte> output;
+      if (slavelist_[i].inputs != nullptr) {
+        input = {reinterpret_cast<std::byte*>(slavelist_[i].inputs),
+            static_cast<size_t>(slavelist_[i].Ibytes)};
       }
+      if (slavelist_[i].outputs != nullptr) {
+        output = {reinterpret_cast<std::byte*>(slavelist_[i].outputs),
+                             static_cast<size_t>(slavelist_[i].Obytes)};
+      }
+      slaves_[i]->process_data(input, output);
     }
     ecx_send_processdata(&context_);
 
