@@ -2,15 +2,16 @@
 
 #include <bitset>
 
-#include <tfc/ipc.hpp>
-
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/ipc.hpp>
+#include <tfc/ipc_connector.hpp>
 
 namespace tfc::ec::devices::abt {
 class easyecat final : public base {
 public:
   ~easyecat() final;
+
   explicit easyecat(boost::asio::io_context& ctx_, uint16_t const slave_index) : base(slave_index) {
     for (size_t i = 0; i < 4; i++) {
       std::expected<std::shared_ptr<tfc::ipc::bool_send>, std::error_code> ptr =
@@ -21,12 +22,8 @@ public:
       }
       bool_transmitters_.push_back(ptr.value());
       bool_receivers_.emplace_back(
-          tfc::ipc::bool_recv_cb::create(ctx_, fmt::format("easyecat.{}.bool.out.{}", slave_index, i)));
-      // TODO: Don't supply ipc signal name. IPC should do this by itself using confman?
-      // As a test now, just connect it with the example signal that the test program creates
-      bool_receivers_.back()->init(
-          fmt::format("{}.{}.easyecat.1.bool.in.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), i),
-          [this, i](bool value) { output_states_.set(i, value); });
+          std::make_unique<tfc::ipc::bool_recv_conf_cb>(ctx_, fmt::format("easyecat.{}.bool.out.{}", slave_index, i),
+                                                        [this, i](bool value) { output_states_.set(i, value); }));
     }
     for (size_t i = 0; i < 2; i++) {
       std::expected<std::shared_ptr<tfc::ipc::uint_send>, std::error_code> ptr =
@@ -82,7 +79,7 @@ private:
   std::array<uint8_t, ai_count> last_analog_value_;
   std::vector<tfc::ipc::bool_send_ptr> bool_transmitters_;
   std::vector<tfc::ipc::uint_send_ptr> analog_transmitters_;
-  std::vector<tfc::ipc::bool_recv_cb_ptr> bool_receivers_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_recv_conf_cb>> bool_receivers_;
 };
 
 }  // namespace tfc::ec::devices::abt

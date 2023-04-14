@@ -5,36 +5,40 @@
 #include <memory>
 #include <optional>
 
-#include <tfc/ipc.hpp>
-
 #include <tfc/cia/402.hpp>
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/ipc.hpp>
+#include <tfc/ipc_connector.hpp>
 
 namespace tfc::ec::devices::schneider {
 class atv320 final : public base {
 public:
   ~atv320() final;
+
   static constexpr uint32_t vendor_id = 0x0800005a;
   static constexpr uint32_t product_code = 0x389;
 
   explicit atv320(boost::asio::io_context& ctx, uint16_t slave_index) : base(slave_index) {
-    state_transmitter_ = tfc::ipc::string_send::create(ctx, "atv320.string.state").value();
-    command_transmitter_ = tfc::ipc::string_send::create(ctx, "atv320.string.command").value();
+    state_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.string.state", slave_index)).value();
+    command_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.string.command", slave_index)).value();
     for (size_t i = 0; i < 6; i++) {
-      di_transmitters_.emplace_back(tfc::ipc::bool_send::create(ctx, fmt::format("atv320.bool.in.{}", i)).value());
+      di_transmitters_.emplace_back(
+          tfc::ipc::bool_send::create(ctx, fmt::format("atv320.{}.bool.in.{}", slave_index, i)).value());
     }
     for (size_t i = 0; i < 2; i++) {
-      ai_transmitters_.emplace_back(tfc::ipc::int_send::create(ctx, fmt::format("atv320.int.in.{}", i)).value());
+      ai_transmitters_.emplace_back(
+          tfc::ipc::int_send::create(ctx, fmt::format("atv320.{}.int.in.{}", slave_index, i)).value());
     }
-    quick_stop_recv_ = tfc::ipc::bool_recv_cb::create(ctx, "atv320.bool.quick_stop");
-    quick_stop_recv_->init(fmt::format("{}.{}.easyecat.1.bool.in.0", tfc::base::get_exe_name(), tfc::base::get_proc_name()),
-                           [this](bool value) { quick_stop_ = value; });
-    frequency_recv_ = tfc::ipc::double_recv_cb::create(ctx, "atv320.double.out.freq");
-    frequency_recv_->init("tfcctl.def.atv320.freq.double",
-                          [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
-    frequency_transmit_ = tfc::ipc::double_send::create(ctx, "atv320.double.out.current_freq").value();
+    quick_stop_recv_ = std::make_unique<tfc::ipc::bool_recv_conf_cb>(
+        ctx, fmt::format("atv320.{}.bool.quick_stop", slave_index), [this](bool value) { quick_stop_ = value; });
+    frequency_recv_ = std::make_unique<tfc::ipc::double_recv_conf_cb>(
+        ctx, fmt::format("atv320.{}.double.out.freq", slave_index),
+        [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
+    frequency_transmit_ =
+        tfc::ipc::double_send::create(ctx, fmt::format("atv320.{}.double.out.current_freq", slave_index)).value();
   }
+
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     // All registers in the ATV320 ar uint16, create a pointer to this memory
     // With the same size
@@ -89,11 +93,13 @@ public:
     output_aligned[0] = static_cast<uint16_t>(command);
     output_aligned[1] = quick_stop_ ? 0 : static_cast<uint16_t>(reference_frequency_);
   }
+
   auto async_send_callback(std::error_code const& error, size_t) -> void {
     if (error) {
       logger_.error("Ethercat ATV320 error: {}", error.message());
     }
   }
+
   auto setup(ecx_contextt* context, uint16_t slave) -> int final {
     // Set PDO variables
     // Clean rx and tx prod assign
@@ -105,12 +111,15 @@ public:
     // Assign rx variables
     ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
     ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
-    ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x03>, 0x20020510);  // LCR  - CURRENT USAGE ( A )
+    ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x03>,
+                             0x20020510);                                             // LCR  - CURRENT USAGE ( A )
     ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
-    ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x05>, 0x20162B10);  // AI1C - Physical value AI1
+    ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x05>,
+                             0x20162B10);  // AI1C - Physical value AI1
     // ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x06>, 0x20165E10);  // AI3C - Physical value without
     // filter AI3
-    ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x06>, 0x20162D10);  // AI3C - Physical value AI3
+    ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x06>,
+                             0x20162D10);  // AI3C - Physical value AI3
     // ecx::sdo_write<uint32_t>(context, slave, ecx::rx_pdo_mapping<0x06>, 0x20162310);  // AI3C - Standardized value AI3
     //  Set rx size
     ecx::sdo_write<uint8_t>(context, slave, ecx::rx_pdo_mapping<0x00>, 6);
@@ -119,11 +128,13 @@ public:
     ecx::sdo_write<uint8_t>(context, slave, ecx::tx_pdo_mapping<0x00>, 0);
     // Assign tx variables
     ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x01>, 0x60400010);  // CMD - CONTROL WORD
-    ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x02>, 0x20370310);  // LFR - REFERENCE SPEED HZ
+    ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x02>,
+                             0x20370310);  // LFR - REFERENCE SPEED HZ
     ecx::sdo_write<uint32_t>(
         context, slave, ecx::tx_pdo_mapping<0x03>,
         0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
-    ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x03>, 0x20164810);  // AO1C - AQ1 physical value
+    ecx::sdo_write<uint32_t>(context, slave, ecx::tx_pdo_mapping<0x03>,
+                             0x20164810);  // AO1C - AQ1 physical value
 
     // Set tx size
     ecx::sdo_write<uint8_t>(context, slave, ecx::tx_pdo_mapping<0x00>, 3);
@@ -164,10 +175,10 @@ private:
   tfc::ipc::string_send_ptr state_transmitter_;
   std::string last_command_;
   tfc::ipc::string_send_ptr command_transmitter_;
-  bool quick_stop_ = false;
-  tfc::ipc::bool_recv_cb_ptr quick_stop_recv_;
-  int16_t reference_frequency_;
-  tfc::ipc::double_recv_cb_ptr frequency_recv_;
+  bool quick_stop_ = true;
+  std::unique_ptr<tfc::ipc::bool_recv_conf_cb> quick_stop_recv_;
+  int16_t reference_frequency_ = 0;
+  std::unique_ptr<tfc::ipc::double_recv_conf_cb> frequency_recv_;
   int16_t last_frequency_;
   tfc::ipc::double_send_ptr frequency_transmit_;
 };

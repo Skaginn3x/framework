@@ -35,4 +35,11 @@ private:
   confman::config<connect_storage> config_;
 };
 
+using bool_recv_conf_cb = slot_configurable<type_bool>;
+using int_recv_conf_cb = slot_configurable<type_int>;
+using uint_recv_conf_cb = slot_configurable<type_uint>;
+using double_recv_conf_cb = slot_configurable<type_double>;
+using string_recv_conf_cb = slot_configurable<type_string>;
+using json_recv_conf_cb = slot_configurable<type_json>;
+
 }  // namespace tfc::ipc
