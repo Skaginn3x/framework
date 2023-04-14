@@ -4,16 +4,16 @@
 #include <filesystem>
 #include <unordered_map>
 
-#include <tfc/confman/detail/common.hpp>
-#include <tfc/progbase.hpp>
-#include <tfc/rpc.hpp>
-#include <tfc/stx/concepts.hpp>
-
 #include <fmt/format.h>
-#include <fmt/printf.h>
 #include <azmq/socket.hpp>
 #include <boost/asio.hpp>
 #include <glaze/glaze.hpp>
+
+#include <tfc/confman/detail/common.hpp>
+#include <tfc/logger.hpp>
+#include <tfc/progbase.hpp>
+#include <tfc/rpc.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace asio = boost::asio;
 
@@ -38,7 +38,7 @@ public:
   };
 
   explicit config_rpc_server(asio::io_context& ctx, std::string_view filename = default_config_filename)
-      : server_{ ctx, rpc_socket_path }, notifications_{ ctx }, config_file_{ filename } {
+      : server_{ ctx, rpc_socket_path }, notifications_{ ctx }, config_file_{ filename }, logger_("config_rpc_server") {
     server_.converter().on<method::alive_tag.data_>(
         [this](auto&& PH1) { return on_alive_request(std::forward<decltype(PH1)>(PH1)); });
     notifications_.bind(std::string{ notify_socket_path.data(), notify_socket_path.size() });
@@ -49,13 +49,14 @@ public:
 
   auto update(std::string_view key, glz::raw_json_view json) -> std::error_code {
     if (!config_.contains(key.data())) {
+      logger_.warn("Config does not contain key {}, rejecting request", key);
       return std::make_error_code(std::errc::argument_out_of_domain);
     }
     config_.at(key.data()).config = json.str;
     auto shared_buffer = std::make_shared<std::string>(std::string{ key }.append(json.str));
-    notifications_.async_send(asio::buffer(*shared_buffer), [shared_buffer](std::error_code err, std::size_t) {
+    notifications_.async_send(asio::buffer(*shared_buffer), [this, shared_buffer](std::error_code err, std::size_t) {
       if (err) {
-        fmt::fprintf(stderr, "RPC server notification send error: %s\n", err.message().data());
+        logger_.error("RPC server notification send error: %s\n", err.message().data());
       }
     });
     write_to_file();
@@ -64,6 +65,7 @@ public:
 
 private:
   auto on_alive_request(method::alive const& req) -> std::expected<method::alive_result, glz::rpc::error> {
+    logger_.trace("Config registering: {}", req.identity);
     if (!config_.contains(req.identity)) {
       auto [unused, inserted] =
           config_.emplace(req.identity, map_obj_t{ .config = req.defaults.str, .schema = req.schema.str });
@@ -93,6 +95,7 @@ private:
 
   std::filesystem::path config_file_{};
   std::unordered_map<application_id_t, map_obj_t> config_{};
+  tfc::logger::logger logger_;
 };
 
 }  // namespace tfc::confman::detail
