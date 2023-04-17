@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <filesystem>
 #include <variant>
 #include <vector>
 
@@ -14,8 +14,9 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/logger.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc_connector.hpp>
+#include <tfc/logger.hpp>
 
 namespace asio = boost::asio;
 
@@ -23,7 +24,6 @@ struct pin {
   template <tfc::confman::observable_type conf_param_t>
   using observable = tfc::confman::observable<conf_param_t>;
 
-  observable<gpiod::line::value> active{ gpiod::line::value::INACTIVE };
   observable<gpiod::line::direction> direction{ gpiod::line::direction::AS_IS };
   struct in {
     observable<gpiod::line::edge> edge{ gpiod::line::edge::NONE };
@@ -31,13 +31,13 @@ struct pin {
   };
   struct out {
     enum struct force_e : std::uint8_t {
-      as_is=0,
-      on=1,
-      off=2,
-      save_on=3,
-      save_off=4,
+      as_is = 0,
+      on = 1,
+      off = 2,
+      save_on = 3,
+      save_off = 4,
     };
-    observable<force_e> force{force_e::as_is};
+    observable<force_e> force{ force_e::as_is };
     // todo not sure that raspberry pi has fet buffer, is this used
     observable<gpiod::line::drive> drive{ gpiod::line::drive::OPEN_SOURCE };
   };
@@ -96,18 +96,6 @@ struct glz::meta<pin::out::force_e> {
   static constexpr std::string_view name{ "Pin output force state" };
 };
 template <>
-struct glz::meta<gpiod::line::value> {
-  using enum gpiod::line::value;
-  //  clang-format off
-  static constexpr auto value{ glz::enumerate(
-      "inactive", INACTIVE, "Pin is not controlled by this service",
-      "active", ACTIVE, "Pin is controlled by this service"
-      )
-  };
-  // clang-format on
-  static constexpr std::string_view name{ "Pin active state" };
-};
-template <>
 struct glz::meta<gpiod::line::direction> {
   using enum gpiod::line::direction;
   //  clang-format off
@@ -163,12 +151,13 @@ struct glz::meta<gpiod::line::drive> {
   static constexpr std::string_view name{ "Pin transistor driver setup" };
 };
 
-
 namespace tfc {
 
 class gpio {
 public:
-  using send_or_recv_t = std::variant<std::monostate, tfc::ipc::bool_send_ptr, tfc::ipc::bool_recv_cb_ptr>;
+  using ipc_output_t = tfc::ipc::bool_send_ptr;
+  using ipc_input_t = tfc::ipc::bool_recv_conf_cb;
+  using send_or_recv_t = std::variant<std::monostate, std::shared_ptr<ipc_input_t>, ipc_output_t>;  // todo why shared
   using config_t = tfc::confman::config<std::vector<pin>>;
   using pin_index_t = std::size_t;
 
@@ -177,20 +166,25 @@ public:
   void init(config_t const&);
 
 private:
-  void pin_active_change(pin_index_t, gpiod::line::value new_value, gpiod::line::value old_value);
-  void pin_direction_change(pin_index_t, gpiod::line::direction new_value, gpiod::line::direction old_value);
-  void pin_edge_change(pin_index_t, gpiod::line::edge new_value, gpiod::line::edge old_value);
-  void pin_bias_change(pin_index_t, gpiod::line::bias new_value, gpiod::line::bias old_value);
-  void pin_force_change(pin_index_t, pin::out::force_e new_value, pin::out::force_e old_value);
-  void pin_drive_change(pin_index_t, gpiod::line::drive new_value, gpiod::line::drive old_value);
+  void pin_direction_change(pin_index_t, gpiod::line::direction new_value, gpiod::line::direction old_value) noexcept;
+  void pin_edge_change(pin_index_t, gpiod::line::edge new_value, gpiod::line::edge old_value) noexcept;
+  void pin_bias_change(pin_index_t, gpiod::line::bias new_value, gpiod::line::bias old_value) noexcept;
+  void pin_force_change(pin_index_t, pin::out::force_e new_value, pin::out::force_e old_value) noexcept;
+  void pin_drive_change(pin_index_t, gpiod::line::drive new_value, gpiod::line::drive old_value) noexcept;
 
-  void pin_event(pin_index_t, bool state);
+  void pin_event(pin_index_t, bool state) noexcept;
+
+  void ipc_event(pin_index_t, bool state) noexcept;
+
+  void chip_event(std::error_code const&, std::size_t bytes_transferred) noexcept;
 
   asio::io_context& ctx_;
   gpiod::chip chip_;
   config_t config_;
   std::vector<send_or_recv_t> pins_;
   tfc::logger::logger logger_;
+  boost::asio::posix::stream_descriptor chip_asio_;
+  boost::asio::mutable_buffer chip_asio_buffer_{};
 };
 
 }  // namespace tfc

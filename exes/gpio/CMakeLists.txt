@@ -22,12 +22,13 @@ find_package(glaze CONFIG REQUIRED)
 target_link_libraries(gpio
   PUBLIC
     tfc::ipc
+    tfc::ipc_connector
     tfc::base
     tfc::logger
     tfc::confman
     Boost::program_options
     glaze::glaze
-    gpiodcxx # todo cmake expression for .a or .so
+    gpiodcxx
     gpiod
 )
 
