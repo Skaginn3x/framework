@@ -25,6 +25,12 @@ namespace tfc::ipc {
 
 namespace asio = boost::asio;
 
+enum struct direction_e : std::uint8_t {
+  unknown = 0,
+  signal = 1,
+  slot = 2,
+};
+
 enum struct ipc_errors_e {
   message_to_small = 1,
   inconsistent_size = 2,
@@ -68,6 +74,7 @@ class signal : public transmission_base, public std::enable_shared_from_this<sig
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
+  static auto constexpr direction_v = direction_e::signal;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::expected<std::shared_ptr<signal<type_desc>>, std::error_code> {
@@ -173,6 +180,8 @@ class slot : public transmission_base {
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
+  static auto constexpr direction_v = direction_e::slot;
+
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
   }
@@ -250,6 +259,7 @@ template <typename type_desc>
 class slot_callback : public std::enable_shared_from_this<slot_callback<type_desc>> {
 public:
   using value_t = type_desc::value_t;
+  static auto constexpr direction_v = slot<type_desc>::direction_v;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::shared_ptr<slot_callback<type_desc>> {

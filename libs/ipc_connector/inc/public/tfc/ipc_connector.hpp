@@ -2,6 +2,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/ipc_connector/storage/connect.hpp>
 #include <tfc/ipc_connector/storage/name.hpp>
 
@@ -14,6 +15,7 @@ class slot_configurable {
 public:
   using value_t = slot_callback<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
+  static auto constexpr direction_v = slot_callback<type_desc>::direction_v;
 
   slot_configurable(asio::io_context& ctx, std::string_view name, auto&& callback)
       : slot_(slot_callback<type_desc>::create(ctx, name)), name_config_{ ctx, name, [](auto&) {} },
@@ -34,7 +36,7 @@ public:
   [[nodiscard]] auto config() const noexcept -> confman::config<storage::connect> const& { return config_; }
 
 private:
-  static constexpr std::string_view self_name{ "slot" };
+  static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<slot_callback<type_desc>> slot_;
   confman::config<storage::name<self_name, type_name>> name_config_;
   confman::config<storage::connect> config_;
@@ -45,12 +47,13 @@ class signal_exposed {
 public:
   using value_t = signal<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
+  static auto constexpr direction_v = signal<type_desc>::direction_v;
 
   signal_exposed(asio::io_context& ctx, std::string_view name)
       : name_config_{ ctx, name, [](auto&) {} }, signal_{ signal<type_desc>::create(ctx, name).value() } {}
 
 private:
-  static constexpr std::string_view self_name{ "signal" };
+  static constexpr std::string_view self_name{ signal_tag };
   confman::config<storage::name<self_name, type_name>> name_config_;
   std::shared_ptr<signal<type_desc>> signal_;
 };

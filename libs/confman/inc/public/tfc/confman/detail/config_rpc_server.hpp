@@ -2,6 +2,8 @@
 
 #include <expected>
 #include <filesystem>
+#include <ranges>
+#include <string_view>
 #include <unordered_map>
 
 #include <fmt/format.h>
@@ -10,19 +12,47 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/confman/detail/common.hpp>
+#include <tfc/ipc.hpp>
+#include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/rpc.hpp>
+#include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace asio = boost::asio;
 
 namespace tfc::confman::detail {
 
+namespace method {
+
+struct get_ipcs {
+  ipc::direction_e direction{};
+  ipc::type_e type{};
+  std::string name_contains{};
+  static stx::basic_fixed_string constexpr tag{ "get_ipcs" };
+  struct glaze {
+    using T = get_ipcs;
+    // clang-format off
+    static auto constexpr value{ glz::object(
+        "direction", &T::direction, "IPC direction, signal or slot",
+        "type", &T::type, "IPC type being transmitted",
+        "name_contains", &T::name_contains, "Filter by containing string in IPC name"
+        ) };
+    // clang-format on
+    static std::string_view constexpr name{ tag };
+  };
+};
+
+using get_ipcs_result = std::vector<std::string>;
+
+}  // namespace method
+
 static std::string_view constexpr default_config_filename{ "/var/tfc/config/confman.json" };
 
-using server_t = tfc::rpc::server<
-    glz::rpc::server<glz::rpc::server_method_t<method::alive_tag.data_, method::alive, method::alive_result>>>;
+using method_alive = glz::rpc::server_method_t<method::alive_tag.data_, method::alive, method::alive_result>;
+using method_get_ipcs = glz::rpc::server_method_t<method::get_ipcs::tag.data_, method::get_ipcs, method::get_ipcs_result>;
+using server_t = tfc::rpc::server<glz::rpc::server<method_alive, method_get_ipcs>>;
 
 class config_rpc_server {
 public:
@@ -33,14 +63,20 @@ public:
     config_t config{};
     config_schema_t schema{};
     struct glaze {
-      static auto constexpr value{ glz::object("config", &map_obj_t::config, "schema", &map_obj_t::schema) };
+      // clang-format off
+      static auto constexpr value{ glz::object(
+          "config", &map_obj_t::config, "Config object"
+          "schema", &map_obj_t::schema, "Config object metadata"
+          ) };
+      // clang-format on
+      static std::string_view constexpr name{ "Config object metadata container" };
     };
   };
 
   explicit config_rpc_server(asio::io_context& ctx, std::string_view filename = default_config_filename)
       : server_{ ctx, rpc_socket_path }, notifications_{ ctx }, config_file_{ filename }, logger_("config_rpc_server") {
-    server_.converter().on<method::alive_tag.data_>(
-        [this](auto&& PH1) { return on_alive_request(std::forward<decltype(PH1)>(PH1)); });
+    server_.converter().on<method::alive_tag.data_>(std::bind_front(&config_rpc_server::on_alive_request, this));
+    server_.converter().on<method::get_ipcs::tag.data_>(std::bind_front(&config_rpc_server::get_ipcs_request, this));
     notifications_.bind(std::string{ notify_socket_path.data(), notify_socket_path.size() });
 
     std::filesystem::create_directories(config_file_.parent_path());
@@ -77,15 +113,36 @@ private:
     }
     return method::alive_result{ .config = config_.at(req.identity).config.str };
   }
+  auto get_ipcs_request(method::get_ipcs const& req) -> std::expected<method::get_ipcs_result, glz::rpc::error> {
+    // todo write_json looks wrong, how go use the enumerate tuple directly?
+    std::string const type_contains = req.type == ipc::type_e::unknown ? "" : glz::write_json(req.type);
+
+    method::get_ipcs_result result{};
+    if (req.direction == ipc::direction_e::unknown) {
+      auto ipcs{ config_ | std::views::filter([&req, &type_contains](auto const& map_item) {
+                   return (map_item.first.contains(ipc::signal_tag) || map_item.first.contains(ipc::slot_tag)) &&
+                          map_item.first.contains(type_contains) && map_item.first.contains(req.name_contains);
+                 }) };
+
+      for (auto const& ipc_item : ipcs) {
+        auto const ipc_item_config{ glz::read_json<glz::json_t>(ipc_item.second.config.str) };
+        if (ipc_item_config.has_value() && ipc_item_config->contains("name")) {
+          result.push_back(ipc_item_config->operator[]("name").as<std::string>());
+        }
+      }
+    }
+
+    return result;
+  }
 
   auto write_to_file() -> std::error_code {
     std::string buffer{};
     glz::write<glz::opts{ .prettify = true }>(config_, buffer);
     auto glz_err{ glz::buffer_to_file(buffer, config_file_.string()) };
     if (glz_err != glz::error_code::none) {
+      logger_.error(R"(Error: "{}" writing to file: "{}")", glz::write_json(glz_err), config_file_.string());
       return std::make_error_code(std::errc::io_error);
       // todo implicitly convert glaze error_code to std::error_code
-      // todo at least add logging
     }
     return {};
   }
