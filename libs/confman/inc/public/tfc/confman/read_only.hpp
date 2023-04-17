@@ -2,9 +2,11 @@
 
 #include <concepts>
 #include <cstdio>
+#include <string_view>
 #include <utility>
 
 #include <fmt/core.h>
+#include <glaze/util/parse.hpp>
 
 namespace tfc::confman {
 
@@ -25,17 +27,37 @@ public:
   auto value() const noexcept -> value_t const& { return value_; }
   auto value() noexcept -> value_t& { return value_; }
 
+  friend auto constexpr operator==(read_only const& lhs, read_only const& rhs) noexcept -> bool {
+    return lhs.value_ == rhs.value_;
+  }
+  friend auto constexpr operator==(read_only const& lhs, value_type const& rhs) noexcept -> bool {
+    return lhs.value_ == rhs;
+  }
+  friend auto constexpr operator<=>(read_only const& lhs, read_only const& rhs) noexcept {
+    return lhs.value_ <=> rhs.value_;
+  }
+  friend auto constexpr operator<=>(read_only const& lhs, value_type const& rhs) noexcept { return lhs.value_ <=> rhs; }
+
 private:
   value_t value_{};
-  value_t substitution_{}; // todo differently?
 
 public:
   struct glaze {
-    static auto constexpr value{ [](auto&& self) -> auto& {
-      fmt::print(stderr, "Trying to set read only parameter\n");
-      return self.substitution_;  // returning substitution to write the changes to
-    } };
+    static auto constexpr value{ &read_only::value_ };
+    static std::string_view constexpr name{ "read_only" };
   };
 };
 
 }  // namespace tfc::confman
+
+namespace glz::detail {
+template <typename value_t>
+struct from_json<tfc::confman::read_only<value_t>> {
+  template <auto opts>
+  inline static void op(auto&&, is_context auto&& ctx, auto&&... args) noexcept {
+    fmt::print(stderr, "Trying to set read only parameter\n");
+    skip_value<opts>(ctx, args...);
+  }
+};
+
+}  // namespace glz::detail

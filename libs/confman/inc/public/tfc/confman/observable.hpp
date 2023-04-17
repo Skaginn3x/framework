@@ -137,6 +137,7 @@ private:
 public:
   struct glaze {
     static auto constexpr value = &observable::value_;
+    static std::string_view constexpr name{ "observable" };  // todo observable<typeid(conf_param_t)>
   };
 };
 
