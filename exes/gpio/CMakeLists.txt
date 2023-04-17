@@ -1,16 +1,16 @@
-add_executable(gpiod src/main.cpp src/gpio.cpp)
+add_executable(gpio src/main.cpp src/gpio.cpp)
 
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 find_path(GPIOD_INCLUDE_DIRS "gpiod.hpp")
 
-target_include_directories(gpiod
+target_include_directories(gpio
   PUBLIC
     inc
     ${AZMQ_INCLUDE_DIRS}
     ${GPIOD_INCLUDE_DIRS}
 )
 
-target_link_directories(gpiod
+target_link_directories(gpio
   PUBLIC
     $<$<CONFIG:Debug>:${GPIOD_INCLUDE_DIRS}/../debug/lib>
     $<$<CONFIG:Release>:${GPIOD_INCLUDE_DIRS}/../lib>
@@ -19,7 +19,7 @@ target_link_directories(gpiod
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(glaze CONFIG REQUIRED)
 
-target_link_libraries(gpiod
+target_link_libraries(gpio
   PUBLIC
     tfc::ipc
     tfc::base
@@ -27,12 +27,13 @@ target_link_libraries(gpiod
     tfc::confman
     Boost::program_options
     glaze::glaze
-    libgpiodcxx.so # todo cmake expression for .a or .so
+    gpiodcxx # todo cmake expression for .a or .so
+    gpiod
 )
 
 install(
   TARGETS
-    gpiod
+    gpio
   DESTINATION
     ${CMAKE_INSTALL_BINDIR}
   CONFIGURATIONS Release
@@ -40,7 +41,7 @@ install(
 
 install(
   TARGETS
-    gpiod
+    gpio
   DESTINATION
     ${CMAKE_INSTALL_BINDIR}/debug/
   CONFIGURATIONS Debug
