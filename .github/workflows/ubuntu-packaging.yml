@@ -19,7 +19,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 g++-12-arm-linux-gnueabi curl ninja-build autoconf-archive doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 g++-12-aarch64-linux-gnu curl ninja-build autoconf-archive doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
 
       - uses: actions/checkout@v3
       - name: commissioning
