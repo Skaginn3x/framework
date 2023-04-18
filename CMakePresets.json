@@ -239,26 +239,6 @@
       "name": "test-pack-gcc-release-static",
       "configurePreset": "pack-gcc-release-static",
       "inherits": ["test-common"]
-    },
-    {
-      "name": "test-pack-aarch64-gcc-debug",
-      "configurePreset": "pack-aarch64-gcc-debug",
-      "inherits": ["test-common"]
-    },
-    {
-      "name": "test-pack-aarch64-gcc-release",
-      "configurePreset": "pack-aarch64-gcc-release",
-      "inherits": ["test-common"]
-    },
-    {
-      "name": "test-pack-aarch64-gcc-debug-static",
-      "configurePreset": "pack-aarch64-gcc-debug-static",
-      "inherits": ["test-common"]
-    },
-    {
-      "name": "test-pack-aarch64-gcc-release-static",
-      "configurePreset": "pack-aarch64-gcc-release-static",
-      "inherits": ["test-common"]
     }
   ],
   "packagePresets": [
@@ -418,10 +398,6 @@
           "name": "build-pack-aarch64-gcc-debug"
         },
         {
-          "type": "test",
-          "name": "test-pack-aarch64-gcc-debug"
-        },
-        {
           "type": "package",
           "name": "pack-aarch64-gcc-debug"
         }
@@ -437,10 +413,6 @@
         {
           "type": "build",
           "name": "build-pack-aarch64-gcc-release"
-        },
-        {
-          "type": "test",
-          "name": "test-pack-aarch64-gcc-release"
         },
         {
           "type": "package",
@@ -460,10 +432,6 @@
           "name": "build-pack-aarch64-gcc-debug-static"
         },
         {
-          "type": "test",
-          "name": "test-pack-aarch64-gcc-debug-static"
-        },
-        {
           "type": "package",
           "name": "pack-aarch64-gcc-debug-static"
         }
@@ -479,10 +447,6 @@
         {
           "type": "build",
           "name": "build-pack-aarch64-gcc-release-static"
-        },
-        {
-          "type": "test",
-          "name": "test-pack-aarch64-gcc-release-static"
         },
         {
           "type": "package",

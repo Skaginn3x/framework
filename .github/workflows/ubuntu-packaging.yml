@@ -58,17 +58,39 @@ jobs:
           sudo apt-get install ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
       - name: Upload debian package
+        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-gcc-${{matrix.build_type}}/*.deb
       - name: Upload rpm package
+        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-gcc-${{matrix.build_type}}/*.rpm
       - name: Upload tar package
+        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-gcc-${{matrix.build_type}}/*.tar.gz
+
+      - name: Upload debian package
+        if: matrix.architecture == 'aarch64'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.deb
+      - name: Upload rpm package
+        if: matrix.architecture == 'aarch64'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.rpm
+      - name: Upload tar package
+        if: matrix.architecture == 'aarch64'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.tar.gz
