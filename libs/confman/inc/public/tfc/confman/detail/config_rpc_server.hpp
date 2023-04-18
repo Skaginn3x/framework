@@ -91,8 +91,8 @@ private:
     return method::alive_result{ .config = config_.at(req.identity).config.str };
   }
   auto get_ipcs_request(method::get_ipcs const& req) -> std::expected<method::get_ipcs_result, glz::rpc::error> {
-    // todo write_json looks wrong, how go use the enumerate tuple directly?
-    std::string const type_contains = req.type == ipc::type_e::unknown ? "" : glz::write_json(req.type);
+    auto const type_contains =
+        req.type == ipc::type_e::unknown ? "" : tfc::ipc::type_e_iterable[std::to_underlying(req.type)];
 
     method::get_ipcs_result result{};
     if (req.direction == ipc::direction_e::unknown) {

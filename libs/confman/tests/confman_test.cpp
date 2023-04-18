@@ -105,6 +105,38 @@ auto main(int argc, char** argv) -> int {
 
       ctx.run_for(std::chrono::milliseconds(200));
     };
+    ut::tag("slow") / "get bool ipcs"_test = [] {
+      // remove config file so we can re-run this test
+      std::error_code ignore{};
+      std::filesystem::remove(tfc::confman::detail::default_config_filename, ignore);
+
+      asio::io_context ctx{};
+      tfc::ipc::bool_send_exposed const bool_exposed{ ctx, "new_name" };
+
+      config_rpc_server const server{ ctx };
+
+      config_rpc_client client{ ctx, "foo" };
+
+      boost::asio::steady_timer timer{ ctx };
+      timer.expires_after(std::chrono::milliseconds(199));
+      timer.async_wait([&client](auto&&) {
+        client.request<get_ipcs::tag>(
+            get_ipcs{ .type = tfc::ipc::type_e::_bool }, [](std::expected<get_ipcs_result, glz::rpc::error> const& res) {
+              ut::expect(res.has_value());
+              if (res.has_value()) {
+                auto const& vec = res.value();
+                auto constexpr vec_contains = [](auto&& vector, auto&& contains) {
+                  return std::find_if(vector.begin(), vector.end(), [&contains](auto const& vec_item) {
+                           return vec_item.contains(contains);
+                         }) != vector.end();
+                };
+                ut::expect(vec_contains(vec, "new_name"));
+              }
+            });
+      });
+
+      ctx.run_for(std::chrono::milliseconds(200));
+    };
   };
   if (run_slow) {
     ut::cfg<ut::override> = { .tag = { "slow" } };
