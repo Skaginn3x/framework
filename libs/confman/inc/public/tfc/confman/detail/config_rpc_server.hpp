@@ -42,7 +42,7 @@ public:
     struct glaze {
       // clang-format off
       static auto constexpr value{ glz::object(
-          "config", &map_obj_t::config, "Config object"
+          "config", &map_obj_t::config, "Config object",
           "schema", &map_obj_t::schema, "Config object metadata"
           ) };
       // clang-format on
