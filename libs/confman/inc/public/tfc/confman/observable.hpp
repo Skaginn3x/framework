@@ -142,3 +142,15 @@ public:
 };
 
 }  // namespace tfc::confman
+
+namespace glz::detail {
+
+template <typename value_t>
+struct to_json_schema<tfc::confman::observable<value_t>> {
+  template <auto opts>
+  static void op(auto& schema, auto& defs) noexcept {
+    to_json_schema<value_t>::template op<opts>(schema, defs);
+  }
+};
+
+}  // namespace glz::detail

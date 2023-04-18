@@ -58,4 +58,11 @@ struct from_json<tfc::confman::read_only<value_t>> {
   }
 };
 
+template <typename value_t>
+struct to_json_schema<tfc::confman::read_only<value_t>> {
+  template <auto opts>
+  static void op(auto& schema, auto& defs) noexcept {
+    to_json_schema<value_t>::template op<opts>(schema, defs);
+  }
+};
 }  // namespace glz::detail
