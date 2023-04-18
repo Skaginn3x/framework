@@ -114,7 +114,7 @@ void gpio::pin_drive_change(pin_index_t idx,
   settings.set_drive(new_value);
   chip_.prepare_request().add_line_settings(idx, settings).do_request();
 }
-void gpio::pin_event(pin_index_t idx, [[maybe_unused]] bool state) noexcept {
+void gpio::pin_event(pin_index_t idx, bool state) noexcept {
   if (auto* output{ std::get_if<ipc_output_t>(&pins_.at(idx)) }) {
     logger_.trace(R"(Got event on pin: "{}" with state: "{}" but could not send it)", idx, state);
     (*output)->send(state);
@@ -134,9 +134,9 @@ void gpio::chip_event(std::error_code const& err, std::size_t) noexcept {
     return;
   }
   // todo log timestamp from event vs current time
-  // TODO FINISH THIS!!!!!!!!!!!!!!!!
-  //  auto info = chip_.read_info_event().get_line_info();
-  //  pin_event(info.offset(), info.name()
+  auto offset = chip_.read_info_event().get_line_info().offset();
+  auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(offset) };
+  pin_event(offset, static_cast<bool>(settings.output_value()));
   chip_asio_.async_read_some(chip_asio_buffer_, std::bind_front(&gpio::chip_event, this));
 }
 
