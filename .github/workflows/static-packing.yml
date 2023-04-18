@@ -23,7 +23,7 @@ jobs:
         with:
           branch: v3.17
           packages: >
-            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive
+            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive bash
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: Get new cmake
         run: |
