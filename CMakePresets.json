@@ -99,6 +99,9 @@
     {
       "name": "pack-aarch64-gcc-debug",
       "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
       "inherits": [
         "cfg-vcpkg-aarch64",
         "pack-gcc-debug"
@@ -107,6 +110,9 @@
     {
       "name": "pack-aarch64-gcc-release",
       "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
       "inherits": [
         "cfg-vcpkg-aarch64",
         "pack-gcc-release"
@@ -116,14 +122,16 @@
       "name": "pack-aarch64-gcc-debug-static",
       "inherits": ["pack-aarch64-gcc-debug", "cfg-enable-static"],
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine"
+        "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine",
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }
     },
     {
       "name": "pack-aarch64-gcc-release-static",
       "inherits": ["pack-aarch64-gcc-release", "cfg-enable-static"],
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine"
+        "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine",
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }
     }
   ],
