@@ -20,6 +20,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 g++-12-aarch64-linux-gnu curl ninja-build autoconf-archive doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
+          sudo ln -s /usr/bin/aarch64-linux-gnu-gcc-12 /usr/bin/aarch64-linux-gnu-gcc
+          sudo ln -s /usr/bin/aarch64-linux-gnu-g++-12 /usr/bin/aarch64-linux-gnu-g++
 
       - uses: actions/checkout@v3
       - name: commissioning

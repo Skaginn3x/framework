@@ -7,7 +7,6 @@ set(CMAKE_SYSTEM_PROCESSOR aarch64)
 set(CMAKE_CROSSCOMPILING TRUE)
 
 # Name of C compiler.
-find_program(AARCH64-GCC "aarch64-linux-gnu-gcc")
 find_program(GCC-12 "aarch64-linux-gnu-gcc-12")
 if (GCC-12)
 set(CMAKE_C_COMPILER "/usr/bin/aarch64-linux-gnu-gcc-12")
