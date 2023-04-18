@@ -16,12 +16,12 @@ enum struct direction_e : std::uint8_t {
 /// \note _json is sent as packet<std::string, _json>
 enum struct type_e : std::uint8_t {
   unknown = 0,
-  _bool = 1, // NOLINT
-  _int64_t = 2, // NOLINT
-  _uint64_t = 3, // NOLINT
-  _double_t = 4, // NOLINT
-  _string = 5, // NOLINT
-  _json = 6, // NOLINT
+  _bool = 1,      // NOLINT
+  _int64_t = 2,   // NOLINT
+  _uint64_t = 3,  // NOLINT
+  _double_t = 4,  // NOLINT
+  _string = 5,    // NOLINT
+  _json = 6,      // NOLINT
 
   // TODO: Add
   //  Standard units

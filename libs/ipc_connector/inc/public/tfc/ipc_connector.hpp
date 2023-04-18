@@ -19,9 +19,9 @@ public:
 
   slot_configurable(asio::io_context& ctx, std::string_view name, auto&& callback)
       : slot_(slot_callback<type_desc>::create(ctx, name)),
-        name_config_{ ctx, fmt::format("{}.{}", self_name, slot_->name()), [](auto&) {},
-                      storage::name<self_name, type_name>{ .value =
-                                                               tfc::confman::read_only<std::string>{ slot_->name() } } },
+        name_config_{ ctx, fmt::format("{}.{}", self_name, slot_->name_w_type()), [](auto&) {},
+                      storage::name<self_name, type_name>{
+                          .value = tfc::confman::read_only<std::string>{ slot_->name_w_type() } } },
         config_(ctx, name, [this, callback](auto const& config) {
           if (!config->signal_name.value().empty()) {
             slot_->init(config->signal_name.value(), callback);
@@ -54,8 +54,8 @@ public:
 
   signal_exposed(asio::io_context& ctx, std::string_view name)
       : signal_{ signal<type_desc>::create(ctx, name).value() }, name_config_{
-          ctx, fmt::format("{}.{}", self_name, signal_->name()), [](auto&) {},
-          storage::name<self_name, type_name>{ .value = tfc::confman::read_only<std::string>{ signal_->name() } }
+          ctx, fmt::format("{}.{}", self_name, signal_->name_w_type()), [](auto&) {},
+          storage::name<self_name, type_name>{ .value = tfc::confman::read_only<std::string>{ signal_->name_w_type() } }
         } {}
 
 private:
