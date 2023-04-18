@@ -5,6 +5,9 @@
 #include "tfc/progbase.hpp"
 
 auto main(int argc, char** argv) -> int {
+  using boost::ut::operator""_test;
+  using boost::ut::expect;
+
   // Initilize framework
   auto prog_desc{ tfc::base::default_description() };
   tfc::base::init(argc, argv, prog_desc);
@@ -16,4 +19,8 @@ auto main(int argc, char** argv) -> int {
   foo.log<tfc::logger::lvl_e::info>("Some arguments {}: {}, {}", 1, 2, 3);
 
   boost::ut::expect(true);
+
+  "encoding test"_test = []() {
+
+  };
 }

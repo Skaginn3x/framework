@@ -12,18 +12,7 @@ target_include_directories(logger
     inc
 )
 
-#if (LINUX)
-#  add_library(systemdlib INTERFACE)
-#  find_package(PkgConfig)
-#  pkg_check_modules(SYSTEMD "libsystemd")
-#  if(${SYSTEMD_FOUND})
-#    message("Found systemd")
-#  else()
-#    error("Systemd not found")
-#  endif()
-#  target_include_directories(systemdlib INTERFACE ${SYSTED_INCLUDE_DIRS})
-#  target_link_libraries(systemdlib INTERFACE ${SYSTEMD_LIBRARIES})
-#endif()
+find_package(Boost REQUIRED COMPONENTS )
 
 find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -31,10 +20,10 @@ find_package(spdlog CONFIG REQUIRED)
 target_link_libraries(logger
   PUBLIC
     fmt::fmt
+    Boost::boost
   PRIVATE
     spdlog::spdlog
     tfc::base
-#    systemdlib
     tfc::stx
 )
 

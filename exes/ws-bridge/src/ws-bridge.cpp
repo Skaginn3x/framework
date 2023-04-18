@@ -62,7 +62,7 @@ public:
         logger_.trace("URI '{}'", req.base().target());
         auto const url_params = boost::urls::url_view(req.base().target()).params();
         auto const connect = url_params.find("connect");
-        if (protocol.empty() || protocol != "tfc-ipc" || connect == url_params.end() || (*connect).has_value ||
+        if (protocol.empty() || protocol != "tfc-ipc" || connect == url_params.end() || !(*connect).has_value ||
             (*connect).value.empty()) {
           logger_.warn("Refusing connection");
           http::response<http::string_body> res;

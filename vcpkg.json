@@ -9,6 +9,7 @@
     "boost-program-options",
     "boost-stacktrace",
     "boost-beast",
+    "boost-interprocess",
     "fmt",
     "glaze",
     "spdlog",
