@@ -18,7 +18,10 @@ public:
   static auto constexpr direction_v = slot_callback<type_desc>::direction_v;
 
   slot_configurable(asio::io_context& ctx, std::string_view name, auto&& callback)
-      : slot_(slot_callback<type_desc>::create(ctx, name)), name_config_{ ctx, name, [](auto&) {} },
+      : slot_(slot_callback<type_desc>::create(ctx, name)),
+        name_config_{ ctx, fmt::format("{}.{}", self_name, slot_->name()), [](auto&) {},
+                      storage::name<self_name, type_name>{ .value =
+                                                               tfc::confman::read_only<std::string>{ slot_->name() } } },
         config_(ctx, name, [this, callback](auto const& config) {
           if (!config->signal_name.value().empty()) {
             slot_->init(config->signal_name.value(), callback);
@@ -50,12 +53,15 @@ public:
   static auto constexpr direction_v = signal<type_desc>::direction_v;
 
   signal_exposed(asio::io_context& ctx, std::string_view name)
-      : name_config_{ ctx, name, [](auto&) {} }, signal_{ signal<type_desc>::create(ctx, name).value() } {}
+      : signal_{ signal<type_desc>::create(ctx, name).value() }, name_config_{
+          ctx, fmt::format("{}.{}", self_name, signal_->name()), [](auto&) {},
+          storage::name<self_name, type_name>{ .value = tfc::confman::read_only<std::string>{ signal_->name() } }
+        } {}
 
 private:
   static constexpr std::string_view self_name{ signal_tag };
-  confman::config<storage::name<self_name, type_name>> name_config_;
   std::shared_ptr<signal<type_desc>> signal_;
+  confman::config<storage::name<self_name, type_name>> name_config_;
 };
 
 using bool_recv_conf_cb = slot_configurable<type_bool>;
@@ -64,5 +70,12 @@ using uint_recv_conf_cb = slot_configurable<type_uint>;
 using double_recv_conf_cb = slot_configurable<type_double>;
 using string_recv_conf_cb = slot_configurable<type_string>;
 using json_recv_conf_cb = slot_configurable<type_json>;
+
+using bool_send_exposed = signal_exposed<type_bool>;
+using int_send_exposed = signal_exposed<type_int>;
+using uint_send_exposed = signal_exposed<type_uint>;
+using double_send_exposed = signal_exposed<type_double>;
+using string_send_exposed = signal_exposed<type_string>;
+using json_send_exposed = signal_exposed<type_json>;
 
 }  // namespace tfc::ipc

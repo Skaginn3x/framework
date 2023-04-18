@@ -16,6 +16,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
@@ -24,12 +25,6 @@
 namespace tfc::ipc {
 
 namespace asio = boost::asio;
-
-enum struct direction_e : std::uint8_t {
-  unknown = 0,
-  signal = 1,
-  slot = 2,
-};
 
 enum struct ipc_errors_e {
   message_to_small = 1,
@@ -58,9 +53,12 @@ class transmission_base {
 public:
   explicit transmission_base(std::string_view name) : name_(name) {}
 
-protected:
   [[nodiscard]] auto endpoint() const -> std::string;
-  static constexpr std::string_view path_prefix{ "/tmp/" };
+
+  /// \brief name with exe name and process name postfix
+  [[nodiscard]] auto name() const -> std::string;
+
+  static constexpr std::string_view path_prefix{ "/tmp/" };  // todo remove
 
 private:
   std::string name_;  // name of signal/slot
@@ -282,6 +280,9 @@ public:
    * @brief disconnect from signal
    */
   auto disconnect(std::string_view signal_name) { return slot_.disconnect(signal_name.data()); }
+
+  /// \brief name with exe name and process name postfix
+  auto name() const -> std::string { return slot_.name(); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}

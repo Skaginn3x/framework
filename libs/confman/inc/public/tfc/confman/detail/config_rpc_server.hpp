@@ -24,35 +24,12 @@ namespace asio = boost::asio;
 
 namespace tfc::confman::detail {
 
-namespace method {
-
-struct get_ipcs {
-  ipc::direction_e direction{};
-  ipc::type_e type{};
-  std::string name_contains{};
-  static stx::basic_fixed_string constexpr tag{ "get_ipcs" };
-  struct glaze {
-    using T = get_ipcs;
-    // clang-format off
-    static auto constexpr value{ glz::object(
-        "direction", &T::direction, "IPC direction, signal or slot",
-        "type", &T::type, "IPC type being transmitted",
-        "name_contains", &T::name_contains, "Filter by containing string in IPC name"
-        ) };
-    // clang-format on
-    static std::string_view constexpr name{ tag };
-  };
-};
-
-using get_ipcs_result = std::vector<std::string>;
-
-}  // namespace method
-
 static std::string_view constexpr default_config_filename{ "/var/tfc/config/confman.json" };
 
-using method_alive = glz::rpc::server_method_t<method::alive_tag.data_, method::alive, method::alive_result>;
-using method_get_ipcs = glz::rpc::server_method_t<method::get_ipcs::tag.data_, method::get_ipcs, method::get_ipcs_result>;
-using server_t = tfc::rpc::server<glz::rpc::server<method_alive, method_get_ipcs>>;
+using server_method_alive = glz::rpc::server_method_t<method::alive::tag.data_, method::alive, method::alive_result>;
+using server_method_get_ipcs =
+    glz::rpc::server_method_t<method::get_ipcs::tag.data_, method::get_ipcs, method::get_ipcs_result>;
+using server_t = tfc::rpc::server<glz::rpc::server<server_method_alive, server_method_get_ipcs>>;
 
 class config_rpc_server {
 public:
@@ -75,7 +52,7 @@ public:
 
   explicit config_rpc_server(asio::io_context& ctx, std::string_view filename = default_config_filename)
       : server_{ ctx, rpc_socket_path }, notifications_{ ctx }, config_file_{ filename }, logger_("config_rpc_server") {
-    server_.converter().on<method::alive_tag.data_>(std::bind_front(&config_rpc_server::on_alive_request, this));
+    server_.converter().on<method::alive::tag.data_>(std::bind_front(&config_rpc_server::on_alive_request, this));
     server_.converter().on<method::get_ipcs::tag.data_>(std::bind_front(&config_rpc_server::get_ipcs_request, this));
     notifications_.bind(std::string{ notify_socket_path.data(), notify_socket_path.size() });
 

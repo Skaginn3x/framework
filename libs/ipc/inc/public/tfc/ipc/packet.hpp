@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <tfc/ipc/enums.hpp>
+
 namespace tfc::ipc {
 
 /// \brief Enum specifying protocol version
@@ -19,30 +21,6 @@ enum struct version_e : std::uint8_t { v0 };
 enum struct packt_errors_e {
   inconsistent_buffer_size = 1,
 };
-
-/// \brief Finite set of types which can be sent over this protocol
-/// \note _json is sent as packet<std::string, _json>
-enum struct type_e : std::uint8_t {
-  unknown = 0,
-  _bool = 1,
-  _int64_t = 2,
-  _uint64_t = 3,
-  _double_t = 4,
-  _string = 5,
-  _json = 6,
-
-  // TODO: Add
-  //  Standard units
-  //  _duration = 7,
-  //  _timepoint = 8,
-  //  _velocity = 9,
-  //  _temperature = 10,
-  //  _humitidy = 11,
-
-};
-
-static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
-                                                                  "double",  "string", "json" };
 
 /// \brief packet struct to de/serialize data to socket
 template <typename value_type, type_e type_enum>

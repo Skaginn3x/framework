@@ -5,7 +5,6 @@
 #include <string_view>
 #include <utility>
 
-#include <fmt/core.h>
 #include <glaze/util/parse.hpp>
 
 namespace tfc::confman {
@@ -55,7 +54,6 @@ template <typename value_t>
 struct from_json<tfc::confman::read_only<value_t>> {
   template <auto opts>
   inline static void op(auto&&, is_context auto&& ctx, auto&&... args) noexcept {
-    fmt::print(stderr, "Trying to set read only parameter\n");
     skip_value<opts>(ctx, args...);
   }
 };

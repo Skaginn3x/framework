@@ -2,8 +2,7 @@
 
 #include <glaze/core/common.hpp>
 
-#include <tfc/ipc.hpp>
-#include <tfc/ipc/packet.hpp>
+#include <tfc/ipc/enums.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 
 namespace tfc::ipc {
