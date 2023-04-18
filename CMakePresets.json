@@ -245,7 +245,7 @@
     {
       "name": "pack-linux-common",
       "hidden": true,
-      "generators": [ "TGZ", "DEB", "RPM" ]
+      "generators": [ "TGZ", "DEB" ]
     },
     {
       "name": "pack-gcc-debug",
