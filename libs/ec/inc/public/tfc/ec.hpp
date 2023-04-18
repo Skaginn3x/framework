@@ -73,12 +73,10 @@ public:
       std::span<std::byte> input;
       std::span<std::byte> output;
       if (slavelist_[i].inputs != nullptr) {
-        input = {reinterpret_cast<std::byte*>(slavelist_[i].inputs),
-            static_cast<size_t>(slavelist_[i].Ibytes)};
+        input = { reinterpret_cast<std::byte*>(slavelist_[i].inputs), static_cast<size_t>(slavelist_[i].Ibytes) };
       }
       if (slavelist_[i].outputs != nullptr) {
-        output = {reinterpret_cast<std::byte*>(slavelist_[i].outputs),
-                             static_cast<size_t>(slavelist_[i].Obytes)};
+        output = { reinterpret_cast<std::byte*>(slavelist_[i].outputs), static_cast<size_t>(slavelist_[i].Obytes) };
       }
       slaves_[i]->process_data(input, output);
     }
