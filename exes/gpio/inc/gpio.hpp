@@ -48,7 +48,6 @@ template <>
 struct glz::meta<pin> {
   //  clang-format off
   static constexpr auto value{ glz::object(
-      "active", &pin::active, "Operational state",
       "direction", &pin::direction, "Input or Output"
       "in_or_out", &pin::in_or_out, "Instance"
       )
