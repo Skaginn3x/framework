@@ -71,9 +71,17 @@ jobs:
 
       # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
+        if: matrix.architecture == 'x86_64'
         run: |
           cmake --workflow --preset packflow-gcc-${{matrix.build_type}}-static
         shell: alpine.sh --root {0}
+
+      - name: Pack it aarch64
+        if: matrix.architecture == 'aarch64'
+        run: |
+          cmake --workflow --preset packflow-aarch64-gcc-${{matrix.build_type}}-static
+        shell: alpine.sh --root {0}
+
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
