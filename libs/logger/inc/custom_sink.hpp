@@ -4,14 +4,12 @@
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
 #include <syslog.h>
-#include <array>
 #include <bit>
 
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/details/synchronous_factory.h>
 #include <spdlog/sinks/base_sink.h>
 #include <boost/asio/local/datagram_protocol.hpp>
-#include <iostream>
 
 #include "journald_encoding.hpp"
 #include "tfc/progbase.hpp"
@@ -78,9 +76,12 @@ protected:
     parameters.emplace_back("TFC_EXE", tfc::base::get_exe_name());
     parameters.emplace_back("TFC_ID", tfc::base::get_proc_name());
 
+    // Container for holding the lifetime for the string of the source line
+    std::string src_line;
     if (!msg.source.empty()) {
       parameters.emplace_back("CODE_FILE", msg.source.filename);
-      parameters.emplace_back("CODE_LINE", std::to_string(msg.source.line));
+      src_line = std::to_string(msg.source.line);
+      parameters.emplace_back("CODE_LINE", src_line);
       parameters.emplace_back("CODE_FUNC", msg.source.funcname);
     }
 
