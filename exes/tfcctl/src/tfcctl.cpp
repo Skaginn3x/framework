@@ -1,4 +1,5 @@
 #include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -8,6 +9,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 
+#include <tfc/confman/detail/config_rpc_client.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
@@ -68,18 +70,28 @@ auto main(int argc, char** argv) -> int {
 
   std::vector<std::string> connect;
 
-  description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
+  po::options_description ipc_desc("ipc");
+  ipc_desc.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
       "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
       "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
+
+  bool get_slots{};
+  bool get_signals{};
+
+  po::options_description config_desc("config");
+  config_desc.add_options()("get_slots", po::bool_switch(&get_slots)->default_value(false), "Get IPC slots")(
+      "get_signals", po::bool_switch(&get_signals)->default_value(false), "Get IPC signals");
+
+  description.add(ipc_desc).add(config_desc);
   tfc::base::init(argc, argv, description);
 
   // Must provide an argument
-  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
-    std::stringstream out;
-    description.print(out);
-    fmt::print("Usage: tfcctl [options] \n{}", out.str());
-    std::exit(0);
-  }
+  //    if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
+  //      std::stringstream out;
+  //      description.print(out);
+  //      fmt::print("Usage: tfcctl [options] \n{}", out.str());
+  //      std::exit(0);
+  //    }
   tfc::logger::logger logger{ "tfc control" };
 
   asio::io_context ctx;
@@ -112,14 +124,37 @@ auto main(int argc, char** argv) -> int {
     }(signal_connect));
   }
 
-  asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
-  signal_set.async_wait([&](const std::error_code& error, int signal_number) {
-    if (error) {
-      logger.log<tfc::logger::lvl_e::error>("Error waiting for signal. {}", error.message());
+  std::unique_ptr<tfc::confman::detail::config_rpc_client> client{};
+  auto constexpr print_ipcs{ [](std::string const& direction) {
+    return [direction](std::expected<tfc::confman::detail::method::get_ipcs_result, glz::rpc::error> const& res) {
+      if (res) {
+        fmt::print("{}:\n{}\n", direction, fmt::join(res.value(), "\n"));
+      } else {
+        fmt::print("Error fetching {}: \"{}\"\n\"{}\"\n", direction, res.error().get_message(), res.error().get_data());
+      }
+    };
+  } };
+  if (get_slots) {
+    client = std::make_unique<tfc::confman::detail::config_rpc_client>(ctx, "tfcctl");
+    client->request<tfc::confman::detail::method::get_ipcs::tag>(
+        tfc::confman::detail::method::get_ipcs{ .direction = tfc::ipc::direction_e::slot }, print_ipcs("Slots"));
+  }
+  if (get_signals) {
+    if (client == nullptr) {
+      client = std::make_unique<tfc::confman::detail::config_rpc_client>(ctx, "tfcctl");
     }
-    logger.log<tfc::logger::lvl_e::debug>("Shutting down signal ({})", signal_number);
-    ctx.stop();
-  });
+    client->request<tfc::confman::detail::method::get_ipcs::tag>(
+        tfc::confman::detail::method::get_ipcs{ .direction = tfc::ipc::direction_e::signal }, print_ipcs("Signals"));
+  }
+
+  //  asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
+  //  signal_set.async_wait([&](const std::error_code& error, int signal_number) {
+  //    if (error) {
+  //      logger.log<tfc::logger::lvl_e::error>("Error waiting for signal. {}", error.message());
+  //    }
+  //    logger.log<tfc::logger::lvl_e::debug>("Shutting down signal ({})", signal_number);
+  //    ctx.stop();
+  //  });
 
   ctx.run();
   return 0;

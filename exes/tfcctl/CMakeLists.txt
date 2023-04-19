@@ -7,6 +7,7 @@ target_link_libraries(tfcctl
     tfc::ipc
     tfc::base
     tfc::logger
+    tfc::confman
     Boost::program_options
 )
 
