@@ -23,7 +23,7 @@ PRAGMA_CLANG_WARNING_POP
 
 tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   // Create sinks
-  std::vector<spdlog::sink_ptr> sinks{std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_)};
+  std::vector<spdlog::sink_ptr> sinks{ std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_) };
 
   if (tfc::base::is_stdout_enabled()) {
     auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();

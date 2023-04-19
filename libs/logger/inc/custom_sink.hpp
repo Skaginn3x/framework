@@ -89,8 +89,6 @@ protected:
     auto to_transmit = tfc::logger::journald::to_message(parameters);
 
     try {
-      std::string const debug_primative(reinterpret_cast<char*>(to_transmit.data()), to_transmit.size());
-      std::cout << debug_primative << std::endl;
       sock_.send(boost::asio::buffer(to_transmit));
     } catch (boost::system::system_error const& error) {
       throw_spdlog_ex(fmt::format("Failed writing to systemd {}", error.what()));

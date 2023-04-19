@@ -1,17 +1,16 @@
 
 // Small test of sending log messages via boost asio
 
+#include <iostream>
 #include <string>
 #include <string_view>
-#include <iostream>
 
 #include <boost/asio.hpp>
 
 using namespace std::string_view_literals;
 namespace asio = boost::asio;
 
-
-int main(){
+int main() {
   asio::io_context ctx;
   asio::local::datagram_protocol::socket sock(ctx);
 
