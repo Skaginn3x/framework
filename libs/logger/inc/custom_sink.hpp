@@ -13,8 +13,8 @@
 #include <boost/asio/local/datagram_protocol.hpp>
 #include <iostream>
 
-#include "tfc/progbase.hpp"
 #include "journald_encoding.hpp"
+#include "tfc/progbase.hpp"
 
 using namespace std::string_view_literals;
 constexpr std::string_view journald_socket = "/run/systemd/journal/socket"sv;
@@ -88,12 +88,11 @@ protected:
 
     auto to_transmit = tfc::logger::journald::to_message(parameters);
 
-    try{
-       std::string const debug_primative(reinterpret_cast<char*>(to_transmit.data()), to_transmit.size());
-      // std::cout << debug_primative << std::endl;
+    try {
+      std::string const debug_primative(reinterpret_cast<char*>(to_transmit.data()), to_transmit.size());
+      std::cout << debug_primative << std::endl;
       sock_.send(boost::asio::buffer(to_transmit));
-    }
-    catch (boost::system::system_error const& error){
+    } catch (boost::system::system_error const& error) {
       throw_spdlog_ex(fmt::format("Failed writing to systemd {}", error.what()));
     }
   }
