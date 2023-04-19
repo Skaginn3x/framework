@@ -5,7 +5,7 @@
 
 namespace tfc::logger::journald {
 // Encode the given key value pairs according to https://systemd.io/JOURNAL_NATIVE_PROTOCOL/
-auto to_message(std::vector<std::pair<std::string_view, std::string_view>>& fields) -> std::vector<char> {
+inline auto to_message(std::vector<std::pair<std::string_view, std::string_view>>& fields) -> std::vector<char> {
   std::string newline = std::string("\n");
   std::vector<char> ret_value;
   for (auto& [key, value] : fields) {
