@@ -15,6 +15,7 @@
     "magic-enum",
     "bext-sml",
     "soem-master",
-    "mp-units"
+    "mp-units",
+    "dbus-asio"
   ]
 }

@@ -43,10 +43,10 @@
       "name": "cfg-vcpkg-clang-dynamic",
       "hidden": true,
       "inherits": [
-        "cfg-vcpkg-dynamic",
-        "cfg-vcpkg-clang"
+        "cfg-vcpkg-dynamic"
       ],
       "cacheVariables": {
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang.cmake",
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-dynamic",
         "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic"
       }
