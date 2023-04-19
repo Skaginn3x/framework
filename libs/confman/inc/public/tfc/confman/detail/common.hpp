@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include <tfc/ipc/enums.hpp>
+#include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>

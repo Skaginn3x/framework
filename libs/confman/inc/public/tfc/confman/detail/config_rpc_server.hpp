@@ -95,17 +95,29 @@ private:
         req.type == ipc::type_e::unknown ? "" : tfc::ipc::type_e_iterable[std::to_underlying(req.type)];
 
     method::get_ipcs_result result{};
-    if (req.direction == ipc::direction_e::unknown) {
-      auto ipcs{ config_ | std::views::filter([&req, &type_contains](auto const& map_item) {
-                   return (map_item.first.contains(ipc::signal_tag) || map_item.first.contains(ipc::slot_tag)) &&
-                          map_item.first.contains(type_contains) && map_item.first.contains(req.name_contains);
-                 }) };
 
-      for (auto const& ipc_item : ipcs) {
-        auto const ipc_item_config{ glz::read_json<glz::json_t>(ipc_item.second.config.str) };
-        if (ipc_item_config.has_value() && ipc_item_config->contains("name")) {
-          result.push_back(ipc_item_config->operator[]("name").as<std::string>());
-        }
+    auto const make_filter{ [&req, type_contains](ipc::direction_e direction)
+                                -> std::function<bool(std::pair<const application_id_t, map_obj_t> const&)> {
+      if (direction == ipc::direction_e::unknown) {
+        return [&req, type_contains](auto const& map_item) -> bool {
+          return (map_item.first.contains(ipc::signal_tag) || map_item.first.contains(ipc::slot_tag)) &&
+                 map_item.first.contains(type_contains) && map_item.first.contains(req.name_contains);
+        };
+      }
+      auto const direction_tag = req.direction == ipc::direction_e::signal ? ipc::signal_tag.view() : ipc::slot_tag.view();
+
+      return [&req, type_contains, direction_tag](auto const& map_item) -> bool {
+        return map_item.first.contains(direction_tag) && map_item.first.contains(type_contains) &&
+               map_item.first.contains(req.name_contains);
+      };
+    } };
+
+    auto ipcs{ config_ | std::views::filter(make_filter(req.direction)) };
+
+    for (auto const& ipc_item : ipcs) {
+      auto const ipc_item_config{ glz::read_json<glz::json_t>(ipc_item.second.config.str) };
+      if (ipc_item_config.has_value() && ipc_item_config->contains("name")) {
+        result.push_back(ipc_item_config->operator[]("name").as<std::string>());
       }
     }
 
