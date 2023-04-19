@@ -1,11 +1,9 @@
 #include "tfc/logger.hpp"
-// #include "custom_sink.hpp"
+#include "custom_sink.hpp"
 #include "tfc/progbase.hpp"
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
-#include <iostream>
 #include <string>
 #include <tfc/utils/pragmas.hpp>
 
@@ -25,14 +23,28 @@ PRAGMA_CLANG_WARNING_POP
 
 tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   // Create sinks
+  std::shared_ptr<spdlog::sinks::tfc_systemd_sink_mt> systemd;
+  try {
+    systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_);
+  } catch (boost::system::system_error const& err) {
+    auto loc = std::source_location::current();
+    fmt::print(
+        stderr,
+        "Unable to open journald socket for logging. using console err: {}, source location: FILE: {}, FUNC: {}, LINE: {}",
+        err.what(), loc.file_name(), loc.function_name(), loc.line());
+    systemd = nullptr;
+  }
   std::vector<spdlog::sink_ptr> sinks{};
-  //  if (tfc::base::is_stdout_enabled()) {
-  auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+  if (systemd != nullptr) {
+    sinks.emplace_back(systemd);
+  }
+  if (tfc::base::is_stdout_enabled() || systemd == nullptr) {
+    auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
 
-  // customize formatting for stdout messages
-  stdout_sink->set_pattern(fmt::format(logging_pattern, tfc::base::get_proc_name(), key));
-  sinks.emplace_back(stdout_sink);
-  //  }
+    // customize formatting for stdout messages
+    stdout_sink->set_pattern(fmt::format(logging_pattern, tfc::base::get_proc_name(), key));
+    sinks.emplace_back(stdout_sink);
+  }
 
   // Wrap them into an async logger
   if (!thread_pool) {

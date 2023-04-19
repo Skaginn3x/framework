@@ -14,4 +14,5 @@ Table of Contents
     design/cm.md
     design/ipc.md
     design/build_infra.md
+    functionality/logger.md
     Doxygen <doxygen/html/index.html#http://>
