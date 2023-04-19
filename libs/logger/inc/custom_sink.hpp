@@ -20,7 +20,7 @@ namespace spdlog {
 namespace sinks {
 
 using std::string_view_literals::operator""sv;
-constexpr std::string_view journald_socket = "/run/systemd/journal/socket"sv;
+static constexpr std::string_view journald_socket = "/run/systemd/journal/socket"sv;
 
 /**
  * Sink that write to systemd journal using the `sd_journal_send()` library call.
