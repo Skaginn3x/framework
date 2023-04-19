@@ -23,9 +23,22 @@ PRAGMA_CLANG_WARNING_POP
 
 tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   // Create sinks
-  std::vector<spdlog::sink_ptr> sinks{ std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_) };
-
-  if (tfc::base::is_stdout_enabled()) {
+  std::shared_ptr<spdlog::sinks::tfc_systemd_sink_mt> systemd;
+  try {
+    systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_);
+  } catch (boost::system::system_error const& err) {
+    auto loc = std::source_location::current();
+    fmt::print(
+        stderr,
+        "Unable to open journald socket for logging. using console err: {}, source location: FILE: {}, FUNC: {}, LINE: {}",
+        err.what(), loc.file_name(), loc.function_name(), loc.line());
+    systemd = nullptr;
+  }
+  std::vector<spdlog::sink_ptr> sinks{};
+  if (systemd != nullptr) {
+    sinks.emplace_back(systemd);
+  }
+  if (tfc::base::is_stdout_enabled() || systemd == nullptr) {
     auto stdout_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
 
     // customize formatting for stdout messages
