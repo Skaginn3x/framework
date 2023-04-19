@@ -15,9 +15,9 @@ add_executable(read_only_test read_only_test.cpp)
 target_link_libraries(read_only_test PRIVATE tfc::confman Boost::ut glaze::glaze)
 
 add_test(
-    NAME
+  NAME
     read_only_test
-    COMMAND
+  COMMAND
     read_only_test
 )
 
@@ -36,6 +36,25 @@ add_test(
     confman_test
   COMMAND
     confman_test
+)
+
+
+add_executable(dbus_test dbus_test.cpp)
+
+find_package(dbus-asio CONFIG REQUIRED)
+target_link_libraries(dbus_test
+  PRIVATE
+    tfc::confman
+    tfc::ipc_connector
+    Boost::ut
+    glaze::glaze
+)
+
+add_test(
+  NAME
+    dbus_test
+  COMMAND
+    dbus_test
 )
 
 add_subdirectory(examples)

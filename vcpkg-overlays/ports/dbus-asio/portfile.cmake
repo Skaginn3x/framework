@@ -1,18 +1,19 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
-    REPO dbus-asio/dbus-asio
-    REF 9f2cb2d836003a8247fbda9f7f606cd475c48ef1
-    SHA512 aca4d1ea58f03b9917e939e82fa154dfbf7d8576a8f2d6b05c13c0128584c2637a53826405626d86101725b1adc83de2354c2365a90ef75f629a322a46883d1a
-    PATCHES
-      disable-tests.patch
+    REPO skaginn3x/dbus-asio
+    REF vcpkg
+    SHA512 6c9df2bf07258a8a059a7f16653701533b606cf8804e14bc7cb416bdeaeb2c54b79b418ca6eea045da3acd1673562098265f4ee37711ade8c68197e41f8348de
 )
 
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
+    OPTIONS
+      -DBUILD_TESTING=OFF
 )
 
 vcpkg_cmake_install()
-
+vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/dbus-asio)
+vcpkg_fixup_pkgconfig()
 vcpkg_copy_pdbs()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")

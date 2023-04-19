@@ -12,6 +12,9 @@
     {
       "name": "vcpkg-cmake-config",
       "host": true
-    }
+    },
+    "boost-asio",
+    "boost-chrono",
+    "boost-system"
   ]
 }
