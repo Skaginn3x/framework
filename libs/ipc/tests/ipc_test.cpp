@@ -81,7 +81,7 @@ auto main(int, char**) -> int {
     auto sender = tfc::ipc::uint_send::create(ctx, "name").value();
     auto receiver = tfc::ipc::uint_recv_cb::create(ctx, "name");
 
-    receiver->init("name", [](auto val) { std::cout << val << std::endl; });
+    receiver->init(sender->name_w_type(), [](auto val) { std::cout << val << std::endl; });
     asio::deadline_timer verification_timer{ ctx };
     verification_timer.expires_from_now(boost::posix_time::milliseconds(1));
     verification_timer.async_wait([&ctx, &sender](auto) {
@@ -106,7 +106,7 @@ auto main(int, char**) -> int {
     };
 
     bool receiver_called{ false };
-    receiver->init(fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), "name"),
+    receiver->init(fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), sender->name_w_type()),
                    [&receiver_called, &uint64_to_time_point](auto val) {
                      auto now{ std::chrono::high_resolution_clock::now() };
                      auto past{ uint64_to_time_point(val) };
@@ -133,7 +133,7 @@ auto main(int, char**) -> int {
     auto ctx{ asio::io_context() };
     auto sender{ tfc::ipc::string_send::create(ctx, "name").value() };
     auto receiver{ tfc::ipc::string_recv_cb::create(ctx, "unused") };
-    receiver->init(fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), "name"),
+    receiver->init(fmt::format("{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), sender->name_w_type()),
                    [&ctx](std::string const& value) {
                      fmt::print("received: {}\n", value);
                      ctx.stop();

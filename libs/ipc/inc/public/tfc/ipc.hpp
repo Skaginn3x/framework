@@ -16,10 +16,12 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
+#include <tfc/utils/socket.hpp>
 
 namespace tfc::ipc {
 
@@ -41,19 +43,27 @@ template <concepts::is_supported_type value_type, type_e type_enum>
 struct type_description {
   using value_t = value_type;
   static constexpr auto value_e = type_enum;
+  static constexpr std::string_view type_name{ type_e_iterable[std::to_underlying(type_enum)] };
 };
 
 /**@brief
  * Base class for signal and slot. Contains naming
  * and shared ptr factory constructors.
  * */
+template <typename type_desc>
 class transmission_base {
 public:
   explicit transmission_base(std::string_view name) : name_(name) {}
 
-protected:
-  [[nodiscard]] auto endpoint() const -> std::string;
-  static constexpr std::string_view path_prefix{ "/tmp/" };
+  [[nodiscard]] auto endpoint() const -> std::string {
+    return utils::socket::zmq::ipc_endpoint_str(
+        fmt::format("{}.{}.{}", base::get_exe_name(), base::get_proc_name(), name_w_type()));
+  }
+
+  /// \return <type>.<name>
+  [[nodiscard]] auto name_w_type() const -> std::string { return fmt::format("{}.{}", type_desc::type_name, name_); }
+
+  static constexpr std::string_view path_prefix{ "/tmp/" };  // todo remove
 
 private:
   std::string name_;  // name of signal/slot
@@ -63,10 +73,11 @@ private:
  * Signal publishing class.
  * */
 template <typename type_desc>
-class signal : public transmission_base, public std::enable_shared_from_this<signal<type_desc>> {
+class signal : public transmission_base<type_desc>, public std::enable_shared_from_this<signal<type_desc>> {
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
+  static auto constexpr direction_v = direction_e::signal;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::expected<std::shared_ptr<signal<type_desc>>, std::error_code> {
@@ -113,12 +124,12 @@ public:
 
 private:
   signal(asio::io_context& ctx, std::string_view name)
-      : transmission_base(name), last_value_(), timer_(ctx), socket_(ctx),
+      : transmission_base<type_desc>(name), last_value_(), timer_(ctx), socket_(ctx),
         socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)) {}
 
   auto init() -> std::error_code {
     boost::system::error_code error_code;
-    socket_.bind(endpoint(), error_code);
+    socket_.bind(this->endpoint(), error_code);
     if (error_code) {
       return error_code;
     }
@@ -168,14 +179,16 @@ private:
  *
  * */
 template <typename type_desc>
-class slot : public transmission_base {
+class slot : public transmission_base<type_desc> {
 public:
   using value_t = typename type_desc::value_t;
   using packet_t = packet<value_t, type_desc::value_e>;
+  static auto constexpr direction_v = direction_e::slot;
+
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
   }
-  slot(asio::io_context& ctx, std::string_view name) : transmission_base(name), socket_(ctx) {}
+  slot(asio::io_context& ctx, std::string_view name) : transmission_base<type_desc>(name), socket_(ctx) {}
   /**
    * @brief
    * connect to the signal indicated by name
@@ -184,7 +197,7 @@ public:
     // TODO: Find out if these mutexes inside optimize single threaded are really needed
     socket_ = azmq::sub_socket(socket_.get_io_context(), true);
     boost::system::error_code error_code;
-    std::string const socket_path = fmt::format("ipc://{}{}", path_prefix, signal_name);
+    std::string const socket_path{ utils::socket::zmq::ipc_endpoint_str(signal_name) };
     socket_.connect(socket_path, error_code);
     if (error_code) {
       return error_code;
@@ -249,6 +262,7 @@ template <typename type_desc>
 class slot_callback : public std::enable_shared_from_this<slot_callback<type_desc>> {
 public:
   using value_t = type_desc::value_t;
+  static auto constexpr direction_v = slot<type_desc>::direction_v;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::shared_ptr<slot_callback<type_desc>> {
@@ -271,6 +285,9 @@ public:
    * @brief disconnect from signal
    */
   auto disconnect(std::string_view signal_name) { return slot_.disconnect(signal_name.data()); }
+
+  /// \return <type>.<name> for example: bool.my_name
+  [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}

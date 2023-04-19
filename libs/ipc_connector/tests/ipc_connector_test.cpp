@@ -30,19 +30,17 @@ auto main(int argc, char** argv) -> int {
                                                                  called = true;
                                                                } };
 
-    std::string signal_name{ "signal" };
+    auto const my_signal = tfc::ipc::signal<tfc::ipc::type_json>::create(ctx, "my_name").value();
 
     asio::steady_timer timer{ ctx };
     timer.expires_after(std::chrono::milliseconds(50));
-    timer.async_wait([&server, &foo, &signal_name](auto const&) {
+    timer.async_wait([&server, &foo, signal_name = my_signal->name_w_type()](auto const&) {
       // Wait for client to be alive otherwise we send notification into the emptiness
       server.update(foo.config().key(),
-                    glz::write_json(tfc::ipc::connect_storage{
+                    glz::write_json(tfc::ipc::storage::connect{
                         .signal_name = tfc::confman::observable<std::string>{ fmt::format(
                             "{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), signal_name) } }));
     });
-
-    auto const my_signal = tfc::ipc::signal<tfc::ipc::type_json>::create(ctx, signal_name).value();
 
     my_signal->async_send("helloworld", [](auto const&, auto) {});
 

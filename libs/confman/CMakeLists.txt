@@ -25,6 +25,7 @@ target_link_libraries(libconfman
     glaze::glaze
     tfc::base
     tfc::rpc
+    tfc::ipc
     tfc::stx
 )
 add_library_to_docs(tfc::confman)

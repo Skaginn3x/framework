@@ -25,7 +25,8 @@ public:
   /// \param key identification of this config storage, requires to be unique
   /// \param alive_cb callback called after the storage has been populated
   ///                 the input parameter of the callback is reference to `this` (self)
-  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb) : client_{ ctx, key } {
+  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb)
+      : client_{ ctx, key }, logger_(fmt::format("config.{}", key)) {
     init(std::forward<decltype(alive_cb)>(alive_cb));
   }
 
@@ -38,7 +39,7 @@ public:
   template <typename storage_type>
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb, storage_type&& def)
-      : storage_{ std::forward<storage_type>(def) }, client_{ ctx, key } {
+      : storage_{ std::forward<storage_type>(def) }, client_{ ctx, key }, logger_(fmt::format("config.{}", key)) {
     init(std::forward<decltype(alive_cb)>(alive_cb));
   }
 
@@ -98,8 +99,10 @@ private:
           set(std::move(storage.value()));
           return;
         }
+        logger_.warn("Subscribe parser error:\n{}", glz::format_error(storage.error(), res.value()));
+      } else {
+        logger_.warn("Subscribe error:\n{}", res.error().message());
       }
-      // todo log error
     });
   }
 
@@ -110,12 +113,15 @@ private:
         set(std::move(storage.value()));
         return;
       }
+      logger_.warn("Subscribe parser error:\n{}", glz::format_error(storage.error(), res.value().config.str));
+    } else {
+      logger_.warn("Subscribe error:\n{}\n{}", res.error().get_message(), res.error().get_data());
     }
-    // Todo log error
   }
 
   storage_t storage_{};
   detail::config_rpc_client client_;
+  tfc::logger::logger logger_;
 };
 
 }  // namespace tfc::confman
