@@ -16,11 +16,11 @@
 #include "journald_encoding.hpp"
 #include "tfc/progbase.hpp"
 
-using namespace std::string_view_literals;
-constexpr std::string_view journald_socket = "/run/systemd/journal/socket"sv;
-
 namespace spdlog {
 namespace sinks {
+
+using std::string_view_literals::operator""sv;
+constexpr std::string_view journald_socket = "/run/systemd/journal/socket"sv;
 
 /**
  * Sink that write to systemd journal using the `sd_journal_send()` library call.
