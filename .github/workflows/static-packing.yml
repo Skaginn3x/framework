@@ -77,7 +77,7 @@ jobs:
         uses: lukka/run-cmake@v10.3
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          workflowPreset: 'packflow-aarch64-gcc-${{matrix.build_type}}-static'
+          workflowPreset: 'packflow-gcc-${{matrix.build_type}}-static'
 
       # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
