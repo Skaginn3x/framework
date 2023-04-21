@@ -57,7 +57,7 @@ jobs:
         run: |
           VERSION=1.11.1
           curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
-          cmake -B build-ninja -S ninja-$VERSION
+          cmake -B build-ninja -S ninja-$VERSION -DBUILD_TESTING=OFF
           cmake --build build-ninja
         shell: alpine.sh {0}
 #        if: steps.cache-ninja-${{ matrix.architecture }}.outputs.cache-hit != 'true'
