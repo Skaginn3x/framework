@@ -38,4 +38,23 @@ add_test(
     confman_test
 )
 
+add_executable(dbus_test sdbus_test.cpp)
+
+find_package(sdbus-c++ CONFIG REQUIRED)
+target_link_libraries(dbus_test
+  PRIVATE
+    tfc::confman
+    tfc::ipc_connector
+    Boost::ut
+    glaze::glaze
+    SDBusCpp::sdbus-c++
+)
+
+add_test(
+  NAME
+    dbus_test
+  COMMAND
+    dbus_test
+)
+
 add_subdirectory(examples)
