@@ -25,7 +25,7 @@ jobs:
           arch: ${{ matrix.architecture }}
           branch: v3.17
           packages: >
-            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive bash automake autoconf
+            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive bash automake autoconf libtool
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: Get new cmake
         run: |
@@ -75,7 +75,7 @@ jobs:
         uses: lukka/run-cmake@v10.3
         with:
           useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
-          
+
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           workflowPreset: 'packflow-gcc-${{matrix.build_type}}-static'
       - name: Upload vcpkg log
