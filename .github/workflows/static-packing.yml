@@ -29,10 +29,8 @@ jobs:
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
       - name: Get new cmake
         run: |
-          ls /usr/bin
-          
-          
           apk upgrade cmake --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
+          apk upgrade autoconf-archive --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
         shell: alpine.sh --root {0}
 
       - name: Cache Ninja
