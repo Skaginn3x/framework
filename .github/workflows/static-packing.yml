@@ -34,7 +34,16 @@ jobs:
         shell: alpine.sh --root {0}
 
       - name: Cache Ninja
-        id: cache-ninja-${{ matrix.architecture }}
+        if: matrix.architecture == 'x86_64'
+        id: cache-ninja-x86_64
+        uses: actions/cache@v3
+        with:
+          path: build-ninja
+          key: ninja-1.11.1
+
+      - name: Cache Ninja
+        if: matrix.architecture == 'aarch64'
+        id: cache-ninja-aarch64
         uses: actions/cache@v3
         with:
           path: build-ninja
