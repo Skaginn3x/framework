@@ -13,6 +13,7 @@ To begin with executables will be statically linked to third party dependencies 
 yay -S vcpkg
 sudo gpasswd -a $USER vcpkg
 sudo pacman -S libc++ lld llvm base-devel ccache autoconf-archive meson gperf
+sudo pacman -S libc++ lld llvm base-devel ccache meson gperf
 # for building documentation
 sudo pacman -S python-sphinx_rtd_theme python-myst-parser python-breathe
 # for packaging

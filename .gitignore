@@ -2,3 +2,4 @@ vcpkg-sys*
 build
 .idea
 vcpkg/
+.vscode
