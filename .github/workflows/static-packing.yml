@@ -67,9 +67,8 @@ jobs:
         run: | 
           ln -s /bin/sh /usr/bin/sh
           ln -s /usr/bin/cmake /usr/local/bin/cmake
-          ./scripts/commissioning.sh
+          mkdir -p /var/tfc
           chown $USER:$USER -R /var/tfc  # todo fix this differently
-          chown $USER:$USER -R /run/tfc
         shell: alpine.sh --root {0}
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
