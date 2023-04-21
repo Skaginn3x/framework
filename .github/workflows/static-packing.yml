@@ -73,6 +73,12 @@ jobs:
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
 
+      - name: Pack it v2
+        uses: lukka/run-cmake@v10.3
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          workflowPreset: 'packflow-aarch64-gcc-${{matrix.build_type}}-static'
+
       # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
         run: |
@@ -80,6 +86,7 @@ jobs:
           
           cat /home/runner/work/framework/framework/vcpkg/buildtrees/libgpiod/autoconf-x64-linux-gcc-alpine-err.log
         shell: alpine.sh --root {0}
+
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
