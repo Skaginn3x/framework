@@ -37,34 +37,34 @@ jobs:
           apk upgrade autoconf-archive --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
         shell: alpine.sh --root {0}
 
-#      - name: Cache Ninja
-#        if: matrix.architecture == 'x86_64'
-#        id: cache-ninja-x86_64
-#        uses: actions/cache@v3
-#        with:
-#          path: build-ninja
-#          key: ninja-1.11.1
-#
-#      - name: Cache Ninja
-#        if: matrix.architecture == 'aarch64'
-#        id: cache-ninja-aarch64
-#        uses: actions/cache@v3
-#        with:
-#          path: build-ninja
-#          key: ninja-1.11.1
+      - name: Cache Ninja
+        if: matrix.architecture == 'x86_64'
+        id: cache-ninja-x86_64
+        uses: actions/cache@v3
+        with:
+          path: build-ninja-${{ matrix.architecture }}
+          key: ninja-1.11.1
+
+      - name: Cache Ninja
+        if: matrix.architecture == 'aarch64'
+        id: cache-ninja-aarch64
+        uses: actions/cache@v3
+        with:
+          path: build-ninja-${{ matrix.architecture }}
+          key: ninja-1.11.1
 
       - name: Build ninja
         run: |
           VERSION=1.11.1
           curl -L https://github.com/ninja-build/ninja/archive/v$VERSION.tar.gz | tar xzf -
-          cmake -B build-ninja -S ninja-$VERSION -DBUILD_TESTING=OFF
-          cmake --build build-ninja
+          cmake -B build-ninja-${{ matrix.architecture }} -S ninja-$VERSION -DBUILD_TESTING=OFF
+          cmake --build build-ninja-${{ matrix.architecture }}
         shell: alpine.sh {0}
-#        if: steps.cache-ninja-${{ matrix.architecture }}.outputs.cache-hit != 'true'
+        if: steps.cache-ninja-${{ matrix.architecture }}.outputs.cache-hit != 'true'
 
       - name: Install ninja
         run: |
-          cmake --install build-ninja
+          cmake --install build-ninja-${{ matrix.architecture }}
         shell: alpine.sh --root {0}
 
       - name: Hacking alpine chroot
