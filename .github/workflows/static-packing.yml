@@ -83,13 +83,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: vcpkg-build-fail-logs
-          path: /**/out.log
+          path: ${{ github.workspace }}/vcpkg/**/*out.log
       - name: Upload vcpkg log
         if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: vcpkg-build-fail-logs
-          path: /**/err.log
+          path: ${{ github.workspace }}/vcpkg/**/*err.log
 
       # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
