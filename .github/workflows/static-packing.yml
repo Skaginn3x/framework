@@ -97,6 +97,13 @@ jobs:
         run: |
           cmake --workflow --preset packflow-gcc-${{matrix.build_type}}-static
         shell: alpine.sh --root {0}
+        if: matrix.architecture == 'x86_64'
+
+      - name: Pack it
+        run: |
+          cmake --workflow --preset packflow-aarch64-gcc-${{matrix.build_type}}-static
+        shell: alpine.sh --root {0}
+        if: matrix.architecture == 'aarch64'
 
       - name: Upload vcpkg log
         if: failure()

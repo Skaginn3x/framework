@@ -120,7 +120,7 @@
     },
     {
       "name": "pack-aarch64-gcc-debug-static",
-      "inherits": ["pack-aarch64-gcc-debug", "cfg-enable-static"],
+      "inherits": ["pack-gcc-debug-static"],
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine",
         "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -128,7 +128,7 @@
     },
     {
       "name": "pack-aarch64-gcc-release-static",
-      "inherits": ["pack-aarch64-gcc-release", "cfg-enable-static"],
+      "inherits": ["pack-gcc-release-static"],
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine",
         "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
