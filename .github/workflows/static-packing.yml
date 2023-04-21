@@ -34,7 +34,7 @@ jobs:
         shell: alpine.sh --root {0}
 
       - name: Cache Ninja
-        id: cache-ninja
+        id: cache-ninja-${{ matrix.architecture }}
         uses: actions/cache@v3
         with:
           path: build-ninja
@@ -47,7 +47,7 @@ jobs:
           cmake -B build-ninja -S ninja-$VERSION
           cmake --build build-ninja
         shell: alpine.sh {0}
-        if: steps.cache-ninja.outputs.cache-hit != 'true'
+        if: steps.cache-ninja-${{ matrix.architecture }}.outputs.cache-hit != 'true'
 
       - name: Install ninja
         run: |
