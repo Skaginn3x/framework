@@ -2,7 +2,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO skaginn3x/dbus-asio
     REF vcpkg
-    SHA512 6c9df2bf07258a8a059a7f16653701533b606cf8804e14bc7cb416bdeaeb2c54b79b418ca6eea045da3acd1673562098265f4ee37711ade8c68197e41f8348de
+    SHA512 4a70f699160378a7c62755ad1873c2da0dc52eb651b288b5570a72c33205d6f161329bd44d93f23ec276cfa4b8e06d68e8506a281f41d2223c71fd5291c37607
 )
 
 vcpkg_cmake_configure(
@@ -16,6 +16,6 @@ vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/dbus-asio)
 vcpkg_fixup_pkgconfig()
 vcpkg_copy_pdbs()
 
-file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 
 file(INSTALL ${SOURCE_PATH}/COPYING DESTINATION ${CURRENT_PACKAGES_DIR}/share/dbus-asio RENAME copyright)

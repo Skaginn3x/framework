@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.21)
 find_package(glaze CONFIG REQUIRED)
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 find_package(fmt CONFIG REQUIRED)
+find_package(dbus-asio CONFIG REQUIRED)
 
 add_library(libconfman
   STATIC
