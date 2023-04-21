@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_static_artifacts:
     runs-on: ubuntu-${{ matrix.ubuntu_version }}.04
@@ -67,8 +71,6 @@ jobs:
         run: | 
           ln -s /bin/sh /usr/bin/sh
           ln -s /usr/bin/cmake /usr/local/bin/cmake
-          mkdir -p /var/tfc
-          chown $USER:$USER -R /var/tfc  # todo fix this differently
         shell: alpine.sh --root {0}
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
@@ -82,13 +84,20 @@ jobs:
           vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
           vcpkgJsonGlob: 'vcpkg.json'
 
-      - name: Pack it v2
-        uses: lukka/run-cmake@v10.3
-        with:
-          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
+#      - name: Pack it v2
+#        uses: lukka/run-cmake@v10.3
+#        with:
+#          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
+#
+#          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+#          workflowPreset: 'packflow-gcc-${{matrix.build_type}}-static'
 
-          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          workflowPreset: 'packflow-gcc-${{matrix.build_type}}-static'
+      # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
+      - name: Pack it
+        run: |
+          cmake --workflow --preset packflow-gcc-${{matrix.build_type}}-static
+        shell: alpine.sh --root {0}
+
       - name: Upload vcpkg log
         if: failure()
         uses: actions/upload-artifact@v3
@@ -101,15 +110,6 @@ jobs:
         with:
           name: vcpkg-build-fail-logs
           path: ${{ github.workspace }}/vcpkg/**/*err.log
-
-      # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
-      - name: Pack it
-        run: |
-          cmake --workflow --preset packflow-gcc-${{matrix.build_type}}-static
-          
-          cat /home/runner/work/framework/framework/vcpkg/buildtrees/libgpiod/autoconf-x64-linux-gcc-alpine-err.log
-        shell: alpine.sh --root {0}
-
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
