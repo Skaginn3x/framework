@@ -139,8 +139,7 @@ void gpio::chip_ready_to_read(std::error_code const& err) noexcept {
     auto offset = chip_.read_info_event().get_line_info().offset();
     auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(offset) };
     pin_event(offset, static_cast<bool>(settings.output_value()));
-  }
-  catch (std::exception const& exc) {
+  } catch (std::exception const& exc) {
     logger_.info("Chip event got an exception: {}", exc.what());
   }
   chip_asio_.async_wait(boost::asio::posix::descriptor_base::wait_read, std::bind_front(&gpio::chip_ready_to_read, this));
