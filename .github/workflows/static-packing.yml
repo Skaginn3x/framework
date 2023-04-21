@@ -74,6 +74,8 @@ jobs:
       - name: Pack it v2
         uses: lukka/run-cmake@v10.3
         with:
+          useShell: ${{ steps.alpine.outputs.root-path }}/abin/alpine.sh
+          
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           workflowPreset: 'packflow-gcc-${{matrix.build_type}}-static'
       - name: Upload vcpkg log
