@@ -48,7 +48,7 @@ template <>
 struct glz::meta<pin> {
   //  clang-format off
   static constexpr auto value{ glz::object(
-      "direction", &pin::direction, "Input or Output"
+      "direction", &pin::direction, "Input or Output",
       "in_or_out", &pin::in_or_out, "Instance"
       )
   };
@@ -60,7 +60,7 @@ struct glz::meta<pin::in> {
   using in = pin::in;
   //  clang-format off
   static constexpr auto value{ glz::object(
-      "edge", &in::edge, "Event edge detection"
+      "edge", &in::edge, "Event edge detection",
       "bias", &in::bias, "Voltage bias"
       )
   };
@@ -72,7 +72,7 @@ struct glz::meta<pin::out> {
   using out = pin::out;
   //  clang-format off
   static constexpr auto value{ glz::object(
-      "force", &out::force, "Force output to state"
+      "force", &out::force, "Force output to state",
       "drive", &out::drive, "Transistor driver"
       )
   };
@@ -84,11 +84,11 @@ struct glz::meta<pin::out::force_e> {
   using enum pin::out::force_e;
   //  clang-format off
   static constexpr auto value{ glz::enumerate(
-      "as_is", as_is, "Do not make any changes",
-      "on", on, "Force to ON then go back to as_is",
-      "off", off, "Force to OFF then go back to as_is",
-      "save_on", save_on, "Force indefinitely to ON",
-      "save_off", save_off, "Force indefinitely to OFF"
+      "as_is", as_is, // "Do not make any changes",
+      "on", on, // "Force to ON then go back to as_is",
+      "off", off, // "Force to OFF then go back to as_is",
+      "save_on", save_on, // "Force indefinitely to ON",
+      "save_off", save_off //, "Force indefinitely to OFF"
       )
   };
   // clang-format on
@@ -99,9 +99,9 @@ struct glz::meta<gpiod::line::direction> {
   using enum gpiod::line::direction;
   //  clang-format off
   static constexpr auto value{ glz::enumerate(
-      "as_is", AS_IS, "Request the pin, but don't change current direction.",
-      "input", INPUT, "Direction is input - we're reading the state of a GPIO pin.",
-      "output", OUTPUT, "Direction is output - we're driving the GPIO line."
+      "as_is", AS_IS, //"Request the pin, but don't change current direction.",
+      "input", INPUT, //"Direction is input - we're reading the state of a GPIO pin.",
+      "output", OUTPUT //, "Direction is output - we're driving the GPIO line."
       )
   };
   // clang-format on
@@ -112,10 +112,10 @@ struct glz::meta<gpiod::line::edge> {
   using enum gpiod::line::edge;
   //  clang-format off
   static constexpr auto value{ glz::enumerate(
-      "none", NONE, "Pin edge detection is disabled.",
-      "rising", RISING, "Pin detects rising edge events.",
-      "falling", FALLING, "Line detect falling edge events.",
-      "both", BOTH, "Line detects both rising and falling edge events."
+      "none", NONE, // "Pin edge detection is disabled.",
+      "rising", RISING, // "Pin detects rising edge events.",
+      "falling", FALLING, // "Line detect falling edge events.",
+      "both", BOTH //, "Line detects both rising and falling edge events."
       )
   };
   // clang-format on
@@ -126,11 +126,11 @@ struct glz::meta<gpiod::line::bias> {
   using enum gpiod::line::bias;
   //  clang-format off
   static constexpr auto value{ glz::enumerate(
-      "as_is", AS_IS, "Don't change the bias setting when applying line config.",
-      "unknown", UNKNOWN, "The internal bias state is unknown.",
-      "disabled", DISABLED, "The internal bias is disabled.",
-      "pull_up", PULL_UP, "The internal pull-up bias is enabled.",
-      "pull_down", PULL_DOWN, "The internal pull-down bias is enabled."
+      "as_is", AS_IS, // "Don't change the bias setting when applying line config.",
+      "unknown", UNKNOWN, // "The internal bias state is unknown.",
+      "disabled", DISABLED, // "The internal bias is disabled.",
+      "pull_up", PULL_UP, // "The internal pull-up bias is enabled.",
+      "pull_down", PULL_DOWN //, "The internal pull-down bias is enabled."
       )
   };
   // clang-format on
@@ -141,9 +141,9 @@ struct glz::meta<gpiod::line::drive> {
   using enum gpiod::line::drive;
   //  clang-format off
   static constexpr auto value{ glz::enumerate(
-      "push_pull", PUSH_PULL, "Drive setting is push-pull.",
-      "open_drain", OPEN_DRAIN, "Pin output is open-drain.",
-      "open_source", OPEN_SOURCE, "Pin output is open-source."
+      "push_pull", PUSH_PULL, // "Drive setting is push-pull.",
+      "open_drain", OPEN_DRAIN, // "Pin output is open-drain.",
+      "open_source", OPEN_SOURCE //, "Pin output is open-source."
       )
   };
   // clang-format on
@@ -175,7 +175,7 @@ private:
 
   void ipc_event(pin_index_t, bool state) noexcept;
 
-  void chip_event(std::error_code const&, std::size_t bytes_transferred) noexcept;
+  void chip_ready_to_read(std::error_code const&) noexcept;
 
   asio::io_context& ctx_;
   gpiod::chip chip_;

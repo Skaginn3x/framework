@@ -10,10 +10,10 @@ gpio::gpio(asio::io_context& ctx, std::filesystem::path const& char_device)
     pin_config.direction.observe(std::bind_front(&gpio::pin_direction_change, this, idx));
     idx++;
   }
-  chip_asio_.async_read_some(chip_asio_buffer_, std::bind_front(&gpio::chip_event, this));
+  chip_asio_.async_wait(boost::asio::posix::descriptor_base::wait_read, std::bind_front(&gpio::chip_ready_to_read, this));
 }
 
-void gpio::init(config_t const&) {
+void gpio::init([[maybe_unused]] config_t const& config) {
   logger_.info("GPIO started");
 }
 void gpio::pin_direction_change(pin_index_t idx,
@@ -128,16 +128,22 @@ void gpio::ipc_event(gpio::pin_index_t idx, bool state) noexcept {
   settings.set_output_value(static_cast<gpiod::line::value>(state));
   chip_.prepare_request().add_line_settings(idx, settings).do_request();
 }
-void gpio::chip_event(std::error_code const& err, std::size_t) noexcept {
+void gpio::chip_ready_to_read(std::error_code const& err) noexcept {
   if (err) {
     logger_.warn("Unexpected error for gpio chip file descriptor, error: \"{}\"", err.message());
     return;
   }
   // todo log timestamp from event vs current time
-  auto offset = chip_.read_info_event().get_line_info().offset();
-  auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(offset) };
-  pin_event(offset, static_cast<bool>(settings.output_value()));
-  chip_asio_.async_read_some(chip_asio_buffer_, std::bind_front(&gpio::chip_event, this));
+  try {
+    [[maybe_unused]] auto event{ chip_.read_info_event() };
+    auto offset = chip_.read_info_event().get_line_info().offset();
+    auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(offset) };
+    pin_event(offset, static_cast<bool>(settings.output_value()));
+  }
+  catch (std::exception const& exc) {
+    logger_.info("Chip event got an exception: {}", exc.what());
+  }
+  chip_asio_.async_wait(boost::asio::posix::descriptor_base::wait_read, std::bind_front(&gpio::chip_ready_to_read, this));
 }
 
 }  // namespace tfc
