@@ -78,6 +78,18 @@ jobs:
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           workflowPreset: 'packflow-gcc-${{matrix.build_type}}-static'
+      - name: Upload vcpkg log
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: vcpkg-build-fail-logs
+          path: /**/out.log
+      - name: Upload vcpkg log
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: vcpkg-build-fail-logs
+          path: /**/err.log
 
       # todo would be nice to use lukka/run-cmake but rpm needs root for some reason when packaging
       - name: Pack it
