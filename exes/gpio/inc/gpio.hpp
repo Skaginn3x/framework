@@ -160,7 +160,7 @@ public:
   using ipc_input_t = tfc::ipc::bool_recv_conf_cb;
   using send_or_recv_t = std::variant<std::monostate, std::shared_ptr<ipc_input_t>, ipc_output_t>;  // todo why shared
   using config_t = tfc::confman::config<std::vector<pin>>;
-  using pin_index_t = std::size_t;
+  using pin_index_t = std::uint32_t;
 
   gpio(asio::io_context& ctx, std::filesystem::path const& char_device);
 
