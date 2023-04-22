@@ -20,6 +20,9 @@ jobs:
         ubuntu_version: [20, 22]
         build_type: [ debug, release ]
         architecture: [ x86_64, aarch64 ]
+        exclude:
+          - ubuntu_version: 20
+            architecture: aarch64
     steps:
       - uses: actions/checkout@v3
       - uses: jirutka/setup-alpine@v1
@@ -128,16 +131,16 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}-static
-          path: build/**/*.deb
+          path: build/pack-*-static/*.deb
       - name: Upload rpm package
         if: matrix.ubuntu_version == 22
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}-static
-          path: build/**/*.rpm
+          path: build/pack-*-static/*.rpm
       - name: Upload tar package
         if: matrix.ubuntu_version == 22
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}-static
-          path: build/**/*.tar.gz
+          path: build/pack-*-static/*.tar.gz
