@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: ubuntu packaging
@@ -14,11 +18,14 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [debug, release]
+        architecture: [ x86_64, aarch64 ]
     steps:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 g++-12-aarch64-linux-gnu curl ninja-build autoconf-archive doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
+          sudo ln -s /usr/bin/aarch64-linux-gnu-gcc-12 /usr/bin/aarch64-linux-gnu-gcc
+          sudo ln -s /usr/bin/aarch64-linux-gnu-g++-12 /usr/bin/aarch64-linux-gnu-g++
 
       - uses: actions/checkout@v3
       - name: commissioning
@@ -36,27 +43,58 @@ jobs:
           vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
+        if: matrix.architecture == 'x86_64'
         uses: lukka/run-cmake@v10.3
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           workflowPreset: 'packflow-gcc-${{matrix.build_type}}'
 
+      - name: Pack it aarch64
+        if: matrix.architecture == 'aarch64'
+        uses: lukka/run-cmake@v10.3
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          workflowPreset: 'packflow-aarch64-gcc-${{matrix.build_type}}'
+
       - name: Test install
+        if: matrix.architecture == 'x86_64'
         run: |
           sudo apt-get install ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
       - name: Upload debian package
+        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-gcc-${{matrix.build_type}}/*.deb
       - name: Upload rpm package
+        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-gcc-${{matrix.build_type}}/*.rpm
       - name: Upload tar package
+        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-gcc-${{matrix.build_type}}/*.tar.gz
+
+      - name: Upload debian package
+        if: matrix.architecture == 'aarch64'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.deb
+      - name: Upload rpm package
+        if: matrix.architecture == 'aarch64'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.rpm
+      - name: Upload tar package
+        if: matrix.architecture == 'aarch64'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfc-framework-${{matrix.build_type}}
+          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.tar.gz

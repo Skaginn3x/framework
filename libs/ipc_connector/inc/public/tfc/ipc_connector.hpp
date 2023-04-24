@@ -34,6 +34,12 @@ public:
             }
           });
         }) {}
+
+  slot_configurable(slot_configurable&) noexcept = default;
+  slot_configurable(slot_configurable&&) noexcept = default;
+  auto operator=(slot_configurable&&) noexcept -> slot_configurable& = default;
+  auto operator=(slot_configurable const&) noexcept -> slot_configurable& = default;
+
   [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
 
   [[nodiscard]] auto config() const noexcept -> confman::config<storage::connect> const& { return config_; }

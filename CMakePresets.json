@@ -15,6 +15,15 @@
       ]
     },
     {
+      "name": "dev-aarch64-gcc-debug",
+      "generator": "Ninja",
+      "inherits": [
+        "cfg-vcpkg-aarch64",
+        "cfg-build-dir",
+        "cfg-debug"
+      ]
+    },
+    {
       "name": "dev-clang-debug-dynamic",
       "generator": "Ninja",
       "inherits": [
@@ -86,6 +95,44 @@
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-alpine"
       }
+    },
+    {
+      "name": "pack-aarch64-gcc-debug",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "inherits": [
+        "cfg-vcpkg-aarch64",
+        "pack-gcc-debug"
+      ]
+    },
+    {
+      "name": "pack-aarch64-gcc-release",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "inherits": [
+        "cfg-vcpkg-aarch64",
+        "pack-gcc-release"
+      ]
+    },
+    {
+      "name": "pack-aarch64-gcc-debug-static",
+      "inherits": ["pack-gcc-debug-static"],
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine",
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "pack-aarch64-gcc-release-static",
+      "inherits": ["pack-gcc-release-static"],
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "aarch64-linux-gcc-alpine",
+        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
     }
   ],
   "buildPresets": [
@@ -120,6 +167,22 @@
     {
       "name": "build-pack-gcc-release-static",
       "configurePreset": "pack-gcc-release-static"
+    },
+    {
+      "name": "build-pack-aarch64-gcc-debug",
+      "configurePreset": "pack-aarch64-gcc-debug"
+    },
+    {
+      "name": "build-pack-aarch64-gcc-release",
+      "configurePreset": "pack-aarch64-gcc-release"
+    },
+    {
+      "name": "build-pack-aarch64-gcc-debug-static",
+      "configurePreset": "pack-aarch64-gcc-debug-static"
+    },
+    {
+      "name": "build-pack-aarch64-gcc-release-static",
+      "configurePreset": "pack-aarch64-gcc-release-static"
     },
     {
       "name": "build-docs",
@@ -202,6 +265,26 @@
     {
       "name": "pack-gcc-release-static",
       "configurePreset": "pack-gcc-release-static",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-aarch64-gcc-debug",
+      "configurePreset": "pack-aarch64-gcc-debug",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-aarch64-gcc-release",
+      "configurePreset": "pack-aarch64-gcc-release",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-aarch64-gcc-debug-static",
+      "configurePreset": "pack-aarch64-gcc-debug-static",
+      "inherits": [ "pack-linux-common" ]
+    },
+    {
+      "name": "pack-aarch64-gcc-release-static",
+      "configurePreset": "pack-aarch64-gcc-release-static",
       "inherits": [ "pack-linux-common" ]
     }
   ],
@@ -300,6 +383,74 @@
         {
           "type": "package",
           "name": "pack-gcc-release-static"
+        }
+      ]
+    },
+    {
+      "name": "packflow-aarch64-gcc-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-aarch64-gcc-debug"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-aarch64-gcc-debug"
+        },
+        {
+          "type": "package",
+          "name": "pack-aarch64-gcc-debug"
+        }
+      ]
+    },
+    {
+      "name": "packflow-aarch64-gcc-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-aarch64-gcc-release"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-aarch64-gcc-release"
+        },
+        {
+          "type": "package",
+          "name": "pack-aarch64-gcc-release"
+        }
+      ]
+    },
+    {
+      "name": "packflow-aarch64-gcc-debug-static",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-aarch64-gcc-debug-static"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-aarch64-gcc-debug-static"
+        },
+        {
+          "type": "package",
+          "name": "pack-aarch64-gcc-debug-static"
+        }
+      ]
+    },
+    {
+      "name": "packflow-aarch64-gcc-release-static",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "pack-aarch64-gcc-release-static"
+        },
+        {
+          "type": "build",
+          "name": "build-pack-aarch64-gcc-release-static"
+        },
+        {
+          "type": "package",
+          "name": "pack-aarch64-gcc-release-static"
         }
       ]
     }

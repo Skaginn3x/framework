@@ -1,3 +1,4 @@
 vcpkg-sys*
 build
 .idea
+vcpkg/
