@@ -7,7 +7,8 @@ add_library(logger STATIC
 add_library(tfc::logger ALIAS logger)
 target_include_directories(logger
   PUBLIC
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
   PRIVATE
     inc
 )

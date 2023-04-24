@@ -2,15 +2,17 @@ project(progbase)
 cmake_minimum_required(VERSION 3.21)
 
 add_library(base
-  STATIC
-    src/progbase.cpp
+  src/progbase.cpp
 )
 add_library(tfc::base ALIAS base)
+get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(base
   PUBLIC
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
   PRIVATE
     inc
+    ${TFC_LOGGER_INCLUDE_DIRS}
 )
 
 find_package(Boost REQUIRED COMPONENTS program_options)
@@ -22,7 +24,6 @@ target_link_libraries(base
     Boost::program_options
     fmt::fmt
     tfc::stx
-    tfc::logger
 )
 
 add_library_to_docs(tfc::base)

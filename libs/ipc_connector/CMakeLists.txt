@@ -8,7 +8,8 @@ add_library(tfc::ipc_connector ALIAS ipc_connector)
 
 target_include_directories(ipc_connector
   PUBLIC
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
   PRIVATE
     inc
 )
