@@ -1,10 +1,10 @@
 #include <filesystem>
 
+#include <sdbus-c++/sdbus-c++.h>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/program_options.hpp>
 #include <boost/ut.hpp>
-#include <sdbus-c++/sdbus-c++.h>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/detail/config_rpc_client.hpp>
@@ -19,7 +19,6 @@ using ut::operator""_test;
 using ut::operator/;
 
 namespace bpo = boost::program_options;
-
 
 auto main(int argc, char** argv) -> int {
   auto desc{ tfc::base::default_description() };
