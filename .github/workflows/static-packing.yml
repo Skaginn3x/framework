@@ -33,7 +33,7 @@ jobs:
           branch: v3.17
           packages: >
             g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive bash automake autoconf libtool meson gperf libcap
-            doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz
+            doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz coreutils
       - name: Get new cmake
         run: |
           apk upgrade cmake --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/
