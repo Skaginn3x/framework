@@ -4,7 +4,6 @@
 # Target operating system name.
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
-set(CMAKE_CROSSCOMPILING TRUE)
 
 # Name of C compiler.
 find_program(GCC-12 "aarch64-linux-gnu-gcc-12")
