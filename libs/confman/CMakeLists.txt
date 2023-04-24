@@ -6,8 +6,7 @@ find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 find_package(fmt CONFIG REQUIRED)
 
 add_library(libconfman
-  STATIC
-    src/confman.cpp
+  src/confman.cpp
 )
 add_library(tfc::confman ALIAS libconfman)
 

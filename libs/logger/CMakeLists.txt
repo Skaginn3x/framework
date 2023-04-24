@@ -1,7 +1,7 @@
 project(logger)
 cmake_minimum_required(VERSION 3.21)
 
-add_library(logger STATIC
+add_library(logger
   src/logger.cpp
 )
 add_library(tfc::logger ALIAS logger)
