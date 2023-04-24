@@ -21,6 +21,8 @@ set(CMAKE_FIND_ROOT_PATH /usr/aarch64-linux-gnu)
 set(CMAKE_INCLUDE_PATH  /usr/include/aarch64-linux-gnu)
 set(CMAKE_LIBRARY_PATH  /usr/lib/aarch64-linux-gnu)
 set(CMAKE_PROGRAM_PATH  /usr/bin/aarch64-linux-gnu)
+set(CMAKE_AR /usr/bin/aarch64-linux-gnu-ar)
+set(CMAKE_STRIP /usr/bin/aarch64-linux-gnu-strip)
 
 # Adjust the default behavior of the FIND_XXX() commands:
 # search programs in the host environment only.
