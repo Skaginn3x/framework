@@ -1,10 +1,10 @@
 #include <filesystem>
 
-#include <sdbus-c++/sdbus-c++.h>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/program_options.hpp>
 #include <boost/ut.hpp>
+#include <sys/capability.h>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/detail/config_rpc_client.hpp>
@@ -26,7 +26,7 @@ auto main(int argc, char** argv) -> int {
   desc.add_options()("slow,s", bpo::bool_switch(&run_slow)->default_value(false));
   tfc::base::init(argc, argv, desc);
 
-  auto connection = sdbus::createSessionBusConnection();
+  [[maybe_unused]] auto cap = cap_max_bits();
 
   [[maybe_unused]] ut::suite const rpc_test_cases = [] {
     "happy dbus"_test = [] {
