@@ -11,6 +11,9 @@
       "host": true
     },
     "libcap",
-    "libmount"
+    "libmount",
+    "liblzma",
+    "lz4",
+    "zstd"
   ]
 }
