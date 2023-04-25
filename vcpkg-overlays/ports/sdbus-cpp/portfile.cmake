@@ -9,7 +9,6 @@ vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
     -DBUILD_DOC=OFF
-    -DBUILD_LIBSYSTEMD=ON
 )
 
 vcpkg_cmake_install()
