@@ -12,6 +12,10 @@ project(tfc-framework
 enable_testing()
 
 
+# TODO: Depending on libsystemd should add libcap to the linker as a transitive dep
+link_libraries(cap)
+
+# TODO: Depending on dbus-cpp should add libsystemd, Threads to the linker as a transitive dep
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=236)
 if(NOT TARGET PkgConfig::Systemd)
