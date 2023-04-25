@@ -10,6 +10,7 @@ message(WARNING "package dir ${CURRENT_PACKAGES_DIR}")
 vcpkg_configure_meson(
   SOURCE_PATH "${SOURCE_PATH}"
   OPTIONS
+    -Dstatic-libsystemd=true
     -Daudit=false
   OPTIONS_DEBUG
     -Drootprefix=${CURRENT_PACKAGES_DIR}/debug
