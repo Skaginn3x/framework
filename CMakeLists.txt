@@ -11,6 +11,19 @@ project(tfc-framework
 )
 enable_testing()
 
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=236)
+if(NOT TARGET PkgConfig::Systemd)
+  message(FATAL_ERROR "libsystemd of version at least 236 is required, but was not found "
+      "(if you have systemd in your OS, you may want to install package containing pkgconfig "
+      " files for libsystemd library. On Ubuntu, that is libsystemd-dev. "
+      " Alternatively, you may turn BUILD_LIBSYSTEMD on for sdbus-c++ to download, build "
+      "and incorporate libsystemd as embedded library within sdbus-c++)")
+endif()
+find_package(Threads REQUIRED)
+
+
 # Add the cmake folder so the FindSphinx module is found
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake" "${CMAKE_CURRENT_LIST_DIR}/cmake/findModules")
 
