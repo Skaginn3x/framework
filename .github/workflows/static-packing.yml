@@ -32,7 +32,7 @@ jobs:
           arch: ${{ matrix.architecture }}
           branch: v3.17
           packages: >
-            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive bash automake autoconf libtool meson gperf libcap
+            g++ curl zip unzip tar build-base musl python3 cmake make linux-headers openssl-dev git rpm-dev autoconf-archive bash automake autoconf libtool gperf gettext
             doxygen py3-sphinx py3-breathe py3-myst-parser py3-sphinx_rtd_theme graphviz coreutils libmount mount gettext
       - name: Get new cmake
         run: |
