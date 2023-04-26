@@ -1,10 +1,8 @@
 add_executable(ipc-ruler src/ipc-ruler.cpp)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
-find_package(sdbus-c++ CONFIG REQUIRED)
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(PKG_SDBUSPLUS REQUIRED IMPORTED_TARGET sdbusplus)
+find_package(unofficial-sdbusplus CONFIG REQUIRED)
 
 target_link_libraries(ipc-ruler
   PUBLIC
@@ -12,8 +10,7 @@ target_link_libraries(ipc-ruler
     tfc::base
     tfc::logger
     Boost::program_options
-    SDBusCpp::sdbus-c++
-    PkgConfig::PKG_SDBUSPLUS
+    unofficial::sdbusplus
 )
 
 include(GNUInstallDirs)

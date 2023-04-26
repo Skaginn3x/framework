@@ -1,0 +1,31 @@
+
+get_filename_component(_sdbusplus_root "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(_sdbusplus_root "${_sdbusplus_root}" PATH)
+get_filename_component(_sdbusplus_root "${_sdbusplus_root}" PATH)
+
+if (EXISTS "${_sdbusplus_root}/include/sdbusplus")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
+    find_package(unofficial-systemd CONFIG REQUIRED)
+
+    add_library(unofficial::sdbusplus INTERFACE IMPORTED)
+    set_target_properties(unofficial::sdbusplus PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES   "${_sdbusplus_root}/include"
+        IMPORTED_CONFIGURATIONS         "Debug;Release")
+
+    target_link_libraries(unofficial::sdbusplus
+        INTERFACE
+            PkgConfig::SDBUSPLUS
+            unofficial::systemd::libsystemd
+    )
+
+    set(sdbusplus_FOUND TRUE)
+
+else()
+    message(WARNING "DID not FiND SYSTEMD")
+
+    set(sdbusplus_FOUND FALSE)
+
+endif()
+
+unset(_sdbusplus_root)

@@ -44,7 +44,6 @@ add_test(
 add_executable(dbus_test sdbus_test.cpp)
 
 find_package(unofficial-systemd CONFIG REQUIRED)
-find_package(sdbus-c++ CONFIG REQUIRED)
 target_link_libraries(dbus_test
   PRIVATE
     unofficial::systemd::libsystemd
@@ -54,7 +53,6 @@ target_link_libraries(dbus_test
     Boost::program_options
     fmt::fmt
     glaze::glaze
-    SDBusCpp::sdbus-c++
 )
 
 add_test(
