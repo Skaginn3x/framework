@@ -1,0 +1,14 @@
+diff --git a/meson.build b/meson.build
+index 448d167..613a5d9 100644
+--- a/meson.build
++++ b/meson.build
+@@ -24,9 +24,6 @@ endif
+ root_inc = include_directories('include')
+ 
+ libsdbusplus_src = files(
+-    'src/async/context.cpp',
+-    'src/async/match.cpp',
+-    'src/async/scope.cpp',
+     'src/bus.cpp',
+     'src/event.cpp',
+     'src/exception.cpp',
