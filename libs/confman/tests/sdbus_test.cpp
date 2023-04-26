@@ -1,10 +1,10 @@
 #include <filesystem>
 
+#include <sys/capability.h>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/program_options.hpp>
 #include <boost/ut.hpp>
-#include <sys/capability.h>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/detail/config_rpc_client.hpp>

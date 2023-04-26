@@ -29,7 +29,6 @@ static constexpr auto dbus_object_path = "/com/skaginn3x/ipc_ruler"sv;
 struct user {
   std::string name;
   int age;
-
 };
 
 auto main(int argc, char** argv) -> int {
@@ -45,42 +44,15 @@ auto main(int argc, char** argv) -> int {
 
   dbus_iface->register_property("count", 0, sdbusplus::asio::PropertyPermission::readWrite);
 
-  std::vector<std::string> myStringVec = {"some", "test", "data"};
-  std::vector<int> myIntVec = {1, 2, 3};
+  std::vector<std::string> myStringVec = { "some", "test", "data" };
+  std::vector<int> myIntVec = { 1, 2, 3 };
 
-  dbus_iface->register_method("TestFunction", [](int number, std::string name){
-    std::cout << number << name << std::endl;
-  });
-  dbus_iface->register_property("vector_of_string", myStringVec,
-                           sdbusplus::asio::PropertyPermission::readWrite);
+  dbus_iface->register_method("TestFunction",
+                              [](int number, std::string name) { std::cout << number << name << std::endl; });
+  dbus_iface->register_property("vector_of_string", myStringVec, sdbusplus::asio::PropertyPermission::readWrite);
   dbus_iface->register_property("vector_of_int", myIntVec);
 
   dbus_iface->initialize();
   ctx.run();
   std::cout << "Complete" << std::endl;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
