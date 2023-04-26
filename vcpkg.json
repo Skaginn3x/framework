@@ -20,6 +20,7 @@
       "name": "libgpiod",
       "features": ["cxx-bindings"]
     },
-    "sdbus-cpp"
+    "sdbus-cpp",
+    "sdbusplus"
   ]
 }
