@@ -17,14 +17,14 @@
 #include "tfc/logger.hpp"
 #include "tfc/progbase.hpp"
 
-using std::string_literals::operator""s;
+using std::string_view_literals::operator""sv;
 
 // D-Bus constants
 
 // service name
-static auto dbus_service_name = "com.skaginn3x.ipc_ruler"s;
+static constexpr auto dbus_service_name = "com.skaginn3x.ipc_ruler"sv;
 // object path
-static auto dbus_object_path = "/com/skaginn3x/ipc_ruler"s;
+static constexpr auto dbus_object_path = "/com/skaginn3x/ipc_ruler"sv;
 
 struct user {
   std::string name;
