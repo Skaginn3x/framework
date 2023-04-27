@@ -14,10 +14,13 @@ target_include_directories(liboperation_mode
 )
 set_target_properties(liboperation_mode PROPERTIES PREFIX "")
 
+find_package(unofficial-sdbusplus CONFIG REQUIRED)
 target_link_libraries(liboperation_mode
   PUBLIC
     tfc::base
     tfc::logger
+  PRIVATE
+    unofficial::sdbusplus
 )
 
 add_library_to_docs(tfc::operation_mode)
