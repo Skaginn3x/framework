@@ -1,5 +1,4 @@
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # enable full llvm assembler, byte code gen, linking optimisations
