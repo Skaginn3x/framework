@@ -7,12 +7,13 @@ find_package(mp-units CONFIG REQUIRED)
 find_package(soem CONFIG REQUIRED)
 
 
-add_library(ec STATIC src/ec.cpp src/base.cpp)
+add_library(ec src/ec.cpp src/base.cpp)
 add_library(tfc::ec ALIAS ec)
 
 target_include_directories(ec
   PUBLIC
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
     ${BEXT_SML_INCLUDE_DIRS}
   PRIVATE
     inc/

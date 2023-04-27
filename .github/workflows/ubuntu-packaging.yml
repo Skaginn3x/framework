@@ -23,7 +23,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 g++-12-aarch64-linux-gnu curl ninja-build autoconf-archive doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
+          sudo apt-get install -y git curl zip unzip tar wget lsb-release gnupg cppcheck software-properties-common g++-12 g++-12-aarch64-linux-gnu ninja-build autoconf autoconf-archive meson gperf libcap-dev pkg-config libtool rpm autopoint doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
           sudo ln -s /usr/bin/aarch64-linux-gnu-gcc-12 /usr/bin/aarch64-linux-gnu-gcc
           sudo ln -s /usr/bin/aarch64-linux-gnu-g++-12 /usr/bin/aarch64-linux-gnu-g++
 
@@ -39,7 +39,7 @@ jobs:
           # If not using a submodule for vcpkg sources, this specifies which commit
           # id must be checkout from a Git repo. It must not set if using a submodule
           # for vcpkg.
-          vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
+          vcpkgGitCommitId: 'eebcbc7ca3f4ef825b14949e0b702a7517ab8565'
           vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
@@ -55,6 +55,19 @@ jobs:
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           workflowPreset: 'packflow-aarch64-gcc-${{matrix.build_type}}'
+
+      - name: Upload vcpkg log
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: vcpkg-build-fail-logs
+          path: ${{ github.workspace }}/vcpkg/**/*out.log
+      - name: Upload vcpkg log
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: vcpkg-build-fail-logs
+          path: ${{ github.workspace }}/vcpkg/**/*err.log
 
       - name: Test install
         if: matrix.architecture == 'x86_64'

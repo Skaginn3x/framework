@@ -43,12 +43,13 @@
       "name": "cfg-vcpkg-clang-dynamic",
       "hidden": true,
       "inherits": [
-        "cfg-vcpkg-dynamic",
         "cfg-vcpkg-clang"
       ],
       "cacheVariables": {
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot-clang-dynamic",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic"
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic",
+        "BUILD_SHARED_LIBS": "ON",
+        "LINK_SHARED_LIBS": "ON"
       }
     },
     {

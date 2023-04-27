@@ -2,8 +2,7 @@ project(ipc)
 cmake_minimum_required(VERSION 3.21)
 
 add_library(ipc
-  STATIC
-    src/ipc.cpp
+  src/ipc.cpp
 )
 add_library(tfc::ipc ALIAS ipc)
 
@@ -11,7 +10,8 @@ find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 
 target_include_directories(ipc
   PUBLIC
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
     ${AZMQ_INCLUDE_DIRS}
   PRIVATE
     inc

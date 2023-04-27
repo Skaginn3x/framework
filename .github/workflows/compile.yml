@@ -23,7 +23,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
           curl https://apt.llvm.org/llvm.sh -o llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 16 all
@@ -41,7 +41,7 @@ jobs:
           # If not using a submodule for vcpkg sources, this specifies which commit
           # id must be checkout from a Git repo. It must not set if using a submodule
           # for vcpkg.
-          vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
+          vcpkgGitCommitId: 'eebcbc7ca3f4ef825b14949e0b702a7517ab8565'
           vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.

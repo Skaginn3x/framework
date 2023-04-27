@@ -1,4 +1,7 @@
 find_package(ut CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(fmt CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
 add_executable(observer_test observer_test.cpp)
 
 target_link_libraries(observer_test PRIVATE tfc::confman Boost::ut glaze::glaze)
@@ -36,6 +39,27 @@ add_test(
     confman_test
   COMMAND
     confman_test
+)
+
+add_executable(dbus_test sdbus_test.cpp)
+
+find_package(unofficial-systemd CONFIG REQUIRED)
+target_link_libraries(dbus_test
+  PRIVATE
+    unofficial::systemd::libsystemd
+    tfc::confman
+    tfc::ipc_connector
+    Boost::ut
+    Boost::program_options
+    fmt::fmt
+    glaze::glaze
+)
+
+add_test(
+  NAME
+    dbus_test
+  COMMAND
+    dbus_test
 )
 
 add_subdirectory(examples)

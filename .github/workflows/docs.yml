@@ -17,7 +17,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libsystemd-dev doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck python3-myst-parser
+          sudo apt-get install libsystemd-dev doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck python3-myst-parser graphviz coreutils libmount mount gettext
       - uses: actions/checkout@v3
 
       - uses: lukka/get-cmake@latest
@@ -26,7 +26,7 @@ jobs:
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
-          vcpkgGitCommitId: '19af97cba8ca48474e4ad15a24ed50271a9ecdac'
+          vcpkgGitCommitId: 'eebcbc7ca3f4ef825b14949e0b702a7517ab8565'
 
           vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
 

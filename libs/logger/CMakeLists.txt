@@ -1,13 +1,14 @@
 project(logger)
 cmake_minimum_required(VERSION 3.21)
 
-add_library(logger STATIC
+add_library(logger
   src/logger.cpp
 )
 add_library(tfc::logger ALIAS logger)
 target_include_directories(logger
   PUBLIC
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
   PRIVATE
     inc
 )

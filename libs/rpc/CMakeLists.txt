@@ -13,7 +13,8 @@ add_library(tfc::rpc ALIAS librpc)
 
 target_include_directories(librpc
   INTERFACE
-    inc/public
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
     ${AZMQ_INCLUDE_DIRS}
 )
 
