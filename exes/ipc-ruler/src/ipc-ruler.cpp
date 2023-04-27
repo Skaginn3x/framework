@@ -1,6 +1,7 @@
 // ipc-ruler.cpp - Dbus API service maintaining a list of signals/slots and which signal
 // is connected to which slot
 
+#include <iostream>
 #include <functional>
 #include <string_view>
 #include <unordered_map>
@@ -9,7 +10,6 @@
 #include <boost/asio/spawn.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
-#include <sdbusplus/asio/sd_event.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/exception.hpp>
 #include <sdbusplus/server.hpp>
@@ -114,6 +114,10 @@ public:
     if (slots_.find(slot_name) == slots_.end() || signals_.find(signal_name) == signals_.end()){
       throw std::runtime_error("Signal or slot does not exist");
     }
+    if (slots_.at(slot_name).type != signals_.at(signal_name).type){
+      throw std::runtime_error("Signal and slot types dont match");;
+    }
+
     return true;
   }
   auto disconnect(const std::string& slot_name) -> bool {
@@ -164,6 +168,7 @@ auto main(int argc, char** argv) -> int {
 
   dbus_iface->register_property("some_prop", 10, sdbusplus::asio::PropertyPermission::readWrite);
   dbus_iface->register_signal<std::tuple<std::string, std::string>>("connection_change");
+
 
 
   dbus_iface->initialize();
