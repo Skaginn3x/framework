@@ -17,7 +17,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck python3-myst-parser graphviz coreutils mount gettext ninja-build autoconf autoconf-archive meson
+          sudo apt-get install doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck python3-myst-parser graphviz cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
       - uses: actions/checkout@v3
 
       - uses: lukka/get-cmake@latest
