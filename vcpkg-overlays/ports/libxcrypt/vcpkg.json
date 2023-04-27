@@ -1,0 +1,10 @@
+{
+  "name": "libxcrypt",
+  "version": "4.4.33",
+  "port-version": 0,
+  "description": "libxcrypt.",
+  "homepage": "https://github.com/besser82/libxcrypt",
+  "dependencies": [
+
+  ]
+}

@@ -13,7 +13,7 @@
     "libcap",
     "libmount",
     "liblzma",
-    "libgcrypt",
+    "libxcrypt",
     "lz4",
     "zstd"
   ]
