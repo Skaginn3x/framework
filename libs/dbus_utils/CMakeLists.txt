@@ -1,0 +1,24 @@
+project(dbus_util)
+cmake_minimum_required(VERSION 3.21)
+
+add_library(dbus_util src/dbus_util.cpp)
+add_library(tfc::dbus_util ALIAS dbus_util)
+target_include_directories(dbus_util
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
+  PRIVATE
+    inc
+)
+
+find_package(unofficial-sdbusplus CONFIG REQUIRED)
+
+target_link_libraries(dbus_util
+  PUBLIC
+  PRIVATE
+        unofficial::sdbusplus
+)
+
+add_library_to_docs(tfc::dbus_util)
+
+add_subdirectory(tests)

@@ -3,8 +3,7 @@
 
 #include <iostream>
 #include <functional>
-#include <string_view>
-#include <unordered_map>
+#include <concepts>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/spawn.hpp>
@@ -17,6 +16,7 @@
 
 #include "tfc/logger.hpp"
 #include "tfc/progbase.hpp"
+#include "tfc/dbus_util.hpp"
 
 using std::string_literals::operator""s;
 
@@ -27,7 +27,7 @@ static auto dbus_service_name = "com.skaginn3x.ipc_ruler"s;
 // object path
 static auto dbus_object_path = "/com/skaginn3x/ipc_ruler"s;
 
-using user = std::tuple<std::string, int>;
+using dbus_error = tfc::dbus::exception::runtime;
 
 /**
  * A class exposing methods for managing signals and slots
@@ -51,7 +51,7 @@ public:
     std::string modified_by;
     std::string connected_to;
   };
-  ipc_manager() : logger_("ipc_manager") {}
+  ipc_manager(std::function<void (std::string, std::string)> on_connect_cb) : logger_("ipc_manager"), on_connect_cb{on_connect_cb} {}
   auto register_signal(std::string name, int type) -> bool {
     logger_.trace("register_signal called name: {}, type: {}", name, type);
     auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -109,15 +109,23 @@ public:
     }
     return ret;
   }
+
   auto connect(const std::string& slot_name, const std::string& signal_name) -> bool {
     logger_.trace("connect called, slot: {}, signal: {}", slot_name, signal_name);
-    if (slots_.find(slot_name) == slots_.end() || signals_.find(signal_name) == signals_.end()){
-      throw std::runtime_error("Signal or slot does not exist");
+    if (slots_.find(slot_name) == slots_.end()){
+      //throw sdbusplus::exception::InvalidEnumString();
+      throw dbus_error(fmt::format("Slot ({}) does not exist", slot_name));
+    }
+    if (signals_.find(signal_name) == signals_.end()){
+      throw dbus_error(fmt::format("Signal ({}) does not exist", signal_name));
     }
     if (slots_.at(slot_name).type != signals_.at(signal_name).type){
-      throw std::runtime_error("Signal and slot types dont match");;
+      throw dbus_error("Signal and slot types dont match");
     }
 
+    slots_.at(slot_name).connected_to = signal_name;
+    on_connect_cb(slot_name, signal_name);
+    // send a notification
     return true;
   }
   auto disconnect(const std::string& slot_name) -> bool {
@@ -125,6 +133,8 @@ public:
     if (slots_.find(slot_name) == slots_.end()){
       throw std::runtime_error("Slot does not exist");
     }
+    slots_.at(slot_name).connected_to = "";
+    on_connect_cb(slot_name, "");
     return true;
   }
 
@@ -132,6 +142,7 @@ private:
   std::unordered_map<std::string, signal> signals_;
   std::unordered_map<std::string, slot> slots_;
   tfc::logger::logger logger_;
+  std::function<void (std::string, std::string)> on_connect_cb;
 };
 
 auto main(int argc, char** argv) -> int {
@@ -143,13 +154,17 @@ auto main(int argc, char** argv) -> int {
   connection->request_name(dbus_service_name.data());
   auto server = sdbusplus::asio::object_server(connection);
 
+  // Example of how to introspect
+  // busctl introspect --user com.skaginn3x.ipc_ruler /com/skaginn3x/ipc_ruler
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_iface =
       server.add_interface(dbus_object_path.data(), "com.skaginn3x.manager");
 
-  ipc_manager m;
+  ipc_manager m([&dbus_iface](std::string slot_name, std::string signal_name){
+    auto message = dbus_iface->new_signal("connection_change");
+    message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
+    message.signal_send();
+  });
 
-  // dbus_iface->register_method("register_signal", std::bind(&ipc_manager::register_signal, &m, std::placeholders::_1,
-  // std::placeholders::_2));
   dbus_iface->register_method("register_signal",
                               [&m](const std::string& name, int type) { return m.register_signal(name, type); });
   dbus_iface->register_method("register_slot",
@@ -164,17 +179,10 @@ auto main(int argc, char** argv) -> int {
 
   dbus_iface->register_method("disconnect", [&m](const std::string& slot_name) { return m.disconnect(slot_name); });
 
-  // dbus_iface->register_method("get_all_signals", std::bind_front(&ipc_manager::get_all_signals, m));
-
-  dbus_iface->register_property("some_prop", 10, sdbusplus::asio::PropertyPermission::readWrite);
   dbus_iface->register_signal<std::tuple<std::string, std::string>>("connection_change");
-
 
 
   dbus_iface->initialize();
 
-  // ctx.run_for(std::chrono::seconds(10));
-  for(int i = 0; i < 100; i++){
-    ctx.run_for(std::chrono::seconds(10));
-  }
+  ctx.run();
 }
