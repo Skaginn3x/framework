@@ -10,6 +10,7 @@ target_link_libraries(ipc-ruler
     tfc::base
     tfc::logger
     tfc::dbus_util
+    tfc::ipc_connector
     Boost::program_options
     unofficial::sdbusplus
 )
