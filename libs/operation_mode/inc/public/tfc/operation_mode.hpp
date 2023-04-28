@@ -6,23 +6,25 @@
 #include <functional>
 #include <system_error>
 #include <vector>
+#include <functional>
 
+#include <tfc/operation_mode/common.hpp>
 #include <tfc/logger.hpp>
 
-#include <sdbusplus/asio/connection.hpp>
-#include <sdbusplus/asio/object_server.hpp>
+namespace sdbusplus::asio {
+class connection;
+}
+namespace sdbusplus::bus::match {
+struct match;
+}
+namespace sdbusplus::message {
+class message;
+}
+namespace boost::asio {
+class io_context;
+}
 
 namespace tfc::operation {
-
-enum struct mode_e : std::uint8_t {
-  unknown = 0,
-  stopped = 1,
-  running = 2,
-  fault = 3,
-  cleaning = 4,
-  emergency = 5,
-  maintenance = 6,
-};
 
 namespace concepts {
 using new_mode_e = mode_e;
@@ -32,8 +34,9 @@ concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>
 }  // namespace concepts
 
 class interface {
-  interface();
-  explicit interface(std::string_view log_key);
+public:
+  explicit interface(boost::asio::io_context&);
+  interface(boost::asio::io_context&, std::string_view log_key);
 
   /// \brief set operation mode controller to new state
   /// \note take care since this will affect the whole system
@@ -105,9 +108,12 @@ private:
     };
   }
 
+  void mode_update(sdbusplus::message::message&) noexcept;
+
   std::atomic<uuid_t> next_uuid_{};
   std::vector<callback_item> callbacks_{};
-  std::shared_ptr<sdbusplus::SdBusInterface> dbus_interface_{};
+  std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_{};
+  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> mode_updates_{};
   tfc::logger::logger logger_;
 };
 
