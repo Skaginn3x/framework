@@ -16,7 +16,7 @@ auto main(int argc, char** argv) -> int {
 
   tfc::operation::interface mode{ctx};
 
-  mode.on_leave([](tfc::operation::mode_e::stopped,tfc::operation::mode_e, tfc::operation::mode_e){});
+  mode.on_leave(tfc::operation::mode_e::stopped, [](tfc::operation::mode_e, tfc::operation::mode_e){});
 
   ctx.run();
 

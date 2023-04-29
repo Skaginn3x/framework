@@ -3,6 +3,7 @@
 #include <string_view>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
+#include <glaze/glaze.hpp>
 
 namespace tfc::operation {
 
@@ -29,3 +30,31 @@ struct update_message {
 };
 
 }  // namespace tfc::operation
+
+template <>
+struct glz::meta<tfc::operation::mode_e> {
+  using enum tfc::operation::mode_e;
+  // clang-format off
+  static constexpr auto value{ glz::enumerate(
+      "unknown", unknown,
+      "stopped", stopped,
+      "running", running,
+      "specialized_running_1", specialized_running_1,
+      "specialized_running_2", specialized_running_2,
+      "specialized_running_3", specialized_running_3,
+      "fault", fault,
+      "cleaning", cleaning,
+      "emergency", emergency,
+      "maintenance", maintenance
+  ) };
+  // clang-format on
+  static constexpr std::string_view name{ "tfc::operation::mode_e" };
+};
+
+template <>
+struct glz::meta<tfc::operation::update_message> {
+  using T = tfc::operation::update_message;
+  static constexpr auto value{ glz::object("new_mode", &T::new_mode, "old_mode", &T::old_mode) };
+  static constexpr auto name{ "tfc::operation::update_message" };
+};
+

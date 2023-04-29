@@ -17,11 +17,13 @@ set_target_properties(liboperation_mode PROPERTIES PREFIX "")
 
 find_package(Boost REQUIRED)
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
 target_link_libraries(liboperation_mode
   PUBLIC
     tfc::base
     tfc::logger
     tfc::stx
+    glaze::glaze
   PRIVATE
     Boost::boost
     unofficial::sdbusplus
