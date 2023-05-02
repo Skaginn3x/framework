@@ -249,13 +249,6 @@ namespace tfc::operation {
                           tfc::dbus::match::rules::sender<tfc::operation::sender::update>>
 };
 
-interface::interface(asio::io_context& ctx) : interface(ctx, "operation") {
-  dbus_connection_ = std::make_unique<sdbusplus::asio::connection>(ctx);
-}
-interface::interface(asio::io_context& ctx, std::string_view log_key)
-{
-}
-
 void interface::set(tfc::operation::mode_e) const {}
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {
