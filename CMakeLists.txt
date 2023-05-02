@@ -46,6 +46,7 @@ add_custom_target(
   ${ALL_SOURCE_FILES}
 )
 
+add_subdirectory(test)
 
 # from https://stackoverflow.com/questions/18968979/how-to-make-colorized-message-with-cmake
 string(ASCII 27 Esc)
