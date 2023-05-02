@@ -45,7 +45,8 @@ public:
                             tfc::dbus::match::rules::sender<tfc::operation::sender::update>>
   };
 
-  interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
+  // todo move constructor to source file
+  explicit interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
   interface(boost::asio::io_context& ctx, std::string_view log_key)
       : dbus_connection_{ new sdbusplus::asio::connection(ctx), [](sdbusplus::asio::connection* conn) { delete conn; } },
         mode_updates_{ new sdbusplus::bus::match_t(*dbus_connection_,

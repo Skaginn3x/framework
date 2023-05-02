@@ -17,7 +17,7 @@ auto main(int argc, char** argv) -> int {
   asio::io_context ctx{};
 
 //  [[maybe_unused]] sdbusplus::asio::connection foo(ctx);
-//  [[maybe_unused]] sdbusplus::asio::connection f(ctx);
+  [[maybe_unused]] sdbusplus::asio::connection f(ctx);
 
   tfc::operation::interface mode{ctx};
 
