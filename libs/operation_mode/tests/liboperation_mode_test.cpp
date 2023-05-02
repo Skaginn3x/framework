@@ -4,6 +4,8 @@
 #include <tfc/progbase.hpp>
 #include <tfc/operation_mode.hpp>
 
+#include <sdbusplus/asio/connection.hpp>
+
 namespace asio = boost::asio;
 
 auto main(int argc, char** argv) -> int {
@@ -13,6 +15,9 @@ auto main(int argc, char** argv) -> int {
   using boost::ut::expect;
 
   asio::io_context ctx{};
+
+  [[maybe_unused]] sdbusplus::asio::connection foo(ctx);
+  [[maybe_unused]] sdbusplus::asio::connection f(ctx);
 
   tfc::operation::interface mode{ctx};
 

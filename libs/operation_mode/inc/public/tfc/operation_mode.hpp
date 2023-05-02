@@ -99,11 +99,11 @@ private:
     return [this, cb = callback, uuid](new_mode_e new_mode, old_mode_e old_mode) {
       cb(new_mode, old_mode);
       if (uuid == nullptr) {
-        logger_.warn("Weird error occurred, unable to clean up callback");
+//        logger_.warn("Weird error occurred, unable to clean up callback");
         return;
       }
       if (remove_callback(*uuid)) {
-        logger_.info("Unable to remove callback from callbacks");
+//        logger_.info("Unable to remove callback from callbacks");
       }
     };
   }
@@ -114,7 +114,7 @@ private:
   std::vector<callback_item> callbacks_{};
   std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_{};
   std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> mode_updates_{};
-  tfc::logger::logger logger_;
+//  tfc::logger::logger logger_;
 };
 
 }  // namespace tfc::operation
