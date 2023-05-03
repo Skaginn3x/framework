@@ -4,7 +4,7 @@ find_package(Boost REQUIRED)
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
 #find_package(unofficial-systemd CONFIG REQUIRED)
 target_link_libraries(testme_connection
-  PRIVATE
+  PUBLIC
     Boost::boost
     unofficial::sdbusplus
 #    unofficial::systemd::libsystemd

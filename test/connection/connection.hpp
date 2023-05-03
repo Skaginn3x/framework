@@ -1,8 +1,13 @@
 #pragma once
 
 #include <memory>
-#include <sdbusplus/asio/connection.hpp>
 
+namespace boost::asio{
+class io_context;
+}
+namespace sdbusplus::asio {
+class connection;
+}
 
 
 class connection_test {
