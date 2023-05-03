@@ -16,13 +16,15 @@ public:
     for (size_t i = 0; i < 4; i++) {
       // std::unique_ptr<tfc::ipc::bool_send_exposed> ptr =
       //     std::make_unique<tfc::ipc::bool_send_exposed>();
-      bool_transmitters_.emplace_back(std::make_unique<tfc::ipc::bool_send_exposed>(ctx_, fmt::format("easyecat.{}.bool.in.{}", slave_index, i)));
+      bool_transmitters_.emplace_back(
+          std::make_unique<tfc::ipc::bool_send_exposed>(ctx_, fmt::format("easyecat.{}.bool.in.{}", slave_index, i)));
       bool_receivers_.emplace_back(
           std::make_unique<tfc::ipc::bool_recv_conf_cb>(ctx_, fmt::format("easyecat.{}.bool.out.{}", slave_index, i),
                                                         [this, i](bool value) { output_states_.set(i, value); }));
     }
     for (size_t i = 0; i < 2; i++) {
-      analog_transmitters_.push_back(std::make_unique<tfc::ipc::uint_send_exposed>(ctx_, fmt::format("easyecat.{}.uint.in.{}", slave_index, i)));
+      analog_transmitters_.push_back(
+          std::make_unique<tfc::ipc::uint_send_exposed>(ctx_, fmt::format("easyecat.{}.uint.in.{}", slave_index, i)));
     }
   }
 

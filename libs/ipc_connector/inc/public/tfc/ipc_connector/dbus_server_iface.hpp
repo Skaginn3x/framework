@@ -206,34 +206,34 @@ public:
   template <typename message_handler>
   auto register_signal(const std::string& name, tfc::ipc::type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                  "register_signal", name, static_cast<uint8_t>(type));
+                                   "register_signal", name, static_cast<uint8_t>(type));
   }
 
   template <typename message_handler>
   auto register_slot(const std::string& name, tfc::ipc::type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                  "register_slot", name, static_cast<uint8_t>(type));
+                                   "register_slot", name, static_cast<uint8_t>(type));
   }
 
   template <typename message_handler>
   auto get_all_signals(message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                  "get_all_signals");
+                                   "get_all_signals");
   }
   template <typename message_handler>
   auto get_all_slots(message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                  "get_all_slots");
+                                   "get_all_slots");
   }
   template <typename message_handler>
   auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                  "connect", slot_name, signal_name);
+                                   "connect", slot_name, signal_name);
   }
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                  "disconnect", slot_name);
+                                   "disconnect", slot_name);
   }
 
   auto match_callback(sdbusplus::message_t& msg) -> void {

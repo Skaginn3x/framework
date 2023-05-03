@@ -56,8 +56,8 @@ public:
 
   signal_exposed(asio::io_context& ctx, std::string_view name)
       : signal_{ signal<type_desc>::create(ctx, name).value() }, client_(ctx) {
-    client_.register_signal(signal_->name_w_type(), type_desc::value_e, [](boost::system::error_code const& error_code){
-      if (error_code){
+    client_.register_signal(signal_->name_w_type(), type_desc::value_e, [](boost::system::error_code const& error_code) {
+      if (error_code) {
         throw std::runtime_error("Error registering slot");
       }
     });
