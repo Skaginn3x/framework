@@ -1,7 +1,6 @@
 #include "tfc/dbus_util.hpp"
 
-tfc::dbus::exception::runtime::runtime(const std::string& description)
-    : description_{ description } {}
+tfc::dbus::exception::runtime::runtime(const std::string& description) : description_{ description } {}
 
 const char* tfc::dbus::exception::runtime::name() const noexcept {
   return "com.skaginn3x.Error.runtimeError";

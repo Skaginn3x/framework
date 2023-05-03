@@ -8,13 +8,7 @@ class el100x : public base {
 public:
   explicit el100x(boost::asio::io_context& ctx, uint16_t const slave_index) : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
-      std::expected<std::shared_ptr<tfc::ipc::bool_send>, std::error_code> ptr =
-          tfc::ipc::bool_send::create(ctx, fmt::format("EL100{}.{}.in.{}", size, slave_index, i));
-      if (!ptr) {
-        logger_.error("Ethercat, EL110x error: {}", ptr.error().message());
-        std::terminate();
-      }
-      transmitters_.push_back(ptr.value());
+      transmitters_.emplace_back(std::make_unique<tfc::ipc::bool_send_exposed>(ctx, fmt::format("EL100{}.{}.in.{}", size, slave_index, i)));
     }
   }
   static constexpr uint32_t product_code = pc;
@@ -38,7 +32,7 @@ public:
 
 private:
   std::array<bool, size> last_values_;
-  std::vector<std::shared_ptr<tfc::ipc::bool_send>> transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_send_exposed>> transmitters_;
 };
 
 using el1008 = el100x<8, 0x3f03052>;

@@ -55,13 +55,12 @@ class transmission_base {
 public:
   explicit transmission_base(std::string_view name) : name_(name) {}
 
-  [[nodiscard]] auto endpoint() const -> std::string {
-    return utils::socket::zmq::ipc_endpoint_str(
-        fmt::format("{}.{}.{}", base::get_exe_name(), base::get_proc_name(), name_w_type()));
-  }
+  [[nodiscard]] auto endpoint() const -> std::string { return utils::socket::zmq::ipc_endpoint_str(name_w_type()); }
 
   /// \return <type>.<name>
-  [[nodiscard]] auto name_w_type() const -> std::string { return fmt::format("{}.{}", type_desc::type_name, name_); }
+  [[nodiscard]] auto name_w_type() const -> std::string {
+    return fmt::format("{}.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), type_desc::type_name, name_);
+  }
 
   static constexpr std::string_view path_prefix{ "/tmp/" };  // todo remove
 

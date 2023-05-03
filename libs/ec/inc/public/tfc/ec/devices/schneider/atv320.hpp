@@ -24,11 +24,11 @@ public:
     command_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.string.command", slave_index)).value();
     for (size_t i = 0; i < 6; i++) {
       di_transmitters_.emplace_back(
-          tfc::ipc::bool_send::create(ctx, fmt::format("atv320.{}.bool.in.{}", slave_index, i)).value());
+          std::make_unique<tfc::ipc::bool_send_exposed>(ctx, fmt::format("atv320.{}.bool.in.{}", slave_index, i)));
     }
     for (size_t i = 0; i < 2; i++) {
       ai_transmitters_.emplace_back(
-          tfc::ipc::int_send::create(ctx, fmt::format("atv320.{}.int.in.{}", slave_index, i)).value());
+          std::make_unique<tfc::ipc::int_send_exposed>(ctx, fmt::format("atv320.{}.int.in.{}", slave_index, i)));
     }
     quick_stop_recv_ = std::make_unique<tfc::ipc::bool_recv_conf_cb>(
         ctx, fmt::format("atv320.{}.bool.quick_stop", slave_index), [this](bool value) { quick_stop_ = value; });
@@ -170,9 +170,9 @@ public:
 private:
   uint16_t status_word_;
   std::array<int16_t, 2> last_analog_inputs_;
-  std::vector<tfc::ipc::int_send_ptr> ai_transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::int_send_exposed>> ai_transmitters_;
   std::bitset<6> last_bool_values_;
-  std::vector<tfc::ipc::bool_send_ptr> di_transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_send_exposed>> di_transmitters_;
   std::string last_state_;
   tfc::ipc::string_send_ptr state_transmitter_;
   std::string last_command_;
