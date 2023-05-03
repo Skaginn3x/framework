@@ -24,9 +24,10 @@ target_link_libraries(liboperation_mode
     tfc::logger
     tfc::stx
     glaze::glaze
-  PRIVATE
-    Boost::boost
     unofficial::sdbusplus
+    Boost::boost
+#  PRIVATE # this part should be private but results in fault address inside asio, todo find out why
+#  PRIVATE
 )
 
 add_library_to_docs(tfc::operation_mode)

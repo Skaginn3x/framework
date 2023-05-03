@@ -249,6 +249,20 @@ namespace tfc::operation {
                           tfc::dbus::match::rules::sender<tfc::operation::sender::update>>
 };
 
+static auto open_sd_bus() {
+  sd_bus* bus = nullptr;
+  sd_bus_open(&bus);
+  return bus;
+}
+
+interface::interface(asio::io_context& ctx, std::string_view log_key)
+    : dbus_connection_{ new sdbusplus::asio::connection(ctx, open_sd_bus()), [](sdbusplus::asio::connection* conn) { delete conn; } },
+      mode_updates_{ new sdbusplus::bus::match_t(*dbus_connection_,
+                                                 mode_update_match_rule.data(),
+                                                 std::bind_front(&interface::mode_update, this)),
+                     [](sdbusplus::bus::match_t* match) { delete match; } },
+      logger_(log_key) {}
+
 void interface::set(tfc::operation::mode_e) const {}
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {

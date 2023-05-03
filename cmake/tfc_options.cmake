@@ -31,7 +31,6 @@ if(ENABLE_SANITIZATION)
     add_compile_options(
         -fsanitize=address
         -fsanitize=leak
-        -fsanitize=thread
         -fsanitize-address-use-after-scope
         -fsanitize=undefined
         -fsanitize=integer
@@ -54,13 +53,12 @@ if(ENABLE_SANITIZATION)
         -fsanitize=address
         -fsanitize-address-use-after-scope
         -fsanitize=leak
-        -fsanitize=thread
         -fsanitize=undefined
         -static-libasan
         -fPIC
         -fno-omit-frame-pointer
     )
-    add_link_options( -lasan -lubsan -ltsan)
+    add_link_options( -lasan -lubsan)
   endif()
 endif(ENABLE_SANITIZATION)
 

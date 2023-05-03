@@ -6,7 +6,6 @@ find_package(unofficial-sdbusplus CONFIG REQUIRED)
 
 target_link_libraries(testme
   PUBLIC
-    unofficial::sdbusplus
     Boost::boost
     testme_connection
 )
