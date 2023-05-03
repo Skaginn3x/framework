@@ -1,8 +1,8 @@
 vcpkg_from_github(
   OUT_SOURCE_PATH SOURCE_PATH
-  REPO skaginn3x/sdbusplus
-  REF 725d6d57fc13d1a9a0bf795410adc765af896a88
-  SHA512 e9ec3a7fba335ec0ad29c906a464c7997dd54717cb1e83802f70dc8f0f91a16ac9030beefb08fcd18d621c61bf6bba801c234df547d807eadf458fde434dcffd
+  REPO openbmc/sdbusplus
+  REF 1caa5e8a5ad9e9f26ddf2effe095ba1670911bc1
+  SHA512 9b674457a79376ba2df0a52f07d8eea61720ca7635489cb7da1c0f7b218cddeae0ce95dabc2e90cf562eddbf28b724cd90ef6b321fa738b4f1ae60912518160a
   PATCHES
     libcpp-does-not-have-stop-token.patch # https://en.cppreference.com/w/cpp/20
 )
