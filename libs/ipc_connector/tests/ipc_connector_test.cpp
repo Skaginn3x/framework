@@ -23,7 +23,7 @@ auto main(int argc, char** argv) -> int {
       std::cerr << "Error occured" << ec.what() << std::endl;
     }
   });
-  client.register_slot(fmt::format("slot"), tfc::ipc::type_e::_bool, [](const boost::system::error_code& ec) {
+  client.register_slot("slot", tfc::ipc::type_e::_bool, [](const boost::system::error_code& ec) {
     if (ec) {
       std::cerr << "Error occured" << ec.what() << std::endl;
     }

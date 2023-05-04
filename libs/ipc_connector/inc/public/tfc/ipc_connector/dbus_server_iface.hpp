@@ -3,9 +3,11 @@
 // ipc-ruler.cpp - Dbus API service maintaining a list of signals/slots and which signal
 // is connected to which slot
 
+#include <format>
 #include <functional>
 #include <utility>
 
+#include <fmt/chrono.h>
 #include <boost/asio/io_context.hpp>
 #include <magic_enum.hpp>
 #include <sdbusplus/asio/connection.hpp>
@@ -35,27 +37,28 @@ public:
     std::string name;
     tfc::ipc::type_e type;
     std::string created_by;
-    std::string created_at;
-    std::string last_registered;
+    std::chrono::time_point<std::chrono::system_clock> created_at;
+    std::chrono::time_point<std::chrono::system_clock> last_registered;
   };
   struct slot {
     std::string name;
     tfc::ipc::type_e type;
     std::string created_by;
-    std::string created_at;
-    std::string last_registered;
-    std::string last_modified;
+    std::chrono::time_point<std::chrono::system_clock> created_at;
+    std::chrono::time_point<std::chrono::system_clock> last_registered;
+    std::chrono::time_point<std::chrono::system_clock> last_modified;
     std::string modified_by;
     std::string connected_to;
   };
 
-  explicit ipc_manager(std::function<void(std::string, std::string)> on_connect_cb)
+  using slot_name = std::string_view;
+  using signal_name = std::string_view;
+  explicit ipc_manager(std::function<void(slot_name, signal_name)> on_connect_cb)
       : logger_("ipc_manager"), on_connect_cb_{ std::move(on_connect_cb) } {}
 
   auto register_signal(std::string name, tfc::ipc::type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto* timestamp_now = std::ctime(&now);
+    auto timestamp_now = std::chrono::system_clock::now();
     if (signals_.find(name) != signals_.end()) {
       signals_.at(name).last_registered = timestamp_now;
     }
@@ -67,11 +70,9 @@ public:
   }
   auto register_slot(const std::string& name, tfc::ipc::type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, magic_enum::enum_name(type));
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto* timestamp_now = std::ctime(&now);
+    auto timestamp_now = std::chrono::system_clock::now();
+    auto timestamp_never = std::chrono::time_point<std::chrono::system_clock>{};
 
-    auto never = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
-    auto* timestamp_never = std::ctime(&never);
     if (slots_.find(name) != slots_.end()) {
       slots_.at(name).last_registered = timestamp_now;
     }
@@ -89,9 +90,11 @@ public:
   auto get_all_signals() -> std::vector<std::tuple<std::string, uint8_t, std::string, std::string, std::string>> {
     logger_.trace("get_all_signals called");
     std::vector<std::tuple<std::string, uint8_t, std::string, std::string, std::string>> ret;
+    ret.reserve(signals_.size());
     for (auto& [_, signal] : signals_) {
-      ret.emplace_back(signal.name, static_cast<uint8_t>(signal.type), signal.created_by, signal.created_at,
-                       signal.last_registered);
+      ret.emplace_back(signal.name, static_cast<uint8_t>(signal.type), signal.created_by,
+                       fmt::format("{:%Y-%m-%d %H:%M:%S}", signal.created_at),
+                       fmt::format("{:%Y-%m-%d %H:%M:%S}", signal.last_registered));
     }
     return ret;
   }
@@ -101,9 +104,12 @@ public:
     std::vector<
         std::tuple<std::string, uint8_t, std::string, std::string, std::string, std::string, std::string, std::string>>
         ret;
+    ret.reserve(slots_.size());
     for (auto& [_, slot] : slots_) {
-      ret.emplace_back(slot.name, static_cast<uint8_t>(slot.type), slot.created_by, slot.created_at, slot.last_registered,
-                       slot.last_modified, slot.modified_by, slot.connected_to);
+      ret.emplace_back(slot.name, static_cast<uint8_t>(slot.type), slot.created_by,
+                       fmt::format("{:%Y-%m-%d %H:%M:%S}", slot.created_at),
+                       fmt::format("{:%Y-%m-%d %H:%M:%S}", slot.last_registered),
+                       fmt::format("{:%Y-%m-%d %H:%M:%S}", slot.last_modified), slot.modified_by, slot.connected_to);
     }
     return ret;
   }
@@ -128,7 +134,6 @@ public:
 
     slots_.at(slot_name).connected_to = signal_name;
     on_connect_cb_(slot_name, signal_name);
-    // send a notification
   }
   auto disconnect(const std::string& slot_name) -> void {
     logger_.trace("disconnect called, slot: {}", slot_name);
@@ -143,7 +148,7 @@ private:
   std::unordered_map<std::string, signal> signals_;
   std::unordered_map<std::string, slot> slots_;
   tfc::logger::logger logger_;
-  std::function<void(std::string, std::string)> on_connect_cb_;
+  std::function<void(std::string_view, std::string_view)> on_connect_cb_;
 };
 
 class ipc_manager_server {
@@ -157,7 +162,7 @@ public:
     connection_->request_name(ipc_ruler_service_name);
     dbus_iface_ = object_server_->add_unique_interface(ipc_ruler_object_path, ipc_ruler_interface_name);
 
-    ipc_manager_ = std::make_unique<ipc_manager>([&](const std::string& slot_name, const std::string& signal_name) {
+    ipc_manager_ = std::make_unique<ipc_manager>([&](std::string_view slot_name, std::string_view signal_name) {
       auto message = dbus_iface_->new_signal("connection_change");
       message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
       message.signal_send();
