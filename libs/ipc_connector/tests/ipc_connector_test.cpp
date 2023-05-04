@@ -15,9 +15,6 @@ auto main(int argc, char** argv) -> int {
   using tfc::ipc::packet;
   using tfc::ipc::type_e;
 
-  // "ipc_connector test"_test = []() {
-  // };
-
   boost::asio::io_context ctx;
   tfc::ipc_ruler::ipc_manager_client client(ctx);
 
@@ -32,7 +29,6 @@ auto main(int argc, char** argv) -> int {
     }
   });
 
-  std::cout << "HERE" << std::endl;
-  ctx.run();
+  ctx.run_for(std::chrono::milliseconds(1));
   return 0;
 }
