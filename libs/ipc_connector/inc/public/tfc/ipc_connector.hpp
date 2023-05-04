@@ -20,11 +20,7 @@ public:
       : slot_(slot_callback<type_desc>::create(ctx, name)), client_(ctx) {
     client_.register_connection_change_callback([this, callback](std::string slot_name, std::string signal_name) {
       if (slot_name == slot_->name_w_type()) {
-        if (signal_name.empty()) {
-          slot_->disconnect("");
-        } else {
-          slot_->init(signal_name, callback);
-        }
+        slot_->init(signal_name, callback);
       }
     });
     client_.register_slot(slot_->name_w_type(), type_desc::value_e, [](boost::system::error_code const& error_code) {

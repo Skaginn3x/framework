@@ -220,7 +220,7 @@ public:
   }
 
   template <typename message_handler>
-  auto register_slot(const std::string& name, tfc::ipc::type_e type, message_handler&& handler) -> void {
+  auto register_slot(const std::string_view name, tfc::ipc::type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "register_slot", name, static_cast<uint8_t>(type));
   }
@@ -252,14 +252,14 @@ public:
   }
 
   auto register_connection_change_callback(
-      std::function<void(std::string const&, std::string const&)> connection_change_callback) -> void {
+      std::function<void(std::string_view const, std::string_view const)> connection_change_callback) -> void {
     connection_change_callback_ = std::move(connection_change_callback);
   }
 
 private:
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> match_;
-  std::function<void(std::string const&, std::string const&)> connection_change_callback_ = [](std::string const&,
-                                                                                               std::string const&) {};
+  std::function<void(std::string_view const, std::string_view const)> connection_change_callback_ =
+      [](std::string_view const, std::string_view const) {};
 };
 }  // namespace tfc::ipc_ruler

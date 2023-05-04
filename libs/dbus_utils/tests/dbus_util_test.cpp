@@ -16,9 +16,9 @@ auto main(int argc, char** argv) -> int {
   "dbus runtime exception test"_test = []() {
     tfc::dbus::exception::runtime t("desc");
 
-    boost::ut::expect(strcmp(t.what(), "desc") == 0);
-    boost::ut::expect(strcmp(t.description(), "desc") == 0);
-    boost::ut::expect(strcmp(t.name(), "com.skaginn3x.Error.runtimeError") == 0);
+    boost::ut::expect(std::string_view(t.what()) == std::string_view("desc"));
+    boost::ut::expect(std::string_view(t.description()) == std::string_view("desc"));
+    boost::ut::expect(std::string_view(t.name()) == std::string_view("com.skaginn3x.Error.runtimeError"));
     boost::ut::expect(t.get_errno() == 0);
   };
 }
