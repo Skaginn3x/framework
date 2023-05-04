@@ -275,12 +275,12 @@ void interface::mode_update(sdbusplus::message::message& msg) noexcept {
     return [mode](callback_item const& itm) { return itm.mode == mode; };
   } };
 
-  static const auto invoke{ [ update_msg](callback_item const& itm) noexcept {
+  static const auto invoke{ [this, update_msg](callback_item const& itm) noexcept {
     if (itm.callback) {
       try {
         std::invoke(itm.callback, update_msg.new_mode, update_msg.old_mode);
       } catch ([[maybe_unused]] std::exception const& exc) {
-//        logger_.warn(R"(Exception from callback id: "{}", what: "{}")", itm.uuid, exc.what());
+        logger_.warn(R"(Exception from callback id: "{}", what: "{}")", itm.uuid, exc.what());
       }
     }
   } };

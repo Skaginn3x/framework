@@ -18,16 +18,17 @@ set_target_properties(liboperation_mode PROPERTIES PREFIX "")
 find_package(Boost REQUIRED)
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(liboperation_mode
   PUBLIC
     tfc::base
     tfc::logger
     tfc::stx
     glaze::glaze
+    magic_enum::magic_enum
+  PRIVATE
     unofficial::sdbusplus
     Boost::boost
-#  PRIVATE # this part should be private but results in fault address inside asio, todo find out why
-#  PRIVATE
 )
 
 add_library_to_docs(tfc::operation_mode)

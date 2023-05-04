@@ -4,6 +4,7 @@
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <glaze/glaze.hpp>
+#include <magic_enum.hpp>
 
 namespace tfc::operation {
 
@@ -19,6 +20,10 @@ enum struct mode_e : std::uint8_t {
   emergency = 8,
   maintenance = 9,
 };
+
+[[nodiscard]] inline constexpr auto mode_e_str(mode_e enum_value) {
+  return magic_enum::enum_name(enum_value);
+}
 
 namespace sender {
 static constexpr std::string_view update{ "org.tfc.operation_mode.update" };
