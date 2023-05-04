@@ -47,7 +47,6 @@ struct update_message {
 
 }  // namespace tfc::operation
 
-namespace sdbusplus::message::types::details {
 
 namespace concepts {
 
@@ -58,6 +57,8 @@ concept dbus_reflectable = requires {
 };
 
 }
+
+namespace sdbusplus::message::types::details {
 
 template <typename value_t, typename enable_t>
 struct type_id;
@@ -84,10 +85,22 @@ struct convert_from_string<tfc::operation::mode_e> {
   }
 };
 
-template <>
+template <concepts::dbus_reflectable struct_t>
 struct convert_to_string<tfc::operation::mode_e> {
   static auto op(tfc::operation::mode_e mode) -> std::string {
     return std::string{ magic_enum::enum_name(mode) };
+  }
+};
+
+template <typename struct_t, typename enable_t>
+struct append_single;
+
+template <concepts::dbus_reflectable struct_t>
+struct append_single<struct_t, void> {
+  static void op(auto* interface, auto* sd_bus_msg, concepts::dbus_reflectable auto&& item)
+  {
+    constexpr auto dbus_type = std::get<0>(sdbusplus::message::types::details::type_id<struct_t, void>::value);
+    interface->sd_bus_message_append_basic(sd_bus_msg, dbusType, s.c_str());
   }
 };
 
