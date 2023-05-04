@@ -20,23 +20,23 @@ public:
   static constexpr uint32_t product_code = 0x389;
 
   explicit atv320(boost::asio::io_context& ctx, uint16_t slave_index) : base(slave_index) {
-    state_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.string.state", slave_index)).value();
-    command_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.string.command", slave_index)).value();
+    state_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.state", slave_index)).value();
+    command_transmitter_ = tfc::ipc::string_send::create(ctx, fmt::format("atv320.{}.command", slave_index)).value();
     for (size_t i = 0; i < 6; i++) {
       di_transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::bool_send_exposed>(ctx, fmt::format("atv320.{}.bool.in.{}", slave_index, i)));
+          std::make_unique<tfc::ipc::bool_send_exposed>(ctx, fmt::format("atv320.{}.in.{}", slave_index, i)));
     }
     for (size_t i = 0; i < 2; i++) {
       ai_transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::int_send_exposed>(ctx, fmt::format("atv320.{}.int.in.{}", slave_index, i)));
+          std::make_unique<tfc::ipc::int_send_exposed>(ctx, fmt::format("atv320.{}.in.{}", slave_index, i)));
     }
     quick_stop_recv_ = std::make_unique<tfc::ipc::bool_recv_conf_cb>(
-        ctx, fmt::format("atv320.{}.bool.quick_stop", slave_index), [this](bool value) { quick_stop_ = value; });
+        ctx, fmt::format("atv320.{}.quick_stop", slave_index), [this](bool value) { quick_stop_ = value; });
     frequency_recv_ = std::make_unique<tfc::ipc::double_recv_conf_cb>(
-        ctx, fmt::format("atv320.{}.double.out.freq", slave_index),
+        ctx, fmt::format("atv320.{}.out.freq", slave_index),
         [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
     frequency_transmit_ =
-        tfc::ipc::double_send::create(ctx, fmt::format("atv320.{}.double.out.current_freq", slave_index)).value();
+        tfc::ipc::double_send::create(ctx, fmt::format("atv320.{}.out.current_freq", slave_index)).value();
   }
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
