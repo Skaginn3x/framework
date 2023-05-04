@@ -1,7 +1,9 @@
-
 #include <cstdint>
-#include <magic_enum.hpp>
 #include <string_view>
+
+#include <magic_enum.hpp>
+#include <boost/mp.hpp>
+
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/utils/dbus.hpp>
@@ -28,7 +30,7 @@ enum struct mode_e : std::uint8_t {
 namespace dbus {
 static constexpr std::string_view service_name{ "operation_mode" };
 static constexpr std::string_view name{ tfc::dbus::const_dbus_name<service_name> };
-static constexpr std::string_view path{ tfc::dbus::const_dbus_name<service_name> };
+static constexpr std::string_view path{ tfc::dbus::const_dbus_path<service_name> };
 namespace signal {
 static constexpr std::string_view update{ "update" };
 }  // namespace signal
@@ -38,23 +40,54 @@ struct update_message {
   mode_e new_mode{ mode_e::unknown };
   mode_e old_mode{ mode_e::unknown };
 
-  struct refl_dbus {
-    using T = up
-    static constexpr auto value{ std::tuple() }
-  };
-
+  static constexpr auto dbus_reflection{ [](auto&& self){
+    return boost::mp::reflection::to_tuple(self);
+  } };
 };
 
 }  // namespace tfc::operation
 
 namespace sdbusplus::message::types::details {
 
+namespace concepts {
+
+template <typename struct_t>
+concept dbus_reflectable = requires {
+  struct_t::dbus_reflection;
+  requires std::invocable<decltype(struct_t::dbus_reflection), struct_t&&>;
+};
+
+}
+
+template <typename value_t, typename enable_t>
+struct type_id;
+
+template <concepts::dbus_reflectable struct_t>
+struct type_id<struct_t, void> {
+  static constexpr auto value{ type_id<decltype(struct_t::dbus_reflection(struct_t{})), void>::value };
+};
+
+template <typename T>
+struct convert_from_string;
+
+template <typename T>
+struct convert_to_string;
+
 template <>
-struct type_id<tfc::operation::update_message> {
-  static constexpr auto value = std::tuple_cat(tuple_type_id_v<SD_BUS_TYPE_STRUCT_BEGIN>,
-                                               type_id_v<tfc::operation::mode_e>,
-                                               type_id_v<tfc::operation::mode_e>,
-                                               tuple_type_id_v<SD_BUS_TYPE_STRUCT_END>);
+struct convert_from_string<tfc::operation::mode_e>
+{
+  static auto op(const std::string& mode_str) noexcept {
+    return std::nullopt;
+  }
+};
+
+template <>
+struct convert_to_string<tfc::operation::mode_e>
+{
+  static auto op(tfc::operation::mode_e mode) -> std::string {
+//    auto view = magic_enum::enum_name(mode);
+    return { "view.data(), view.size()" };
+  }
 };
 
 }  // namespace sdbusplus::message::types::details

@@ -25,8 +25,15 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
             new sdbusplus::asio::object_server(dbus_),
             [](sdbusplus::asio::object_server* ptr) { delete ptr; })
       },
-      dbus_interface_{ dbus_object_server_->add_interface(operation::dbus::path.data(), operation::dbus::name.data()) } {
-  dbus_interface_->register_signal<>()
+      dbus_interface_{ dbus_object_server_->add_interface(
+          std::string{ operation::dbus::path.data(), operation::dbus::path.size() },
+          std::string{ operation::dbus::name.data(), operation::dbus::name.size() } ) } {
+  dbus_interface_->register_signal<operation::update_message>(
+      std::string(operation::dbus::signal::update.data(), operation::dbus::signal::update.size()));
+
+  dbus_interface_->register_method("set_mode", [](operation::mode_e){});
+
+  dbus_interface_->initialize();
 }
 
 }  // namespace tfc
