@@ -5,6 +5,9 @@ vcpkg_from_github(
   SHA512 9b674457a79376ba2df0a52f07d8eea61720ca7635489cb7da1c0f7b218cddeae0ce95dabc2e90cf562eddbf28b724cd90ef6b321fa738b4f1ae60912518160a
   PATCHES
     libcpp-does-not-have-stop-token.patch # https://en.cppreference.com/w/cpp/20
+    # disabling boost definitions that cannot be defined because if privately linked to this library in one place
+    # and use different definitions for boost asio in other places will produce sigsev fault
+    disable-boost-definitions.patch
 )
 
 x_vcpkg_get_python_packages(
