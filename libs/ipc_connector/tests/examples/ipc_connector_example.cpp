@@ -2,7 +2,6 @@
 #include <tfc/ipc_connector/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 
-#include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 
 namespace asio = boost::asio;
@@ -10,8 +9,6 @@ namespace asio = boost::asio;
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  using boost::ut::operator""_test;
-  using boost::ut::expect;
   using tfc::ipc::packet;
   using tfc::ipc::type_e;
 

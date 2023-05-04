@@ -56,28 +56,30 @@ public:
   explicit ipc_manager(std::function<void(slot_name, signal_name)> on_connect_cb)
       : logger_("ipc_manager"), on_connect_cb_{ std::move(on_connect_cb) } {}
 
-  auto register_signal(std::string name, tfc::ipc::type_e type) -> void {
+  auto register_signal(const std::string_view name, tfc::ipc::type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
-    if (signals_.find(name) != signals_.end()) {
-      signals_.at(name).last_registered = timestamp_now;
+    auto str_name = std::string(name);
+    if (signals_.find(str_name) != signals_.end()) {
+      signals_.at(str_name).last_registered = timestamp_now;
     }
-    signals_.emplace(name, signal{ .name = name,
+    signals_.emplace(name, signal{ .name = std::string(name),
                                    .type = type,
                                    .created_by = "omar",
                                    .created_at = timestamp_now,
                                    .last_registered = timestamp_now });
   }
-  auto register_slot(const std::string& name, tfc::ipc::type_e type) -> void {
+  auto register_slot(const std::string_view name, tfc::ipc::type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
     auto timestamp_never = std::chrono::time_point<std::chrono::system_clock>{};
 
-    if (slots_.find(name) != slots_.end()) {
-      slots_.at(name).last_registered = timestamp_now;
+    auto str_name = std::string(name);
+    if (slots_.find(str_name) != slots_.end()) {
+      slots_.at(str_name).last_registered = timestamp_now;
     }
     slots_.emplace(name, slot{
-                             .name = name,
+                             .name = std::string(name),
                              .type = type,
                              .created_by = "omar",
                              .created_at = timestamp_now,
@@ -114,33 +116,36 @@ public:
     return ret;
   }
 
-  auto connect(const std::string& slot_name, const std::string& signal_name) -> void {
+  auto connect(const std::string_view slot_name, const std::string_view signal_name) -> void {
+    auto str_slot_name = std::string(slot_name);
+    auto str_signal_name = std::string(signal_name);
     logger_.trace("connect called, slot: {}, signal: {}", slot_name, signal_name);
-    if (slots_.find(slot_name) == slots_.end()) {
+    if (slots_.find(str_slot_name) == slots_.end()) {
       std::string const err_msg = fmt::format("Slot ({}) does not exist", slot_name);
       logger_.warn(err_msg);
       throw dbus_error(err_msg);
     }
-    if (signals_.find(signal_name) == signals_.end()) {
+    if (signals_.find(str_signal_name) == signals_.end()) {
       std::string const err_msg = fmt::format("Signal ({}) does not exist", signal_name);
       logger_.warn(err_msg);
       throw dbus_error(err_msg);
     }
-    if (slots_.at(slot_name).type != signals_.at(signal_name).type) {
+    if (slots_.at(str_slot_name).type != signals_.at(str_signal_name).type) {
       std::string const err_msg = "Signal and slot types dont match";
       logger_.warn(err_msg);
       throw dbus_error(err_msg);
     }
 
-    slots_.at(slot_name).connected_to = signal_name;
+    slots_.at(str_slot_name).connected_to = signal_name;
     on_connect_cb_(slot_name, signal_name);
   }
-  auto disconnect(const std::string& slot_name) -> void {
+  auto disconnect(const std::string_view slot_name) -> void {
     logger_.trace("disconnect called, slot: {}", slot_name);
-    if (slots_.find(slot_name) == slots_.end()) {
+    const std::string str_slot_name = std::string(slot_name);
+    if (slots_.find(str_slot_name) == slots_.end()) {
       throw std::runtime_error("Slot does not exist");
     }
-    slots_.at(slot_name).connected_to = "";
+    slots_.at(str_slot_name).connected_to = "";
     on_connect_cb_(slot_name, "");
   }
 
