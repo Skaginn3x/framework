@@ -18,11 +18,12 @@ public:
 
   slot_configurable(asio::io_context& ctx, std::string_view name, auto&& callback)
       : slot_(slot_callback<type_desc>::create(ctx, name)), client_(ctx) {
-    client_.register_connection_change_callback([this, callback](std::string slot_name, std::string signal_name) {
-      if (slot_name == slot_->name_w_type()) {
-        slot_->init(signal_name, callback);
-      }
-    });
+    client_.register_connection_change_callback(
+        [this, callback](const std::string_view slot_name, const std::string_view signal_name) {
+          if (slot_name == slot_->name_w_type()) {
+            slot_->init(signal_name, callback);
+          }
+        });
     client_.register_slot(slot_->name_w_type(), type_desc::value_e, [](boost::system::error_code const& error_code) {
       if (error_code) {
         throw std::runtime_error("Error registering slot");
