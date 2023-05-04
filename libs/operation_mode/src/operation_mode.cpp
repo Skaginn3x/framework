@@ -17,65 +17,59 @@ namespace sdbusplus::message::types::details {
 // template <tfc::stx::is_enum enum_t>
 // struct type_id<enum_t> : type_id<std::underlying_type_t<enum_t>> {};
 
-template <>
-struct type_id<tfc::operation::update_message> {
-  static constexpr auto value = std::tuple_cat(tuple_type_id_v<SD_BUS_TYPE_STRUCT_BEGIN>,
-                                               type_id_v<tfc::operation::mode_e>,
-                                               type_id_v<tfc::operation::mode_e>,  // todo generate type list
-                                               tuple_type_id_v<SD_BUS_TYPE_STRUCT_END>);
-};
 
-struct foo {
-  int32_t a{};
-  std::string b{};
-  struct glaze {
-    static constexpr auto value{ &foo::a };
-    static constexpr std::string_view name{ "foo" };
-  };
-};
+//
+//struct foo {
+//  int32_t a{};
+//  std::string b{};
+//  struct glaze {
+//    static constexpr auto value{ &foo::a };
+//    static constexpr std::string_view name{ "foo" };
+//  };
+//};
 
 // glz object er bara tuplet::tuple
 
-template <typename value_t>
-concept const_c = requires { requires std::is_const_v<value_t>; };
-
-template <const_c value_t>
-struct type_id<value_t> {
-  static constexpr auto value = type_id_v<std::remove_const_t<value_t>>;
-};
-
-template <typename value_t>
-concept pointer_c = requires { requires std::is_pointer_v<value_t>; };
-
-template <pointer_c value_t>
-struct type_id<value_t> {
-  static constexpr auto value = type_id_v<std::remove_pointer_t<value_t>>;
-};
+//template <typename value_t>
+//concept const_c = requires { requires std::is_const_v<value_t>; };
+//
+//template <const_c value_t>
+//struct type_id<value_t> {
+//  static constexpr auto value = type_id_v<std::remove_const_t<value_t>>;
+//};
+//
+//template <typename value_t>
+//concept pointer_c = requires { requires std::is_pointer_v<value_t>; };
+//
+//template <pointer_c value_t>
+//struct type_id<value_t> {
+//  static constexpr auto value = type_id_v<std::remove_pointer_t<value_t>>;
+//};
 
 // not sure why int32_t* const needs this when int32_t const* does not
-template <typename value_t>
-requires const_c<value_t> && pointer_c<value_t>
-struct type_id<value_t> {
-  static constexpr auto value = type_id_v<std::remove_const_t<std::remove_pointer_t<value_t>>>;
-};
+//template <typename value_t>
+//requires const_c<value_t> && pointer_c<value_t>
+//struct type_id<value_t> {
+//  static constexpr auto value = type_id_v<std::remove_const_t<std::remove_pointer_t<value_t>>>;
+//};
+//
+//template <typename value_t>
+//concept ref_c = requires { requires std::is_reference_v<value_t>; };
+//
+//template <ref_c value_t>
+//struct type_id<value_t> {
+//  static constexpr auto value = type_id_v<std::remove_reference_t<value_t>>;
+//};
+//
+//template <typename ...args>
+//struct type_id<glz::tuplet::tuple<args...>> {
+//  static constexpr auto value = type_id_v<std::tuple<args...>>;
+//};
 
-template <typename value_t>
-concept ref_c = requires { requires std::is_reference_v<value_t>; };
-
-template <ref_c value_t>
-struct type_id<value_t> {
-  static constexpr auto value = type_id_v<std::remove_reference_t<value_t>>;
-};
-
-template <typename ...args>
-struct type_id<glz::tuplet::tuple<args...>> {
-  static constexpr auto value = type_id_v<std::tuple<args...>>;
-};
-
-static_assert(type_id_v<int32_t const*> == std::make_tuple('i'));
-static_assert(type_id_v<int32_t * const> == std::make_tuple('i'));
+//static_assert(type_id_v<int32_t const*> == std::make_tuple('i'));
+//static_assert(type_id_v<int32_t * const> == std::make_tuple('i'));
 //static_assert(type_id_v<int32_t const* const> == std::make_tuple('i')); // todo
-static_assert(type_id_v<int32_t const&> == std::make_tuple('i'));
+//static_assert(type_id_v<int32_t const&> == std::make_tuple('i'));
 //decltype(foo::glaze::value) bar;
 //static_assert(type_id_v<std::remove_all_extents_t<decltype(foo::glaze::value)>> == std::make_tuple('i'));
 
@@ -244,9 +238,10 @@ struct read_single<tfc::operation::update_message> {
 
 namespace tfc::operation {
 
-[[maybe_unused]] static constexpr std::string_view mode_update_match_rule{
-  stx::string_view_join_v<tfc::dbus::match::rules::type::signal,
-                          tfc::dbus::match::rules::sender<tfc::operation::sender::update>>
+[[maybe_unused]] static constexpr std::string_view mode_update_match_rule{ stx::string_view_join_v<
+    tfc::dbus::match::rules::type::signal,
+    tfc::dbus::match::rules::sender<tfc::operation::dbus::signal::update>
+    >
 };
 
 static auto open_sd_bus() {

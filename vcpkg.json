@@ -4,6 +4,7 @@
   "dependencies": [
     "azmq",
     "bext-ut",
+    "bext-mp",
     "boost-url",
     "boost-asio",
     "boost-program-options",
