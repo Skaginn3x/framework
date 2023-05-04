@@ -1,11 +1,10 @@
 #include "app_operation_mode.hpp"
+#include "state_machine.hpp"
 
 #include <string>
 
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
-
-#include <tfc/operation_mode/common.hpp>
 
 namespace tfc {
 
@@ -27,11 +26,19 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
       },
       dbus_interface_{ dbus_object_server_->add_interface(
           std::string{ operation::dbus::path.data(), operation::dbus::path.size() },
-          std::string{ operation::dbus::name.data(), operation::dbus::name.size() } ) } {
+          std::string{ operation::dbus::name.data(), operation::dbus::name.size() }) },
+      state_machine_{ std::unique_ptr<operation::state_machine, std::function<void(operation::state_machine*)>>{
+          new operation::state_machine(), [](operation::state_machine* ptr) { delete ptr; } } } {
   dbus_interface_->register_signal<operation::update_message>(
       std::string(operation::dbus::signal::update.data(), operation::dbus::signal::update.size()));
 
-  dbus_interface_->register_method("set_mode", [](operation::mode_e){});
+  dbus_interface_->register_method("set_mode", [this](tfc::operation::mode_e new_mode){
+    auto const old_mode = state_machine_->get_mode();
+    state_machine_->try_set_mode(new_mode); // todo use return value throw dbus error?
+    auto message{ dbus_interface_->new_signal(operation::dbus::signal::update.data()) };
+    [[maybe_unused]] auto msg{ operation::update_message{ .new_mode=new_mode, .old_mode=old_mode } };
+
+  });
 
   dbus_interface_->initialize();
 }
