@@ -1,3 +1,4 @@
+add_subdirectory(configure_options)
 add_subdirectory(dbus_utils)
 add_subdirectory(stx)
 add_subdirectory(logger)
