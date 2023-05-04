@@ -15,7 +15,6 @@ find_package(unofficial-sdbusplus CONFIG REQUIRED)
 
 target_link_libraries(dbus_util
   PUBLIC
-  PRIVATE
         unofficial::sdbusplus
 )
 
