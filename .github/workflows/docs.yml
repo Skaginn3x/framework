@@ -24,7 +24,7 @@ jobs:
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: 'eebcbc7ca3f4ef825b14949e0b702a7517ab8565'
+          vcpkgGitCommitId: 'ee54793ab27409f7b1fd9bc3daf217dcdbc953a1'
           vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
 
       - name: Build
