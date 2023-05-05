@@ -6,6 +6,8 @@
 
 #include <magic_enum.hpp>
 
+#include <tfc/stx/concepts.hpp>
+
 namespace sdbusplus::concepts {
 
 template <typename struct_t>
@@ -13,9 +15,6 @@ concept dbus_reflectable = requires {
   struct_t::dbus_reflection;
   requires std::invocable<decltype(struct_t::dbus_reflection), struct_t&&>;
 };
-
-template <typename enum_t>
-concept enum_c = requires { std::is_enum_v<enum_t>; };
 
 }  // namespace sdbusplus::concepts
 
@@ -39,16 +38,20 @@ struct convert_from_string;
 template <typename value_t>
 struct convert_to_string;
 
-template <concepts::enum_c enum_t>
+template <tfc::stx::is_enum enum_t>
 struct convert_from_string<enum_t> {
   static auto op(const std::string& mode_str) noexcept -> std::optional<enum_t> {
+    // This is really iffy magic_enum has flaws and making general use case for all enums might result in difficulties later
     return magic_enum::enum_cast<enum_t>(mode_str);
   }
 };
 
-template <concepts::enum_c enum_t>
+template <tfc::stx::is_enum enum_t>
 struct convert_to_string<enum_t> {
-  static auto op(enum_t mode) -> std::string { return std::string{ magic_enum::enum_name(mode) }; }
+  static auto op(enum_t mode) -> std::string {
+    // This is really iffy magic_enum has flaws and making general use case for all enums might result in difficulties later
+    return std::string{ magic_enum::enum_name(mode) };
+  }
 };
 
 template <typename struct_t, typename enable_t>

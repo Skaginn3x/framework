@@ -18,6 +18,7 @@ target_link_libraries(dbus_util
   PUBLIC
     unofficial::sdbusplus
     magic_enum::magic_enum
+    tfc::stx
     tfc::configure_options
 )
 
