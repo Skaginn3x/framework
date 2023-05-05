@@ -45,6 +45,8 @@ public:
   using new_mode_e = mode_e;
   using old_mode_e = mode_e;
 
+  /// \brief remove callback subscription
+  /// \param uuid given id from return value of subscription
   auto remove_callback(uuid_t uuid) -> std::error_code {
     auto number_of_erased_items{ std::erase_if(callbacks_, [uuid](auto const& item) -> bool { return item.uuid == uuid; }) };
     if (number_of_erased_items == 0) {
@@ -53,19 +55,33 @@ public:
     return {};
   }
 
+  /// \brief subscribe to events when entering new mode
+  /// \param mode mode to subscribe to
+  /// \param callback invocable<new_mode_e, old_mode_e>
   auto on_enter(mode_e mode, concepts::transition_callback auto&& callback) -> uuid_t {
     return append_callback(mode, transition_e::enter, std::forward<decltype(callback)>(callback));
   }
 
+  /// \brief subscribe to events when leaving a given mode
+  /// \param mode leaving this mode
+  /// \param callback invocable<new_mode_e, old_mode_e>
   auto on_leave(mode_e mode, concepts::transition_callback auto&& callback) -> uuid_t {
     return append_callback(mode, transition_e::leave, std::forward<decltype(callback)>(callback));
   }
 
+  /// \brief subscribe to events when entering new mode
+  /// \param mode mode to subscribe to
+  /// \param callback invocable<new_mode_e, old_mode_e>
+  /// \note will automatically remove the subscription after it is called
   void on_enter_once(mode_e mode, concepts::transition_callback auto&& callback) {
     std::shared_ptr<uuid_t> uuid{};
     uuid = std::make_shared<uuid_t>(on_enter(mode, once_callback_wrapper(std::forward<decltype(callback)>(callback), uuid)));
   }
 
+  /// \brief subscribe to events when leaving a given mode
+  /// \param mode leaving this mode
+  /// \param callback invocable<new_mode_e, old_mode_e>
+  /// \note will automatically remove the subscription after it is called
   void on_leave_once(mode_e mode, concepts::transition_callback auto&& callback) {
     std::shared_ptr<uuid_t> uuid{};
     uuid = std::make_shared<uuid_t>(on_leave(mode, once_callback_wrapper(std::forward<decltype(callback)>(callback), uuid)));

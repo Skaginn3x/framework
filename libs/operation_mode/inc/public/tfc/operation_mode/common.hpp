@@ -47,7 +47,6 @@ struct update_message {
 
 }  // namespace tfc::operation
 
-
 namespace concepts {
 
 template <typename struct_t>
@@ -59,7 +58,7 @@ concept dbus_reflectable = requires {
 template <typename enum_t>
 concept enum_c = requires { std::is_enum_v<enum_t>; };
 
-}
+}  // namespace concepts
 
 namespace sdbusplus::message::types::details {
 
@@ -90,9 +89,7 @@ struct convert_from_string<enum_t> {
 
 template <concepts::enum_c enum_t>
 struct convert_to_string<enum_t> {
-  static auto op(enum_t mode) -> std::string {
-    return std::string{ magic_enum::enum_name(mode) };
-  }
+  static auto op(enum_t mode) -> std::string { return std::string{ magic_enum::enum_name(mode) }; }
 };
 
 template <typename struct_t, typename enable_t>
@@ -100,40 +97,23 @@ struct append_single;
 
 template <concepts::dbus_reflectable struct_t>
 struct append_single<struct_t, void> {
-  static void op(auto* interface, auto* sd_bus_msg, auto&& item)
-  {
-//    using struct_t_stripped = std::remove_cvref_t<struct_t>;
-//    constexpr auto dbus_type = std::get<0>(sdbusplus::message::types::details::type_id<struct_t, void>::value);
-    append_single<decltype(struct_t::dbus_reflection(struct_t{})), void>::op(interface, sd_bus_msg, struct_t::dbus_reflection(std::forward<decltype(item)>(item)));
-//    interface->sd_bus_message_append_basic(sd_bus_msg, "(ss)", s.c_str());
+  static void op(auto* interface, auto* sd_bus_msg, auto&& item) {
+    append_single<decltype(struct_t::dbus_reflection(struct_t{})), void>::op(
+        interface, sd_bus_msg, struct_t::dbus_reflection(std::forward<decltype(item)>(item)));
+  }
+};
+
+template <typename struct_t, typename enable_t>
+struct read_single;
+
+template <concepts::dbus_reflectable struct_t>
+struct read_single<struct_t, void> {
+  static void op(auto* interface, auto* sd_bus_msg, auto& return_value) {
+    using return_value_tuple_t = decltype(struct_t::dbus_reflection(struct_t{}));
+    return_value_tuple_t return_value_tuple;
+    read_single<return_value_tuple_t, void>::op(interface, sd_bus_msg, return_value_tuple);
+    return_value = std::make_from_tuple<struct_t>(return_value_tuple);
   }
 };
 
 }  // namespace sdbusplus::message::details
-
-// template <>
-// struct glz::meta<tfc::operation::mode_e> {
-//   using enum tfc::operation::mode_e;
-//   // clang-format off
-//   static constexpr auto value{ glz::enumerate(
-//       "unknown", unknown,
-//       "stopped", stopped,
-//       "running", running,
-//       "specialized_running_1", specialized_running_1,
-//       "specialized_running_2", specialized_running_2,
-//       "specialized_running_3", specialized_running_3,
-//       "fault", fault,
-//       "cleaning", cleaning,
-//       "emergency", emergency,
-//       "maintenance", maintenance
-//   ) };
-//   // clang-format on
-//   static constexpr std::string_view name{ "tfc::operation::mode_e" };
-// };
-//
-// template <>
-// struct glz::meta<tfc::operation::update_message> {
-//   using T = tfc::operation::update_message;
-//   static constexpr auto value{ glz::object("new_mode", &T::new_mode, "old_mode", &T::old_mode) };
-//   static constexpr auto name{ "tfc::operation::update_message" };
-// };

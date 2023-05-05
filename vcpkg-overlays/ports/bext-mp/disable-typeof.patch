@@ -1,0 +1,15 @@
+diff --git a/include/boost/mp.hpp b/include/boost/mp.hpp
+index 491c448..387c5b8 100644
+--- a/include/boost/mp.hpp
++++ b/include/boost/mp.hpp
+@@ -204,8 +204,8 @@ template <fixed_string Str>
+   }(std::make_index_sequence<Str.size>{});
+ }
+ 
+-template <auto expr, class... Ts>
+-using typeof = decltype(expr(std::declval<Ts>()...));
++//template <auto expr, class... Ts>
++//using typeof = decltype(expr(std::declval<Ts>()...));
+ 
+ namespace detail {
+ template <auto N>
