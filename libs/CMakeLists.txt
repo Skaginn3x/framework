@@ -1,5 +1,5 @@
 add_subdirectory(configure_options)
-add_subdirectory(dbus_utils)
+add_subdirectory(dbus_util)
 add_subdirectory(stx)
 add_subdirectory(logger)
 add_subdirectory(progbase)

@@ -6,6 +6,8 @@
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
+#include <tfc/dbus/sdbusplus_meta.hpp>
+
 namespace tfc {
 
 // todo move to dbus_utils

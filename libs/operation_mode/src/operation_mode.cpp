@@ -3,7 +3,8 @@
 #include <tfc/operation_mode.hpp>
 #include <tfc/stx/concepts.hpp>
 #include <tfc/stx/string_view_join.hpp>
-#include <tfc/utils/dbus.hpp>
+#include <tfc/dbus/match_rules.hpp>
+#include <tfc/dbus/sdbusplus_meta.hpp>
 
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
