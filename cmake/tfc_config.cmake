@@ -1,5 +1,8 @@
 set(CMAKE_CXX_STANDARD 23)
 
+# Disable boost warning on new version
+set(Boost_NO_WARN_NEW_VERSIONS 1)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # enable full llvm assembler, byte code gen, linking optimisations
   add_compile_options( -fuse-ld=lld )

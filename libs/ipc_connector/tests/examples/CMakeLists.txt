@@ -1,0 +1,2 @@
+tfc_add_example(ipc_connector_example ipc_connector_example.cpp)
+target_link_libraries(ipc_connector_example PRIVATE tfc::ipc_connector)

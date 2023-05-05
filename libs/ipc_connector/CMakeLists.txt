@@ -18,6 +18,7 @@ target_link_libraries(ipc_connector
   PUBLIC
     tfc::ipc
     tfc::confman
+    tfc::dbus_util
 )
 
 add_library_to_docs(tfc::ipc_connector)

@@ -1,3 +1,4 @@
+add_subdirectory(dbus_utils)
 add_subdirectory(stx)
 add_subdirectory(logger)
 add_subdirectory(progbase)

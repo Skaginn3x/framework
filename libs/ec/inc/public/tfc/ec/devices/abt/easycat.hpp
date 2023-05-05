@@ -14,25 +14,14 @@ public:
 
   explicit easyecat(boost::asio::io_context& ctx_, uint16_t const slave_index) : base(slave_index) {
     for (size_t i = 0; i < 4; i++) {
-      std::expected<std::shared_ptr<tfc::ipc::bool_send>, std::error_code> ptr =
-          tfc::ipc::bool_send::create(ctx_, fmt::format("easyecat.{}.bool.in.{}", slave_index, i));
-      if (!ptr) {
-        printf("%s\n", ptr.error().message().c_str());
-        std::terminate();
-      }
-      bool_transmitters_.push_back(ptr.value());
-      bool_receivers_.emplace_back(
-          std::make_unique<tfc::ipc::bool_recv_conf_cb>(ctx_, fmt::format("easyecat.{}.bool.out.{}", slave_index, i),
-                                                        [this, i](bool value) { output_states_.set(i, value); }));
+      bool_transmitters_.emplace_back(
+          std::make_unique<tfc::ipc::bool_send_exposed>(ctx_, fmt::format("easyecat.{}.in.{}", slave_index, i)));
+      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_recv_conf_cb>(
+          ctx_, fmt::format("easyecat.{}.out.{}", slave_index, i), [this, i](bool value) { output_states_.set(i, value); }));
     }
     for (size_t i = 0; i < 2; i++) {
-      std::expected<std::shared_ptr<tfc::ipc::uint_send>, std::error_code> ptr =
-          tfc::ipc::uint_send::create(ctx_, fmt::format("easyecat.{}.uint.in.{}", slave_index, i));
-      if (!ptr) {
-        printf("%s\n", ptr.error().message().c_str());
-        std::terminate();
-      }
-      analog_transmitters_.push_back(ptr.value());
+      analog_transmitters_.push_back(
+          std::make_unique<tfc::ipc::uint_send_exposed>(ctx_, fmt::format("easyecat.{}.in.{}", slave_index, i)));
     }
   }
 
@@ -77,8 +66,8 @@ private:
   std::bitset<do_count> output_states_;
   std::array<bool, di_count> last_bool_value_;
   std::array<uint8_t, ai_count> last_analog_value_;
-  std::vector<tfc::ipc::bool_send_ptr> bool_transmitters_;
-  std::vector<tfc::ipc::uint_send_ptr> analog_transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_send_exposed>> bool_transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::uint_send_exposed>> analog_transmitters_;
   std::vector<std::unique_ptr<tfc::ipc::bool_recv_conf_cb>> bool_receivers_;
 };
 
