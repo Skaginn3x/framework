@@ -56,6 +56,9 @@ concept dbus_reflectable = requires {
   requires std::invocable<decltype(struct_t::dbus_reflection), struct_t&&>;
 };
 
+template <typename enum_t>
+concept enum_c = requires { std::is_enum_v<enum_t>; };
+
 }
 
 namespace sdbusplus::message::types::details {
@@ -78,16 +81,16 @@ struct convert_from_string;
 template <typename value_t>
 struct convert_to_string;
 
-template <>
-struct convert_from_string<tfc::operation::mode_e> {
-  static auto op(const std::string& mode_str) noexcept -> std::optional<tfc::operation::mode_e> {
-    return magic_enum::enum_cast<tfc::operation::mode_e>(mode_str);
+template <concepts::enum_c enum_t>
+struct convert_from_string<enum_t> {
+  static auto op(const std::string& mode_str) noexcept -> std::optional<enum_t> {
+    return magic_enum::enum_cast<enum_t>(mode_str);
   }
 };
 
-template <concepts::dbus_reflectable struct_t>
-struct convert_to_string<tfc::operation::mode_e> {
-  static auto op(tfc::operation::mode_e mode) -> std::string {
+template <concepts::enum_c enum_t>
+struct convert_to_string<enum_t> {
+  static auto op(enum_t mode) -> std::string {
     return std::string{ magic_enum::enum_name(mode) };
   }
 };
@@ -97,10 +100,12 @@ struct append_single;
 
 template <concepts::dbus_reflectable struct_t>
 struct append_single<struct_t, void> {
-  static void op(auto* interface, auto* sd_bus_msg, concepts::dbus_reflectable auto&& item)
+  static void op(auto* interface, auto* sd_bus_msg, auto&& item)
   {
-    constexpr auto dbus_type = std::get<0>(sdbusplus::message::types::details::type_id<struct_t, void>::value);
-    interface->sd_bus_message_append_basic(sd_bus_msg, dbusType, s.c_str());
+//    using struct_t_stripped = std::remove_cvref_t<struct_t>;
+//    constexpr auto dbus_type = std::get<0>(sdbusplus::message::types::details::type_id<struct_t, void>::value);
+    append_single<decltype(struct_t::dbus_reflection(struct_t{})), void>::op(interface, sd_bus_msg, struct_t::dbus_reflection(std::forward<decltype(item)>(item)));
+//    interface->sd_bus_message_append_basic(sd_bus_msg, "(ss)", s.c_str());
   }
 };
 

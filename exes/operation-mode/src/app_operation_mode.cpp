@@ -37,9 +37,10 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
     state_machine_->try_set_mode(new_mode); // todo use return value throw dbus error?
     auto message{ dbus_interface_->new_signal(operation::dbus::signal::update.data()) };
     message.append(operation::update_message{ .new_mode=new_mode, .old_mode=old_mode });
-
-
+    message.signal_send();
   });
+
+  dbus_->request_name(operation::dbus::name.data());
 
   dbus_interface_->initialize();
 }
