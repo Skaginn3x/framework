@@ -3,12 +3,12 @@
 #include <cstdint>
 #include <string_view>
 
-#include <boost/mp.hpp>
 #include <magic_enum.hpp>
 
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/stx/to_tuple.hpp>
 
 namespace tfc::operation {
 
@@ -42,7 +42,7 @@ struct update_message {
   mode_e new_mode{ mode_e::unknown };
   mode_e old_mode{ mode_e::unknown };
 
-  static constexpr auto dbus_reflection{ [](auto&& self) { return boost::mp::reflection::to_tuple(self); } };
+  static constexpr auto dbus_reflection{ [](auto&& self) { return tfc::stx::to_tuple(std::forward<decltype(self)>(self)); } };
 };
 
 }  // namespace tfc::operation

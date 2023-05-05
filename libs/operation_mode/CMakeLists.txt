@@ -18,7 +18,6 @@ set_target_properties(liboperation_mode PROPERTIES PREFIX "")
 find_package(Boost REQUIRED)
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
-find_package(mp CONFIG REQUIRED)
 target_link_libraries(liboperation_mode
   PUBLIC
     tfc::base
@@ -26,7 +25,6 @@ target_link_libraries(liboperation_mode
     tfc::stx
     tfc::dbus_util
     magic_enum::magic_enum
-    Boost::mp
   PRIVATE
     unofficial::sdbusplus
     Boost::boost
