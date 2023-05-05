@@ -3,6 +3,8 @@
 
 // https://github.com/avakar/destructure/tree/master
 
+// clang-format off
+
 #include <cstddef>
 #include <tuple>
 #include <type_traits>
@@ -400,3 +402,5 @@ auto to_tuple(T && t)
 }
 
 #endif
+
+// clang-format on

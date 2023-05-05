@@ -42,7 +42,9 @@ struct update_message {
   mode_e new_mode{ mode_e::unknown };
   mode_e old_mode{ mode_e::unknown };
 
-  static constexpr auto dbus_reflection{ [](auto&& self) { return tfc::stx::to_tuple(std::forward<decltype(self)>(self)); } };
+  static constexpr auto dbus_reflection{ [](auto&& self) {
+    return tfc::stx::to_tuple(std::forward<decltype(self)>(self));
+  } };
 };
 
 }  // namespace tfc::operation
