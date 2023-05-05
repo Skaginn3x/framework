@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <string_view>
 #include <tfc/configure_options.hpp>
 #include <tfc/stx/string_view_join.hpp>
@@ -25,18 +26,30 @@ auto constexpr make(std::string_view service_name) -> std::string {
 
 }  // namespace detail
 
-template<std::string_view const& service_name>
-static auto constexpr const_dbus_name{ stx::string_view_join_v<detail::dbus_name_prefix, service_name> };
+/// \brief make dbus name like org.freedesktop.<input_name>
+/// \tparam input_name name postfix
+/// \note the prefix is cmake configure option, refer to libs/configure_options for more info
+template<std::string_view const& input_name>
+static auto constexpr const_dbus_name{ stx::string_view_join_v<detail::dbus_name_prefix, input_name> };
 
-template<std::string_view const& service_name>
-static auto constexpr const_dbus_path{ stx::string_view_join_v<detail::dbus_path_prefix, service_name> };
+/// \brief make dbus path like /org/freedesktop/<service_name>
+/// \tparam input_name name postfix
+/// \note the prefix is cmake configure option, refer to libs/configure_options for more info
+template<std::string_view const& input_name>
+static auto constexpr const_dbus_path{ stx::string_view_join_v<detail::dbus_path_prefix, input_name> };
 
-auto constexpr make_dbus_name(std::string_view service_name) -> std::string {
-  return detail::make<detail::dbus_name_prefix>(service_name);
+/// \brief make dbus name like org.freedesktop.<service_name>
+/// \param input_name name postfix
+/// \note the prefix is cmake configure option, refer to libs/configure_options for more info
+auto constexpr make_dbus_name(std::string_view input_name) -> std::string {
+  return detail::make<detail::dbus_name_prefix>(input_name);
 }
 
-auto constexpr make_dbus_path(std::string_view service_name) -> std::string {
-  return detail::make<detail::dbus_path_prefix>(service_name);
+/// \brief make dbus path like /org/freedesktop/<service_name>
+/// \param input_name name postfix
+/// \note the prefix is cmake configure option, refer to libs/configure_options for more info
+auto constexpr make_dbus_path(std::string_view input_name) -> std::string {
+  return detail::make<detail::dbus_path_prefix>(input_name);
 }
 
 }  // namespace tfc::dbus
@@ -62,20 +75,53 @@ static constexpr std::string_view filter{ stx::string_view_join_v<key, detail::q
 
 }  // namespace detail
 
+/// \brief make dbus header `sender` key filter
+/// \tparam sender_in filter value
+/// \note Unique name of the sending connection.
+/// This field is usually only meaningful in combination with the message bus,
+/// but other servers may define their own meanings for it.
+/// On a message bus, this header field is controlled by the message bus,
+/// so it is as reliable and trustworthy as the message bus itself. Otherwise,
+/// this header field is controlled by the message sender,
+/// unless there is out-of-band information that indicates otherwise.
+/// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& sender_in>
 static constexpr std::string_view sender{ detail::filter<detail::sender_prefix, sender_in> };
 
+/// \brief make dbus header `interface` key filter
+/// \tparam interface_in filter value
+/// \note Match messages sent by a particular sender. An example of a sender match is sender='org.freedesktop.Hal'
+/// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& interface_in>
 static constexpr std::string_view interface {
   detail::filter<detail::interface_prefix, interface_in>
 };
 
+/// \brief make dbus header `path` key filter
+/// \tparam path_in filter value
+/// \note Match messages sent over or to a particular interface.
+/// An example of an interface match is interface='org.freedesktop.Hal.Manager'.
+/// If a message omits the interface header, it must not match any rule that specifies this key.
+/// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& path_in>
 static constexpr std::string_view path{ detail::filter<detail::path_prefix, path_in> };
 
+/// \brief make dbus header `path_namespace` key filter
+/// \tparam path_namespace_in filter value
+/// \note Matches messages which are sent from or to an object for which the object path is either the given value,
+/// or that value followed by one or more path components.
+/// For example, path_namespace='/com/example/foo' would match signals sent by /com/example/foo or by /com/example/foo/bar,
+/// but not by /com/example/foobar.
+/// Using both path and path_namespace in the same match rule is not allowed.
+/// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& path_namespace_in>
 static constexpr std::string_view path_namespace{ detail::filter<detail::path_namespace_prefix, path_namespace_in> };
 
+/// \brief make dbus header `destination` key filter
+/// \tparam destination_in filter value
+/// \note Matches messages which are being sent to the given unique name.
+/// An example of a destination match is destination=':1.0'
+/// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& destination_in>
 static constexpr std::string_view destination{ detail::filter<detail::destination_prefix, destination_in> };
 
