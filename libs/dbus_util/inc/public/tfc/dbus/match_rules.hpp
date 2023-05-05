@@ -35,20 +35,16 @@ static constexpr std::string_view filter{ stx::string_view_join_v<key, detail::q
 
 /// \brief make dbus `sender` match rule
 /// \tparam sender_in filter value
-/// \note Unique name of the sending connection.
-/// This field is usually only meaningful in combination with the message bus,
-/// but other servers may define their own meanings for it.
-/// On a message bus, this header field is controlled by the message bus,
-/// so it is as reliable and trustworthy as the message bus itself. Otherwise,
-/// this header field is controlled by the message sender,
-/// unless there is out-of-band information that indicates otherwise.
+/// \note Match messages sent by a particular sender. An example of a sender match is sender='org.freedesktop.Hal'
 /// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& sender_in>
 static constexpr std::string_view sender{ detail::filter<detail::sender_prefix, sender_in> };
 
 /// \brief make dbus `interface` match rule
 /// \tparam interface_in filter value
-/// \note Match messages sent by a particular sender. An example of a sender match is sender='org.freedesktop.Hal'
+/// \note Match messages sent over or to a particular interface.
+/// An example of an interface match is interface='org.freedesktop.Hal.Manager'.
+/// If a message omits the interface header, it must not match any rule that specifies this key.
 /// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& interface_in>
 static constexpr std::string_view interface {
