@@ -1,9 +1,9 @@
 #include <string>
 
-#include "custom_sink.hpp"
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
+#include "custom_sink.hpp"
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

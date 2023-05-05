@@ -1,7 +1,7 @@
 
 #include <boost/asio.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/operation_mode.hpp>
+#include <tfc/progbase.hpp>
 
 #include <sdbusplus/asio/connection.hpp>
 
@@ -12,9 +12,11 @@ auto main(int argc, char** argv) -> int {
 
   asio::io_context ctx{};
 
-  tfc::operation::interface mode{ctx};
+  tfc::operation::interface mode {
+    ctx
+  };
 
-  mode.on_leave(tfc::operation::mode_e::stopped, [](tfc::operation::mode_e new_mode, tfc::operation::mode_e old_mode){
+  mode.on_leave(tfc::operation::mode_e::stopped, [](tfc::operation::mode_e new_mode, tfc::operation::mode_e old_mode) {
     fmt::print("Leaving {} and going to: {}", tfc::operation::mode_e_str(old_mode), tfc::operation::mode_e_str(new_mode));
   });
 

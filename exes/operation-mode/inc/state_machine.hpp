@@ -16,9 +16,8 @@ public:
     return {};
   }
 
-  [[nodiscard]] auto get_mode() const noexcept -> tfc::operation::mode_e {
-    return current_mode_;
-  }
+  [[nodiscard]] auto get_mode() const noexcept -> tfc::operation::mode_e { return current_mode_; }
+
 private:
   tfc::operation::mode_e current_mode_{ tfc::operation::mode_e::unknown };
   tfc::logger::logger logger_;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <concepts>
+#include <string>
 #include <tuple>
 
 #include <magic_enum.hpp>
@@ -12,9 +12,9 @@ namespace sdbusplus::concepts {
 
 template <typename struct_t>
 concept dbus_reflectable = requires {
-  struct_t::dbus_reflection;
-  requires std::invocable<decltype(struct_t::dbus_reflection), struct_t&&>;
-};
+                             struct_t::dbus_reflection;
+                             requires std::invocable<decltype(struct_t::dbus_reflection), struct_t&&>;
+                           };
 
 }  // namespace sdbusplus::concepts
 

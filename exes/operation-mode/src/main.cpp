@@ -1,5 +1,5 @@
-#include <tfc/progbase.hpp>
 #include <boost/asio.hpp>
+#include <tfc/progbase.hpp>
 #include "app_operation_mode.hpp"
 
 namespace asio = boost::asio;
@@ -17,6 +17,3 @@ auto main(int argc, char** argv) -> int {
 
   return EXIT_SUCCESS;
 }
-
-
-

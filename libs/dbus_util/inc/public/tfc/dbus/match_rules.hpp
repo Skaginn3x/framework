@@ -57,9 +57,7 @@ static constexpr std::string_view interface {
 /// An example of a member match is member='NameOwnerChanged'
 /// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& member_in>
-static constexpr std::string_view member {
-  detail::filter<detail::member_prefix, member_in>
-};
+static constexpr std::string_view member{ detail::filter<detail::member_prefix, member_in> };
 
 /// \brief make dbus `path` match rule
 /// \tparam path_in filter value

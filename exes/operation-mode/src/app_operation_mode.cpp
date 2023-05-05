@@ -34,11 +34,11 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
   dbus_interface_->register_signal<operation::update_message>(
       std::string(operation::dbus::signal::update.data(), operation::dbus::signal::update.size()));
 
-  dbus_interface_->register_method("set_mode", [this](tfc::operation::mode_e new_mode){
+  dbus_interface_->register_method("set_mode", [this](tfc::operation::mode_e new_mode) {
     auto const old_mode = state_machine_->get_mode();
-    state_machine_->try_set_mode(new_mode); // todo use return value throw dbus error?
+    state_machine_->try_set_mode(new_mode);  // todo use return value throw dbus error?
     auto message{ dbus_interface_->new_signal(operation::dbus::signal::update.data()) };
-    message.append(operation::update_message{ .new_mode=new_mode, .old_mode=old_mode });
+    message.append(operation::update_message{ .new_mode = new_mode, .old_mode = old_mode });
     message.signal_send();
   });
 

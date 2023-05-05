@@ -6,9 +6,9 @@
 #include <boost/mp.hpp>
 #include <magic_enum.hpp>
 
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
-#include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::operation {
 

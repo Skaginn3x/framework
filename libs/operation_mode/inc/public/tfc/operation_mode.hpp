@@ -7,8 +7,8 @@
 #include <system_error>
 #include <vector>
 
-#include <tfc/operation_mode/common.hpp>
 #include <tfc/logger.hpp>
+#include <tfc/operation_mode/common.hpp>
 
 namespace sdbusplus::asio {
 class connection;
@@ -104,9 +104,9 @@ private:
   auto append_callback(mode_e mode_value, transition_e transition, concepts::transition_callback auto&& callback) -> uuid_t {
     uuid_t const uuid{ next_uuid_++ };
     callbacks_.emplace_back(callback_item{ .mode = mode_value,
-                                          .transition = transition,
-                                          .callback = std::forward<decltype(callback)>(callback),
-                                          .uuid = uuid });
+                                           .transition = transition,
+                                           .callback = std::forward<decltype(callback)>(callback),
+                                           .uuid = uuid });
     return uuid;
   }
 
