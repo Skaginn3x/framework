@@ -1,4 +1,4 @@
-#include "tfc/dbus_util.hpp"
+#include "tfc/dbus/exception.hpp"
 #include <boost/program_options/options_description.hpp>
 #include <boost/ut.hpp>
 #include <string_view>
