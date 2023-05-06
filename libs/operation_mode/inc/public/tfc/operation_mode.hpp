@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <concepts>
 #include <cstdint>
 #include <functional>
@@ -25,9 +24,11 @@ class io_context;
 
 namespace tfc::operation {
 
-namespace concepts {
 using new_mode_e = mode_e;
 using old_mode_e = mode_e;
+
+namespace concepts {
+
 template <typename callback_t>
 concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>;
 }  // namespace concepts
@@ -125,7 +126,7 @@ private:
 
   void mode_update(sdbusplus::message::message&) noexcept;
 
-  std::atomic<uuid_t> next_uuid_{};
+  uuid_t next_uuid_{};
   std::vector<callback_item> callbacks_{};
   std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_{};
   std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> mode_updates_{};

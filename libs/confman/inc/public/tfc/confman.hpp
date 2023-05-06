@@ -23,25 +23,17 @@ public:
   /// \brief construct config and deliver it to config manager
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
-  /// \param alive_cb callback called after the storage has been populated
-  ///                 the input parameter of the callback is reference to `this` (self)
-  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb)
-      : client_{ ctx, key }, logger_(fmt::format("config.{}", key)) {
-    init(std::forward<decltype(alive_cb)>(alive_cb));
-  }
+  config(asio::io_context& ctx, std::string_view key) : logger_(fmt::format("config.{}", key)) {}
 
-  /// \brief construct config and deliver it to config manager
-  /// \param ctx context ref to which the config shall run in
-  /// \param key identification of this config storage, requires to be unique
-  /// \param alive_cb callback called after the storage has been populated
-  ///                 the input parameter of the callback is reference to `this` (self)
-  /// \param def default values of given storage type
-  template <typename storage_type>
-    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
-  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb, storage_type&& def)
-      : storage_{ std::forward<storage_type>(def) }, client_{ ctx, key }, logger_(fmt::format("config.{}", key)) {
-    init(std::forward<decltype(alive_cb)>(alive_cb));
-  }
+  //  /// \brief construct config and deliver it to config manager
+  //  /// \param ctx context ref to which the config shall run in
+  //  /// \param key identification of this config storage, requires to be unique
+  //  /// \param def default values of given storage type
+  //  template <typename storage_type>
+  //    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
+  //  config(asio::io_context& ctx, std::string_view key, storage_type&& def)
+  //      : storage_{ std::forward<storage_type>(def) }, logger_(fmt::format("config.{}", key)), config_file_{ filename } {
+  //  }
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
@@ -86,6 +78,18 @@ public:
   auto make_changes() noexcept -> change { return change{ *this }; }
 
 private:
+  auto write_to_file() -> std::error_code {
+    std::string buffer{};
+    glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
+    auto glz_err{ glz::buffer_to_file(buffer, config_file_.string()) };
+    if (glz_err != glz::error_code::none) {
+      logger_.error(R"(Error: "{}" writing to file: "{}")", glz::write_json(glz_err), config_file_.string());
+      return std::make_error_code(std::errc::io_error);
+      // todo implicitly convert glaze error_code to std::error_code
+    }
+    return {};
+  }
+
   void init(std::invocable<config const&> auto&& alive_cb) {
     client_.alive(glz::write_json_schema<storage_t>(), glz::write_json(storage_),
                   [this, callback = alive_cb](auto const& val) {
@@ -120,6 +124,8 @@ private:
   }
 
   storage_t storage_{};
+  std::filesystem::path config_file_{};
+
   detail::config_rpc_client client_;
   tfc::logger::logger logger_;
 };
