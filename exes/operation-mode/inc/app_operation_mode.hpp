@@ -3,6 +3,8 @@
 #include <functional>
 #include <memory>
 
+#include <tfc/logger.hpp>
+
 namespace boost::asio {
 class io_context;
 }  // namespace boost::asio
@@ -28,6 +30,7 @@ private:
   std::unique_ptr<sdbusplus::asio::object_server, std::function<void(sdbusplus::asio::object_server*)>> dbus_object_server_;
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   std::unique_ptr<operation::state_machine, std::function<void(operation::state_machine*)>> state_machine_;
+  tfc::logger::logger logger_;
 };
 
 }  // namespace tfc

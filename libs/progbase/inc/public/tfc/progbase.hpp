@@ -46,9 +46,11 @@ void init(int argc, char const* const* argv);
 /// \return boost variables map if needed to get custom parameters from description
 [[nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const&;
 
-/// Generic application paths
-static constexpr std::string_view root_path{ "/var/tfc/" };
-static constexpr std::string_view config_path{ "/var/tfc/config/" };
+/// \return Configuration directory path
+/// default return value is /etc/tfc/
+/// \note can be changed by providing environment variable CONFIGURATION_DIRECTORY
+/// Refer to https://www.freedesktop.org/software/systemd/man/systemd.exec.html#%24RUNTIME_DIRECTORY
+[[nodiscard]] auto get_config_directory() -> std::filesystem::path;
 
 /// \brief supposed to be used by logger library to indicate log to terminal is enabled
 [[nodiscard]] auto is_stdout_enabled() noexcept -> bool;

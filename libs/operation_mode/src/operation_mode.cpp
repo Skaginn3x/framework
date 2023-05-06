@@ -1,6 +1,7 @@
 #include <ranges>
 
 #include <tfc/dbus/match_rules.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/operation_mode.hpp>
 #include <tfc/stx/concepts.hpp>
@@ -20,19 +21,11 @@ namespace tfc::operation {
                           tfc::dbus::match::rules::sender<tfc::operation::dbus::signal::update> >
 };
 
-static auto open_sd_bus() {
-  sd_bus* bus = nullptr;
-  sd_bus_open(&bus);
-  return bus;
-}
-
 interface::interface(asio::io_context& ctx, std::string_view log_key)
-    : dbus_connection_{ new sdbusplus::asio::connection(ctx, open_sd_bus()),
-                        [](sdbusplus::asio::connection* conn) { delete conn; } },
-      mode_updates_{ new sdbusplus::bus::match_t(*dbus_connection_,
-                                                 mode_update_match_rule.data(),
-                                                 std::bind_front(&interface::mode_update, this)),
-                     [](sdbusplus::bus::match_t* match) { delete match; } },
+    : dbus_connection_{ std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
+      mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
+                                                               mode_update_match_rule.data(),
+                                                               std::bind_front(&interface::mode_update, this)) },
       logger_(log_key) {}
 
 void interface::set(tfc::operation::mode_e) const {}

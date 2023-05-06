@@ -1,5 +1,7 @@
 #pragma once
 
+#include <system_error>
+
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/glaze_meta.hpp>
@@ -8,6 +10,20 @@
 namespace tfc::ipc {
 
 namespace asio = boost::asio;
+
+namespace detail {
+auto constexpr register_cb(std::string const& ipc_name) {
+  return [ipc_name](std::error_code error_code) {
+    if (error_code == std::errc::host_unreachable) {
+      throw std::runtime_error(fmt::format("Error registering: '{}', error: '{}'. Maybe forgot to run ipc-ruler", ipc_name,
+                                           error_code.message()));
+    }
+    if (error_code) {
+      throw std::runtime_error(fmt::format("Error registering: '{}', error: '{}'", ipc_name, error_code.message()));
+    }
+  };
+}
+}  // namespace detail
 
 template <typename type_desc>
 class slot_configurable {
@@ -24,11 +40,7 @@ public:
             slot_->init(signal_name, callback);
           }
         });
-    client_.register_slot(slot_->name_w_type(), type_desc::value_e, [](boost::system::error_code const& error_code) {
-      if (error_code) {
-        throw std::runtime_error("Error registering slot");
-      }
-    });
+    client_.register_slot(slot_->name_w_type(), type_desc::value_e, detail::register_cb(slot_->name_w_type()));
   }
 
   slot_configurable(slot_configurable&) noexcept = default;
@@ -53,11 +65,7 @@ public:
 
   signal_exposed(asio::io_context& ctx, std::string_view name)
       : signal_{ signal<type_desc>::create(ctx, name).value() }, client_(ctx) {
-    client_.register_signal(signal_->name_w_type(), type_desc::value_e, [](boost::system::error_code const& error_code) {
-      if (error_code) {
-        throw std::runtime_error("Error registering slot");
-      }
-    });
+    client_.register_signal(signal_->name_w_type(), type_desc::value_e, detail::register_cb(signal_->name_w_type()));
   }
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
 

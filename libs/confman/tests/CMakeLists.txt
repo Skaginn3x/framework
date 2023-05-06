@@ -41,25 +41,21 @@ add_test(
     confman_test
 )
 
-add_executable(dbus_test sdbus_test.cpp)
+add_executable(file_storage_test file_storage_test.cpp)
 
-find_package(unofficial-systemd CONFIG REQUIRED)
-target_link_libraries(dbus_test
+target_link_libraries(file_storage_test
   PRIVATE
-    unofficial::systemd::libsystemd
     tfc::confman
-    tfc::ipc_connector
     Boost::ut
-    Boost::program_options
     fmt::fmt
     glaze::glaze
 )
 
 add_test(
   NAME
-    dbus_test
+    file_storage_test
   COMMAND
-    dbus_test
+    file_storage_test
 )
 
 add_subdirectory(examples)

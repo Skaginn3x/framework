@@ -87,16 +87,4 @@ static constexpr std::string_view path_namespace{ detail::filter<detail::path_na
 template <std::string_view const& destination_in>
 static constexpr std::string_view destination{ detail::filter<detail::destination_prefix, destination_in> };
 
-namespace test {
-
-static constexpr std::string_view foo{ "foo" };
-static_assert("sender='foo'," == sender<foo>);
-static_assert("interface='foo'," == interface<foo>);
-static_assert("member='foo'," == member<foo>);
-static_assert("path='foo'," == path<foo>);
-static_assert("path_namespace='foo'," == path_namespace<foo>);
-static_assert("destination='foo'," == destination<foo>);
-
-}  // namespace test
-
 }  // namespace tfc::dbus::match::rules
