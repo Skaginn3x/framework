@@ -121,7 +121,7 @@ auto make_config_file_name(std::string_view filename, std::string_view extension
   if (!extension.empty()) {
     filename_path.replace_extension(extension);
   }
-  return config_dir / get_proc_name() / get_exe_name() / filename_path;
+  return config_dir / get_exe_name() / get_proc_name() / filename_path;
 }
 
 auto is_stdout_enabled() noexcept -> bool {

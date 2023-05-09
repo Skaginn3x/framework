@@ -44,8 +44,10 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx, std::string
   //  PropertyType nop_get_value(const PropertyType& value)
 
   dbus_interface_->register_property_rw<tfc::confman::detail::config_property>(
-      "foo", sdbusplus::vtable::property_::emits_change,
-      []([[maybe_unused]] config_property const& req,[[maybe_unused]] config_property& old) -> int { return 1; },
+      std::string{ key.data(), key.size() }, sdbusplus::vtable::property_::emits_change,
+      []([[maybe_unused]] config_property const& req,[[maybe_unused]] config_property& old) -> int {
+        return 1;
+      },
       [](config_property const& value) -> config_property { return value; });
 
   dbus_connection_->request_name(interface_name_.c_str());

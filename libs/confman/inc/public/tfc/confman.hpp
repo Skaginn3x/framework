@@ -8,6 +8,7 @@
 
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/confman/file_storage.hpp>
+#include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/progbase.hpp>
 
 namespace tfc::confman {
@@ -34,6 +35,7 @@ public:
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context& ctx, std::string_view key, storage_type&& def)
       : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        client_{ ctx },
         logger_(fmt::format("config.{}", key)) {}
 
   /// \brief get const access to storage
@@ -56,6 +58,7 @@ public:
 
 private:
   file_storage<storage_t> storage_{};
+  detail::config_dbus_client client_;
   tfc::logger::logger logger_;
 };
 

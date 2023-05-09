@@ -36,6 +36,13 @@ auto main(int argc, char** argv) -> int {
   bool run_slow{};
   desc.add_options()("slow,s", bpo::bool_switch(&run_slow)->default_value(false));
   tfc::base::init(argc, argv, desc);
+
+  boost::asio::io_context ctx{};
+
+  config<storage> conf{ ctx, "bar" };
+
+  ctx.run();
+
 //
 //  [[maybe_unused]] ut::suite const rpc_test_cases = [] {
 //    ut::skip / "happy path confman"_test = [] {
