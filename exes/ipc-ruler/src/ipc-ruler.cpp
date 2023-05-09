@@ -13,8 +13,7 @@ auto main(int argc, char** argv) -> int {
   auto signals = signal_storage(ctx, "/tmp/ipc-ruler-signals.conf");
   auto slots = slot_storage(ctx, "/tmp/ipc-ruler-slots.conf");
 
-  auto ipc_manager =
-      std::make_unique<tfc::ipc_ruler::ipc_manager<signal_storage, slot_storage>>(signals, slots);
+  auto ipc_manager = std::make_unique<tfc::ipc_ruler::ipc_manager<signal_storage, slot_storage>>(signals, slots);
 
   tfc::ipc_ruler::ipc_manager_server<signal_storage, slot_storage> const dbus_ipc_server(ctx, std::move(ipc_manager));
 

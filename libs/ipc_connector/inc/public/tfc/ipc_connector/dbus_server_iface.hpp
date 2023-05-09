@@ -99,10 +99,10 @@ public:
       signals_->at(str_name).last_registered = timestamp_now;
     }
     signals_->emplace(name, signal{ .name = std::string(name),
-                                       .type = type,
-                                       .created_by = "omar",
-                                       .created_at = timestamp_now,
-                                       .last_registered = timestamp_now });
+                                    .type = type,
+                                    .created_by = "omar",
+                                    .created_at = timestamp_now,
+                                    .last_registered = timestamp_now });
     signals_.set_changed();
   }
   auto register_slot(const std::string_view name, tfc::ipc::type_e type) -> void {
@@ -115,15 +115,15 @@ public:
       slots_->at(str_name).last_registered = timestamp_now;
     }
     slots_->emplace(name, slot{
-                                 .name = std::string(name),
-                                 .type = type,
-                                 .created_by = "omar",
-                                 .created_at = timestamp_now,
-                                 .last_registered = timestamp_now,
-                                 .last_modified = timestamp_never,
-                                 .modified_by = "",
-                                 .connected_to = "",
-                             });
+                              .name = std::string(name),
+                              .type = type,
+                              .created_by = "omar",
+                              .created_at = timestamp_now,
+                              .last_registered = timestamp_now,
+                              .last_modified = timestamp_never,
+                              .modified_by = "",
+                              .connected_to = "",
+                          });
     slots_.set_changed();
   }
   auto get_all_signals() -> std::vector<std::tuple<std::string, uint8_t, std::string, std::string, std::string>> {
