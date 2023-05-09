@@ -35,7 +35,7 @@ public:
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context& ctx, std::string_view key, storage_type&& def)
       : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
-        client_{ ctx },
+        client_{ ctx, key },
         logger_(fmt::format("config.{}", key)) {}
 
   /// \brief get const access to storage

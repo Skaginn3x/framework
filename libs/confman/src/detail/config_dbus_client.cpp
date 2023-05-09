@@ -33,10 +33,15 @@ static std::string replace_all(std::string const& input, std::string_view what, 
   }
   return copy;
 }
+static std::string remove_first_char(std::string const& input) {
+  std::string copy{ input };
+  copy.erase(std::begin(copy));
+  return copy;
+}
 
 config_dbus_client::config_dbus_client(boost::asio::io_context& ctx, std::string_view key)
-    : interface_path_{ base::make_config_file_name(key, "") },
-      interface_name_{ replace_all(interface_path_.string(), "/", ".") },
+    : interface_path_{ dbus::make_dbus_path(base::make_config_file_name(key, "").string()) },
+      interface_name_{ remove_first_char(replace_all(replace_all(interface_path_.string(), "/", "."), "..", ".")) },
       dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
       dbus_object_server_{ std::make_unique<sdbusplus::asio::object_server>(dbus_connection_) },
       dbus_interface_{ dbus_object_server_->add_unique_interface(interface_path_.string(), interface_name_) } {
