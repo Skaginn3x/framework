@@ -1,7 +1,7 @@
-#include "tfc/dbus/exception.hpp"
 #include <boost/program_options/options_description.hpp>
 #include <boost/ut.hpp>
 #include <string_view>
+#include "tfc/dbus/exception.hpp"
 #include "tfc/logger.hpp"
 #include "tfc/progbase.hpp"
 
