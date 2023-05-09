@@ -51,6 +51,8 @@ public:
 
   auto error() const noexcept -> std::error_code const& { return error_; }
 
+  auto file() const noexcept -> std::filesystem::path const& { return config_file_; }
+
   /// \return Access to underlying value
   auto value() const noexcept -> storage_t const& { return storage_; }
 
