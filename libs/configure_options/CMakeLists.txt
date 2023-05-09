@@ -1,0 +1,14 @@
+project(configure_options)
+cmake_minimum_required(VERSION 3.21)
+
+
+configure_file(configure_options.hpp.in ${CMAKE_CURRENT_LIST_DIR}/inc/public/tfc/configure_options.hpp)
+
+add_library(configure_options INTERFACE)
+add_library(tfc::configure_options ALIAS configure_options)
+
+target_include_directories(configure_options
+  INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
+    $<INSTALL_INTERFACE:inc/public>
+)

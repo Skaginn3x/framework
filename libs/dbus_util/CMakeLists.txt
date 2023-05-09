@@ -12,10 +12,14 @@ target_include_directories(dbus_util
 )
 
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 
 target_link_libraries(dbus_util
   PUBLIC
-        unofficial::sdbusplus
+    unofficial::sdbusplus
+    magic_enum::magic_enum
+    tfc::stx
+    tfc::configure_options
 )
 
 add_library_to_docs(tfc::dbus_util)

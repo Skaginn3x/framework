@@ -1,4 +1,4 @@
-#include "tfc/dbus_util.hpp"
+#include "tfc/dbus/exception.hpp"
 
 namespace tfc::dbus::exception {
 runtime::runtime(const std::string& description) : description_{ description } {}

@@ -13,7 +13,7 @@
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
-#include <tfc/dbus_util.hpp>
+#include <tfc/dbus/exception.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>

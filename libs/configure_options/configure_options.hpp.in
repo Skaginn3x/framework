@@ -1,0 +1,14 @@
+#pragma once
+
+#include <string_view>
+
+namespace tfc::configure_options {
+
+static constexpr std::string_view dbus_domain{ "@TFC_DBUS_DOMAIN@" }; // "org" or "com" etc.
+static constexpr std::string_view dbus_company{ "@TFC_DBUS_ORGANIZATION@" }; // name of company
+
+static_assert(!dbus_domain.empty());
+static_assert(!dbus_company.empty());
+
+}
+

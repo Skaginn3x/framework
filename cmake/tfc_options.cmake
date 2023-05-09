@@ -2,7 +2,16 @@ include(FeatureSummary)
 
 # Use option BUILD_TESTING to disable tests
 
+set(TFC_DBUS_DOMAIN "com" CACHE STRING "D-Bus domain, for example 'com' or 'org'")
+add_feature_info("TFC_DBUS_DOMAIN" TFC_DBUS_DOMAIN "D-Bus domain, for example 'com' or 'org',
+  Current value: '${TFC_DBUS_DOMAIN}'")
+
+set(TFC_DBUS_ORGANIZATION "skaginn3x" CACHE STRING "D-Bus organization, for example 'freedesktop'")
+add_feature_info("TFC_DBUS_ORGANIZATION" TFC_DBUS_ORGANIZATION "D-Bus organization, for example 'freedesktop'.
+  Current value: '${TFC_DBUS_ORGANIZATION}'")
+
 option(BUILD_DOCS "Indicates whether documentation should be built." OFF)
+add_feature_info("BUILD_DOCS" BUILD_DOCS "Indicates whether documentation should be built.")
 
 option(ENABLE_CODE_COVERAGE_INSTRUMENTATION "Enable code instrumentation" OFF)
 add_feature_info("ENABLE_CODE_COVERAGE_INSTRUMENTATION" ENABLE_CODE_COVERAGE_INSTRUMENTATION
@@ -31,7 +40,6 @@ if(ENABLE_SANITIZATION)
     add_compile_options(
         -fsanitize=address
         -fsanitize=leak
-        -fsanitize=thread
         -fsanitize-address-use-after-scope
         -fsanitize=undefined
         -fsanitize=integer
@@ -54,13 +62,12 @@ if(ENABLE_SANITIZATION)
         -fsanitize=address
         -fsanitize-address-use-after-scope
         -fsanitize=leak
-        -fsanitize=thread
         -fsanitize=undefined
         -static-libasan
         -fPIC
         -fno-omit-frame-pointer
     )
-    add_link_options( -lasan -lubsan -ltsan)
+    add_link_options( -lasan -lubsan)
   endif()
 endif(ENABLE_SANITIZATION)
 
