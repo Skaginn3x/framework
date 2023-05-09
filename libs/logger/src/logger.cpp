@@ -56,7 +56,7 @@ tfc::logger::logger::logger(std::string_view key) : key_{ key } {
                                                          spdlog::async_overflow_policy::overrun_oldest);
   async_logger_->set_level(static_cast<spdlog::level::level_enum>(tfc::base::get_log_lvl()));
 }
-void tfc::logger::logger::log_(lvl_e log_lvl, std::string_view msg) {
+void tfc::logger::logger::log_(lvl_e log_lvl, std::string_view msg) const {
   async_logger_->log(static_cast<spdlog::level::level_enum>(log_lvl), msg);
 }
 void tfc::logger::logger::set_loglevel(tfc::logger::lvl_e log_level) {

@@ -15,14 +15,13 @@ namespace tfc::operation {
 enum struct mode_e : std::uint8_t {
   unknown = 0,
   stopped = 1,
-  running = 2,
-  specialized_running_1 = 3,
-  specialized_running_2 = 4,
-  specialized_running_3 = 5,
-  fault = 6,
-  cleaning = 7,
-  emergency = 8,
-  maintenance = 9,
+  starting = 2,
+  running = 3,
+  stopping = 4,
+  cleaning = 5,
+  emergency = 6,
+  fault = 7,
+  maintenance = 8,
 };
 
 [[nodiscard]] inline constexpr auto mode_e_str(mode_e enum_value) {

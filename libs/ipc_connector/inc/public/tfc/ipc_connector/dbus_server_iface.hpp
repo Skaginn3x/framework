@@ -14,6 +14,7 @@
 #include <sdbusplus/asio/object_server.hpp>
 
 #include <tfc/dbus/exception.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
@@ -27,7 +28,6 @@ static auto ipc_ruler_object_path = "/com/skaginn3x/ipc_ruler";
 static auto ipc_ruler_interface_name = "com.skaginn3x.manager";
 
 using dbus_error = tfc::dbus::exception::runtime;
-
 /**
  * A class exposing methods for managing signals and slots
  */
@@ -159,10 +159,7 @@ private:
 class ipc_manager_server {
 public:
   explicit ipc_manager_server(boost::asio::io_context& ctx) {
-    // Create a new bus pointer
-    sd_bus* bus;
-    sd_bus_open_system(&bus);
-    connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, bus);
+    connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
     connection_->request_name(ipc_ruler_service_name);
     dbus_iface_ = object_server_->add_unique_interface(ipc_ruler_object_path, ipc_ruler_interface_name);
@@ -203,9 +200,7 @@ private:
 class ipc_manager_client {
 public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
-    sd_bus* bus;
-    sd_bus_open_system(&bus);
-    connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, bus);
+    connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     match_ = std::make_unique<sdbusplus::bus::match::match>(
         *connection_,
         fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name, ipc_ruler_interface_name,
