@@ -7,9 +7,6 @@ auto main(int argc, char** argv) -> int {
 
   boost::asio::io_context ctx;
 
-  // std::unordered_map<std::string, signal> signals_;
-  // std::unordered_map<std::string, slot> slots_;
-
   using signal_storage = tfc::confman::file_storage<std::unordered_map<std::string, tfc::ipc_ruler::signal>>;
   using slot_storage = tfc::confman::file_storage<std::unordered_map<std::string, tfc::ipc_ruler::slot>>;
 
