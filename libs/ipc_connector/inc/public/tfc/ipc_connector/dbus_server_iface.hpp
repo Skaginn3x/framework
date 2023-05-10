@@ -3,10 +3,10 @@
 // ipc-ruler.cpp - Dbus API service maintaining a list of signals/slots and which signal
 // is connected to which slot
 
-#include <format>
 #include <functional>
 #include <utility>
 
+#include <fmt/format.h>
 #include <fmt/chrono.h>
 #include <boost/asio/io_context.hpp>
 #include <magic_enum.hpp>
