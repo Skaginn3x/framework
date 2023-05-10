@@ -3,19 +3,15 @@
 namespace tfc {
 
 gpio::gpio(asio::io_context& ctx, std::filesystem::path const& char_device)
-    : ctx_{ ctx }, chip_{ char_device }, config_{ ctx, "gpio-map", std::bind_front(&gpio::init, this),
-                                                  config_t::storage_t{ chip_.get_info().num_lines() } },
+    : ctx_{ ctx }, chip_{ char_device }, config_{ ctx, "gpio-map", config_t::storage_t{ chip_.get_info().num_lines() } },
       pins_{ config_->size() }, logger_{ "gpio" }, chip_asio_{ ctx, chip_.fd() } {
-  for (std::size_t idx{ 0 }; auto const& pin_config : config_.get()) {
+  for (std::size_t idx{ 0 }; auto const& pin_config : config_.value()) {
     pin_config.direction.observe(std::bind_front(&gpio::pin_direction_change, this, idx));
     idx++;
   }
   chip_asio_.async_wait(boost::asio::posix::descriptor_base::wait_read, std::bind_front(&gpio::chip_ready_to_read, this));
 }
 
-void gpio::init([[maybe_unused]] config_t const& config) {
-  logger_.info("GPIO started");
-}
 void gpio::pin_direction_change(pin_index_t idx,
                                 gpiod::line::direction new_value,
                                 [[maybe_unused]] gpiod::line::direction old_value) noexcept {
@@ -25,18 +21,18 @@ void gpio::pin_direction_change(pin_index_t idx,
     if (new_value == gpiod::line::direction::OUTPUT) {
       pins_.at(idx) =
           std::make_shared<ipc_input_t>(ctx_, fmt::format("in.{}", idx), std::bind_front(&gpio::ipc_event, this, idx));
-      if (!std::holds_alternative<pin::out>(config_.get().at(idx).in_or_out)) {
-        config_.make_changes()->at(idx).in_or_out = pin::out{};
+      if (!std::holds_alternative<pin::out>(config_->at(idx).in_or_out)) {
+        config_.make_change()->at(idx).in_or_out = pin::out{};
       }
       auto const& pin_out_settings{ std::get<pin::out>(config_->at(idx).in_or_out) };
       pin_out_settings.force.observe(std::bind_front(&gpio::pin_force_change, this, idx));
       pin_out_settings.drive.observe(std::bind_front(&gpio::pin_drive_change, this, idx));
     } else if (new_value == gpiod::line::direction::INPUT) {
       pins_.at(idx) = ipc_output_t::element_type::create(ctx_, fmt::format("out.{}", idx)).value();
-      if (!std::holds_alternative<pin::in>(config_.get().at(idx).in_or_out)) {
-        config_.make_changes()->at(idx).in_or_out = pin::in{};
+      if (!std::holds_alternative<pin::in>(config_->at(idx).in_or_out)) {
+        config_.make_change()->at(idx).in_or_out = pin::in{};
       } else {
-        pin_edge_change(idx, std::get<pin::in>(config_.get().at(idx).in_or_out).edge.value(), {});
+        pin_edge_change(idx, std::get<pin::in>(config_->at(idx).in_or_out).edge.value(), {});
       }
       auto const& pin_in_settings{ std::get<pin::in>(config_->at(idx).in_or_out) };
       pin_in_settings.edge.observe(std::bind_front(&gpio::pin_edge_change, this, idx));
@@ -81,7 +77,7 @@ void gpio::pin_force_change(pin_index_t idx,
     case as_is:
       break;
     case on: {
-      auto change_pin{ config_.make_changes()->at(idx) };
+      auto change_pin{ config_.make_change()->at(idx) };
       if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
         out->force.set(as_is);
       }
@@ -92,7 +88,7 @@ void gpio::pin_force_change(pin_index_t idx,
       settings.set_output_value(gpiod::line::value::ACTIVE);
       break;
     case off: {
-      auto change_pin{ config_.make_changes()->at(idx) };
+      auto change_pin{ config_.make_change()->at(idx) };
       if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
         out->force.set(as_is);
       }

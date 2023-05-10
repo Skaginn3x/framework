@@ -70,6 +70,10 @@ public:
     return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
   }
 
+  // todo this should be private !!!!!!!!! and only friends should use it
+  [[nodiscard]] auto value() noexcept -> storage_t& { return storage_.value(); }
+  auto operator->() noexcept -> storage_t* { return std::addressof(value()); }
+
 private:
   file_storage<storage_t> storage_{};
   detail::config_dbus_client client_;

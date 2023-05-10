@@ -164,8 +164,6 @@ public:
 
   gpio(asio::io_context& ctx, std::filesystem::path const& char_device);
 
-  void init(config_t const&);
-
 private:
   void pin_direction_change(pin_index_t, gpiod::line::direction new_value, gpiod::line::direction old_value) noexcept;
   void pin_edge_change(pin_index_t, gpiod::line::edge new_value, gpiod::line::edge old_value) noexcept;
