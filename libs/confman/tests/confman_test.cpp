@@ -4,11 +4,13 @@
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/program_options.hpp>
 #include <boost/ut.hpp>
+#include <sdbusplus/asio/connection.hpp>
+#include <sdbusplus/asio/object_server.hpp>
 
 #include <tfc/confman.hpp>
-#include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/ipc_connector.hpp>
+#include <tfc/dbus/sd_bus.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
@@ -31,6 +33,16 @@ struct glz::meta<storage> {
 
 namespace bpo = boost::program_options;
 
+static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
+  std::size_t count{};
+  std::string copy{ input };
+  for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
+       pos += with.length(), ++count) {
+    copy.replace(pos, what.length(), with.data(), with.length());
+  }
+  return copy;
+}
+
 auto main(int argc, char** argv) -> int {
   auto desc{ tfc::base::default_description() };
   bool run_slow{};
@@ -39,7 +51,21 @@ auto main(int argc, char** argv) -> int {
 
   boost::asio::io_context ctx{};
 
-  config<storage> conf{ ctx, "bar" };
+  std::string const key{ "bar" };
+  config<storage> conf{ ctx, key };
+
+  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
+                       tfc::base::make_config_file_name(key, "").string().substr(1) };
+  auto dbus_interface{ std::make_unique<sdbusplus::asio::dbus_interface>(
+      dbus, interface_path.string(), replace_all(interface_path.string().substr(1), "/", ".")) };
+
+  boost::asio::steady_timer timer{ctx};
+  timer.expires_after(std::chrono::milliseconds(10000));
+  timer.async_wait([&dbus_interface](std::error_code){
+    dbus_interface->initialize();
+    dbus_interface->set_property("config", tfc::confman::detail::config_property{ "foo", "bar" });
+   });
 
   ctx.run();
 
