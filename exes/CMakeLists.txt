@@ -1,5 +1,4 @@
 
-add_subdirectory(confman)
 add_subdirectory(gpio)
 add_subdirectory(operation-mode)
 add_subdirectory(tfcctl)
