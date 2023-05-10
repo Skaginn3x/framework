@@ -6,8 +6,8 @@
 #include <functional>
 #include <utility>
 
-#include <fmt/format.h>
 #include <fmt/chrono.h>
+#include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
 #include <magic_enum.hpp>
 #include <sdbusplus/asio/connection.hpp>
