@@ -50,7 +50,11 @@ jobs:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+#          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+
+      - name: test
+        run: |
+          sudo ctest --preset test-ci-clang-debug
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master

@@ -41,7 +41,7 @@ auto main(int argc, char** argv) -> int {
 
   config<storage> conf{ ctx, "bar" };
 
-  ctx.run();
+  //  ctx.run();
 
   //
   //  [[maybe_unused]] ut::suite const rpc_test_cases = [] {
