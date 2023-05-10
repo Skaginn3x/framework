@@ -1,13 +1,13 @@
 #include <tfc/confman/detail/config_dbus_client.hpp>
+#include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/dbus/exception.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stx/to_tuple.hpp>
 
-#include <boost/asio.hpp>
 #include <fmt/format.h>
+#include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
@@ -51,8 +51,9 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                        base::make_config_file_name(key, "").string().substr(1) },
       interface_name_{ replace_all(interface_path_.string().substr(1), "/", ".") },
       dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, dbus::sd_bus_open_system()) },
-      dbus_object_server_{ std::make_unique<sdbusplus::asio::object_server>(dbus_connection_) },
-      dbus_interface_{ dbus_object_server_->add_unique_interface(interface_path_.string(), interface_name_) } {
+      dbus_object_server_{ std::make_unique<sdbusplus::asio::object_server>(dbus_connection_) }, dbus_interface_{
+        dbus_object_server_->add_unique_interface(interface_path_.string(), interface_name_)
+      } {
   dbus_interface_->register_property_rw<tfc::confman::detail::config_property>(
       "config", sdbusplus::vtable::property_::emits_change,
       [change_call]([[maybe_unused]] config_property const& req, [[maybe_unused]] config_property& old) -> int {  // setter

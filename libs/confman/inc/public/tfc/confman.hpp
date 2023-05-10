@@ -7,8 +7,8 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/confman/detail/change.hpp>
-#include <tfc/confman/file_storage.hpp>
 #include <tfc/confman/detail/config_dbus_client.hpp>
+#include <tfc/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
 
 namespace tfc::confman {
@@ -35,7 +35,8 @@ public:
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context& ctx, std::string_view key, storage_type&& def)
       : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
-        client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this), std::bind_front(&config::from_string, this) },
+        client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
+                 std::bind_front(&config::from_string, this) },
         logger_(fmt::format("config.{}", key)) {}
 
   /// \brief get const access to storage
@@ -45,17 +46,11 @@ public:
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   /// \return storage_t as json string
-  [[nodiscard]] auto string() const -> std::string {
-    return glz::write_json(storage_.value());
-  }
+  [[nodiscard]] auto string() const -> std::string { return glz::write_json(storage_.value()); }
   /// \return storage_t json schema
-  [[nodiscard]] auto schema() const -> std::string {
-    return glz::write_json_schema<config_storage_t>();
-  }
+  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<config_storage_t>(); }
 
-  auto set_changed() const noexcept -> std::error_code {
-    return storage_.set_changed();
-  }
+  auto set_changed() const noexcept -> std::error_code { return storage_.set_changed(); }
 
   /// \brief get config key used to index the given object of type storage_t
   [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return storage_.file(); }
@@ -72,7 +67,7 @@ public:
     if (error) {
       return {};
     }
-    return std::make_error_code(std::errc::io_error); // todo make glz to std::error_code
+    return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
   }
 
 private:
