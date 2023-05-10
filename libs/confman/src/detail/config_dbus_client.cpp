@@ -62,7 +62,7 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
         }
         return 1;
       },
-      [value_call, schema_call](config_property const& value) -> config_property {  // getter
+      [value_call, schema_call]([[maybe_unused]] config_property const& value) -> config_property {  // getter
         return { .value = value_call(), .schema = schema_call() };
       });
 
