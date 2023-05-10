@@ -60,12 +60,12 @@ auto main(int argc, char** argv) -> int {
   auto dbus_interface{ std::make_unique<sdbusplus::asio::dbus_interface>(
       dbus, interface_path.string(), replace_all(interface_path.string().substr(1), "/", ".")) };
 
-  boost::asio::steady_timer timer{ctx};
+  boost::asio::steady_timer timer{ ctx };
   timer.expires_after(std::chrono::milliseconds(10000));
-  timer.async_wait([&dbus_interface](std::error_code){
+  timer.async_wait([&dbus_interface](std::error_code) {
     dbus_interface->initialize();
     dbus_interface->set_property("config", tfc::confman::detail::config_property{ "foo", "bar" });
-   });
+  });
 
   ctx.run();
 

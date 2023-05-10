@@ -36,8 +36,8 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
     : interface_path_{ std::filesystem::path{ dbus::make_dbus_path("") } /
                        base::make_config_file_name(key, "").string().substr(1) },
       interface_name_{ replace_all(interface_path_.string().substr(1), "/", ".") },
-      dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, dbus::sd_bus_open_system()) },
-      dbus_interface_{ std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
+      dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, dbus::sd_bus_open_system()) }, dbus_interface_{
+        std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
       } {
   dbus_interface_->register_property_rw<tfc::confman::detail::config_property>(
       "config", sdbusplus::vtable::property_::emits_change,
