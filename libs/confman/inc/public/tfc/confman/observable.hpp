@@ -117,10 +117,7 @@ public:
     callback_ = std::forward<decltype(callback)>(callback);
   }
 
-  /// \brief set new value, if changed notify observer
-  template <typename other_conf_paramt_t>
-    requires std::same_as<conf_param_t, std::remove_cvref_t<other_conf_paramt_t>>
-  void set(other_conf_paramt_t&& new_value) {
+  void set(conf_param_t&& new_value) {
     if (new_value != value_) {
       if (callback_) {
         std::invoke(callback_, new_value, value_);
