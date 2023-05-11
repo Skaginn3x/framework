@@ -10,7 +10,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-//#include <tfc/dbus/sd_bus.hpp>
+// #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/progbase.hpp>
@@ -35,15 +35,15 @@ struct glz::meta<storage> {
 
 namespace bpo = boost::program_options;
 
-//static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
-//  std::size_t count{};
-//  std::string copy{ input };
-//  for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
-//       pos += with.length(), ++count) {
-//    copy.replace(pos, what.length(), with.data(), with.length());
-//  }
-//  return copy;
-//}
+// static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
+//   std::size_t count{};
+//   std::string copy{ input };
+//   for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
+//        pos += with.length(), ++count) {
+//     copy.replace(pos, what.length(), with.data(), with.length());
+//   }
+//   return copy;
+// }
 
 auto main(int argc, char** argv) -> int {
   auto desc{ tfc::base::default_description() };
