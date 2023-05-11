@@ -19,6 +19,7 @@
 #include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/stx/glaze_meta.hpp>
 
 namespace tfc::ipc_ruler {
 // service name
@@ -38,15 +39,16 @@ struct signal {
   std::chrono::time_point<std::chrono::system_clock> last_registered;
 
   struct glaze {
-    static constexpr auto value{
-      glz::object("name", &tfc::ipc_ruler::signal::name, "type", &tfc::ipc_ruler::signal::type)
-      //"created_by",
-      //&tfc::ipc_ruler::signal::created_by,
-      //"created_at",
-      //&tfc::ipc_ruler::signal::created_at,
-      //"last_registered",
-      //&tfc::ipc_ruler::signal::last_registered)
-    };
+    static constexpr auto value{ glz::object("name",
+                                             &tfc::ipc_ruler::signal::name,
+                                             "type",
+                                             &tfc::ipc_ruler::signal::type,
+                                             "created_by",
+                                             &tfc::ipc_ruler::signal::created_by,
+                                             "created_at",
+                                             &tfc::ipc_ruler::signal::created_at,
+                                             "last_registered",
+                                             &tfc::ipc_ruler::signal::last_registered) };
     static constexpr auto name{ "signal" };
   };
 };
@@ -62,19 +64,22 @@ struct slot {
   std::string connected_to;
 
   struct glaze {
-    static constexpr auto value{ glz::object("name", &tfc::ipc_ruler::slot::name, "type", &tfc::ipc_ruler::slot::type) };
-    //"created_by",
-    //&tfc::ipc_ruler::slot::created_by,
-    //"created_at",
-    //&tfc::ipc_ruler::slot::created_at,
-    //"last_registered",
-    //&tfc::ipc_ruler::slot::last_registered,
-    //"last_modified",
-    //&tfc::ipc_ruler::slot::last_modified,
-    //"modified_by",
-    //&tfc::ipc_ruler::slot::modified_by,
-    //"connected_to",
-    //&tfc::ipc_ruler::slot::connected_to) };
+    static constexpr auto value{ glz::object("name",
+                                             &tfc::ipc_ruler::slot::name,
+                                             "type",
+                                             &tfc::ipc_ruler::slot::type,
+                                             "created_by",
+                                             &tfc::ipc_ruler::slot::created_by,
+                                             "created_at",
+                                             &tfc::ipc_ruler::slot::created_at,
+                                             "last_registered",
+                                             &tfc::ipc_ruler::slot::last_registered,
+                                             "last_modified",
+                                             &tfc::ipc_ruler::slot::last_modified,
+                                             "modified_by",
+                                             &tfc::ipc_ruler::slot::modified_by,
+                                             "connected_to",
+                                             &tfc::ipc_ruler::slot::connected_to) };
     static constexpr auto name{ "slot" };
   };
 };
@@ -100,7 +105,7 @@ public:
     }
     signals_->emplace(name, signal{ .name = std::string(name),
                                     .type = type,
-                                    .created_by = "omar",
+                                    .created_by = "",
                                     .created_at = timestamp_now,
                                     .last_registered = timestamp_now });
     signals_.set_changed();
