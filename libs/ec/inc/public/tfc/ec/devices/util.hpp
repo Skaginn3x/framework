@@ -1,10 +1,5 @@
 #pragma once
 
-#include <units/isq/si/electric_current.h>
-#include <units/isq/si/thermodynamic_temperature.h>
-#include <units/quantity_point.h>
-#include <units/unit.h>
-
 #include <concepts>
 
 template <typename from, typename to>
