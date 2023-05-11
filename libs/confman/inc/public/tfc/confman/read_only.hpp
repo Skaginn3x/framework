@@ -26,6 +26,9 @@ public:
   auto value() const noexcept -> value_t const& { return value_; }
   auto value() noexcept -> value_t& { return value_; }
 
+  decltype(auto) operator->() noexcept { return std::addressof(value()); }
+  decltype(auto) operator->() const noexcept { return std::addressof(value()); }
+
   friend auto constexpr operator==(read_only const& lhs, read_only const& rhs) noexcept -> bool {
     return lhs.value_ == rhs.value_;
   }

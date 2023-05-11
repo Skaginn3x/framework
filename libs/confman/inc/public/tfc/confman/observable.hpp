@@ -118,7 +118,9 @@ public:
   }
 
   /// \brief set new value, if changed notify observer
-  void set(conf_param_t&& new_value) {
+  template<typename other_conf_paramt_t>
+  requires std::same_as<conf_param_t, std::remove_cvref_t<other_conf_paramt_t>>
+  void set(other_conf_paramt_t&& new_value) {
     if (new_value != value_) {
       if (callback_) {
         std::invoke(callback_, new_value, value_);
@@ -129,6 +131,8 @@ public:
 
   /// \brief get the current value
   auto value() const noexcept -> conf_param_t const& { return value_; }
+
+  auto operator->() const noexcept -> decltype(auto) { return std::addressof(value()); }
 
 private:
   conf_param_t value_{};
@@ -144,6 +148,17 @@ public:
 }  // namespace tfc::confman
 
 namespace glz::detail {
+
+//template <typename value_t>
+//struct from_json<tfc::confman::observable<value_t>> {
+//  template <auto opts>
+//  inline static void op(auto& value, auto&&... args) noexcept {
+//    value_t value_copy;
+//    read<json>::op<opts>(value_copy, args...);
+////    from_json<value_t>::template op<opts>(value_copy, std::forward<decltype(args)>(args)...);
+//    value.set(std::move(value_copy)); // invoke callback
+//  }
+//};
 
 template <typename value_t>
 struct to_json_schema<tfc::confman::observable<value_t>> {

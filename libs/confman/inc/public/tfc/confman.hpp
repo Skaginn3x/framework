@@ -63,11 +63,22 @@ public:
   auto from_string(std::string_view value) -> std::error_code {
     // this will call N nr of callbacks
     // for each confman::observer type
-    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
-    if (error) {
-      return {};
+
+    // this is the way, will finish later meta-prog
+//    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
+//    if (error) {
+//      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
+//    }
+//    return {};
+
+    auto exp_storage_value{ glz::read_json<storage_t>(value) };
+    if (exp_storage_value) {
+      storage_.make_change().value() = std::move(exp_storage_value.value());
     }
-    return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
+    else {
+      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
+    }
+    return {};
   }
 
   // todo this should be private !!!!!!!!! and only friends should use it

@@ -6,10 +6,12 @@
 #include <boost/ut.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
+#include <sdbusplus/asio/property.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/progbase.hpp>
 
@@ -57,15 +59,33 @@ auto main(int argc, char** argv) -> int {
   auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
   auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
                        tfc::base::make_config_file_name(key, "").string().substr(1) };
-  auto dbus_interface{ std::make_unique<sdbusplus::asio::dbus_interface>(
-      dbus, interface_path.string(), replace_all(interface_path.string().substr(1), "/", ".")) };
+  auto interface_name{ replace_all(interface_path.string().substr(1), "/", ".") };
 
-  boost::asio::steady_timer timer{ ctx };
-  timer.expires_after(std::chrono::milliseconds(10000));
-  timer.async_wait([&dbus_interface](std::error_code) {
-    dbus_interface->initialize();
-    dbus_interface->set_property("config", tfc::confman::detail::config_property{ "foo", "bar" });
-  });
+  using tfc::confman::detail::config_property;
+  using tfc::confman::detail::dbus::property_name;
+
+  "integration test"_test = [&] {
+    bool a_called{};
+    conf->a.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+      a_called = true;
+      ut::expect(new_val == 11);
+    });
+    conf->b.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+      a_called = true;
+      ut::expect(new_val == 11);
+    });
+    conf->c.observe([&a_called](std::string const& new_val,[[maybe_unused]] std::string const& old_val){
+      a_called = true;
+      ut::expect(new_val == "11");
+    });
+
+    sdbusplus::asio::setProperty(*dbus, interface_name, interface_path.string(), interface_name,
+                                 std::string{ property_name.data(), property_name.size() },
+                                 config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&a_called](std::error_code const&) {
+                                   ut::expect(a_called);
+                                 });
+
+  };
 
   ctx.run();
 

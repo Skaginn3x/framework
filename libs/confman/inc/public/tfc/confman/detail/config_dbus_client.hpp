@@ -26,6 +26,10 @@ struct config_property {
   return lhs.value == rhs.value && lhs.schema == rhs.schema;
 }
 
+namespace dbus {
+static constexpr std::string_view property_name{ "config" };
+}
+
 class config_dbus_client {
 public:
   using value_call_t = std::function<std::string()>;
