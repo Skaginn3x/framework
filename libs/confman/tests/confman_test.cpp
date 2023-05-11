@@ -66,25 +66,23 @@ auto main(int argc, char** argv) -> int {
 
   "integration test"_test = [&] {
     bool a_called{};
-    conf->a.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+    conf->a.observe([&a_called](int new_val, [[maybe_unused]] int old_val) {
       a_called = true;
       ut::expect(new_val == 11);
     });
-    conf->b.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+    conf->b.observe([&a_called](int new_val, [[maybe_unused]] int old_val) {
       a_called = true;
       ut::expect(new_val == 11);
     });
-    conf->c.observe([&a_called](std::string const& new_val,[[maybe_unused]] std::string const& old_val){
+    conf->c.observe([&a_called](std::string const& new_val, [[maybe_unused]] std::string const& old_val) {
       a_called = true;
       ut::expect(new_val == "11");
     });
 
     sdbusplus::asio::setProperty(*dbus, interface_name, interface_path.string(), interface_name,
                                  std::string{ property_name.data(), property_name.size() },
-                                 config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&a_called](std::error_code const&) {
-                                   ut::expect(a_called);
-                                 });
-
+                                 config_property{ R"({"a":11,"b":12,"c":"a"})", "" },
+                                 [&a_called](std::error_code const&) { ut::expect(a_called); });
   };
 
   ctx.run();

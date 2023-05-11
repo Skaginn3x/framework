@@ -65,17 +65,16 @@ public:
     // for each confman::observer type
 
     // this is the way, will finish later meta-prog
-//    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
-//    if (error) {
-//      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
-//    }
-//    return {};
+    //    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
+    //    if (error) {
+    //      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
+    //    }
+    //    return {};
 
     auto exp_storage_value{ glz::read_json<storage_t>(value) };
     if (exp_storage_value) {
       storage_.make_change().value() = std::move(exp_storage_value.value());
-    }
-    else {
+    } else {
       return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
     }
     return {};
