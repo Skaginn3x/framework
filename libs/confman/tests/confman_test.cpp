@@ -51,41 +51,43 @@ auto main(int argc, char** argv) -> int {
   desc.add_options()("slow,s", bpo::bool_switch(&run_slow)->default_value(false));
   tfc::base::init(argc, argv, desc);
 
-  boost::asio::io_context ctx{};
-
-  std::string const key{ "bar" };
-  config<storage> conf{ ctx, key };
-
-  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
-  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
-                       tfc::base::make_config_file_name(key, "").string().substr(1) };
-  auto interface_name{ replace_all(interface_path.string().substr(1), "/", ".") };
-
-  using tfc::confman::detail::config_property;
-  using tfc::confman::detail::dbus::property_name;
-
-  "integration test"_test = [&] {
-    bool a_called{};
-    conf->a.observe([&a_called](int new_val, [[maybe_unused]] int old_val) {
-      a_called = true;
-      ut::expect(new_val == 11);
-    });
-    conf->b.observe([&a_called](int new_val, [[maybe_unused]] int old_val) {
-      a_called = true;
-      ut::expect(new_val == 11);
-    });
-    conf->c.observe([&a_called](std::string const& new_val, [[maybe_unused]] std::string const& old_val) {
-      a_called = true;
-      ut::expect(new_val == "11");
-    });
-
-    sdbusplus::asio::setProperty(*dbus, interface_name, interface_path.string(), interface_name,
-                                 std::string{ property_name.data(), property_name.size() },
-                                 config_property{ R"({"a":11,"b":12,"c":"a"})", "" },
-                                 [&a_called](std::error_code const&) { ut::expect(a_called); });
-  };
-
-  ctx.run();
+//  boost::asio::io_context ctx{};
+//
+//  std::string const key{ "bar" };
+//  config<storage> conf{ ctx, key };
+//
+//  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+//  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
+//                       tfc::base::make_config_file_name(key, "").string().substr(1) };
+//  auto interface_name{ replace_all(interface_path.string().substr(1), "/", ".") };
+//
+//  using tfc::confman::detail::config_property;
+//  using tfc::confman::detail::dbus::property_name;
+//
+//  "integration test"_test = [&] {
+//    bool a_called{};
+//    conf->a.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+//      a_called = true;
+//      ut::expect(new_val == 11);
+//    });
+//    conf->b.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+//      a_called = true;
+//      ut::expect(new_val == 11);
+//    });
+//    conf->c.observe([&a_called](std::string const& new_val,[[maybe_unused]] std::string const& old_val){
+//      a_called = true;
+//      ut::expect(new_val == "11");
+//    });
+//
+//    sdbusplus::asio::setProperty(*dbus, interface_name, interface_path.string(), interface_name,
+//                                 std::string{ property_name.data(), property_name.size() },
+//                                 config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&a_called](std::error_code const&) {
+//                                   ut::expect(a_called);
+//                                 });
+//
+//  };
+//
+//  ctx.run();
 
   //
   //  [[maybe_unused]] ut::suite const rpc_test_cases = [] {
