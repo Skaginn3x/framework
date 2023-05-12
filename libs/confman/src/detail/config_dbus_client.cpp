@@ -12,13 +12,9 @@
 
 namespace tfc::confman::detail {
 
-static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
-  std::size_t count{};
+static auto replace_all(std::string_view input, char what, char with) -> std::string {
   std::string copy{ input };
-  for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
-       pos += with.length(), ++count) {
-    copy.replace(pos, what.length(), with.data(), with.length());
-  }
+  std::replace( copy.begin(), copy.end(), what, with); // replace all 'x' to 'y'
   return copy;
 }
 
@@ -35,7 +31,7 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                                        [[maybe_unused]] change_call_t&& change_call)
     : interface_path_{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
                        base::make_config_file_name(key, "").string().substr(1) },
-      interface_name_{ replace_all(interface_path_.string().substr(1), "/", ".") },
+      interface_name_{ replace_all(interface_path_.string().substr(1), '/', '.') },
       dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
       dbus_interface_{
         std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
