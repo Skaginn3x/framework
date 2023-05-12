@@ -14,7 +14,7 @@ namespace tfc::confman::detail {
 
 static auto replace_all(std::string_view input, char what, char with) -> std::string {
   std::string copy{ input };
-  std::replace( copy.begin(), copy.end(), what, with); // replace all 'x' to 'y'
+  std::replace(copy.begin(), copy.end(), what, with);  // replace all 'x' to 'y'
   return copy;
 }
 
