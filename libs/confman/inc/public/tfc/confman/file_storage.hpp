@@ -20,7 +20,8 @@ namespace asio = boost::asio;
 template <typename storage_t>
 class file_storage {
 public:
-  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path) : file_storage{ ctx, file_path, storage_t{} } {}
+  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
+      : file_storage{ ctx, file_path, storage_t{} } {}
 
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path, auto&& default_value)
       : config_file_{ file_path }, storage_{ std::forward<decltype(default_value)>(default_value) },
