@@ -1,4 +1,3 @@
-#include <tfc/confman/detail/config_rpc_server.hpp>
 #include <tfc/ipc_connector/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 
@@ -8,9 +7,6 @@ namespace asio = boost::asio;
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
-
-  using tfc::ipc::packet;
-  using tfc::ipc::type_e;
 
   boost::asio::io_context ctx;
   tfc::ipc_ruler::ipc_manager_client client(ctx);

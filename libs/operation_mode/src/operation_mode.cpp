@@ -12,9 +12,9 @@
 #include <sdbusplus/bus/match.hpp>
 #include <sdbusplus/message.hpp>
 
-namespace asio = boost::asio;
-
 namespace tfc::operation {
+
+namespace asio = boost::asio;
 
 [[maybe_unused]] static constexpr std::string_view mode_update_match_rule{
   stx::string_view_join_v<tfc::dbus::match::rules::type::signal,

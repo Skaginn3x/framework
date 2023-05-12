@@ -19,10 +19,10 @@ struct change {
   }
 
   /// \return Access to underlying owner value
-  [[nodiscard]] decltype(auto) value() noexcept { return owner_.value(); }
+  [[nodiscard]] auto value() noexcept -> auto& { return owner_.value(); }
 
   /// \return Access to underlying owner value
-  auto operator->() noexcept { return owner_.operator->(); }
+  auto operator->() noexcept -> auto* { return owner_.operator->(); }
 
 private:
   owner_t& owner_;

@@ -17,6 +17,14 @@ target_link_libraries(ipc-ruler
 
 include(GNUInstallDirs)
 install(
+  FILES
+    systemd/ipc-ruler.service
+  DESTINATION
+    ${CMAKE_INSTALL_LIBDIR}/systemd/user/
+  CONFIGURATIONS Release
+)
+
+install(
   TARGETS
     ipc-ruler
   DESTINATION

@@ -4,14 +4,16 @@
 #include <string_view>
 #include <type_traits>
 
-#include <glaze/core/common.hpp>
+#include <glaze/glaze.hpp>
 
-#include <tfc/confman/detail/config_rpc_client.hpp>
-#include <tfc/confman/observable.hpp>
-
-namespace asio = boost::asio;
+#include <tfc/confman/detail/change.hpp>
+#include <tfc/confman/detail/config_dbus_client.hpp>
+#include <tfc/confman/file_storage.hpp>
+#include <tfc/progbase.hpp>
 
 namespace tfc::confman {
+
+namespace asio = boost::asio;
 
 /// \brief configuration storage which maintains and keeps a storage type up to date
 /// \tparam config_storage_t equality comparable and default constructible type
@@ -23,104 +25,68 @@ public:
   /// \brief construct config and deliver it to config manager
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
-  /// \param alive_cb callback called after the storage has been populated
-  ///                 the input parameter of the callback is reference to `this` (self)
-  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb)
-      : client_{ ctx, key }, logger_(fmt::format("config.{}", key)) {
-    init(std::forward<decltype(alive_cb)>(alive_cb));
-  }
+  config(asio::io_context& ctx, std::string_view key) : config{ ctx, key, config_storage_t{} } {}
 
   /// \brief construct config and deliver it to config manager
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
-  /// \param alive_cb callback called after the storage has been populated
-  ///                 the input parameter of the callback is reference to `this` (self)
   /// \param def default values of given storage type
   template <typename storage_type>
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
-  config(asio::io_context& ctx, std::string_view key, std::invocable<config const&> auto&& alive_cb, storage_type&& def)
-      : storage_{ std::forward<storage_type>(def) }, client_{ ctx, key }, logger_(fmt::format("config.{}", key)) {
-    init(std::forward<decltype(alive_cb)>(alive_cb));
-  }
+  config(asio::io_context& ctx, std::string_view key, storage_type&& def)
+      : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
+                 std::bind_front(&config::from_string, this) },
+        logger_(fmt::format("config.{}", key)) {}
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
-  [[nodiscard]] auto get() const noexcept -> storage_t const& { return storage_; }
+  [[nodiscard]] auto value() const noexcept -> storage_t const& { return storage_.value(); }
+  /// \brief accessor to given storage
+  auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
-  /// \brief override current config with the given value
-  /// \param storage to be overridden with
-  void set(std::same_as<storage_t> auto&& storage) { storage_ = std::forward<decltype(storage)>(storage); }
+  /// \return storage_t as json string
+  [[nodiscard]] auto string() const -> std::string { return glz::write_json(storage_.value()); }
+  /// \return storage_t json schema
+  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<config_storage_t>(); }
+
+  auto set_changed() const noexcept -> std::error_code { return storage_.set_changed(); }
 
   /// \brief get config key used to index the given object of type storage_t
-  auto key() const noexcept -> std::string_view { return client_.topic(); }
+  [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return storage_.file(); }
 
-  /// \brief accessor to given storage
-  auto operator->() const noexcept -> storage_t const* { return std::addressof(get()); }
+  using change = detail::change<config>;
+  friend struct detail::change<config>;
 
-  friend struct change;
-  /// \struct
-  /// Make config changes within the process. Changes will be executed during deconstruction.
-  /// This generally should not be needed.
-  /// \note should never be used as long living object.
-  ///       as it owns reference to config.
-  struct change {
-    explicit change(config& owner) : config_{ owner } {}
+  auto make_change() noexcept -> change { return change{ *this }; }
 
-    /// \brief let owner know of the changes
-    ~change() {
-      config_.set(std::move(config_.storage_));
-      // todo config_.update_server();
+  auto from_string(std::string_view value) -> std::error_code {
+    // this will call N nr of callbacks
+    // for each confman::observer type
+
+    // this is the way, will finish later meta-prog
+    //    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
+    //    if (error) {
+    //      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
+    //    }
+    //    return {};
+
+    auto exp_storage_value{ glz::read_json<storage_t>(value) };
+    if (exp_storage_value) {
+      storage_.make_change().value() = std::move(exp_storage_value.value());
+    } else {
+      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
     }
+    return {};
+  }
 
-    /// \brief get access to storage
-    /// \note can be used to assign observer to observable even though it is const
-    [[nodiscard]] auto get() noexcept -> storage_t& { return config_.storage_; }
-
-    /// \brief accessor to given storage
-    auto operator->() noexcept -> storage_t* { return std::addressof(get()); }
-
-  private:
-    config& config_;
-  };
-
-  auto make_changes() noexcept -> change { return change{ *this }; }
+  // todo this should be private !!!!!!!!! and only friends should use it
+  [[nodiscard]] auto value() noexcept -> storage_t& { return storage_.value(); }
+  auto operator->() noexcept -> storage_t* { return std::addressof(value()); }
 
 private:
-  void init(std::invocable<config const&> auto&& alive_cb) {
-    client_.alive(glz::write_json_schema<storage_t>(), glz::write_json(storage_),
-                  [this, callback = alive_cb](auto const& val) {
-                    on_alive(val);
-                    std::invoke(callback, *this);
-                  });
-    client_.subscribe([this](std::expected<std::string_view, std::error_code> const& res) {
-      if (res) {
-        auto storage{ glz::read_json<storage_t>(res.value()) };
-        if (storage) {
-          set(std::move(storage.value()));
-          return;
-        }
-        logger_.warn("Subscribe parser error:\n{}", glz::format_error(storage.error(), res.value()));
-      } else {
-        logger_.warn("Subscribe error:\n{}", res.error().message());
-      }
-    });
-  }
-
-  void on_alive(std::expected<detail::method::alive_result, glz::rpc::error> const& res) {
-    if (res) {
-      auto storage{ glz::read_json<storage_t>(res.value().config.str) };
-      if (storage) {
-        set(std::move(storage.value()));
-        return;
-      }
-      logger_.warn("Subscribe parser error:\n{}", glz::format_error(storage.error(), res.value().config.str));
-    } else {
-      logger_.warn("Subscribe error:\n{}\n{}", res.error().get_message(), res.error().get_data());
-    }
-  }
-
-  storage_t storage_{};
-  detail::config_rpc_client client_;
+  file_storage<storage_t> storage_{};
+  detail::config_dbus_client client_;
   tfc::logger::logger logger_;
 };
 

@@ -52,6 +52,9 @@ void init(int argc, char const* const* argv);
 /// Refer to https://www.freedesktop.org/software/systemd/man/systemd.exec.html#%24RUNTIME_DIRECTORY
 [[nodiscard]] auto get_config_directory() -> std::filesystem::path;
 
+/// \return <config_directory><exe_name>/<proc_name>/<filename>.<file_extension>
+[[nodiscard]] auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path;
+
 /// \brief supposed to be used by logger library to indicate log to terminal is enabled
 [[nodiscard]] auto is_stdout_enabled() noexcept -> bool;
 

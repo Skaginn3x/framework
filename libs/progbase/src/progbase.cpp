@@ -108,6 +108,22 @@ auto get_log_lvl() noexcept -> tfc::logger::lvl_e {
 auto get_map() noexcept -> boost::program_options::variables_map const& {
   return options::instance().get_map();
 }
+
+auto get_config_directory() -> std::filesystem::path {
+  if (auto const* config_dir{ std::getenv("CONFIGURATION_DIRECTORY") }) {
+    return std::filesystem::path{ config_dir };
+  }
+  return std::filesystem::path{ "/etc/tfc/" };
+}
+auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path {
+  auto config_dir{ get_config_directory() };
+  std::filesystem::path filename_path{ filename };
+  if (!extension.empty()) {
+    filename_path.replace_extension(extension);
+  }
+  return config_dir / get_exe_name() / get_proc_name() / filename_path;
+}
+
 auto is_stdout_enabled() noexcept -> bool {
   return options::instance().get_stdout();
 }

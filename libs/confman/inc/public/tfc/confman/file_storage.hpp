@@ -20,11 +20,12 @@ namespace asio = boost::asio;
 template <typename storage_t>
 class file_storage {
 public:
-  file_storage(asio::io_context& ctx, std::string_view file_path) : file_storage{ ctx, file_path, storage_t{} } {}
+  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
+      : file_storage{ ctx, file_path, storage_t{} } {}
 
-  explicit file_storage(asio::io_context& ctx, std::string_view file_path, auto&& default_value)
+  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path, auto&& default_value)
       : config_file_{ file_path }, storage_{ std::forward<decltype(default_value)>(default_value) },
-        logger_{ fmt::format("file_storage.{}", file_path) }, file_watcher_{ ctx } {
+        logger_{ fmt::format("file_storage.{}", file_path.string()) }, file_watcher_{ ctx } {
     std::filesystem::create_directories(config_file_.parent_path());
     error_ = read_file();
     if (error_) {
@@ -50,6 +51,8 @@ public:
   }
 
   auto error() const noexcept -> std::error_code const& { return error_; }
+
+  auto file() const noexcept -> std::filesystem::path const& { return config_file_; }
 
   /// \return Access to underlying value
   auto value() const noexcept -> storage_t const& { return storage_; }
