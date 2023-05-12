@@ -32,6 +32,7 @@ target_link_libraries(gpio
     gpiod
 )
 
+include(GNUInstallDirs)
 install(
   TARGETS
     gpio
