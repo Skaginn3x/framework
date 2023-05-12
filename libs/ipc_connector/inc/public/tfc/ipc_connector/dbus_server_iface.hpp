@@ -12,6 +12,7 @@
 #include <magic_enum.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
+#include <sdbusplus/asio/property.hpp>
 
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
@@ -131,30 +132,19 @@ public:
                           });
     slots_.set_changed();
   }
-  auto get_all_signals() -> std::vector<std::tuple<std::string, uint8_t, std::string, std::string, std::string>> {
+  auto get_all_signals() -> std::vector<signal> {
     logger_.trace("get_all_signals called");
-    std::vector<std::tuple<std::string, uint8_t, std::string, std::string, std::string>> ret;
+    std::vector<signal> ret;
     ret.reserve(signals_->size());
-    for (auto& [_, signal] : signals_.value()) {
-      ret.emplace_back(signal.name, static_cast<uint8_t>(signal.type), signal.created_by,
-                       fmt::format("{:%Y-%m-%d %H:%M:%S}", signal.created_at),
-                       fmt::format("{:%Y-%m-%d %H:%M:%S}", signal.last_registered));
-    }
+    std::transform(signals_->begin(), signals_->end(), std::back_inserter(ret),
+                   [](const auto& tple) { return tple.second; });
     return ret;
   }
-  auto get_all_slots() -> std::vector<
-      std::tuple<std::string, uint8_t, std::string, std::string, std::string, std::string, std::string, std::string>> {
+  auto get_all_slots() -> std::vector<slot> {
     logger_.trace("get_all_slots called");
-    std::vector<
-        std::tuple<std::string, uint8_t, std::string, std::string, std::string, std::string, std::string, std::string>>
-        ret;
+    std::vector<slot> ret;
     ret.reserve(slots_->size());
-    for (auto& [_, slot] : slots_.value()) {
-      ret.emplace_back(slot.name, static_cast<uint8_t>(slot.type), slot.created_by,
-                       fmt::format("{:%Y-%m-%d %H:%M:%S}", slot.created_at),
-                       fmt::format("{:%Y-%m-%d %H:%M:%S}", slot.last_registered),
-                       fmt::format("{:%Y-%m-%d %H:%M:%S}", slot.last_modified), slot.modified_by, slot.connected_to);
-    }
+    std::transform(slots_->begin(), slots_->end(), std::back_inserter(ret), [](const auto& tple) { return tple.second; });
     return ret;
   }
 
@@ -224,8 +214,12 @@ public:
       ipc_manager_->register_slot(name, static_cast<tfc::ipc::type_e>(type));
     });
 
-    dbus_iface_->register_method("get_all_signals", [&]() { return ipc_manager_->get_all_signals(); });
-    dbus_iface_->register_method("get_all_slots", [&]() { return ipc_manager_->get_all_slots(); });
+    dbus_iface_->register_property_r<std::string>("signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
+      return glz::write_json(ipc_manager_->get_all_signals());
+    });
+    dbus_iface_->register_property_r<std::string>("slots", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
+      return glz::write_json(ipc_manager_->get_all_slots());
+    });
 
     dbus_iface_->register_method("connect", [&](const std::string& slot_name, const std::string& signal_name) {
       ipc_manager_->connect(slot_name, signal_name);
@@ -268,14 +262,32 @@ public:
   }
 
   template <typename message_handler>
-  auto get_all_signals(message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "get_all_signals");
+  auto signals(message_handler&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(
+        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "signals",
+        [handler](const boost::system::error_code& error, const std::string& response) {
+          if (error) {
+            return;
+          }
+          auto signals = glz::read_json<std::vector<signal>>(response);
+          if (signals) {
+            handler(signals.value());
+          }
+        });
   }
   template <typename message_handler>
-  auto get_all_slots(message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "get_all_slots");
+  auto slots(message_handler&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(
+        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "slots",
+        [handler](const boost::system::error_code& error, const std::string& response) {
+          if (error) {
+            return;
+          }
+          auto slots = glz::read_json<std::vector<slot>>(response);
+          if (slots) {
+            handler(slots.value());
+          }
+        });
   }
   template <typename message_handler>
   auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {

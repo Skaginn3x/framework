@@ -7,8 +7,8 @@ auto main(int argc, char** argv) -> int {
 
   boost::asio::io_context ctx;
 
-  using signal_storage = tfc::confman::file_storage<std::unordered_map<std::string, tfc::ipc_ruler::signal>>;
-  using slot_storage = tfc::confman::file_storage<std::unordered_map<std::string, tfc::ipc_ruler::slot>>;
+  using signal_storage = tfc::confman::file_storage<std::map<std::string, tfc::ipc_ruler::signal>>;
+  using slot_storage = tfc::confman::file_storage<std::map<std::string, tfc::ipc_ruler::slot>>;
 
   auto signals = signal_storage(ctx, "/tmp/ipc-ruler-signals.conf");
   auto slots = slot_storage(ctx, "/tmp/ipc-ruler-slots.conf");

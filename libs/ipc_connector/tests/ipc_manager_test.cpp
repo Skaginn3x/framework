@@ -7,6 +7,7 @@
 
 template <typename storage_t>
 struct file_storage_mock {
+  using type = storage_t;
   auto set_changed() const noexcept -> std::error_code {
     set_changed_cb();
     return {};
@@ -35,7 +36,10 @@ auto main(int argc, char** argv) -> int {
   "ipc_manager correctness check"_test = [&]() {
     ipc_manager.register_signal("some_slot", tfc::ipc::type_e::_bool);
     boost::ut::expect(ipc_manager.get_all_signals().size() == 1);
-    boost::ut::expect(ipc_manager.get_all_slots().size() == 0);
+    boost::ut::expect(ipc_manager.get_all_slots().empty());
+
+    signals.storage_ = {};
+    boost::ut::expect(ipc_manager.get_all_signals().empty());
   };
 
   return EXIT_SUCCESS;
