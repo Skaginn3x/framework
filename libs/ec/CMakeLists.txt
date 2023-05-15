@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.21)
 
 find_path(BEXT_SML_INCLUDE_DIRS "boost/sml.hpp")
 find_package(fmt CONFIG REQUIRED)
-find_package(mp-units CONFIG REQUIRED)
 find_package(soem CONFIG REQUIRED)
 
 
@@ -26,10 +25,6 @@ target_link_libraries(ec
     tfc::ipc_connector
   PRIVATE
     fmt::fmt
-    mp-units::si
-    mp-units::isq
-    mp-units::core
-    mp-units::si-cgs
 )
 
 add_library_to_docs(tfc::ec)

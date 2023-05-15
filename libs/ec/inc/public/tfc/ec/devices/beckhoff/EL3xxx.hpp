@@ -1,7 +1,5 @@
 #pragma once
 
-#include <units/isq/si/electric_current.h>
-#include <units/quantity_io.h>
 #include <string>
 
 #include "tfc/ec/devices/util.hpp"
@@ -13,8 +11,6 @@ struct siemens_status {
   bool unknown_1 = false;
   bool unknown_2 = false;
 };
-
-using units::isq::si::electric_current_references::mA;
 
 template <size_t size, auto p_code>
 class el305x : public base {
@@ -63,7 +59,8 @@ public:
       status_[i] = siemens_status{ .out_of_range = status_bits.test(0),
                                    .unknown_1 = status_bits.test(1),
                                    .unknown_2 = status_bits.test(2) };
-      value_[i] = units::isq::si::electric_current<units::isq::si::milliampere>(map<double>(raw_value >> 3, 0, 4096, 4, 20));
+      // value_[i] = units::isq::si::electric_current<units::isq::si::milliampere>(map<double>(raw_value >> 3, 0, 4096, 4,
+      // 20));
     }
     // size_t counter = 0;
     // for (auto milli_ampere : value_) {
@@ -78,7 +75,7 @@ public:
 
 private:
   std::array<siemens_status, size> status_;  // Three status bits
-  std::array<units::isq::si::electric_current<units::isq::si::milliampere>, size> value_;
+  // std::array<units::isq::si::electric_current<units::isq::si::milliampere>, size> value_;
 };
 
 using el3054 = el305x<4, 0xbee3052>;
