@@ -30,7 +30,6 @@ target_link_libraries(libconfman
     glaze::glaze
     tfc::base
     tfc::rpc
-    tfc::ipc
     tfc::stx
     tfc::dbus_util
   PRIVATE

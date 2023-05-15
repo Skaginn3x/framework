@@ -9,7 +9,7 @@ public:
   explicit el100x(boost::asio::io_context& ctx, uint16_t const slave_index) : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
       transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::bool_send_exposed>(ctx, fmt::format("EL100{}.{}.in.{}", size, slave_index, i)));
+          std::make_unique<tfc::ipc::bool_signal>(ctx, fmt::format("EL100{}.{}.in.{}", size, slave_index, i)));
     }
   }
   static constexpr uint32_t product_code = pc;
@@ -33,7 +33,7 @@ public:
 
 private:
   std::array<bool, size> last_values_;
-  std::vector<std::unique_ptr<tfc::ipc::bool_send_exposed>> transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_signal>> transmitters_;
 };
 
 using el1008 = el100x<8, 0x3f03052>;

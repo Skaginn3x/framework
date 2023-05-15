@@ -22,7 +22,8 @@
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 
-namespace tfc::ipc_ruler {
+namespace tfc::ipc_ruler{
+using tfc::ipc::details::type_e;
 // service name
 static auto ipc_ruler_service_name = "com.skaginn3x.ipc_ruler";
 // object path
@@ -34,7 +35,7 @@ using dbus_error = tfc::dbus::exception::runtime;
 
 struct signal {
   std::string name;
-  tfc::ipc::type_e type;
+  type_e type;
   std::string created_by;
   std::chrono::time_point<std::chrono::system_clock> created_at;
   std::chrono::time_point<std::chrono::system_clock> last_registered;
@@ -56,7 +57,7 @@ struct signal {
 
 struct slot {
   std::string name;
-  tfc::ipc::type_e type;
+  type_e type;
   std::string created_by;
   std::chrono::time_point<std::chrono::system_clock> created_at;
   std::chrono::time_point<std::chrono::system_clock> last_registered;
@@ -97,7 +98,7 @@ public:
       : logger_("ipc_manager"), signals_{ signals }, slots_{ slots } {}
 
   auto set_callback(std::function<void(slot_name, signal_name)> on_connect_cb) -> void { on_connect_cb_ = on_connect_cb; }
-  auto register_signal(const std::string_view name, tfc::ipc::type_e type) -> void {
+  auto register_signal(const std::string_view name, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
     auto str_name = std::string(name);
@@ -111,7 +112,7 @@ public:
                                     .last_registered = timestamp_now });
     signals_.set_changed();
   }
-  auto register_slot(const std::string_view name, tfc::ipc::type_e type) -> void {
+  auto register_slot(const std::string_view name, type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
     auto timestamp_never = std::chrono::time_point<std::chrono::system_clock>{};
@@ -208,10 +209,10 @@ public:
     });
 
     dbus_iface_->register_method("register_signal", [&](const std::string& name, uint8_t type) {
-      ipc_manager_->register_signal(name, static_cast<tfc::ipc::type_e>(type));
+      ipc_manager_->register_signal(name, static_cast<type_e>(type));
     });
     dbus_iface_->register_method("register_slot", [&](const std::string& name, uint8_t type) {
-      ipc_manager_->register_slot(name, static_cast<tfc::ipc::type_e>(type));
+      ipc_manager_->register_slot(name, static_cast<type_e>(type));
     });
 
     dbus_iface_->register_property_r<std::string>("signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
@@ -250,13 +251,13 @@ public:
   }
 
   template <typename message_handler>
-  auto register_signal(const std::string& name, tfc::ipc::type_e type, message_handler&& handler) -> void {
+  auto register_signal(const std::string& name, type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "register_signal", name, static_cast<uint8_t>(type));
   }
 
   template <typename message_handler>
-  auto register_slot(const std::string_view name, tfc::ipc::type_e type, message_handler&& handler) -> void {
+  auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "register_slot", name, static_cast<uint8_t>(type));
   }

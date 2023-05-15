@@ -4,7 +4,7 @@
 
 // Common enums, ipc/glaze_meta.hpp provides string conversions for the below enums
 
-namespace tfc::ipc {
+namespace tfc::ipc::details {
 
 enum struct direction_e : std::uint8_t {
   unknown = 0,

@@ -11,7 +11,7 @@
 
 #include <tfc/ipc/enums.hpp>
 
-namespace tfc::ipc {
+namespace tfc::ipc::details {
 
 /// \brief Enum specifying protocol version
 /// This can be changed in the future to retain backwards compatibility and still

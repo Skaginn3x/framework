@@ -5,7 +5,6 @@
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/ipc_connector.hpp>
 
 namespace tfc::ec::devices::abt {
 class easyecat final : public base {
@@ -15,13 +14,13 @@ public:
   explicit easyecat(boost::asio::io_context& ctx_, uint16_t const slave_index) : base(slave_index) {
     for (size_t i = 0; i < 4; i++) {
       bool_transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::bool_send_exposed>(ctx_, fmt::format("easyecat.{}.in.{}", slave_index, i)));
-      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_recv_conf_cb>(
+          std::make_unique<tfc::ipc::bool_signal>(ctx_, fmt::format("easyecat.{}.in.{}", slave_index, i)));
+      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_slot>(
           ctx_, fmt::format("easyecat.{}.out.{}", slave_index, i), [this, i](bool value) { output_states_.set(i, value); }));
     }
     for (size_t i = 0; i < 2; i++) {
       analog_transmitters_.push_back(
-          std::make_unique<tfc::ipc::uint_send_exposed>(ctx_, fmt::format("easyecat.{}.in.{}", slave_index, i)));
+          std::make_unique<tfc::ipc::uint_signal>(ctx_, fmt::format("easyecat.{}.in.{}", slave_index, i)));
     }
   }
 
@@ -66,9 +65,9 @@ private:
   std::bitset<do_count> output_states_;
   std::array<bool, di_count> last_bool_value_;
   std::array<uint8_t, ai_count> last_analog_value_;
-  std::vector<std::unique_ptr<tfc::ipc::bool_send_exposed>> bool_transmitters_;
-  std::vector<std::unique_ptr<tfc::ipc::uint_send_exposed>> analog_transmitters_;
-  std::vector<std::unique_ptr<tfc::ipc::bool_recv_conf_cb>> bool_receivers_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_signal>> bool_transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::uint_signal>> analog_transmitters_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_slot>> bool_receivers_;
 };
 
 }  // namespace tfc::ec::devices::abt

@@ -4,7 +4,7 @@
 #include <boost/sml.hpp>
 
 #include <tfc/confman.hpp>
-#include <tfc/ipc_connector.hpp>
+#include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/operation_mode/common.hpp>
 #include <tfc/utils/pragmas.hpp>
@@ -54,15 +54,15 @@ private:
 
   mode_e current_mode_{ tfc::operation::mode_e::unknown };
   std::function<void(new_mode, old_mode)> on_new_state_{};
-  tfc::ipc::bool_send_exposed stopped_;
-  tfc::ipc::bool_send_exposed warmup_;
-  tfc::ipc::bool_send_exposed running_;
-  tfc::ipc::bool_send_exposed cleaning_;
-  tfc::ipc::uint_send_exposed mode_;
-  tfc::ipc::string_send_exposed mode_str_;
-  tfc::ipc::bool_recv_conf_cb run_button_;
-  tfc::ipc::bool_recv_conf_cb cleaning_button_;
-  tfc::ipc::bool_recv_conf_cb maintenance_button_;
+  tfc::ipc::bool_signal stopped_;
+  tfc::ipc::bool_signal warmup_;
+  tfc::ipc::bool_signal running_;
+  tfc::ipc::bool_signal cleaning_;
+  tfc::ipc::uint_signal mode_;
+  tfc::ipc::string_signal mode_str_;
+  tfc::ipc::bool_slot run_button_;
+  tfc::ipc::bool_slot cleaning_button_;
+  tfc::ipc::bool_slot maintenance_button_;
   tfc::logger::logger logger_;
   std::shared_ptr<boost::sml::sm<detail::state_machine>> states_;
 };

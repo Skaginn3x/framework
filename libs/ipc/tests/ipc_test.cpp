@@ -14,8 +14,8 @@ auto main(int, char**) -> int {
   using boost::ut::expect;
   using boost::ut::bdd::given;
   using boost::ut::bdd::when;
-  using tfc::ipc::packet;
-  using tfc::ipc::type_e;
+  using tfc::ipc::details::packet;
+  using tfc::ipc::details::type_e;
 
   "packet_serialization"_test = []() {
     constexpr auto deserialize_serialize{ [](auto&& pack) {
@@ -78,8 +78,8 @@ auto main(int, char**) -> int {
 
   "ipc stop receiver"_test = [] {
     asio::io_context ctx;
-    auto sender = tfc::ipc::uint_send::create(ctx, "name").value();
-    auto receiver = tfc::ipc::uint_recv_cb::create(ctx, "name");
+    auto sender = tfc::ipc::details::uint_send::create(ctx, "name").value();
+    auto receiver = tfc::ipc::details::uint_recv_cb::create(ctx, "name");
 
     receiver->init(sender->name_w_type(), [](auto val) { std::cout << val << std::endl; });
     asio::deadline_timer verification_timer{ ctx };
@@ -93,8 +93,8 @@ auto main(int, char**) -> int {
   };
   "ipc"_test = [] {
     asio::io_context ctx;
-    auto sender = tfc::ipc::uint_send::create(ctx, "name").value();
-    auto receiver = tfc::ipc::uint_recv_cb::create(ctx, "unused");
+    auto sender = tfc::ipc::details::uint_send::create(ctx, "name").value();
+    auto receiver = tfc::ipc::details::uint_recv_cb::create(ctx, "unused");
 
     constexpr auto time_point_to_uint64 = [](auto const& time_point) -> std::uint64_t {
       auto duration = time_point.time_since_epoch();
@@ -130,8 +130,8 @@ auto main(int, char**) -> int {
 
   "code_example"_test = []() {
     auto ctx{ asio::io_context() };
-    auto sender{ tfc::ipc::string_send::create(ctx, "name").value() };
-    auto receiver{ tfc::ipc::string_recv_cb::create(ctx, "unused") };
+    auto sender{ tfc::ipc::details::string_send::create(ctx, "name").value() };
+    auto receiver{ tfc::ipc::details::string_recv_cb::create(ctx, "unused") };
     receiver->init(sender->name_w_type(), [&ctx](std::string const& value) {
       fmt::print("received: {}\n", value);
       ctx.stop();

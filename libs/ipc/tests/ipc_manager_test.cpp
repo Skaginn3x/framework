@@ -2,7 +2,7 @@
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 #include <tfc/confman/file_storage.hpp>
-#include <tfc/ipc_connector/dbus_server_iface.hpp>
+#include <tfc/ipc/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 
 template <typename storage_t>
@@ -34,7 +34,7 @@ auto main(int argc, char** argv) -> int {
   auto ipc_manager = tfc::ipc_ruler::ipc_manager<signal_storage, slot_storage>(signals, slots);
 
   "ipc_manager correctness check"_test = [&]() {
-    ipc_manager.register_signal("some_slot", tfc::ipc::type_e::_bool);
+    ipc_manager.register_signal("some_slot", tfc::ipc::details::type_e::_bool);
     boost::ut::expect(ipc_manager.get_all_signals().size() == 1);
     boost::ut::expect(ipc_manager.get_all_slots().empty());
 

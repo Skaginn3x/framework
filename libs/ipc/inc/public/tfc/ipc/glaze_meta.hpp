@@ -15,8 +15,8 @@ inline stx::basic_fixed_string constexpr slot_tag{ "slot" };
 namespace glz {
 
 template <>
-struct meta<tfc::ipc::direction_e> {
-  using enum tfc::ipc::direction_e;
+struct meta<tfc::ipc::details::direction_e> {
+  using enum tfc::ipc::details::direction_e;
   // clang-format off
   static auto constexpr value{ glz::enumerate("unknown", unknown, "Unspecified direction",
                                               tfc::ipc::signal_tag.data_, signal, "Owner of information being sent/published",
@@ -27,17 +27,17 @@ struct meta<tfc::ipc::direction_e> {
 };
 
 template <>
-struct meta<tfc::ipc::type_e> {
-  using enum tfc::ipc::type_e;
+struct meta<tfc::ipc::details::type_e> {
+  using enum tfc::ipc::details::type_e;
   // clang-format off
   static auto constexpr value{ glz::enumerate(
-    tfc::ipc::type_e_iterable[std::to_underlying(unknown)], unknown, "Unspecified type",
-    tfc::ipc::type_e_iterable[std::to_underlying(_bool)], _bool, "Boolean",
-    tfc::ipc::type_e_iterable[std::to_underlying(_int64_t)], _int64_t, "Signed 64bit integer",
-    tfc::ipc::type_e_iterable[std::to_underlying(_uint64_t)], _uint64_t, "Unsigned 64bit integer",
-    tfc::ipc::type_e_iterable[std::to_underlying(_double_t)], _double_t, "Double",
-    tfc::ipc::type_e_iterable[std::to_underlying(_string)], _string, "String",
-    tfc::ipc::type_e_iterable[std::to_underlying(_json)], _json, "Json"
+    tfc::ipc::details::type_e_iterable[std::to_underlying(unknown)], unknown, "Unspecified type",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_bool)], _bool, "Boolean",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_int64_t)], _int64_t, "Signed 64bit integer",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_uint64_t)], _uint64_t, "Unsigned 64bit integer",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_double_t)], _double_t, "Double",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_string)], _string, "String",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_json)], _json, "Json"
   ) };
   // clang-format on
 };

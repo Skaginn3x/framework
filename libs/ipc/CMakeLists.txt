@@ -20,15 +20,17 @@ target_include_directories(ipc
 find_package(Boost REQUIRED)
 find_package(ZeroMQ REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
 
 target_link_libraries(ipc
   PUBLIC
     tfc::stx
     tfc::logger
     tfc::base
+    tfc::dbus_util
     Boost::boost
     fmt::fmt
-
+    glaze::glaze
   PRIVATE
     libzmq-static
 )

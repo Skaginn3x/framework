@@ -6,7 +6,7 @@ class el200x : public base {
 public:
   explicit el200x(boost::asio::io_context& ctx, uint16_t slave_index) : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
-      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_recv_conf_cb>(
+      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_slot>(
           ctx, fmt::format("EL200{}.{}.out.{}", size, slave_index, i), std::bind_front(&el200x::set_output, this, i)));
     }
   }
@@ -24,7 +24,7 @@ private:
   auto set_output(size_t position, bool value) -> void { output_states_.set(position, value); }
 
   std::bitset<size> output_states_;
-  std::vector<std::unique_ptr<tfc::ipc::bool_recv_conf_cb>> bool_receivers_;
+  std::vector<std::unique_ptr<tfc::ipc::bool_slot>> bool_receivers_;
 };
 
 using el2008 = el200x<8, 0x7d83052>;

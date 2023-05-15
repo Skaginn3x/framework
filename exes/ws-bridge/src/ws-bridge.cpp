@@ -130,7 +130,7 @@ public:
     on_timer({});
     timer_.expires_after(std::chrono::seconds(15));
 
-    recv_ = tfc::ipc::create_ipc_recv_cb<tfc::ipc::any_recv_cb>(ctx_, fmt::format("{}.slot", slot_name));
+    recv_ = tfc::ipc::details::create_ipc_recv_cb<tfc::ipc::details::any_recv_cb>(ctx_, fmt::format("{}.slot", slot_name));
     std::visit(
         [&](auto&& receiver) {
           using receiver_t = std::remove_cvref_t<decltype(receiver)>;
@@ -250,7 +250,7 @@ private:
   websocket::stream<beast::tcp_stream> ws_;
   beast::flat_buffer buffer_;
   asio::io_context& ctx_;
-  tfc::ipc::any_recv_cb recv_;
+  tfc::ipc::details::any_recv_cb recv_;
   ping_state ping_state_ = ping_state::not_sent_e;
   boost::asio::steady_timer timer_;
   tfc::logger::logger logger_;

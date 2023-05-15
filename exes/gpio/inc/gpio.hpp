@@ -15,7 +15,6 @@
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/ipc_connector.hpp>
 #include <tfc/logger.hpp>
 
 namespace asio = boost::asio;
@@ -156,8 +155,8 @@ namespace tfc {
 
 class gpio {
 public:
-  using ipc_output_t = tfc::ipc::bool_send_ptr;
-  using ipc_input_t = tfc::ipc::bool_recv_conf_cb;
+  using ipc_output_t = tfc::ipc::details::bool_send_ptr;
+  using ipc_input_t = tfc::ipc::bool_slot;
   using send_or_recv_t = std::variant<std::monostate, std::shared_ptr<ipc_input_t>, ipc_output_t>;  // todo why shared
   using config_t = tfc::confman::config<std::vector<pin>>;
   using pin_index_t = std::uint32_t;
