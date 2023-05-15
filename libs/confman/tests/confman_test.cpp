@@ -209,7 +209,7 @@ auto main(int argc, char** argv) -> int {
       config_testable<storage> const conf{ ctx, key };
 
       uint32_t a_called{};
-      conf->a.observe([&a_called](int new_a, int){
+      conf->a.observe([&a_called](int new_a, int) {
         a_called++;
         ut::expect(new_a == 27);
       });
