@@ -19,10 +19,10 @@ struct change {
   }
 
   /// \return Access to underlying owner value
-  [[nodiscard]] auto value() noexcept -> auto& { return owner_.value(); }
+  [[nodiscard]] auto value() noexcept -> auto& { return owner_.access(); }
 
   /// \return Access to underlying owner value
-  auto operator->() noexcept -> auto* { return owner_.operator->(); }
+  auto operator->() noexcept -> auto* { return std::addressof(owner_.access()); }
 
 private:
   owner_t& owner_;

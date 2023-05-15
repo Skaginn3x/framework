@@ -20,6 +20,7 @@ namespace asio = boost::asio;
 template <typename config_storage_t>
 class config {
 public:
+  using type = config_storage_t;
   using storage_t = config_storage_t;
 
   /// \brief construct config and deliver it to config manager
@@ -56,7 +57,6 @@ public:
   [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return storage_.file(); }
 
   using change = detail::change<config>;
-  friend struct detail::change<config>;
 
   auto make_change() noexcept -> change { return change{ *this }; }
 
@@ -80,11 +80,14 @@ public:
     return {};
   }
 
-  // todo this should be private !!!!!!!!! and only friends should use it
-  [[nodiscard]] auto value() noexcept -> storage_t& { return storage_.value(); }
-  auto operator->() noexcept -> storage_t* { return std::addressof(value()); }
-
 private:
+  friend struct detail::change<config>;
+
+  // todo if this could be named `value` it would be neat
+  // the change mechanism relies on this (the friend above)
+  // todo const_cast is not nice, make different pattern
+  [[nodiscard]] auto access() noexcept -> storage_t& { return const_cast<storage_t&>(storage_.value()); }
+
   file_storage<storage_t> storage_{};
   detail::config_dbus_client client_;
   tfc::logger::logger logger_;

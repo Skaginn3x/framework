@@ -7,10 +7,11 @@
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/asio/property.hpp>
+#include <glaze/glaze.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-// #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/progbase.hpp>
@@ -19,7 +20,6 @@ namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::operator""_test;
 using ut::operator/;
-using tfc::confman::config;
 using tfc::confman::observable;
 
 struct storage {
@@ -35,15 +35,27 @@ struct glz::meta<storage> {
 
 namespace bpo = boost::program_options;
 
-// static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
-//   std::size_t count{};
-//   std::string copy{ input };
-//   for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
-//        pos += with.length(), ++count) {
-//     copy.replace(pos, what.length(), with.data(), with.length());
-//   }
-//   return copy;
-// }
+//static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
+//  std::size_t count{};
+//  std::string copy{ input };
+//  for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
+//       pos += with.length(), ++count) {
+//    copy.replace(pos, what.length(), with.data(), with.length());
+//  }
+//  return copy;
+//}
+
+template <typename storage_t>
+class config_testable : public tfc::confman::config<storage_t> {
+public:
+  using tfc::confman::config<storage_t>::config;
+
+  ~config_testable() {
+    std::error_code ignore{};
+    std::filesystem::remove(this->file(), ignore);
+  }
+};
+
 
 auto main(int argc, char** argv) -> int {
   auto desc{ tfc::base::default_description() };
@@ -51,44 +63,112 @@ auto main(int argc, char** argv) -> int {
   desc.add_options()("slow,s", bpo::bool_switch(&run_slow)->default_value(false));
   tfc::base::init(argc, argv, desc);
 
-  //  boost::asio::io_context ctx{};
-  //
-  //  std::string const key{ "bar" };
-  //  config<storage> conf{ ctx, key };
-  //
-  //  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
-  //  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
-  //                       tfc::base::make_config_file_name(key, "").string().substr(1) };
-  //  auto interface_name{ replace_all(interface_path.string().substr(1), "/", ".") };
-  //
-  //  using tfc::confman::detail::config_property;
-  //  using tfc::confman::detail::dbus::property_name;
-  //
-  //  "integration test"_test = [&] {
-  //    bool a_called{};
-  //    conf->a.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
-  //      a_called = true;
-  //      ut::expect(new_val == 11);
-  //    });
-  //    conf->b.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
-  //      a_called = true;
-  //      ut::expect(new_val == 11);
-  //    });
-  //    conf->c.observe([&a_called](std::string const& new_val,[[maybe_unused]] std::string const& old_val){
-  //      a_called = true;
-  //      ut::expect(new_val == "11");
-  //    });
-  //
-  //    sdbusplus::asio::setProperty(*dbus, interface_name, interface_path.string(), interface_name,
-  //                                 std::string{ property_name.data(), property_name.size() },
-  //                                 config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&a_called](std::error_code const&)
-  //                                 {
-  //                                   ut::expect(a_called);
-  //                                 });
-  //
-  //  };
-  //
-  //  ctx.run();
+  boost::asio::io_context ctx{};
+
+  std::string const key{ "bar" };
+
+  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
+                       tfc::base::make_config_file_name(key, "").string().substr(1) };
+  auto interface_name{ interface_path.string().substr(1) };
+  std::replace(interface_name.begin(), interface_name.end(), '/', '.');
+
+  using tfc::confman::detail::config_property;
+  using tfc::confman::detail::dbus::property_name;
+
+  "default values"_test = [&] {
+    config_testable<storage> const conf{ ctx, key, storage{ .a{ 1 }, .b{ 2 }, .c{ "bar" } } };
+    ut::expect(1 == conf->a);
+    ut::expect(2 == conf->b);
+    ut::expect("bar" == conf->c);
+    ut::expect(1 == conf.value().a);
+    ut::expect(2 == conf.value().b);
+    ut::expect("bar" == conf.value().c);
+  };
+
+  "to json"_test = [&] {
+    config_testable<storage> const conf{ ctx, key, storage{ .a{ 1 }, .b{ 2 }, .c{ "bar" } } };
+    auto const json_str{ conf.string() };
+    glz::json_t json{};
+    std::ignore = glz::read_json(json, json_str);
+    ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
+    ut::expect(static_cast<int>(json["b"].get<double>()) == 2);
+    ut::expect(json["c"].get<std::string>() == "bar");
+  };
+
+
+  "change value internally"_test = [&] {
+    config_testable<storage> conf{ ctx, key, storage{ .a{ 1 }, .b{ 2 }, .c{ "bar" } } };
+    uint8_t a_called_once{};
+    conf->a.observe([&a_called_once]([[maybe_unused]] int new_val,[[maybe_unused]] int old_val){
+      a_called_once++;
+    });
+    conf.make_change()->a = 3;
+    ut::expect(a_called_once == 1);
+  };
+
+  "from json"_test = [&] {
+    config_testable<storage> conf{ ctx, key };
+    glz::json_t json{};
+    json["a"] = 11;
+    json["b"] = 22;
+    json["c"] = "meeoow";
+    conf.from_string(glz::write_json(json));
+    ut::expect(11 == conf->a);
+    ut::expect(22 == conf->b);
+    ut::expect("meeoow" == conf->c);
+  };
+
+  "from json calls observers"_test = [&] {
+    config_testable<storage> conf{ ctx, key, storage{ .a{ 1 }, .b{ 2 }, .c{ "bar" } } };
+
+    uint32_t c_called{};
+    conf->c.observe([&c_called](std::string const& new_val, std::string const& old_val){
+      ut::expect("meeoow" == new_val);
+      ut::expect("bar" == old_val);
+      c_called++;
+    });
+
+    glz::json_t json{};
+    json["a"] = 11;
+    json["b"] = 22;
+    json["c"] = "meeoow";
+    conf.from_string(glz::write_json(json));
+
+    ut::expect(1 == c_called);
+  };
+
+  "integration-get_config"_test = [&] {
+
+  };
+
+
+
+  "integration test"_test = [&] {
+    //      bool a_called{};
+    //      conf->a.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+    //        a_called = true;
+    //        ut::expect(new_val == 11);
+    //      });
+    //      conf->b.observe([&a_called](int new_val,[[maybe_unused]] int old_val){
+    //        a_called = true;
+    //        ut::expect(new_val == 11);
+    //      });
+    //      conf->c.observe([&a_called](std::string const& new_val,[[maybe_unused]] std::string const& old_val){
+    //        a_called = true;
+    //        ut::expect(new_val == "11");
+    //      });
+    //
+    //      sdbusplus::asio::setProperty(*dbus, interface_name, interface_path.string(), interface_name,
+    //                                   std::string{ property_name.data(), property_name.size() },
+    //                                   config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&a_called](std::error_code
+    //                                   const&)
+    //                                   {
+    //                                     ut::expect(a_called);
+    //                                   });
+  };
+
+//  ctx.run();
 
   //
   //  [[maybe_unused]] ut::suite const rpc_test_cases = [] {

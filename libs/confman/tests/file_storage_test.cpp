@@ -4,9 +4,15 @@
 #include <tfc/confman/file_storage.hpp>
 
 #include <tfc/progbase.hpp>
+#include <tfc/confman/observable.hpp>
+
+namespace asio = boost::asio;
+namespace ut = boost::ut;
+using ut::operator""_test;
+using ut::operator/;
 
 struct test_me {
-  int a{};
+  tfc::confman::observable<int> a{};
   std::string b{};
   struct glaze {
     static constexpr auto value{ glz::object("a", &test_me::a, "b", &test_me::b) };
@@ -19,22 +25,87 @@ struct test_me {
 
 using map = std::map<std::string, test_me>;
 
+template <typename storage_t>
+class file_testable : public tfc::confman::file_storage<storage_t> {
+public:
+  using tfc::confman::file_storage<storage_t>::file_storage;
+
+  ~file_testable() {
+    std::error_code ignore{};
+    std::filesystem::remove(this->file(), ignore);
+  }
+};
+
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  using namespace boost::ut;
+  asio::io_context ctx{};
+  std::string const file_name{"/tmp/test.me" };
 
-  "change test"_test = []() {
-    std::filesystem::remove("/tmp/test.me");
-    boost::asio::io_context ctx{};
-    tfc::confman::file_storage<map> my_map{ ctx, "/tmp/test.me" };
-    { my_map.make_change().value()["new_key"] = test_me{ .a = 42, .b = "hello-world" }; }
-    expect(my_map.value().at("new_key") == test_me{ .a = 42, .b = "hello-world" });
-    expect(my_map->at("new_key") == test_me{ .a = 42, .b = "hello-world" });
+  "file path"_test = [&] {
+    file_testable<test_me> const conf{ ctx, file_name };
+    ut::expect(conf.file().string() == file_name);
+  };
 
-    my_map.on_change([]() { fmt::print("changed\n"); });
+  "default values"_test = [&] {
+    file_testable<test_me> const conf{ ctx, file_name, test_me{ .a{ 1 } , .b{ "bar" } } };
+    ut::expect(1 == conf->a);
+    ut::expect("bar" == conf->b);
+    ut::expect(1 == conf.value().a);
+    ut::expect("bar" == conf.value().b);
+  };
 
-    //    ctx.run();
+  "change it"_test = [&] {
+    file_testable<test_me> conf{ ctx, file_name, test_me{.a{1}, .b{"bar"}} };
+    uint32_t a_called{};
+    conf->a.observe([&a_called](int new_value, int old_value){
+      ut::expect(new_value == 2);
+      ut::expect(old_value == 1);
+      a_called++;
+    });
+    conf.make_change()->a.set(2);
+
+    ut::expect(a_called == 1);
+  };
+
+  "subscript-able"_test = [&] {
+    file_testable<test_me> conf{ ctx, file_name };
+    uint32_t called{};
+    conf.on_change([&called](){
+      called++;
+    });
+    conf.make_change()->a = 1;
+    ctx.run_for(std::chrono::milliseconds(1));
+    ut::expect(called == 1);
+  };
+
+  "verify file"_test = [&] {
+    file_testable<test_me> conf{ ctx, file_name, test_me{ .a{ 1 } , .b{ "bar" } } };
+    glz::json_t json{};
+    glz::read_file_json(json, file_name);
+    ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
+    ut::expect(json["b"].get<std::string>() == "bar");
+
+    conf.make_change()->a.set(2);
+    conf.make_change()->b = "test";
+
+    glz::read_file_json(json, file_name);
+    ut::expect(static_cast<int>(json["a"].get<double>()) == 2);
+    ut::expect(json["b"].get<std::string>() == "test");
+  };
+
+  "change test"_test = [&]() {
+    file_testable<map> my_map{ ctx, "/tmp/test.me" };
+    { my_map.make_change().value()["new_key"] = test_me{ .a{ 42 }, .b = "hello-world" }; }
+    ut::expect(my_map.value().at("new_key") == test_me{ .a{ 42 }, .b = "hello-world" });
+    ut::expect(my_map->at("new_key") == test_me{ .a{ 42 }, .b = "hello-world" });
+
+    uint32_t called{};
+    my_map.on_change([&called]() { called++; });
+
+    ctx.run_for(std::chrono::milliseconds(1));
+    ut::expect(called == 1);
   };
 
   return EXIT_SUCCESS;
