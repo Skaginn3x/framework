@@ -40,6 +40,9 @@ public:
 private:
   std::filesystem::path interface_path_{};
   std::string interface_name_{};
+  value_call_t value_call{};
+  schema_call_t schema_call{};
+  change_call_t change_call{};
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection_{};
   std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
 };
