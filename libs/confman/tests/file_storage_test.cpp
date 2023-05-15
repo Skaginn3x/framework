@@ -94,6 +94,29 @@ auto main(int argc, char** argv) -> int {
     ut::expect(json["b"].get<std::string>() == "test");
   };
 
+  "write to file"_test = [&] {
+    file_testable<test_me> const conf{ ctx, file_name };
+    glz::json_t json{};
+    glz::read_file_json(json, file_name);
+
+    uint32_t a_called{};
+    conf->a.observe([&a_called](int new_a, int old_a) {
+      a_called++;
+      ut::expect(new_a == 32);
+      ut::expect(old_a == 0);
+    });
+
+    json["a"] = 32;
+    json["b"] = "test";
+    std::ignore = glz::write_file_json(json, file_name);
+
+    ctx.run_for(std::chrono::milliseconds(10));
+
+    ut::expect(a_called == 1);
+    ut::expect(conf->a == 32);
+    ut::expect(conf->b == "test");
+  };
+
   "change test"_test = [&]() {
     file_testable<map> my_map{ ctx, "/tmp/test.me" };
     { my_map.make_change().value()["new_key"] = test_me{ .a = observable<int>{ 42 }, .b = "hello-world" }; }
