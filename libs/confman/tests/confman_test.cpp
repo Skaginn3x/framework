@@ -204,6 +204,6 @@ auto main(int argc, char** argv) -> int {
       ut::expect(a_called == 1);
     };
   };
-  
+
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));
 }
