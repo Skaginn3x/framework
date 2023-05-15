@@ -179,7 +179,7 @@ auto main(int argc, char** argv) -> int {
       };
 
       uint32_t a_called{};
-      conf->a.observe([&a_called](int new_a, int old_a){
+      conf->a.observe([&a_called](int new_a, int old_a) {
         a_called++;
         ut::expect(new_a == 11);
         ut::expect(old_a == 1);

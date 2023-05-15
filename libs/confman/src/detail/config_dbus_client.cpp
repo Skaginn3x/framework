@@ -31,10 +31,9 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                                        change_call_t&& change_call)
     : interface_path_{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
                        base::make_config_file_name(key, "").string().substr(1) },
-      interface_name_{ replace_all(interface_path_.string().substr(1), '/', '.') },
-      value_call{ std::forward<value_call_t>( value_call ) },
-      schema_call{ std::forward<schema_call_t>( schema_call ) },
-      change_call{ std::forward<change_call_t>( change_call ) },
+      interface_name_{ replace_all(interface_path_.string().substr(1), '/', '.') }, value_call{ std::forward<value_call_t>(
+                                                                                        value_call) },
+      schema_call{ std::forward<schema_call_t>(schema_call) }, change_call{ std::forward<change_call_t>(change_call) },
       dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
       dbus_interface_{
         std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)

@@ -3,13 +3,14 @@
 #include <glaze/glaze.hpp>
 #include <tfc/confman/file_storage.hpp>
 
-#include <tfc/progbase.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::operator""_test;
 using ut::operator/;
+using tfc::confman::observable;
 
 struct test_me {
   tfc::confman::observable<int> a{};
@@ -19,6 +20,7 @@ struct test_me {
     static constexpr auto name{ "test_me" };
   };
 };
+
 [[maybe_unused]] static auto operator==(test_me const& lhs, test_me const& rhs) noexcept -> bool {
   return lhs.a == rhs.a && lhs.b == rhs.b;
 }
@@ -36,12 +38,11 @@ public:
   }
 };
 
-
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
   asio::io_context ctx{};
-  std::string const file_name{"/tmp/test.me" };
+  std::string const file_name{ "/tmp/test.me" };
 
   "file path"_test = [&] {
     file_testable<test_me> const conf{ ctx, file_name };
@@ -49,7 +50,7 @@ auto main(int argc, char** argv) -> int {
   };
 
   "default values"_test = [&] {
-    file_testable<test_me> const conf{ ctx, file_name, test_me{ .a{ 1 } , .b{ "bar" } } };
+    file_testable<test_me> const conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     ut::expect(1 == conf->a);
     ut::expect("bar" == conf->b);
     ut::expect(1 == conf.value().a);
@@ -57,9 +58,9 @@ auto main(int argc, char** argv) -> int {
   };
 
   "change it"_test = [&] {
-    file_testable<test_me> conf{ ctx, file_name, test_me{.a{1}, .b{"bar"}} };
+    file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     uint32_t a_called{};
-    conf->a.observe([&a_called](int new_value, int old_value){
+    conf->a.observe([&a_called](int new_value, int old_value) {
       ut::expect(new_value == 2);
       ut::expect(old_value == 1);
       a_called++;
@@ -72,16 +73,14 @@ auto main(int argc, char** argv) -> int {
   "subscript-able"_test = [&] {
     file_testable<test_me> conf{ ctx, file_name };
     uint32_t called{};
-    conf.on_change([&called](){
-      called++;
-    });
+    conf.on_change([&called]() { called++; });
     conf.make_change()->a = 1;
     ctx.run_for(std::chrono::milliseconds(1));
     ut::expect(called == 1);
   };
 
   "verify file"_test = [&] {
-    file_testable<test_me> conf{ ctx, file_name, test_me{ .a{ 1 } , .b{ "bar" } } };
+    file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     glz::json_t json{};
     glz::read_file_json(json, file_name);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
@@ -97,9 +96,9 @@ auto main(int argc, char** argv) -> int {
 
   "change test"_test = [&]() {
     file_testable<map> my_map{ ctx, "/tmp/test.me" };
-    { my_map.make_change().value()["new_key"] = test_me{ .a{ 42 }, .b = "hello-world" }; }
-    ut::expect(my_map.value().at("new_key") == test_me{ .a{ 42 }, .b = "hello-world" });
-    ut::expect(my_map->at("new_key") == test_me{ .a{ 42 }, .b = "hello-world" });
+    { my_map.make_change().value()["new_key"] = test_me{ .a = observable<int>{ 42 }, .b = "hello-world" }; }
+    ut::expect(my_map.value().at("new_key") == test_me{ .a = observable<int>{ 42 }, .b = "hello-world" });
+    ut::expect(my_map->at("new_key") == test_me{ .a = observable<int>{ 42 }, .b = "hello-world" });
 
     uint32_t called{};
     my_map.on_change([&called]() { called++; });

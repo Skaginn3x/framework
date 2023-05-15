@@ -102,15 +102,15 @@ public:
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
     auto str_name = std::string(name);
+    auto change_signals = signals_.make_change();
     if (signals_->find(str_name) != signals_->end()) {
-      signals_->at(str_name).last_registered = timestamp_now;
+      change_signals->at(str_name).last_registered = timestamp_now;
     }
-    signals_->emplace(name, signal{ .name = std::string(name),
-                                    .type = type,
-                                    .created_by = "",
-                                    .created_at = timestamp_now,
-                                    .last_registered = timestamp_now });
-    signals_.set_changed();
+    change_signals->emplace(name, signal{ .name = std::string(name),
+                                          .type = type,
+                                          .created_by = "",
+                                          .created_at = timestamp_now,
+                                          .last_registered = timestamp_now });
   }
   auto register_slot(const std::string_view name, type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, magic_enum::enum_name(type));
@@ -118,20 +118,20 @@ public:
     auto timestamp_never = std::chrono::time_point<std::chrono::system_clock>{};
 
     auto str_name = std::string(name);
-    if (slots_->find(str_name) != slots_->end()) {
-      slots_->at(str_name).last_registered = timestamp_now;
+    auto change_slots = slots_.make_change();
+    if (change_slots->find(str_name) != slots_->end()) {
+      change_slots->at(str_name).last_registered = timestamp_now;
     }
-    slots_->emplace(name, slot{
-                              .name = std::string(name),
-                              .type = type,
-                              .created_by = "omar",
-                              .created_at = timestamp_now,
-                              .last_registered = timestamp_now,
-                              .last_modified = timestamp_never,
-                              .modified_by = "",
-                              .connected_to = "",
-                          });
-    slots_.set_changed();
+    change_slots->emplace(name, slot{
+                                    .name = std::string(name),
+                                    .type = type,
+                                    .created_by = "omar",
+                                    .created_at = timestamp_now,
+                                    .last_registered = timestamp_now,
+                                    .last_modified = timestamp_never,
+                                    .modified_by = "",
+                                    .connected_to = "",
+                                });
   }
   auto get_all_signals() -> std::vector<signal> {
     logger_.trace("get_all_signals called");
@@ -169,9 +169,8 @@ public:
       throw dbus_error(err_msg);
     }
 
-    slots_->at(str_slot_name).connected_to = signal_name;
+    slots_.make_change()->at(str_slot_name).connected_to = signal_name;
     on_connect_cb_(slot_name, signal_name);
-    slots_.set_changed();
   }
   auto disconnect(const std::string_view slot_name) -> void {
     logger_.trace("disconnect called, slot: {}", slot_name);
@@ -179,9 +178,8 @@ public:
     if (slots_->find(str_slot_name) == slots_->end()) {
       throw std::runtime_error("Slot does not exist");
     }
-    slots_->at(str_slot_name).connected_to = "";
+    slots_.make_change()->at(str_slot_name).connected_to = "";
     on_connect_cb_(slot_name, "");
-    slots_.set_changed();
   }
 
 private:

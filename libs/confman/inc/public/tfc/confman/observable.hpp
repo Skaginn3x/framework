@@ -105,13 +105,13 @@ public:
 
 namespace glz::detail {
 
- template <typename value_t>
- struct from_json<tfc::confman::observable<value_t>> {
-   template <auto opts>
-   inline static void op(auto& value, auto&&... args) noexcept {
+template <typename value_t>
+struct from_json<tfc::confman::observable<value_t>> {
+  template <auto opts>
+  inline static void op(auto& value, auto&&... args) noexcept {
     value_t value_copy;
     from_json<value_t>::template op<opts>(value_copy, std::forward<decltype(args)>(args)...);
-    value.set(std::move(value_copy)); // invoke callback
+    value.set(std::move(value_copy));  // invoke callback
   }
 };
 

@@ -12,8 +12,13 @@ struct file_storage_mock {
     set_changed_cb();
     return {};
   }
-  auto operator->() noexcept -> storage_t* { return std::addressof(value()); }
-  auto value() noexcept -> storage_t& { return storage_; }
+  auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
+  auto value() const noexcept -> storage_t const& { return storage_; }
+  auto access() noexcept -> storage_t& { return storage_; }
+
+  using change = tfc::confman::detail::change<file_storage_mock>;
+  auto make_change() { return change{ *this }; }
+
   storage_t storage_{};
   std::function<void(void)> set_changed_cb = []() {};
 };
