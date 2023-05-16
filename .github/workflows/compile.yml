@@ -25,6 +25,12 @@ jobs:
     steps:
       - name: install dependencies
         run: |
+          echo "checking dbus"
+          pidof dbus-daemon
+          echo "check broker"
+          pidof dbus-broker
+          echo "done checking"
+          
           sudo apt-get update
           sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
           curl https://apt.llvm.org/llvm.sh -o llvm.sh
