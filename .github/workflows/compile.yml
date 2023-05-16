@@ -53,7 +53,7 @@ jobs:
 
       - name: Copy dbus config
         run: |
-          sudo cp libs/configure_options/generated/dbus-tfc.conf /etc/dbus-1/system.d/tfc.conf
+          sudo cp libs/configure_options/generated/dbus-tfc.conf /usr/share/dbus-1/system.d/tfc.conf
           sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
 
       - name: CMake build and test
