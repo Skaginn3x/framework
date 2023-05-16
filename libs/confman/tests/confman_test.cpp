@@ -64,11 +64,11 @@ auto main(int argc, char** argv) -> int {
 
   boost::asio::io_context ignore{};
 
-  static std::string const key{ "bar" };
+  std::string const key{ "bar" };
 
-  static auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
-                              tfc::base::make_config_file_name(key, "").string().substr(1) };
-  static auto interface_name{ interface_path.string().substr(1) };
+  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
+                       tfc::base::make_config_file_name(key, "").string().substr(1) };
+  auto interface_name{ interface_path.string().substr(1) };
   std::replace(interface_name.begin(), interface_name.end(), '/', '.');
 
   using tfc::confman::detail::config_property;
@@ -145,84 +145,82 @@ auto main(int argc, char** argv) -> int {
     ut::expect(1 == c_called);
   };
 
-  [[maybe_unused]] ut::suite const integration = [] {
-    "get_config"_test = [&] {
-      boost::asio::io_context ctx{};
-      sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
-      config_testable<storage> const conf{
-        ctx, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-      };
-
-      uint32_t called{};
-      sdbusplus::asio::getProperty<config_property>(
-          dbus, interface_name, interface_path.string(), interface_name,
-          std::string{ property_name.data(), property_name.size() },
-          [&called]([[maybe_unused]] std::error_code err, [[maybe_unused]] config_property prop) {
-            ut::expect(!err);
-            called++;
-            glz::json_t json{};
-            std::ignore = glz::read_json(json, prop.value);
-            ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
-            ut::expect(static_cast<int>(json["b"].get<double>()) == 2);
-            ut::expect(json["c"].get<std::string>() == "bar");
-          });
-
-      ctx.run_for(std::chrono::milliseconds(10));
-      ut::expect(called == 1);
+  "integration get_config"_test = [&] {
+    boost::asio::io_context ctx{};
+    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
+    config_testable<storage> const conf{
+      ctx, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
 
-    "set_config"_test = [&] {
-      boost::asio::io_context ctx{};
-      sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
-      config_testable<storage> const conf{
-        ctx, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-      };
+    uint32_t called{};
+    sdbusplus::asio::getProperty<config_property>(
+        dbus, interface_name, interface_path.string(), interface_name,
+        std::string{ property_name.data(), property_name.size() },
+        [&called]([[maybe_unused]] std::error_code err, [[maybe_unused]] config_property prop) {
+          ut::expect(!err);
+          called++;
+          glz::json_t json{};
+          std::ignore = glz::read_json(json, prop.value);
+          ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
+          ut::expect(static_cast<int>(json["b"].get<double>()) == 2);
+          ut::expect(json["c"].get<std::string>() == "bar");
+        });
 
-      uint32_t a_called{};
-      conf->a.observe([&a_called](int new_a, int old_a) {
-        a_called++;
-        ut::expect(new_a == 11);
-        ut::expect(old_a == 1);
-      });
+    ctx.run_for(std::chrono::milliseconds(10));
+    ut::expect(called == 1);
+  };
 
-      uint32_t called{};
-      sdbusplus::asio::setProperty<config_property>(dbus, interface_name, interface_path.string(), interface_name,
-                                                    std::string{ property_name.data(), property_name.size() },
-                                                    config_property{ R"({"a":11,"b":12,"c":"a"})", "" },
-                                                    [&called, &conf]([[maybe_unused]] std::error_code err) {
-                                                      if (err) {
-                                                        fmt::print(stderr, "Set property error: '{}'", err.message());
-                                                      }
-                                                      called++;
-                                                      ut::expect(conf->a == 11);
-                                                      ut::expect(conf->b == 12);
-                                                      ut::expect(conf->c == "a");
-                                                    });
-
-      ctx.run_for(std::chrono::milliseconds(10));
-      ut::expect(called == 1);
-      ut::expect(a_called == 1);
+  "integration set_config"_test = [&] {
+    boost::asio::io_context ctx{};
+    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
+    config_testable<storage> const conf{
+      ctx, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
 
-    "change_file"_test = [&] {
-      boost::asio::io_context ctx{};
-      config_testable<storage> const conf{ ctx, key };
+    uint32_t a_called{};
+    conf->a.observe([&a_called](int new_a, int old_a) {
+      a_called++;
+      ut::expect(new_a == 11);
+      ut::expect(old_a == 1);
+    });
 
-      uint32_t a_called{};
-      conf->a.observe([&a_called](int new_a, int) {
-        a_called++;
-        ut::expect(new_a == 27);
-      });
+    uint32_t called{};
+    sdbusplus::asio::setProperty<config_property>(dbus, interface_name, interface_path.string(), interface_name,
+                                                  std::string{ property_name.data(), property_name.size() },
+                                                  config_property{ R"({"a":11,"b":12,"c":"a"})", "" },
+                                                  [&called, &conf]([[maybe_unused]] std::error_code err) {
+                                                    if (err) {
+                                                      fmt::print(stderr, "Set property error: '{}'", err.message());
+                                                    }
+                                                    called++;
+                                                    ut::expect(conf->a == 11);
+                                                    ut::expect(conf->b == 12);
+                                                    ut::expect(conf->c == "a");
+                                                  });
 
-      glz::json_t json{};
-      std::ignore = glz::read_json(json, conf.string());
-      json["a"] = 27;
+    ctx.run_for(std::chrono::milliseconds(10));
+    ut::expect(called == 1);
+    ut::expect(a_called == 1);
+  };
 
-      std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"));
+  "integration change_file"_test = [&] {
+    boost::asio::io_context ctx{};
+    config_testable<storage> const conf{ ctx, key };
 
-      ctx.run_for(std::chrono::milliseconds(10));
-      ut::expect(a_called == 1);
-    };
+    uint32_t a_called{};
+    conf->a.observe([&a_called](int new_a, int) {
+      a_called++;
+      ut::expect(new_a == 27);
+    });
+
+    glz::json_t json{};
+    std::ignore = glz::read_json(json, conf.string());
+    json["a"] = 27;
+
+    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"));
+
+    ctx.run_for(std::chrono::milliseconds(10));
+    ut::expect(a_called == 1);
   };
 
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));
