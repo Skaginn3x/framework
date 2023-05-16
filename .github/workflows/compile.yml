@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  CONFIGURATION_DIRECTORY: ${{ github.workspace }}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,10 +21,9 @@ jobs:
         compiler: [gcc, clang]
     steps:
       - name: install dependencies
-        run: |          
+        run: |
           sudo apt-get update
-          sudo apt-get install cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
-          sudo apt-get install dbus-user-session
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
           curl https://apt.llvm.org/llvm.sh -o llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 16 all
@@ -38,37 +34,23 @@ jobs:
           sudo ./scripts/commissioning.sh
           sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
           sudo chown $USER:$USER -R /run/tfc
+          sudo cp ci/hacks/system.conf /usr/share/dbus-1/
+          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '/opt/vcpkg'
-          vcpkgGitCommitId: '4eda0e3c7062e61dd89a91357ddc50f742da75ef'
+          vcpkgGitCommitId: 'eebcbc7ca3f4ef825b14949e0b702a7517ab8565'
           vcpkgJsonGlob: 'vcpkg.json'
 
-      - name: CMake configure
+      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-
-      - name: Copy dbus config
-        run: |
-          sudo cp libs/configure_options/generated/dbus-tfc.conf /usr/share/dbus-1/system.d/tfc.conf
-          sudo cp system.conf /usr/share/dbus-1/
-          cat /usr/share/dbus-1/system.d/tfc.conf
-          echo "system conf"
-          cat /usr/share/dbus-1/system.conf
-          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
-
-      - name: CMake build
-        uses: lukka/run-cmake@v10
-        with:
-          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-      - name: CMake test, todo not run as sudo, required for dbus thingy
-        run: |
-          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
-          sudo ctest --preset 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master

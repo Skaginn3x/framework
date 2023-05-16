@@ -36,6 +36,9 @@ jobs:
           sudo ./scripts/commissioning.sh
           sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
           sudo chown $USER:$USER -R /run/tfc
+          sudo cp ci/hacks/system.conf /usr/share/dbus-1/
+          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
