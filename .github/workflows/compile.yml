@@ -57,12 +57,14 @@ jobs:
           cat /usr/share/dbus-1/system.d/tfc.conf
           sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
 
-      - name: CMake build and test
+      - name: CMake build
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-          testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+      - name: CMake test, todo not run as sudo, required for dbus thingy
+        run: |
+          sudo ctest --preset 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 
 #      - name: Run static analysis
 #        uses: JacobDomagala/StaticAnalysis@master
