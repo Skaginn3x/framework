@@ -30,11 +30,12 @@ public:
           std::make_unique<tfc::ipc::int_signal>(ctx, fmt::format("atv320.{}.in.{}", slave_index, i)));
     }
     quick_stop_recv_ = std::make_unique<tfc::ipc::bool_slot>(ctx, fmt::format("atv320.{}.quick_stop", slave_index),
-                                                                     [this](bool value) { quick_stop_ = value; });
+                                                             [this](bool value) { quick_stop_ = value; });
     frequency_recv_ = std::make_unique<tfc::ipc::double_slot>(
         ctx, fmt::format("atv320.{}.out.freq", slave_index),
         [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
-    frequency_transmit_ = std::make_unique<tfc::ipc::double_signal>(ctx, fmt::format("atv320.{}.out.current_freq", slave_index));
+    frequency_transmit_ =
+        std::make_unique<tfc::ipc::double_signal>(ctx, fmt::format("atv320.{}.out.current_freq", slave_index));
   }
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {

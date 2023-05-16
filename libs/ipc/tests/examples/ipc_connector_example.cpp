@@ -1,4 +1,4 @@
-#include <tfc/ipc/dbus_server_iface.hpp>
+#include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 
 #include <glaze/glaze.hpp>

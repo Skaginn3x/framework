@@ -2,7 +2,7 @@
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 #include <tfc/confman/file_storage.hpp>
-#include <tfc/ipc/dbus_server_iface.hpp>
+#include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 
 template <typename storage_t>

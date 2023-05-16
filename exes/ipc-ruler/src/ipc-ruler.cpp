@@ -1,6 +1,6 @@
 #include <sdbusplus/asio/connection.hpp>
-#include <tfc/ipc/dbus_server_iface.hpp>
 #include <tfc/confman/file_storage.hpp>
+#include <tfc/ipc/details/dbus_server_iface.hpp>
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);

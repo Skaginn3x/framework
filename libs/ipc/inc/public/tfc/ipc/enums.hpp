@@ -36,4 +36,4 @@ enum struct type_e : std::uint8_t {
 static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
                                                                   "double",  "string", "json" };
 
-}  // namespace tfc::ipc
+}  // namespace tfc::ipc::details

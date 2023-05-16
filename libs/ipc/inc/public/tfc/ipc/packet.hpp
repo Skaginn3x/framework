@@ -110,4 +110,4 @@ auto operator==(const packet<value_t, type_e_v>& lhs, const packet<value_t, type
   return lhs.version == rhs.version && lhs.type == rhs.type && lhs.value_size == rhs.value_size && lhs.value == rhs.value;
 }
 
-}  // namespace tfc::ipc
+}  // namespace tfc::ipc::details

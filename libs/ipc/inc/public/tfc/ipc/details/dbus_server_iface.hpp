@@ -22,7 +22,7 @@
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 
-namespace tfc::ipc_ruler{
+namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
 // service name
 static auto ipc_ruler_service_name = "com.skaginn3x.ipc_ruler";

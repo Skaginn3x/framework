@@ -367,13 +367,8 @@ using double_recv_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
 using string_recv_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
 using json_recv_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
 
-using any_send = std::variant<std::monostate,
-                              bool_send_ptr,
-                              int_send_ptr,
-                              uint_send_ptr,
-                              double_send_ptr,
-                              string_send_ptr,
-                              json_send_ptr>;
+using any_send = std::
+    variant<std::monostate, bool_send_ptr, int_send_ptr, uint_send_ptr, double_send_ptr, string_send_ptr, json_send_ptr>;
 using any_recv_cb = std::variant<std::monostate,
                                  bool_recv_cb_ptr,
                                  int_recv_cb_ptr,
@@ -382,13 +377,8 @@ using any_recv_cb = std::variant<std::monostate,
                                  string_recv_cb_ptr,
                                  json_recv_cb_ptr>;
 
-using any_recv = std::variant<std::monostate,
-                              bool_recv_ptr,
-                              int_recv_ptr,
-                              uint_recv_ptr,
-                              double_recv_ptr,
-                              string_recv_ptr,
-                              json_recv_ptr>;
+using any_recv = std::
+    variant<std::monostate, bool_recv_ptr, int_recv_ptr, uint_recv_ptr, double_recv_ptr, string_recv_ptr, json_recv_ptr>;
 
 inline constexpr std::string_view invalid_type{
   "\nInvalid name {}, it must include one qualified type name.\n"  // should inject slot or signal as {}

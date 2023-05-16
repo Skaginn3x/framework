@@ -2,9 +2,7 @@
 
 #include <system_error>
 
-//#include <tfc/confman.hpp>
-#include <tfc/ipc.hpp>
-#include <tfc/ipc/dbus_server_iface.hpp>
+#include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/ipc/details/impl.hpp>
 
 namespace tfc::ipc {
@@ -23,7 +21,7 @@ auto constexpr register_cb(std::string const& ipc_name) {
     }
   };
 }
-}  // namespace detail
+}  // namespace details
 
 /**
  *
