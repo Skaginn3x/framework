@@ -45,11 +45,21 @@ jobs:
           vcpkgGitCommitId: '4eda0e3c7062e61dd89a91357ddc50f742da75ef'
           vcpkgJsonGlob: 'vcpkg.json'
 
-      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
+      - name: CMake configure
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
+
+      - name: Copy dbus config
+        run: |
+          sudo cp libs/configure_options/generated/dbus-tfc.conf /etc/dbus-1/system.d/tfc.conf
+          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+
+      - name: CMake build and test
+        uses: lukka/run-cmake@v10
+        with:
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 
