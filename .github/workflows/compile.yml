@@ -54,6 +54,7 @@ jobs:
       - name: Copy dbus config
         run: |
           sudo cp libs/configure_options/generated/dbus-tfc.conf /usr/share/dbus-1/system.d/tfc.conf
+          sudo cp system.conf /usr/share/dbus-1/
           cat /usr/share/dbus-1/system.d/tfc.conf
           echo "system conf"
           cat /usr/share/dbus-1/system.conf
