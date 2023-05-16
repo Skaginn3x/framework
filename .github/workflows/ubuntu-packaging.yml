@@ -36,7 +36,8 @@ jobs:
           sudo ./scripts/commissioning.sh
           sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
           sudo chown $USER:$USER -R /run/tfc
-          sudo cp ci/hacks/system.conf /usr/share/dbus-1/
+          sudo sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
+          sudo sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
           sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
