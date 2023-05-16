@@ -66,6 +66,7 @@ jobs:
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
       - name: CMake test, todo not run as sudo, required for dbus thingy
         run: |
+          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
           sudo ctest --preset 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 
 #      - name: Run static analysis
