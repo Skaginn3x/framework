@@ -11,7 +11,7 @@
 
 #include <tfc/ipc/enums.hpp>
 
-namespace tfc::ipc {
+namespace tfc::ipc::details {
 
 /// \brief Enum specifying protocol version
 /// This can be changed in the future to retain backwards compatibility and still
@@ -110,4 +110,4 @@ auto operator==(const packet<value_t, type_e_v>& lhs, const packet<value_t, type
   return lhs.version == rhs.version && lhs.type == rhs.type && lhs.value_size == rhs.value_size && lhs.value == rhs.value;
 }
 
-}  // namespace tfc::ipc
+}  // namespace tfc::ipc::details

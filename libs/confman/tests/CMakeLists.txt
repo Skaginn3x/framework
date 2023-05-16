@@ -29,7 +29,7 @@ add_executable(confman_test confman_test.cpp)
 target_link_libraries(confman_test
   PRIVATE
     tfc::confman
-    tfc::ipc_connector
+    tfc::ipc
     Boost::ut
     glaze::glaze
 )

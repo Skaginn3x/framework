@@ -1,2 +1,0 @@
-add_executable(print_signals_and_slots print_signals_and_slots.cpp)
-target_link_libraries(print_signals_and_slots PRIVATE tfc::base tfc::ipc_connector)

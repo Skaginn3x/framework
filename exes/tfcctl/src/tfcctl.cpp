@@ -21,7 +21,7 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
   auto executor = co_await asio::this_coro::executor;
   asio::posix::stream_descriptor input_stream(executor, STDIN_FILENO);
 
-  auto sender{ tfc::ipc::create_ipc_send<tfc::ipc::any_send>(ctx, signal_name) };
+  auto sender{ tfc::ipc::details::create_ipc_send<tfc::ipc::details::any_send>(ctx, signal_name) };
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
@@ -44,17 +44,17 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
         in_logger.template log<tfc::logger::lvl_e::info>("Invalid input {}, error: {}", input, bad_lexical_cast.what());
       }
     } };
-    if (auto* bool_sender{ std::get_if<std::shared_ptr<ipc::bool_send>>(&sender) }) {
+    if (auto* bool_sender{ std::get_if<std::shared_ptr<ipc::details::bool_send>>(&sender) }) {
       send(buffer_str, *bool_sender, logger);
-    } else if (auto* int_sender{ std::get_if<std::shared_ptr<ipc::int_send>>(&sender) }) {
+    } else if (auto* int_sender{ std::get_if<std::shared_ptr<ipc::details::int_send>>(&sender) }) {
       send(buffer_str, *int_sender, logger);
-    } else if (auto* uint_sender{ std::get_if<std::shared_ptr<ipc::uint_send>>(&sender) }) {
+    } else if (auto* uint_sender{ std::get_if<std::shared_ptr<ipc::details::uint_send>>(&sender) }) {
       send(buffer_str, *uint_sender, logger);
-    } else if (auto* double_sender{ std::get_if<std::shared_ptr<ipc::double_send>>(&sender) }) {
+    } else if (auto* double_sender{ std::get_if<std::shared_ptr<ipc::details::double_send>>(&sender) }) {
       send(buffer_str, *double_sender, logger);
-    } else if (auto* string_sender{ std::get_if<std::shared_ptr<ipc::string_send>>(&sender) }) {
+    } else if (auto* string_sender{ std::get_if<std::shared_ptr<ipc::details::string_send>>(&sender) }) {
       send(buffer_str, *string_sender, logger);
-    } else if (auto* json_sender{ std::get_if<std::shared_ptr<ipc::json_send>>(&sender) }) {
+    } else if (auto* json_sender{ std::get_if<std::shared_ptr<ipc::details::json_send>>(&sender) }) {
       send(buffer_str, *json_sender, logger);
     }
   }
@@ -89,12 +89,12 @@ auto main(int argc, char** argv) -> int {
     asio::co_spawn(ctx, stdin_coro(ctx, logger, signal), asio::detached);
   }
 
-  std::vector<tfc::ipc::any_recv_cb> connect_slots;
+  std::vector<tfc::ipc::details::any_recv_cb> connect_slots;
   for (auto& signal_connect : connect) {
     // For listening to connections
-    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::any_recv_cb {
+    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::details::any_recv_cb {
       std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
-      auto ipc{ tfc::ipc::create_ipc_recv_cb<tfc::ipc::any_recv_cb>(ctx, slot_name) };
+      auto ipc{ tfc::ipc::details::create_ipc_recv_cb<tfc::ipc::details::any_recv_cb>(ctx, slot_name) };
       std::visit(
           [&](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;

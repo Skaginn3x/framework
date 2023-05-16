@@ -8,9 +8,9 @@ target_link_libraries(ipc-ruler
   PUBLIC
     tfc::ipc
     tfc::base
+    tfc::confman
     tfc::logger
     tfc::dbus_util
-    tfc::ipc_connector
     Boost::program_options
     unofficial::sdbusplus
 )

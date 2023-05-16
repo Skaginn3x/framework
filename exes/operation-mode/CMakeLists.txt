@@ -21,7 +21,7 @@ target_link_libraries(operation-mode
     tfc::base
     tfc::logger
     tfc::stx
-    tfc::ipc_connector
+    tfc::ipc
     tfc::operation_mode
     tfc::confman
     Boost::boost

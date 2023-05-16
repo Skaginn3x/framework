@@ -22,7 +22,6 @@ target_link_libraries(ec
   PUBLIC
     soem
     tfc::ipc
-    tfc::ipc_connector
   PRIVATE
     fmt::fmt
 )
