@@ -20,6 +20,8 @@ namespace asio = boost::asio;
 template <typename storage_t>
 class file_storage {
 public:
+  using type = storage_t;
+
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
       : file_storage{ ctx, file_path, storage_t{} } {}
 
@@ -58,7 +60,7 @@ public:
   auto value() const noexcept -> storage_t const& { return storage_; }
 
   /// \return Access to underlying value
-  auto operator->() const noexcept -> storage_t* { return std::addressof(value()); }
+  auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   auto on_change(std::invocable auto&& callback) -> void { cb_ = callback; }
 
@@ -66,10 +68,6 @@ public:
 
   auto make_change() -> change { return change{ *this }; }
 
-  // private: // todo why cannot value be made private here
-  friend struct detail::change<file_storage>;
-  auto value() noexcept -> storage_t& { return storage_; }
-  auto operator->() noexcept -> storage_t* { return std::addressof(value()); }
   auto set_changed() const noexcept -> std::error_code {
     std::string buffer{};  // this can throw, meaning memory error
     glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
@@ -83,6 +81,12 @@ public:
   }
 
 private:
+  friend struct detail::change<file_storage>;
+
+  // todo if this could be named `value` it would be neat
+  // the change mechanism relies on this (the friend above)
+  auto access() noexcept -> storage_t& { return storage_; }
+
   auto read_file() -> std::error_code {
     auto glz_err{ glz::read_file_json(storage_, config_file_.string()) };
     if (glz_err) {
@@ -95,7 +99,7 @@ private:
 
   auto on_file_change(std::error_code const& err, std::size_t) -> void {
     if (err) {
-      logger_.warn("File watch error: {}", err.message());
+      fmt::print(stderr, "File watch error: {}\n", err.message());
       return;
     }
     std::array<char, 1024> buf{};

@@ -12,3 +12,13 @@ target_include_directories(configure_options
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
 )
+
+configure_file(dbus-tfc.conf.in ${CMAKE_CURRENT_LIST_DIR}/generated/dbus-tfc.conf)
+
+install(
+  FILES
+    generated/dbus-tfc.conf
+  DESTINATION
+    ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d/tfc.conf
+  CONFIGURATIONS Release
+)

@@ -5,8 +5,6 @@
 #include <functional>
 #include <type_traits>
 
-#include <fmt/printf.h>
-
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::confman {
@@ -18,20 +16,13 @@ concept observable_type = requires {
                             requires !std::is_floating_point_v<conf_param_t>;  // todo why not
                           };
 
-/// \brief observable variable, the user can get notified if it is changed
+/// \brief observable variable, the user can get notified if it is changed with `set` function
 /// \tparam conf_param_t equality comparable and default constructible type
-/// Limitations:
-///   1. recurrent observable ownership like
-///     struct foo{ observable<int> integer{}; };
-///     struct bar{ observable<foo> instance{}; };
-///     // given that you have already set observing callbacks you would only get callback for integer not instance
-///     bar{}.instance.integer.set(32);
-///     // workaround is to use assignment operators at top level of the recurrence
-///     bar obj{}; obj = bar{ .instance = { .integer = 32 } };
 template <observable_type conf_param_t>
 class [[nodiscard]] observable {
 public:
-  using callback_t = std::function<void(conf_param_t const& new_value, conf_param_t const& former_value)>;
+  using type = conf_param_t;
+  using callback_t = std::function<void(type const& new_value, type const& former_value)>;
 
   observable() = default;
 
@@ -52,40 +43,8 @@ public:
   // todo default copy&move constructor differs from copy&move assignments
   observable(observable const&) = default;
   observable(observable&&) noexcept = default;
-  /// \brief copy assignment
-  /// Independent side effects:
-  /// 1. If copy does not include a valid callback the previous callback is retained.
-  /// 2. If value in copy is different from the value in `this` the callback will be called.
-  auto operator=(observable const& copy) -> observable& {
-    // only set callback if an actual callback is there
-    // otherwise we retain the previous callback
-    if (copy.callback_) {
-      callback_ = copy.callback_;
-    }
-    auto copy_value = copy.value_;
-    set(std::move(copy_value));
-    return *this;
-  }
-  /// \brief move assignment
-  /// Independent side effects:
-  /// 1. If moved instance does not include a valid callback the previous callback is retained.
-  /// 2. If value in moved instance is different from the value in `this` the callback will be called.
-  /// 3. If callback will throw it will be silently printed to stderr and continues
-  auto operator=(observable&& moveit) noexcept -> observable& {
-    // only set callback if an actual callback is there
-    // otherwise we retain the previous callback
-    if (moveit.callback_) {
-      callback_ = std::move(moveit.callback_);
-    }
-    if (value_ != moveit.value_) {
-      try {
-        set(std::move(moveit.value_));
-      } catch (std::exception const& exc) {
-        fmt::fprintf(stderr, "Exception in move constructor of an observable, what: %s. Will fail silently", exc.what());
-      }
-    }
-    return *this;
-  }
+  auto operator=(observable const& copy) -> observable& = default;
+  auto operator=(observable&& moveit) noexcept -> observable& = default;
   /// \brief set new value, if changed notify observer
   auto operator=(conf_param_t&& value) -> observable& {
     set(std::move(value));
@@ -146,16 +105,15 @@ public:
 
 namespace glz::detail {
 
-// template <typename value_t>
-// struct from_json<tfc::confman::observable<value_t>> {
-//   template <auto opts>
-//   inline static void op(auto& value, auto&&... args) noexcept {
-//     value_t value_copy;
-//     read<json>::op<opts>(value_copy, args...);
-////    from_json<value_t>::template op<opts>(value_copy, std::forward<decltype(args)>(args)...);
-//    value.set(std::move(value_copy)); // invoke callback
-//  }
-//};
+template <typename value_t>
+struct from_json<tfc::confman::observable<value_t>> {
+  template <auto opts>
+  inline static void op(auto& value, auto&&... args) noexcept {
+    value_t value_copy;
+    from_json<value_t>::template op<opts>(value_copy, std::forward<decltype(args)>(args)...);
+    value.set(std::move(value_copy));  // invoke callback
+  }
+};
 
 template <typename value_t>
 struct to_json_schema<tfc::confman::observable<value_t>> {

@@ -20,6 +20,7 @@ namespace asio = boost::asio;
 template <typename config_storage_t>
 class config {
 public:
+  using type = config_storage_t;
   using storage_t = config_storage_t;
 
   /// \brief construct config and deliver it to config manager
@@ -37,7 +38,12 @@ public:
       : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
-        logger_(fmt::format("config.{}", key)) {}
+        logger_(fmt::format("config.{}", key)) {
+    storage_.on_change([]() {
+      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
+      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    });
+  }
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
@@ -50,41 +56,36 @@ public:
   /// \return storage_t json schema
   [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<config_storage_t>(); }
 
-  auto set_changed() const noexcept -> std::error_code { return storage_.set_changed(); }
+  auto set_changed() const noexcept -> std::error_code {
+    client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    return storage_.set_changed();
+  }
 
   /// \brief get config key used to index the given object of type storage_t
   [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return storage_.file(); }
 
   using change = detail::change<config>;
-  friend struct detail::change<config>;
 
   auto make_change() noexcept -> change { return change{ *this }; }
 
   auto from_string(std::string_view value) -> std::error_code {
     // this will call N nr of callbacks
     // for each confman::observer type
-
-    // this is the way, will finish later meta-prog
-    //    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
-    //    if (error) {
-    //      return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
-    //    }
-    //    return {};
-
-    auto exp_storage_value{ glz::read_json<storage_t>(value) };
-    if (exp_storage_value) {
-      storage_.make_change().value() = std::move(exp_storage_value.value());
-    } else {
+    auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
+    if (error) {
       return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
     }
     return {};
   }
 
-  // todo this should be private !!!!!!!!! and only friends should use it
-  [[nodiscard]] auto value() noexcept -> storage_t& { return storage_.value(); }
-  auto operator->() noexcept -> storage_t* { return std::addressof(value()); }
-
 private:
+  friend struct detail::change<config>;
+
+  // todo if this could be named `value` it would be neat
+  // the change mechanism relies on this (the friend above)
+  // todo const_cast is not nice, make different pattern
+  [[nodiscard]] auto access() noexcept -> storage_t& { return const_cast<storage_t&>(storage_.value()); }
+
   file_storage<storage_t> storage_{};
   detail::config_dbus_client client_;
   tfc::logger::logger logger_;
