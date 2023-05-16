@@ -11,7 +11,8 @@
       "inherits": [
         "cfg-vcpkg-gcc-dynamic",
         "cfg-build-dir",
-        "cfg-debug"
+        "cfg-debug",
+        "cfg-enable-docs"
       ]
     },
     {

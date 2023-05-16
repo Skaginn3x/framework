@@ -9,7 +9,6 @@ Observers hereby known as slots and events known as signals.
 
 Take care of communication back and forth between user space components and fundamental components.
 
-
 ## Features
 - string based naming of signals and slots
 - One signal can indicate to many slots
@@ -40,8 +39,15 @@ connections : [
     }
 ];
 ```
-Hvar eru þessar upplýsingar?
-Hverning breytum við þessum upplýsingum live.
+## Management
+There is an api called ipc-ruler running on dbus that manages
+ipc connections each signal registers with the service
+and each slot listens asynchronously to new connection
+information.
+
+Both the services and the management of the services
+is done over dbus. 
+
 
 ## Delay and real time considerations
 Less than 1ms
