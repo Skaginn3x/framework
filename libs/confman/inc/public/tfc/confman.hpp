@@ -39,9 +39,9 @@ public:
         client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
         logger_(fmt::format("config.{}", key)) {
-    storage_.on_change([](){
+    storage_.on_change([]() {
       // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-//      client_.set(detail::config_property{ .value = string(), .schema = schema() });
+      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
     });
   }
 
