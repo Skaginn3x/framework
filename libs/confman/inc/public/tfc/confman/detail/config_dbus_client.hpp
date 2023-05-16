@@ -37,7 +37,7 @@ public:
   using change_call_t = std::function<std::error_code(std::string_view)>;
   config_dbus_client(boost::asio::io_context& ctx, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
 
-  // todo propagate changes to set_property
+  void set(config_property&&);
 
 private:
   std::filesystem::path interface_path_{};

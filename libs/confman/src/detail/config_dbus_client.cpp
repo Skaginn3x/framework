@@ -57,4 +57,8 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
   dbus_interface_->initialize();
 }
 
+void config_dbus_client::set(config_property&& prop) {
+  dbus_interface_->set_property(std::string{ dbus::property_name.data(), dbus::property_name.size() }, prop);
+}
+
 }  // namespace tfc::confman::detail
