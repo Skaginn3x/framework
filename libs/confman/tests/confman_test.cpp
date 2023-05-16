@@ -11,6 +11,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/dbus/match_rules.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
@@ -33,18 +34,6 @@ struct glz::meta<storage> {
   static constexpr auto value{ glz::object("a", &storage::a, "b", &storage::b, "c", &storage::c) };
 };
 
-namespace bpo = boost::program_options;
-
-// static std::string replace_all(std::string const& input, std::string_view what, std::string_view with) {
-//   std::size_t count{};
-//   std::string copy{ input };
-//   for (std::string::size_type pos{}; std::string::npos != (pos = copy.find(what.data(), pos, what.length()));
-//        pos += with.length(), ++count) {
-//     copy.replace(pos, what.length(), with.data(), with.length());
-//   }
-//   return copy;
-// }
-
 template <typename storage_t>
 class config_testable : public tfc::confman::config<storage_t> {
 public:
@@ -57,10 +46,7 @@ public:
 };
 
 auto main(int argc, char** argv) -> int {
-  auto desc{ tfc::base::default_description() };
-  bool run_slow{};
-  desc.add_options()("slow,s", bpo::bool_switch(&run_slow)->default_value(false));
-  tfc::base::init(argc, argv, desc);
+  tfc::base::init(argc, argv);
 
   boost::asio::io_context ignore{};
 
@@ -221,6 +207,43 @@ auto main(int argc, char** argv) -> int {
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(a_called == 1);
+  };
+
+  "integration await property changed internally"_test = [&] {
+    boost::asio::io_context ctx{};
+    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
+
+    config_testable<storage> conf{ ctx, key };
+
+    uint32_t called{};
+    auto match = fmt::format("type='signal',member='PropertiesChanged',path='{}'", interface_path.string());
+    sdbusplus::bus::match_t const awaiter{ dbus, match,
+                                           [&called]([[maybe_unused]] sdbusplus::message::message& msg) { called++; } };
+
+    conf.make_change()->a.set(42);
+
+    ctx.run_for(std::chrono::milliseconds(10));
+    ut::expect(called == 1);
+  };
+
+  ut::skip / "integration await property file is changed"_test = [&] {
+    boost::asio::io_context ctx{};
+    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
+
+    config_testable<storage> const conf{ ctx, key };
+
+    uint32_t called{};
+    auto match = fmt::format("type='signal',member='PropertiesChanged',path='{}'", interface_path.string());
+    sdbusplus::bus::match_t const awaiter{ dbus, match,
+                                           [&called]([[maybe_unused]] sdbusplus::message::message& msg) { called++; } };
+
+    glz::json_t json{};
+    std::ignore = glz::read_json(json, conf.string());
+    json["a"] = 27;
+    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"));
+
+    ctx.run_for(std::chrono::milliseconds(10));
+    ut::expect(called == 1);
   };
 
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));

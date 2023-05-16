@@ -38,7 +38,12 @@ public:
       : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
-        logger_(fmt::format("config.{}", key)) {}
+        logger_(fmt::format("config.{}", key)) {
+    storage_.on_change([](){
+      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
+//      client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    });
+  }
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
@@ -51,7 +56,10 @@ public:
   /// \return storage_t json schema
   [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<config_storage_t>(); }
 
-  auto set_changed() const noexcept -> std::error_code { return storage_.set_changed(); }
+  auto set_changed() const noexcept -> std::error_code {
+    client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    return storage_.set_changed();
+  }
 
   /// \brief get config key used to index the given object of type storage_t
   [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return storage_.file(); }
