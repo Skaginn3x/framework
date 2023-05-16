@@ -55,6 +55,8 @@ jobs:
         run: |
           sudo cp libs/configure_options/generated/dbus-tfc.conf /usr/share/dbus-1/system.d/tfc.conf
           cat /usr/share/dbus-1/system.d/tfc.conf
+          echo "system conf"
+          cat /usr/share/dbus-1/system.conf
           sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
 
       - name: CMake build
