@@ -26,9 +26,13 @@ interface::interface(asio::io_context& ctx, std::string_view log_key)
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
-      logger_(log_key) {}
+      logger_{ log_key } {}
 
-void interface::set(tfc::operation::mode_e) const {}
+void interface::set(tfc::operation::mode_e new_mode) const {
+  // todo add handler to set function call, for callee
+  dbus_connection_->async_method_call([](std::error_code) {}, dbus::name.data(), dbus::path.data(), dbus::name.data(),
+                                      dbus::method::set_mode.data(), new_mode);
+}
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {
   auto update_msg = msg.unpack<update_message>();

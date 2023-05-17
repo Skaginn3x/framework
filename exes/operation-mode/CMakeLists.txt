@@ -28,5 +28,5 @@ target_link_libraries(operation-mode
     unofficial::sdbusplus
 )
 
-
+add_subdirectory(tests)
 

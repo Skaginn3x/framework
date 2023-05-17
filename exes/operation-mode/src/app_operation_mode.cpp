@@ -21,7 +21,7 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
   dbus_interface_->register_signal<operation::update_message>(
       std::string(operation::dbus::signal::update.data(), operation::dbus::signal::update.size()));
 
-  dbus_interface_->register_method("set_mode", [this](tfc::operation::mode_e new_mode) {
+  dbus_interface_->register_method(operation::dbus::method::set_mode.data(), [this](tfc::operation::mode_e new_mode) {
     if (auto const err_code{ state_machine_->set_mode(new_mode) }) {
       logger_.info("Unable to set to state: '{}', error: '{}'", mode_e_str(new_mode), err_code.message());
       return;
