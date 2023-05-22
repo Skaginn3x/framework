@@ -112,6 +112,7 @@ private:
   tfc::logger::logger logger_;
   tfc::confman::config<detail::storage> config_;
   std::shared_ptr<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::my_logger>>> states_;
+  boost::asio::io_context& ctx_;
 };
 
 }  // namespace tfc::operation

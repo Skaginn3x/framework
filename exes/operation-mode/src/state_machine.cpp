@@ -108,7 +108,9 @@ state_machine::state_machine(boost::asio::io_context& ctx)
       config_{ ctx, "state_machine" },
       states_{ std::make_shared<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::my_logger>>>(
           detail::state_machine{ *this },
-          detail::my_logger{}) } {}
+          detail::my_logger{}) },
+      ctx_{ ctx }
+{}
 
 auto operation::state_machine::set_mode(tfc::operation::mode_e new_mode) -> std::error_code {
   logger_.trace("Got new mode: {}", tfc::operation::mode_e_str(new_mode));
@@ -155,6 +157,16 @@ void state_machine::leave_stopped() {
   stopped_.send(false);
 }
 void state_machine::enter_starting() {
+  if (config_->startup_time) {
+    auto timer{ std::make_shared<boost::asio::steady_timer>(ctx_) };
+    timer->expires_from_now(config_->startup_time.value());
+    timer->async_wait([this, timer](std::error_code const& err){
+      if (err) {
+        return;
+      }
+      this->states_->process_event(detail::events::starting_timeout{});
+    });
+  }
   starting_.send(true);
 }
 void state_machine::leave_starting() {
