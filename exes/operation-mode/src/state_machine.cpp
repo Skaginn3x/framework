@@ -1,5 +1,6 @@
 #include "state_machine.hpp"
 #include <boost/asio.hpp>
+#include <tfc/stx/glaze_meta.hpp>
 
 namespace tfc::operation {
 
@@ -8,11 +9,32 @@ namespace detail {
 using boost::sml::literals::operator""_e;
 using boost::sml::literals::operator""_s;
 
+namespace events {
+struct set_starting {};
+struct run_button {};
+struct starting_timeout {};
+struct starting_finished {};
+struct set_stopped {};
+struct stopping_timeout {};
+struct stopping_finished {};
+struct cleaning_button {};
+struct set_cleaning {};
+struct set_emergency {};
+struct emergency_on {};
+struct emergency_off {};
+struct fault_on {};
+struct set_fault {};
+struct fault_off {};
+struct maintenance_button {};
+struct set_maintenance {};
+}  // namespace events
+
 struct state_machine {
   explicit state_machine(tfc::operation::state_machine& owner) : owner_{ owner } {}
 
   auto operator()() {
     using boost::sml::_;
+    using boost::sml::event;
     using boost::sml::on_entry;
     using boost::sml::on_exit;
 
@@ -21,41 +43,49 @@ struct state_machine {
     auto table = boost::sml::make_transition_table(
             * "stopped"_s + on_entry<_> / [this](){ owner_.enter_stopped(); }
             , "stopped"_s + on_exit<_> / [this](){ owner_.leave_stopped(); }
-            , "stopped"_s + "run_button"_e = "warmup"_s
-            , "stopped"_s + "set_mode_run"_e = "warmup"_s
-            , "warmup"_s + on_entry<_> / [this](){ owner_.enter_warmup(); }
-            , "warmup"_s + on_exit<_> / [this](){ owner_.leave_warmup(); }
-            , "warmup"_s + "warmup_timeout"_e = "running"_s
-            , "warmup"_s + "warmup_finished"_e = "running"_s
+            , "stopped"_s + event<events::set_starting> = "starting"_s
+            , "stopped"_s + event<events::run_button> = "starting"_s
+            , "starting"_s + on_entry<_> / [this](){ owner_.enter_starting(); }
+            , "starting"_s + on_exit<_> / [this](){ owner_.leave_starting(); }
+            , "starting"_s + event<events::starting_timeout> = "running"_s
+            , "starting"_s + event<events::starting_finished> = "running"_s
             , "running"_s + on_entry<_> / [this](){ owner_.enter_running(); }
             , "running"_s + on_exit<_> / [this](){ owner_.leave_running(); }
-            , "running"_s + "run_button"_e = "stopped"_s
-            , "running"_s + "set_mode_stopped"_e = "stopped"_s
-            , "stopped"_s + "cleaning_button"_e = "cleaning"_s
-            , "stopped"_s + "set_mode_cleaning"_e = "cleaning"_s
+            , "running"_s + event<events::run_button> = "stopping"_s
+            , "running"_s + event<events::set_stopped> = "stopping"_s
+            , "stopping"_s + on_entry<_> / [this](){ owner_.enter_stopping(); }
+            , "stopping"_s + on_exit<_> / [this](){ owner_.leave_stopping(); }
+            , "stopping"_s + event<events::stopping_timeout> = "stopped"_s
+            , "stopping"_s + event<events::stopping_finished> = "stopped"_s
+            , "stopped"_s + event<events::cleaning_button> = "cleaning"_s
+            , "stopped"_s + event<events::set_cleaning> = "cleaning"_s
             , "cleaning"_s + on_entry<_> / [this](){ owner_.enter_cleaning(); }
             , "cleaning"_s + on_exit<_> / [this](){ owner_.leave_cleaning(); }
-            , "cleaning"_s + "cleaning_button"_e = "stopped"_s
-            , "cleaning"_s + "set_mode_stopped"_e = "stopped"_s
-            , "stopped"_s + "emergency_on"_e = "emergency"_s
-            , "running"_s + "emergency_on"_e = "emergency"_s
+            , "cleaning"_s + event<events::cleaning_button> = "stopped"_s
+            , "cleaning"_s + event<events::set_stopped> = "stopped"_s
+            , "stopped"_s + event<events::set_emergency> = "emergency"_s
+            , "running"_s + event<events::set_emergency> = "emergency"_s
+            , "cleaning"_s + event<events::set_emergency> = "emergency"_s
+            , "stopped"_s + event<events::emergency_on> = "emergency"_s
+            , "running"_s + event<events::emergency_on> = "emergency"_s
+            , "cleaning"_s + event<events::emergency_on> = "emergency"_s
             , "emergency"_s + on_entry<_> / [this](){ owner_.enter_emergency(); }
             , "emergency"_s + on_exit<_> / [this](){ owner_.leave_emergency(); }
-            , "emergency"_s + "emergency_off"_e = "stopped"_s
-            , "stopped"_s + "fault_on"_e = "fault"_s
-            , "stopped"_s + "set_mode_fault"_e = "fault"_s
-            , "running"_s + "fault_on"_e = "fault"_s
-            , "running"_s + "set_mode_fault"_e = "fault"_s
+            , "emergency"_s + event<events::emergency_off> = "stopped"_s
+            , "stopped"_s + event<events::fault_on> = "fault"_s
+            , "stopped"_s + event<events::set_fault> = "fault"_s
+            , "running"_s + event<events::fault_on> = "fault"_s
+            , "running"_s + event<events::set_fault> = "fault"_s
             , "fault"_s + on_entry<_> / [this](){ owner_.enter_fault(); }
             , "fault"_s + on_exit<_> / [this](){ owner_.leave_fault(); }
-            , "fault"_s + "fault_off"_e = "stopped"_s
-            , "fault"_s + "set_mode_stopped"_e = "stopped"_s
-            , "stopped"_s + "maintenance_button"_e = "maintenance"_s
-            , "stopped"_s + "set_mode_maintenance"_e = "maintenance"_s
+            , "fault"_s + event<events::fault_off> = "stopped"_s
+            , "fault"_s + event<events::set_stopped> = "stopped"_s
+            , "stopped"_s + event<events::maintenance_button> = "maintenance"_s
+            , "stopped"_s + event<events::set_maintenance> = "maintenance"_s
             , "maintenance"_s + on_entry<_> / [this](){ owner_.enter_maintenance(); }
             , "maintenance"_s + on_exit<_> / [this](){ owner_.leave_maintenance(); }
-            , "maintenance"_s + "maintenance_button"_e = "stopped"_s
-            , "maintenance"_s + "set_mode_stopped"_e = "stopped"_s
+            , "maintenance"_s + event<events::maintenance_button> = "stopped"_s
+            , "maintenance"_s + event<events::set_stopped> = "stopped"_s
     );
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
@@ -69,44 +99,44 @@ private:
 }  // namespace detail
 
 state_machine::state_machine(boost::asio::io_context& ctx)
-    : stopped_{ ctx, "stopped" }, warmup_{ ctx, "warmup" }, running_{ ctx, "running" }, cleaning_{ ctx, "cleaning" },
-      mode_{ ctx, "mode" }, mode_str_{ ctx, "mode" }, run_button_{ ctx, "run_button",
-                                                                   std::bind_front(&state_machine::running_new_state,
-                                                                                   this) },
+    : stopped_{ ctx, "stopped" }, starting_{ ctx, "starting" }, running_{ ctx, "running" }, stopping_{ ctx, "stopping" },
+      cleaning_{ ctx, "cleaning" }, mode_{ ctx, "mode" }, mode_str_{ ctx, "mode" },
+      run_button_{ ctx, "run_button", std::bind_front(&state_machine::running_new_state, this) },
       cleaning_button_{ ctx, "cleaning_button", std::bind_front(&state_machine::cleaning_new_state, this) },
       maintenance_button_{ ctx, "maintenance_button", std::bind_front(&state_machine::maintenance_new_state, this) },
-      logger_{ "state_machine" }, states_{ std::make_shared<boost::sml::sm<detail::state_machine>>(
-                                      detail::state_machine{ *this }) } {}
+      logger_{ "state_machine" },
+      config_{ ctx, "state_machine" },
+      states_{ std::make_shared<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::my_logger>>>(
+          detail::state_machine{ *this },
+          detail::my_logger{}) } {}
 
 auto operation::state_machine::set_mode(tfc::operation::mode_e new_mode) -> std::error_code {
-  using boost::sml::operator""_e;
   logger_.trace("Got new mode: {}", tfc::operation::mode_e_str(new_mode));
-
-  using enum tfc::operation::mode_e;
 
   bool handled{};
   switch (new_mode) {
+    using enum tfc::operation::mode_e;
     case unknown:
       break;
-    case stopped:
-      handled = states_->process_event("set_mode_stopped"_e);
-      break;
-    case starting:  // todo
-    case running:
     case stopping:
-      handled = states_->process_event("set_mode_running"_e);
+    case stopped:
+      handled = states_->process_event(detail::events::set_stopped{});
+      break;
+    case starting:
+    case running:
+      handled = states_->process_event(detail::events::set_starting{});
       break;
     case cleaning:
-      handled = states_->process_event("set_mode_cleaning"_e);
+      handled = states_->process_event(detail::events::set_cleaning{});
       break;
     case emergency:
-      handled = states_->process_event("set_mode_emergency"_e);
+      handled = states_->process_event(detail::events::set_emergency{});
       break;
     case fault:
-      handled = states_->process_event("set_mode_fault"_e);
+      handled = states_->process_event(detail::events::set_fault{});
       break;
     case maintenance:
-      handled = states_->process_event("set_mode_maintenance"_e);
+      handled = states_->process_event(detail::events::set_maintenance{});
       break;
   }
 
@@ -124,17 +154,23 @@ void state_machine::enter_stopped() {
 void state_machine::leave_stopped() {
   stopped_.send(false);
 }
-void state_machine::enter_warmup() {
-  warmup_.send(true);
+void state_machine::enter_starting() {
+  starting_.send(true);
 }
-void state_machine::leave_warmup() {
-  warmup_.send(false);
+void state_machine::leave_starting() {
+  starting_.send(false);
 }
 void state_machine::enter_running() {
   running_.send(true);
 }
 void state_machine::leave_running() {
   running_.send(false);
+}
+void state_machine::enter_stopping() {
+  stopping_.send(true);
+}
+void state_machine::leave_stopping() {
+  stopping_.send(false);
 }
 void state_machine::enter_cleaning() {
   cleaning_.send(true);
