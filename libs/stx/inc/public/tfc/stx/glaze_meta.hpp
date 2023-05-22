@@ -37,7 +37,7 @@ struct to_json<std::chrono::time_point<std::chrono::system_clock>> {
   }
 };
 
-template<>
+template <>
 struct from_json<std::chrono::milliseconds> {
   template <auto Opts>
   static void op(std::chrono::milliseconds& value, auto&&... args) {
@@ -46,7 +46,7 @@ struct from_json<std::chrono::milliseconds> {
     value = std::chrono::milliseconds{ rep };
   }
 };
-template<>
+template <>
 struct to_json<std::chrono::milliseconds> {
   template <auto Opts>
   static void op(auto& value, auto&&... args) noexcept {

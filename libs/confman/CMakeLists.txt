@@ -9,6 +9,7 @@ find_package(unofficial-sdbusplus CONFIG REQUIRED)
 
 add_library(libconfman
   src/confman.cpp
+  src/remote_change.cpp
   src/detail/config_dbus_client.cpp
 )
 add_library(tfc::confman ALIAS libconfman)

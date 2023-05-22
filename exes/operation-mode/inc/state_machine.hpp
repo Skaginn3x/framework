@@ -1,6 +1,6 @@
 #pragma once
-#include <system_error>
 #include <memory>
+#include <system_error>
 
 #include <boost/sml.hpp>
 
@@ -21,37 +21,11 @@ using old_mode = mode_e;
 
 namespace detail {
 
-
 using boost::sml::literals::operator""_e;
 using boost::sml::literals::operator""_s;
 
 struct state_machine;
-
-struct my_logger {
-  template <class SM, class TEvent>
-  void log_process_event(const TEvent&) {
-    logger_->trace("[{}][process_event] {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TEvent>());
-  }
-
-  template <class SM, class TGuard, class TEvent>
-  void log_guard(const TGuard&, const TEvent&, bool result) {
-    logger_->trace("[{}][guard] {} {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TGuard>(),
-           boost::sml::aux::get_type_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
-  }
-
-  template <class SM, class TAction, class TEvent>
-  void log_action(const TAction&, const TEvent&) {
-    logger_->trace("[{}][action] {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TAction>(),
-           boost::sml::aux::get_type_name<TEvent>());
-  }
-
-  template <class SM, class TSrcState, class TDstState>
-  void log_state_change(const TSrcState& src, const TDstState& dst) {
-    logger_->trace("[{}][transition] {} -> {}\n", boost::sml::aux::get_type_name<SM>(), src.c_str(), dst.c_str());
-  }
-private:
-  std::shared_ptr<tfc::logger::logger> logger_{ std::make_shared<tfc::logger::logger>("sml") };
-};
+struct sml_logger;
 
 struct storage {
   std::optional<std::chrono::milliseconds> startup_time{};
@@ -109,7 +83,7 @@ private:
   tfc::ipc::bool_slot maintenance_button_;
   tfc::logger::logger logger_;
   tfc::confman::config<detail::storage> config_;
-  std::shared_ptr<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::my_logger>>> states_;
+  std::shared_ptr<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::sml_logger>>> states_;
   boost::asio::io_context& ctx_;
 };
 

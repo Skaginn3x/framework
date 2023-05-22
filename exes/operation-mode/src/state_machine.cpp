@@ -6,9 +6,6 @@ namespace tfc::operation {
 
 namespace detail {
 
-using boost::sml::literals::operator""_e;
-using boost::sml::literals::operator""_s;
-
 namespace events {
 struct set_starting {};
 struct run_button {};
@@ -37,6 +34,7 @@ struct state_machine {
     using boost::sml::event;
     using boost::sml::on_entry;
     using boost::sml::on_exit;
+    using boost::sml::literals::operator""_s;
 
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wused-but-marked-unused) // Todo fix sml.hpp
@@ -96,6 +94,34 @@ private:
   tfc::operation::state_machine& owner_;
 };
 
+struct sml_logger {
+  template <class SM, class TEvent>
+  void log_process_event(const TEvent&) {
+    logger_->trace("[{}][process_event] {}\n", boost::sml::aux::get_type_name<SM>(),
+                   boost::sml::aux::get_type_name<TEvent>());
+  }
+
+  template <class SM, class TGuard, class TEvent>
+  void log_guard(const TGuard&, const TEvent&, bool result) {
+    logger_->trace("[{}][guard] {} {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TGuard>(),
+                   boost::sml::aux::get_type_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
+  }
+
+  template <class SM, class TAction, class TEvent>
+  void log_action(const TAction&, const TEvent&) {
+    logger_->trace("[{}][action] {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TAction>(),
+                   boost::sml::aux::get_type_name<TEvent>());
+  }
+
+  template <class SM, class TSrcState, class TDstState>
+  void log_state_change(const TSrcState& src, const TDstState& dst) {
+    logger_->trace("[{}][transition] {} -> {}\n", boost::sml::aux::get_type_name<SM>(), src.c_str(), dst.c_str());
+  }
+
+private:
+  std::shared_ptr<tfc::logger::logger> logger_{ std::make_shared<tfc::logger::logger>("sml") };
+};
+
 }  // namespace detail
 
 state_machine::state_machine(boost::asio::io_context& ctx)
@@ -104,13 +130,11 @@ state_machine::state_machine(boost::asio::io_context& ctx)
       run_button_{ ctx, "run_button", std::bind_front(&state_machine::running_new_state, this) },
       cleaning_button_{ ctx, "cleaning_button", std::bind_front(&state_machine::cleaning_new_state, this) },
       maintenance_button_{ ctx, "maintenance_button", std::bind_front(&state_machine::maintenance_new_state, this) },
-      logger_{ "state_machine" },
-      config_{ ctx, "state_machine" },
-      states_{ std::make_shared<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::my_logger>>>(
+      logger_{ "state_machine" }, config_{ ctx, "state_machine" },
+      states_{ std::make_shared<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::sml_logger>>>(
           detail::state_machine{ *this },
-          detail::my_logger{}) },
-      ctx_{ ctx }
-{}
+          detail::sml_logger{}) },
+      ctx_{ ctx } {}
 
 auto operation::state_machine::set_mode(tfc::operation::mode_e new_mode) -> std::error_code {
   logger_.trace("Got new mode: {}", tfc::operation::mode_e_str(new_mode));
@@ -160,7 +184,7 @@ void state_machine::enter_starting() {
   if (config_->startup_time) {
     auto timer{ std::make_shared<boost::asio::steady_timer>(ctx_) };
     timer->expires_from_now(config_->startup_time.value());
-    timer->async_wait([this, timer](std::error_code const& err){
+    timer->async_wait([this, timer](std::error_code const& err) {
       if (err) {
         return;
       }

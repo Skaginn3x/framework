@@ -1,9 +1,13 @@
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
+#include <sdbusplus/asio/property.hpp>
 
+#include <tfc/confman/remote_change.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/operation_mode.hpp>
 #include <tfc/progbase.hpp>
 #include "app_operation_mode.hpp"
+#include "state_machine.hpp"
 
 namespace asio = boost::asio;
 
@@ -22,6 +26,10 @@ auto main(int argc, char** argv) -> int {
 
   "set mode"_test = [] {
     operation_mode_test test{};
+    sdbusplus::asio::connection dbus{ test.ctx, tfc::dbus::sd_bus_open_system() };
+    tfc::confman::set_config(dbus, "state_machine",
+                             tfc::operation::detail::storage{ .startup_time = std::chrono::milliseconds{ 3 } },
+                             [](std::error_code) {});
     test.lib.set(tfc::operation::mode_e::starting);
     test.ctx.run_for(std::chrono::milliseconds(100));
   };
