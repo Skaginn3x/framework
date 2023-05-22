@@ -17,7 +17,7 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
       dbus_interface_{ dbus_object_server_->add_interface(
           std::string{ operation::dbus::path.data(), operation::dbus::path.size() },
           std::string{ operation::dbus::name.data(), operation::dbus::name.size() }) },
-      state_machine_{ operation::state_machine::make(ctx) }, logger_{ "app_operation_mode" } {
+      state_machine_{ std::make_unique<operation::state_machine>(ctx) }, logger_{ "app_operation_mode" } {
   dbus_interface_->register_signal<operation::update_message>(
       std::string(operation::dbus::signal::update.data(), operation::dbus::signal::update.size()));
 

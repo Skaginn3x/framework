@@ -30,25 +30,27 @@ struct state_machine;
 struct my_logger {
   template <class SM, class TEvent>
   void log_process_event(const TEvent&) {
-    printf("[%s][process_event] %s\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TEvent>());
+    logger_->trace("[{}][process_event] {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TEvent>());
   }
 
   template <class SM, class TGuard, class TEvent>
   void log_guard(const TGuard&, const TEvent&, bool result) {
-    printf("[%s][guard] %s %s %s\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TGuard>(),
+    logger_->trace("[{}][guard] {} {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TGuard>(),
            boost::sml::aux::get_type_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
   }
 
   template <class SM, class TAction, class TEvent>
   void log_action(const TAction&, const TEvent&) {
-    printf("[%s][action] %s %s\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TAction>(),
+    logger_->trace("[{}][action] {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TAction>(),
            boost::sml::aux::get_type_name<TEvent>());
   }
 
   template <class SM, class TSrcState, class TDstState>
   void log_state_change(const TSrcState& src, const TDstState& dst) {
-    printf("[%s][transition] %s -> %s\n", boost::sml::aux::get_type_name<SM>(), src.c_str(), dst.c_str());
+    logger_->trace("[{}][transition] {} -> {}\n", boost::sml::aux::get_type_name<SM>(), src.c_str(), dst.c_str());
   }
+private:
+  std::shared_ptr<tfc::logger::logger> logger_{ std::make_shared<tfc::logger::logger>("sml") };
 };
 
 struct storage {
@@ -61,12 +63,8 @@ struct storage {
 
 }  // namespace detail
 
-class state_machine : public std::enable_shared_from_this<state_machine> {
+class state_machine {
 public:
-  static std::shared_ptr<state_machine> make(boost::asio::io_context& ctx) {
-    return std::make_shared<state_machine>(ctx);
-  }
-//private: // todo
   explicit state_machine(boost::asio::io_context&);
 
   auto set_mode(tfc::operation::mode_e new_mode) -> std::error_code;
