@@ -17,7 +17,8 @@ static void set_config(sdbusplus::asio::connection& dbus,
                        std::string_view key,
                        auto&& storage,
                        std::invocable<std::error_code> auto&& handler) {
-  return set_config_impl(dbus, key, glz::write_json(std::forward<decltype(storage)>(storage), std::forward<decltype(handler)>(handler));
+  return set_config_impl(dbus, key, glz::write_json(std::forward<decltype(storage)>(storage)),
+                         std::forward<decltype(handler)>(handler));
 }
 
 // todo get_config
