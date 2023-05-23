@@ -40,7 +40,7 @@ auto main(int argc, char** argv) -> int {
                              tfc::operation::detail::storage{ .startup_time = std::chrono::milliseconds{ 3 } },
                              [](std::error_code) {});
     bool called{};
-    test.lib.on_enter(mode_e::starting, [&called](mode_e new_mode, mode_e old_mode){
+    test.lib.on_enter(mode_e::starting, [&called](mode_e new_mode, mode_e old_mode) {
       called = true;
       ut::expect(new_mode == mode_e::starting);
       ut::expect(old_mode == mode_e::stopped);

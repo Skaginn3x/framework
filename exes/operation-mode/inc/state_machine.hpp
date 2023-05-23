@@ -32,9 +32,12 @@ struct storage {
   std::optional<std::chrono::milliseconds> stopping_time{};
   struct glaze {
     static constexpr auto value{ glz::object(
-        "startup_time", &storage::startup_time, "[ms] Delay to run initial sequences to get the equipment ready."
-        "stopping_time", &storage::stopping_time, "[ms] Delay to run ending sequences to get the equipment ready for being stopped."
-        ) };
+        "startup_time",
+        &storage::startup_time,
+        "[ms] Delay to run initial sequences to get the equipment ready."
+        "stopping_time",
+        &storage::stopping_time,
+        "[ms] Delay to run ending sequences to get the equipment ready for being stopped.") };
     static constexpr auto name{ "state_machine" };
   };
 };
