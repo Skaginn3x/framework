@@ -2,9 +2,9 @@
 # react-scripts build
 
 
-add_custom_target(
-   cockpit-IPC-build
-   npm install --no-package-lock
+add_custom_command(
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build
+   COMMAND npm install --no-package-lock
    COMMAND GENERATE_SOURCEMAP=false BUILD_PATH='./build' ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/react-scripts/bin/react-scripts.js build
    COMMAND rm -rf ${CMAKE_CURRENT_SOURCE_DIR}/node_modules
    COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/build
@@ -12,11 +12,10 @@ add_custom_target(
    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+add_custom_target(cockpit-IPC-build ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build)
 
 include(GNUInstallDirs)
 install(
-  TARGETS
-    cockpit-IPC-build
   DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR}/build
   DESTINATION
@@ -24,8 +23,6 @@ install(
   CONFIGURATIONS Release
 )
 install(
-  TARGETS
-    cockpit-IPC-build
   FILES
     manifest.json
   DESTINATION
