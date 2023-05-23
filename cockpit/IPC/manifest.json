@@ -1,0 +1,10 @@
+{
+    "version": 0,
+    "tools": {
+        "tfc": {
+            "label": "Time For Change",
+            "path": "index.html"
+
+        }
+    }
+}

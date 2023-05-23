@@ -30,6 +30,8 @@ if (BUILD_DOCS)
   add_subdirectory(docs)
 endif()
 
+add_subdirectory(cockpit)
+
 # Clang format all files
 
 file(GLOB_RECURSE ALL_SOURCE_FILES libs/**/*.cpp libs/**/*.hpp exes/**/*.cpp exes/**/*.hpp)
