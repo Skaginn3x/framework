@@ -23,7 +23,8 @@ public:
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context&, std::string_view, storage_type&& def) : storage_{ std::forward<storage_type>(def) } {}
 
-  [[nodiscard]] auto value() const noexcept -> storage_t const& { return storage_.value(); }
+  [[nodiscard]] auto value() const noexcept -> storage_t const& { return storage_; }
+  auto access() noexcept -> storage_t& { return storage_; }
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   [[nodiscard]] auto string() const -> std::string { return {}; }

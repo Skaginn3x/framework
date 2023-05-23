@@ -31,10 +31,9 @@ public:
     return unused;
   }
 
-  /// \return Access to underlying value
   auto value() const noexcept -> storage_t const& { return storage_; }
+  auto access() noexcept -> storage_t& { return storage_; }
 
-  /// \return Access to underlying value
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   auto on_change(std::invocable auto&&) -> void { }
