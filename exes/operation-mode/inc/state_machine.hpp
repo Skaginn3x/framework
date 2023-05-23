@@ -29,9 +29,13 @@ struct sml_logger;
 
 struct storage {
   std::optional<std::chrono::milliseconds> startup_time{};
+  std::optional<std::chrono::milliseconds> stopping_time{};
   struct glaze {
-    static constexpr auto value{ glz::object("startup_time", &storage::startup_time) };
-    static constexpr auto name{ "state_machine_storage" };
+    static constexpr auto value{ glz::object(
+        "startup_time", &storage::startup_time, "[ms] Delay to run initial sequences to get the equipment ready."
+        "stopping_time", &storage::stopping_time, "[ms] Delay to run ending sequences to get the equipment ready for being stopped."
+        ) };
+    static constexpr auto name{ "state_machine" };
   };
 };
 
@@ -60,16 +64,14 @@ public:
   void enter_maintenance();
   void leave_maintenance();
 
-  [[nodiscard]] auto get_mode() const noexcept -> tfc::operation::mode_e { return current_mode_; }
-
   auto on_new_mode(std::invocable<new_mode, old_mode> auto&& callback) { on_new_state_ = callback; }
+  void transition(mode_e new_mode, mode_e old_mode) const;
 
 private:
   void running_new_state(bool);
   void cleaning_new_state(bool);
   void maintenance_new_state(bool);
 
-  mode_e current_mode_{ tfc::operation::mode_e::unknown };
   std::function<void(new_mode, old_mode)> on_new_state_{};
   tfc::ipc::bool_signal stopped_;
   tfc::ipc::bool_signal starting_;

@@ -36,54 +36,57 @@ struct state_machine {
     using boost::sml::on_exit;
     using boost::sml::literals::operator""_s;
 
+    using enum tfc::operation::mode_e;
+    // todo meta-program this transition boiler plate code
+    // if states would declare constexpr of enum this should be doable, btw logger has src and destination state
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wused-but-marked-unused) // Todo fix sml.hpp
     auto table = boost::sml::make_transition_table(
             * "stopped"_s + on_entry<_> / [this](){ owner_.enter_stopped(); }
             , "stopped"_s + on_exit<_> / [this](){ owner_.leave_stopped(); }
-            , "stopped"_s + event<events::set_starting> = "starting"_s
-            , "stopped"_s + event<events::run_button> = "starting"_s
+            , "stopped"_s + event<events::set_starting> / [this](){ owner_.transition(starting, stopped); } = "starting"_s
+            , "stopped"_s + event<events::run_button> / [this](){ owner_.transition(starting, stopped); } = "starting"_s
             , "starting"_s + on_entry<_> / [this](){ owner_.enter_starting(); }
             , "starting"_s + on_exit<_> / [this](){ owner_.leave_starting(); }
-            , "starting"_s + event<events::starting_timeout> = "running"_s
-            , "starting"_s + event<events::starting_finished> = "running"_s
+            , "starting"_s + event<events::starting_timeout> / [this](){ owner_.transition(running, starting); } = "running"_s
+            , "starting"_s + event<events::starting_finished> / [this](){ owner_.transition(running, starting); } = "running"_s
             , "running"_s + on_entry<_> / [this](){ owner_.enter_running(); }
             , "running"_s + on_exit<_> / [this](){ owner_.leave_running(); }
-            , "running"_s + event<events::run_button> = "stopping"_s
-            , "running"_s + event<events::set_stopped> = "stopping"_s
+            , "running"_s + event<events::run_button> / [this](){ owner_.transition(stopping, running); } = "stopping"_s
+            , "running"_s + event<events::set_stopped> / [this](){ owner_.transition(stopping, running); } = "stopping"_s
             , "stopping"_s + on_entry<_> / [this](){ owner_.enter_stopping(); }
             , "stopping"_s + on_exit<_> / [this](){ owner_.leave_stopping(); }
-            , "stopping"_s + event<events::stopping_timeout> = "stopped"_s
-            , "stopping"_s + event<events::stopping_finished> = "stopped"_s
-            , "stopped"_s + event<events::cleaning_button> = "cleaning"_s
-            , "stopped"_s + event<events::set_cleaning> = "cleaning"_s
+            , "stopping"_s + event<events::stopping_timeout> / [this](){ owner_.transition(stopped, stopping); } = "stopped"_s
+            , "stopping"_s + event<events::stopping_finished> / [this](){ owner_.transition(stopped, stopping); } = "stopped"_s
+            , "stopped"_s + event<events::cleaning_button> / [this](){ owner_.transition(cleaning, stopped); } = "cleaning"_s
+            , "stopped"_s + event<events::set_cleaning> / [this](){ owner_.transition(cleaning, stopped); } = "cleaning"_s
             , "cleaning"_s + on_entry<_> / [this](){ owner_.enter_cleaning(); }
             , "cleaning"_s + on_exit<_> / [this](){ owner_.leave_cleaning(); }
-            , "cleaning"_s + event<events::cleaning_button> = "stopped"_s
-            , "cleaning"_s + event<events::set_stopped> = "stopped"_s
-            , "stopped"_s + event<events::set_emergency> = "emergency"_s
-            , "running"_s + event<events::set_emergency> = "emergency"_s
-            , "cleaning"_s + event<events::set_emergency> = "emergency"_s
-            , "stopped"_s + event<events::emergency_on> = "emergency"_s
-            , "running"_s + event<events::emergency_on> = "emergency"_s
-            , "cleaning"_s + event<events::emergency_on> = "emergency"_s
+            , "cleaning"_s + event<events::cleaning_button> / [this](){ owner_.transition(stopped, cleaning); } = "stopped"_s
+            , "cleaning"_s + event<events::set_stopped> / [this](){ owner_.transition(stopped, cleaning); } = "stopped"_s
+            , "stopped"_s + event<events::set_emergency> / [this](){ owner_.transition(emergency, stopped); } = "emergency"_s
+            , "running"_s + event<events::set_emergency> / [this](){ owner_.transition(emergency, running); } = "emergency"_s
+            , "cleaning"_s + event<events::set_emergency> / [this](){ owner_.transition(emergency, cleaning); } = "emergency"_s
+            , "stopped"_s + event<events::emergency_on> / [this](){ owner_.transition(emergency, stopped); } = "emergency"_s
+            , "running"_s + event<events::emergency_on> / [this](){ owner_.transition(emergency, running); } = "emergency"_s
+            , "cleaning"_s + event<events::emergency_on> / [this](){ owner_.transition(emergency, cleaning); } = "emergency"_s
             , "emergency"_s + on_entry<_> / [this](){ owner_.enter_emergency(); }
             , "emergency"_s + on_exit<_> / [this](){ owner_.leave_emergency(); }
-            , "emergency"_s + event<events::emergency_off> = "stopped"_s
-            , "stopped"_s + event<events::fault_on> = "fault"_s
-            , "stopped"_s + event<events::set_fault> = "fault"_s
-            , "running"_s + event<events::fault_on> = "fault"_s
-            , "running"_s + event<events::set_fault> = "fault"_s
+            , "emergency"_s + event<events::emergency_off> / [this](){ owner_.transition(stopped, emergency); } = "stopped"_s
+            , "stopped"_s + event<events::fault_on> / [this](){ owner_.transition(fault, stopped); } = "fault"_s
+            , "stopped"_s + event<events::set_fault> / [this](){ owner_.transition(fault, stopped); } = "fault"_s
+            , "running"_s + event<events::fault_on> / [this](){ owner_.transition(fault, running); } = "fault"_s
+            , "running"_s + event<events::set_fault> / [this](){ owner_.transition(fault, running); } = "fault"_s
             , "fault"_s + on_entry<_> / [this](){ owner_.enter_fault(); }
             , "fault"_s + on_exit<_> / [this](){ owner_.leave_fault(); }
-            , "fault"_s + event<events::fault_off> = "stopped"_s
-            , "fault"_s + event<events::set_stopped> = "stopped"_s
-            , "stopped"_s + event<events::maintenance_button> = "maintenance"_s
-            , "stopped"_s + event<events::set_maintenance> = "maintenance"_s
+            , "fault"_s + event<events::fault_off> / [this](){ owner_.transition(stopped, fault); } = "stopped"_s
+            , "fault"_s + event<events::set_stopped> / [this](){ owner_.transition(stopped, fault); } = "stopped"_s
+            , "stopped"_s + event<events::maintenance_button> / [this](){ owner_.transition(maintenance, stopped); } = "maintenance"_s
+            , "stopped"_s + event<events::set_maintenance> / [this](){ owner_.transition(maintenance, stopped); } = "maintenance"_s
             , "maintenance"_s + on_entry<_> / [this](){ owner_.enter_maintenance(); }
             , "maintenance"_s + on_exit<_> / [this](){ owner_.leave_maintenance(); }
-            , "maintenance"_s + event<events::maintenance_button> = "stopped"_s
-            , "maintenance"_s + event<events::set_stopped> = "stopped"_s
+            , "maintenance"_s + event<events::maintenance_button> / [this](){ owner_.transition(stopped, maintenance); } = "stopped"_s
+            , "maintenance"_s + event<events::set_stopped> / [this](){ owner_.transition(stopped, maintenance); } = "stopped"_s
     );
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
@@ -166,9 +169,7 @@ auto operation::state_machine::set_mode(tfc::operation::mode_e new_mode) -> std:
       break;
   }
 
-  if (handled) {
-    current_mode_ = new_mode;
-  } else {
+  if (!handled) {
     return std::make_error_code(std::errc::invalid_argument);
   }
   return {};
@@ -203,6 +204,16 @@ void state_machine::leave_running() {
   running_.send(false);
 }
 void state_machine::enter_stopping() {
+  if (config_->stopping_time) {
+    auto timer{ std::make_shared<boost::asio::steady_timer>(ctx_) };
+    timer->expires_from_now(config_->stopping_time.value());
+    timer->async_wait([this, timer](std::error_code const& err) {
+      if (err) {
+        return;
+      }
+      this->states_->process_event(detail::events::stopping_timeout{});
+    });
+  }
   stopping_.send(true);
 }
 void state_machine::leave_stopping() {
@@ -220,22 +231,27 @@ void state_machine::enter_fault() {}
 void state_machine::leave_fault() {}
 void state_machine::enter_maintenance() {}
 void state_machine::leave_maintenance() {}
+void state_machine::transition(mode_e new_mode, mode_e old_mode) const {
+  if (on_new_state_) {
+    std::invoke(on_new_state_, new_mode, old_mode);
+  }
+}
 
 void state_machine::running_new_state(bool new_state) {
   if (new_state) {
-    set_mode(tfc::operation::mode_e::running);  // todo config
+    states_->process_event(detail::events::run_button{});
   }
 }
 
 void state_machine::cleaning_new_state(bool new_state) {
   if (new_state) {
-    set_mode(tfc::operation::mode_e::cleaning);
+    states_->process_event(detail::events::cleaning_button{});
   }
 }
 
 void state_machine::maintenance_new_state(bool new_state) {
   if (new_state) {
-    set_mode(tfc::operation::mode_e::maintenance);
+    states_->process_event(detail::events::maintenance_button{});
   }
 }
 }  // namespace tfc::operation
