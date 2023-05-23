@@ -30,7 +30,8 @@ struct operation_mode_test {
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  "set mode"_test = [] {
+  // todo depends on ipc-ruler running need to make a stub for tests
+  ut::skip / "set mode"_test = [] {
     using tfc::operation::mode_e;
 
     operation_mode_test test{};
