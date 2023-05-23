@@ -13,11 +13,12 @@ namespace tfc::confman {
                                       std::string_view value,
                                       std::function<void(std::error_code)>);
 
-static void set_config(sdbusplus::asio::connection& dbus,
-                       std::string_view key,
-                       auto&& storage,
-                       std::invocable<std::error_code> auto&& handler) {
-  return set_config_impl(dbus, key, glz::write_json(std::forward<decltype(storage)>(storage)),
+template <typename config_storage_t>
+[[maybe_unused]] static void set_config(sdbusplus::asio::connection& dbus,
+                                        std::string_view key,
+                                        config_storage_t&& storage,
+                                        std::invocable<std::error_code> auto&& handler) {
+  return set_config_impl(dbus, key, glz::write_json(std::forward<config_storage_t>(storage)),
                          std::forward<decltype(handler)>(handler));
 }
 
