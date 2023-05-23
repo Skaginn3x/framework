@@ -8,6 +8,7 @@ add_subdirectory(ipc)
 add_subdirectory(rpc)
 add_subdirectory(ec)
 add_subdirectory(operation_mode)
+add_subdirectory(mock)
 
 add_library(tfc INTERFACE)
 add_library(tfc::tfc ALIAS tfc)
