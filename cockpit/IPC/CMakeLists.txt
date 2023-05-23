@@ -15,6 +15,8 @@ add_custom_target(
 
 include(GNUInstallDirs)
 install(
+  TARGETS
+    cockpit-IPC-build
   DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR}/build
   DESTINATION
@@ -22,9 +24,10 @@ install(
   CONFIGURATIONS Release
 )
 install(
+  TARGETS
+    cockpit-IPC-build
   FILES
-   manifest.json
+    manifest.json
   DESTINATION
     /usr/share/cockpit/ipc/
-  CONFIGURATIONS Release
 )
