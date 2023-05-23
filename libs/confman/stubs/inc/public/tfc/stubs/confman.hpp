@@ -1,7 +1,7 @@
 #pragma once
 #include <filesystem>
-#include <system_error>
 #include <string_view>
+#include <system_error>
 
 #include <boost/asio/io_context.hpp>
 
@@ -51,4 +51,4 @@ public:
   std::function<void(void)> set_changed_cb{ []() {} };
 };
 
-}
+}  // namespace tfc::stubs::confman

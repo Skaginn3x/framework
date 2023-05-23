@@ -36,7 +36,7 @@ public:
 
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
-  auto on_change(std::invocable auto&&) -> void { }
+  auto on_change(std::invocable auto&&) -> void {}
 
   using change = tfc::confman::detail::change<file_storage>;
 
@@ -51,4 +51,4 @@ public:
   std::function<void(void)> set_changed_cb{ []() {} };
 };
 
-}
+}  // namespace tfc::stubs::confman
