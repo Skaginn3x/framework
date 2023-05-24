@@ -29,7 +29,9 @@ target_link_libraries(operation_mode
 
 add_library_to_docs(tfc::operation_mode)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
 
 include(tfc_install)
 tfc_install_lib(operation_mode)

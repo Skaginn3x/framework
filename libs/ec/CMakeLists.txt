@@ -28,4 +28,6 @@ target_link_libraries(ec
 
 add_library_to_docs(tfc::ec)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()

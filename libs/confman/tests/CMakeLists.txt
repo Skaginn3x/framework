@@ -57,5 +57,3 @@ add_test(
   COMMAND
     file_storage_test
 )
-
-add_subdirectory(examples)

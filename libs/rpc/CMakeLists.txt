@@ -29,4 +29,6 @@ target_link_libraries(librpc
 )
 add_library_to_docs(tfc::rpc)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
