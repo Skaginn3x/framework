@@ -16,9 +16,23 @@ namespace tfc::operation {
 
 namespace asio = boost::asio;
 
+/*
+Type=signal  Endian=l  Flags=1  Version=1 Cookie=5  Timestamp="Tue 2023-05-23 08:18:56.206938 UTC"
+Sender=:1.1578  Path=/com/skaginn3x/operation_mode  Interface=com.skaginn3x.operation_mode  Member=update
+UniqueName=:1.1578
+MESSAGE "(ss)" {
+        STRUCT "ss" {
+                STRING "starting";
+                STRING "stopped";
+        };
+};
+ */
+
 [[maybe_unused]] static constexpr std::string_view mode_update_match_rule{
   stx::string_view_join_v<tfc::dbus::match::rules::type::signal,
-                          tfc::dbus::match::rules::sender<tfc::operation::dbus::signal::update> >
+                          tfc::dbus::match::rules::member<tfc::operation::dbus::signal::update>,
+                          tfc::dbus::match::rules::interface<tfc::operation::dbus::name>,
+                          tfc::dbus::match::rules::path<tfc::operation::dbus::path>>
 };
 
 interface::interface(asio::io_context& ctx, std::string_view log_key)
@@ -26,9 +40,13 @@ interface::interface(asio::io_context& ctx, std::string_view log_key)
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
-      logger_(log_key) {}
+      logger_{ log_key } {}
 
-void interface::set(tfc::operation::mode_e) const {}
+void interface::set(tfc::operation::mode_e new_mode) const {
+  // todo add handler to set function call, for callee
+  dbus_connection_->async_method_call([](std::error_code) {}, dbus::name.data(), dbus::path.data(), dbus::name.data(),
+                                      dbus::method::set_mode.data(), new_mode);
+}
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {
   auto update_msg = msg.unpack<update_message>();
