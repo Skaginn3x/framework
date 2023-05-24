@@ -12,9 +12,7 @@ target_include_directories(ipc
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
-    ${AZMQ_INCLUDE_DIRS}
-  PRIVATE
-    inc
+    $<BUILD_INTERFACE:${AZMQ_INCLUDE_DIRS}>
 )
 
 find_package(Boost REQUIRED)
@@ -38,3 +36,6 @@ target_link_libraries(ipc
 add_library_to_docs(tfc::ipc)
 
 add_subdirectory(tests)
+
+include(tfc_install)
+tfc_install_lib(ipc)

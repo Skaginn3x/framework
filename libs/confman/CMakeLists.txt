@@ -7,35 +7,35 @@ find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS )
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
 
-add_library(libconfman
+add_library(confman
   src/confman.cpp
   src/remote_change.cpp
   src/detail/config_dbus_client.cpp
 )
-add_library(tfc::confman ALIAS libconfman)
+add_library(tfc::confman ALIAS confman)
 
-target_include_directories(libconfman
+target_include_directories(confman
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
-    ${AZMQ_INCLUDE_DIRS}
-  PRIVATE
-    inc
+    $<BUILD_INTERFACE:${AZMQ_INCLUDE_DIRS}>
 )
 
-
-target_link_libraries(libconfman
+target_link_libraries(confman
   PUBLIC
     Boost::boost
     fmt::fmt
     glaze::glaze
     tfc::base
-    tfc::rpc
     tfc::stx
     tfc::dbus_util
+    tfc::logger
   PRIVATE
     unofficial::sdbusplus
 )
 add_library_to_docs(tfc::confman)
 
 add_subdirectory(tests)
+
+include(tfc_install)
+tfc_install_lib(confman)

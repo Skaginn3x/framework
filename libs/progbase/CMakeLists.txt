@@ -29,3 +29,6 @@ target_link_libraries(base
 add_library_to_docs(tfc::base)
 
 add_subdirectory(tests)
+
+include(tfc_install)
+tfc_install_lib(base)

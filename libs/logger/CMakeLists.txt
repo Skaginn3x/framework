@@ -10,7 +10,7 @@ target_include_directories(logger
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
   PRIVATE
-    inc
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
 )
 
 find_package(Boost REQUIRED COMPONENTS )
@@ -31,3 +31,6 @@ target_link_libraries(logger
 add_library_to_docs(tfc::logger)
 
 add_subdirectory(tests)
+
+include(tfc_install)
+tfc_install_lib(logger)

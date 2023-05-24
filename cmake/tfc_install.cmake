@@ -1,8 +1,7 @@
 
 set(THIS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
-function(tfc_install TARGET)
-  message(WARNING "Current directory: ${THIS_DIRECTORY}")
+function(tfc_install_lib TARGET)
 
   include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)
@@ -31,7 +30,7 @@ function(tfc_install TARGET)
     INSTALL_DESTINATION ${tfc_INSTALL_CMAKEDIR}
   )
 
-  install(EXPORT ${tfc_PACKAGE_NAME}Targets DESTINATION ${tfc_INSTALL_CMAKEDIR})
+#  install(EXPORT ${tfc_PACKAGE_NAME}Targets DESTINATION ${tfc_INSTALL_CMAKEDIR})
   install(
     FILES
     "${CMAKE_CURRENT_BINARY_DIR}/${tfc_PACKAGE_NAME}ConfigVersion.cmake"

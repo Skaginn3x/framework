@@ -1,24 +1,21 @@
 project(operation_mode)
 cmake_minimum_required(VERSION 3.21)
 
-add_library(liboperation_mode
+add_library(operation_mode
   src/operation_mode.cpp
 )
-add_library(tfc::operation_mode ALIAS liboperation_mode)
+add_library(tfc::operation_mode ALIAS operation_mode)
 
-target_include_directories(liboperation_mode
+target_include_directories(operation_mode
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
-  PRIVATE
-    inc
 )
-set_target_properties(liboperation_mode PROPERTIES PREFIX "")
 
 find_package(Boost REQUIRED)
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
-target_link_libraries(liboperation_mode
+target_link_libraries(operation_mode
   PUBLIC
     tfc::base
     tfc::logger
@@ -33,3 +30,6 @@ target_link_libraries(liboperation_mode
 add_library_to_docs(tfc::operation_mode)
 
 add_subdirectory(tests)
+
+include(tfc_install)
+tfc_install_lib(operation_mode)

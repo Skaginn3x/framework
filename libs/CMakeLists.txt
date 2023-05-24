@@ -13,10 +13,9 @@ add_library(tfc INTERFACE)
 add_library(tfc::tfc ALIAS tfc)
 target_link_libraries(tfc
   INTERFACE
-    tfc::logger,
-    tfc::confman,
-    tfc::base,
-    tfc::ipc,
-    tfc::rpc,
-    tfc::ec
+    tfc::stx
+    tfc::base
+    tfc::logger
+    tfc::confman
+    tfc::ipc
 )

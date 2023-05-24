@@ -11,4 +11,4 @@ target_include_directories(stx
 )
 
 include(tfc_install)
-tfc_install(stx)
+tfc_install_lib(stx)

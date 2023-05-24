@@ -7,8 +7,6 @@ target_include_directories(dbus_util
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
-  PRIVATE
-    inc
 )
 
 find_package(unofficial-sdbusplus CONFIG REQUIRED)
@@ -25,3 +23,6 @@ target_link_libraries(dbus_util
 add_library_to_docs(tfc::dbus_util)
 
 add_subdirectory(tests)
+
+include(tfc_install)
+tfc_install_lib(dbus_util)
