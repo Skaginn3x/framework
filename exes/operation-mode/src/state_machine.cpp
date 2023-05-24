@@ -130,6 +130,8 @@ private:
 state_machine::state_machine(boost::asio::io_context& ctx)
     : stopped_{ ctx, "stopped" }, starting_{ ctx, "starting" }, running_{ ctx, "running" }, stopping_{ ctx, "stopping" },
       cleaning_{ ctx, "cleaning" }, mode_{ ctx, "mode" }, mode_str_{ ctx, "mode" },
+      starting_finished_{ ctx, "starting_finished", std::bind_front(&state_machine::starting_finished_new_state, this) },
+      stopping_finished_{ ctx, "stopping_finished", std::bind_front(&state_machine::stopping_finished_new_state, this) },
       run_button_{ ctx, "run_button", std::bind_front(&state_machine::running_new_state, this) },
       cleaning_button_{ ctx, "cleaning_button", std::bind_front(&state_machine::cleaning_new_state, this) },
       maintenance_button_{ ctx, "maintenance_button", std::bind_front(&state_machine::maintenance_new_state, this) },
@@ -234,6 +236,18 @@ void state_machine::leave_maintenance() {}
 void state_machine::transition(mode_e new_mode, mode_e old_mode) const {
   if (on_new_state_) {
     std::invoke(on_new_state_, new_mode, old_mode);
+  }
+}
+
+void state_machine::starting_finished_new_state(bool new_state) {
+  if (new_state) {
+    states_->process_event(detail::events::starting_finished{});
+  }
+}
+
+void state_machine::stopping_finished_new_state(bool new_state) {
+  if (new_state) {
+    states_->process_event(detail::events::stopping_finished{});
   }
 }
 

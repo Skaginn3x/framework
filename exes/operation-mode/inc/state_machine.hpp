@@ -31,13 +31,11 @@ struct storage {
   std::optional<std::chrono::milliseconds> startup_time{};
   std::optional<std::chrono::milliseconds> stopping_time{};
   struct glaze {
+    // clang-format off
     static constexpr auto value{ glz::object(
-        "startup_time",
-        &storage::startup_time,
-        "[ms] Delay to run initial sequences to get the equipment ready."
-        "stopping_time",
-        &storage::stopping_time,
-        "[ms] Delay to run ending sequences to get the equipment ready for being stopped.") };
+        "startup_time", &storage::startup_time, "[ms] Delay to run initial sequences to get the equipment ready."
+        "stopping_time", &storage::stopping_time, "[ms] Delay to run ending sequences to get the equipment ready for being stopped.") };
+    // clang-format on
     static constexpr auto name{ "state_machine" };
   };
 };
@@ -71,6 +69,8 @@ public:
   void transition(mode_e new_mode, mode_e old_mode) const;
 
 private:
+  void starting_finished_new_state(bool);
+  void stopping_finished_new_state(bool);
   void running_new_state(bool);
   void cleaning_new_state(bool);
   void maintenance_new_state(bool);
@@ -83,6 +83,8 @@ private:
   tfc::ipc::bool_signal cleaning_;
   tfc::ipc::uint_signal mode_;
   tfc::ipc::string_signal mode_str_;
+  tfc::ipc::bool_slot starting_finished_;
+  tfc::ipc::bool_slot stopping_finished_;
   tfc::ipc::bool_slot run_button_;
   tfc::ipc::bool_slot cleaning_button_;
   tfc::ipc::bool_slot maintenance_button_;
