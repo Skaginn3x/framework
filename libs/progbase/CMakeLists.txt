@@ -8,8 +8,8 @@ add_library(tfc::base ALIAS base)
 get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(base
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public/>
+    $<INSTALL_INTERFACE:inc/public/>
   PRIVATE
     inc
     ${TFC_LOGGER_INCLUDE_DIRS}
