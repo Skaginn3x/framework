@@ -248,18 +248,37 @@ public:
         std::bind_front(&ipc_manager_client::match_callback, this));
   }
 
+  /**
+   * Register a signal with the ipc_manager service running on dbus
+   * @tparam message_handler the type of the message handler should only accept a std::error_code reference
+   * @param name the name of the signal to be registered
+   * @param type  the type enum of the signal to be registered
+   * @param handler  the error handling callback function
+   */
   template <typename message_handler>
   auto register_signal(const std::string& name, type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "register_signal", name, static_cast<uint8_t>(type));
   }
-
+  /**
+   * Register a slot with the ipc_manager service running on dbus
+   * @tparam message_handler the type of the message handler should only accept a std::error_code reference
+   * @param name the name of the slot to be registered
+   * @param type  the type enum of the slot to be registered
+   * @param handler  the error handling callback function
+   */
   template <typename message_handler>
   auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "register_slot", name, static_cast<uint8_t>(type));
   }
-
+  /**
+   * Async function to get the signals property from the ipc manager
+   * This fetches the signals over dbus and then calls the provided callback with
+   * a vector of signals
+   * @tparam message_handler the type of the message handler
+   * @param handler a function like object that is called back with a vector of signals
+   */
   template <typename message_handler>
   auto signals(message_handler&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(
@@ -274,6 +293,13 @@ public:
           }
         });
   }
+  /**
+   * Async function to get the slots property from the ipc manager
+   * This fetches the slots over dbus and then calls the provided callback with
+   * a vector of slots
+   * @tparam message_handler the type of the message handler
+   * @param handler a function like object that is called back with a vector of slots
+   */
   template <typename message_handler>
   auto slots(message_handler&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(
@@ -288,28 +314,47 @@ public:
           }
         });
   }
+  /**
+   * Send a request over dbus to connect a slot to a signal.
+   * On error handler will be called back with a non empty std::error_code&
+   * @tparam message_handler Type of callback handler, this should be auto deduced
+   * @param slot_name the name of the slot to be connected
+   * @param signal_name the name of the signal to be connected
+   * @param handler a method that receives an error in case there is one
+   * @note If the slot is already connected to a signal, it will be disconnected and connected to the new one
+   */
   template <typename message_handler>
   auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "connect", slot_name, signal_name);
   }
+  /**
+   * Send a request over dbus to disconnect a slot from its signal
+   * @tparam message_handler Type of the callback handler, this should be auto detected
+   * @param slot_name the name of the slot to be disconnected
+   * @param handler a method that receives an error in case there is one
+   */
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
     connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
                                    "disconnect", slot_name);
   }
-
-  auto match_callback(sdbusplus::message_t& msg) -> void {
-    auto container = msg.unpack<std::tuple<std::string, std::string>>();
-    connection_change_callback_(std::get<0>(container), std::get<1>(container));
-  }
-
+  /**
+   * Register a callback function that gets "pinged" each time there is a connection change
+   * @param connection_change_callback a function like object on each connection change it gets called with the slot and signal that changed.
+   * @note There can only be a single callback registered, if you register a new one. The old callback will be overwritten.
+   */
   auto register_connection_change_callback(
       std::function<void(std::string_view const, std::string_view const)> connection_change_callback) -> void {
     connection_change_callback_ = std::move(connection_change_callback);
   }
 
 private:
+  auto match_callback(sdbusplus::message_t& msg) -> void {
+    auto container = msg.unpack<std::tuple<std::string, std::string>>();
+    connection_change_callback_(std::get<0>(container), std::get<1>(container));
+  }
+
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> match_;
   std::function<void(std::string_view const, std::string_view const)> connection_change_callback_ =
