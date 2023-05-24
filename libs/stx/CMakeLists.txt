@@ -13,14 +13,17 @@ target_include_directories(stx
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+set(tfc_PACKAGE_NAME tfc-stx)
+set(tfc_INSTALL_CMAKEDIR ${CMAKE_INSTALL_DATADIR}/${tfc_PACKAGE_NAME})
+
 write_basic_package_version_file(
-  "${PROJECT_BINARY_DIR}/mylibConfigVersion.cmake"
+  "${PROJECT_BINARY_DIR}/${tfc_PACKAGE_NAME}ConfigVersion.cmake"
   VERSION 0.0.1
   COMPATIBILITY SameMajorVersion
 )
 
 install(TARGETS stx
-  EXPORT mylibTargets
+  EXPORT ${tfc_PACKAGE_NAME}Targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
@@ -29,20 +32,22 @@ install(TARGETS stx
 )
 
 configure_package_config_file(
-    "${PROJECT_SOURCE_DIR}/mylibConfig.cmake.in"
-    "${PROJECT_BINARY_DIR}/mylibConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/mylib
+  "${PROJECT_SOURCE_DIR}/tfcConfig.cmake.in"
+  "${PROJECT_BINARY_DIR}/${tfc_PACKAGE_NAME}Config.cmake"
+  INSTALL_DESTINATION ${tfc_INSTALL_CMAKEDIR}
 )
 
-install(EXPORT mylibTargets DESTINATION lib/cmake/mylib)
-install(FILES "${PROJECT_BINARY_DIR}/mylibConfigVersion.cmake"
-    "${PROJECT_BINARY_DIR}/mylibConfig.cmake"
-    DESTINATION lib/cmake/mylib)
+install(EXPORT ${tfc_PACKAGE_NAME}Targets DESTINATION ${tfc_INSTALL_CMAKEDIR})
+install(
+  FILES
+    "${PROJECT_BINARY_DIR}/${tfc_PACKAGE_NAME}ConfigVersion.cmake"
+    "${PROJECT_BINARY_DIR}/${tfc_PACKAGE_NAME}Config.cmake"
+  DESTINATION ${tfc_INSTALL_CMAKEDIR})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/inc/public/ DESTINATION include)
 
 install(
-  EXPORT mylibTargets
+  EXPORT ${tfc_PACKAGE_NAME}Targets
   NAMESPACE tfc::
-  DESTINATION lib/cmake/mylib
+  DESTINATION ${tfc_INSTALL_CMAKEDIR}
   COMPONENT Development
 )
