@@ -28,7 +28,7 @@ auto constexpr register_cb(std::string const& ipc_name) {
  * This is the receiving end for tfc's ipc communications,
  * it listens to connection changes from ipc-ruler in
  * addition with implementing the ipc connection.
- * @tparam type_desc
+ * @tparam type_desc The type description for the slot.
  */
 template <typename type_desc>
 class slot {
@@ -70,7 +70,7 @@ private:
 /**
  * an ipc component, registers its existence with an
  * ipc-ruler service.
- * @tparam type_desc
+ * @tparam type_desc The type of the signal
  */
 template <typename type_desc>
 class signal {
