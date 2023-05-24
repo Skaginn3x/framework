@@ -10,7 +10,7 @@ add_library(tfc::configure_options ALIAS configure_options)
 target_include_directories(configure_options
   INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
 )
 
 configure_file(dbus-tfc.conf.in ${CMAKE_CURRENT_LIST_DIR}/generated/dbus-tfc.conf)

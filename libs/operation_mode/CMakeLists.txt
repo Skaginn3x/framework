@@ -9,7 +9,7 @@ add_library(tfc::operation_mode ALIAS operation_mode)
 target_include_directories(operation_mode
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
 )
 
 find_package(Boost REQUIRED)

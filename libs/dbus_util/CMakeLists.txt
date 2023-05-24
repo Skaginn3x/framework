@@ -6,7 +6,7 @@ add_library(tfc::dbus_util ALIAS dbus_util)
 target_include_directories(dbus_util
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
 )
 
 find_package(unofficial-sdbusplus CONFIG REQUIRED)

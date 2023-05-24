@@ -17,7 +17,7 @@ add_library(tfc::confman ALIAS confman)
 target_include_directories(confman
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${AZMQ_INCLUDE_DIRS}>
 )
 

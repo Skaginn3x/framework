@@ -12,7 +12,7 @@ add_library(tfc::ec ALIAS ec)
 target_include_directories(ec
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
     ${BEXT_SML_INCLUDE_DIRS}
   PRIVATE
     inc/
