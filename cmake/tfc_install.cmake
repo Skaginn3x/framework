@@ -3,6 +3,8 @@ set(THIS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
 function(tfc_install_lib TARGET)
 
+  message(WARNING "Installing ${TARGET} with prefix ${CMAKE_INSTALL_PREFIX}")
+
   include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)
 
