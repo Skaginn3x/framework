@@ -1,0 +1,25 @@
+{
+  "default-registry": {
+    "kind": "git",
+    "repository": "https://github.com/microsoft/vcpkg",
+    "baseline": "4eda0e3c7062e61dd89a91357ddc50f742da75ef"
+  },
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://github.com/skaginn3x/vcpkg-registry",
+      "baseline": "f9fddfc56056f97d69bf2b186f98ce9f6a871e06",
+      "packages": [
+        "libcap",
+        "libsystemd",
+        "libxcrypt",
+        "sdbusplus",
+        "small-vectors",
+        "soem-master"
+      ]
+    }
+  ],
+  "overlay-triplets": [
+    "./vcpkg-overlays/triplets"
+  ]
+}

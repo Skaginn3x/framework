@@ -5,8 +5,6 @@
       "name": "cfg-vcpkg",
       "hidden": true,
       "cacheVariables": {
-        "VCPKG_OVERLAY_PORTS": "${fileDir}/vcpkg-overlays/ports",
-        "VCPKG_OVERLAY_TRIPLETS": "${fileDir}/vcpkg-overlays/triplets",
         "VCPKG_INSTALLED_DIR": "${fileDir}/vcpkg-sysroot",
         "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-gcc.cmake",
