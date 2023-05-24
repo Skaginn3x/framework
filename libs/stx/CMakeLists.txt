@@ -11,6 +11,8 @@ target_include_directories(stx
 )
 
 include(GNUInstallDirs)
+message(WARNING "Installing to directory ${CMAKE_INSTALL_LIBDIR}")
+
 install(
   TARGETS
     stx
