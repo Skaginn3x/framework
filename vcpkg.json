@@ -19,6 +19,7 @@
     "boost-beast",
     "fmt",
     "glaze",
+    "gtest",
     "spdlog",
     "magic-enum",
     "bext-sml",

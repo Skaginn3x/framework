@@ -46,7 +46,7 @@ private:
   schema_call_t schema_call_{};
   change_call_t change_call_{};
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection_{};
-  std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
+  std::unique_ptr<sdbusplus::asio::dbus_interface, std::function<void(sdbusplus::asio::dbus_interface*)>> dbus_interface_{};
 };
 
 }  // namespace tfc::confman::detail

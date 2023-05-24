@@ -22,6 +22,9 @@ class file_storage {
 public:
   using type = storage_t;
 
+  /// \brief empty constructor, usable for testing
+  explicit file_storage(asio::io_context& ctx) : logger_{ "file_storage" }, file_watcher_{ ctx } {}
+
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
       : file_storage{ ctx, file_path, storage_t{} } {}
 
@@ -52,12 +55,12 @@ public:
     file_watcher_.async_read_some(asio::null_buffers(), std::bind_front(&file_storage::on_file_change, this));
   }
 
-  auto error() const noexcept -> std::error_code const& { return error_; }
+  [[nodiscard]] auto error() const noexcept -> std::error_code const& { return error_; }
 
-  auto file() const noexcept -> std::filesystem::path const& { return config_file_; }
+  [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return config_file_; }
 
   /// \return Access to underlying value
-  auto value() const noexcept -> storage_t const& { return storage_; }
+  [[nodiscard]] auto value() const noexcept -> storage_t const& { return storage_; }
 
   /// \return Access to underlying value
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
@@ -80,7 +83,7 @@ public:
     return {};
   }
 
-private:
+protected:
   friend struct detail::change<file_storage>;
 
   // todo if this could be named `value` it would be neat
