@@ -27,12 +27,9 @@ public:
   static constexpr uint32_t vendor_id = 0x79a;
   static constexpr uint32_t product_code = 0xdefede;
 
-  // Number of digital inputs
-  static constexpr size_t di_count = 4;
-  // Number of digital outputs
-  static constexpr size_t do_count = 4;
-  // Number of analog inputs
-  static constexpr size_t ai_count = 2;
+  static constexpr size_t di_count = 4;  // Number of digital inputs
+  static constexpr size_t do_count = 4;  // Number of digital outputs
+  static constexpr size_t ai_count = 2;  // Number of analog inputs
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     std::bitset<di_count> const in_bits(static_cast<uint8_t>(input[6]));

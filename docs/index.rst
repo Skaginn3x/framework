@@ -10,9 +10,13 @@ Table of Contents
     :maxdepth: 3
     :glob:
 
-    design/overview.md
-    design/cm.md
-    design/ipc.md
-    design/build_infra.md
-    functionality/logger.md
-    Doxygen <doxygen/html/index.html#http://>
+    design/*
+
+.. toctree::
+    :caption: Functionality
+    :maxdepth: 3
+    :glob:
+
+    functionality/*
+
+    Doxygen </doxygen/html/index.html#http://>

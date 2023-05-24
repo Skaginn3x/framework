@@ -24,19 +24,25 @@ auto constexpr register_cb(std::string const& ipc_name) {
 }  // namespace details
 
 /**
- *
+ * @brief
+ * This is the receiving end for tfc's ipc communications,
+ * it listens to connection changes from ipc-ruler in
+ * addition with implementing the ipc connection.
+ * @tparam type_desc The type description for the slot.
  */
 template <typename type_desc>
-/**
- * type of slot value
- * @tparam type_desc
- */
 class slot {
 public:
   using value_t = details::slot_callback<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::slot_callback<type_desc>::direction_v;
 
+  /**
+   * C'tor for a tfc IPC slot.
+   * @param ctx Execution context
+   * @param name The slot name
+   * @param callback Channel for value updates from the corosponding signal.
+   */
   slot(asio::io_context& ctx, std::string_view name, auto&& callback)
       : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(ctx) {
     client_.register_connection_change_callback(
@@ -61,6 +67,11 @@ private:
   ipc_ruler::ipc_manager_client client_;
 };
 
+/**
+ * an ipc component, registers its existence with an
+ * ipc-ruler service.
+ * @tparam type_desc The type of the signal
+ */
 template <typename type_desc>
 class signal {
 public:
@@ -68,6 +79,11 @@ public:
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::signal<type_desc>::direction_v;
 
+  /**
+   * Signal c'tor
+   * @param ctx Execution context
+   * @param name Signals name
+   */
   signal(asio::io_context& ctx, std::string_view name)
       : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(ctx) {
     client_.register_signal(signal_->name_w_type(), type_desc::value_e, details::register_cb(signal_->name_w_type()));
