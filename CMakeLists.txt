@@ -20,7 +20,10 @@ include(tfc_warnings)
 include(tfc_docs)
 include(tfc_install)
 
+if (BUILD_EXES)
 add_subdirectory(exes)
+endif()
+
 add_subdirectory(libs)
 
 if (BUILD_DOCS)

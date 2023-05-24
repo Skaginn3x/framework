@@ -13,6 +13,9 @@ add_feature_info("TFC_DBUS_ORGANIZATION" TFC_DBUS_ORGANIZATION "D-Bus organizati
 option(BUILD_DOCS "Indicates whether documentation should be built." OFF)
 add_feature_info("BUILD_DOCS" BUILD_DOCS "Indicates whether documentation should be built.")
 
+option(BUILD_EXES "Indicates whether executables should be built." ON)
+add_feature_info("BUILD_EXES" BUILD_EXES "Indicates whether executables should be built.")
+
 option(ENABLE_CODE_COVERAGE_INSTRUMENTATION "Enable code instrumentation" OFF)
 add_feature_info("ENABLE_CODE_COVERAGE_INSTRUMENTATION" ENABLE_CODE_COVERAGE_INSTRUMENTATION
     "Enable code instrumentation to allow generating code coverage after running tests")
