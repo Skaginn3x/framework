@@ -9,3 +9,20 @@ target_include_directories(stx
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:inc/public>
 )
+
+include(GNUInstallDirs)
+install(
+  TARGETS
+    stx
+  DESTINATION
+    ${CMAKE_INSTALL_LIBDIR}
+  CONFIGURATIONS Release
+)
+
+install(
+  TARGETS
+    stx
+  DESTINATION
+    ${CMAKE_INSTALL_LIBDIR}/debug/
+  CONFIGURATIONS Debug
+)
