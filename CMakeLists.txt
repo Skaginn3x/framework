@@ -18,7 +18,7 @@ include(tfc_options)
 include(tfc_config)
 include(tfc_warnings)
 include(tfc_docs)
-include(tfc_install)
+include(tfc_cpack)
 
 if (BUILD_EXES)
 add_subdirectory(exes)
