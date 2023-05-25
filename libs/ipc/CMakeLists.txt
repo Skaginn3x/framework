@@ -29,7 +29,6 @@ target_link_libraries(ipc
     Boost::boost
     fmt::fmt
     glaze::glaze
-  PRIVATE
     $<IF:$<BOOL:${ZeroMQ_LIBRARY}>,${ZeroMQ_LIBRARY},${ZeroMQ_STATIC_LIBRARY}>
 )
 

@@ -8,6 +8,9 @@
     {
       "name": "dev-gcc-debug-dynamic",
       "generator": "Ninja",
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON"
+      },
       "inherits": [
         "cfg-vcpkg-gcc-dynamic",
         "cfg-build-dir",
@@ -26,6 +29,9 @@
     {
       "name": "dev-clang-debug-dynamic",
       "generator": "Ninja",
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON"
+      },
       "inherits": [
         "cfg-vcpkg-clang-dynamic",
         "cfg-build-dir",
