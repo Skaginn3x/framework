@@ -2,8 +2,6 @@
 
 #include <sdbusplus/exception.hpp>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::dbus::exception {
 class runtime : public sdbusplus::exception::internal_exception {
 public:

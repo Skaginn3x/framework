@@ -5,8 +5,6 @@
 #include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/ipc/details/impl.hpp>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::ipc {
 
 namespace asio = boost::asio;

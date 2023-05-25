@@ -2,8 +2,6 @@
 
 #include <type_traits>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::stx {
 
 template <typename func, typename... args>

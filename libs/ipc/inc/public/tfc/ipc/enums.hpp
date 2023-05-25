@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#define EXPORT __attribute__((visibility("default")))
-
 // Common enums, ipc/glaze_meta.hpp provides string conversions for the below enums
 
 namespace tfc::ipc::details {

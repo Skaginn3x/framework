@@ -9,8 +9,6 @@
 #include <tfc/logger.hpp>
 #include <tfc/operation_mode/common.hpp>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace sdbusplus::asio {
 class connection;
 }

@@ -10,8 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::stx {
 
 namespace _destructure_64 {

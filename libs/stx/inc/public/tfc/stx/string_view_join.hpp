@@ -3,8 +3,6 @@
 #include <array>
 #include <string_view>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::stx {
 
 // from https://stackoverflow.com/questions/38955940/how-to-concatenate-static-strings-at-compile-time

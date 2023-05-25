@@ -11,8 +11,6 @@
 
 #include <tfc/ipc/enums.hpp>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::ipc::details {
 
 /// \brief Enum specifying protocol version

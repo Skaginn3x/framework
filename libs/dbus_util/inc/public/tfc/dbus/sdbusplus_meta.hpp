@@ -8,8 +8,6 @@
 
 #include <tfc/stx/concepts.hpp>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace sdbusplus::concepts {
 
 template <typename struct_t>

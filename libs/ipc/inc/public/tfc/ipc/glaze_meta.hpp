@@ -5,8 +5,6 @@
 #include <tfc/ipc/enums.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace tfc::ipc {
 
 inline stx::basic_fixed_string constexpr signal_tag{ "signal" };
