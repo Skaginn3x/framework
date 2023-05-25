@@ -53,7 +53,7 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
    const registerSignal = async (signalName: string, signalByte: number): Promise<boolean> => {
       try {
          if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.register_signal(signalName, signalByte);
+            const response = await dbusObjectProxy.Register_signal(signalName, signalByte);
             console.log("Signal registered successfully: ", response);
             return true;
          }
@@ -66,7 +66,7 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
    const registerSlot = async (slotName: string, slotByte: number): Promise<boolean> => {
       try {
          if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.register_slot(slotName, slotByte);
+            const response = await dbusObjectProxy.Register_slot(slotName, slotByte);
             console.log("Slot registered successfully: ", response);
             return true;
          }
@@ -83,7 +83,7 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
          console.log("slot name: ", slotName)
          if (dbusObjectProxy !== null && dbusObjectProxy.valid) {
             console.log("got here at least")
-            const response = await dbusObjectProxy.connect(slotName, signalName);
+            const response = await dbusObjectProxy.Connect(slotName, signalName)
             console.log("Connected successfully: ", response);
             return true;
          }
@@ -97,7 +97,7 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
    const disconnect = async (signalName: string): Promise<boolean> => {
       try {
          if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.disconnect(signalName);
+            const response = await dbusObjectProxy.Disconnect(signalName);
             console.log("Disconnected successfully: ", response);
             return true;
          }

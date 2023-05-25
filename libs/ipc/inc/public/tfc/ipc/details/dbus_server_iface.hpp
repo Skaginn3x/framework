@@ -238,6 +238,12 @@ namespace tfc::ipc_ruler {
                 message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
                 message.signal_send();
             });
+            dbus_iface_->register_method("Connect", [&](const std::string &slot_name, const std::string &signal_name) {
+                ipc_manager_->connect(slot_name, signal_name);
+            });
+
+            dbus_iface_->register_method("Disconnect",
+                                         [&](const std::string &slot_name) { ipc_manager_->disconnect(slot_name); });
 
             dbus_iface_->register_method("register_signal",
                                          [&](const std::string &name, const std::string &description, uint8_t type) {
@@ -262,13 +268,6 @@ namespace tfc::ipc_ruler {
             dbus_iface_->register_property_r<std::string>(
                     "connections", sdbusplus::vtable::property_::emits_change,
                     [&](const auto &) { return glz::write_json(ipc_manager_->get_all_connections()); });
-
-            dbus_iface_->register_method("connect", [&](const std::string &slot_name, const std::string &signal_name) {
-                ipc_manager_->connect(slot_name, signal_name);
-            });
-
-            dbus_iface_->register_method("disconnect",
-                                         [&](const std::string &slot_name) { ipc_manager_->disconnect(slot_name); });
 
             dbus_iface_->register_signal<std::tuple<std::string, std::string>>("connection_change");
 
