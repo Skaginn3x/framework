@@ -30,7 +30,7 @@ target_link_libraries(ipc
     fmt::fmt
     glaze::glaze
   PRIVATE
-    libzmq-static
+    ${ZeroMQ_LIBRARY}
 )
 
 add_library_to_docs(tfc::ipc)
