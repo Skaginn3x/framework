@@ -30,7 +30,7 @@ auto constexpr register_cb(std::string const& ipc_name) {
  * addition with implementing the ipc connection.
  * @tparam type_desc The type description for the slot.
  */
-template <typename type_desc, typename manager_client_type>
+template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client>
 class slot {
 public:
   using value_t = details::slot_callback<type_desc>::value_t;

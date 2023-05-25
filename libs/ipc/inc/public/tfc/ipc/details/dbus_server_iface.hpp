@@ -98,7 +98,9 @@ public:
   explicit ipc_manager(signal_storage& signals, slot_storage& slots)
       : logger_("ipc_manager"), signals_{ signals }, slots_{ slots } {}
 
-  auto set_callback(std::function<void(slot_name, signal_name)> on_connect_cb) -> void { on_connect_cb_ = on_connect_cb; }
+  auto set_callback(std::function<void(slot_name, signal_name)> on_connect_cb) -> void {
+    on_connect_cb_ = std::move(on_connect_cb);
+  }
 
   auto register_signal(const std::string_view name, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
@@ -261,87 +263,82 @@ public:
 
   /**
    * Register a signal with the ipc_manager service running on dbus
-   * @tparam message_handler the type of the message handler should only accept a std::error_code reference
    * @param name the name of the signal to be registered
    * @param type  the type enum of the signal to be registered
    * @param handler  the error handling callback function
    */
-  template <typename message_handler>
-  auto register_signal(const std::string& name, type_e type, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "register_signal", name, static_cast<uint8_t>(type));
+  auto register_signal(const std::string& name, type_e type, std::invocable<const std::error_code&> auto&& handler) -> void {
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "register_signal", name, static_cast<uint8_t>(type));
   }
 
   /**
    * Register a slot with the ipc_manager service running on dbus
-   * @tparam message_handler the type of the message handler should only accept a std::error_code reference
    * @param name the name of the slot to be registered
    * @param type  the type enum of the slot to be registered
    * @param handler  the error handling callback function
    */
-  template <typename message_handler>
-  auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "register_slot", name, static_cast<uint8_t>(type));
+  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+      -> void {
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "register_slot", name, static_cast<uint8_t>(type));
   }
 
   /**
    * Async function to get the signals property from the ipc manager
    * This fetches the signals over dbus and then calls the provided callback with
    * a vector of signals
-   * @tparam message_handler the type of the message handler
    * @param handler a function like object that is called back with a vector of signals
    */
-  template <typename message_handler>
-  auto signals(message_handler&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "signals",
-        [handler](const boost::system::error_code& error, const std::string& response) {
-          if (error) {
-            return;
-          }
-          auto signals = glz::read_json<std::vector<signal>>(response);
-          if (signals) {
-            handler(signals.value());
-          }
-        });
+  auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
+                                              ipc_ruler_interface_name, "signals",
+                                              [handler = std::forward<decltype(handler)>(handler)](
+                                                  const boost::system::error_code& error, const std::string& response) {
+                                                if (error) {
+                                                  return;
+                                                }
+                                                auto signals = glz::read_json<std::vector<signal>>(response);
+                                                if (signals) {
+                                                  handler(signals.value());
+                                                }
+                                              });
   }
 
   /**
    * Async function to get the slots property from the ipc manager
    * This fetches the slots over dbus and then calls the provided callback with
    * a vector of slots
-   * @tparam message_handler the type of the message handler
    * @param handler a function like object that is called back with a vector of slots
    */
-  template <typename message_handler>
-  auto slots(message_handler&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "slots",
-        [handler](const boost::system::error_code& error, const std::string& response) {
-          if (error) {
-            return;
-          }
-          auto slots = glz::read_json<std::vector<slot>>(response);
-          if (slots) {
-            handler(slots.value());
-          }
-        });
+  auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
+                                              ipc_ruler_interface_name, "slots",
+                                              [handler = std::forward<decltype(handler)>(handler)](
+                                                  const boost::system::error_code& error, const std::string& response) {
+                                                if (error) {
+                                                  return;
+                                                }
+                                                auto slots = glz::read_json<std::vector<slot>>(response);
+                                                if (slots) {
+                                                  handler(slots.value());
+                                                }
+                                              });
   }
 
   /**
    * Send a request over dbus to connect a slot to a signal.
    * On error handler will be called back with a non empty std::error_code&
-   * @tparam message_handler Type of callback handler, this should be auto deduced
    * @param slot_name the name of the slot to be connected
    * @param signal_name the name of the signal to be connected
    * @param handler a method that receives an error in case there is one
    * @note If the slot is already connected to a signal, it will be disconnected and connected to the new one
    */
-  template <typename message_handler>
-  auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "connect", slot_name, signal_name);
+  auto connect(const std::string& slot_name,
+               const std::string& signal_name,
+               std::invocable<const std::error_code&> auto&& handler) -> void {
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "connect", slot_name, signal_name);
   }
 
   /**
@@ -352,8 +349,8 @@ public:
    */
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "disconnect", slot_name);
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "disconnect", slot_name);
   }
 
   /**
@@ -364,36 +361,38 @@ public:
    * overwritten.
    */
   auto register_connection_change_callback(std::string_view slot_name,
-                                           std::function<void(std::string_view const)> connection_change_callback) -> void {
-    slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
+                                           const std::function<void(std::string_view const)>& connection_change_callback)
+      -> void {
+    slot_callbacks_.emplace(std::string(slot_name), connection_change_callback);
   }
 
 private:
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
-    std::string slot_name = std::get<0>(container);
-    std::string signal_name = std::get<1>(container);
-    auto it = slot_callbacks.find(slot_name);
-    if (it != slot_callbacks.end()) {
-      std::invoke(it->second, signal_name);
+    std::string const slot_name = std::get<0>(container);
+    std::string const signal_name = std::get<1>(container);
+    auto iterator = slot_callbacks_.find(slot_name);
+    if (iterator != slot_callbacks_.end()) {
+      std::invoke(iterator->second, signal_name);
     }
   }
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> match_;
-  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
+  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks_;
 };
 
 struct ipc_manager_client_mock {
   auto register_connection_change_callback(std::string_view slot_name,
-                                           std::function<void(std::string_view const)> connection_change_callback) -> void {
+                                           const std::function<void(std::string_view const)>& connection_change_callback)
+      -> void {
     slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
   }
 
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
 
-  template <typename message_handler>
-  auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
+  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+      -> void {
     slots.emplace_back(slot{ .name = std::string(name),
                              .type = type,
                              .created_by = "",
@@ -405,8 +404,8 @@ struct ipc_manager_client_mock {
     handler(std::error_code());
   }
 
-  template <typename message_handler>
-  auto register_signal(const std::string_view name, type_e type, message_handler&& handler) -> void {
+  auto register_signal(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+      -> void {
     signals.emplace_back(signal{
         .name = std::string(name),
         .type = type,
@@ -417,14 +416,15 @@ struct ipc_manager_client_mock {
     handler(std::error_code());
   }
 
-  template <typename message_handler>
-  auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
-    for (auto& k : slots) {
-      if (k.name == slot_name) {
-        k.connected_to = signal_name;
-        auto it = slot_callbacks.find(slot_name);
-        if (it != slot_callbacks.end()) {
-          std::invoke(it->second, signal_name);
+  auto connect(const std::string& slot_name,
+               const std::string& signal_name,
+               std::invocable<const std::error_code&> auto&& handler) -> void {
+    for (auto& slot : slots) {
+      if (slot.name == slot_name) {
+        slot.connected_to = signal_name;
+        auto iterator = slot_callbacks.find(slot_name);
+        if (iterator != slot_callbacks.end()) {
+          std::invoke(iterator->second, signal_name);
         }
         std::error_code no_err{};
         handler(no_err);

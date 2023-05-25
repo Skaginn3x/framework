@@ -94,7 +94,7 @@ auto main(int argc, char** argv) -> int {
     // add a signal
     ran = false;
     ipc_manager_client.register_signal("test_signal", tfc::ipc::details::type_e::_string,
-                                       [&](std::error_code&) { ran = true; });
+                                       [&](const std::error_code&) { ran = true; });
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(ran);
 
@@ -111,7 +111,10 @@ auto main(int argc, char** argv) -> int {
 
     // Register a slot
     ran = false;
-    ipc_manager_client.register_slot("test_slot", tfc::ipc::details::type_e::_string, [&](std::error_code&) { ran = true; });
+    ipc_manager_client.register_slot("test_slot", tfc::ipc::details::type_e::_string, [&](const std::error_code& err) {
+      boost::ut::expect(!err);
+      ran = true;
+    });
 
     // Check that the slot appears
     ctx.run_for(std::chrono::milliseconds(5));
@@ -133,7 +136,7 @@ auto main(int argc, char** argv) -> int {
       ran = true;
     });
     boost::ut::expect(!ran);
-    ipc_manager_client.connect("test_slot", "test_signal", [](std::error_code& err) { boost::ut::expect(!err); });
+    ipc_manager_client.connect("test_slot", "test_signal", [](const std::error_code& err) { boost::ut::expect(!err); });
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(ran);
   };
@@ -144,7 +147,7 @@ auto main(int argc, char** argv) -> int {
     bool registered_slot = false;
     // Register a signal and slot for the first time
     ipc_manager_client.register_signal("signal_register_retest", tfc::ipc::details::type_e::_string,
-                                       [&](std::error_code& err) {
+                                       [&](const std::error_code& err) {
                                          boost::ut::expect(!err);
                                          registered_signal = true;
                                        });
@@ -152,10 +155,11 @@ auto main(int argc, char** argv) -> int {
     bool got_callback = false;
     ipc_manager_client.register_connection_change_callback("slot_register_retest",
                                                            [&](const std::string_view&) { got_callback = true; });
-    ipc_manager_client.register_slot("slot_register_retest", tfc::ipc::details::type_e::_string, [&](std::error_code& err) {
-      boost::ut::expect(!err);
-      registered_slot = true;
-    });
+    ipc_manager_client.register_slot("slot_register_retest", tfc::ipc::details::type_e::_string,
+                                     [&](const std::error_code& err) {
+                                       boost::ut::expect(!err);
+                                       registered_slot = true;
+                                     });
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(got_callback);
     boost::ut::expect(registered_signal);
@@ -163,7 +167,7 @@ auto main(int argc, char** argv) -> int {
 
     // Connect the slot to the signal
     ipc_manager_client.connect("slot_register_retest", "signal_register_retest",
-                               [](std::error_code& err) { boost::ut::expect(!err); });
+                               [](const std::error_code& err) { boost::ut::expect(!err); });
 
     ctx.run_for(std::chrono::milliseconds(5));
 
@@ -197,14 +201,15 @@ auto main(int argc, char** argv) -> int {
     registered_slot = false;
     // Register a signal and slot for the second time
     ipc_manager_client.register_signal("signal_register_retest", tfc::ipc::details::type_e::_string,
-                                       [&](std::error_code& err) {
+                                       [&](const std::error_code& err) {
                                          boost::ut::expect(!err);
                                          registered_signal = true;
                                        });
-    ipc_manager_client.register_slot("slot_register_retest", tfc::ipc::details::type_e::_string, [&](std::error_code& err) {
-      boost::ut::expect(!err);
-      registered_slot = true;
-    });
+    ipc_manager_client.register_slot("slot_register_retest", tfc::ipc::details::type_e::_string,
+                                     [&](const std::error_code& err) {
+                                       boost::ut::expect(!err);
+                                       registered_slot = true;
+                                     });
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(registered_signal);
     boost::ut::expect(registered_slot);
