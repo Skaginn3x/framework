@@ -70,6 +70,7 @@ export const Home = () => {
    const connectSignals = async () => {
       selectedSlots.forEach(async (slot: any) => {
          const success = await dbusInterface.connect(selectedSignals[0], slot);
+         console.log(success)
          if (success) {
             console.log("Successfully connected " + selectedSignals[0] + " to " + slot)
          } else {

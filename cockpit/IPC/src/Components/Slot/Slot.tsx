@@ -9,11 +9,11 @@ interface SlotObjProps {
 
 export const Slot: React.FC<SlotObjProps> = ({ slot, onCheck, isChecked }) => {
    return (
-      <div className={"SlotDiv"}>
-         <Checkbox aria-label="enabled" id="enabled" isChecked={isChecked} onChange={() => onCheck(slot)} />
-         <Tooltip content={slot.description || "No description"}>
-            <h4>{slot.name || "No Name Given"}</h4>
-         </Tooltip>
-      </div>
+      <Tooltip content={slot.description || "No description"}>
+         <div className={"SlotDiv"}>
+            <Checkbox aria-label="enabled" id="enabled" isChecked={isChecked} onChange={() => onCheck(slot)} />
+            <h4 style={{ width: "100%", marginRight: "1rem" }}>{slot.name || "No Name Given"}</h4>
+         </div>
+      </Tooltip>
    )
 }

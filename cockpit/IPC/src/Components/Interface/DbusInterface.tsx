@@ -79,11 +79,15 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
    const connect = async (signalName: string, slotName: string): Promise<boolean> => {
       try {
          console.log("dbus object proxy: ", dbusObjectProxy)
-         if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.connect(signalName, slotName);
+         console.log("signal name: ", signalName)
+         console.log("slot name: ", slotName)
+         if (dbusObjectProxy !== null && dbusObjectProxy.valid) {
+            console.log("got here at least")
+            const response = await dbusObjectProxy.connect(slotName, signalName);
             console.log("Connected successfully: ", response);
             return true;
          }
+         console.log("dbus object proxy is null or not valid")
       } catch (error) {
          console.error("Failed to connect: ", error);
       }
