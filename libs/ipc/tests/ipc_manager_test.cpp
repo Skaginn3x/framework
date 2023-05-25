@@ -137,6 +137,119 @@ auto main(int argc, char** argv) -> int {
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(ran);
   };
+  "Check that re-registering a communication channel only changes last_registered "_test = [&]() {
+    // Check if the correct empty list is reported for signals
+
+    bool registered_signal = false;
+    bool registered_slot = false;
+    // Register a signal and slot for the first time
+    ipc_manager_client.register_signal("signal_register_retest", tfc::ipc::details::type_e::_string,
+                                       [&](std::error_code& err) {
+                                         boost::ut::expect(!err);
+                                         registered_signal = true;
+                                       });
+    // Expect to get a callback
+    bool got_callback = false;
+    ipc_manager_client.register_connection_change_callback("slot_register_retest",
+                                                           [&](const std::string_view&) { got_callback = true; });
+    ipc_manager_client.register_slot("slot_register_retest", tfc::ipc::details::type_e::_string, [&](std::error_code& err) {
+      boost::ut::expect(!err);
+      registered_slot = true;
+    });
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(got_callback);
+    boost::ut::expect(registered_signal);
+    boost::ut::expect(registered_slot);
+
+    // Connect the slot to the signal
+    ipc_manager_client.connect("slot_register_retest", "signal_register_retest",
+                               [](std::error_code& err) { boost::ut::expect(!err); });
+
+    ctx.run_for(std::chrono::milliseconds(5));
+
+    tfc::ipc_ruler::signal signal_copy;
+    tfc::ipc_ruler::slot slot_copy;
+    // Copy the registered slot and signal and then re-register and verify the information is intact
+    ipc_manager_client.signals([&](auto v) {
+      for (auto& signal : v) {
+        if (signal.name == "signal_register_retest") {
+          signal_copy = signal;
+          return;
+        }
+      }
+      boost::ut::expect(false);
+    });
+    ctx.run_for(std::chrono::milliseconds(5));
+    ipc_manager_client.slots([&](auto v) {
+      for (auto& slot : v) {
+        if (slot.name == "slot_register_retest") {
+          slot_copy = slot;
+          return;
+        }
+      }
+      boost::ut::expect(false);
+    });
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(!signal_copy.name.empty());
+    boost::ut::expect(!slot_copy.name.empty());
+
+    registered_signal = false;
+    registered_slot = false;
+    // Register a signal and slot for the second time
+    ipc_manager_client.register_signal("signal_register_retest", tfc::ipc::details::type_e::_string,
+                                       [&](std::error_code& err) {
+                                         boost::ut::expect(!err);
+                                         registered_signal = true;
+                                       });
+    ipc_manager_client.register_slot("slot_register_retest", tfc::ipc::details::type_e::_string, [&](std::error_code& err) {
+      boost::ut::expect(!err);
+      registered_slot = true;
+    });
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(registered_signal);
+    boost::ut::expect(registered_slot);
+
+    tfc::ipc_ruler::signal signal_copy2;
+    tfc::ipc_ruler::slot slot_copy2;
+    // Copy the registered slot and signal and then re-register and verify the information is intact
+    ipc_manager_client.signals([&](auto v) {
+      for (auto& signal : v) {
+        if (signal.name == "signal_register_retest") {
+          signal_copy2 = signal;
+          return;
+        }
+      }
+      boost::ut::expect(false);
+    });
+    ctx.run_for(std::chrono::milliseconds(5));
+    ipc_manager_client.slots([&](auto v) {
+      for (auto& slot : v) {
+        if (slot.name == "slot_register_retest") {
+          slot_copy2 = slot;
+          return;
+        }
+      }
+      boost::ut::expect(false);
+    });
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(!signal_copy2.name.empty());
+    boost::ut::expect(!slot_copy2.name.empty());
+
+    // Compare the two copies and verify that only the last_registered value changed
+    boost::ut::expect(signal_copy.name == signal_copy2.name);
+    boost::ut::expect(signal_copy.created_at == signal_copy2.created_at);
+    boost::ut::expect(signal_copy.created_by == signal_copy2.created_by);
+    boost::ut::expect(signal_copy.type == signal_copy2.type);
+    boost::ut::expect(signal_copy.last_registered != signal_copy2.last_registered);
+
+    boost::ut::expect(slot_copy.name == slot_copy2.name);
+    boost::ut::expect(slot_copy.created_at == slot_copy2.created_at);
+    boost::ut::expect(slot_copy.created_by == slot_copy2.created_by);
+    boost::ut::expect(slot_copy.type == slot_copy2.type);
+    boost::ut::expect(slot_copy.modified_by == slot_copy2.modified_by);
+    boost::ut::expect(slot_copy.connected_to == slot_copy2.connected_to);
+    boost::ut::expect(slot_copy.last_registered != slot_copy2.last_registered);
+  };
   "Test ipc communication connection and disconnection with mocking bool"_test = [&]() {
     bool current_value = false;
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
