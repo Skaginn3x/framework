@@ -112,8 +112,8 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
          if (dbusObjectProxy && dbusObjectProxy.valid) {
             console.log("dbus object proxy is valid, polling")
             // change dbusObjectProxy.data from string to object
-            let slotList = JSON.parse(dbusObjectProxy.data.slots);
-            let signalList = JSON.parse(dbusObjectProxy.data.signals);
+            let slotList = JSON.parse(dbusObjectProxy.data.Slots);
+            let signalList = JSON.parse(dbusObjectProxy.data.Signals);
             resolve({ slotList, signalList });
          } else {
             console.log("dbus object proxy is not valid");
