@@ -25,18 +25,22 @@ auto devices_equal(auto vendor_id, auto product_code) {
   return vendor_id == device::vendor_id && product_code == device::product_code;
 }
 
-auto get(boost::asio::io_context& ctx, uint16_t const slave_index, auto vendor_id, auto product_code)
-    -> std::unique_ptr<base> {
-  if (devices_equal<atv320>(vendor_id, product_code))
-    return std::make_unique<atv320>(ctx, slave_index);
-  if (devices_equal<easyecat>(vendor_id, product_code))
-    return std::make_unique<easyecat>(ctx, slave_index);
+template <typename manager_client_type>
+auto get(boost::asio::io_context& ctx,
+         manager_client_type& client,
+         uint16_t const slave_index,
+         auto vendor_id,
+         auto product_code) -> std::unique_ptr<base> {
+  if (devices_equal<atv320<manager_client_type>>(vendor_id, product_code))
+    return std::make_unique<atv320<manager_client_type>>(ctx, client, slave_index);
+  if (devices_equal<easyecat<manager_client_type>>(vendor_id, product_code))
+    return std::make_unique<easyecat<manager_client_type>>(ctx, client, slave_index);
   if (devices_equal<ek1100>(vendor_id, product_code))
     return std::make_unique<ek1100>(slave_index);
-  if (devices_equal<el1008>(vendor_id, product_code))
-    return std::make_unique<el1008>(ctx, slave_index);
-  if (devices_equal<el2008>(vendor_id, product_code))
-    return std::make_unique<el2008>(ctx, slave_index);
+  if (devices_equal<el1008<manager_client_type>>(vendor_id, product_code))
+    return std::make_unique<el1008<manager_client_type>>(ctx, client, slave_index);
+  if (devices_equal<el2008<manager_client_type>>(vendor_id, product_code))
+    return std::make_unique<el2008<manager_client_type>>(ctx, client, slave_index);
   if (devices_equal<el3054>(vendor_id, product_code))
     return std::make_unique<el3054>(ctx, slave_index);
   if (devices_equal<el4002>(vendor_id, product_code))

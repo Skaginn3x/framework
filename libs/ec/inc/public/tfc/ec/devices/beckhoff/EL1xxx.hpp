@@ -3,13 +3,14 @@
 #include <tfc/ipc.hpp>
 
 namespace tfc::ec::devices::beckhoff {
-template <size_t size, uint32_t pc>
+template <typename manager_client_type, size_t size, uint32_t pc>
 class el100x : public base {
 public:
-  explicit el100x(boost::asio::io_context& ctx, uint16_t const slave_index) : base(slave_index) {
+  explicit el100x(boost::asio::io_context& ctx, manager_client_type& client, uint16_t const slave_index)
+      : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
       transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::bool_signal>(ctx, fmt::format("EL100{}.{}.in.{}", size, slave_index, i)));
+          std::make_unique<tfc::ipc::bool_signal>(ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i)));
     }
   }
   static constexpr uint32_t product_code = pc;
@@ -36,5 +37,6 @@ private:
   std::vector<std::unique_ptr<tfc::ipc::bool_signal>> transmitters_;
 };
 
-using el1008 = el100x<8, 0x3f03052>;
+template <typename manager_client_type>
+using el1008 = el100x<manager_client_type, 8, 0x3f03052>;
 }  // namespace tfc::ec::devices::beckhoff

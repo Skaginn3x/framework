@@ -30,41 +30,37 @@ auto constexpr register_cb(std::string const& ipc_name) {
  * addition with implementing the ipc connection.
  * @tparam type_desc The type description for the slot.
  */
-template <typename type_desc>
+template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client>
 class slot {
 public:
   using value_t = details::slot_callback<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::slot_callback<type_desc>::direction_v;
-
   /**
    * C'tor for a tfc IPC slot.
    * @param ctx Execution context
+   * @param client manager_client_type a reference to a manager client
    * @param name The slot name
    * @param callback Channel for value updates from the corosponding signal.
    */
-  slot(asio::io_context& ctx, std::string_view name, auto&& callback)
-      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(ctx) {
+  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, auto&& callback)
+      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
     client_.register_connection_change_callback(
-        [this, callback](const std::string_view slot_name, const std::string_view signal_name) {
-          if (slot_name == slot_->name_w_type()) {
-            slot_->init(signal_name, callback);
-          }
-        });
+        slot_->name_w_type(), [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
     client_.register_slot(slot_->name_w_type(), type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
-  slot(slot&) noexcept = default;
-  slot(slot&&) noexcept = default;
-  auto operator=(slot&&) noexcept -> slot& = default;
-  auto operator=(slot const&) noexcept -> slot& = default;
+  slot(slot&) = delete;
+  slot(slot&&) noexcept = delete;
+  auto operator=(slot&&) noexcept -> slot& = delete;
+  auto operator=(slot const&) -> slot& = delete;
 
   [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
 
 private:
   static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
-  ipc_ruler::ipc_manager_client client_;
+  manager_client_type& client_;
 };
 
 /**
@@ -72,7 +68,7 @@ private:
  * ipc-ruler service.
  * @tparam type_desc The type of the signal
  */
-template <typename type_desc>
+template <typename type_desc, typename manager_client_type>
 class signal {
 public:
   using value_t = details::signal<type_desc>::value_t;
@@ -84,8 +80,8 @@ public:
    * @param ctx Execution context
    * @param name Signals name
    */
-  signal(asio::io_context& ctx, std::string_view name)
-      : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(ctx) {
+  signal(asio::io_context& ctx, manager_client_type& client, std::string_view name)
+      : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(client) {
     client_.register_signal(signal_->name_w_type(), type_desc::value_e, details::register_cb(signal_->name_w_type()));
   }
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
@@ -97,21 +93,21 @@ public:
 private:
   static constexpr std::string_view self_name{ signal_tag };
   std::shared_ptr<details::signal<type_desc>> signal_;
-  ipc_ruler::ipc_manager_client client_;
+  manager_client_type& client_;
 };
 
-using bool_slot = slot<details::type_bool>;
-using int_slot = slot<details::type_int>;
-using uint_slot = slot<details::type_uint>;
-using double_slot = slot<details::type_double>;
-using string_slot = slot<details::type_string>;
-using json_slot = slot<details::type_json>;
+using bool_slot = slot<details::type_bool, ipc_ruler::ipc_manager_client>;
+using int_slot = slot<details::type_int, ipc_ruler::ipc_manager_client>;
+using uint_slot = slot<details::type_uint, ipc_ruler::ipc_manager_client>;
+using double_slot = slot<details::type_double, ipc_ruler::ipc_manager_client>;
+using string_slot = slot<details::type_string, ipc_ruler::ipc_manager_client>;
+using json_slot = slot<details::type_json, ipc_ruler::ipc_manager_client>;
 
-using bool_signal = signal<details::type_bool>;
-using int_signal = signal<details::type_int>;
-using uint_signal = signal<details::type_uint>;
-using double_signal = signal<details::type_double>;
-using string_signal = signal<details::type_string>;
-using json_signal = signal<details::type_json>;
+using bool_signal = signal<details::type_bool, ipc_ruler::ipc_manager_client>;
+using int_signal = signal<details::type_int, ipc_ruler::ipc_manager_client>;
+using uint_signal = signal<details::type_uint, ipc_ruler::ipc_manager_client>;
+using double_signal = signal<details::type_double, ipc_ruler::ipc_manager_client>;
+using string_signal = signal<details::type_string, ipc_ruler::ipc_manager_client>;
+using json_signal = signal<details::type_json, ipc_ruler::ipc_manager_client>;
 
 }  // namespace tfc::ipc

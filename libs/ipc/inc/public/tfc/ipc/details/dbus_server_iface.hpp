@@ -94,10 +94,14 @@ class ipc_manager {
 public:
   using slot_name = std::string_view;
   using signal_name = std::string_view;
+
   explicit ipc_manager(signal_storage& signals, slot_storage& slots)
       : logger_("ipc_manager"), signals_{ signals }, slots_{ slots } {}
 
-  auto set_callback(std::function<void(slot_name, signal_name)> on_connect_cb) -> void { on_connect_cb_ = on_connect_cb; }
+  auto set_callback(std::function<void(slot_name, signal_name)> on_connect_cb) -> void {
+    on_connect_cb_ = std::move(on_connect_cb);
+  }
+
   auto register_signal(const std::string_view name, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
@@ -105,13 +109,15 @@ public:
     auto change_signals = signals_.make_change();
     if (signals_->find(str_name) != signals_->end()) {
       change_signals->at(str_name).last_registered = timestamp_now;
+    } else {
+      change_signals->emplace(name, signal{ .name = std::string(name),
+                                            .type = type,
+                                            .created_by = "",
+                                            .created_at = timestamp_now,
+                                            .last_registered = timestamp_now });
     }
-    change_signals->emplace(name, signal{ .name = std::string(name),
-                                          .type = type,
-                                          .created_by = "",
-                                          .created_at = timestamp_now,
-                                          .last_registered = timestamp_now });
   }
+
   auto register_slot(const std::string_view name, type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
@@ -121,18 +127,22 @@ public:
     auto change_slots = slots_.make_change();
     if (change_slots->find(str_name) != slots_->end()) {
       change_slots->at(str_name).last_registered = timestamp_now;
+    } else {
+      change_slots->emplace(name, slot{
+                                      .name = std::string(name),
+                                      .type = type,
+                                      .created_by = "omar",
+                                      .created_at = timestamp_now,
+                                      .last_registered = timestamp_now,
+                                      .last_modified = timestamp_never,
+                                      .modified_by = "",
+                                      .connected_to = "",
+                                  });
     }
-    change_slots->emplace(name, slot{
-                                    .name = std::string(name),
-                                    .type = type,
-                                    .created_by = "omar",
-                                    .created_at = timestamp_now,
-                                    .last_registered = timestamp_now,
-                                    .last_modified = timestamp_never,
-                                    .modified_by = "",
-                                    .connected_to = "",
-                                });
+    // Call the connected callback to get the slot connected to its signal if it has one.
+    on_connect_cb_(str_name, change_slots->at(str_name).connected_to);
   }
+
   auto get_all_signals() -> std::vector<signal> {
     logger_.trace("get_all_signals called");
     std::vector<signal> ret;
@@ -141,6 +151,7 @@ public:
                    [](const auto& tple) { return tple.second; });
     return ret;
   }
+
   auto get_all_slots() -> std::vector<slot> {
     logger_.trace("get_all_slots called");
     std::vector<slot> ret;
@@ -172,6 +183,7 @@ public:
     slots_.make_change()->at(str_slot_name).connected_to = signal_name;
     on_connect_cb_(slot_name, signal_name);
   }
+
   auto disconnect(const std::string_view slot_name) -> void {
     logger_.trace("disconnect called, slot: {}", slot_name);
     const std::string str_slot_name = std::string(slot_name);
@@ -237,6 +249,7 @@ private:
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
   std::unique_ptr<ipc_manager<signal_storage, slot_storage>> ipc_manager_;
 };
+
 class ipc_manager_client {
 public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
@@ -248,71 +261,180 @@ public:
         std::bind_front(&ipc_manager_client::match_callback, this));
   }
 
-  template <typename message_handler>
-  auto register_signal(const std::string& name, type_e type, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "register_signal", name, static_cast<uint8_t>(type));
+  /**
+   * Register a signal with the ipc_manager service running on dbus
+   * @param name the name of the signal to be registered
+   * @param type  the type enum of the signal to be registered
+   * @param handler  the error handling callback function
+   */
+  auto register_signal(const std::string& name, type_e type, std::invocable<const std::error_code&> auto&& handler) -> void {
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "register_signal", name, static_cast<uint8_t>(type));
   }
 
-  template <typename message_handler>
-  auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "register_slot", name, static_cast<uint8_t>(type));
+  /**
+   * Register a slot with the ipc_manager service running on dbus
+   * @param name the name of the slot to be registered
+   * @param type  the type enum of the slot to be registered
+   * @param handler  the error handling callback function
+   */
+  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+      -> void {
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "register_slot", name, static_cast<uint8_t>(type));
   }
 
-  template <typename message_handler>
-  auto signals(message_handler&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "signals",
-        [handler](const boost::system::error_code& error, const std::string& response) {
-          if (error) {
-            return;
-          }
-          auto signals = glz::read_json<std::vector<signal>>(response);
-          if (signals) {
-            handler(signals.value());
-          }
-        });
+  /**
+   * Async function to get the signals property from the ipc manager
+   * This fetches the signals over dbus and then calls the provided callback with
+   * a vector of signals
+   * @param handler a function like object that is called back with a vector of signals
+   */
+  auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
+                                              ipc_ruler_interface_name, "signals",
+                                              [handler = std::forward<decltype(handler)>(handler)](
+                                                  const boost::system::error_code& error, const std::string& response) {
+                                                if (error) {
+                                                  return;
+                                                }
+                                                auto signals = glz::read_json<std::vector<signal>>(response);
+                                                if (signals) {
+                                                  handler(signals.value());
+                                                }
+                                              });
   }
-  template <typename message_handler>
-  auto slots(message_handler&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "slots",
-        [handler](const boost::system::error_code& error, const std::string& response) {
-          if (error) {
-            return;
-          }
-          auto slots = glz::read_json<std::vector<slot>>(response);
-          if (slots) {
-            handler(slots.value());
-          }
-        });
+
+  /**
+   * Async function to get the slots property from the ipc manager
+   * This fetches the slots over dbus and then calls the provided callback with
+   * a vector of slots
+   * @param handler a function like object that is called back with a vector of slots
+   */
+  auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
+                                              ipc_ruler_interface_name, "slots",
+                                              [handler = std::forward<decltype(handler)>(handler)](
+                                                  const boost::system::error_code& error, const std::string& response) {
+                                                if (error) {
+                                                  return;
+                                                }
+                                                auto slots = glz::read_json<std::vector<slot>>(response);
+                                                if (slots) {
+                                                  handler(slots.value());
+                                                }
+                                              });
   }
-  template <typename message_handler>
-  auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "connect", slot_name, signal_name);
+
+  /**
+   * Send a request over dbus to connect a slot to a signal.
+   * On error handler will be called back with a non empty std::error_code&
+   * @param slot_name the name of the slot to be connected
+   * @param signal_name the name of the signal to be connected
+   * @param handler a method that receives an error in case there is one
+   * @note If the slot is already connected to a signal, it will be disconnected and connected to the new one
+   */
+  auto connect(const std::string& slot_name,
+               const std::string& signal_name,
+               std::invocable<const std::error_code&> auto&& handler) -> void {
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "connect", slot_name, signal_name);
   }
+
+  /**
+   * Send a request over dbus to disconnect a slot from its signal
+   * @tparam message_handler Type of the callback handler, this should be auto detected
+   * @param slot_name the name of the slot to be disconnected
+   * @param handler a method that receives an error in case there is one
+   */
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
-    connection_->async_method_call(handler, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name,
-                                   "disconnect", slot_name);
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
+                                   ipc_ruler_interface_name, "disconnect", slot_name);
   }
 
-  auto match_callback(sdbusplus::message_t& msg) -> void {
-    auto container = msg.unpack<std::tuple<std::string, std::string>>();
-    connection_change_callback_(std::get<0>(container), std::get<1>(container));
-  }
-
-  auto register_connection_change_callback(
-      std::function<void(std::string_view const, std::string_view const)> connection_change_callback) -> void {
-    connection_change_callback_ = std::move(connection_change_callback);
+  /**
+   * Register a callback function that gets "pinged" each time there is a connection change
+   * @param connection_change_callback a function like object on each connection change it gets called with the slot and
+   * signal that changed.
+   * @note There can only be a single callback registered per slot_name, if you register a new one. The old callback will be
+   * overwritten.
+   */
+  auto register_connection_change_callback(std::string_view slot_name,
+                                           const std::function<void(std::string_view const)>& connection_change_callback)
+      -> void {
+    slot_callbacks_.emplace(std::string(slot_name), connection_change_callback);
   }
 
 private:
+  auto match_callback(sdbusplus::message_t& msg) -> void {
+    auto container = msg.unpack<std::tuple<std::string, std::string>>();
+    std::string const slot_name = std::get<0>(container);
+    std::string const signal_name = std::get<1>(container);
+    auto iterator = slot_callbacks_.find(slot_name);
+    if (iterator != slot_callbacks_.end()) {
+      std::invoke(iterator->second, signal_name);
+    }
+  }
+
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> match_;
-  std::function<void(std::string_view const, std::string_view const)> connection_change_callback_ =
-      [](std::string_view const, std::string_view const) {};
+  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks_;
+};
+
+struct ipc_manager_client_mock {
+  auto register_connection_change_callback(std::string_view slot_name,
+                                           const std::function<void(std::string_view const)>& connection_change_callback)
+      -> void {
+    slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
+  }
+
+  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
+
+  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+      -> void {
+    slots.emplace_back(slot{ .name = std::string(name),
+                             .type = type,
+                             .created_by = "",
+                             .created_at = std::chrono::system_clock::now(),
+                             .last_registered = std::chrono::system_clock::now(),
+                             .last_modified = std::chrono::system_clock::now(),
+                             .modified_by = "",
+                             .connected_to = "" });
+    handler(std::error_code());
+  }
+
+  auto register_signal(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+      -> void {
+    signals.emplace_back(signal{
+        .name = std::string(name),
+        .type = type,
+        .created_by = "",
+        .created_at = std::chrono::system_clock::now(),
+        .last_registered = std::chrono::system_clock::now(),
+    });
+    handler(std::error_code());
+  }
+
+  auto connect(const std::string& slot_name,
+               const std::string& signal_name,
+               std::invocable<const std::error_code&> auto&& handler) -> void {
+    for (auto& slot : slots) {
+      if (slot.name == slot_name) {
+        slot.connected_to = signal_name;
+        auto iterator = slot_callbacks.find(slot_name);
+        if (iterator != slot_callbacks.end()) {
+          std::invoke(iterator->second, signal_name);
+        }
+        std::error_code no_err{};
+        handler(no_err);
+        return;
+      }
+    }
+    throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
+  }
+
+  std::vector<slot> slots;
+  std::vector<signal> signals;
 };
 }  // namespace tfc::ipc_ruler

@@ -1,13 +1,14 @@
 #pragma once
 
 namespace tfc::ec::devices::beckhoff {
-template <size_t size, uint32_t pc>
+template <typename manager_client_type, size_t size, uint32_t pc>
 class el200x : public base {
 public:
-  explicit el200x(boost::asio::io_context& ctx, uint16_t slave_index) : base(slave_index) {
+  explicit el200x(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index) : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
-      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_slot>(
-          ctx, fmt::format("EL200{}.{}.out.{}", size, slave_index, i), std::bind_front(&el200x::set_output, this, i)));
+      bool_receivers_.emplace_back(
+          std::make_unique<tfc::ipc::bool_slot>(ctx, client, fmt::format("EL200{}.{}.out.{}", size, slave_index, i),
+                                                std::bind_front(&el200x::set_output, this, i)));
     }
   }
 
@@ -27,5 +28,6 @@ private:
   std::vector<std::unique_ptr<tfc::ipc::bool_slot>> bool_receivers_;
 };
 
-using el2008 = el200x<8, 0x7d83052>;
+template <typename manager_client_type>
+using el2008 = el200x<manager_client_type, 8, 0x7d83052>;
 }  // namespace tfc::ec::devices::beckhoff

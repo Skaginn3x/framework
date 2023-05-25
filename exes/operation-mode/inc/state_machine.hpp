@@ -76,6 +76,7 @@ private:
   void maintenance_new_state(bool);
 
   std::function<void(new_mode, old_mode)> on_new_state_{};
+  tfc::ipc_ruler::ipc_manager_client mclient_;
   tfc::ipc::bool_signal stopped_;
   tfc::ipc::bool_signal starting_;
   tfc::ipc::bool_signal running_;
