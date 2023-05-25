@@ -354,10 +354,11 @@ public:
 private:
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
-    auto it = slot_callbacks.find(std::get<0>(container));
+    std::string slot_name = std::get<0>(container);
+    std::string signal_name = std::get<1>(container);
+    auto it = slot_callbacks.find(slot_name);
     if (it != slot_callbacks.end()) {
-      std::cout << it->first << std::endl;
-      std::invoke(it->second, std::get<1>(container));
+      std::invoke(it->second, signal_name);
     }
   }
 
@@ -398,7 +399,6 @@ struct ipc_manager_client_mock {
   template <typename message_handler>
   auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
     for (auto& k : slots) {
-      std::cout << "name: " << k.name << std::endl;
       if (k.name == slot_name) {
         k.connected_to = signal_name;
         connection_change_callback_(slot_name, signal_name);

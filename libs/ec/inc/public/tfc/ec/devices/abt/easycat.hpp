@@ -13,9 +13,9 @@ public:
   explicit easyecat(boost::asio::io_context& ctx_, manager_client_type& client, uint16_t const slave_index)
       : base(slave_index) {
     for (size_t i = 0; i < 4; i++) {
-      bool_transmitters_.emplace_back(tfc::ipc::bool_signal(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i)));
-      bool_receivers_.emplace_back(tfc::ipc::bool_slot(ctx_, client, fmt::format("easyecat.{}.out.{}", slave_index, i),
-                                                       [this, i](bool value) { output_states_.set(i, value); }));
+      bool_transmitters_.emplace_back(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i));
+      bool_receivers_[i] = std::make_unique<ipc::bool_slot>(ctx_, client, fmt::format("easyecat.{}.out.{}", slave_index, i),
+                                                       [this, i](bool value) { output_states_.set(i, value); });
     }
     for (size_t i = 0; i < 2; i++) {
       analog_transmitters_.push_back(tfc::ipc::uint_signal(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i)));
@@ -62,7 +62,7 @@ private:
   std::array<uint8_t, ai_count> last_analog_value_;
   std::vector<tfc::ipc::bool_signal> bool_transmitters_;
   std::vector<tfc::ipc::uint_signal> analog_transmitters_;
-  std::vector<tfc::ipc::bool_slot> bool_receivers_;
+  std::array<std::unique_ptr<tfc::ipc::bool_slot>, di_count> bool_receivers_;
 };
 
 }  // namespace tfc::ec::devices::abt

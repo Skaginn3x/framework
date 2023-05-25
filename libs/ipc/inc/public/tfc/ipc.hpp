@@ -45,15 +45,16 @@ public:
    */
   slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, auto&& callback)
       : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
-    client_.register_connection_change_callback(
-        slot_->name_w_type(), [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
+    client_.register_connection_change_callback(slot_->name_w_type(), [this, callback, name](const std::string_view signal_name) {
+      slot_->init(signal_name, callback);
+    });
     client_.register_slot(slot_->name_w_type(), type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
-  slot(slot&) noexcept = default;
-  slot(slot&&) noexcept = default;
-  auto operator=(slot&&) noexcept -> slot& = default;
-  auto operator=(slot const&) noexcept -> slot& = default;
+  slot(slot&) = delete;
+  slot(slot&&) noexcept = delete;
+  auto operator=(slot&&) noexcept -> slot& = delete;
+  auto operator=(slot const&) -> slot& = delete;
 
   [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
 
