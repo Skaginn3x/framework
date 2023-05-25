@@ -179,6 +179,7 @@ private:
   asio::io_context& ctx_;
   gpiod::chip chip_;
   config_t config_;
+  tfc::ipc_ruler::ipc_manager_client manager_client_;
   std::vector<send_or_recv_t> pins_;
   tfc::logger::logger logger_;
   boost::asio::posix::stream_descriptor chip_asio_;

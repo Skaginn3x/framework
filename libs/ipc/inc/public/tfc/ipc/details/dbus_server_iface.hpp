@@ -367,12 +367,11 @@ private:
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
 };
 struct ipc_manager_client_mock {
-  auto register_connection_change_callback(
-      std::function<void(std::string_view const, std::string_view const)> connection_change_callback) -> void {
-    connection_change_callback_ = std::move(connection_change_callback);
+  auto register_connection_change_callback(std::string_view slot_name,
+                                           std::function<void(std::string_view const)> connection_change_callback) -> void {
+    slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
   }
-  std::function<void(std::string_view const, std::string_view const)> connection_change_callback_ =
-      [](std::string_view const, std::string_view const) {};
+  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
   template <typename message_handler>
   auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
     slots.emplace_back(slot{ .name = std::string(name),
@@ -401,7 +400,10 @@ struct ipc_manager_client_mock {
     for (auto& k : slots) {
       if (k.name == slot_name) {
         k.connected_to = signal_name;
-        connection_change_callback_(slot_name, signal_name);
+        auto it = slot_callbacks.find(slot_name);
+        if (it != slot_callbacks.end()) {
+          std::invoke(it->second, signal_name);
+        }
         std::error_code no_err{};
         handler(no_err);
         return;

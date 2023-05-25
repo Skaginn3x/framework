@@ -106,8 +106,7 @@ auto main(int argc, char** argv) -> int {
 
     // Register a method for connection change callback
     ran = false;
-    ipc_manager_client.register_connection_change_callback([&](std::string_view slot_name, std::string_view signal_name) {
-      boost::ut::expect(slot_name == "test_slot");
+    ipc_manager_client.register_connection_change_callback("test_slot", [&](std::string_view signal_name) {
       boost::ut::expect(signal_name == "test_signal");
       ran = true;
     });
@@ -116,7 +115,7 @@ auto main(int argc, char** argv) -> int {
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(ran);
   };
-  "Test ipc communication connection and disconnection with mocking"_test = [&]() {
+  "Test ipc communication connection and disconnection with mocking bool"_test = [&]() {
     bool current_value = false;
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
     tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(
@@ -136,6 +135,27 @@ auto main(int argc, char** argv) -> int {
     sig.send(true);
     ctx.run_for(std::chrono::milliseconds(5));
     boost::ut::expect(current_value);
+  };
+  "Test ipc communication connection and disconnection with mocking int"_test = [&]() {
+    int current_value = 10;
+    tfc::ipc_ruler::ipc_manager_client_mock mclient;
+    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+        ctx, mclient, "bool_slot", [&](int value) { current_value = value; });
+    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, mclient, "bool_signal");
+
+    mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
+                    [](const std::error_code& err) { boost::ut::expect(!err); });
+
+    boost::ut::expect(current_value == 10);
+    sig.send(25);
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(current_value == 25);
+    sig.send(1337);
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(current_value == 1337);
+    sig.send(42);
+    ctx.run_for(std::chrono::milliseconds(5));
+    boost::ut::expect(current_value == 42);
   };
 
   return EXIT_SUCCESS;
