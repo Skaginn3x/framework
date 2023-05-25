@@ -123,8 +123,7 @@ auto main(int argc, char** argv) -> int {
         ctx, mclient, "bool_slot", [&](bool value) { current_value = value; });
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, mclient, "bool_signal");
 
-    mclient.connect(mclient.slots[0].name,
-                    mclient.signals[0].name,
+    mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
                     [](const std::error_code& err) { boost::ut::expect(!err); });
 
     boost::ut::expect(!current_value);

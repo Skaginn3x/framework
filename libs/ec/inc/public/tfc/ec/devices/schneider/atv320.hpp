@@ -75,10 +75,9 @@ public:
     }
     auto frequency = static_cast<int16_t>(input_aligned[1]);
     if (last_frequency_ != frequency) {
-      frequency_transmit_.async_send(static_cast<double>(frequency) / 10,
-                                      [this](auto&& PH1, size_t const bytes_transfered) {
-                                        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-                                      });
+      frequency_transmit_.async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, size_t const bytes_transfered) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
+      });
     }
 
     last_frequency_ = frequency;

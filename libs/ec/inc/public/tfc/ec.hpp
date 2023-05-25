@@ -99,7 +99,8 @@ public:
     slaves_.emplace_back(std::make_unique<devices::default_device>(0));
     // Attach the callback to each slave
     for (size_t i = 1; i <= slave_count(); i++) {
-      slaves_.emplace_back(devices::get(ctx_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
+      slaves_.emplace_back(
+          devices::get(ctx_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     return true;

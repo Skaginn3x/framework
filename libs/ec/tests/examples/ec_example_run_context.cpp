@@ -20,7 +20,6 @@ auto main(int argc, char* argv[]) -> int {
   prog_desc.add_options()("iface,i", boost::program_options::value<std::string>(&iface)->required(), "Adapter name");
   tfc::base::init(argc, argv, prog_desc);
 
-
   boost::asio::io_context io_ctx;
   tfc::ec::context_t ctx(io_ctx, iface);
 

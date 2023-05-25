@@ -343,10 +343,11 @@ public:
    * Register a callback function that gets "pinged" each time there is a connection change
    * @param connection_change_callback a function like object on each connection change it gets called with the slot and
    * signal that changed.
-   * @note There can only be a single callback registered per slot_name, if you register a new one. The old callback will be overwritten.
+   * @note There can only be a single callback registered per slot_name, if you register a new one. The old callback will be
+   * overwritten.
    */
   auto register_connection_change_callback(std::string_view slot_name,
-      std::function<void(std::string_view const)> connection_change_callback) -> void {
+                                           std::function<void(std::string_view const)> connection_change_callback) -> void {
     slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
   }
 
@@ -385,18 +386,20 @@ struct ipc_manager_client_mock {
   }
   template <typename message_handler>
   auto register_signal(const std::string_view name, type_e type, message_handler&& handler) -> void {
-    signals.emplace_back(signal{ .name = std::string(name),
+    signals.emplace_back(signal{
+        .name = std::string(name),
         .type = type,
         .created_by = "",
         .created_at = std::chrono::system_clock::now(),
-        .last_registered = std::chrono::system_clock::now(),});
+        .last_registered = std::chrono::system_clock::now(),
+    });
     handler(std::error_code());
   }
   template <typename message_handler>
   auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
-    for ( auto& k : slots ){
+    for (auto& k : slots) {
       std::cout << "name: " << k.name << std::endl;
-      if (k.name == slot_name){
+      if (k.name == slot_name) {
         k.connected_to = signal_name;
         connection_change_callback_(slot_name, signal_name);
         std::error_code no_err{};
