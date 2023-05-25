@@ -61,9 +61,11 @@ auto main(int argc, char** argv) -> int {
   auto ipc_manager = std::make_unique<tfc::ipc_ruler::ipc_manager<signal_storage, slot_storage>>(signals, slots);
 
   "ipc_manager correctness check"_test = [&]() {
-    ipc_manager->register_signal("some_slot", tfc::ipc::details::type_e::_bool);
-    boost::ut::expect(ipc_manager->get_all_signals().size() == 1);
-    boost::ut::expect(ipc_manager->get_all_slots().empty());
+    ipc_manager.register_signal("some_signal", "Test signal description", tfc::ipc::details::type_e::_bool);
+    boost::ut::expect(ipc_manager.get_all_signals().size() == 1);
+    boost::ut::expect(ipc_manager.get_all_slots().empty());
+    boost::ut::expect(ipc_manager.get_all_signals()[0].description == "Test signal description");
+    boost::ut::expect(ipc_manager.get_all_signals()[0].name == "some_signal");
 
     signals.storage_ = {};
     boost::ut::expect(ipc_manager->get_all_signals().empty());
