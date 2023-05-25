@@ -4,6 +4,8 @@
 #include <optional>
 #include <string_view>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace boost {
 namespace program_options {
 class options_description;
