@@ -47,7 +47,7 @@ public:
       : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
     client_.register_connection_change_callback(
         slot_->name_w_type(),
-        [this, callback, name](const std::string_view signal_name) { slot_->init(signal_name, callback); });
+        [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
     client_.register_slot(slot_->name_w_type(), type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
