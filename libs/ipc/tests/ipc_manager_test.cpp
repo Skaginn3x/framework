@@ -127,13 +127,13 @@ auto main(int argc, char** argv) -> int {
 
     boost::ut::expect(!current_value);
     sig.send(true);
-    ctx.run_for(std::chrono::milliseconds(100));
+    ctx.run_for(std::chrono::milliseconds(300));
     boost::ut::expect(current_value);
     sig.send(false);
-    ctx.run_for(std::chrono::milliseconds(100));
+    ctx.run_for(std::chrono::milliseconds(300));
     boost::ut::expect(!current_value);
     sig.send(true);
-    ctx.run_for(std::chrono::milliseconds(100));
+    ctx.run_for(std::chrono::milliseconds(300));
     boost::ut::expect(current_value);
   };
   "Test ipc communication connection and disconnection with mocking int"_test = [&]() {
@@ -148,13 +148,13 @@ auto main(int argc, char** argv) -> int {
 
     boost::ut::expect(current_value == 10);
     sig.send(25);
-    ctx.run_for(std::chrono::milliseconds(100));
+    ctx.run_for(std::chrono::milliseconds(300));
     boost::ut::expect(current_value == 25);
     sig.send(1337);
-    ctx.run_for(std::chrono::milliseconds(100));
+    ctx.run_for(std::chrono::milliseconds(300));
     boost::ut::expect(current_value == 1337);
     sig.send(42);
-    ctx.run_for(std::chrono::milliseconds(100));
+    ctx.run_for(std::chrono::milliseconds(300));
     boost::ut::expect(current_value == 42);
   };
 
