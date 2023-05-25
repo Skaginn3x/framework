@@ -29,7 +29,7 @@ public:
   static constexpr uint8_t all_groups = 0;
   static constexpr uint16_t all_slaves = 0;
   explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
-      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)) {
+      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -99,7 +99,7 @@ public:
     slaves_.emplace_back(std::make_unique<devices::default_device>(0));
     // Attach the callback to each slave
     for (size_t i = 1; i <= slave_count(); i++) {
-      slaves_.emplace_back(devices::get(ctx_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
+      slaves_.emplace_back(devices::get(ctx_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     return true;
@@ -303,6 +303,8 @@ private:
   std::array<ec_PDOdesct, ecx::constants::max_concurrent_map_thread> PDOdesc_;
   ec_eepromSMt eep_SM_;
   ec_eepromFMMUt eepFMMU_;
+
+  tfc::ipc_ruler::ipc_manager_client client_;
 
   // Timing related variables
   std::chrono::nanoseconds min_cycle_;

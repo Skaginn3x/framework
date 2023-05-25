@@ -11,31 +11,32 @@
 #include <tfc/ipc.hpp>
 
 namespace tfc::ec::devices::schneider {
+template <typename manager_client_type>
 class atv320 final : public base {
 public:
-  ~atv320() final;
-
   static constexpr uint32_t vendor_id = 0x0800005a;
   static constexpr uint32_t product_code = 0x389;
 
-  explicit atv320(boost::asio::io_context& ctx, uint16_t slave_index) : base(slave_index) {
-    state_transmitter_ = std::make_unique<tfc::ipc::string_signal>(ctx, fmt::format("atv320.{}.state", slave_index));
-    command_transmitter_ = std::make_unique<tfc::ipc::string_signal>(ctx, fmt::format("atv320.{}.command", slave_index));
+  explicit atv320(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index)
+      : base(slave_index), state_transmitter_(ctx, client, fmt::format("atv320.{}.state", slave_index)),
+        command_transmitter_(ctx, client, fmt::format("atv320.{}.command", slave_index)),
+        quick_stop_recv_(ctx,
+                         client,
+                         fmt::format("atv320.{}.quick_stop", slave_index),
+                         [this](bool value) { quick_stop_ = value; }),
+        frequency_recv_(ctx,
+                        client,
+                        fmt::format("atv320.{}.out.freq", slave_index),
+                        [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); }),
+        frequency_transmit_(ctx, client, fmt::format("atv320.{}.out.current_freq", slave_index))
+
+  {
     for (size_t i = 0; i < 6; i++) {
-      di_transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::bool_signal>(ctx, fmt::format("atv320.{}.in.{}", slave_index, i)));
+      di_transmitters_.emplace_back(tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i)));
     }
     for (size_t i = 0; i < 2; i++) {
-      ai_transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::int_signal>(ctx, fmt::format("atv320.{}.in.{}", slave_index, i)));
+      ai_transmitters_.emplace_back(tfc::ipc::int_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i)));
     }
-    quick_stop_recv_ = std::make_unique<tfc::ipc::bool_slot>(ctx, fmt::format("atv320.{}.quick_stop", slave_index),
-                                                             [this](bool value) { quick_stop_ = value; });
-    frequency_recv_ = std::make_unique<tfc::ipc::double_slot>(
-        ctx, fmt::format("atv320.{}.out.freq", slave_index),
-        [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); });
-    frequency_transmit_ =
-        std::make_unique<tfc::ipc::double_signal>(ctx, fmt::format("atv320.{}.out.current_freq", slave_index));
   }
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
@@ -49,14 +50,14 @@ public:
 
     auto state = tfc::ec::cia_402::parse_state(status_word_);
     if (cia_402::to_string(state) != last_state_) {
-      state_transmitter_->async_send(cia_402::to_string(state), [this](auto&& PH1, size_t bytes_transfered) {
+      state_transmitter_.async_send(cia_402::to_string(state), [this](auto&& PH1, size_t bytes_transfered) {
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
     }
     std::bitset<6> const value(input_aligned[3]);
     for (size_t i = 0; i < 6; i++) {
       if (value.test(i) != last_bool_values_.test(i)) {
-        di_transmitters_[i]->async_send(value.test(i), [this](auto&& PH1, size_t bytes_transfered) {
+        di_transmitters_[i].async_send(value.test(i), [this](auto&& PH1, size_t bytes_transfered) {
           async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
         });
       }
@@ -66,7 +67,7 @@ public:
     std::span<int16_t> const analog_ptr(reinterpret_cast<int16_t*>(&input_aligned[4]), 2);
     for (size_t i = 0; i < 2; i++) {
       if (last_analog_inputs_[i] != analog_ptr[i]) {
-        ai_transmitters_[i]->async_send(analog_ptr[i], [this](auto&& PH1, size_t const bytes_transfered) {
+        ai_transmitters_[i].async_send(analog_ptr[i], [this](auto&& PH1, size_t const bytes_transfered) {
           async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
         });
       }
@@ -74,7 +75,7 @@ public:
     }
     auto frequency = static_cast<int16_t>(input_aligned[1]);
     if (last_frequency_ != frequency) {
-      frequency_transmit_->async_send(static_cast<double>(frequency) / 10,
+      frequency_transmit_.async_send(static_cast<double>(frequency) / 10,
                                       [this](auto&& PH1, size_t const bytes_transfered) {
                                         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
                                       });
@@ -86,7 +87,7 @@ public:
     auto command = tfc::ec::cia_402::transition(state, quick_stop_);
 
     if (cia_402::to_string(command) != last_command_) {
-      command_transmitter_->async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
+      command_transmitter_.async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
     }
@@ -169,18 +170,18 @@ public:
 private:
   uint16_t status_word_;
   std::array<int16_t, 2> last_analog_inputs_;
-  std::vector<std::unique_ptr<tfc::ipc::int_signal>> ai_transmitters_;
+  std::vector<tfc::ipc::int_signal> ai_transmitters_;
   std::bitset<6> last_bool_values_;
-  std::vector<std::unique_ptr<tfc::ipc::bool_signal>> di_transmitters_;
+  std::vector<tfc::ipc::bool_signal> di_transmitters_;
   std::string last_state_;
-  std::unique_ptr<tfc::ipc::string_signal> state_transmitter_;
+  tfc::ipc::string_signal state_transmitter_;
   std::string last_command_;
-  std::unique_ptr<tfc::ipc::string_signal> command_transmitter_;
+  tfc::ipc::string_signal command_transmitter_;
   bool quick_stop_ = true;
-  std::unique_ptr<tfc::ipc::bool_slot> quick_stop_recv_;
+  tfc::ipc::bool_slot quick_stop_recv_;
   int16_t reference_frequency_ = 0;
-  std::unique_ptr<tfc::ipc::double_slot> frequency_recv_;
+  tfc::ipc::double_slot frequency_recv_;
   int16_t last_frequency_;
-  std::unique_ptr<tfc::ipc::double_signal> frequency_transmit_;
+  tfc::ipc::double_signal frequency_transmit_;
 };
 }  // namespace tfc::ec::devices::schneider

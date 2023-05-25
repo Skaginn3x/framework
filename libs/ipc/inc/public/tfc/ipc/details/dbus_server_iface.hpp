@@ -341,23 +341,72 @@ public:
   }
   /**
    * Register a callback function that gets "pinged" each time there is a connection change
-   * @param connection_change_callback a function like object on each connection change it gets called with the slot and signal that changed.
-   * @note There can only be a single callback registered, if you register a new one. The old callback will be overwritten.
+   * @param connection_change_callback a function like object on each connection change it gets called with the slot and
+   * signal that changed.
+   * @note There can only be a single callback registered per slot_name, if you register a new one. The old callback will be overwritten.
    */
-  auto register_connection_change_callback(
-      std::function<void(std::string_view const, std::string_view const)> connection_change_callback) -> void {
-    connection_change_callback_ = std::move(connection_change_callback);
+  auto register_connection_change_callback(std::string_view slot_name,
+      std::function<void(std::string_view const)> connection_change_callback) -> void {
+    slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
   }
 
 private:
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
-    connection_change_callback_(std::get<0>(container), std::get<1>(container));
+    auto it = slot_callbacks.find(std::get<0>(container));
+    if (it != slot_callbacks.end()) {
+      std::cout << it->first << std::endl;
+      std::invoke(it->second, std::get<1>(container));
+    }
   }
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> match_;
+  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
+};
+struct ipc_manager_client_mock {
+  auto register_connection_change_callback(
+      std::function<void(std::string_view const, std::string_view const)> connection_change_callback) -> void {
+    connection_change_callback_ = std::move(connection_change_callback);
+  }
   std::function<void(std::string_view const, std::string_view const)> connection_change_callback_ =
       [](std::string_view const, std::string_view const) {};
+  template <typename message_handler>
+  auto register_slot(const std::string_view name, type_e type, message_handler&& handler) -> void {
+    slots.emplace_back(slot{ .name = std::string(name),
+                             .type = type,
+                             .created_by = "",
+                             .created_at = std::chrono::system_clock::now(),
+                             .last_registered = std::chrono::system_clock::now(),
+                             .last_modified = std::chrono::system_clock::now(),
+                             .modified_by = "",
+                             .connected_to = "" });
+    handler(std::error_code());
+  }
+  template <typename message_handler>
+  auto register_signal(const std::string_view name, type_e type, message_handler&& handler) -> void {
+    signals.emplace_back(signal{ .name = std::string(name),
+        .type = type,
+        .created_by = "",
+        .created_at = std::chrono::system_clock::now(),
+        .last_registered = std::chrono::system_clock::now(),});
+    handler(std::error_code());
+  }
+  template <typename message_handler>
+  auto connect(const std::string& slot_name, const std::string& signal_name, message_handler&& handler) -> void {
+    for ( auto& k : slots ){
+      std::cout << "name: " << k.name << std::endl;
+      if (k.name == slot_name){
+        k.connected_to = signal_name;
+        connection_change_callback_(slot_name, signal_name);
+        std::error_code no_err{};
+        handler(no_err);
+        return;
+      }
+    }
+    throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
+  }
+  std::vector<slot> slots;
+  std::vector<signal> signals;
 };
 }  // namespace tfc::ipc_ruler
