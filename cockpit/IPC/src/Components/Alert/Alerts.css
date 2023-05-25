@@ -1,0 +1,18 @@
+.alert-box {
+   position: fixed;
+   width: 25rem;
+   z-index: 9999;
+   top: 0;
+   right: 1rem;
+}
+
+.pf-c-alert {
+   --pf-c-alert--PaddingTop: 0.6rem;
+   --pf-c-alert--PaddingRight: 0.5rem;
+   --pf-c-alert--PaddingBottom: 0.5rem;
+   --pf-c-alert--PaddingLeft: 0.5rem;
+}
+
+.pf-c-alert-group {
+   --pf-c-alert-group__item--MarginTop: 0.3rem !important;
+}

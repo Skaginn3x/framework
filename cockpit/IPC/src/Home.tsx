@@ -1,54 +1,92 @@
-import { Button, TextInput, Title } from '@patternfly/react-core';
+import { AlertVariant, Button, TextInput, Title } from '@patternfly/react-core';
 import React, { useEffect } from 'react';
 import { Signal } from './Components/Signal/Signal';
 import { Slot } from './Components/Slot/Slot';
 import { useDbusInterface } from './Components/Interface/DbusInterface';
+import { useAlertContext } from './Components/Alert/AlertContext';
 
 export const Home = () => {
    const [value, setValue] = React.useState('');
    const [signalList, setSignalList] = React.useState<any>([]);
    const [slotList, setSlotList] = React.useState<any>([]);
+   const [connections, setConnections] = React.useState<any>([]);
    const [signalListJSX, setSignalListJSX] = React.useState(<></>);
    const [slotListJSX, setSlotListJSX] = React.useState(<></>);
-   const [selectedSignals, setSelectedSignals] = React.useState<any>([]);
+   const [selectedSignal, setSelectedSignal] = React.useState<string>("");
    const [selectedSlots, setSelectedSlots] = React.useState<any>([]);
 
    const [signalSearchTerm, setSignalSearchTerm] = React.useState("");
    const [slotSearchTerm, setSlotSearchTerm] = React.useState("");
-
+   const { addAlert } = useAlertContext();
 
    const dbusInterface = useDbusInterface("com.skaginn3x.ipc_ruler", "com.skaginn3x.manager", "/com/skaginn3x/ipc_ruler");
 
    const handleSignalCheck = (signal: any) => {
-      // selectedSignals can be max 1 signal
-      setSelectedSignals([signal.name]);
+      // selectedSignal can be max 1 signal
+      //addAlert('Signal Changed', AlertVariant.success);
+      setSelectedSignal(signal.name);
       let slots = slotList.filter((slot: any) => slot.connected_to === signal.name)
-      setSelectedSlots(slots.map((slot: any) => slot.name))
-
-
-      // If the signal is already selected, unselect it
-      // if (selectedSignals.includes(signal)) {
-      //    setSelectedSignals(selectedSignals.filter((selectedSignal: any) => selectedSignal !== signal));
-      // } else { // else select the signal
-      //    setSelectedSignals([...selectedSignals, signal]);
-      // }
+      setSelectedSlots(slots.map((slot: any) => slot.name));
    }
-   const handleSlotCheck = (slot: any) => {
+
+   const handleSlotCheck = async (slot: any) => {
       // If the slot is already selected, unselect it
-      if (selectedSlots.includes(slot.name)) {
+      if (selectedSlots.includes(slot.name)) { // if the slot is already selected, disconnect it
+         const data = await dbusInterface.disconnect(slot.name);
+         if (!data) {
+            addAlert('Error disconnecting slot', AlertVariant.danger);
+            return
+         }
+         console.log("Slot disconnected successfully");
          setSelectedSlots(selectedSlots.filter((selectedSlot: any) => selectedSlot !== slot.name));
+         setConnections((prevConnections: any) => {
+            const newConnections = { ...prevConnections };
+            newConnections[selectedSignal] = newConnections[selectedSignal].filter((connectedSlot: string) => connectedSlot !== slot.name);
+            return newConnections;
+         });
+         setSlotList((prevSlotList: any) => {
+            const newSlotList = [...prevSlotList];
+            const slotIndex = newSlotList.findIndex((slotItem: any) => slotItem.name === slot.name);
+            newSlotList[slotIndex].connected_to = "";
+            return newSlotList;
+         })
+
       } else { // else select the slot
+
+         const data = await dbusInterface.connect(selectedSignal, slot.name);
+         if (!data) {
+            addAlert('Error connecting slot', AlertVariant.warning);
+            return
+         }
+
          setSelectedSlots([...selectedSlots, slot.name]);
+         setConnections((prevConnections: any) => {
+            const newConnections = { ...prevConnections };
+            // if the slot is already assigned to another signal, remove it from that signal
+            Object.keys(newConnections).forEach((signal: string) => {
+               newConnections[signal] = newConnections[signal].filter((connectedSlot: string) => connectedSlot !== slot.name);
+            })
+            newConnections[selectedSignal].push(slot.name);
+            return newConnections;
+         })
+
+         // remove it from the slot in slotList .connected_to
+         setSlotList((prevSlotList: any) => {
+            const newSlotList = [...prevSlotList];
+            const slotIndex = newSlotList.findIndex((slotObj: any) => slotObj.name === slot.name);
+            newSlotList[slotIndex].connected_to = selectedSignal;
+            return newSlotList;
+         })
       }
    }
 
 
    const runCockpitCommand = () => {
-      console.log("Running command")
       const commandArray = value.split(' '); // splits the string into an array by spaces
       // if rm is in the command, return
       if (commandArray.filter((command: string) => command === "rm").length > 0) {
          console.log("rm is not allowed")
+         addAlert('The rm command is not allowed', AlertVariant.danger);
          return
       }
       // @ts-ignore
@@ -62,23 +100,13 @@ export const Home = () => {
       if (data) {
          setSlotList(data.slotList);
          setSignalList(data.signalList);
+         setConnections(data.connections);
+         setSelectedSignal(data.signalList[0].name);
       } else {
-         console.log("dbus object proxy is not valid")
+         addAlert('DBus connection unsuccessful', AlertVariant.danger);
+
       }
    }
-
-   const connectSignals = async () => {
-      selectedSlots.forEach(async (slot: any) => {
-         const success = await dbusInterface.connect(selectedSignals[0], slot);
-         console.log(success)
-         if (success) {
-            console.log("Successfully connected " + selectedSignals[0] + " to " + slot)
-         } else {
-            console.log("Failed to connect " + selectedSignals[0] + " to " + slot)
-         }
-      })
-   }
-
 
 
    useEffect(() => {
@@ -90,6 +118,7 @@ export const Home = () => {
 
 
    useEffect(() => {
+      if (!signalList || !connections) return
       setSignalListJSX(
          signalList.filter((signal: any) => {
             return Object.values(signal).some((val: any) =>
@@ -101,12 +130,14 @@ export const Home = () => {
                   <Signal
                      signal={signal}
                      onCheck={handleSignalCheck}
-                     isChecked={selectedSignals.includes(signal.name)}
+                     isChecked={selectedSignal.includes(signal.name)}
+                     connections={connections[signal.name]}
                   />
                )
             })
       );
-   }, [signalList, signalSearchTerm, selectedSignals])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [signalList, signalSearchTerm, selectedSignal, connections])
 
    useEffect(() => {
       setSlotListJSX(
@@ -138,12 +169,8 @@ export const Home = () => {
          <Button variant="primary" onClick={runCockpitCommand} style={{ margin: "1rem" }}>
             Run Command
          </Button>
-         <Button variant="primary" onClick={connectSignals} style={{ margin: "1rem" }} disabled={selectedSignals.length === 0 || selectedSlots === 0}>
-            Connect Signal to Slot{selectedSignals.length > 0 && selectedSlots.length > 0 ? "s" : ""}
-         </Button>
          {dbusInterface.valid ? <p>Dbus is valid</p> : <p>Dbus is not valid</p>}
-         {selectedSignals.length > 0 ? <p>Selected signals: {selectedSignals.map((signal: any) => signal).join(", ")}</p> : <p>No signals selected</p>}
-         {selectedSlots.length > 0 ? <p>Selected slots: {selectedSlots.map((slot: any) => slot).join(", ")}</p> : <p>No slots selected</p>}
+         {selectedSignal.length > 0 ? <p>Selected signal: {selectedSignal}</p> : <p>No signal selected</p>}
 
          <div style={{ display: "flex", flexDirection: "row", maxWidth: "100vw" }}>
             <div style={{ minWidth: "30rem" }}>
