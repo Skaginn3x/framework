@@ -23,6 +23,8 @@
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::ipc::details {
 
 namespace asio = boost::asio;

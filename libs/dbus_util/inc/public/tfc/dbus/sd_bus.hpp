@@ -6,6 +6,8 @@
 
 #include <systemd/sd-bus.h>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::dbus {
 static auto sd_bus_open_system() -> sd_bus* {
   sd_bus* bus = nullptr;

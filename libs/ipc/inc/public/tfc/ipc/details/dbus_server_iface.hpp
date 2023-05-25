@@ -22,6 +22,8 @@
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
 // service name

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string_view>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::stx {
 
 template <typename CharType, unsigned N>

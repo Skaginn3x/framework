@@ -3,6 +3,8 @@
 #include <glaze/glaze.hpp>
 #include <sstream>
 
+#define EXPORT __attribute__((visibility("default")))
+
 static inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
   std::istringstream in{ save };
   date::sys_time<std::chrono::milliseconds> tp;

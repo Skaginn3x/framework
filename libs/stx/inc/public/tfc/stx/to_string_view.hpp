@@ -4,6 +4,8 @@
 #include <limits>
 #include <string_view>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::stx {
 
 template <std::unsigned_integral auto integral>

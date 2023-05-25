@@ -10,6 +10,8 @@
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_tuple.hpp>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::operation {
 
 enum struct mode_e : std::uint8_t {

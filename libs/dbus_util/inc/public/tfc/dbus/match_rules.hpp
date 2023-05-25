@@ -3,6 +3,8 @@
 #include <string_view>
 #include <tfc/stx/string_view_join.hpp>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::dbus::match::rules {
 namespace type {
 /// \brief make dbus `type` match rule for signal

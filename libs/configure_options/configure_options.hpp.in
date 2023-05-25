@@ -2,6 +2,8 @@
 
 #include <string_view>
 
+#define EXPORT __attribute__((visibility("default")))
+
 namespace tfc::configure_options {
 
 static constexpr std::string_view dbus_domain{ "@TFC_DBUS_DOMAIN@" }; // "org" or "com" etc.
