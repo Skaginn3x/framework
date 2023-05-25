@@ -38,7 +38,13 @@ inline auto create_ipc_signal(asio::io_context& ctx, std::string_view name) -> r
   }
   throw std::runtime_error{ fmt::format("invalid_type: {}", name) };
 }
-using any_signal = std::variant<std::monostate, ipc::bool_signal, ipc::int_signal, ipc::uint_signal, ipc::double_signal, ipc::string_signal, ipc::json_signal>;
+using any_signal = std::variant<std::monostate,
+                                ipc::bool_signal,
+                                ipc::int_signal,
+                                ipc::uint_signal,
+                                ipc::double_signal,
+                                ipc::string_signal,
+                                ipc::json_signal>;
 
 inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::string_view signal_name)
     -> asio::awaitable<void> {
