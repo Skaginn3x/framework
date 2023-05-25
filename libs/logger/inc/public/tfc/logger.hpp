@@ -5,8 +5,6 @@
 #include <string>
 #include <string_view>
 
-#define EXPORT __attribute__((visibility("default")))
-
 namespace spdlog {
 class async_logger;
 }  // namespace spdlog
