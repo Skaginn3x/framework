@@ -1,0 +1,11 @@
+.SlotDiv {
+	text-align: left;
+	margin: 1rem;
+	background-color: #F0F0F0;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+}

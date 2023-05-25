@@ -28,7 +28,7 @@
     "start": "react-scripts start",
     "build": "GENERATE_SOURCEMAP=false BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json",
     "dev": "GENERATE_SOURCEMAP=false react-scripts build && react-scripts start",
-    "devbuild": "GENERATE_SOURCEMAP=true BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json",
+    "devbuild": "GENERATE_SOURCEMAP=true BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json && node ./install/create_link.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
