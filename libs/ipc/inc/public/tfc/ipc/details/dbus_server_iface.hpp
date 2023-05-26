@@ -291,9 +291,13 @@ public:
    * @param type  the type enum of the signal to be registered
    * @param handler  the error handling callback function
    */
-  auto register_signal(const std::string& name, const std::string_view description, type_e type, std::invocable<const std::error_code&> auto&& handler) -> void {
+  auto register_signal(const std::string& name,
+                       const std::string_view description,
+                       type_e type,
+                       std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "RegisterSignal", name, description, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name, "RegisterSignal", name, description,
+                                   static_cast<uint8_t>(type));
   }
 
   /**
@@ -302,8 +306,10 @@ public:
    * @param type  the type enum of the slot to be registered
    * @param handler  the error handling callback function
    */
-  auto register_slot(const std::string_view name, const std::string_view description, type_e type, std::invocable<const std::error_code&> auto&& handler)
-      -> void {
+  auto register_slot(const std::string_view name,
+                     const std::string_view description,
+                     type_e type,
+                     std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
                                    ipc_ruler_interface_name, "RegisterSlot", name, description, static_cast<uint8_t>(type));
   }
@@ -349,6 +355,23 @@ public:
                                                 }
                                               });
   }
+  /**
+   * Async function to get the connections from the ipc manager.
+   * @param handler  a function like object that is called with a map og strings and a vector of strings
+   */
+  auto connections(std::invocable<const std::map<std::string, std::vector<std::string>>&> auto&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(
+        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "Connections",
+        [handler](const boost::system::error_code& error, const std::string& response) {
+          if (error) {
+            return;
+          }
+          auto slots = glz::read_json<std::map<std::string, std::vector<std::string>>>(response);
+          if (slots) {
+            handler(slots.value());
+          }
+        });
+  }
 
   /**
    * Send a request over dbus to connect a slot to a signal.
@@ -363,21 +386,6 @@ public:
                std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
                                    ipc_ruler_interface_name, "Connect", slot_name, signal_name);
-  }
-
-  template <typename message_handler>
-  auto connections(message_handler&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "Connections",
-        [handler](const boost::system::error_code& error, const std::string& response) {
-          if (error) {
-            return;
-          }
-          auto slots = glz::read_json<std::map<std::string, std::vector<std::string>>>(response);
-          if (slots) {
-            handler(slots.value());
-          }
-        });
   }
 
   /**
@@ -430,8 +438,10 @@ struct ipc_manager_client_mock {
 
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
 
-  auto register_slot(const std::string_view name, std::string_view description, type_e type, std::invocable<const std::error_code&> auto&& handler)
-      -> void {
+  auto register_slot(const std::string_view name,
+                     std::string_view description,
+                     type_e type,
+                     std::invocable<const std::error_code&> auto&& handler) -> void {
     slots.emplace_back(slot{ .name = std::string(name),
                              .type = type,
                              .created_by = "",
@@ -444,8 +454,10 @@ struct ipc_manager_client_mock {
     handler(std::error_code());
   }
 
-  auto register_signal(const std::string_view name, std::string_view description, type_e type, std::invocable<const std::error_code&> auto&& handler)
-      -> void {
+  auto register_signal(const std::string_view name,
+                       std::string_view description,
+                       type_e type,
+                       std::invocable<const std::error_code&> auto&& handler) -> void {
     signals.emplace_back(signal{ .name = std::string(name),
                                  .type = type,
                                  .created_by = "",

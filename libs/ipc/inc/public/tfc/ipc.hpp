@@ -41,6 +41,7 @@ public:
   using value_t = details::slot_callback<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::slot_callback<type_desc>::direction_v;
+
   /**
    * C'tor for a tfc IPC slot.
    * @param ctx Execution context
@@ -48,16 +49,30 @@ public:
    * @param name The slot name
    * @param callback Channel for value updates from the corosponding signal.
    */
-  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description, auto&& callback)
+  slot(asio::io_context& ctx,
+       manager_client_type& client,
+       std::string_view name,
+       std::string_view description,
+       auto&& callback)
       : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
     client_.register_connection_change_callback(
         slot_->name_w_type(), [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
     client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
+  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, auto&& callback)
+      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
+    client_.register_connection_change_callback(
+        slot_->name_w_type(), [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
+    client_.register_slot(slot_->name_w_type(), "", type_desc::value_e, details::register_cb(slot_->name_w_type()));
+  }
+
   slot(slot&) = delete;
+
   slot(slot&&) noexcept = delete;
+
   auto operator=(slot&&) noexcept -> slot& = delete;
+
   auto operator=(slot const&) -> slot& = delete;
 
   [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
@@ -85,10 +100,12 @@ public:
    * @param ctx Execution context
    * @param name Signals name
    */
-  signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description)
+  signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description = "")
       : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(client) {
-    client_.register_signal(signal_->name_w_type(), description, type_desc::value_e, details::register_cb(signal_->name_w_type()));
+    client_.register_signal(signal_->name_w_type(), description, type_desc::value_e,
+                            details::register_cb(signal_->name_w_type()));
   }
+
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
 
   auto async_send(value_t const& value, std::invocable<std::error_code, std::size_t> auto&& callback) -> void {

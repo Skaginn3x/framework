@@ -11,12 +11,12 @@ auto main(int argc, char** argv) -> int {
   boost::asio::io_context ctx;
   tfc::ipc_ruler::ipc_manager_client client(ctx);
 
-  client.register_signal("signal", tfc::ipc::details::type_e::_bool, [](const boost::system::error_code& ec) {
+  client.register_signal("signal", "", tfc::ipc::details::type_e::_bool, [](const boost::system::error_code& ec) {
     if (ec) {
       std::cerr << "Error occured" << ec.what() << std::endl;
     }
   });
-  client.register_slot("slot", tfc::ipc::details::type_e::_bool, [](const boost::system::error_code& ec) {
+  client.register_slot("slot", "", tfc::ipc::details::type_e::_bool, [](const boost::system::error_code& ec) {
     if (ec) {
       std::cerr << "Error occured" << ec.what() << std::endl;
     }
