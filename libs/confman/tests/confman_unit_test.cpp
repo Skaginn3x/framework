@@ -2,17 +2,10 @@
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
+#include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/mocks/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
-#include <tfc/utils/pragmas.hpp>
-
-// clang-format off
-//PRAGMA_CLANG_WARNING_PUSH_OFF(-Wkeyword-macro)
-//#define private public
-//PRAGMA_CLANG_WARNING_POP
-// clang-format on
-#include <tfc/confman.hpp>
 
 namespace ut = boost::ut;
 namespace asio = boost::asio;
@@ -36,7 +29,7 @@ struct config_test {
   using mock_file_storage_t = testing::NiceMock<tfc::confman::mock_file_storage<storage>>;
   mock_file_storage_t mock_file_storage{ ctx, "bar" };
   tfc::confman::config<storage, testing::NiceMock<tfc::confman::mock_file_storage<storage>>&> const config{
-    ctx, "foo", false, mock_file_storage
+    ctx, "foo", mock_file_storage
   };
 };
 

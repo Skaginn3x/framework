@@ -47,7 +47,7 @@ public:
     });
   }
 
-  config(asio::io_context& ctx, std::string_view key, auto&&, file_storage_t file_storage)
+  config(asio::io_context& ctx, std::string_view key, file_storage_t file_storage)
       : storage_{ file_storage }, client_{ ctx, key, std::bind_front(&config::string, this),
                                            std::bind_front(&config::schema, this),
                                            std::bind_front(&config::from_string, this) },
