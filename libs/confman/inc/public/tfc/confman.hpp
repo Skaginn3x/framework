@@ -18,8 +18,8 @@ namespace asio = boost::asio;
 /// \brief configuration storage which maintains and keeps a storage type up to date
 /// \tparam config_storage_t equality comparable and default constructible type
 /// \tparam file_storage_t injectable template to override default behaviour
-template <typename config_storage_t,
-          std::convertible_to<file_storage<config_storage_t>> file_storage_t = file_storage<config_storage_t>>
+template <typename config_storage_t, typename file_storage_t = file_storage<config_storage_t>>
+  requires std::convertible_to<std::remove_reference_t<file_storage_t>, file_storage<config_storage_t>>
 class config {
 public:
   using type = config_storage_t;
@@ -46,6 +46,14 @@ public:
       //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
     });
   }
+
+  config(asio::io_context& ctx, std::string_view key, auto&&, file_storage_t file_storage)
+      : storage_{ file_storage }, client_{ ctx, key, std::bind_front(&config::string, this),
+                                           std::bind_front(&config::schema, this),
+                                           std::bind_front(&config::from_string, this) },
+        logger_{ fmt::format("config.{}", key) } {
+    static_assert(std::is_lvalue_reference_v<file_storage_t>);
+  };
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
