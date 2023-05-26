@@ -7,9 +7,11 @@
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wkeyword - macro)
+// clang-format off
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wkeyword-macro)
 #define private public
 PRAGMA_CLANG_WARNING_POP
+// clang-format on
 #include <tfc/confman.hpp>
 
 namespace ut = boost::ut;
