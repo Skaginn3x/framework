@@ -1,13 +1,13 @@
+#include <gmock/gmock.h>
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
-#include <gmock/gmock.h>
 
-#include <tfc/progbase.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/mocks/confman/file_storage.hpp>
+#include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wkeyword-macro)
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wkeyword - macro)
 #define private public
 PRAGMA_CLANG_WARNING_POP
 #include <tfc/confman.hpp>
@@ -41,11 +41,11 @@ auto main(int argc, char** argv) -> int {
     config_test const test{};
     auto presumed_err{ std::make_error_code(std::errc::bad_message) };
     ON_CALL(test.config.storage_, set_changed()).WillByDefault(testing::Return(presumed_err));
-    EXPECT_CALL(test.config.storage_, set_changed()).Times(2); // todo why twice?
+    // confman client call as well as return of confman set_changed
+    EXPECT_CALL(test.config.storage_, set_changed()).Times(2);
     auto returned_err{ test.config.set_changed() };
     ut::expect(returned_err == presumed_err);
   };
-
 
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));
 }

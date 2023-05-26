@@ -247,13 +247,5 @@ auto main(int argc, char** argv) -> int {
     ut::expect(called == 1);
   };
 
-  "test with mock"_test = [] {
-    boost::asio::io_context ctx{};
-
-    tfc::confman::config<storage> const config{ ctx, "foo" };
-
-
-  };
-
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));
 }

@@ -18,7 +18,8 @@ namespace asio = boost::asio;
 /// \brief configuration storage which maintains and keeps a storage type up to date
 /// \tparam config_storage_t equality comparable and default constructible type
 /// \tparam file_storage_t injectable template to override default behaviour
-template <typename config_storage_t, std::convertible_to<file_storage<config_storage_t>> file_storage_t = file_storage<config_storage_t>>
+template <typename config_storage_t,
+          std::convertible_to<file_storage<config_storage_t>> file_storage_t = file_storage<config_storage_t>>
 class config {
 public:
   using type = config_storage_t;
