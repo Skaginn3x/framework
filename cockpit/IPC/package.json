@@ -4,6 +4,8 @@
   "description": "",
   "homepage": "./",
   "dependencies": {
+    "@babel/core": "7.21.8",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.0",
     "@patternfly/react-core": "^4.276.8",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
