@@ -291,9 +291,9 @@ public:
    * @param type  the type enum of the signal to be registered
    * @param handler  the error handling callback function
    */
-  auto register_signal(const std::string& name, type_e type, std::invocable<const std::error_code&> auto&& handler) -> void {
+  auto register_signal(const std::string& name, const std::string_view description, type_e type, std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "register_signal", name, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name, "RegisterSignal", name, description, static_cast<uint8_t>(type));
   }
 
   /**
@@ -302,10 +302,10 @@ public:
    * @param type  the type enum of the slot to be registered
    * @param handler  the error handling callback function
    */
-  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
+  auto register_slot(const std::string_view name, const std::string_view description, type_e type, std::invocable<const std::error_code&> auto&& handler)
       -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "register_slot", name, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name, "RegisterSlot", name, description, static_cast<uint8_t>(type));
   }
 
   /**
@@ -316,7 +316,7 @@ public:
    */
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
-                                              ipc_ruler_interface_name, "signals",
+                                              ipc_ruler_interface_name, "Signals",
                                               [handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -337,7 +337,7 @@ public:
    */
   auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
-                                              ipc_ruler_interface_name, "slots",
+                                              ipc_ruler_interface_name, "Slots",
                                               [handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -362,13 +362,13 @@ public:
                const std::string& signal_name,
                std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "connect", slot_name, signal_name);
+                                   ipc_ruler_interface_name, "Connect", slot_name, signal_name);
   }
 
   template <typename message_handler>
   auto connections(message_handler&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "connections",
+        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "Connections",
         [handler](const boost::system::error_code& error, const std::string& response) {
           if (error) {
             return;

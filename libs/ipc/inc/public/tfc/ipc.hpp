@@ -48,11 +48,11 @@ public:
    * @param name The slot name
    * @param callback Channel for value updates from the corosponding signal.
    */
-  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, auto&& callback)
+  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description, auto&& callback)
       : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
     client_.register_connection_change_callback(
         slot_->name_w_type(), [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
-    client_.register_slot(slot_->name_w_type(), type_desc::value_e, details::register_cb(slot_->name_w_type()));
+    client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
   slot(slot&) = delete;
@@ -85,9 +85,9 @@ public:
    * @param ctx Execution context
    * @param name Signals name
    */
-  signal(asio::io_context& ctx, manager_client_type& client, std::string_view name)
+  signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description)
       : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(client) {
-    client_.register_signal(signal_->name_w_type(), type_desc::value_e, details::register_cb(signal_->name_w_type()));
+    client_.register_signal(signal_->name_w_type(), description, type_desc::value_e, details::register_cb(signal_->name_w_type()));
   }
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
 
