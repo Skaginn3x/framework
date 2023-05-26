@@ -46,6 +46,9 @@ struct app {
         screen_{ ScreenInteractive::FitComponent() }, loop_{ &screen_, component_ }, ctx_{ ctx } {
     timer_.expires_after(poll_rate);
     timer_.async_wait(std::bind_front(&app::poll_ftxui, this));
+
+    ipc_client_.signals(std::bind_front(&app::signals_cb, this));
+    ipc_client_.slots(std::bind_front(&app::slots_cb, this));
   }
 
   void poll_ftxui(std::error_code const& err) {
@@ -62,6 +65,14 @@ struct app {
     }
   }
 
+  void signals_cb(std::vector<tfc::ipc_ruler::signal> const& signals) {
+    signals_ = signals;
+  }
+
+  void slots_cb(std::vector<tfc::ipc_ruler::slot> const& slots) {
+    slots_ = slots;
+  }
+
   int value = 50;
 
   Component buttons_;
@@ -71,6 +82,10 @@ struct app {
 
   asio::io_context& ctx_;
   asio::steady_timer timer_{ ctx_ };
+  tfc::ipc_ruler::ipc_manager_client ipc_client_{ ctx_ };
+  std::vector<tfc::ipc_ruler::signal> signals_{};
+  std::vector<tfc::ipc_ruler::slot> slots_{};
+
 };
 
 int main(int argc, const char* argv[]) {
