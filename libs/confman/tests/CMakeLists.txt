@@ -41,6 +41,23 @@ add_test(
     confman_test
 )
 
+add_executable(confman_unit_test confman_unit_test.cpp)
+
+target_link_libraries(confman_unit_test
+  PRIVATE
+    tfc::confman
+    tfc::mocks::confman
+    Boost::ut
+    glaze::glaze
+)
+
+add_test(
+  NAME
+    confman_unit_test
+  COMMAND
+    confman_unit_test
+)
+
 add_executable(file_storage_test file_storage_test.cpp)
 
 target_link_libraries(file_storage_test

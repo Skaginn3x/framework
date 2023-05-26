@@ -11,7 +11,12 @@ template <typename owner_t>
 ///       as it owns reference to owner.
 /// \tparam owner_t Owning object type.
 struct change {
-  explicit change(owner_t& owner) : owner_{ owner } {}
+  explicit change(owner_t& owner) noexcept : owner_{ owner } {}
+
+  change(change const&) noexcept = default;
+  change(change&&) noexcept = default;
+  change& operator=(change const&) noexcept = default;
+  change& operator=(change&&) noexcept = default;
 
   /// \brief let owner know of the changes
   ~change() {

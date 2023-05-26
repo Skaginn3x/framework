@@ -20,6 +20,7 @@ struct mock_file_storage : public tfc::confman::file_storage<storage_t> {
     ON_CALL(*this, error()).WillByDefault(testing::ReturnRef(this->error_));
     ON_CALL(*this, file()).WillByDefault(testing::ReturnRef(this->config_file_));
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(this->storage_));
+    ON_CALL(*this, access()).WillByDefault(testing::ReturnRef(this->storage_));
     ON_CALL(*this, make_change()).WillByDefault(testing::Return(change{ *this }));
     ON_CALL(*this, set_changed()).WillByDefault(testing::Return(std::error_code{}));
   }
@@ -31,6 +32,7 @@ struct mock_file_storage : public tfc::confman::file_storage<storage_t> {
   MOCK_METHOD((std::error_code const&), error, (), (const noexcept));       // NOLINT
   MOCK_METHOD((std::filesystem::path const&), file, (), (const noexcept));  // NOLINT
   MOCK_METHOD((storage_t const&), value, (), (const noexcept));             // NOLINT
+  MOCK_METHOD((storage_t &), access, (), (const noexcept));                 // NOLINT
   MOCK_METHOD((void), on_change, (std::function<void()>), ());              // NOLINT, todo
   MOCK_METHOD((change), make_change, (), (noexcept));                       // NOLINT
   MOCK_METHOD((std::error_code), set_changed, (), (const noexcept));        // NOLINT
