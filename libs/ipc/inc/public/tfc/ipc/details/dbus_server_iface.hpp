@@ -39,6 +39,7 @@ struct signal {
   std::string created_by;
   std::chrono::time_point<std::chrono::system_clock> created_at;
   std::chrono::time_point<std::chrono::system_clock> last_registered;
+  std::string description;
 
   struct glaze {
     static constexpr auto value{ glz::object("name",
@@ -50,7 +51,9 @@ struct signal {
                                              "created_at",
                                              &tfc::ipc_ruler::signal::created_at,
                                              "last_registered",
-                                             &tfc::ipc_ruler::signal::last_registered) };
+                                             &tfc::ipc_ruler::signal::last_registered,
+                                             "description",
+                                             &tfc::ipc_ruler::signal::description) };
     static constexpr auto name{ "signal" };
   };
 };
@@ -64,6 +67,7 @@ struct slot {
   std::chrono::time_point<std::chrono::system_clock> last_modified;
   std::string modified_by;
   std::string connected_to;
+  std::string description;
 
   struct glaze {
     static constexpr auto value{ glz::object("name",
@@ -81,7 +85,9 @@ struct slot {
                                              "modified_by",
                                              &tfc::ipc_ruler::slot::modified_by,
                                              "connected_to",
-                                             &tfc::ipc_ruler::slot::connected_to) };
+                                             &tfc::ipc_ruler::slot::connected_to,
+                                             "description",
+                                             &tfc::ipc_ruler::slot::description) };
     static constexpr auto name{ "slot" };
   };
 };
@@ -102,7 +108,7 @@ public:
     on_connect_cb_ = std::move(on_connect_cb);
   }
 
-  auto register_signal(const std::string_view name, type_e type) -> void {
+  auto register_signal(const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
     auto str_name = std::string(name);
@@ -114,11 +120,12 @@ public:
                                             .type = type,
                                             .created_by = "",
                                             .created_at = timestamp_now,
-                                            .last_registered = timestamp_now });
+                                            .last_registered = timestamp_now,
+                                            .description = std::string(description) });
     }
   }
 
-  auto register_slot(const std::string_view name, type_e type) -> void {
+  auto register_slot(const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, magic_enum::enum_name(type));
     auto timestamp_now = std::chrono::system_clock::now();
     auto timestamp_never = std::chrono::time_point<std::chrono::system_clock>{};
@@ -128,16 +135,15 @@ public:
     if (change_slots->find(str_name) != slots_->end()) {
       change_slots->at(str_name).last_registered = timestamp_now;
     } else {
-      change_slots->emplace(name, slot{
-                                      .name = std::string(name),
-                                      .type = type,
-                                      .created_by = "omar",
-                                      .created_at = timestamp_now,
-                                      .last_registered = timestamp_now,
-                                      .last_modified = timestamp_never,
-                                      .modified_by = "",
-                                      .connected_to = "",
-                                  });
+      change_slots->emplace(name, slot{ .name = std::string(name),
+                                        .type = type,
+                                        .created_by = "omar",
+                                        .created_at = timestamp_now,
+                                        .last_registered = timestamp_now,
+                                        .last_modified = timestamp_never,
+                                        .modified_by = "",
+                                        .connected_to = "",
+                                        .description = std::string(description) });
     }
     // Call the connected callback to get the slot connected to its signal if it has one.
     on_connect_cb_(str_name, change_slots->at(str_name).connected_to);
@@ -158,6 +164,18 @@ public:
     ret.reserve(slots_->size());
     std::transform(slots_->begin(), slots_->end(), std::back_inserter(ret), [](const auto& tple) { return tple.second; });
     return ret;
+  }
+
+  auto get_all_connections() -> std::map<std::string, std::vector<std::string>> {
+    std::map<std::string, std::vector<std::string>> connections;
+    std::for_each(signals_->begin(), signals_->end(),
+                  [&](std::pair<std::string, signal> kv) { connections[kv.second.name] = {}; });
+    std::for_each(slots_->begin(), slots_->end(), [&](std::pair<std::string, slot> kv) {
+      if (kv.second.connected_to != "") {
+        connections[kv.second.connected_to].emplace_back(kv.second.name);
+      }
+    });
+    return connections;
   }
 
   auto connect(const std::string_view slot_name, const std::string_view signal_name) -> void {
@@ -213,33 +231,37 @@ public:
     dbus_iface_ = object_server_->add_unique_interface(ipc_ruler_object_path, ipc_ruler_interface_name);
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
-      auto message = dbus_iface_->new_signal("connection_change");
+      auto message = dbus_iface_->new_signal("ConnectionChange");
       message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
       message.signal_send();
     });
-
-    dbus_iface_->register_method("register_signal", [&](const std::string& name, uint8_t type) {
-      ipc_manager_->register_signal(name, static_cast<type_e>(type));
-    });
-    dbus_iface_->register_method("register_slot", [&](const std::string& name, uint8_t type) {
-      ipc_manager_->register_slot(name, static_cast<type_e>(type));
-    });
-
-    dbus_iface_->register_property_r<std::string>("signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
-      return glz::write_json(ipc_manager_->get_all_signals());
-    });
-    dbus_iface_->register_property_r<std::string>("slots", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
-      return glz::write_json(ipc_manager_->get_all_slots());
-    });
-
-    dbus_iface_->register_method("connect", [&](const std::string& slot_name, const std::string& signal_name) {
+    dbus_iface_->register_method("Connect", [&](const std::string& slot_name, const std::string& signal_name) {
       ipc_manager_->connect(slot_name, signal_name);
     });
 
-    dbus_iface_->register_method("disconnect", [&](const std::string& slot_name) { ipc_manager_->disconnect(slot_name); });
+    dbus_iface_->register_method("Disconnect", [&](const std::string& slot_name) { ipc_manager_->disconnect(slot_name); });
 
-    dbus_iface_->register_signal<std::tuple<std::string, std::string>>("connection_change");
+    dbus_iface_->register_method("RegisterSignal",
+                                 [&](const std::string& name, const std::string& description, uint8_t type) {
+                                   ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
+                                 });
+    dbus_iface_->register_method("RegisterSlot", [&](const std::string& name, const std::string& description, uint8_t type) {
+      ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
+    });
 
+    dbus_iface_->register_property_r<std::string>("Signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
+      return glz::write_json(ipc_manager_->get_all_signals());
+    });
+
+    dbus_iface_->register_property_r<std::string>("Slots", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
+      return glz::write_json(ipc_manager_->get_all_slots());
+    });
+
+    dbus_iface_->register_property_r<std::string>(
+        "Connections", sdbusplus::vtable::property_::emits_change,
+        [&](const auto&) { return glz::write_json(ipc_manager_->get_all_connections()); });
+
+    dbus_iface_->register_signal<std::tuple<std::string, std::string>>("ConnectionChange");
     dbus_iface_->initialize();
   }
 
@@ -267,9 +289,13 @@ public:
    * @param type  the type enum of the signal to be registered
    * @param handler  the error handling callback function
    */
-  auto register_signal(const std::string& name, type_e type, std::invocable<const std::error_code&> auto&& handler) -> void {
+  auto register_signal(const std::string& name,
+                       const std::string_view description,
+                       type_e type,
+                       std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "register_signal", name, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name, "RegisterSignal", name, description,
+                                   static_cast<uint8_t>(type));
   }
 
   /**
@@ -278,10 +304,12 @@ public:
    * @param type  the type enum of the slot to be registered
    * @param handler  the error handling callback function
    */
-  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
-      -> void {
+  auto register_slot(const std::string_view name,
+                     const std::string_view description,
+                     type_e type,
+                     std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "register_slot", name, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name, "RegisterSlot", name, description, static_cast<uint8_t>(type));
   }
 
   /**
@@ -292,7 +320,7 @@ public:
    */
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
-                                              ipc_ruler_interface_name, "signals",
+                                              ipc_ruler_interface_name, "Signals",
                                               [handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -313,7 +341,7 @@ public:
    */
   auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
-                                              ipc_ruler_interface_name, "slots",
+                                              ipc_ruler_interface_name, "Slots",
                                               [handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -324,6 +352,24 @@ public:
                                                   handler(slots.value());
                                                 }
                                               });
+  }
+
+  /**
+   * Async function to get the connections from the ipc manager.
+   * @param handler  a function like object that is called with a map og strings and a vector of strings
+   */
+  auto connections(std::invocable<const std::map<std::string, std::vector<std::string>>&> auto&& handler) -> void {
+    sdbusplus::asio::getProperty<std::string>(
+        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "Connections",
+        [handler](const boost::system::error_code& error, const std::string& response) {
+          if (error) {
+            return;
+          }
+          auto slots = glz::read_json<std::map<std::string, std::vector<std::string>>>(response);
+          if (slots) {
+            handler(slots.value());
+          }
+        });
   }
 
   /**
@@ -338,7 +384,7 @@ public:
                const std::string& signal_name,
                std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "connect", slot_name, signal_name);
+                                   ipc_ruler_interface_name, "Connect", slot_name, signal_name);
   }
 
   /**
@@ -391,8 +437,10 @@ struct ipc_manager_client_mock {
 
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
 
-  auto register_slot(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
-      -> void {
+  auto register_slot(const std::string_view name,
+                     std::string_view description,
+                     type_e type,
+                     std::invocable<const std::error_code&> auto&& handler) -> void {
     slots.emplace_back(slot{ .name = std::string(name),
                              .type = type,
                              .created_by = "",
@@ -400,19 +448,21 @@ struct ipc_manager_client_mock {
                              .last_registered = std::chrono::system_clock::now(),
                              .last_modified = std::chrono::system_clock::now(),
                              .modified_by = "",
-                             .connected_to = "" });
+                             .connected_to = "",
+                             .description = std::string(description) });
     handler(std::error_code());
   }
 
-  auto register_signal(const std::string_view name, type_e type, std::invocable<const std::error_code&> auto&& handler)
-      -> void {
-    signals.emplace_back(signal{
-        .name = std::string(name),
-        .type = type,
-        .created_by = "",
-        .created_at = std::chrono::system_clock::now(),
-        .last_registered = std::chrono::system_clock::now(),
-    });
+  auto register_signal(const std::string_view name,
+                       std::string_view description,
+                       type_e type,
+                       std::invocable<const std::error_code&> auto&& handler) -> void {
+    signals.emplace_back(signal{ .name = std::string(name),
+                                 .type = type,
+                                 .created_by = "",
+                                 .created_at = std::chrono::system_clock::now(),
+                                 .last_registered = std::chrono::system_clock::now(),
+                                 .description = std::string(description) });
     handler(std::error_code());
   }
 
@@ -437,4 +487,5 @@ struct ipc_manager_client_mock {
   std::vector<slot> slots;
   std::vector<signal> signals;
 };
+
 }  // namespace tfc::ipc_ruler

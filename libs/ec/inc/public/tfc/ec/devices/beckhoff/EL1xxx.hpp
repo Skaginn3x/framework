@@ -9,8 +9,8 @@ public:
   explicit el100x(boost::asio::io_context& ctx, manager_client_type& client, uint16_t const slave_index)
       : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
-      transmitters_.emplace_back(
-          std::make_unique<tfc::ipc::bool_signal>(ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i)));
+      transmitters_.emplace_back(std::make_unique<tfc::ipc::bool_signal>(
+          ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i), "Digital input"));
     }
   }
   static constexpr uint32_t product_code = pc;

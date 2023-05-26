@@ -13,12 +13,14 @@ public:
   explicit easyecat(boost::asio::io_context& ctx_, manager_client_type& client, uint16_t const slave_index)
       : base(slave_index) {
     for (size_t i = 0; i < 4; i++) {
-      bool_transmitters_.emplace_back(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i));
-      bool_receivers_[i] = std::make_unique<ipc::bool_slot>(ctx_, client, fmt::format("easyecat.{}.out.{}", slave_index, i),
-                                                            [this, i](bool value) { output_states_.set(i, value); });
+      bool_transmitters_.emplace_back(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i), "Digital input");
+      bool_receivers_[i] =
+          std::make_unique<ipc::bool_slot>(ctx_, client, fmt::format("easyecat.{}.out.{}", slave_index, i), "Digital output",
+                                           [this, i](bool value) { output_states_.set(i, value); });
     }
     for (size_t i = 0; i < 2; i++) {
-      analog_transmitters_.push_back(tfc::ipc::uint_signal(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i)));
+      analog_transmitters_.push_back(
+          tfc::ipc::uint_signal(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i), "Analog input"));
     }
   }
 

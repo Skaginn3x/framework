@@ -1,0 +1,10 @@
+{
+    "version": 0,
+    "tools": {
+        "tfc": {
+            "label": "TFC connections",
+            "path": "index.html"
+
+        }
+    }
+}
