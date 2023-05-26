@@ -223,9 +223,7 @@ template <typename signal_storage, typename slot_storage>
 class ipc_manager_server {
 public:
   explicit ipc_manager_server(boost::asio::io_context& ctx,
-                              std::unique_ptr<ipc_manager<signal_storage, slot_storage>>
-
-                                  && ipc_manager)
+                              std::unique_ptr<ipc_manager<signal_storage, slot_storage>>&& ipc_manager)
       : ipc_manager_{ std::move(ipc_manager) } {
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
@@ -355,6 +353,7 @@ public:
                                                 }
                                               });
   }
+
   /**
    * Async function to get the connections from the ipc manager.
    * @param handler  a function like object that is called with a map og strings and a vector of strings

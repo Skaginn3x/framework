@@ -1,4 +1,3 @@
-// Alerts.tsx
 import { Alert, AlertActionCloseButton, AlertGroup } from '@patternfly/react-core';
 import { useAlertContext } from './AlertContext';
 import "./Alerts.css"

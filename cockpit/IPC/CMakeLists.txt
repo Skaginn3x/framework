@@ -1,7 +1,6 @@
 # npm i
 # react-scripts build
 
-
 add_custom_command(
    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build
    COMMAND npm install --no-package-lock
@@ -20,12 +19,13 @@ install(
   DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR}/build
   DESTINATION
-    /usr/share/cockpit/ipc
+    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/ipc
   CONFIGURATIONS Release
 )
 install(
   FILES
     manifest.json
   DESTINATION
-    /usr/share/cockpit/ipc/
+    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/ipc/
+  CONFIGURATIONS Release
 )

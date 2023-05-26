@@ -2,7 +2,7 @@
     "version": 0,
     "tools": {
         "tfc": {
-            "label": "Time For Change",
+            "label": "TFC connections",
             "path": "index.html"
 
         }

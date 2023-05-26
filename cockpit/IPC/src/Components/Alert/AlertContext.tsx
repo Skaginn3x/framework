@@ -1,4 +1,3 @@
-// alertContext.tsx
 import { createContext, useContext } from "react";
 import { AlertVariant } from "@patternfly/react-core";
 

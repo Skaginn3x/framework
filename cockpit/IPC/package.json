@@ -1,6 +1,6 @@
 {
-  "name": "tfc_ui",
-  "version": "1.0.0",
+  "name": "tfc_ipc",
+  "version": "0.0.1",
   "description": "",
   "homepage": "./",
   "dependencies": {
@@ -35,18 +35,6 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
     ]
   }
 }

@@ -1,4 +1,3 @@
-// AlertProvider.tsx
 import React, { useReducer } from 'react';
 import AlertContext from './AlertContext';
 
