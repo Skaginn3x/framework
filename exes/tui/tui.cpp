@@ -49,6 +49,7 @@ struct app {
 
     ipc_client_.signals(std::bind_front(&app::signals_cb, this));
     ipc_client_.slots(std::bind_front(&app::slots_cb, this));
+    ipc_client_.connections(std::bind_front(&app::connections_cb, this));
   }
 
   void poll_ftxui(std::error_code const& err) {
@@ -73,6 +74,10 @@ struct app {
     slots_ = slots;
   }
 
+  void connections_cb(std::map<std::string, std::vector<std::string>> connections) {
+    connections_ = connections;
+  }
+
   int value = 50;
 
   Component buttons_;
@@ -85,7 +90,7 @@ struct app {
   tfc::ipc_ruler::ipc_manager_client ipc_client_{ ctx_ };
   std::vector<tfc::ipc_ruler::signal> signals_{};
   std::vector<tfc::ipc_ruler::slot> slots_{};
-
+  std::map<std::string, std::vector<std::string>> connections_{};
 };
 
 int main(int argc, const char* argv[]) {
