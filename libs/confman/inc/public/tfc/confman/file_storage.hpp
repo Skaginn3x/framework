@@ -22,7 +22,8 @@ class file_storage {
 public:
   using type = storage_t;
 
-  /// \brief empty constructor, usable for testing
+  /// \brief Empty constructor
+  /// \note Should only be used for testing
   explicit file_storage(asio::io_context& ctx) : logger_{ "file_storage" }, file_watcher_{ ctx } {}
 
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
@@ -69,7 +70,7 @@ public:
 
   using change = detail::change<file_storage>;
 
-  auto make_change() -> change { return change{ *this }; }
+  auto make_change() noexcept -> change { return change{ *this }; }
 
   auto set_changed() const noexcept -> std::error_code {
     std::string buffer{};  // this can throw, meaning memory error

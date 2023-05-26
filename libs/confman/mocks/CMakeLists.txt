@@ -8,7 +8,7 @@ target_include_directories(confman_mocks
     $<INSTALL_INTERFACE:inc/public>
 )
 
-find_package(GTest CONFIG REQUIRED)
+find_package(GTest CONFIG REQUIRED COMPONENTS gmock)
 target_link_libraries(confman_mocks
   INTERFACE
     tfc::confman

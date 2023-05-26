@@ -226,6 +226,7 @@ auto main(int argc, char** argv) -> int {
     ut::expect(called == 1);
   };
 
+  // Todo implement
   ut::skip / "integration await property file is changed"_test = [&] {
     boost::asio::io_context ctx{};
     sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
@@ -244,6 +245,14 @@ auto main(int argc, char** argv) -> int {
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);
+  };
+
+  "test with mock"_test = [] {
+    boost::asio::io_context ctx{};
+
+    tfc::confman::config<storage> const config{ ctx, "foo" };
+
+
   };
 
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));
