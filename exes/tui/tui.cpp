@@ -22,40 +22,65 @@ namespace ipc = tfc::ipc;
 #include "ftxui/component/component_base.hpp"      // for ComponentBase
 #include "ftxui/component/screen_interactive.hpp"  // for ScreenInteractive
 #include "ftxui/dom/elements.hpp"  // for separator, gauge, text, Element, operator|, vbox, border
+#include <ftxui/component/loop.hpp>
 
 // https://github.com/ArthurSonzogni/FTXUI/blob/main/examples/component/button.cpp
 
 using namespace ftxui;
 
-int main(int argc, const char* argv[]) {
-  tfc::base::init(argc, argv);
+struct app {
+  static std::chrono::milliseconds constexpr poll_rate{ 100 };
+  app(asio::io_context& ctx) : buttons_{ Container::Horizontal({
+            Button("Decrease", [&] { value--; }),
+            Button("Increase", [&] { value++; }),
+        }) }, component_{ Renderer(buttons_, [this] {
+          return vbox({
+                     text("value = " + std::to_string(value)),
+                     separator(),
+                     gauge(value * 0.01f),
+                     separator(),
+                     buttons_->Render(),
+                 }) |
+                 border;
+        }) },
+        screen_{ ScreenInteractive::FitComponent() }, loop_{ &screen_, component_ }, ctx_{ ctx } {
+    timer_.expires_after(poll_rate);
+    timer_.async_wait(std::bind_front(&app::poll_ftxui, this));
+  }
+
+  void poll_ftxui(std::error_code const& err) {
+    if(err) {
+      return;
+    }
+    if (loop_.HasQuitted()) {
+      ctx_.stop();
+    }
+    else {
+      loop_.RunOnce();
+      timer_.expires_after(poll_rate);
+      timer_.async_wait(std::bind_front(&app::poll_ftxui, this));
+    }
+  }
 
   int value = 50;
 
-  // The tree of components. This defines how to navigate using the keyboard.
-  auto buttons = Container::Horizontal({
-      Button("Decrease", [&] { value--; }),
-      Button("Increase", [&] { value++; }),
-  });
+  Component buttons_;
+  Component component_;
+  ScreenInteractive screen_;
+  Loop loop_;
 
-  // Modify the way to render them on screen:
-  auto component = Renderer(buttons, [&] {
-    return vbox({
-               text("value = " + std::to_string(value)),
-               separator(),
-               gauge(value * 0.01f),
-               separator(),
-               buttons->Render(),
-           }) |
-           border;
-  });
+  asio::io_context& ctx_;
+  asio::steady_timer timer_{ ctx_ };
+};
 
-  auto screen = ScreenInteractive::FitComponent();
-  screen.Loop(component);
-  return 0;
+int main(int argc, const char* argv[]) {
+  tfc::base::init(argc, argv);
+
+  asio::io_context ctx{};
+
+  app const my_app{ ctx };
+
+  ctx.run();
+
+  return EXIT_SUCCESS;
 }
-
-// Copyright 2020 Arthur Sonzogni. All rights reserved.
-// Use of this source code is governed by the MIT license that can be found in
-// the LICENSE file.
-
