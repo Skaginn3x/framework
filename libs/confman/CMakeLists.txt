@@ -37,6 +37,7 @@ add_library_to_docs(tfc::confman)
 
 if (BUILD_TESTING)
   add_subdirectory(tests)
+  add_subdirectory(mocks)
 endif ()
 
 include(tfc_install)
