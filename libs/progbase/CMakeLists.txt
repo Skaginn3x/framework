@@ -9,7 +9,7 @@ get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECT
 target_include_directories(base
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
     inc
     ${TFC_LOGGER_INCLUDE_DIRS}
@@ -28,4 +28,9 @@ target_link_libraries(base
 
 add_library_to_docs(tfc::base)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
+
+include(tfc_install)
+tfc_install_lib(base)

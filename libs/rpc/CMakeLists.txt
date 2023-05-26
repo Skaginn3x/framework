@@ -14,7 +14,7 @@ add_library(tfc::rpc ALIAS librpc)
 target_include_directories(librpc
   INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
     ${AZMQ_INCLUDE_DIRS}
 )
 
@@ -29,4 +29,6 @@ target_link_libraries(librpc
 )
 add_library_to_docs(tfc::rpc)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()

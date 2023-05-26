@@ -11,10 +11,8 @@ find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 target_include_directories(ipc
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
-    ${AZMQ_INCLUDE_DIRS}
-  PRIVATE
-    inc
+    $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${AZMQ_INCLUDE_DIRS}>
 )
 
 find_package(Boost REQUIRED)
@@ -31,10 +29,14 @@ target_link_libraries(ipc
     Boost::boost
     fmt::fmt
     glaze::glaze
-  PRIVATE
-    libzmq-static
+    $<IF:$<BOOL:${ZeroMQ_LIBRARY}>,${ZeroMQ_LIBRARY},${ZeroMQ_STATIC_LIBRARY}>
 )
 
 add_library_to_docs(tfc::ipc)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
+
+include(tfc_install)
+tfc_install_lib(ipc)

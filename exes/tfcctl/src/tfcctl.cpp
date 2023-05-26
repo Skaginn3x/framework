@@ -16,12 +16,44 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
 
+template <typename return_t>
+inline auto create_ipc_signal(asio::io_context& ctx, auto& client, std::string_view name) -> return_t {
+  if (name.contains("bool")) {
+    return ipc::bool_signal(ctx, client, name);
+  }
+  if (name.contains("int")) {
+    return ipc::int_signal(ctx, client, name);
+  }
+  if (name.contains("uint")) {
+    return ipc::uint_signal(ctx, client, name);
+  }
+  if (name.contains("double")) {
+    return ipc::double_signal(ctx, client, name);
+  }
+  if (name.contains("string")) {
+    return ipc::string_signal(ctx, client, name);
+  }
+  if (name.contains("json")) {
+    return ipc::json_signal(ctx, client, name);
+  }
+  throw std::runtime_error{ fmt::format("invalid_type: {}", name) };
+}
+using any_signal = std::variant<std::monostate,
+                                ipc::bool_signal,
+                                ipc::int_signal,
+                                ipc::uint_signal,
+                                ipc::double_signal,
+                                ipc::string_signal,
+                                ipc::json_signal>;
+
 inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::string_view signal_name)
     -> asio::awaitable<void> {
   auto executor = co_await asio::this_coro::executor;
   asio::posix::stream_descriptor input_stream(executor, STDIN_FILENO);
 
-  auto sender{ tfc::ipc::details::create_ipc_send<tfc::ipc::details::any_send>(ctx, signal_name) };
+  auto client{ tfc::ipc::make_manager_client(ctx) };
+
+  auto sender{ create_ipc_signal<any_signal>(ctx, client, signal_name) };
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
@@ -29,11 +61,11 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
     const std::size_t bytes_read = co_await input_stream.async_read_some(asio::buffer(buffer), asio::use_awaitable);
     std::string_view buffer_str{ std::begin(buffer), bytes_read - 1 };  // strip of the new line character
 
-    constexpr auto send{ [](std::string_view input, auto in_sender, auto& in_logger) -> void {
+    constexpr auto send{ [](std::string_view input, auto& in_sender, auto& in_logger) -> void {
       try {
-        using value_t = typename decltype(in_sender)::element_type::value_t;
+        using value_t = typename std::remove_reference_t<decltype(in_sender)>::value_t;
         auto value = boost::lexical_cast<value_t>(input);
-        in_sender->async_send(value, [&, value](std::error_code code, size_t bytes) {
+        in_sender.async_send(value, [&, value](std::error_code code, size_t bytes) {
           if (code) {
             in_logger.template log<tfc::logger::lvl_e::error>("Error: {}", code.message());
           } else {
@@ -44,17 +76,17 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
         in_logger.template log<tfc::logger::lvl_e::info>("Invalid input {}, error: {}", input, bad_lexical_cast.what());
       }
     } };
-    if (auto* bool_sender{ std::get_if<std::shared_ptr<ipc::details::bool_send>>(&sender) }) {
+    if (auto* bool_sender{ std::get_if<ipc::bool_signal>(&sender) }) {
       send(buffer_str, *bool_sender, logger);
-    } else if (auto* int_sender{ std::get_if<std::shared_ptr<ipc::details::int_send>>(&sender) }) {
+    } else if (auto* int_sender{ std::get_if<ipc::int_signal>(&sender) }) {
       send(buffer_str, *int_sender, logger);
-    } else if (auto* uint_sender{ std::get_if<std::shared_ptr<ipc::details::uint_send>>(&sender) }) {
+    } else if (auto* uint_sender{ std::get_if<ipc::uint_signal>(&sender) }) {
       send(buffer_str, *uint_sender, logger);
-    } else if (auto* double_sender{ std::get_if<std::shared_ptr<ipc::details::double_send>>(&sender) }) {
+    } else if (auto* double_sender{ std::get_if<ipc::double_signal>(&sender) }) {
       send(buffer_str, *double_sender, logger);
-    } else if (auto* string_sender{ std::get_if<std::shared_ptr<ipc::details::string_send>>(&sender) }) {
+    } else if (auto* string_sender{ std::get_if<ipc::string_signal>(&sender) }) {
       send(buffer_str, *string_sender, logger);
-    } else if (auto* json_sender{ std::get_if<std::shared_ptr<ipc::details::json_send>>(&sender) }) {
+    } else if (auto* json_sender{ std::get_if<ipc::json_signal>(&sender) }) {
       send(buffer_str, *json_sender, logger);
     }
   }

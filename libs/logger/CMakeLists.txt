@@ -8,9 +8,9 @@ add_library(tfc::logger ALIAS logger)
 target_include_directories(logger
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:inc/public>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
-    inc
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
 )
 
 find_package(Boost REQUIRED COMPONENTS )
@@ -30,4 +30,9 @@ target_link_libraries(logger
 
 add_library_to_docs(tfc::logger)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
+
+include(tfc_install)
+tfc_install_lib(logger)

@@ -11,5 +11,3 @@ add_test(
   COMMAND
         dbus_util_test
 )
-
-add_subdirectory(examples)
