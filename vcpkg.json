@@ -21,6 +21,7 @@
     "glaze",
     "spdlog",
     "magic-enum",
+    "notcurses",
     "bext-sml",
     "soem-master",
     {

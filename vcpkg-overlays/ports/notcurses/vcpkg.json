@@ -1,0 +1,17 @@
+{
+  "name": "notcurses",
+  "version": "3.0.9",
+  "description": "Blingful character graphics and TUI library",
+  "homepage": "https://notcurses.com",
+  "license": "Apache-2.0",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
