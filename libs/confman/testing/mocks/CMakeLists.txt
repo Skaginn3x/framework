@@ -17,11 +17,11 @@ target_link_libraries(confman_mocks
 
 add_library_to_docs(tfc::mocks::confman)
 
-add_executable(testme test.cpp)
-
-find_package(ut CONFIG REQUIRED)
-target_link_libraries(testme
-  PUBLIC
-    tfc::mocks::confman
-    Boost::ut
-)
+#add_executable(testme test.cpp)
+#
+#find_package(ut CONFIG REQUIRED)
+#target_link_libraries(testme
+#  PUBLIC
+#    tfc::mocks::confman
+#    Boost::ut
+#)
