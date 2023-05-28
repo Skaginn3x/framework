@@ -46,7 +46,7 @@ add_executable(confman_unit_test confman_unit_test.cpp)
 target_link_libraries(confman_unit_test
   PRIVATE
     tfc::confman
-    tfc::mocks::confman
+    tfc::mock_confman
     Boost::ut
     glaze::glaze
 )

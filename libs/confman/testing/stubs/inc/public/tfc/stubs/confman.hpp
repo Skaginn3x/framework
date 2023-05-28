@@ -16,7 +16,7 @@ namespace asio = boost::asio;
 namespace detail {
 template <typename config_storage_t>
 using stubbed_config =
-    config<config_storage_t, stub_file_storage<config_storage_t>, tfc::stubs::confman::detail::config_dbus_client>;
+    config<config_storage_t, stub_file_storage<config_storage_t>, stub_config_dbus_client>;
 }
 
 template <typename config_storage_t>

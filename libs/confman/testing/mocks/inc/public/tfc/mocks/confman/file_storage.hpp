@@ -12,11 +12,11 @@ namespace tfc::confman {
 namespace asio = boost::asio;
 
 template <typename storage_t>
-struct mock_file_storage : public tfc::confman::file_storage<storage_t> {
+struct mock_file_storage : public file_storage<storage_t> {
   using type = storage_t;
   using change = detail::change<mock_file_storage>;
 
-  mock_file_storage(asio::io_context& ctx, std::filesystem::path const&) : tfc::confman::file_storage<storage_t>{ ctx } {
+  mock_file_storage(asio::io_context& ctx, std::filesystem::path const&) : file_storage<storage_t>{ ctx } {
     ON_CALL(*this, error()).WillByDefault(testing::ReturnRef(this->error_));
     ON_CALL(*this, file()).WillByDefault(testing::ReturnRef(this->config_file_));
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(this->storage_));

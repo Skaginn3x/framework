@@ -96,7 +96,7 @@ public:
     return {};
   }
 
-private:
+protected:
   friend struct detail::change<config>;
 
   // todo if this could be named `value` it would be neat
