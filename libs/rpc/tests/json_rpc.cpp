@@ -53,7 +53,7 @@ struct set_config_return {
 static constexpr auto rpc_endpoint{ tfc::utils::socket::zmq::ipc_endpoint_v<"rpc_test"> };
 static constexpr auto notify_endpoint{ tfc::utils::socket::zmq::ipc_endpoint_v<"notify_test"> };
 
-auto main(int, char**) -> int { // NOLINT:bugprone-exception-escape
+auto main(int, char**) -> int {  // NOLINT:bugprone-exception-escape
   static constexpr glz::rpc::detail::basic_fixed_string method_name{ "foo" };
   using server_t = rpc::server<glz::rpc::server<glz::rpc::server_method_t<method_name, std::string, int>>>;
   using client_t = rpc::client<glz::rpc::client<glz::rpc::client_method_t<method_name, std::string, int>>>;
