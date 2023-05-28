@@ -19,7 +19,9 @@ namespace asio = boost::asio;
 /// \tparam config_storage_t equality comparable and default constructible type
 /// \tparam file_storage_t injectable template to override default behaviour of file storage
 /// \tparam config_dbus_client_t injectable template to override default behaviour of dbus client
-template <typename config_storage_t, typename file_storage_t = file_storage<config_storage_t>, typename config_dbus_client_t = detail::config_dbus_client>
+template <typename config_storage_t,
+          typename file_storage_t = file_storage<config_storage_t>,
+          typename config_dbus_client_t = detail::config_dbus_client>
 class config {
 public:
   using type = config_storage_t;
@@ -54,7 +56,9 @@ public:
   /// \param dbus_client rvalue reference to constructed dbus client
   /// \note This constructor is good for testing! Since you can disable underlying functions by the substitutions.
   config(asio::io_context& ctx, std::string_view key, file_storage_t file_storage, detail::config_dbus_client dbus_client)
-      : storage_{ file_storage }, client_{ std::forward<detail::config_dbus_client>(dbus_client) }, logger_{ fmt::format("config.{}", key) } {
+      : storage_{ file_storage }, client_{ std::forward<detail::config_dbus_client>(dbus_client) }, logger_{
+          fmt::format("config.{}", key)
+        } {
     static_assert(std::is_lvalue_reference_v<file_storage_t>);
     static_assert(std::is_lvalue_reference_v<detail::config_dbus_client>);
   };
