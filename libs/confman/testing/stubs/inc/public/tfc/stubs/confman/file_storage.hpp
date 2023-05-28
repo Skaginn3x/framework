@@ -39,4 +39,4 @@ public:
   }
 };
 
-}  // namespace tfc::stubs::confman
+}  // namespace tfc::confman

@@ -6,16 +6,17 @@
 #include <boost/asio/io_context.hpp>
 
 #include <tfc/confman.hpp>
-#include <tfc/stubs/confman/file_storage.hpp>
 #include <tfc/stubs/confman/detail/config_dbus_client.hpp>
+#include <tfc/stubs/confman/file_storage.hpp>
 
 namespace tfc::confman {
 
 namespace asio = boost::asio;
 
 namespace detail {
-template<typename config_storage_t>
-using stubbed_config = config<config_storage_t, stub_file_storage<config_storage_t>, tfc::stubs::confman::detail::config_dbus_client>;
+template <typename config_storage_t>
+using stubbed_config =
+    config<config_storage_t, stub_file_storage<config_storage_t>, tfc::stubs::confman::detail::config_dbus_client>;
 }
 
 template <typename config_storage_t>
@@ -29,7 +30,9 @@ public:
   template <typename storage_type>
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   stub_config(asio::io_context& ctx, std::string_view key, storage_type&& def)
-      : detail::stubbed_config<config_storage_t>{ ctx, key, std::forward<storage_type>(def) }, storage_{ std::forward<storage_type>(def) } {}
+      : detail::stubbed_config<config_storage_t>{ ctx, key, std::forward<storage_type>(def) }, storage_{
+          std::forward<storage_type>(def)
+        } {}
 
   [[nodiscard]] auto value() const noexcept -> storage_t const& { return storage_; }
   auto access() noexcept -> storage_t& { return storage_; }
