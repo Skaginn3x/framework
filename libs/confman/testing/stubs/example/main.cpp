@@ -11,9 +11,9 @@ auto main(int argc, char** argv) -> int {
 
   asio::io_context ctx{};
 
-  tfc::stubs::confman::config<std::string>{ ctx, "some_key" };
+  tfc::confman::stub_config<std::string>{ ctx, "some_key" };
 
-  tfc::stubs::confman::file_storage<int>{ ctx, "file_path" };
+  tfc::confman::stub_file_storage<int>{ ctx, "file_path" };
 
   // inject to use case
 

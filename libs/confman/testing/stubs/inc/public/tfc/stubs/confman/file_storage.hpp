@@ -6,21 +6,21 @@
 
 #include <tfc/confman/file_storage.hpp>
 
-namespace tfc::stubs::confman {
+namespace tfc::confman {
 
 namespace asio = boost::asio;
 
 /// \brief file_storage stub class removing every file system operations
 template <typename storage_t>
-class file_storage : public tfc::confman::file_storage<storage_t> {
+class stub_file_storage : public file_storage<storage_t> {
 public:
   using type = storage_t;
 
-  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
-      : file_storage{ ctx, file_path, storage_t{} } {}
+  stub_file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
+      : stub_file_storage{ ctx, file_path, storage_t{} } {}
 
-  file_storage(asio::io_context& ctx, std::filesystem::path const&, auto&& default_value)
-      : tfc::confman::file_storage<storage_t>{ ctx } {
+  stub_file_storage(asio::io_context& ctx, std::filesystem::path const&, auto&& default_value)
+      : file_storage<storage_t>{ ctx } {
     this->storage_ = std::forward<decltype(default_value)>(default_value);
   }
 
@@ -29,7 +29,7 @@ public:
 
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
-  using change = tfc::confman::detail::change<file_storage>;
+  using change = tfc::confman::detail::change<stub_file_storage>;
 
   auto make_change() -> change { return change{ *this }; }
 
