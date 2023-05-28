@@ -4,8 +4,8 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/mocks/confman/file_storage.hpp>
 #include <tfc/mocks/confman/detail/config_dbus_client.hpp>
+#include <tfc/mocks/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
 
 namespace ut = boost::ut;
@@ -31,9 +31,9 @@ struct config_test {
   mock_file_storage_t mock_file_storage{ ctx, "bar" };
   using mock_dbus_config_client_t = testing::NiceMock<tfc::confman::detail::config_dbus_client>;
   mock_dbus_config_client_t mock_dbus_client{ ctx };
-  tfc::confman::config<storage, mock_file_storage_t&, mock_dbus_config_client_t&> const config{
-    ctx, "foo", mock_file_storage, mock_dbus_client
-  };
+  tfc::confman::config<storage, mock_file_storage_t&, mock_dbus_config_client_t&> const config{ ctx, "foo",
+                                                                                                mock_file_storage,
+                                                                                                mock_dbus_client };
 };
 
 auto main(int argc, char** argv) -> int {
