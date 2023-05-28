@@ -50,18 +50,17 @@ public:
   }
 
   /// \brief Advanced constructor providing file storage interface and dbus client
-  /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   /// \param file_storage lvalue reference to file storage implementation
   /// \param dbus_client rvalue reference to constructed dbus client
   /// \note This constructor is good for testing! Since you can disable underlying functions by the substitutions.
-  config(asio::io_context& ctx, std::string_view key, file_storage_t file_storage, detail::config_dbus_client dbus_client)
-      : storage_{ file_storage }, client_{ std::forward<detail::config_dbus_client>(dbus_client) }, logger_{
+  config(asio::io_context&, std::string_view key, file_storage_t file_storage, config_dbus_client_t dbus_client)
+      : storage_{ file_storage }, client_{ dbus_client }, logger_{
           fmt::format("config.{}", key)
         } {
     static_assert(std::is_lvalue_reference_v<file_storage_t>);
-    static_assert(std::is_lvalue_reference_v<detail::config_dbus_client>);
-  };
+    static_assert(std::is_lvalue_reference_v<config_dbus_client_t>);
+  }
 
   /// \brief get const access to storage
   /// \note can be used to assign observer to observable even though it is const
@@ -105,7 +104,7 @@ protected:
   [[nodiscard]] auto access() noexcept -> storage_t& { return const_cast<storage_t&>(storage_.value()); }
 
   file_storage_t storage_{};
-  detail::config_dbus_client client_;
+  config_dbus_client_t client_;
   tfc::logger::logger logger_;
 };
 
