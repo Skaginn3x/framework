@@ -32,6 +32,10 @@ static constexpr std::string_view property_name{ "config" };
 
 class config_dbus_client {
 public:
+  /// \brief Empty constructor
+  /// \note Should only be used for testing !!!
+  explicit config_dbus_client(boost::asio::io_context& ctx);
+
   using value_call_t = std::function<std::string()>;
   using schema_call_t = std::function<std::string()>;
   using change_call_t = std::function<std::error_code(std::string_view)>;
