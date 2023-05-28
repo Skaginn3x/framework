@@ -1,0 +1,42 @@
+name: Static analysis
+
+on:
+  # Will run on push when merging to 'branches'. The output will be shown in the console
+  push:
+    branches:
+      - develop
+      - master
+      - main
+
+  # 'pull_request_target' allows this Action to also run on forked repositories
+  # The output will be shown in PR comments (unless the 'force_console_print' flag is used)
+  pull_request_target:
+    branches:
+      - "*"
+
+jobs:
+  static_analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
+          curl https://apt.llvm.org/llvm.sh -o llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 16 all
+
+      - name: Run static analysis
+        uses: JacobDomagala/StaticAnalysis@master
+        with:
+          use_cmake: true
+          cmake_args: --preset ci-clang-debug
+
+          # (Optional) clang-tidy args
+          clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
+
+          # (Optional) cppcheck args
+          cppcheck_args: --enable=all --suppress=missingInclude

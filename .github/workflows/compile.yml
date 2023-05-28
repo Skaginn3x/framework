@@ -56,11 +56,11 @@ jobs:
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
 
-      - name: Run static analysis
-        uses: JacobDomagala/StaticAnalysis@master
-        with:
-          use_cmake: true
-          cmake_args: --preset ci-${{ matrix.compiler }}-${{matrix.build_type}}
+#      - name: Run static analysis
+#        uses: JacobDomagala/StaticAnalysis@master
+#        with:
+#          use_cmake: true
+#          cmake_args: --preset ci-${{ matrix.compiler }}-${{matrix.build_type}}
           # (Optional) clang-tidy args
 #          clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
 
