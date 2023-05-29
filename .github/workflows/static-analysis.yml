@@ -24,7 +24,7 @@ jobs:
           echo \"Hello from the init script! First arg=\${root_dir} second arg=\${build_dir}\"
 
           git clone https://github.com/microsoft/vcpkg /opt/vcpkg
-          ./opt/vcpkg/bootstrap-vcpkg.sh
+          /opt/vcpkg/bootstrap-vcpkg.sh
 
           curl https://apt.llvm.org/llvm.sh -o llvm.sh 
           chmod +x llvm.sh 
