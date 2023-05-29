@@ -13,6 +13,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: setup init_script
+        shell: bash
+        run: |
+          echo "#!/bin/bash
+
+          # Input args provided by StaticAnalysis action
+          root_dir=\${1}
+          build_dir=\${2}
+          echo \"Hello from the init script! First arg=\${root_dir} second arg=\${build_dir}\"
+
+          add-apt-repository ppa:oibaf/graphics-drivers
+          apt update && apt upgrade
+          apt install -y libvulkan1 mesa-vulkan-drivers vulkan-utils" > init_script.sh
+
       - name: Run static analysis
         uses: JacobDomagala/StaticAnalysis@master
         with:
@@ -21,6 +35,7 @@ jobs:
 
           apt_pckgs: cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
 
+          init_script: init_script.sh
 #          init_script: curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
 
           # (Optional) clang-tidy args
