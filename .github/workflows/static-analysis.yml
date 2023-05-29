@@ -23,9 +23,11 @@ jobs:
           build_dir=\${2}
           echo \"Hello from the init script! First arg=\${root_dir} second arg=\${build_dir}\"
 
-          add-apt-repository ppa:oibaf/graphics-drivers
-          apt update && apt upgrade
-          apt install -y libvulkan1 mesa-vulkan-drivers vulkan-utils" > init_script.sh
+          git clone https://github.com/microsoft/vcpkg /opt/vcpkg
+
+          curl https://apt.llvm.org/llvm.sh -o llvm.sh 
+          chmod +x llvm.sh 
+          ./llvm.sh 16 all" > init_script.sh
 
       - name: Run static analysis
         uses: JacobDomagala/StaticAnalysis@master
