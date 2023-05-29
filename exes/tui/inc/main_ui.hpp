@@ -4,8 +4,8 @@
 #ifndef JSON_TUI_MAIN_UI_HPP
 #define JSON_TUI_MAIN_UI_HPP
 
-#include <nlohmann/json.hpp>
+#include <glaze/glaze.hpp>
 
-void DisplayMainUI(const nlohmann::json& json, bool fullscreen);
+void DisplayMainUI(const glz::json_t& json, bool fullscreen);
 
 #endif /* json_tui_main_ui_hpp */

@@ -11,12 +11,12 @@
 #include <ftxui/screen/screen.hpp>
 #include <ftxui/screen/string.hpp>
 #include <iostream>
-#include <nlohmann/json.hpp>
+#include <glaze/glaze.hpp>
 #include "button.hpp"
 #include "expander.hpp"
 #include "mytoggle.hpp"
 
-using JSON = nlohmann::json;
+using JSON = glz::json_t;
 using namespace ftxui;
 
 namespace {
@@ -59,33 +59,33 @@ Component FakeHorizontal(Component a, Component b);
 bool IsSuitableForTableView(const JSON& json);
 
 Component From(const JSON& json, bool is_last, int depth, Expander& expander) {
-  if (json.is_object())
+  if (json.holds<glz::json_t::object_t>())
     return FromObject(Empty(), json, is_last, depth, expander);
-  if (json.is_array())
+  if (json.holds<glz::json_t::array_t>())
     return FromArrayAny(Empty(), json, is_last, depth, expander);
-  if (json.is_string())
+  if (json.holds<std::string>())
     return FromString(json, is_last);
-  if (json.is_number())
+  if (json.holds<double>())
     return FromNumber(json, is_last);
-  if (json.is_boolean())
+  if (json.holds<bool>())
     return FromBoolean(json, is_last);
-  if (json.is_null())
+  if (json.holds<glz::json_t::null_t>())
     return FromNull(is_last);
   return Unimplemented();
 }
 
 Component FromString(const JSON& json, bool is_last) {
-  std::string value = json;
+  std::string value = json.as<std::string>();
   std::string str = "\"" + value + "\"";
   return Basic(str, Color::GreenLight, is_last);
 }
 
 Component FromNumber(const JSON& json, bool is_last) {
-  return Basic(json.dump(), Color::CyanLight, is_last);
+  return Basic(std::to_string(json.as<double>()), Color::CyanLight, is_last);
 }
 
 Component FromBoolean(const JSON& json, bool is_last) {
-  bool value = json;
+  bool value = json.as<bool>();
   std::string str = value ? "true" : "false";
   return Basic(str, Color::YellowLight, is_last);
 }
@@ -114,15 +114,15 @@ Component Basic(std::string value, Color c, bool is_last) {
 }
 
 bool IsSuitableForTableView(const JSON& json) {
-  if (!json.is_array())
+  if (!json.holds<glz::json_t::array_t>())
     return false;
   size_t columns = 0;
-  for (const auto& element : json.items()) {
-    if (!element.value().is_object())
+  for (const auto& element : json.as<glz::json_t::array_t>()) {
+    if (!element.holds<glz::json_t::object_t>())
       return false;
-    columns = std::max(columns, element.value().size());
+    columns = std::max(columns, element.as<glz::json_t::object_t>().size());
   }
-  return columns >= 2 || json.size() >= 2;
+  return columns >= 2 || json.as<glz::json_t::array_t>().size() >= 2;
 }
 
 Component Indentation(Component child) {
@@ -191,11 +191,11 @@ Component FromObject(Component prefix,
       Expanded() = (depth <= 1);
 
       auto children = Container::Vertical({});
-      int size = static_cast<int>(json.size());
-      for (auto& it : json.items()) {
+      int size = static_cast<int>(json.as<glz::json_t::object_t>().size());
+      for (auto& it : json.as<glz::json_t::object_t>()) {
         bool is_children_last = --size == 0;
         children->Add(Indentation(FromKeyValue(
-            it.key(), it.value(), is_children_last, depth + 1, expander_)));
+            it.first, it.second, is_children_last, depth + 1, expander_)));
       }
 
       if (is_last)
@@ -219,14 +219,14 @@ Component FromKeyValue(const std::string& key,
                        int depth,
                        Expander& expander) {
   std::string str = "\"" + key + "\"";
-  if (value.is_object() || value.is_array()) {
+  if (value.holds<glz::json_t::object_t>() || value.holds<glz::json_t::array_t>()) {
     auto prefix = Renderer([str] {
       return hbox({
           text(str) | color(Color::BlueLight),
           text(": "),
       });
     });
-    if (value.is_object())
+    if (value.holds<glz::json_t::object_t>())
       return FromObject(prefix, value, is_last, depth, expander);
     else
       return FromArrayAny(prefix, value, is_last, depth, expander);
@@ -280,11 +280,11 @@ Component FromArray(Component prefix,
           depth_(depth) {
       Expanded() = (depth <= 0);
       auto children = Container::Vertical({});
-      int size = static_cast<int>(json_.size());
-      for (auto& it : json_.items()) {
+      int size = static_cast<int>(json_.as<glz::json_t::array_t>().size());
+      for (auto& it : json_.as<glz::json_t::array_t>()) {
         bool is_children_last = --size == 0;
         children->Add(Indentation(
-            From(it.value(), is_children_last, depth + 1, expander_)));
+            From(it, is_children_last, depth + 1, expander_)));
       }
 
       if (is_last)
@@ -352,29 +352,29 @@ Component FromTable(Component prefix,
       components.push_back(expand_button_);
 
       std::map<std::string, int> columns_index;
-      for (auto& row : json_.items()) {
-        children_.push_back({});
-        auto& children_row = children_.back();
-        for (auto& cell : row.value().items()) {
+      for (auto& row : json_.as<glz::json_t::object_t>()) { // todo I am not sure
+        ui_children_.push_back({});
+        auto& children_row = ui_children_.back();
+        for (auto& cell : row.second.as<glz::json_t::object_t>()) { // todo I am not sure
           // Does it require a new column?
-          if (!columns_index.count(cell.key())) {
-            columns_index[cell.key()] = columns_.size();
-            columns_.push_back(cell.key());
+          if (!columns_index.count(cell.first)) {
+            columns_index[cell.first] = static_cast<int>(columns_.size());
+            columns_.push_back(cell.first);
           }
 
           // Does the current row fits in the current column?
-          if ((int)children_row.size() <= columns_index[cell.key()]) {
-            children_row.resize(columns_index[cell.key()] + 1);
+          if (static_cast<int>(children_row.size()) <= columns_index[cell.first]) {
+            children_row.resize(static_cast<size_t>(columns_index[cell.first] + 1));
           }
 
           // Fill in the data
           auto child =
-              From(cell.value(), /*is_last=*/true, depth_ + 1, expander);
-          children_row[columns_index[cell.key()]] = child;
+              From(cell.second, /*is_last=*/true, depth_ + 1, expander);
+          children_row[static_cast<size_t>(columns_index[cell.first])] = child;
         }
       }
       // Layout
-      for (auto& rows : children_) {
+      for (auto& rows : ui_children_) {
         auto row = Container::Horizontal({});
         for (auto& cell : rows) {
           if (cell)
@@ -392,7 +392,7 @@ Component FromTable(Component prefix,
       for (auto& title : columns_)
         data.back().push_back(text(title));
       int i = 0;
-      for (auto& row_children : children_) {
+      for (auto& row_children : ui_children_) {
         std::vector<Element> data_row;
         data_row.push_back(text(std::to_string(i++)) | color(Color::GrayDark));
         for (auto& child : row_children) {
@@ -420,7 +420,7 @@ Component FromTable(Component prefix,
     }
 
     std::vector<std::string> columns_;
-    std::vector<std::vector<Component>> children_;
+    std::vector<std::vector<Component>> ui_children_;
 
     Component prefix_;
     Component expand_button_;

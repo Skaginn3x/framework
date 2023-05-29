@@ -26,7 +26,9 @@ target_link_libraries(tfctui
 
 target_include_directories(tfctui
   PUBLIC
-    inc
+    ${CMAKE_CURRENT_LIST_DIR}/inc
+  PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/inc
 )
 
 include(GNUInstallDirs)
