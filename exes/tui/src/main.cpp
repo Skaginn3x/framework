@@ -86,6 +86,8 @@ int main(int argument_count, const char** arguments) {
 //  }
 
   JSON json;
+  std::string buffer = R"([5,"Hello World",{"pi":3.14}])";
+  [[maybe_unused]] auto unused{ glz::read_json(json, buffer) };
 //  if (!ParseJSON(ss.str(), json))
 //    return EXIT_FAILURE;
 
