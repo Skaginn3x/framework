@@ -36,7 +36,7 @@ jobs:
           use_cmake: true
           cmake_args: --preset ci-clang-debug
 
-          apt_pckgs: cppcheck lsb-release wget software-properties-common gnupg g++-12 curl zip unzip tar ninja-build autoconf-archive libtool autoconf meson gperf autopoint
+          apt_pckgs: cppcheck lsb-release wget software-properties-common gnupg g++-12 curl zip unzip tar ninja-build autoconf-archive libtool autoconf meson gperf autopoint pkg-config
 
           init_script: init_script.sh
 #          init_script: curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
