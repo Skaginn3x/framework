@@ -4,12 +4,14 @@
 
 #include "main_ui.hpp"
 
+#include <boost/asio.hpp>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/dom/table.hpp>
 #include <ftxui/screen/screen.hpp>
 #include <ftxui/screen/string.hpp>
+#include <ftxui/component/loop.hpp>
 #include <iostream>
 #include <glaze/glaze.hpp>
 #include "button.hpp"
@@ -434,7 +436,25 @@ Component FromTable(Component prefix,
 
 }  // anonymous namespace
 
-void DisplayMainUI(const JSON& json, bool fullscreen) {
+static auto make_timer_callback(boost::asio::steady_timer& timer, ftxui::Loop& loop) -> std::function<void(std::error_code)>;
+static auto make_timer_callback(boost::asio::steady_timer& timer, ftxui::Loop& loop) -> std::function<void(std::error_code)> {
+  static std::chrono::milliseconds constexpr poll_rate{ 100 };
+  return [&timer, &loop](std::error_code const& err){
+    if (err) {
+      return;
+    }
+    if (loop.HasQuitted()) {
+      timer.cancel();
+    }
+    else {
+      loop.RunOnce();
+      timer.expires_after(poll_rate);
+      timer.async_wait(make_timer_callback(timer, loop));
+    }
+  };
+}
+
+void DisplayMainUI(boost::asio::io_context& ctx, const JSON& json, bool fullscreen) {
   auto screen_fullscreen = ScreenInteractive::Fullscreen();
   auto screen_fit = ScreenInteractive::FitComponent();
   auto& screen = fullscreen ? screen_fullscreen : screen_fit;
@@ -483,6 +503,12 @@ void DisplayMainUI(const JSON& json, bool fullscreen) {
     }
     return false;
   });
+
+  ftxui::Loop loop{ &screen, wrapped_component };
+  boost::asio::steady_timer timer{ ctx };
+  timer.expires_after(std::chrono::milliseconds(10));
+  timer.async_wait(make_timer_callback(timer, loop));
+
 
   screen.Loop(wrapped_component);
 }

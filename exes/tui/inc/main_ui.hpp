@@ -5,7 +5,8 @@
 #define JSON_TUI_MAIN_UI_HPP
 
 #include <glaze/glaze.hpp>
+#include <boost/asio/io_context.hpp>
 
-void DisplayMainUI(const glz::json_t& json, bool fullscreen);
+void DisplayMainUI(boost::asio::io_context&, const glz::json_t& json, bool fullscreen);
 
 #endif /* json_tui_main_ui_hpp */
