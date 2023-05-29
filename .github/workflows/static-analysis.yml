@@ -21,7 +21,7 @@ jobs:
 
           apt_pckgs: cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
 
-          init_script: curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
+#          init_script: curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
 
           # (Optional) clang-tidy args
           clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
