@@ -2,9 +2,17 @@
     "version": 0,
     "tools": {
         "tfc": {
-            "label": "TFC connections",
-            "path": "index.html"
-
+            "label": "TFC Connections",
+            "path": "index.html?service=connect"
+        },
+        "tfc2": {
+            "label": "TFC Configurator",
+            "path": "index.html?service=configure"
+        },
+        "tfc3": {
+            "label": "TFC List DBUS",
+            "path": "index.html?service=list"
         }
-    }
+    },
+    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval'"
 }
