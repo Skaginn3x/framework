@@ -26,7 +26,7 @@ jobs:
           sudo apt install cppcheck lsb-release wget software-properties-common gnupg g++-12 curl zip unzip tar git ninja-build autoconf-archive libtool autoconf meson gperf autopoint pkg-config cmake python3-jinja2 python3-venv
           curl https://apt.llvm.org/llvm.sh -o llvm.sh 
           chmod +x llvm.sh 
-          ./llvm.sh 16 all
+          sudo ./llvm.sh 16 all
           git clone https://github.com/microsoft/vcpkg /opt/vcpkg
           cmake --preset ci-static-analysis
 
