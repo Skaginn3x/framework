@@ -50,6 +50,7 @@ jobs:
           init_script: init_script.sh
 #          init_script: curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
 
+          exclude_dir: vcpkg-sysroot-clang
           force_console_print: true
           verbose: true
           # (Optional) clang-tidy args
