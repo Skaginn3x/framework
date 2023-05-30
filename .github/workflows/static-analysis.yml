@@ -37,7 +37,11 @@ jobs:
 
           curl https://apt.llvm.org/llvm.sh -o llvm.sh 
           chmod +x llvm.sh 
-          ./llvm.sh 16 all" > init_script.sh
+          ./llvm.sh 16 all
+          
+          ln -s $(which clang-tidy-16) /usr/bin/clang-tidy-15 # this is really bad 
+          
+          " > init_script.sh
 
       - name: Run static analysis
         uses: JacobDomagala/StaticAnalysis@master
