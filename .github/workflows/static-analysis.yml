@@ -20,7 +20,7 @@ jobs:
         run: |
           echo "#!/bin/bash
           
-          VCPKG_BINARY_SOURCES="clear;x-gha,readwrite"
+          VCPKG_BINARY_SOURCES='clear;x-gha,readwrite'
 
           # Input args provided by StaticAnalysis action
           root_dir=\${1}
