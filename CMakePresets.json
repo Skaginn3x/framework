@@ -39,6 +39,15 @@
       ]
     },
     {
+      "name": "ci-static-analysis",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "inherits": [
+        "cfg-vcpkg-clang",
+        "cfg-debug"
+      ]
+    },
+    {
       "name": "ci-clang-debug",
       "generator": "Ninja",
       "inherits": [
