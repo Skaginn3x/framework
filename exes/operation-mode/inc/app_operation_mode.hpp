@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <tfc/logger.hpp>
+#include <tfc/operation_mode/common.hpp>
 
 namespace boost::asio {
 class io_context;
@@ -30,6 +31,7 @@ private:
   std::unique_ptr<sdbusplus::asio::object_server, std::function<void(sdbusplus::asio::object_server*)>> dbus_object_server_;
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   std::unique_ptr<operation::state_machine, std::function<void(operation::state_machine*)>> state_machine_;
+  tfc::operation::mode_e mode_{ tfc::operation::mode_e::unknown };
   tfc::logger::logger logger_;
 };
 
