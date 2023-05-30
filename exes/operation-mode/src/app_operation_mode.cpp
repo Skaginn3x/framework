@@ -29,7 +29,14 @@ app_operation_mode::app_operation_mode(boost::asio::io_context& ctx)
     logger_.trace("set_mode to state: '{}'", mode_e_str(new_mode));
   });
 
+  dbus_interface_->register_property_r<operation::mode_e>(
+      "Mode", sdbusplus::vtable::property_::emits_change,
+      [this]([[maybe_unused]] operation::mode_e const& value) -> operation::mode_e {  // getter
+        return mode_;
+      });
+
   state_machine_->on_new_mode([this](operation::new_mode new_mode, operation::old_mode old_mode) {
+    mode_ = new_mode;
     logger_.trace("sending update signal from state: '{}' to state: '{}'", mode_e_str(old_mode), mode_e_str(new_mode));
     auto message{ dbus_interface_->new_signal(operation::dbus::signal::update.data()) };
     message.append(operation::update_message{ .new_mode = new_mode, .old_mode = old_mode });

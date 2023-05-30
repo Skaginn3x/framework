@@ -29,14 +29,14 @@ enum struct mode_e : std::uint8_t {
 }
 
 namespace dbus {
-static constexpr std::string_view service_name{ "operation_mode" };
+static constexpr std::string_view service_name{ "OperationMode" };
 static constexpr std::string_view name{ tfc::dbus::const_dbus_name<service_name> };
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<service_name> };
 namespace method {
-static constexpr std::string_view set_mode{ "set_mode" };
+static constexpr std::string_view set_mode{ "SetMode" };
 }
 namespace signal {
-static constexpr std::string_view update{ "update" };
+static constexpr std::string_view update{ "Update" };
 }  // namespace signal
 }  // namespace dbus
 
