@@ -43,7 +43,7 @@ jobs:
         uses: JacobDomagala/StaticAnalysis@master
         with:
           use_cmake: true
-          cmake_args: -B build -DCMAKE_TOOLCHAIN_FILE="/opt/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          cmake_args: "-B build -DCMAKE_TOOLCHAIN_FILE='/opt/vcpkg/scripts/buildsystems/vcpkg.cmake'"
 
           apt_pckgs: cppcheck lsb-release wget software-properties-common gnupg g++-12 curl zip unzip tar git ninja-build autoconf-archive libtool autoconf meson gperf autopoint pkg-config cmake python3-jinja2 python3-venv
 
