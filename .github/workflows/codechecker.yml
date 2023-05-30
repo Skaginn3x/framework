@@ -23,6 +23,7 @@ jobs:
       - name: CMake configure
         shell: bash
         run: |
+          sudo apt install cppcheck lsb-release wget software-properties-common gnupg g++-12 curl zip unzip tar git ninja-build autoconf-archive libtool autoconf meson gperf autopoint pkg-config cmake python3-jinja2 python3-venv
           git clone https://github.com/microsoft/vcpkg /opt/vcpkg
           cmake --preset ci-static-analysis
 
