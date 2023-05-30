@@ -23,6 +23,7 @@ jobs:
       - name: CMake configure
         shell: bash
         run: |
+          git clone https://github.com/microsoft/vcpkg /opt/vcpkg
           cmake --preset ci-static-analysis
 
       - uses: whisperity/codechecker-analysis-action@v1
