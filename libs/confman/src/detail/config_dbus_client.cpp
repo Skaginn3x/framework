@@ -29,8 +29,8 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                                        value_call_t&& value_call,
                                        schema_call_t&& schema_call,
                                        change_call_t&& change_call)
-    : interface_path_{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
-                       base::make_config_file_name(key, "").string().substr(1) },
+    : interface_path_{ std::filesystem::path{ tfc::dbus::make_dbus_path("config") } /
+                       replace_all(base::make_config_file_name(key, "").string().substr(1), '-', '_') }, // dbus does not support dash in names
       interface_name_{ replace_all(interface_path_.string().substr(1), '/', '.') }, value_call_{ std::forward<value_call_t>(
                                                                                         value_call) },
       schema_call_{ std::forward<schema_call_t>(schema_call) }, change_call_{ std::forward<change_call_t>(change_call) },

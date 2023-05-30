@@ -52,7 +52,7 @@ auto main(int argc, char** argv) -> int {
 
   std::string const key{ "bar" };
 
-  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("") } /
+  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("config") } /
                        tfc::base::make_config_file_name(key, "").string().substr(1) };
   auto interface_name{ interface_path.string().substr(1) };
   std::replace(interface_name.begin(), interface_name.end(), '/', '.');
