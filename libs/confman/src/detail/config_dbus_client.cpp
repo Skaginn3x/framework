@@ -24,6 +24,8 @@ static auto replace_all(std::string_view input, char what, char with) -> std::st
 // busctl --user introspect com.skaginn3x.etc.tfc.confman_test.def.bar /com/skaginn3x/etc/tfc/confman_test/def/bar
 // clang-format on
 
+config_dbus_client::config_dbus_client(boost::asio::io_context&) {}
+
 config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                                        std::string_view key,
                                        value_call_t&& value_call,
@@ -64,7 +66,9 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
 }
 
 void config_dbus_client::set(config_property&& prop) const {
-  dbus_interface_->set_property(std::string{ dbus::property_name.data(), dbus::property_name.size() }, prop);
+  if (dbus_interface_) {
+    dbus_interface_->set_property(std::string{ dbus::property_name.data(), dbus::property_name.size() }, prop);
+  }
 }
 
 }  // namespace tfc::confman::detail

@@ -14,17 +14,26 @@ namespace tfc::confman {
 
 namespace asio = boost::asio;
 
-/// \tparam storage_t needs to be transposable via glaze
+/// \tparam storage_t needs to be transposable via glaze https://github.com/stephenberry/glaze
 /// \class file_storage
-/// Blocking file storage, when
+/// The file storage class stores any type that can be converted to and from json.
+/// The type is stored on the disc given the file_path as pretty json string.
+/// If the file is changed while program is running the application detects the change and
+/// changes the member value accordingly.
 template <typename storage_t>
 class file_storage {
 public:
   using type = storage_t;
 
+  /// \brief Empty constructor
+  /// \note Should only be used for testing !!!
+  explicit file_storage(asio::io_context& ctx) : logger_{ "file_storage" }, file_watcher_{ ctx } {}
+
+  /// \brief Construct file storage with default constructed storage_t
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
       : file_storage{ ctx, file_path, storage_t{} } {}
 
+  /// \brief Construct file storage with user defined default values for storage_t
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path, auto&& default_value)
       : config_file_{ file_path }, storage_{ std::forward<decltype(default_value)>(default_value) },
         logger_{ fmt::format("file_storage.{}", file_path.string()) }, file_watcher_{ ctx } {
@@ -52,22 +61,32 @@ public:
     file_watcher_.async_read_some(asio::null_buffers(), std::bind_front(&file_storage::on_file_change, this));
   }
 
-  auto error() const noexcept -> std::error_code const& { return error_; }
+  /// \brief Internal error code
+  /// \returns error if something went wrong with filesystem commands
+  [[nodiscard]] auto error() const noexcept -> std::error_code const& { return error_; }
 
-  auto file() const noexcept -> std::filesystem::path const& { return config_file_; }
+  /// \return provided filesystem path
+  [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return config_file_; }
 
   /// \return Access to underlying value
-  auto value() const noexcept -> storage_t const& { return storage_; }
+  [[nodiscard]] auto value() const noexcept -> storage_t const& { return storage_; }
 
   /// \return Access to underlying value
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
+  /// \brief Subscribe to changes from the filesystem
   auto on_change(std::invocable auto&& callback) -> void { cb_ = callback; }
 
   using change = detail::change<file_storage>;
 
-  auto make_change() -> change { return change{ *this }; }
+  /// If user would like to change the internal storage_t value.
+  /// This helper struct will provide changeable access to this` underlying value.
+  /// When the helper struct is deconstructed the changes are written to the disc.
+  /// \return change helper struct providing reference to this` value.
+  auto make_change() noexcept -> change { return change{ *this }; }
 
+  /// \brief set_changed writes the current value to disc
+  /// \return error_code if it was unable to write to disc.
   auto set_changed() const noexcept -> std::error_code {
     std::string buffer{};  // this can throw, meaning memory error
     glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
@@ -80,7 +99,7 @@ public:
     return {};
   }
 
-private:
+protected:
   friend struct detail::change<file_storage>;
 
   // todo if this could be named `value` it would be neat

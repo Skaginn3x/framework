@@ -17,7 +17,11 @@ namespace asio = boost::asio;
 
 /// \brief configuration storage which maintains and keeps a storage type up to date
 /// \tparam config_storage_t equality comparable and default constructible type
-template <typename config_storage_t>
+/// \tparam file_storage_t injectable template to override default behaviour of file storage
+/// \tparam config_dbus_client_t injectable template to override default behaviour of dbus client
+template <typename config_storage_t,
+          typename file_storage_t = file_storage<config_storage_t>,
+          typename config_dbus_client_t = detail::config_dbus_client>
 class config {
 public:
   using type = config_storage_t;
@@ -43,6 +47,17 @@ public:
       // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
       //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
     });
+  }
+
+  /// \brief Advanced constructor providing file storage interface and dbus client
+  /// \param key identification of this config storage, requires to be unique
+  /// \param file_storage lvalue reference to file storage implementation
+  /// \param dbus_client rvalue reference to constructed dbus client
+  /// \note This constructor is good for testing! Since you can disable underlying functions by the substitutions.
+  config(asio::io_context&, std::string_view key, file_storage_t file_storage, config_dbus_client_t dbus_client)
+      : storage_{ file_storage }, client_{ dbus_client }, logger_{ fmt::format("config.{}", key) } {
+    static_assert(std::is_lvalue_reference_v<file_storage_t>);
+    static_assert(std::is_lvalue_reference_v<config_dbus_client_t>);
   }
 
   /// \brief get const access to storage
@@ -78,7 +93,7 @@ public:
     return {};
   }
 
-private:
+protected:
   friend struct detail::change<config>;
 
   // todo if this could be named `value` it would be neat
@@ -86,8 +101,8 @@ private:
   // todo const_cast is not nice, make different pattern
   [[nodiscard]] auto access() noexcept -> storage_t& { return const_cast<storage_t&>(storage_.value()); }
 
-  file_storage<storage_t> storage_{};
-  detail::config_dbus_client client_;
+  file_storage_t storage_{};
+  config_dbus_client_t client_;
   tfc::logger::logger logger_;
 };
 

@@ -106,6 +106,12 @@ public:
 namespace glz::detail {
 
 template <typename value_t>
+struct from_json;
+
+template <typename value_t>
+struct to_json_schema;
+
+template <typename value_t>
 struct from_json<tfc::confman::observable<value_t>> {
   template <auto opts>
   inline static void op(auto& value, auto&&... args) noexcept {

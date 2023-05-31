@@ -32,6 +32,10 @@ static constexpr std::string_view property_name{ "config" };
 
 class config_dbus_client {
 public:
+  /// \brief Empty constructor
+  /// \note Should only be used for testing !!!
+  explicit config_dbus_client(boost::asio::io_context& ctx);
+
   using value_call_t = std::function<std::string()>;
   using schema_call_t = std::function<std::string()>;
   using change_call_t = std::function<std::error_code(std::string_view)>;
@@ -46,7 +50,7 @@ private:
   schema_call_t schema_call_{};
   change_call_t change_call_{};
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection_{};
-  std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
+  std::unique_ptr<sdbusplus::asio::dbus_interface, std::function<void(sdbusplus::asio::dbus_interface*)>> dbus_interface_{};
 };
 
 }  // namespace tfc::confman::detail
