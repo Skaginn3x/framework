@@ -61,6 +61,8 @@ auto get_impl(boost::asio::io_context& ctx,
       output = std::make_unique<device_t>(ctx, client, slave_index);
     } else if constexpr (std::is_constructible_v<device_t, boost::asio::io_context&, uint16_t>) {
       output = std::make_unique<device_t>(ctx, slave_index);
+    } else if constexpr (std::is_constructible_v<device_t, uint16_t>) {
+      output = std::make_unique<device_t>(slave_index);
     } else {
       // clang-format off
       []<bool flag = false>() { static_assert(flag, "No matching constructor"); } ();
