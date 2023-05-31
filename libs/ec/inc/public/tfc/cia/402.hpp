@@ -84,7 +84,7 @@ enum struct states_e : uint16_t {
  * @param status_word ETA of the vfd/servo
  * @return cia 402 state drive status_word represents
  */
-static auto parse_state(uint16_t const& status_word) -> states_e {
+inline auto parse_state(uint16_t const& status_word) -> states_e {
   uint16_t const status_low = status_word & 0xff;
   switch (status_low % 0x10) {
     case 0x01:
@@ -115,7 +115,7 @@ static auto parse_state(uint16_t const& status_word) -> states_e {
  * @param quick_stop if the drive should be placed in quick_stop mode.
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-static auto transition(states_e current_state, bool quick_stop) -> commands_e {
+inline auto transition(states_e current_state, bool quick_stop) -> commands_e {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands_e::shutdown;
