@@ -5,6 +5,19 @@
 
 namespace tfc::ec::cia_402 {
 
+struct status_word {
+  uint8_t state_ready_to_switch_on : 1 {};
+  uint8_t state_switched_on : 1 {};
+  uint8_t state_operation_enabled : 1 {};
+  uint8_t state_fault : 1 {};
+  uint8_t voltage_enabled : 1 {};
+//  uint8_t ready_to_switch_on : 1 {};
+//  uint8_t ready_to_switch_on : 1 {};
+//  uint8_t ready_to_switch_on : 1 {};
+//  uint8_t ready_to_switch_on : 1 {};
+
+};
+
 enum struct commands_e : uint16_t {
   disable_voltage = 0x0000,
   shutdown = 0x0006,

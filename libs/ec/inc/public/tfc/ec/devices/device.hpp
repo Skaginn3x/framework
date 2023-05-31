@@ -9,6 +9,7 @@
 #include "beckhoff/EL3xxx.hpp"
 #include "beckhoff/EL4xxx.hpp"
 #include "schneider/atv320.hpp"
+#include "schneider/lxm32m.hpp"
 
 namespace tfc::ec::devices {
 
@@ -20,6 +21,7 @@ using beckhoff::el2008;
 using beckhoff::el3054;
 using beckhoff::el4002;
 using schneider::atv320;
+using schneider::lxm32m;
 
 template <typename device>
 auto devices_equal(auto vendor_id, auto product_code) {
@@ -34,6 +36,8 @@ auto get(boost::asio::io_context& ctx,
          auto product_code) -> std::unique_ptr<base> {
   if (devices_equal<atv320<manager_client_type>>(vendor_id, product_code))
     return std::make_unique<atv320<manager_client_type>>(ctx, client, slave_index);
+  if (devices_equal<lxm32m<manager_client_type>>(vendor_id, product_code))
+    return std::make_unique<lxm32m<manager_client_type>>(ctx, client, slave_index);
   if (devices_equal<easyecat<manager_client_type>>(vendor_id, product_code))
     return std::make_unique<easyecat<manager_client_type>>(ctx, client, slave_index);
   if (devices_equal<ek1100>(vendor_id, product_code))
