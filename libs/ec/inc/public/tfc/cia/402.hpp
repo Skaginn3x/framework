@@ -11,12 +11,20 @@ struct status_word {
   uint8_t state_operation_enabled : 1 {};
   uint8_t state_fault : 1 {};
   uint8_t voltage_enabled : 1 {};
-//  uint8_t ready_to_switch_on : 1 {};
-//  uint8_t ready_to_switch_on : 1 {};
-//  uint8_t ready_to_switch_on : 1 {};
-//  uint8_t ready_to_switch_on : 1 {};
-
+  uint8_t state_quick_stop : 1 {};
+  uint8_t state_switch_on_disabled : 1 {};
+  uint8_t warning : 1 {};
+  uint8_t halt_request_active : 1 {};
+  uint8_t remote : 1 {};
+  uint8_t target_reached : 1 {};
+  uint8_t internal_limit_active : 1 {};
+  uint8_t application_specific_0 : 1 {}; // 12th bit
+  uint8_t application_specific_1 : 1 {};
+  uint8_t application_specific_2 : 1 {};
+  uint8_t application_specific_3 : 1 {};
 };
+
+static_assert(sizeof(status_word) == 2);
 
 enum struct commands_e : uint16_t {
   disable_voltage = 0x0000,
