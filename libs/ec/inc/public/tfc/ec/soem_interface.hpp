@@ -52,9 +52,9 @@ using index_t = std::pair<uint16_t, uint8_t>;
 // This means the amount of slaves that succesfully "did" this work
 // It is almost impossible here to determine if that was the correct amount
 // of slaves affected or not.
-using working_counter_t = uint32_t;
+using working_counter_t = int32_t;
 
-[[nodiscard]] auto sdo_write(ecx_contextt* context,
+[[nodiscard]] inline auto sdo_write(ecx_contextt* context,
                              uint16_t slave_index,
                              index_t index,
                              bool complete_access,
@@ -65,7 +65,7 @@ using working_counter_t = uint32_t;
                                                      static_cast<int>(timeout.count())));
 }
 template <std::integral t>
-auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
+inline auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
   return sdo_write(context, slave_index, index, false, std::span(&value, sizeof(value)), constants::timeout_state);
 }
 
@@ -78,14 +78,14 @@ static constexpr index_t rx_pdo_mapping = { 0x1A00, subindex };
 template <uint8_t subindex = 0>
 static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
 
-[[nodiscard, maybe_unused]] static auto recieve_processdata(ecx_contextt* context,
+[[nodiscard, maybe_unused]] inline auto recieve_processdata(ecx_contextt* context,
                                                             microseconds timeout = constants::timeout_tx_to_rx)
     -> working_counter_t {
   return static_cast<working_counter_t>(ecx_receive_processdata(context, static_cast<int>(timeout.count())));
 }
 
 // TODO: It would be better to use std::error_code here
-[[nodiscard, maybe_unused]] static auto init(ecx_contextt* context, std::string_view iface) -> bool {
+[[nodiscard, maybe_unused]] inline auto init(ecx_contextt* context, std::string_view iface) -> bool {
   return ecx_init(context, iface.data()) > 0;
 }
 
@@ -96,7 +96,7 @@ static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
  * @param use_config_table use the config table
  * @return true if successful
  */
-[[nodiscard, maybe_unused]] static auto config_init(ecx_contextt* context, bool use_config_table) -> bool {
+[[nodiscard, maybe_unused]] inline auto config_init(ecx_contextt* context, bool use_config_table) -> bool {
   return ecx_config_init(context, use_config_table ? 1 : 0) > 0;
 }
 /**
@@ -104,19 +104,35 @@ static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
  * @param use_config_table
  * @return IOmap size
  */
-auto config_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
+inline auto config_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
   return ecx_config_map_group(context, buffer.data(), group_index) > 0;
 }
 
-[[maybe_unused]] static auto configdc(ecx_contextt* context) -> bool {
+inline auto write_state(ecx_contextt* context, uint16_t slave_index) -> working_counter_t {
+    return static_cast<ecx::working_counter_t>(ecx_writestate(context, slave_index));
+}
+
+inline auto config_map_group_aligned(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
+    return ecx_config_map_group_aligned(context, buffer.data(), group_index) > 0;
+}
+
+inline auto config_overlap_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
+    return ecx_config_overlap_map_group(context, buffer.data(), group_index) > 0;
+}
+
+[[maybe_unused]] inline auto configdc(ecx_contextt* context) -> bool {
   return ecx_configdc(context) == 1;
 }
 
-[[maybe_unused]] static auto statecheck(ecx_contextt* context,
+[[maybe_unused]] inline auto statecheck(ecx_contextt* context,
                                         uint16_t slave_index,
                                         ec_state requested_state,
                                         std::chrono::microseconds timeout) -> ec_state {
   return static_cast<ec_state>(ecx_statecheck(context, slave_index, requested_state, static_cast<int>(timeout.count())));
+}
+
+[[maybe_unused]] inline auto readstate(ecx_contextt* context) -> ec_state {
+    return static_cast<ec_state>(ecx_readstate(context));
 }
 
 }  // namespace ecx

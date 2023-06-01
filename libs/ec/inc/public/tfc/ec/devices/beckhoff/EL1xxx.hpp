@@ -16,6 +16,12 @@ public:
   static constexpr uint32_t product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
+  struct foo {
+      uint8_t a : 1;
+      uint8_t b : 1;
+  };
+    static_assert(sizeof(foo) == 1);
+
   void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final {
     static_assert(size <= 8);
     std::bitset<size> const in_bits(static_cast<uint8_t>(input[0]));
