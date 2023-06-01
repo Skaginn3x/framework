@@ -5,47 +5,6 @@
 
 namespace tfc::ec::cia_402 {
 
-struct status_word {
-  uint8_t state_ready_to_switch_on : 1 {};
-  uint8_t state_switched_on : 1 {};
-  uint8_t state_operation_enabled : 1 {};
-  uint8_t state_fault : 1 {};
-  uint8_t voltage_enabled : 1 {};
-  uint8_t state_quick_stop : 1 {};
-  uint8_t state_switch_on_disabled : 1 {};
-  uint8_t warning : 1 {};
-  uint8_t halt_request_active : 1 {};
-  uint8_t remote : 1 {};
-  uint8_t target_reached : 1 {};
-  uint8_t internal_limit_active : 1 {};
-  uint8_t application_specific_0 : 1 {}; // 12th bit
-  uint8_t application_specific_1 : 1 {};
-  uint8_t application_specific_2 : 1 {};
-  uint8_t application_specific_3 : 1 {};
-  constexpr explicit operator uint16_t() const noexcept {
-    std::bitset<16> output{};
-    output.set(0, state_ready_to_switch_on);
-    output.set(1, state_switched_on);
-    output.set(2, state_operation_enabled);
-    output.set(3, state_fault);
-    output.set(4, voltage_enabled);
-    output.set(5, state_quick_stop);
-    output.set(6, state_switch_on_disabled);
-    output.set(7, warning);
-    output.set(8, halt_request_active);
-    output.set(9, remote);
-    output.set(10, target_reached);
-    output.set(11, internal_limit_active);
-    output.set(12, application_specific_0);
-    output.set(13, application_specific_1);
-    output.set(14, application_specific_2);
-    output.set(15, application_specific_3);
-    return static_cast<uint16_t>(output.to_ulong());
-  }
-};
-
-static_assert(sizeof(status_word) == 2);
-
 enum struct commands_e : uint16_t {
   disable_voltage = 0x0000,
   shutdown = 0x0006,
@@ -84,6 +43,63 @@ enum struct states_e : uint16_t {
   fault_reaction_active = 7,
   fault = 8
 };
+
+struct status_word {
+  uint8_t state_ready_to_switch_on : 1 {};
+  uint8_t state_switched_on : 1 {};
+  uint8_t state_operation_enabled : 1 {};
+  uint8_t state_fault : 1 {};
+  uint8_t voltage_enabled : 1 {};
+  uint8_t state_quick_stop : 1 {};
+  uint8_t state_switch_on_disabled : 1 {};
+  uint8_t warning : 1 {};
+  uint8_t halt_request_active : 1 {};
+  uint8_t remote : 1 {};
+  uint8_t target_reached : 1 {};
+  uint8_t internal_limit_active : 1 {};
+  uint8_t application_specific_0 : 1 {}; // 12th bit
+  uint8_t application_specific_1 : 1 {};
+  uint8_t application_specific_2 : 1 {};
+  uint8_t application_specific_3 : 1 {};
+  constexpr explicit operator uint16_t() const noexcept {
+    std::bitset<16> output{};
+    output.set(0, state_ready_to_switch_on);
+    output.set(1, state_switched_on);
+    output.set(2, state_operation_enabled);
+    output.set(3, state_fault);
+    output.set(4, voltage_enabled);
+    output.set(5, state_quick_stop);
+    output.set(6, state_switch_on_disabled);
+    output.set(7, warning);
+    output.set(8, halt_request_active);
+    output.set(9, remote);
+    output.set(10, target_reached);
+    output.set(11, internal_limit_active);
+    output.set(12, application_specific_0);
+    output.set(13, application_specific_1);
+    output.set(14, application_specific_2);
+    output.set(15, application_specific_3);
+    return static_cast<uint16_t>(output.to_ulong());
+  }
+  constexpr explicit operator states_e() const noexcept {
+    // clang-format off
+    if (state_ready_to_switch_on) return states_e::ready_to_switch_on;
+    if (state_switched_on) return states_e::switched_on;
+    if (state_operation_enabled) return states_e::operation_enabled;
+    if (state_fault) return states_e::fault;
+    if (state_quick_stop) return states_e::quick_stop_active;
+    // clang-format on
+    return states_e::not_ready_to_switch_on;
+  }
+};
+
+static_assert(sizeof(status_word) == 2);
+static_assert(static_cast<states_e>(status_word{.state_ready_to_switch_on=1}) == states_e::ready_to_switch_on);
+static_assert(static_cast<states_e>(status_word{.state_switched_on=1}) == states_e::switched_on);
+static_assert(static_cast<states_e>(status_word{.state_operation_enabled=1}) == states_e::operation_enabled);
+static_assert(static_cast<states_e>(status_word{.state_fault=1}) == states_e::fault);
+static_assert(static_cast<states_e>(status_word{.state_quick_stop=1}) == states_e::quick_stop_active);
+
 
 [[maybe_unused]] static auto to_string(states_e value) -> std::string {
   using std::string_literals::operator""s;
@@ -136,9 +152,14 @@ inline auto parse_state(uint16_t const& status_word) -> states_e {
       return states_e::not_ready_to_switch_on;
   }
 }
-inline auto parse_state(status_word status) -> states_e {
-  return parse_state(static_cast<uint16_t>(status)); // todo maybe erase the function above and implement here
+inline constexpr auto parse_state(status_word status) -> states_e {
+  if (status.state_ready_to_switch_on) {
+    return states_e::ready_to_switch_on;
+  }
+  return states_e::not_ready_to_switch_on; //
+//  return parse_state(static_cast<uint16_t>(status)); // todo maybe erase the function above and implement here
 }
+
 
 /**
  * Transition to operational mode
