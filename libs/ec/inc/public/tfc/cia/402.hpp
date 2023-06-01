@@ -22,6 +22,26 @@ struct status_word {
   uint8_t application_specific_1 : 1 {};
   uint8_t application_specific_2 : 1 {};
   uint8_t application_specific_3 : 1 {};
+  constexpr explicit operator uint16_t() const noexcept {
+    std::bitset<16> output{};
+    output.set(0, state_ready_to_switch_on);
+    output.set(1, state_switched_on);
+    output.set(2, state_operation_enabled);
+    output.set(3, state_fault);
+    output.set(4, voltage_enabled);
+    output.set(5, state_quick_stop);
+    output.set(6, state_switch_on_disabled);
+    output.set(7, warning);
+    output.set(8, halt_request_active);
+    output.set(9, remote);
+    output.set(10, target_reached);
+    output.set(11, internal_limit_active);
+    output.set(12, application_specific_0);
+    output.set(13, application_specific_1);
+    output.set(14, application_specific_2);
+    output.set(15, application_specific_3);
+    return static_cast<uint16_t>(output.to_ulong());
+  }
 };
 
 static_assert(sizeof(status_word) == 2);
@@ -115,6 +135,9 @@ inline auto parse_state(uint16_t const& status_word) -> states_e {
     default:
       return states_e::not_ready_to_switch_on;
   }
+}
+inline auto parse_state(status_word status) -> states_e {
+  return parse_state(static_cast<uint16_t>(status)); // todo maybe erase the function above and implement here
 }
 
 /**
