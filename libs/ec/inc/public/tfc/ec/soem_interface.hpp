@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <tfc/utils/pragmas.hpp>
+#include <tfc/stx/bitset_join.h>
 
 // TODO: Contribute upstream a working clang build pipeline and
 //  Try to advicate having these things cleaned up.
@@ -54,10 +55,15 @@ using index_t = std::pair<uint16_t, uint8_t>;
 // of slaves affected or not.
 using working_counter_t = int32_t;
 
+/// \brief Complete Access Support
+/// If this value is true, support for uploading or downloading the complete CanOpen object is activated. The entire
+/// data area belonging to the main index with all its subindices is read or written.
+using complete_access_t = bool;
+
 [[nodiscard]] inline auto sdo_write(ecx_contextt* context,
                                     uint16_t slave_index,
                                     index_t index,
-                                    bool complete_access,
+                                    complete_access_t complete_access,
                                     std::ranges::view auto data,
                                     microseconds timeout) -> working_counter_t {
   return static_cast<working_counter_t>(ecx_SDOwrite(context, slave_index, index.first, index.second, complete_access,
@@ -69,14 +75,36 @@ inline auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index
   return sdo_write(context, slave_index, index, false, std::span(&value, sizeof(value)), constants::timeout_safe);
 }
 
+/// Sync channel 2: process data telegram protocol for incoming PDOs (master -> slave)
+/// rx for slave, tx for master
 template <uint8_t subindex = 0>
-static constexpr index_t rx_pdo_assign = { 0x1C13, subindex };
+static constexpr index_t rx_pdo_assign = { 0x1C12, subindex }; // todo @omar where did you find rx pdo as 1c13
+/// Sync channel 3: process data telegram protocol for outgoing PDOs (master <- slave)
+/// tx for slave, rx for master
 template <uint8_t subindex = 0>
-static constexpr index_t tx_pdo_assign = { 0x1C12, subindex };
+static constexpr index_t tx_pdo_assign = { 0x1C13, subindex };
+
+/// FYI
+/// The parameterisation of the individual PDOs is set via the objects 0x1600 and 0x160x
+/// (receive PDOs) and 0x1A00 and 0x1A0x (transmit PDOs). If device supports more mappings the `x` address applies.
+/// Basically the setting of the sync channels and the configuration of the PDOs can only be
+/// carried out in the "Pre−operational state.
+/// rx for slave, tx for master
 template <uint8_t subindex = 0>
-static constexpr index_t rx_pdo_mapping = { 0x1A00, subindex };
+static constexpr index_t rx_pdo_mapping = { 0x1600, subindex };  // todo @omar where did you find rx pdo as 1a00
+/// tx for slave, rx for master
 template <uint8_t subindex = 0>
-static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
+static constexpr index_t tx_pdo_mapping = { 0x1A00, subindex };
+
+template <typename value_t>
+constexpr auto make_mapping_value() -> uint32_t {
+  std::bitset<sizeof(value_t::index.first) * 8> index{ value_t::index.first };
+  std::bitset<sizeof(value_t::index.second) * 8> sub_index{ value_t::index.second };
+  std::bitset<8> constexpr some_constant_which_i_would_like_to_know_the_name_of{ sizeof(value_t) * 8 };
+  auto result = tfc::stx::bitset_join(index, sub_index, some_constant_which_i_would_like_to_know_the_name_of);
+  static_assert(result.size() == 32);
+  return static_cast<uint32_t>(result.to_ulong());
+}
 
 [[nodiscard, maybe_unused]] inline auto recieve_processdata(ecx_contextt* context,
                                                             microseconds timeout = constants::timeout_tx_to_rx)

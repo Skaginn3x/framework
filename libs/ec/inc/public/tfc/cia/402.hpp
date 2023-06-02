@@ -3,15 +3,64 @@
 #include <cstdint>
 #include <string>
 
+#include <tfc/ec/soem_interface.hpp>
+
 namespace tfc::ec::cia_402 {
+
+using ecx::index_t;
+
+struct control_word {
+  static constexpr index_t index{ 0x6040, 0x0 };
+  bool operating_state_switch_on : 1 {};
+  bool enable_voltage : 1 {};
+  bool operating_state_quick_stop : 1 {};
+  bool enable_operation : 1 {};
+  bool operating_mode_specific_0 : 1 {};
+  bool operating_mode_specific_1 : 1 {};
+  bool operating_mode_specific_2 : 1 {};
+  bool fault_reset : 1 {};
+  bool halt : 1 {};
+  bool operating_mode_specific_3 : 1 {};
+  bool reserved_0 : 1 {};
+  bool reserved_1 : 1 {};
+  bool reserved_2 : 1 {};
+  bool reserved_3 : 1 {};
+  bool reserved_4 : 1 {};
+  bool reserved_5 : 1 {};
+  constexpr explicit operator uint16_t() const noexcept {
+    std::bitset<16> output{};
+    output.set(0, operating_state_switch_on);
+    output.set(1, enable_voltage);
+    output.set(2, operating_state_quick_stop);
+    output.set(3, enable_operation);
+    output.set(4, operating_mode_specific_0);
+    output.set(5, operating_mode_specific_1);
+    output.set(6, operating_mode_specific_2);
+    output.set(7, fault_reset);
+    output.set(8, halt);
+    output.set(9, operating_mode_specific_3);
+    output.set(10, reserved_0);
+    output.set(11, reserved_1);
+    output.set(12, reserved_2);
+    output.set(13, reserved_3);
+    output.set(14, reserved_4);
+    output.set(15, reserved_5);
+    return static_cast<uint16_t>(output.to_ulong());
+  }
+};
+static_assert(sizeof(control_word) == 2);
 
 enum struct commands_e : uint16_t {
   disable_voltage = 0x0000,
-  shutdown = 0x0006,
-  quick_stop = 0x0002,
-  switch_on = 0x0007,
-  enable_operation = 0x000f,
-  fault_reset = 0x0080
+  shutdown = static_cast<uint16_t>(control_word{ .enable_voltage = true, .operating_state_quick_stop = true }),
+  quick_stop = static_cast<uint16_t>(control_word{ .enable_voltage = true }),
+  switch_on = static_cast<uint16_t>(
+      control_word{ .operating_state_switch_on = true, .enable_voltage = true, .operating_state_quick_stop = true }),
+  enable_operation = static_cast<uint16_t>(control_word{ .operating_state_switch_on = true,
+                                                         .enable_voltage = true,
+                                                         .operating_state_quick_stop = true,
+                                                         .enable_operation = true }),
+  fault_reset = static_cast<uint16_t>(control_word{ .fault_reset = true })
 };
 
 [[maybe_unused]] static auto to_string(commands_e value) -> std::string {
@@ -45,22 +94,23 @@ enum struct states_e : uint16_t {
 };
 
 struct status_word {
-  uint8_t state_ready_to_switch_on : 1 {};
-  uint8_t state_switched_on : 1 {};
-  uint8_t state_operation_enabled : 1 {};
-  uint8_t state_fault : 1 {};
-  uint8_t voltage_enabled : 1 {};
-  uint8_t state_quick_stop : 1 {};
-  uint8_t state_switch_on_disabled : 1 {};
-  uint8_t warning : 1 {};
-  uint8_t halt_request_active : 1 {};
-  uint8_t remote : 1 {};
-  uint8_t target_reached : 1 {};
-  uint8_t internal_limit_active : 1 {};
-  uint8_t application_specific_0 : 1 {};  // 12th bit
-  uint8_t application_specific_1 : 1 {};
-  uint8_t application_specific_2 : 1 {};
-  uint8_t application_specific_3 : 1 {};
+  static constexpr index_t index{ 0x6041, 0x0 };
+  bool state_ready_to_switch_on : 1 {};
+  bool state_switched_on : 1 {};
+  bool state_operation_enabled : 1 {};
+  bool state_fault : 1 {};
+  bool voltage_enabled : 1 {};
+  bool state_quick_stop : 1 {};
+  bool state_switch_on_disabled : 1 {};
+  bool warning : 1 {};
+  bool halt_request_active : 1 {};
+  bool remote : 1 {};
+  bool target_reached : 1 {};
+  bool internal_limit_active : 1 {};
+  bool application_specific_0 : 1 {};  // 12th bit
+  bool application_specific_1 : 1 {};
+  bool application_specific_2 : 1 {};
+  bool application_specific_3 : 1 {};
   constexpr explicit operator uint16_t() const noexcept {
     std::bitset<16> output{};
     output.set(0, state_ready_to_switch_on);
@@ -133,24 +183,24 @@ struct status_word {
   }
   static constexpr auto from_uint(uint16_t word) -> status_word {
     std::bitset<16> word_bitset{ word };
-    status_word out{};
-    out.state_ready_to_switch_on = word_bitset[0];
-    out.state_switched_on = word_bitset[1];
-    out.state_operation_enabled = word_bitset[2];
-    out.state_fault = word_bitset[3];
-    out.voltage_enabled = word_bitset[4];
-    out.state_quick_stop = word_bitset[5];
-    out.state_switch_on_disabled = word_bitset[6];
-    out.warning = word_bitset[7];
-    out.halt_request_active = word_bitset[8];
-    out.remote = word_bitset[9];
-    out.target_reached = word_bitset[10];
-    out.internal_limit_active = word_bitset[11];
-    out.application_specific_0 = word_bitset[12];
-    out.application_specific_1 = word_bitset[13];
-    out.application_specific_2 = word_bitset[14];
-    out.application_specific_3 = word_bitset[15];
-    return out;
+    return {
+      .state_ready_to_switch_on = word_bitset[0],
+      .state_switched_on = word_bitset[1],
+      .state_operation_enabled = word_bitset[2],
+      .state_fault = word_bitset[3],
+      .voltage_enabled = word_bitset[4],
+      .state_quick_stop = word_bitset[5],
+      .state_switch_on_disabled = word_bitset[6],
+      .warning = word_bitset[7],
+      .halt_request_active = word_bitset[8],
+      .remote = word_bitset[9],
+      .target_reached = word_bitset[10],
+      .internal_limit_active = word_bitset[11],
+      .application_specific_0 = word_bitset[12],
+      .application_specific_1 = word_bitset[13],
+      .application_specific_2 = word_bitset[14],
+      .application_specific_3 = word_bitset[15],
+    };
   }
 };
 
