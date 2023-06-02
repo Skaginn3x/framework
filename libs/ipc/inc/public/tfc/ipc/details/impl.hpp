@@ -297,11 +297,11 @@ private:
     // Don't retransmit transmitted things.
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-    if (value.value() != last_value_) {
-      PRAGMA_CLANG_WARNING_POP
+    if (!last_value_.has_value() || value.value() != last_value_) {
+    PRAGMA_CLANG_WARNING_POP
       // clang-format on
       last_value_ = value.value();
-      cb_(last_value_);
+      cb_(last_value_.value());
     }
     register_read();
   }
@@ -315,7 +315,7 @@ private:
   }
   slot<type_desc> slot_;
   std::function<void(value_t const&)> cb_{ [](value_t const&) {} };
-  value_t last_value_{};
+  std::optional<value_t> last_value_{};
 };
 
 using type_bool = type_description<bool, type_e::_bool>;
