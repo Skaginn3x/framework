@@ -11,20 +11,13 @@
 
 namespace tfc::ec::devices::schneider::lxm32 {
 
-enum struct operation_mode_e : std::uint8_t {
-  unknown = 0,
-  position,
-  velocity,
-  torque
-};
+enum struct operation_mode_e : std::uint8_t { unknown = 0, position, velocity, torque };
 
-struct rx_pdo_position {
+struct rx_pdo_position {};
 
-};
+}  // namespace tfc::ec::devices::schneider::lxm32
 
-}
-
-template<>
+template <>
 struct glz::meta<tfc::ec::devices::schneider::lxm32::operation_mode_e> {
   using enum tfc::ec::devices::schneider::lxm32::operation_mode_e;
   // clang-format off
@@ -46,11 +39,9 @@ public:
   static constexpr uint32_t vendor_id = 0x800005a;
   static constexpr uint32_t product_code = 0x16440;
 
-  explicit lxm32m(asio::io_context& ctx, manager_client_type& client, uint16_t slave_index): base(slave_index) {}
+  explicit lxm32m(asio::io_context& ctx, manager_client_type& client, uint16_t slave_index) : base(slave_index) {}
 
-
-  void process_data(std::span<std::byte>, std::span<std::byte>) final { }
-
+  void process_data(std::span<std::byte>, std::span<std::byte>) final {}
 };
 
-}
+}  // namespace tfc::ec::devices::schneider

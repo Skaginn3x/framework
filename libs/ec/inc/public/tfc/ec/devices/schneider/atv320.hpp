@@ -187,7 +187,7 @@ public:
   }
 
 private:
-  uint16_t status_word_;
+  tfc::ec::cia_402::status_word status_word_;
   std::array<int16_t, 2> last_analog_inputs_;
   std::vector<tfc::ipc::int_signal> ai_transmitters_;
   std::bitset<6> last_bool_values_;
