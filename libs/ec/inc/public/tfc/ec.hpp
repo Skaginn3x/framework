@@ -80,10 +80,9 @@ public:
   auto processdata(std::chrono::microseconds timeout) -> ecx::working_counter_t {
     ecx_send_overlap_processdata(&context_);
     auto wkc = ecx::recieve_processdata(&context_, timeout);
+    std::span<std::byte> input;
+    std::span<std::byte> output;
     for (size_t i = 1; i < slave_count() + 1; i++) {
-      std::span<std::byte> input;
-      std::span<std::byte> output;
-
       if (slavelist_[i].inputs != nullptr) {
         input = { reinterpret_cast<std::byte*>(slavelist_[i].inputs), static_cast<size_t>(slavelist_[i].Ibytes) };
       }
@@ -113,6 +112,10 @@ public:
     for (size_t i = 1; i <= slave_count(); i++) {
       slaves_.emplace_back(
           devices::get(ctx_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
+      slaves_.back()->set_sdo_write_cb([this, i](ecx::index_t idx, ecx::complete_access_t acc, std::span<std::byte> data,
+                                                 std::chrono::microseconds microsec) -> ecx::working_counter_t {
+        return ecx::sdo_write(&context_, static_cast<uint16_t>(i), idx, acc, data, microsec);
+      });
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
     slave_list_as_span_with_master()[0].state = EC_STATE_PRE_OP | EC_STATE_ACK;
@@ -318,7 +321,7 @@ private:
     self->logger_.trace(
         "Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}\nhasDC: {}, state : {}",
         sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc, sl.state);
-    self->slaves_[slave_index]->setup(context, slave_index);
+    self->slaves_[slave_index]->setup();
     return 1;
   }
 
