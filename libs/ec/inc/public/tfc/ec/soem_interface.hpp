@@ -37,7 +37,7 @@ using std::chrono::microseconds;
 using std::chrono::nanoseconds;
 
 namespace constants {
-static constexpr microseconds timeout_state = microseconds(EC_TIMEOUTSAFE);
+static constexpr microseconds timeout_safe = microseconds(EC_TIMEOUTSAFE);
 static constexpr microseconds timeout_rx_mailbox_cycle = microseconds(EC_TIMEOUTRXM);
 static constexpr microseconds timeout_tx_to_rx = microseconds(EC_TIMEOUTRET);
 static constexpr size_t max_slave = EC_MAXSLAVE;
@@ -66,7 +66,7 @@ using working_counter_t = int32_t;
 }
 template <std::integral t>
 inline auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
-  return sdo_write(context, slave_index, index, false, std::span(&value, sizeof(value)), constants::timeout_state);
+  return sdo_write(context, slave_index, index, false, std::span(&value, sizeof(value)), constants::timeout_safe);
 }
 
 template <uint8_t subindex = 0>
@@ -84,17 +84,35 @@ static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
   return static_cast<working_counter_t>(ecx_receive_processdata(context, static_cast<int>(timeout.count())));
 }
 
-// TODO: It would be better to use std::error_code here
+/**
+ *
+ * @param context pointer to the soem context
+ * @param iface a string name of the ethernet interface
+ * @return false if failed
+ * @warning This function only calls ecx_setupnic internally,
+ * just call that function directly and get better control.
+ * @todo Make this function return a custom std::error_cde
+ */
 [[nodiscard, maybe_unused]] inline auto init(ecx_contextt* context, std::string_view iface) -> bool {
   return ecx_init(context, iface.data()) > 0;
 }
-
-// TODO: It would be better to use std::error_code here
+/**
+ *  Setup the nic for soem communication, this is a wrapper around ecx_setupnic
+ *  context->port
+ * @param context
+ * @param iface
+ * @param secondary
+ * @return
+ */
+[[nodiscard, maybe_unused]] inline auto setupnic(ecx_contextt* context, std::string_view iface, bool secondary) -> bool {
+    return ecx_setupnic(context->port, iface.data(), secondary ? TRUE : FALSE) > 0;
+}
 /**
  * Scans the ethercat network and populates *slavelist
  * @param context pointer to the soem context
  * @param use_config_table use the config table
  * @return true if successful
+ * @todo Make this function return a custom std::error_cde
  */
 [[nodiscard, maybe_unused]] inline auto config_init(ecx_contextt* context, bool use_config_table) -> bool {
   return ecx_config_init(context, use_config_table ? 1 : 0) > 0;

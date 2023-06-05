@@ -32,8 +32,6 @@ namespace tfc::ec {
         // This number indicates that "all" groups
         // are to be addressed when our code is
         // interacting with groups.
-        static constexpr uint8_t all_groups = 0;
-        static constexpr uint16_t all_slaves = 0;
 
         explicit context_t(boost::asio::io_context &ctx, std::string_view iface)
                 : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
@@ -59,7 +57,12 @@ namespace tfc::ec {
             context_.esislave = 0;
             context_.FOEhook = nullptr;
             context_.EOEhook = nullptr;
-            context_.manualstatechange = 0;
+            context_.manualstatechange = 1; // Internal SOEM code changes ethercat states if not set.
+
+            if (!ecx::init(&context_, iface_)) {
+                // TODO: swith for error_code
+                throw std::runtime_error("Failed to init, no socket connection");
+            }
         }
 
         context_t(const context_t &) = delete;
@@ -124,8 +127,10 @@ namespace tfc::ec {
                                      slavelist_[i].eep_id));
                 slavelist_[i].PO2SOconfigx = slave_config_callback;
             }
-            statecheck(all_slaves, EC_STATE_PRE_OP, ecx::constants::timeout_state * 4);
-            return true;
+            slave_list_as_span_with_master()[0].state = EC_STATE_PRE_OP | EC_STATE_ACK;
+            ecx_writestate(&context_, 0);
+            auto lowest = ecx::statecheck(&context_, 0, EC_STATE_PRE_OP, milliseconds (100));
+            return lowest == EC_STATE_PRE_OP || lowest == (EC_STATE_ACK | EC_STATE_PRE_OP);
         }
 
         [[nodiscard]] auto iface() -> std::string_view { return iface_; }
@@ -137,7 +142,7 @@ namespace tfc::ec {
 
         auto statecheck(uint16_t slave_index,
                         ec_state requested_state,
-                        std::chrono::microseconds timeout = ecx::constants::timeout_state) {
+                        std::chrono::microseconds timeout = ecx::constants::timeout_safe) {
             return ecx::statecheck(&context_, slave_index, requested_state, timeout);
         }
 
@@ -147,32 +152,38 @@ namespace tfc::ec {
          */
         auto async_start() -> std::error_code {
             auto start_config = std::chrono::high_resolution_clock::now();
-            if (!ecx::init(&context_, iface_)) {
-                // TODO: swith for error_code
-                throw std::runtime_error("Failed to init, no socket connection");
-            }
             if (!config_init(false)) {
                 // TODO: Switch for error_code
                 throw std::runtime_error("No slaves found!");
             }
-
             ecx::config_overlap_map_group(&context_, std::span(io_.data(), io_.size()), 0);
 
             if (!configdc()) {
                 throw std::runtime_error("Failed to configure dc");
             }
 
-            //auto found_state = statecheck(all_slaves, EC_STATE_SAFE_OP, ecx::constants::timeout_state * 4);
-            //std::cout << found_state << " FOUND STATE" << std::endl;
-            int lowest_state1 = EC_STATE_NONE;
-            for(int i = 0; lowest_state1 !=  EC_STATE_SAFE_OP; i++){
-                //processdata(milliseconds {100});
-                context_.slavelist[0].state = EC_STATE_SAFE_OP;
-                ecx::write_state(&context_, 0);
-                lowest_state1 = ecx_readstate(&context_);
-                std::cout << lowest_state1 << " LOWEST STATE " << i << std::endl;
-            }
+            slave_list_as_span_with_master()[0].state = EC_STATE_SAFE_OP;
+            ecx::write_state(&context_, 0);
+            auto start = high_resolution_clock::now();
+            auto found_state = statecheck(0, EC_STATE_SAFE_OP, milliseconds (2000));
+            std::cout << found_state << " FOUND STATE" << std::endl;
+            logger_.info("Found State {} in {}", found_state, duration_cast<milliseconds>(high_resolution_clock::now() - start));
 
+            // auto safeop_timer = high_resolution_clock::now();
+            // int lowest_state1 = EC_STATE_NONE;
+            // size_t i = 0;
+            // for(i = 0; false && lowest_state1 !=  EC_STATE_SAFE_OP; i++){
+            //     context_.slavelist[0].state = EC_STATE_SAFE_OP;
+            //     lowest_state1 = ecx_readstate(&context_);
+            //     std::this_thread::sleep_for(milliseconds (500));
+            //     auto slave_list = slave_list_as_span();
+            // }
+            // logger_.info("Safe op {}, i {}", duration_cast<milliseconds>(high_resolution_clock::now() - safeop_timer), i);
+            // lowest_state1 = ecx_readstate(&context_);
+            // for(auto& slave : slave_list_as_span()){
+            //     logger_.info("Slave {} state {}", slave.name, slave.state);
+            // }
+            //exit(0);
             // Do a single read/write on the slaves to activate their outputs.
             auto value = processdata(milliseconds {100});
             if (value == EC_NOFRAME){
@@ -213,9 +224,14 @@ namespace tfc::ec {
 
     private:
         auto async_wait(bool first_iteration = false) -> void {
-            cycle_start_with_sleep_ = std::chrono::high_resolution_clock::now();
             auto timer = std::make_shared<boost::asio::steady_timer>(ctx_);
-            timer->expires_after(std::chrono::microseconds(first_iteration ? 0 : 1000));
+            if (first_iteration) {
+                timer->expires_after(std::chrono::microseconds(0));
+            } else {
+                auto sleep_time = microseconds (100) - (std::chrono::high_resolution_clock::now() - cycle_start_);
+                timer->expires_after(sleep_time);
+            }
+            cycle_start_with_sleep_ = std::chrono::high_resolution_clock::now();
             timer->async_wait([this, timer](auto &&PH1) { fieldbus_roundtrip(std::forward<decltype(PH1)>(PH1)); });
         }
 
@@ -250,7 +266,7 @@ namespace tfc::ec {
 
             cycle_count_++;
 
-            if (last_cycle_with_sleep_ > std::chrono::microseconds (1500)){
+            if (last_cycle_with_sleep_ > std::chrono::microseconds (300)){
                 logger_.warn("Ethercat cycle time is too long: {}", std::chrono::duration_cast<std::chrono::microseconds>(last_cycle_with_sleep_));
             }
             async_wait();
@@ -263,7 +279,7 @@ namespace tfc::ec {
          * been lost attempt to add them again.
          * @param group_index 0 for all groups
          */
-        auto check_state(uint8_t group_index = all_groups) -> void {
+        auto check_state(uint8_t group_index = 0) -> void {
             auto &grp = group_list_as_span()[group_index];
             grp.docheckstate = FALSE;
             ecx_readstate(&context_);
@@ -326,8 +342,8 @@ namespace tfc::ec {
             auto *self = static_cast<context_t *>(context->userdata);
             ec_slavet &sl = self->slave_list_as_span_with_master()[slave_index];
             self->logger_.trace(
-                    "Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}\nhasDC: {}",
-                    sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc);
+                    "Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}\nhasDC: {}, state : {}",
+                    sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc, sl.state);
             self->slaves_[slave_index]->setup(context, slave_index);
             return 1;
         }
