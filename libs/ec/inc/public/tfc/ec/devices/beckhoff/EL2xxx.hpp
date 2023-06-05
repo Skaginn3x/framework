@@ -17,7 +17,7 @@ public:
 
   void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final {
     static_assert(size <= 8);
-    // assert(output.size() == 1);
+
     output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
   }
 
@@ -30,6 +30,4 @@ private:
 
 template <typename manager_client_type>
 using el2008 = el200x<manager_client_type, 8, 0x7d83052>;
-template <typename manager_client_type>
-using el2004 = el200x<manager_client_type, 4, 0x7d43052>;
 }  // namespace tfc::ec::devices::beckhoff
