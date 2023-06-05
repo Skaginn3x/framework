@@ -68,8 +68,18 @@ public:
 
   /// \return storage_t as json string
   [[nodiscard]] auto string() const -> std::string { return glz::write_json(storage_.value()); }
+
+  /// TODO can we do this differently, jsonforms requires object as root element
+  template <typename some_type>
+  struct hack {
+    some_type placeholder{};
+    struct glaze {
+      static constexpr auto value{ glz::object("config", &hack::placeholder) };
+      static constexpr auto name{ glz::name_v<some_type> };
+    };
+  };
   /// \return storage_t json schema
-  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<config_storage_t>(); }
+  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<hack<config_storage_t>>(); }
 
   auto set_changed() const noexcept -> std::error_code {
     client_.set(detail::config_property{ .value = string(), .schema = schema() });

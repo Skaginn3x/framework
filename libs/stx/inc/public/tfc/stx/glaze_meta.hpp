@@ -1,9 +1,158 @@
 #pragma once
-#include <date/date.h>
-#include <glaze/glaze.hpp>
+#include <chrono>
+#include <ratio>
 #include <sstream>
+#include <string_view>
+#include <type_traits>
 
-static inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
+#include <date/date.h>
+#include <fmt/chrono.h>
+#include <glaze/glaze.hpp>
+
+#include <tfc/stx/string_view_join.hpp>
+
+namespace tfc::detail {
+
+template <std::intmax_t num, std::intmax_t den>
+inline constexpr auto make_ratio_symbol() -> std::string_view {
+  using type = std::ratio<num, den>;
+  if constexpr (std::is_same_v<type, std::atto>) {
+    return "a";
+  } else if constexpr (std::is_same_v<type, std::femto>) {
+    return "f";
+  } else if constexpr (std::is_same_v<type, std::pico>) {
+    return "p";
+  } else if constexpr (std::is_same_v<type, std::nano>) {
+    return "n";
+  } else if constexpr (std::is_same_v<type, std::micro>) {
+    return "μ";
+  } else if constexpr (std::is_same_v<type, std::milli>) {
+    return "m";
+  } else if constexpr (std::is_same_v<type, std::centi>) {
+    return "c";
+  } else if constexpr (std::is_same_v<type, std::deci>) {
+    return "d";
+  } else if constexpr (std::is_same_v<type, std::deca>) {
+    return "da";
+  } else if constexpr (std::is_same_v<type, std::hecto>) {
+    return "h";
+  } else if constexpr (std::is_same_v<type, std::kilo>) {
+    return "k";
+  } else if constexpr (std::is_same_v<type, std::mega>) {
+    return "M";
+  } else if constexpr (std::is_same_v<type, std::giga>) {
+    return "G";
+  } else if constexpr (std::is_same_v<type, std::tera>) {
+    return "T";
+  } else if constexpr (std::is_same_v<type, std::peta>) {
+    return "P";
+  } else if constexpr (std::is_same_v<type, std::exa>) {
+    return "E";
+  } else {
+    []<bool flag = false>() {
+      static_assert(flag, "Missing ratio symbol, please add it to the list.");
+    }
+    ();
+  }
+}
+template <std::intmax_t num, std::intmax_t den>
+static constexpr auto make_name() -> std::string_view {
+  using type = std::ratio<num, den>;
+  if constexpr (std::is_same_v<type, std::atto>) {
+    return "std::atto";
+  } else if constexpr (std::is_same_v<type, std::femto>) {
+    return "std::femto";
+  } else if constexpr (std::is_same_v<type, std::pico>) {
+    return "std::pico";
+  } else if constexpr (std::is_same_v<type, std::nano>) {
+    return "std::nano";
+  } else if constexpr (std::is_same_v<type, std::micro>) {
+    return "std::micro";
+  } else if constexpr (std::is_same_v<type, std::milli>) {
+    return "std::milli";
+  } else if constexpr (std::is_same_v<type, std::centi>) {
+    return "std::centi";
+  } else if constexpr (std::is_same_v<type, std::deci>) {
+    return "std::deci";
+  } else if constexpr (std::is_same_v<type, std::deca>) {
+    return "std::deca";
+  } else if constexpr (std::is_same_v<type, std::hecto>) {
+    return "std::hecto";
+  } else if constexpr (std::is_same_v<type, std::kilo>) {
+    return "std::kilo";
+  } else if constexpr (std::is_same_v<type, std::mega>) {
+    return "std::mega";
+  } else if constexpr (std::is_same_v<type, std::giga>) {
+    return "std::giga";
+  } else if constexpr (std::is_same_v<type, std::tera>) {
+    return "std::tera";
+  } else if constexpr (std::is_same_v<type, std::peta>) {
+    return "std::peta";
+  } else if constexpr (std::is_same_v<type, std::exa>) {
+    return "std::exa";
+  } else {
+    []<bool flag = false>() {
+      static_assert(flag, "Missing ratio name, please add it to the list.");
+    }
+    ();
+  }
+}
+
+template <std::intmax_t num_v, std::intmax_t den_v>
+struct ratio_hack {
+  std::intmax_t num{ num_v };
+  std::intmax_t den{ den_v };
+};
+template <typename rep_t, typename period_t>
+struct duration_hack {
+  using rep_type = rep_t;
+  using period_type = period_t;
+  rep_type rep{};
+  ratio_hack<period_t::num, period_t::den> ratio{};
+  static constexpr std::string_view unit_ratio{ make_ratio_symbol<period_t::num, period_t::den>() };
+  static constexpr std::string_view unit_symbol{ "s" };
+  std::string_view unit{ stx::string_view_join_v<unit_ratio, unit_symbol> };
+  std::string_view dimension{ "time" };
+};
+}  // namespace tfc::detail
+
+template <std::intmax_t num, std::intmax_t den>
+struct glz::meta<std::ratio<num, den>> {
+  using type = std::ratio<num, den>;
+  static constexpr auto value{ glz::object("numerator", type::num, "denominator", type::den) };
+  static constexpr auto name{ tfc::detail::make_name<num, den>() };
+};
+template <std::intmax_t num, std::intmax_t den>
+struct glz::meta<tfc::detail::ratio_hack<num, den>> {
+  using type = tfc::detail::ratio_hack<num, den>;
+  static constexpr auto value{ glz::object("numerator", &type::num, "denominator", &type::den) };
+  static constexpr auto name{ tfc::detail::make_name<num, den>() };
+};
+template <typename rep_t, typename period_t>
+struct glz::meta<std::chrono::duration<rep_t, period_t>> {
+  static constexpr std::string_view prefix{ "std::chrono::duration<" };
+  static constexpr std::string_view postfix{ ">" };
+  static constexpr std::string_view separator{ "," };
+  static constexpr auto name{
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
+  };
+};
+template <typename rep_t, typename period_t>
+struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
+  using type = tfc::detail::duration_hack<rep_t, period_t>;
+  static constexpr auto value{
+    glz::object("value", &type::rep, "unit", &type::unit, "dimension", &type::dimension, "ratio", &type::ratio)
+  };
+  static constexpr std::string_view prefix{ "std::chrono::duration<" };
+  static constexpr std::string_view postfix{ ">" };
+  static constexpr std::string_view separator{ "," };
+  static constexpr auto name{
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
+  };
+};
+
+namespace glz::detail {
+inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
   std::istringstream in{ save };
   date::sys_time<std::chrono::milliseconds> tp;
   in >> date::parse("%FT%TZ", tp);
@@ -15,8 +164,6 @@ static inline auto parse8601(const std::string& save) -> date::sys_time<std::chr
   }
   return tp;
 }
-
-namespace glz::detail {
 template <>
 struct from_json<std::chrono::time_point<std::chrono::system_clock>> {
   template <auto Opts>
@@ -37,20 +184,32 @@ struct to_json<std::chrono::time_point<std::chrono::system_clock>> {
   }
 };
 
-template <>
-struct from_json<std::chrono::milliseconds> {
-  template <auto Opts>
-  static void op(std::chrono::milliseconds& value, auto&&... args) {
-    std::chrono::milliseconds::rep rep{};
-    read<json>::op<Opts>(rep, args...);
-    value = std::chrono::milliseconds{ rep };
+// TODO: when glaze adds support for constexpr this should be removed.
+template <std::intmax_t num, std::intmax_t den>
+struct to_json<std::ratio<num, den>> {
+  template <auto opts>
+  static void op(std::ratio<num, den>& value, auto&&... args) noexcept {
+    tfc::detail::ratio_hack<num, den> substitute{};
+    write<json>::op<opts>(substitute, args...);
   }
 };
-template <>
-struct to_json<std::chrono::milliseconds> {
-  template <auto Opts>
+
+template <typename rep_t, typename period_t>
+struct from_json<std::chrono::duration<rep_t, period_t>> {
+  template <auto opts>
+  static void op(std::chrono::duration<rep_t, period_t>& value, auto&&... args) {
+    // todo if I could access rep of std::chrono::duration by reference this would be unnecessary
+    tfc::detail::duration_hack<rep_t, period_t> substitute{};
+    read<json>::op<opts>(substitute, args...);
+    value = std::chrono::duration<rep_t, period_t>{ substitute.rep };
+  }
+};
+template <typename rep_t, typename period_t>
+struct to_json<std::chrono::duration<rep_t, period_t>> {
+  template <auto opts>
   static void op(auto& value, auto&&... args) noexcept {
-    write<json>::op<Opts>(value.count(), args...);
+    tfc::detail::duration_hack<rep_t, period_t> substitute{ .rep = value.count() };
+    write<json>::op<opts>(substitute, args...);
   }
 };
 

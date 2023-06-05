@@ -8,14 +8,15 @@
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "f9fddfc56056f97d69bf2b186f98ce9f6a871e06",
+      "baseline": "720d19840dff30f9b5bc94d045a120acb4472e13",
       "packages": [
         "libcap",
         "libsystemd",
         "libxcrypt",
         "sdbusplus",
         "small-vectors",
-        "soem-master"
+        "soem-master",
+        "mp-units"
       ]
     }
   ],
