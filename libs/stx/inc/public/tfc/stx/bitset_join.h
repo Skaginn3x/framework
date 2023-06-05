@@ -8,7 +8,7 @@ namespace tfc::stx {
 template <std::size_t... sizes>
 constexpr auto bitset_join(std::bitset<sizes> const&... bitsets) -> std::bitset<(sizes + ...)> {
   static constexpr auto total_size = (sizes + ...);
-  static_assert(total_size <= 64); //TODO this is to narrow
+  static_assert(total_size <= 64);  // TODO this is to narrow
   auto constexpr append_bitset = [](auto const& bitset, auto& result) {
     result <<= bitset.size();
     result |= std::bitset<total_size>{ bitset.to_ullong() };
