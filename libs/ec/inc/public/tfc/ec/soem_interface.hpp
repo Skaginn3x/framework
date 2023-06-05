@@ -61,17 +61,18 @@ using working_counter_t = int32_t;
 using complete_access_t = bool;
 
 [[nodiscard, maybe_unused]] static auto sdo_write(ecx_contextt* context,
-                                    uint16_t slave_index,
-                                    index_t index,
-                                    complete_access_t complete_access,
-                                    std::ranges::view auto data,
-                                    microseconds timeout) -> working_counter_t {
+                                                  uint16_t slave_index,
+                                                  index_t index,
+                                                  complete_access_t complete_access,
+                                                  std::ranges::view auto data,
+                                                  microseconds timeout) -> working_counter_t {
   return static_cast<working_counter_t>(ecx_SDOwrite(context, slave_index, index.first, index.second, complete_access,
                                                      static_cast<int>(data.size()), data.data(),
                                                      static_cast<int>(timeout.count())));
 }
 template <std::integral t>
-[[maybe_unused]] static auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
+[[maybe_unused]] static auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value)
+    -> working_counter_t {
   return sdo_write(context, slave_index, index, false, std::span(&value, sizeof(value)), constants::timeout_safe);
 }
 

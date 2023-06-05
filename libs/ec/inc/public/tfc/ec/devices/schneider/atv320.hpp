@@ -135,14 +135,14 @@ public:
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x03>,
-                        0x20020510);                             // LCR  - CURRENT USAGE ( A )
+                             0x20020510);                                       // LCR  - CURRENT USAGE ( A )
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x05>,
-                        0x20162B10);  // AI1C - Physical value AI1
+                             0x20162B10);  // AI1C - Physical value AI1
     // ecx::sdo_write<uint32_t>(ecxctx, idx, ::tx_pdo_mapping<0x06>, 0x20165E10);  // AI3C - Physical value without
     // filter AI3
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x06>,
-                        0x20162D10);  // AI3C - Physical value AI3
+                             0x20162D10);  // AI3C - Physical value AI3
     // ecx::sdo_write<uint32_t>(ecxctx, idx, ::tx_pdo_mapping<0x06>, 0x20162310);  // AI3C - Standardized value AI3
     //  Set rx size
     ecx::sdo_write<uint8_t>(ctx, idx, ecx::tx_pdo_mapping<0x00>, 6);
@@ -152,12 +152,12 @@ public:
     // Assign tx variables
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::rx_pdo_mapping<0x01>, 0x60400010);  // CMD - CONTROL WORD
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::rx_pdo_mapping<0x02>,
-                        0x20370310);  // LFR - REFERENCE SPEED HZ
-    ecx::sdo_write<uint32_t>(ctx, idx,
-        ecx::rx_pdo_mapping<0x03>,
+                             0x20370310);  // LFR - REFERENCE SPEED HZ
+    ecx::sdo_write<uint32_t>(
+        ctx, idx, ecx::rx_pdo_mapping<0x03>,
         0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
     ecx::sdo_write<uint32_t>(ctx, idx, ecx::rx_pdo_mapping<0x03>,
-                        0x20164810);  // AO1C - AQ1 physical value
+                             0x20164810);  // AO1C - AQ1 physical value
 
     // Set tx size
     ecx::sdo_write<uint8_t>(ctx, idx, ecx::rx_pdo_mapping<0x00>, 3);
