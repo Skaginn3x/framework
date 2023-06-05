@@ -321,7 +321,7 @@ private:
     self->logger_.trace(
         "Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}\nhasDC: {}, state : {}",
         sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc, sl.state);
-    self->slaves_[slave_index]->setup(context, slave_index);
+    self->slaves_[slave_index]->setup();
     return 1;
   }
 

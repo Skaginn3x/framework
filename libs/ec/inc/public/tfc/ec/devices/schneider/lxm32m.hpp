@@ -133,18 +133,6 @@ using deceleration_ramp = setting<ecx::index_t{ 0x6084, 0x0 },
 
 }  // namespace tfc::ec::devices::schneider
 
-// template <>
-// struct glz::meta<tfc::ec::devices::schneider::lxm32::operation_mode_e> {
-//   using enum tfc::ec::devices::schneider::lxm32::operation_mode_e;
-//   // clang-format off
-//   static constexpr auto value{ glz::enumerate("manual or autotuning", manual_or_autotuning,
-//                                               "position", position,
-//                                               "velocity", velocity,
-//                                               "torque", torque) };
-//   // clang-format on
-//   static constexpr auto name{ "lxm32m_operation_mode" };
-// };
-
 namespace tfc::ec::devices::schneider {
 
 namespace asio = boost::asio;
@@ -175,7 +163,7 @@ public:
     [[maybe_unused]] auto* out = std::launder(reinterpret_cast<output_pdo*>(output.data()));
     auto* in = std::launder(reinterpret_cast<input_pdo*>(input.data()));
 
-    [[maybe_unused]] auto state = static_cast<cia_402::states_e>(in->status);
+    [[maybe_unused]] auto state = in->status.parse_state();
 
     out->command = cia_402::transition(state, false);
 

@@ -70,7 +70,7 @@ public:
     const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
     output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
 
-    auto state = tfc::ec::cia_402::parse_state(in->status_word);
+    auto state = in->status_word.parse_state();
     if (state != last_state_) {
       state_transmitter_.async_send(cia_402::to_string(state), [this](auto&& PH1, size_t bytes_transfered) {
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
@@ -123,66 +123,66 @@ public:
     }
   }
 
-  auto setup(ecx_contextt* ctx, uint16_t idx) -> int final {
+  auto setup() -> int final {
     // Set PDO variables
     // Clean rx and tx prod assign
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::rx_pdo_assign<0x00>, 0);
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::tx_pdo_assign<0x00>, 0);
+    sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 0);
+    sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);
 
     // Zero the size
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::tx_pdo_mapping<0x00>, 0);
+    sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
     // Assign rx variables
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x03>,
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>,
                              0x20020510);                                       // LCR  - CURRENT USAGE ( A )
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x05>,
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>,
                              0x20162B10);  // AI1C - Physical value AI1
-    // ecx::sdo_write<uint32_t>(ecxctx, idx, ::tx_pdo_mapping<0x06>, 0x20165E10);  // AI3C - Physical value without
+    // sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20165E10);  // AI3C - Physical value without
     // filter AI3
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::tx_pdo_mapping<0x06>,
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>,
                              0x20162D10);  // AI3C - Physical value AI3
-    // ecx::sdo_write<uint32_t>(ecxctx, idx, ::tx_pdo_mapping<0x06>, 0x20162310);  // AI3C - Standardized value AI3
+    // sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20162310);  // AI3C - Standardized value AI3
     //  Set rx size
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::tx_pdo_mapping<0x00>, 6);
+    sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 6);
 
     // Zero the size
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::rx_pdo_mapping<0x00>, 0);
+    sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
     // Assign tx variables
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::rx_pdo_mapping<0x01>, 0x60400010);  // CMD - CONTROL WORD
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::rx_pdo_mapping<0x02>,
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x01>, 0x60400010);  // CMD - CONTROL WORD
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>,
                              0x20370310);  // LFR - REFERENCE SPEED HZ
-    ecx::sdo_write<uint32_t>(
-        ctx, idx, ecx::rx_pdo_mapping<0x03>,
+    sdo_write<uint32_t>(
+        ecx::rx_pdo_mapping<0x03>,
         0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
-    ecx::sdo_write<uint32_t>(ctx, idx, ecx::rx_pdo_mapping<0x03>,
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x03>,
                              0x20164810);  // AO1C - AQ1 physical value
 
     // Set tx size
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::rx_pdo_mapping<0x00>, 3);
+    sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 3);
 
     // Assign pdo's to mappings
-    ecx::sdo_write<uint16_t>(ctx, idx, ecx::rx_pdo_assign<0x01>, ecx::rx_pdo_mapping<>.first);
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::rx_pdo_assign<0x00>, 1);
+    sdo_write<uint16_t>(ecx::rx_pdo_assign<0x01>, ecx::rx_pdo_mapping<>.first);
+    sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 1);
 
-    ecx::sdo_write<uint16_t>(ctx, idx, ecx::tx_pdo_assign<0x01>, ecx::tx_pdo_mapping<>.first);
-    ecx::sdo_write<uint8_t>(ctx, idx, ecx::tx_pdo_assign<0x00>, 1);
+    sdo_write<uint16_t>(ecx::tx_pdo_assign<0x01>, ecx::tx_pdo_mapping<>.first);
+    sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 1);
 
     // Clear internal ATV Functionality for outputs and inputs
     // Disconnect relay 1 from fault assignment
-    ecx::sdo_write<uint16_t>(ctx, idx, { 0x2014, 0x02 }, 0);  // 0 - Not configured
+    sdo_write<uint16_t>({ 0x2014, 0x02 }, 0);  // 0 - Not configured
     // Disconnect analog output 1 from frequency
-    ecx::sdo_write<uint16_t>(ctx, idx, { 0x2014, 0x16 }, 0);  // 0 - Not configured
+    sdo_write<uint16_t>({ 0x2014, 0x16 }, 0);  // 0 - Not configured
     // Set AO1 output to current
-    ecx::sdo_write<uint16_t>(ctx, idx, { 0x2010, 0x02 }, 2);  // 2 - Current
+    sdo_write<uint16_t>({ 0x2010, 0x02 }, 2);  // 2 - Current
     // Set AI3 input to current
-    ecx::sdo_write<uint16_t>(ctx, idx, { 0x200E, 0x05 }, 2);  // 2 - Current
+    sdo_write<uint16_t>({ 0x200E, 0x05 }, 2);  // 2 - Current
     // Set AI3 input to positive
-    ecx::sdo_write<uint16_t>(ctx, idx, { 0x200E, 0x55 }, 0);
+    sdo_write<uint16_t>({ 0x200E, 0x55 }, 0);
 
     // test writing alias address - this does not seem to work. Direct eeprom writing also possible working.
-    // ecx::sdo_write<uint16_t>({ 0x2024ctx, idx, , 0x92 }, 1337);  // 2 - Current
+    // sdo_write<uint16_t>({ 0x2024, 0x92 }, 1337);  // 2 - Current
 
     // assign motor parameters from config.
     return 1;

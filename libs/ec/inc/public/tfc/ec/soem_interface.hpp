@@ -125,14 +125,6 @@ constexpr auto make_mapping_value() -> uint32_t {
 [[nodiscard, maybe_unused]] inline auto init(ecx_contextt* context, std::string_view iface) -> bool {
   return ecx_init(context, iface.data()) > 0;
 }
-/**
- *  Setup the nic for soem communication, this is a wrapper around ecx_setupnic
- *  context->port
- * @param context foo
- * @param iface bar
- * @param secondary foo
- * @return the world
- */
 [[nodiscard, maybe_unused]] inline auto setupnic(ecx_contextt* context, std::string_view iface, bool secondary) -> bool {
   return ecx_setupnic(context->port, iface.data(), secondary ? TRUE : FALSE) > 0;
 }
