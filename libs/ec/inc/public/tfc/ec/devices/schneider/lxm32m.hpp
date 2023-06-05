@@ -123,8 +123,7 @@ using acceleration_ramp =
             "Acceleration of the motion profile for velocity. Writing the value 0 has no effect on the parameter.",
             uint32_t,
             600>;
-using chrono_test =
-    setting<ecx::index_t{0x42, 0x42}, "name", "desc", std::chrono::milliseconds, 60>;
+using chrono_test = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", std::chrono::milliseconds, 60>;
 static_assert(sizeof(std::chrono::milliseconds) == 8);
 // RPM/s
 using deceleration_ramp = setting<ecx::index_t{ 0x6084, 0x0 },
