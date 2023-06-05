@@ -60,7 +60,7 @@ using working_counter_t = int32_t;
 /// data area belonging to the main index with all its subindices is read or written.
 using complete_access_t = bool;
 
-[[nodiscard]] inline auto sdo_write(ecx_contextt* context,
+[[nodiscard, maybe_unused]] static auto sdo_write(ecx_contextt* context,
                                     uint16_t slave_index,
                                     index_t index,
                                     complete_access_t complete_access,
@@ -71,7 +71,7 @@ using complete_access_t = bool;
                                                      static_cast<int>(timeout.count())));
 }
 template <std::integral t>
-inline auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
+[[maybe_unused]] static auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index, t value) -> working_counter_t {
   return sdo_write(context, slave_index, index, false, std::span(&value, sizeof(value)), constants::timeout_safe);
 }
 

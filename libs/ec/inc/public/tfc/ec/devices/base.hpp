@@ -21,6 +21,7 @@ public:
   virtual void process_data(std::span<std::byte>, std::span<std::byte>) = 0;
   // Default behaviour, no setup
   virtual auto setup() -> int { return 1; }
+  virtual auto setup(ecx_contextt*, uint16_t) -> int { return 1; }
 
   void set_sdo_write_cb(auto&& cb) { sdo_write_ = std::forward<decltype(cb)>(cb); }
 

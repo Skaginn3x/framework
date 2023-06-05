@@ -131,7 +131,7 @@ auto main(int argc, char** argv) -> int {
           [&](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<std::monostate, receiver_t>) {
-              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", slot_name, sig);
+              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", sig);
               auto error = receiver->init(
                   sig, [&, sig](auto const& val) { logger.log<tfc::logger::lvl_e::info>("{}: {}", sig, val); });
               if (error) {
