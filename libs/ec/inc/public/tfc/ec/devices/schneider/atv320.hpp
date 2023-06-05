@@ -31,7 +31,7 @@ public:
                         fmt::format("atv320.{}.out.freq", slave_index),
                         "Output Frequency",
                         [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); }),
-        frequency_transmit_(ctx, client, fmt::format("atv320.{}.out.current_freq", slave_index), "Current Frequency")
+        frequency_transmit_(ctx, client, fmt::format("atv320.{}.in.freq", slave_index), "Current Frequency")
 
   {
     for (size_t i = 0; i < 6; i++) {
@@ -43,15 +43,31 @@ public:
           tfc::ipc::int_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i), "Analog input"));
     }
   }
+  struct input_t {
+    uint16_t status_word;
+    uint16_t frequency;
+    uint16_t current;
+    uint16_t digital_inputs;
+    uint16_t analog_inputs[2];
+  };
+  struct output_t {
+    uint16_t command_word;
+    uint16_t frequency;
+    uint16_t digital_outputs;
+  };
+
+  static_assert(sizeof(input_t) == 12);
+  static_assert(sizeof(output_t) == 6);
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     // All registers in the ATV320 ar uint16, create a pointer to this memory
     // With the same size
-    if (input.size() != 6 || output.size() != 3)
+    // these sizes are in bytes not uint16_t
+    if (input.size() != sizeof(input_t) || output.size() != 6)
       return;
-    std::span<uint16_t> const input_aligned(reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
-    std::span<uint16_t> output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
-    status_word_ = input_aligned[0];
+    const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
+    output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
+    status_word_ = in->status_word;  // input_aligned[0];
 
     auto state = tfc::ec::cia_402::parse_state(status_word_);
     if (cia_402::to_string(state) != last_state_) {
@@ -59,7 +75,7 @@ public:
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
     }
-    std::bitset<6> const value(input_aligned[3]);
+    std::bitset<6> const value(in->digital_inputs);
     for (size_t i = 0; i < 6; i++) {
       if (value.test(i) != last_bool_values_.test(i)) {
         di_transmitters_[i].async_send(value.test(i), [this](auto&& PH1, size_t bytes_transfered) {
@@ -69,16 +85,15 @@ public:
     }
     last_bool_values_ = value;
 
-    std::span<int16_t> const analog_ptr(reinterpret_cast<int16_t*>(&input_aligned[4]), 2);
     for (size_t i = 0; i < 2; i++) {
-      if (last_analog_inputs_[i] != analog_ptr[i]) {
-        ai_transmitters_[i].async_send(analog_ptr[i], [this](auto&& PH1, size_t const bytes_transfered) {
+      if (last_analog_inputs_[i] != in->analog_inputs[i]) {
+        ai_transmitters_[i].async_send(in->analog_inputs[i], [this](auto&& PH1, size_t const bytes_transfered) {
           async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
         });
       }
-      last_analog_inputs_[i] = analog_ptr[i];
+      last_analog_inputs_[i] = in->analog_inputs[i];
     }
-    auto frequency = static_cast<int16_t>(input_aligned[1]);
+    auto frequency = static_cast<int16_t>(in->frequency);
     if (last_frequency_ != frequency) {
       frequency_transmit_.async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, size_t const bytes_transfered) {
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
@@ -96,8 +111,8 @@ public:
       });
     }
 
-    output_aligned[0] = static_cast<uint16_t>(command);
-    output_aligned[1] = quick_stop_ ? 0 : static_cast<uint16_t>(reference_frequency_);
+    out->command_word = static_cast<uint16_t>(command);
+    out->frequency = quick_stop_ ? 0 : static_cast<uint16_t>(reference_frequency_);
   }
 
   auto async_send_callback(std::error_code const& error, size_t) -> void {
