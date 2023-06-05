@@ -113,22 +113,23 @@ struct status_word {
   bool application_specific_3 : 1 {};
   constexpr explicit operator uint16_t() const noexcept {
     std::bitset<16> output{};
-    output.set(0, state_ready_to_switch_on);
-    output.set(1, state_switched_on);
-    output.set(2, state_operation_enabled);
-    output.set(3, state_fault);
-    output.set(4, voltage_enabled);
-    output.set(5, state_quick_stop);
-    output.set(6, state_switch_on_disabled);
-    output.set(7, warning);
-    output.set(8, halt_request_active);
-    output.set(9, remote);
-    output.set(10, target_reached);
-    output.set(11, internal_limit_active);
-    output.set(12, application_specific_0);
-    output.set(13, application_specific_1);
-    output.set(14, application_specific_2);
-    output.set(15, application_specific_3);
+    output[0] = state_ready_to_switch_on;
+    output[0] = state_ready_to_switch_on;
+    output[1] = state_switched_on;
+    output[2] = state_operation_enabled;
+    output[3] = state_fault;
+    output[4] = voltage_enabled;
+    output[5] = state_quick_stop;
+    output[6] = state_switch_on_disabled;
+    output[7] = warning;
+    output[8] = halt_request_active;
+    output[9] = remote;
+    output[10] = target_reached;
+    output[11] = internal_limit_active;
+    output[12] = application_specific_0;
+    output[13] = application_specific_1;
+    output[14] = application_specific_2;
+    output[15] = application_specific_3;
     return static_cast<uint16_t>(output.to_ulong());
   }
   constexpr explicit operator states_e() const noexcept {

@@ -168,7 +168,7 @@ public:
   static constexpr uint32_t vendor_id = 0x800005a;
   static constexpr uint32_t product_code = 0x16440;
 
-  explicit lxm32m(asio::io_context& ctx, manager_client_type& client, uint16_t slave_index) : base(slave_index) {}
+  explicit lxm32m([[maybe_unused]] asio::io_context& ctx,[[maybe_unused]] manager_client_type& client, uint16_t slave_index) : base(slave_index) {}
 
   void process_data(std::span<std::byte> input, std::span<std::byte> output) final {
     [[maybe_unused]] auto* out = std::launder(reinterpret_cast<output_pdo*>(output.data()));
