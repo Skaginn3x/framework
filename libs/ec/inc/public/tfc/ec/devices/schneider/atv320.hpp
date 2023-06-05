@@ -44,16 +44,16 @@ public:
     }
   }
   struct input_t {
-      uint16_t status_word;
-      uint16_t frequency;
-      uint16_t current;
-      uint16_t digital_inputs;
-      uint16_t analog_inputs[2];
+    uint16_t status_word;
+    uint16_t frequency;
+    uint16_t current;
+    uint16_t digital_inputs;
+    uint16_t analog_inputs[2];
   };
   struct output_t {
-      uint16_t command_word;
-      uint16_t frequency;
-      uint16_t digital_outputs;
+    uint16_t command_word;
+    uint16_t frequency;
+    uint16_t digital_outputs;
   };
 
   static_assert(sizeof(input_t) == 12);
@@ -65,9 +65,9 @@ public:
     // these sizes are in bytes not uint16_t
     if (input.size() != sizeof(input_t) || output.size() != 6)
       return;
-    const input_t  *in  = std::launder(reinterpret_cast<input_t*>(input.data()));
-    output_t *out = std::launder(reinterpret_cast<output_t*>(output.data()));
-    status_word_ = in->status_word; //input_aligned[0];
+    const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
+    output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
+    status_word_ = in->status_word;  // input_aligned[0];
 
     auto state = tfc::ec::cia_402::parse_state(status_word_);
     if (cia_402::to_string(state) != last_state_) {

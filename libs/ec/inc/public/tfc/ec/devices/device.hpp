@@ -50,6 +50,7 @@ auto get(boost::asio::io_context& ctx,
     return std::make_unique<el4002>(ctx, slave_index);
 
   return std::make_unique<default_device>(slave_index);
-  throw std::runtime_error(fmt::format("Device not supported vendor_id: 0x{0:x}, product_code: 0x{1:x}", vendor_id, product_code));
+  throw std::runtime_error(
+      fmt::format("Device not supported vendor_id: 0x{0:x}, product_code: 0x{1:x}", vendor_id, product_code));
 }
 }  // namespace tfc::ec::devices

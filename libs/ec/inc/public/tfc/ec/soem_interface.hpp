@@ -55,11 +55,11 @@ using index_t = std::pair<uint16_t, uint8_t>;
 using working_counter_t = int32_t;
 
 [[nodiscard]] inline auto sdo_write(ecx_contextt* context,
-                             uint16_t slave_index,
-                             index_t index,
-                             bool complete_access,
-                             std::ranges::view auto data,
-                             microseconds timeout) -> working_counter_t {
+                                    uint16_t slave_index,
+                                    index_t index,
+                                    bool complete_access,
+                                    std::ranges::view auto data,
+                                    microseconds timeout) -> working_counter_t {
   return static_cast<working_counter_t>(ecx_SDOwrite(context, slave_index, index.first, index.second, complete_access,
                                                      static_cast<int>(data.size()), data.data(),
                                                      static_cast<int>(timeout.count())));
@@ -105,7 +105,7 @@ static constexpr index_t tx_pdo_mapping = { 0x1600, subindex };
  * @return
  */
 [[nodiscard, maybe_unused]] inline auto setupnic(ecx_contextt* context, std::string_view iface, bool secondary) -> bool {
-    return ecx_setupnic(context->port, iface.data(), secondary ? TRUE : FALSE) > 0;
+  return ecx_setupnic(context->port, iface.data(), secondary ? TRUE : FALSE) > 0;
 }
 /**
  * Scans the ethercat network and populates *slavelist
@@ -127,15 +127,15 @@ inline auto config_map_group(ecx_contextt* context, std::ranges::view auto buffe
 }
 
 inline auto write_state(ecx_contextt* context, uint16_t slave_index) -> working_counter_t {
-    return static_cast<ecx::working_counter_t>(ecx_writestate(context, slave_index));
+  return static_cast<ecx::working_counter_t>(ecx_writestate(context, slave_index));
 }
 
 inline auto config_map_group_aligned(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
-    return ecx_config_map_group_aligned(context, buffer.data(), group_index) > 0;
+  return ecx_config_map_group_aligned(context, buffer.data(), group_index) > 0;
 }
 
 inline auto config_overlap_map_group(ecx_contextt* context, std::ranges::view auto buffer, uint8_t group_index) -> size_t {
-    return ecx_config_overlap_map_group(context, buffer.data(), group_index) > 0;
+  return ecx_config_overlap_map_group(context, buffer.data(), group_index) > 0;
 }
 
 [[maybe_unused]] inline auto configdc(ecx_contextt* context) -> bool {
@@ -150,7 +150,7 @@ inline auto config_overlap_map_group(ecx_contextt* context, std::ranges::view au
 }
 
 [[maybe_unused]] inline auto readstate(ecx_contextt* context) -> ec_state {
-    return static_cast<ec_state>(ecx_readstate(context));
+  return static_cast<ec_state>(ecx_readstate(context));
 }
 
 }  // namespace ecx
