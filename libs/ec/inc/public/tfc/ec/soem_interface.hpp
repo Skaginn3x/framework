@@ -9,8 +9,8 @@
 #include <span>
 #include <vector>
 
-#include <tfc/utils/pragmas.hpp>
 #include <tfc/stx/bitset_join.h>
+#include <tfc/utils/pragmas.hpp>
 
 // TODO: Contribute upstream a working clang build pipeline and
 //  Try to advicate having these things cleaned up.
@@ -78,7 +78,7 @@ inline auto sdo_write(ecx_contextt* context, uint16_t slave_index, index_t index
 /// Sync channel 2: process data telegram protocol for incoming PDOs (master -> slave)
 /// rx for slave, tx for master
 template <uint8_t subindex = 0>
-static constexpr index_t rx_pdo_assign = { 0x1C12, subindex }; // todo @omar where did you find rx pdo as 1c13
+static constexpr index_t rx_pdo_assign = { 0x1C12, subindex };  // todo @omar where did you find rx pdo as 1c13
 /// Sync channel 3: process data telegram protocol for outgoing PDOs (master <- slave)
 /// tx for slave, rx for master
 template <uint8_t subindex = 0>

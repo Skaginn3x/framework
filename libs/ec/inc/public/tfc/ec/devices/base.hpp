@@ -3,9 +3,9 @@
 #include <chrono>
 #include <cstddef>
 #include <functional>
-#include <span>
-#include <ranges>
 #include <new>
+#include <ranges>
+#include <span>
 
 #include <boost/asio/io_context.hpp>
 
@@ -48,6 +48,7 @@ protected:
   explicit base(uint16_t slave_index) : slave_index_(slave_index), logger_(fmt::format("Ethercat slave {}", slave_index)) {}
   const uint16_t slave_index_{};
   tfc::logger::logger logger_;
+
 private:
   std::function<
       ecx::working_counter_t(ecx::index_t, ecx::complete_access_t, std::span<std::byte>, std::chrono::microseconds)>

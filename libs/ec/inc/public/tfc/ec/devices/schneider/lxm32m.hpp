@@ -29,9 +29,9 @@ static_assert(sizeof(setting<ecx::index_t{ 0x42, 0x42 }, "foo", "bar", uint32_t,
 
 template <typename setting_t>
 concept setting_c = requires {
-  setting_t::index;
-  setting_t::value;
-};
+                      setting_t::index;
+                      setting_t::value;
+                    };
 
 enum struct operation_mode_e : int8_t {  // datasheet says that canopen is only int8_t, but get an error if set as int16_t
   manual_or_autotuning = -6,
@@ -153,7 +153,7 @@ struct input_pdo {
   cia_402::status_word status{};
 };
 
-struct output_pdo{
+struct output_pdo {
   cia_402::commands_e command{};
   operation_mode mode{};
   operation_mode placeholder{};
@@ -214,8 +214,8 @@ public:
     base::sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
     base::sdo_write(ecx::tx_pdo_mapping<0x01>, ecx::make_mapping_value<cia_402::status_word>());
     // todo _DCOMopmd_act is 0x6061 but the example says it is 0x6060
-//    base::sdo_write(ecx::tx_pdo_mapping<0x02>, ecx::make_mapping_value<operation_mode>());
-//    base::sdo_write(ecx::tx_pdo_mapping<0x03>, ecx::make_mapping_value<operation_mode>());
+    //    base::sdo_write(ecx::tx_pdo_mapping<0x02>, ecx::make_mapping_value<operation_mode>());
+    //    base::sdo_write(ecx::tx_pdo_mapping<0x03>, ecx::make_mapping_value<operation_mode>());
     base::sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 1);
 
     // Assign pdo's to mappings
