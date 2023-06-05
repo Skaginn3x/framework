@@ -83,12 +83,7 @@ public:
     for (size_t i = 1; i < slave_count() + 1; i++) {
       std::span<std::byte> input;
       std::span<std::byte> output;
-      // if (slavelist_[i].Istartbit != 0 || slavelist_[i].Ostartbit != 0){
-      // }
-      // std::cout << slavelist_[i].name << " " << slavelist_[i].Itype << " " << slavelist_[i].Dtype << std::endl;
-      //  if (slavelist_[i].inputs != nullptr && slavelist_[i].Ibytes == 0 && slavelist_[i].Ibits != 0){
-      //      // EL1004 is here i think.
-      //  }
+
       if (slavelist_[i].inputs != nullptr) {
         input = { reinterpret_cast<std::byte*>(slavelist_[i].inputs), static_cast<size_t>(slavelist_[i].Ibytes) };
       }
@@ -97,7 +92,6 @@ public:
       }
       slaves_[i]->process_data(input, output);
     }
-    // ecx_send_processdata(&context_);
 
     return wkc;
   }
