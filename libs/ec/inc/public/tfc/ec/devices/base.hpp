@@ -38,7 +38,7 @@ public:
   auto sdo_write(ecx::index_t idx, integral_t value) const -> ecx::working_counter_t {
     if (sdo_write_) {
       std::span data{ std::launder(reinterpret_cast<std::byte*>(&value)), sizeof(value) };
-      return std::invoke(sdo_write_, idx, false, data, ecx::constants::timeout_state);
+      return std::invoke(sdo_write_, idx, false, data, ecx::constants::timeout_safe);
     }
     logger_.warn("Sdo write callback not set");
     return {};

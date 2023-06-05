@@ -44,16 +44,16 @@ public:
     }
   }
   struct input_t {
-    tfc::ec::cia_402::status_word status_word;
-    uint16_t frequency;
-    uint16_t current;
-    uint16_t digital_inputs;
-    uint16_t analog_inputs[2];
+    tfc::ec::cia_402::status_word status_word{};
+    uint16_t frequency{};
+    uint16_t current{};
+    uint16_t digital_inputs{};
+    std::array<int16_t, 2> analog_inputs{};
   };
   struct output_t {
-    uint16_t command_word;
-    uint16_t frequency;
-    uint16_t digital_outputs;
+    uint16_t command_word{};
+    uint16_t frequency{};
+    uint16_t digital_outputs{};
   };
 
   static_assert(sizeof(input_t) == 12);
