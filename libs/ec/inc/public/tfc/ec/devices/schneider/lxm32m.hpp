@@ -16,13 +16,13 @@ template <ecx::index_t idx,
           tfc::stx::basic_fixed_string name,
           tfc::stx::basic_fixed_string desc,
           typename value_t,
-          value_t default_v>
+          auto... value_t_construct_params>
 struct setting {
   using type = value_t;
   static auto constexpr index{ idx };
   static std::string_view constexpr name_v{ name };
   static std::string_view constexpr desc_v{ desc };
-  type value{ default_v };
+  type value{ std::forward<decltype(value_t_construct_params)>(value_t_construct_params)... };
 };
 // So the size of setting is equal to the value size, meaning it can be reinterpreted.
 static_assert(sizeof(setting<ecx::index_t{ 0x42, 0x42 }, "foo", "bar", uint32_t, 32>) == sizeof(uint32_t));
@@ -123,6 +123,9 @@ using acceleration_ramp =
             "Acceleration of the motion profile for velocity. Writing the value 0 has no effect on the parameter.",
             uint32_t,
             600>;
+using chrono_test =
+    setting<ecx::index_t{0x42, 0x42}, "name", "desc", std::chrono::milliseconds, 60>;
+static_assert(sizeof(std::chrono::milliseconds) == 8);
 // RPM/s
 using deceleration_ramp = setting<ecx::index_t{ 0x6084, 0x0 },
                                   "RAMP_v_dec",
