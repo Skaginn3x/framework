@@ -76,24 +76,15 @@
     },
     {
       "name": "pack-gcc-debug",
-      "inherits": ["ci-gcc-debug", "cfg-enable-docs"],
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      }
+      "inherits": ["ci-gcc-debug", "cfg-enable-docs"]
     },
     {
       "name": "pack-gcc-release",
-      "inherits": ["ci-gcc-release", "cfg-enable-docs"],
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      }
+      "inherits": ["ci-gcc-release", "cfg-enable-docs"]
     },
     {
       "name": "pack-aarch64-gcc-debug",
       "generator": "Ninja",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      },
       "inherits": [
         "cfg-vcpkg-aarch64",
         "pack-gcc-debug"
@@ -102,9 +93,6 @@
     {
       "name": "pack-aarch64-gcc-release",
       "generator": "Ninja",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${fileDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      },
       "inherits": [
         "cfg-vcpkg-aarch64",
         "pack-gcc-release"
