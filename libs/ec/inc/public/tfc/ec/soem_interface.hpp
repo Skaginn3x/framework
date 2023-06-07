@@ -67,7 +67,8 @@ using complete_access_t = bool;
                                                   std::ranges::view auto data,
                                                   microseconds timeout) -> working_counter_t {
   return static_cast<working_counter_t>(ecx_SDOwrite(context, slave_index, index.first, index.second, complete_access,
-                                                     static_cast<int>(data.size()), data.data(),
+                                                     static_cast<int>(data.size()) //TODO: This is not correct, should use byte count not size
+                                                     , data.data(),
                                                      static_cast<int>(timeout.count())));
 }
 template <std::integral t>
