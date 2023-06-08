@@ -55,13 +55,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: vcpkg-build-fail-logs
-          path: ${{ github.workspace }}/vcpkg/**/*out.log
+          path: /opt/vcpkg/**/*out.log
       - name: Upload vcpkg log
         if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: vcpkg-build-fail-logs
-          path: ${{ github.workspace }}/vcpkg/**/*err.log
+          path: /opt/vcpkg/**/*err.log
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
