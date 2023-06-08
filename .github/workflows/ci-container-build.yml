@@ -1,6 +1,6 @@
 name: ci-container-build
 on:
-  workflow_dispatch:
+  push:
 
 env:
   IMAGE_NAME: archlinux-ci
