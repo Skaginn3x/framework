@@ -66,6 +66,7 @@ jobs:
       - name: Test install
         if: matrix.architecture == 'x86_64'
         run: |
+          apt-get update
           apt-get install -y ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
       - name: Upload debian package

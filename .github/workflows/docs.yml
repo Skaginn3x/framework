@@ -8,24 +8,16 @@ jobs:
   build:
     name: 'build documentation'
     runs-on: ubuntu-latest
-    env:
-      CC: gcc-12
-      CXX: g++-12
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-363d17f
     steps:
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz cppcheck python3-myst-parser graphviz cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
       - uses: actions/checkout@v3
-
       - uses: lukka/get-cmake@latest
-
-
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
+          vcpkgDirectory: '/opt/vcpkg'
           vcpkgGitCommitId: '4eda0e3c7062e61dd89a91357ddc50f742da75ef'
-          vcpkgJsonGlob: '${{ github.workspace }}/vcpkg.json'
+          vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Build
         run: |
