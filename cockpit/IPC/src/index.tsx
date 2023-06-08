@@ -11,7 +11,6 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-document.title = "Time For Change"
 root.render(
   <React.StrictMode>
     <App />

@@ -237,16 +237,24 @@ public:
     });
     dbus_iface_->register_method("Connect", [&](const std::string& slot_name, const std::string& signal_name) {
       ipc_manager_->connect(slot_name, signal_name);
+      dbus_iface_->signal_property("Slots");
+      dbus_iface_->signal_property("Connections");
     });
 
-    dbus_iface_->register_method("Disconnect", [&](const std::string& slot_name) { ipc_manager_->disconnect(slot_name); });
+    dbus_iface_->register_method("Disconnect", [&](const std::string& slot_name) {
+      ipc_manager_->disconnect(slot_name);
+      dbus_iface_->signal_property("Slots");
+      dbus_iface_->signal_property("Connections");
+    });
 
     dbus_iface_->register_method("RegisterSignal",
                                  [&](const std::string& name, const std::string& description, uint8_t type) {
                                    ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
+                                   dbus_iface_->signal_property("Signals");
                                  });
     dbus_iface_->register_method("RegisterSlot", [&](const std::string& name, const std::string& description, uint8_t type) {
       ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
+      dbus_iface_->signal_property("Slots");
     });
 
     dbus_iface_->register_property_r<std::string>("Signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {

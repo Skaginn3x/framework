@@ -1,23 +1,54 @@
 import { useEffect, useState } from 'react';
-
-type DbusProxy = any; // Replace with the correct type for your dbus proxy objects
+import { ConnectionType, SignalType, SlotType } from 'src/Types';
 
 interface DbusInterfaceHook {
    poll: () => Promise<any>;
-   registerSignal: (signalName: string, signalByte: number) => Promise<boolean>;
-   registerSlot: (slotName: string, slotByte: number) => Promise<boolean>;
-   connect: (signalName: string, slotName: string) => Promise<boolean>;
-   disconnect: (signalName: string) => Promise<boolean>;
+   registerSignal: (signalName: string, description: string, signalByte: number) => Promise<void | Error>;
+   registerSlot: (slotName: string, description: string, slotByte: number) => Promise<void | Error>;
+   connect: (slotName: string, signalName: string) => Promise<void | Error>;
+   disconnect: (slotName: string) => Promise<void | Error>;
+   signalList: SignalType[];
+   slotList: SlotType[];
+   connections: ConnectionType;
    valid: boolean;
 }
 
 export const useDbusInterface = (busName: string, interfaceName: string, objectPath: string): DbusInterfaceHook => {
-   const [dbusObjectProxy, setDbusObjectProxy] = useState<DbusProxy | null>(null);
+   const [dbusObjectProxy, setDbusObjectProxy] = useState<any | null>(null);
    const [valid, setValid] = useState<boolean>(false);
+
+   const [slotList, setSlotList] = useState<SlotType[]>([]);
+   const [signalList, setSignalList] = useState<SignalType[]>([]);
+   const [connections, setConnections] = useState<ConnectionType>({});
+
+   const [error, setError] = useState<Error | null>(null);
+
+   const tryToConnectToDbus = async () => {
+      //@ts-ignore
+      const newDbus = cockpit.dbus(busName);
+      const newDbusObjectProxy = newDbus.proxy(interfaceName, objectPath);
+      newDbusObjectProxy.wait().then(() => {
+         setError(null);
+         setDbusObjectProxy(newDbusObjectProxy);
+         setValid(newDbusObjectProxy.valid);
+      }).catch((e: any) => {
+         !error && setError(e);
+         setDbusObjectProxy(null);
+         setValid(false);
+      });
+   };
+
+   useEffect(() => {
+      if (error !== null) {
+         console.error(error);
+      }
+   }, [error]);
+
 
    useEffect(() => {
       const externalScript = "../base1/cockpit.js";
       let script = document.querySelector(`script[src="${externalScript}"]`) as HTMLScriptElement;
+
 
       const handleScript = (e: Event) => {
          if (e.type === "load") {
@@ -50,78 +81,111 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, []);
 
-   const registerSignal = async (signalName: string, signalByte: number): Promise<boolean> => {
-      try {
-         if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.Register_signal(signalName, signalByte);
-            console.log("Signal registered successfully: ", response);
-            return true;
-         }
-      } catch (error) {
-         console.error("Failed to register signal: ", error);
-      }
-      return false;
+   const handleChanged = (e: any, data: any) => {
+      updateData();
    };
 
-   const registerSlot = async (slotName: string, slotByte: number): Promise<boolean> => {
-      try {
-         if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.Register_slot(slotName, slotByte);
-            console.log("Slot registered successfully: ", response);
-            return true;
-         }
-      } catch (error) {
-         console.error("Failed to register slot: ", error);
+   useEffect(() => {
+      if (dbusObjectProxy && dbusObjectProxy.valid) {
+         // Handles changes to dbus properties
+         dbusObjectProxy.addEventListener("changed", handleChanged);
       }
-      return false;
-   };
-
-   const connect = async (signalName: string, slotName: string): Promise<boolean> => {
-      try {
-         if (dbusObjectProxy !== null && dbusObjectProxy.valid) {
-            await dbusObjectProxy.Connect(slotName, signalName)
-            return true;
-         }
-         console.log("dbus object proxy is null or not valid")
-      } catch (error: any) {
-         console.error("Failed to connect: ", error.message);
-      }
-      return false;
-   };
-
-   const disconnect = async (signalName: string): Promise<boolean> => {
-      try {
-         if (dbusObjectProxy) {
-            const response = await dbusObjectProxy.Disconnect(signalName);
-            console.log("Disconnected successfully: ", response);
-            return true;
-         }
-      } catch (error) {
-         console.error("Failed to disconnect: ", error);
-      }
-      return false;
-   };
-
-   const poll = (): Promise<any> => {
-      return new Promise((resolve, reject) => {
+      // Cleanup
+      return () => {
          if (dbusObjectProxy && dbusObjectProxy.valid) {
-            console.log("dbus object proxy is valid, polling")
-            // change dbusObjectProxy.data from string to object
-            let slotList = JSON.parse(dbusObjectProxy.data.Slots);
-            let signalList = JSON.parse(dbusObjectProxy.data.Signals);
-            let connections = JSON.parse(dbusObjectProxy.data.Connections);
-            resolve({ slotList, signalList, connections });
-         } else {
-            console.log("dbus object proxy is not valid");
-            reject("dbus object proxy is not valid");
+            dbusObjectProxy.removeEventListener("changed", handleChanged);
          }
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [dbusObjectProxy]);  // Re-run this effect when dbusObjectProxy changes
 
-         // Add a timeout
-         setTimeout(() => {
-            reject("pollDbus timeout");
-         }, 1000);  // 1 second timeout for polling
+
+
+   useEffect(() => {
+      const checkConnection = setInterval(() => {
+         if (!valid)
+            tryToConnectToDbus();
+      }, 1000);
+
+      return () => {
+         clearInterval(checkConnection);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [valid]);
+
+
+   const retry = <T extends any>(func: () => Promise<T>, retries: number = 3): Promise<T | Error> => {
+      return func().catch(async (e: Error) => {
+         if (retries > 0) {
+            console.log(`Retry after error: ${e}`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return retry(func, retries - 1);
+         } else {
+            tryToConnectToDbus();
+            throw e;
+         }
       });
    };
 
-   return { poll, registerSignal, registerSlot, connect, disconnect, valid };
+   const registerSignal = async (signalName: string, description: string, signalByte: number): Promise<void | Error> => {
+      return retry(async () => {
+         if (dbusObjectProxy) {
+            await dbusObjectProxy.RegisterSignal(signalName, description, signalByte);
+         } else {
+            throw new Error("DBus proxy object is null");
+         }
+      });
+   };
+
+
+   const registerSlot = async (slotName: string, description: string, slotByte: number): Promise<void | Error> => {
+      return retry(async () => {
+         if (dbusObjectProxy) {
+            await dbusObjectProxy.RegisterSlot(slotName, description, slotByte)
+         } else {
+            throw new Error("DBus proxy object is null");
+         }
+      });
+   };
+
+   const connect = async (slotName: string, signalName: string): Promise<void | Error> => {
+      return retry(async () => {
+         if (dbusObjectProxy) {
+            await dbusObjectProxy.Connect(slotName, signalName);
+         } else {
+            throw new Error("DBus proxy object is null");
+         }
+      });
+   };
+
+   const disconnect = async (slotName: string): Promise<void | Error> => {
+      return retry(async () => {
+         if (dbusObjectProxy) {
+            await dbusObjectProxy.Disconnect(slotName);
+         } else {
+            throw new Error("DBus proxy object is null");
+         }
+      });
+   };
+
+   async function updateData() {
+      if (dbusObjectProxy && dbusObjectProxy.valid) {
+         console.info("dbus object proxy is valid, polling")
+         setSlotList(await JSON.parse(dbusObjectProxy.data.Slots));
+         setSignalList(await JSON.parse(dbusObjectProxy.data.Signals));
+         setConnections(await JSON.parse(dbusObjectProxy.data.Connections));
+      } else {
+         throw new Error("dbus object proxy is not valid");
+      }
+   }
+
+   const poll = async () => {
+      await retry(async () => {
+         updateData();
+      });
+   };
+
+
+
+   return { poll, registerSignal, registerSlot, connect, disconnect, valid, slotList, signalList, connections };
 };

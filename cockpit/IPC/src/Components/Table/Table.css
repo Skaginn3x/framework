@@ -1,0 +1,47 @@
+.normalRow {
+   --pf-c-table--cell--PaddingTop: 0.7rem;
+   --pf-c-table--cell--PaddingBottom: 0.7rem;
+}
+
+.smallRow {
+   --pf-c-table--cell--PaddingTop: 0.1rem;
+   --pf-c-table--cell--PaddingBottom: 0.1rem;
+}
+
+.selectionCell {
+   align-items: center !important;
+   display: flex !important;
+   justify-content: center !important;
+   padding: 8px !important;
+   max-width: 800px !important;
+   width: 99% !important;
+   height: 50px !important;
+   margin: 0px !important;
+}
+
+.selectionHover:hover,
+.smallSelectionCell:hover {
+   background-color: #f0f0f0 !important;
+   cursor: pointer !important;
+}
+
+.smallSelectionCell {
+   align-items: center !important;
+   display: flex !important;
+   justify-content: center !important;
+   max-width: 3rem !important;
+   padding: 8px !important;
+   width: 3rem !important;
+   height: 37px !important;
+   margin: 0px !important;
+}
+
+.pf-c-table .pf-m-truncate,
+.pf-c-table thead {
+   --pf-c-table--cell--MinWidth: 2rem;
+}
+
+
+.wideModal {
+   --pf-c-modal-box--Width: 90% !important;
+}
