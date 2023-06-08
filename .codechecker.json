@@ -1,0 +1,6 @@
+{
+  "analyze": [
+    "clang-tidy;--config-file=.clang-tidy",
+    "--verbose=debug"
+  ]
+}

@@ -60,9 +60,9 @@ jobs:
 #        uses: JacobDomagala/StaticAnalysis@master
 #        with:
 #          use_cmake: true
-#
-#          # (Optional) clang-tidy args
+#          cmake_args: --preset ci-${{ matrix.compiler }}-${{matrix.build_type}}
+          # (Optional) clang-tidy args
 #          clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
-#
-#          # (Optional) cppcheck args
+
+          # (Optional) cppcheck args
 #          cppcheck_args: --enable=all --suppress=missingInclude

@@ -1,0 +1,64 @@
+name: Static analysis
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+env:
+  VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+
+jobs:
+  static_analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: setup init_script
+        shell: bash
+        run: |
+          echo "#!/bin/bash
+          
+          VCPKG_BINARY_SOURCES='clear;x-gha,readwrite'
+
+          # Input args provided by StaticAnalysis action
+          root_dir=\${1}
+          build_dir=\${2}
+          echo \"Hello from the init script! First arg=\${root_dir} second arg=\${build_dir}\"
+
+          git clone https://github.com/microsoft/vcpkg /opt/vcpkg
+          /opt/vcpkg/bootstrap-vcpkg.sh
+
+          curl https://apt.llvm.org/llvm.sh -o llvm.sh 
+          chmod +x llvm.sh 
+          ./llvm.sh 16 all
+          
+          ln -s $(which clang-tidy-16) /usr/bin/clang-tidy-15 # this is really bad 
+          
+          " > init_script.sh
+
+      - name: Run static analysis
+        uses: JacobDomagala/StaticAnalysis@master
+        with:
+          use_cmake: true
+          cmake_args: --preset ci-static-analysis
+
+          apt_pckgs: cppcheck lsb-release wget software-properties-common gnupg g++-12 curl zip unzip tar git ninja-build autoconf-archive libtool autoconf meson gperf autopoint pkg-config cmake python3-jinja2 python3-venv
+
+          init_script: init_script.sh
+#          init_script: curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
+
+          exclude_dir: vcpkg-sysroot-clang
+          force_console_print: true
+          verbose: true
+          # (Optional) clang-tidy args
+          clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
+
+          # (Optional) cppcheck args
+          cppcheck_args: --enable=all --suppress=missingInclude
