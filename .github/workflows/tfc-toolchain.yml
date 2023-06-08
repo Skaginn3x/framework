@@ -2,9 +2,12 @@ name: tfc-toolchain
 on:
   push:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
-  IMAGE_TAGS: gcc13-clang16
   IMAGE_NAME: tfc-toolchain
 
 jobs:
