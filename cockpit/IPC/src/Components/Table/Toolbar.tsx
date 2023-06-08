@@ -32,7 +32,7 @@ export function ToolBar(
    processSelections: string[],
    setActiveAttributeMenu: React.Dispatch<React.SetStateAction<string>>,
    activeAttributeMenu: string,
-   searchInput: string | number | boolean | JSX.Element | React.ReactFragment | null | undefined,
+   searchInputTextbox: JSX.Element,
    setPage: React.Dispatch<React.SetStateAction<number>>,
    page: number,
    setPerPage: React.Dispatch<React.SetStateAction<number>>,
@@ -384,7 +384,7 @@ export function ToolBar(
                   categoryName="Name"
                   showToolbarItem={activeAttributeMenu === 'Name'}
                >
-                  {searchInput}
+                  {searchInputTextbox}
                </ToolbarFilter>
                <ToolbarFilter
                   chips={typeSelection !== '' ? [typeSelection] : ([] as string[])}

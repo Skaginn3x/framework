@@ -130,7 +130,7 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
    const registerSignal = async (signalName: string, description: string, signalByte: number): Promise<void | Error> => {
       return retry(async () => {
          if (dbusObjectProxy) {
-            await dbusObjectProxy.Register_signal(signalName, description, signalByte);
+            await dbusObjectProxy.RegisterSignal(signalName, description, signalByte);
          } else {
             throw new Error("DBus proxy object is null");
          }
@@ -141,7 +141,7 @@ export const useDbusInterface = (busName: string, interfaceName: string, objectP
    const registerSlot = async (slotName: string, description: string, slotByte: number): Promise<void | Error> => {
       return retry(async () => {
          if (dbusObjectProxy) {
-            await dbusObjectProxy.Register_slot(slotName, description, slotByte)
+            await dbusObjectProxy.RegisterSlot(slotName, description, slotByte)
          } else {
             throw new Error("DBus proxy object is null");
          }
