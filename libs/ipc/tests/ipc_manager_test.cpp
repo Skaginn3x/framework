@@ -35,7 +35,7 @@ struct ctx_runner {
     run = true;
     auto start = std::chrono::high_resolution_clock::now();
     while (run && max_run_time > std::chrono::high_resolution_clock::now() - start) {
-      ctx_.run_one();
+      ctx_.run_one_for(std::chrono::seconds(1));
     }
     boost::ut::expect(!run);
   }
