@@ -17,7 +17,7 @@ jobs:
   build:
     name: ubuntu packaging
     runs-on: ubuntu-22.04
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-a661bc8
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-2003ffa
     strategy:
       fail-fast: false
       matrix:
