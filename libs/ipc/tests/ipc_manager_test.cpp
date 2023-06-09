@@ -272,13 +272,13 @@ auto main(int argc, char** argv) -> int {
 
     bool current_value = false;
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
-    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(isolated_ctx, mclient, "bool_slot", "",
-                                                                                               [&](bool value) {
-                                                                                                 current_value = value;
-                                                                                                 isolated_runner.run = false;
-                                                                                               });
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient, "bool_signal",
-                                                                                                "");
+    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+        isolated_ctx, mclient, "bool_slot", "", [&](bool value) {
+          current_value = value;
+          isolated_runner.run = false;
+        });
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
+                                                                                                "bool_signal", "");
 
     mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
                     [&](const std::error_code& err) { boost::ut::expect(!err); });
@@ -300,13 +300,13 @@ auto main(int argc, char** argv) -> int {
 
     int current_value = 10;
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
-    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(isolated_ctx, mclient, "bool_slot", "",
-                                                                                              [&](int value) {
-                                                                                                current_value = value;
-                                                                                                isolated_runner.run = false;
-                                                                                              });
-    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient, "bool_signal",
-                                                                                               "");
+    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+        isolated_ctx, mclient, "bool_slot", "", [&](int value) {
+          current_value = value;
+          isolated_runner.run = false;
+        });
+    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
+                                                                                               "bool_signal", "");
 
     mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
                     [](const std::error_code& err) { boost::ut::expect(!err); });
