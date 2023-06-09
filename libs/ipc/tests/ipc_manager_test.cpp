@@ -5,6 +5,8 @@
 #include <tfc/ipc.hpp>
 #include <tfc/progbase.hpp>
 
+namespace asio = boost::asio;
+
 template <typename storage_t>
 struct file_storage_mock {
   using type = storage_t;
@@ -264,15 +266,18 @@ auto main(int argc, char** argv) -> int {
     boost::ut::expect(slot_copy.connected_to == slot_copy2.connected_to);
     boost::ut::expect(slot_copy.last_registered != slot_copy2.last_registered);
   };
-  "Test ipc communication connection and disconnection with mocking bool"_test = [&]() {
+  "Test ipc communication connection and disconnection with mocking bool"_test = []() {
+    asio::io_context isolated_ctx{};
+    ctx_runner isolated_runner(isolated_ctx);
+
     bool current_value = false;
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
-    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(ctx, mclient, "bool_slot", "",
+    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(isolated_ctx, mclient, "bool_slot", "",
                                                                                                [&](bool value) {
                                                                                                  current_value = value;
-                                                                                                 runner.run = false;
+                                                                                                 isolated_runner.run = false;
                                                                                                });
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, mclient, "bool_signal",
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient, "bool_signal",
                                                                                                 "");
 
     mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
@@ -280,24 +285,27 @@ auto main(int argc, char** argv) -> int {
 
     boost::ut::expect(!current_value);
     sig.send(true);
-    runner.run_while(std::chrono::seconds(1));
+    isolated_runner.run_while(std::chrono::seconds(1));
     boost::ut::expect(current_value);
     sig.send(false);
-    runner.run_while(std::chrono::seconds(1));
+    isolated_runner.run_while(std::chrono::seconds(1));
     boost::ut::expect(!current_value);
     sig.send(true);
-    runner.run_while(std::chrono::seconds(1));
+    isolated_runner.run_while(std::chrono::seconds(1));
     boost::ut::expect(current_value);
   };
-  "Test ipc communication connection and disconnection with mocking int"_test = [&]() {
+  "Test ipc communication connection and disconnection with mocking int"_test = []() {
+    asio::io_context isolated_ctx{};
+    ctx_runner isolated_runner(isolated_ctx);
+
     int current_value = 10;
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
-    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(ctx, mclient, "bool_slot", "",
+    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(isolated_ctx, mclient, "bool_slot", "",
                                                                                               [&](int value) {
                                                                                                 current_value = value;
-                                                                                                runner.run = false;
+                                                                                                isolated_runner.run = false;
                                                                                               });
-    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, mclient, "bool_signal",
+    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient, "bool_signal",
                                                                                                "");
 
     mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
@@ -305,13 +313,13 @@ auto main(int argc, char** argv) -> int {
 
     boost::ut::expect(current_value == 10);
     sig.send(25);
-    runner.run_while(std::chrono::seconds(1));
+    isolated_runner.run_while(std::chrono::seconds(1));
     boost::ut::expect(current_value == 25);
     sig.send(1337);
-    runner.run_while(std::chrono::seconds(1));
+    isolated_runner.run_while(std::chrono::seconds(1));
     boost::ut::expect(current_value == 1337);
     sig.send(42);
-    runner.run_while(std::chrono::seconds(1));
+    isolated_runner.run_while(std::chrono::seconds(1));
     boost::ut::expect(current_value == 42);
   };
 
