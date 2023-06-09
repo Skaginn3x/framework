@@ -269,14 +269,17 @@ auto main(int argc, char** argv) -> int {
   };
   "Test ipc communication connection and disconnection with mocking bool"_test = []() {
     asio::io_context isolated_ctx{};
-    ctx_runner isolated_runner(isolated_ctx);
 
-    bool current_value = false;
+    std::array<bool, 3> test_values{ true, false, true };
+    uint8_t invocation{};
+
     tfc::ipc_ruler::ipc_manager_client_mock mclient;
     tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(
         isolated_ctx, mclient, "bool_slot", "", [&](bool value) {
-          current_value = value;
-          isolated_runner.run = false;
+          ut::expect(test_values.at(invocation++) == value);
+          if (invocation == test_values.size()) {
+            isolated_ctx.stop();
+          }
         });
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
                                                                                                 "bool_signal", "");
@@ -284,16 +287,15 @@ auto main(int argc, char** argv) -> int {
     mclient.connect(mclient.slots[0].name, mclient.signals[0].name,
                     [&](const std::error_code& err) { boost::ut::expect(!err); });
 
-    boost::ut::expect(!current_value);
-    sig.send(true);
-    isolated_runner.run_while(std::chrono::seconds(1));
-    boost::ut::expect(current_value);
-    sig.send(false);
-    isolated_runner.run_while(std::chrono::seconds(1));
-    boost::ut::expect(!current_value);
-    sig.send(true);
-    isolated_runner.run_while(std::chrono::seconds(1));
-    boost::ut::expect(current_value);
+    asio::steady_timer timer{ isolated_ctx };
+    timer.expires_from_now(std::chrono::milliseconds(1));
+    timer.async_wait([&sig, &test_values](std::error_code) {
+      sig.async_send(test_values[0], [](std::error_code, std::size_t) {});
+      sig.async_send(test_values[1], [](std::error_code, std::size_t) {});
+      sig.async_send(test_values[2], [](std::error_code, std::size_t) {});
+    });
+    isolated_ctx.run_for(std::chrono::seconds(1));
+    ut::expect(invocation == 3);
   };
   "Test ipc communication connection and disconnection with mocking int"_test = []() {
     asio::io_context isolated_ctx{};
