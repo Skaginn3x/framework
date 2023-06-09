@@ -316,10 +316,10 @@ auto main(int argc, char** argv) -> int {
 
     asio::steady_timer timer{ isolated_ctx };
     timer.expires_from_now(std::chrono::milliseconds(1));
-    timer.async_wait([&sig, &test_values](std::error_code){
-      sig.async_send(test_values[0], [](std::error_code, std::size_t){});
-      sig.async_send(test_values[1], [](std::error_code, std::size_t){});
-      sig.async_send(test_values[2], [](std::error_code, std::size_t){});
+    timer.async_wait([&sig, &test_values](std::error_code) {
+      sig.async_send(test_values[0], [](std::error_code, std::size_t) {});
+      sig.async_send(test_values[1], [](std::error_code, std::size_t) {});
+      sig.async_send(test_values[2], [](std::error_code, std::size_t) {});
     });
     isolated_ctx.run_for(std::chrono::seconds(1));
     ut::expect(invocation == 3);
