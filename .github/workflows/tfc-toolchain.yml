@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/tfc-toolchain.yml'
+      - 'containers/tfc-toolchain.dockerfile'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

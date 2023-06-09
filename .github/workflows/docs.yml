@@ -8,7 +8,7 @@ jobs:
   build:
     name: 'build documentation'
     runs-on: ubuntu-latest
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-363d17f
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-ea00ad8
     steps:
       - uses: actions/checkout@v3
       - uses: lukka/get-cmake@latest

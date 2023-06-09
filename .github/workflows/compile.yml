@@ -17,7 +17,7 @@ jobs:
   build:
     name: 'build and run tests'
     runs-on: ubuntu-22.04
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-363d17f
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-ea00ad8
     strategy:
       fail-fast: false
       matrix:
