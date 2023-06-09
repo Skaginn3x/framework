@@ -478,18 +478,18 @@ namespace tfc::ec::devices::schneider {
         static constexpr uint32_t product_code = 0x389;
 
         struct atv_config {
-            confman::observable <nominal_motor_power_NPR> nominal_motor_power;
-            confman::observable <nominal_motor_voltage_UNS> nominal_motor_voltage;
-            confman::observable <nominal_motor_current_NCR> nominal_motor_current;
-            confman::observable <nominal_motor_frequency_FRS> nominal_motor_frequency;
-            confman::observable <nominal_motor_speed_NSP> nominal_motor_speed;
-            confman::observable <max_frequency_TFR> max_frequency;
-            confman::observable <motor_thermal_current_ITH> motor_thermal_current;
-            confman::observable <high_speed_HSP> high_speed;
-            confman::observable <low_speed_LSP> low_speed;
-            confman::observable <motor_1_cos_phi_COS> motor_1_cos_phi;
-            confman::observable <acceleration_ramp_time_ACC> acceleration;
-            confman::observable <deceleration_ramp_time_DEC> deceleration;
+            nominal_motor_power_NPR nominal_motor_power;
+            nominal_motor_voltage_UNS nominal_motor_voltage;
+            nominal_motor_current_NCR nominal_motor_current;
+            nominal_motor_frequency_FRS nominal_motor_frequency;
+            nominal_motor_speed_NSP nominal_motor_speed;
+            max_frequency_TFR max_frequency;
+            motor_thermal_current_ITH motor_thermal_current;
+            high_speed_HSP high_speed;
+            low_speed_LSP low_speed;
+            motor_1_cos_phi_COS motor_1_cos_phi;
+            acceleration_ramp_time_ACC acceleration;
+            deceleration_ramp_time_DEC deceleration;
             // write a glaze json converter
             struct glaze {
                 using T = atv_config;
@@ -507,9 +507,10 @@ namespace tfc::ec::devices::schneider {
                                                           "deceleration", &T::deceleration
                                                            );
             };
+            auto operator==(const atv_config&) const noexcept -> bool = default;
         };
 
-        using config_t = tfc::confman::config<atv_config>;
+        using config_t = tfc::confman::config<confman::observable<atv_config>>;
 
         explicit atv320(boost::asio::io_context &ctx, manager_client_type &client, uint16_t slave_index)
                 : base(slave_index),
@@ -527,7 +528,10 @@ namespace tfc::ec::devices::schneider {
                                   "Output Frequency",
                                   [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); }),
                   frequency_transmit_(ctx, client, fmt::format("atv320.{}.in.freq", slave_index), "Current Frequency"),
-                  config{ctx, fmt::format("atv320_i{}", slave_index)} {
+                  config_{ctx, fmt::format("atv320_i{}", slave_index)} {
+            config_->observe([this](auto&, auto&){
+                logger_.warn("Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
+            });
             for (size_t i = 0; i < 6; i++) {
                 di_transmitters_.emplace_back(
                         tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i),
@@ -674,18 +678,18 @@ namespace tfc::ec::devices::schneider {
             // sdo_write<uint16_t>({ 0x2024, 0x92 }, 1337);  // 2 - Current
 
             // assign motor parameters from config. For now just setup the test motor
-            sdo_write(nominal_motor_power_NPR{.value = 75});
-            sdo_write(nominal_motor_voltage_UNS{.value = 400});
-            sdo_write(nominal_motor_current_NCR{.value = 20});
-            sdo_write(nominal_motor_frequency_FRS{.value = 500});
-            sdo_write(nominal_motor_speed_NSP{.value = 1410});
-            sdo_write(max_frequency_TFR{.value = 600});
-            sdo_write(motor_thermal_current_ITH{.value = 20});
-            sdo_write(high_speed_HSP{.value = 600});
-            sdo_write(low_speed_LSP{.value = 0});
-            sdo_write(motor_1_cos_phi_COS{.value = 79});
-            sdo_write(acceleration_ramp_time_ACC{.value = 5});
-            sdo_write(deceleration_ramp_time_DEC{.value = 5});
+            sdo_write(config_->value().nominal_motor_power);
+            sdo_write(config_->value().nominal_motor_voltage);
+            sdo_write(config_->value().nominal_motor_current);
+            sdo_write(config_->value().nominal_motor_frequency);
+            sdo_write(config_->value().nominal_motor_speed);
+            sdo_write(config_->value().max_frequency);
+            sdo_write(config_->value().motor_thermal_current);
+            sdo_write(config_->value().high_speed);
+            sdo_write(config_->value().low_speed);
+            sdo_write(config_->value().motor_1_cos_phi);
+            sdo_write(config_->value().acceleration);
+            sdo_write(config_->value().deceleration);
             return 1;
         }
 
@@ -704,6 +708,6 @@ namespace tfc::ec::devices::schneider {
         tfc::ipc::double_slot frequency_recv_;
         int16_t last_frequency_;
         tfc::ipc::double_signal frequency_transmit_;
-        config_t config;
+        config_t config_;
     };
 }  // namespace tfc::ec::devices::schneider

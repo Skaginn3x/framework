@@ -16,8 +16,8 @@
 namespace tfc::ec::devices {
     template<typename setting_t>
     concept setting_c = requires {
-        setting_t::index;
-        setting_t::value;
+        std::remove_cvref_t<setting_t>::index;
+        std::remove_cvref_t<setting_t>::value;
     };
 
     class base {
@@ -55,7 +55,7 @@ namespace tfc::ec::devices {
 
         template<setting_c setting_t>
         auto sdo_write(setting_t &&in) const {
-            if constexpr (std::is_enum_v<decltype(setting_t::value)>) {
+            if constexpr (std::is_enum_v<decltype(std::remove_cvref_t<setting_t>::value)>) {
                 return base::sdo_write(in.index, std::to_underlying(in.value));
             } else {
                 return base::sdo_write(in.index, in.value);
@@ -84,6 +84,6 @@ namespace tfc::ec::devices {
 
         void process_data(std::span<std::byte>, std::span<std::byte>) noexcept final {}
 
-        auto setup() -> int final { return 1; }
+        auto setup() -> int final { return TRUE; }
     };
 }  // namespace tfc::ec::devices
