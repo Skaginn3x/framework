@@ -16,4 +16,5 @@ RUN curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.s
 
 RUN rm -rf /var/lib/apt/lists/*
 
-COPY start-dbus.sh .
+RUN sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
+RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
