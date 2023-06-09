@@ -17,32 +17,22 @@ jobs:
   build:
     name: ubuntu packaging
     runs-on: ubuntu-22.04
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-ea00ad8
     strategy:
       fail-fast: false
       matrix:
         build_type: [debug, release]
         architecture: [ x86_64, aarch64 ]
     steps:
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git curl zip unzip tar wget lsb-release gnupg cppcheck software-properties-common g++-12 g++-12-aarch64-linux-gnu ninja-build autoconf autoconf-archive meson gperf libcap-dev pkg-config libtool rpm autopoint doxygen python3-sphinx python3-sphinx-rtd-theme python3-breathe graphviz python3-myst-parser
-          sudo ln -s /usr/bin/aarch64-linux-gnu-gcc-12 /usr/bin/aarch64-linux-gnu-gcc
-          sudo ln -s /usr/bin/aarch64-linux-gnu-g++-12 /usr/bin/aarch64-linux-gnu-g++
-
       - uses: actions/checkout@v3
-      - name: commissioning
+      - name: start dbus
         run: |
-          sudo ./scripts/commissioning.sh
-          sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
-          sudo chown $USER:$USER -R /run/tfc
-          sudo sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
-          sudo sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
-          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+          dbus-daemon --system
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
+          vcpkgDirectory: '/opt/vcpkg'
           vcpkgGitCommitId: '4eda0e3c7062e61dd89a91357ddc50f742da75ef'
           vcpkgJsonGlob: 'vcpkg.json'
 
@@ -65,18 +55,19 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: vcpkg-build-fail-logs
-          path: ${{ github.workspace }}/vcpkg/**/*out.log
+          path: /opt/vcpkg/**/*out.log
       - name: Upload vcpkg log
         if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: vcpkg-build-fail-logs
-          path: ${{ github.workspace }}/vcpkg/**/*err.log
+          path: /opt/vcpkg/**/*err.log
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
         run: |
-          sudo apt-get install ./build/pack-gcc-${{matrix.build_type}}/*.deb
+          apt-get update
+          apt-get install -y ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
       - name: Upload debian package
         if: matrix.architecture == 'x86_64'

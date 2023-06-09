@@ -3,3 +3,5 @@ build
 .idea
 vcpkg/
 .vscode
+CMakeUserPresets.json
+*.kdev4

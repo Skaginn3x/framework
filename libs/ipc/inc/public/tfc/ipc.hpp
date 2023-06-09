@@ -38,7 +38,7 @@ auto constexpr register_cb(std::string const& ipc_name) {
 template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client>
 class slot {
 public:
-  using value_t = details::slot_callback<type_desc>::value_t;
+  using value_t = typename details::slot_callback<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::slot_callback<type_desc>::direction_v;
 
@@ -87,7 +87,7 @@ private:
 template <typename type_desc, typename manager_client_type>
 class signal {
 public:
-  using value_t = details::signal<type_desc>::value_t;
+  using value_t = typename details::signal<type_desc>::value_t;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::signal<type_desc>::direction_v;
 

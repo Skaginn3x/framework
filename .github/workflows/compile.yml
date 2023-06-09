@@ -17,29 +17,17 @@ jobs:
   build:
     name: 'build and run tests'
     runs-on: ubuntu-22.04
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-ea00ad8
     strategy:
       fail-fast: false
       matrix:
         build_type: [debug, release]
         compiler: [gcc, clang]
     steps:
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install libsystemd-dev cppcheck lsb-release wget software-properties-common gnupg g++-12 curl ninja-build autoconf-archive libtool autoconf meson gperf autopoint
-          curl https://apt.llvm.org/llvm.sh -o llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 16 all
-
       - uses: actions/checkout@v3
-      - name: commissioning
+      - name: start dbus
         run: |
-          sudo ./scripts/commissioning.sh
-          sudo chown $USER:$USER -R /var/tfc  # todo fix this differently
-          sudo chown $USER:$USER -R /run/tfc
-          sudo sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
-          sudo sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
-          sudo dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+          dbus-daemon --system
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
@@ -55,14 +43,3 @@ jobs:
           configurePreset: 'ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           buildPreset: 'build-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
           testPreset: 'test-ci-${{ matrix.compiler }}-${{matrix.build_type}}'
-
-#      - name: Run static analysis
-#        uses: JacobDomagala/StaticAnalysis@master
-#        with:
-#          use_cmake: true
-#
-#          # (Optional) clang-tidy args
-#          clang_tidy_args: -checks='*,fuchsia-*,google-*,zircon-*,abseil-*,modernize-use-trailing-return-type'
-#
-#          # (Optional) cppcheck args
-#          cppcheck_args: --enable=all --suppress=missingInclude
