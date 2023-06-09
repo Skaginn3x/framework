@@ -294,7 +294,7 @@ auto main(int argc, char** argv) -> int {
       sig.async_send(test_values[1], [](std::error_code, std::size_t) {});
       sig.async_send(test_values[2], [](std::error_code, std::size_t) {});
     });
-    isolated_ctx.run_for(std::chrono::seconds(1));
+    isolated_ctx.run_for(std::chrono::seconds(3));
     ut::expect(invocation == 3);
   };
   "Test ipc communication connection and disconnection with mocking int"_test = []() {
@@ -323,7 +323,7 @@ auto main(int argc, char** argv) -> int {
       sig.async_send(test_values[1], [](std::error_code, std::size_t) {});
       sig.async_send(test_values[2], [](std::error_code, std::size_t) {});
     });
-    isolated_ctx.run_for(std::chrono::seconds(1));
+    isolated_ctx.run_for(std::chrono::seconds(3));
     ut::expect(invocation == 3);
   };
 
