@@ -41,6 +41,14 @@
    --pf-c-table--cell--MinWidth: 2rem;
 }
 
+.pf-c-table td {
+   font-size: 0.95rem;
+}
+
+.pf-c-table tr> :first-child {
+   --pf-c-table--cell--PaddingLeft: 1rem;
+}
+
 
 .wideModal {
    --pf-c-modal-box--Width: 90% !important;

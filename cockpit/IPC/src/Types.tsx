@@ -4,9 +4,9 @@
  * @param message The message of the error
  */
 export default interface ErrorType {
-   problem: string | null | undefined,
-   name: string,
-   message: string,
+  problem: string | null | undefined,
+  name: string,
+  message: string,
 }
 
 /**
@@ -18,14 +18,13 @@ export default interface ErrorType {
  * @param last_registered The time the signal was last registered
  */
 export interface SignalType {
-   name: string,
-   description?: string,
-   type: "unknown" | "bool" | "int64_t" | "uint64_t" | "double" | "string" | "json",
-   created_by: string,
-   created_at: string,
-   last_registered: string,
+  name: string,
+  description?: string,
+  type: 'unknown' | 'bool' | 'int64_t' | 'uint64_t' | 'double' | 'string' | 'json',
+  created_by: string,
+  created_at: string,
+  last_registered: string,
 }
-
 
 /**
  * @param name - The name of the slot
@@ -38,27 +37,25 @@ export interface SignalType {
  * @param modified_by The user who last modified the slot
  */
 export interface SlotType {
-   name: string,
-   description?: string,
-   type: string,
-   created_by: string,
-   created_at: string,
-   last_registered: string,
-   last_modified: string,
-   connected_to: string,
-   modified_by: string,
+  name: string,
+  description?: string,
+  type: string,
+  created_by: string,
+  created_at: string,
+  last_registered: string,
+  last_modified: string,
+  connected_to: string,
+  modified_by: string,
 }
-
 
 /**
  * @param x The x coordinate of the point
  * @param y The y coordinate of the point
  */
 export type Point = {
-   x: number;
-   y: number;
+  x: number;
+  y: number;
 };
-
 
 /**
  * @param id The id of the node
@@ -67,12 +64,12 @@ export type Point = {
  * @param data The data of the node
  */
 export type TreeNodeProps = {
-   id: string;
-   text: string;
-   children?: TreeNodeProps[];
-   data?: any;
+  id: string;
+  text: string;
+  children?: TreeNodeProps[];
+  data?: any;
 };
 
 export interface ConnectionType {
-   [key: string]: string[];
+  [key: string]: string[];
 }
