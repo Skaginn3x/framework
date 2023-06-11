@@ -1,0 +1,15 @@
+.JsonDiv {
+   background-color: #F0F0F0;
+   padding: 2rem;
+   border-radius: 0.5rem;
+   margin-bottom: 1rem;
+}
+
+.MuiOutlinedInput-root {
+   height: 2.9rem;
+}
+
+.MuiInputLabel-formControl {
+   margin-top: -2px;
+   line-height: 1rem;
+}

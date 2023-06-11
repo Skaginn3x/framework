@@ -16,3 +16,8 @@
 .pf-c-alert-group {
    --pf-c-alert-group__item--MarginTop: 0.3rem !important;
 }
+
+.pf-c-alert__title {
+   font-size: 0.8rem;
+   font-weight: normal;
+}

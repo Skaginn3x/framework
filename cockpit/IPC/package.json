@@ -6,7 +6,11 @@
   "dependencies": {
     "@babel/core": "7.21.8",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.0",
+    "@mui/icons-material": "^5.13.7",
+    "@mui/material": "^5.13.7",
     "@patternfly/react-core": "^4.276.8",
+    "@patternfly/react-icons": "^4.93.6",
+    "@patternfly/react-styles": "^4.92.6",
     "@patternfly/react-table": "^4.113.0",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
@@ -16,6 +20,12 @@
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
     "@types/react-modal": "^3.13.1",
+    "@ui-schema/ds-material": "^0.4.1",
+    "@ui-schema/ui-schema": "^0.4.5",
+    "bootstrap": "^5.3.0",
+    "bootstrap-icons": "^1.10.5",
+    "immutable": "^4.3.0",
+    "mathjs": "^11.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.4.0",
@@ -32,7 +42,8 @@
     "build": "GENERATE_SOURCEMAP=false BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json",
     "dev": "GENERATE_SOURCEMAP=false react-scripts build && react-scripts start",
     "devbuild": "GENERATE_SOURCEMAP=true BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json && node ./install/create_link.js",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "lint": "./node_modules/.bin/eslint"
   },
   "eslintConfig": {
     "extends": [
@@ -51,5 +62,16 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.59.9",
+    "@typescript-eslint/parser": "^5.59.9",
+    "eslint": "^8.42.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
   }
 }
