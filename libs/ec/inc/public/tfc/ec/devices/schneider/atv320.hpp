@@ -104,7 +104,7 @@ enum struct atv320_psl_e : uint16_t {
   motor_frequency_high_threshold_reached = 4,
   high_speed_reached = 5,
   current_threshold_reached = 6,
-  reference_frequency__reached = 7,
+  reference_frequency_reached = 7,
   motor_thermal_threshold_reached = 8,
   pid_error_warning = 10,
   pid_feedback_warning = 11,
