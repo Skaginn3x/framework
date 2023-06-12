@@ -15,10 +15,6 @@ namespace tfc::ec::devices::schneider {
 
 using ec::util::setting;
 
-// So the size of setting is equal to the value size, meaning it can be reinterpreted.
-//static_assert(sizeof(setting<ecx::index_t{ 0x42, 0x42 }, "foo", "bar", uint32_t, 32>) == sizeof(uint32_t));
-
-
 enum struct operation_mode_e : int8_t {  // datasheet says that canopen is only int8_t, but get an error if set as int16_t
   manual_or_autotuning = -6,
   motion_sequence = -3,
@@ -155,7 +151,6 @@ public:
 
     out->velocity.value = 100;
   }
-
 
   auto setup() -> int final {
     logger_.trace("Setup of lxm32m");
