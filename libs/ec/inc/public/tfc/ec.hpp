@@ -6,8 +6,8 @@
 #include <chrono>
 #include <vector>
 
-#include "ec/devices/device.hpp"
-#include "ec/soem_interface.hpp"
+#include <tfc/ec/devices/device.hpp>
+#include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -319,10 +319,11 @@ private:
     auto* self = static_cast<context_t*>(context->userdata);
     ec_slavet& sl = self->slave_list_as_span_with_master()[slave_index];
     self->logger_.trace(
-        "Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}\nhasDC: {}, state : {}",
-        sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc, sl.state);
-    self->slaves_[slave_index]->setup();
-    return 1;
+        "Setting up\nproduct code: {:#x}\nvendor id: {:#x}\nslave index: {}\nname: {}\naliasaddr: {}\nhasDC: {}\nstate : "
+        "{}\nSupportes CoE Complete access: {}\n",
+        sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc, sl.state,
+        (sl.CoEdetails & ECT_COEDET_SDOCA) != 0);
+    return self->slaves_[slave_index]->setup();
   }
 
   [[nodiscard]] auto slave_list_as_span() -> std::span<ec_slave> {

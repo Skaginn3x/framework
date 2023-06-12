@@ -9,29 +9,11 @@
 
 #include "tfc/cia/402.hpp"
 #include "tfc/ec/devices/base.hpp"
+#include "tfc/ec/devices/util.hpp"
 
 namespace tfc::ec::devices::schneider {
 
-template <ecx::index_t idx,
-          tfc::stx::basic_fixed_string name,
-          tfc::stx::basic_fixed_string desc,
-          typename value_t,
-          value_t default_v>
-struct setting {
-  using type = value_t;
-  static auto constexpr index{ idx };
-  static std::string_view constexpr name_v{ name };
-  static std::string_view constexpr desc_v{ desc };
-  type value{ default_v };
-};
-// So the size of setting is equal to the value size, meaning it can be reinterpreted.
-static_assert(sizeof(setting<ecx::index_t{ 0x42, 0x42 }, "foo", "bar", uint32_t, 32>) == sizeof(uint32_t));
-
-template <typename setting_t>
-concept setting_c = requires {
-                      setting_t::index;
-                      setting_t::value;
-                    };
+using ec::util::setting;
 
 enum struct operation_mode_e : int8_t {  // datasheet says that canopen is only int8_t, but get an error if set as int16_t
   manual_or_autotuning = -6,
@@ -168,15 +150,6 @@ public:
     out->command = cia_402::transition(state, false);
 
     out->velocity.value = 100;
-  }
-
-  template <setting_c setting_t>
-  auto sdo_write(setting_t&& in) const {
-    if constexpr (std::is_enum_v<decltype(setting_t::value)>) {
-      return base::sdo_write(in.index, std::to_underlying(in.value));
-    } else {
-      return base::sdo_write(in.index, in.value);
-    }
   }
 
   auto setup() -> int final {
