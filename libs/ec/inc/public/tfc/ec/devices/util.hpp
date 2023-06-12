@@ -1,6 +1,9 @@
 #pragma once
 
 #include <concepts>
+#include <tfc/ec/soem_interface.hpp>
+#include <tfc/stx/basic_fixed_string.hpp>
+#include <glaze/glaze.hpp>
 
 namespace tfc::ec::util {
 template <typename from, typename to>

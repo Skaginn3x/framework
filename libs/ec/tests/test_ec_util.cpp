@@ -9,7 +9,7 @@ auto main(int, char**) -> int {
   using boost::ut::expect;
 
   "mapping function"_test = []() {
-    expect(map(10, 0, 10, 0, 20) == 20);
-    expect(map(500, 0, 1000, 0, 20) == 10);
+    expect(tfc::ec::util::map(10, 0, 10, 0, 20) == 20);
+    expect(tfc::ec::util::map(500, 0, 1000, 0, 20) == 10);
   };
 }
