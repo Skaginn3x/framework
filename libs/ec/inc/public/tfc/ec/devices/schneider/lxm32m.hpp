@@ -191,7 +191,7 @@ public:
 
     out->command = cia_402::transition(state, false);
 
-    out->velocity.value.number() = 100;  // todo
+    out->velocity.value = 100;  // todo
   }
 
   auto setup() -> int final {
