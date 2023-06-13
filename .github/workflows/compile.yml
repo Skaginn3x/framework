@@ -28,6 +28,8 @@ jobs:
       - name: start dbus
         run: |
           dbus-daemon --system
+          apt-get update
+          apt-get upgrade -y
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
