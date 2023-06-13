@@ -17,7 +17,7 @@ include(GNUInstallDirs)
 
 install(
   DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR}/build
+    ${CMAKE_CURRENT_BINARY_DIR}/build/
   DESTINATION
     ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/ipc
   CONFIGURATIONS Release
