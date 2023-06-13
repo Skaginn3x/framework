@@ -1,9 +1,9 @@
-#include <type_traits>
 #include <cstdint>
+#include <type_traits>
 
-#include <boost/ut.hpp>
-#include <units/quantity.h>
 #include <units/isq/si/si.h>
+#include <units/quantity.h>
+#include <boost/ut.hpp>
 
 #include <tfc/ec/devices/util.hpp>
 
@@ -24,8 +24,8 @@ static_assert(sizeof(chrono_test) == 8);
 // using mp units
 
 using units::quantity;
-using units::isq::si::watt;
 using units::isq::si::dim_power;
+using units::isq::si::watt;
 using quantiy_test_t = quantity<dim_power, watt, uint32_t>;
 static_assert(sizeof(quantiy_test_t) == 4);
 using mp_test = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", quantiy_test_t, 60>;
