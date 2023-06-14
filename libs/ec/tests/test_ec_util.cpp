@@ -7,12 +7,15 @@
 
 #include <tfc/ec/devices/util.hpp>
 
+namespace ut = boost::ut;
 using tfc::ec::util::setting;
 
 namespace example {
 enum struct enum_value_e : std::int8_t { on = 1, off = 2 };
-using enum_setting = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", enum_value_e, enum_value_e::on>;
-using trivial_type_setting = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", enum_value_e, enum_value_e::on>;
+using enum_setting = setting<ecx::index_t{ 0x42, 0x43 }, "name", "desc", enum_value_e, enum_value_e::on>;
+using trivial_type_setting = setting<ecx::index_t{ 0x42, 0x43 }, "name", "desc", uint8_t, 13>;
+static_assert(sizeof(enum_setting) == 1);
+static_assert(sizeof(trivial_type_setting) == 1);
 
 // using std chrono
 using chrono_test = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", std::chrono::milliseconds, 60>;
@@ -28,7 +31,7 @@ using units::isq::si::dim_power;
 using units::isq::si::watt;
 using quantiy_test_t = quantity<dim_power, watt, uint32_t>;
 static_assert(sizeof(quantiy_test_t) == 4);
-using mp_test = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", quantiy_test_t, 60>;
+using mp_test = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", quantiy_test_t, uint32_t{ 60 }>;
 static_assert(std::is_same_v<mp_test::type::rep, uint32_t>);
 static_assert(std::is_same_v<mp_test::type::dimension, dim_power>);
 static_assert(std::is_same_v<mp_test::type::unit, watt>);
@@ -37,8 +40,10 @@ static_assert(sizeof(mp_test) == 4);
 }  // namespace example
 
 auto main(int, char**) -> int {
-  using boost::ut::operator""_test;
-  using boost::ut::expect;
+  using ut::operator""_test;
+  using ut::operator>>;
+  using ut::expect;
+  using ut::fatal;
 
   [[maybe_unused]] example::enum_setting const test1{};
   [[maybe_unused]] example::trivial_type_setting const test2{};
@@ -48,5 +53,13 @@ auto main(int, char**) -> int {
   "mapping function"_test = []() {
     expect(tfc::ec::util::map(10, 0, 10, 0, 20) == 20);
     expect(tfc::ec::util::map(500, 0, 1000, 0, 20) == 10);
+  };
+  "setting to json"_test = []() {
+    [[maybe_unused]] example::trivial_type_setting const test{};
+    auto const json = glz::write_json(test);
+    expect(json == R"({"value":13,"index":[66,67],"name":"name","desc":"desc"})") << "got: " << json;
+    auto const exp = glz::read_json<example::trivial_type_setting>(json);
+    expect(exp.has_value() >> fatal);
+    expect(exp.value() == test);
   };
 }

@@ -40,27 +40,8 @@ struct setting {
 // So the size of setting is equal to the value size, meaning it can be reinterpreted.
 static_assert(sizeof(setting<ecx::index_t{ 0x42, 0x42 }, "foo", "bar", uint32_t, 32>) == sizeof(uint32_t));
 
-// TODO: when glaze adds support for constexpr this should be removed.
-template <typename value_t>
-struct setting_reader {
-  using type = value_t;
-  ecx::index_t index{};
-  std::string_view name_v{};
-  std::string_view desc_v{};
-  type value{};
-};
 }  // namespace tfc::ec::util
 
-template <typename value_t>
-struct glz::meta<tfc::ec::util::setting_reader<value_t>> {
-  using setting = tfc::ec::util::setting_reader<value_t>;
-  //  clang-format off
-  static constexpr auto value{
-    glz::object("value", &setting::value, "index", &setting::index, "name", &setting::name_v, "desc", &setting::desc_v)
-  };
-  // clang-format on
-  static constexpr std::string_view name = "setting";
-};
 template <ecx::index_t idx,
           tfc::stx::basic_fixed_string name_value,
           tfc::stx::basic_fixed_string desc,
@@ -68,23 +49,8 @@ template <ecx::index_t idx,
           auto... value_t_construct_params>
 struct glz::meta<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>> {
   using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
-  static constexpr auto value{ glz::object("value", &setting::value) };
-  static constexpr std::string_view name = "setting";
+  static constexpr auto value{
+    glz::object("value", &setting::value, "index", &setting::index, "name", &setting::name_v, "desc", &setting::desc_v)
+  };
+  static constexpr std::string_view name = "tfc::ec::setting";
 };
-// TODO: when glaze adds support for constexpr this should be removed.
-namespace glz::detail {
-template <ecx::index_t idx,
-          tfc::stx::basic_fixed_string name_value,
-          tfc::stx::basic_fixed_string desc,
-          typename value_t,
-          value_t default_v>
-struct to_json<tfc::ec::util::setting<idx, name_value, desc, value_t, default_v>> {
-  template <auto opts>
-  static void op(auto& value, auto&&... args) noexcept {
-    tfc::ec::util::setting_reader<value_t> rep{
-      .index = value.index, .name_v = value.name_v, .desc_v = value.desc_v, .value = value.value
-    };
-    write<json>::op<opts>(rep, args...);
-  }
-};
-}  // namespace glz::detail
