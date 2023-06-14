@@ -115,6 +115,33 @@ using deceleration_ramp = setting<ecx::index_t{ 0x6084, 0x0 },
 
 }  // namespace tfc::ec::devices::schneider
 
+namespace glz {
+
+template <>
+struct meta<tfc::ec::devices::schneider::operation_mode_e> {
+  using enum tfc::ec::devices::schneider::operation_mode_e;
+  // clang-format off
+  static constexpr auto value{ glz::enumerate(
+      "manual_or_autotuning", manual_or_autotuning,
+      "motion_sequence", motion_sequence,
+      "electronic_gear", electronic_gear,
+      "jog", jog,
+      "reserved", reserved,
+      "profile_position", profile_position,
+      "profile_velocity", profile_velocity,
+      "profile_torque", profile_torque,
+      "homing", homing,
+      "interpolated_position", interpolated_position,
+      "cyclic_synchronous_position", cyclic_synchronous_position,
+      "cyclic_synchronous_velocity", cyclic_synchronous_velocity,
+      "cyclic_synchronous_torque", cyclic_synchronous_torque
+      ) };
+  // clang-format on
+  static constexpr std::string_view name{ "operation_mode" };
+};
+
+}  // namespace glz
+
 namespace tfc::ec::devices::schneider {
 
 namespace asio = boost::asio;
@@ -132,6 +159,21 @@ struct output_pdo {
   deceleration_ramp dec_ramp{};
 };
 
+struct config {
+  operation_mode mode{ .value = operation_mode_e::profile_velocity };
+  //  target_velocity target_speed{};
+  struct glaze {
+    using t = config;
+    static constexpr auto value{
+      glz::object("operation_mode", &t::mode, "Motor operating mode"
+                  //                                              ,"target_velocity", &t::target_speed, "Target velocity mm/s
+                  //                                              (requires num and denum to be set properly)"
+                  )
+    };
+    static constexpr auto name{ "lxm32m" };
+  };
+};
+
 template <typename manager_client_type>
 class lxm32m final : public base {
 public:
@@ -139,7 +181,7 @@ public:
   static constexpr uint32_t product_code = 0x16440;
 
   explicit lxm32m([[maybe_unused]] asio::io_context& ctx, [[maybe_unused]] manager_client_type& client, uint16_t slave_index)
-      : base(slave_index) {}
+      : base(slave_index), config_(ctx, fmt::format("lxm32m.{}", slave_index)) {}
 
   void process_data(std::span<std::byte> input, std::span<std::byte> output) final {
     [[maybe_unused]] auto* out = std::launder(reinterpret_cast<output_pdo*>(output.data()));
@@ -149,7 +191,7 @@ public:
 
     out->command = cia_402::transition(state, false);
 
-    out->velocity.value = 100;
+    out->velocity.value = 100;  // todo
   }
 
   auto setup() -> int final {
@@ -203,6 +245,8 @@ public:
 
     return 1;
   }
+
+  tfc::confman::config<config> config_;
 };
 
 }  // namespace tfc::ec::devices::schneider

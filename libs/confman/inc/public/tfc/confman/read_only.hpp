@@ -7,6 +7,8 @@
 
 #include <glaze/util/parse.hpp>
 
+#include <tfc/stx/string_view_join.hpp>
+
 namespace tfc::confman {
 
 /// \brief Represent read only parameter.
@@ -20,8 +22,8 @@ public:
 
   read_only() = default;
 
-  explicit read_only(value_type& default_value) : value_{ default_value } {}
-  explicit read_only(value_type&& default_value) : value_{ std::move(default_value) } {}
+  constexpr explicit read_only(value_type& default_value) : value_{ default_value } {}
+  constexpr explicit read_only(value_type&& default_value) : value_{ std::move(default_value) } {}
 
   auto value() const noexcept -> value_t const& { return value_; }
   auto value() noexcept -> value_t& { return value_; }
@@ -46,7 +48,9 @@ private:
 public:
   struct glaze {
     static auto constexpr value{ &read_only::value_ };
-    static std::string_view constexpr name{ "read_only" };
+    static constexpr std::string_view prefix{ "tfc::read_only<" };
+    static constexpr std::string_view postfix{ ">" };
+    static std::string_view constexpr name{ stx::string_view_join_v<prefix, glz::name_v<value_t>, postfix> };
   };
 };
 

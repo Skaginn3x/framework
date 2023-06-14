@@ -17,7 +17,7 @@ jobs:
   build:
     name: ubuntu packaging
     runs-on: ubuntu-22.04
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-ea00ad8
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-7315878
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +28,8 @@ jobs:
       - name: start dbus
         run: |
           dbus-daemon --system
+          apt-get update
+          apt-get upgrade -y
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11

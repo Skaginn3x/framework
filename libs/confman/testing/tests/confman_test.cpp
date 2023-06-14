@@ -203,7 +203,8 @@ auto main(int argc, char** argv) -> int {
     std::ignore = glz::read_json(json, conf.string());
     json["a"] = 27;
 
-    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"));
+    std::string buffer{};
+    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"), buffer);
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(a_called == 1);
@@ -241,7 +242,8 @@ auto main(int argc, char** argv) -> int {
     glz::json_t json{};
     std::ignore = glz::read_json(json, conf.string());
     json["a"] = 27;
-    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"));
+    std::string buffer{};
+    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"), buffer);
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);

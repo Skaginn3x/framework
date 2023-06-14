@@ -5,7 +5,10 @@
 #include <functional>
 #include <type_traits>
 
+#include <glaze/core/meta.hpp>
+
 #include <tfc/stx/concepts.hpp>
+#include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::confman {
 template <typename conf_param_t>
@@ -97,7 +100,9 @@ private:
 public:
   struct glaze {
     static auto constexpr value = &observable::value_;
-    static std::string_view constexpr name{ "observable" };  // todo observable<typeid(conf_param_t)>
+    static constexpr std::string_view prefix{ "tfc::observable<" };
+    static constexpr std::string_view postfix{ ">" };
+    static std::string_view constexpr name{ stx::string_view_join_v<prefix, glz::name_v<conf_param_t>, postfix> };
   };
 };
 

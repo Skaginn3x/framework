@@ -10,5 +10,19 @@ target_include_directories(stx
     $<INSTALL_INTERFACE:include>
 )
 
+find_package(date CONFIG REQUIRED)
+find_package(mp-units CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
+
+target_link_libraries(stx
+  INTERFACE
+    date::date
+    glaze::glaze
+    mp-units::si
+    mp-units::core
+)
+
 include(tfc_install)
 tfc_install_lib(stx)
+
+add_subdirectory(tests)

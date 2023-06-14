@@ -76,18 +76,27 @@
     },
     {
       "name": "pack-gcc-debug",
-      "inherits": ["ci-gcc-debug", "cfg-enable-docs"]
+      "inherits": [
+        "ci-gcc-debug",
+        "cfg-enable-docs",
+        "cfg-install-to-usr"
+      ]
     },
     {
       "name": "pack-gcc-release",
-      "inherits": ["ci-gcc-release", "cfg-enable-docs"]
+      "inherits": [
+        "ci-gcc-release",
+        "cfg-enable-docs",
+        "cfg-install-to-usr"
+      ]
     },
     {
       "name": "pack-aarch64-gcc-debug",
       "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-aarch64",
-        "pack-gcc-debug"
+        "pack-gcc-debug",
+        "cfg-install-to-usr"
       ]
     },
     {
@@ -95,7 +104,8 @@
       "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-aarch64",
-        "pack-gcc-release"
+        "pack-gcc-release",
+        "cfg-install-to-usr"
       ]
     }
   ],

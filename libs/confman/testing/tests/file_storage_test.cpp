@@ -82,14 +82,16 @@ auto main(int argc, char** argv) -> int {
   "verify file"_test = [&] {
     file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     glz::json_t json{};
-    glz::read_file_json(json, file_name);
+    std::string buffer{};
+    glz::read_file_json(json, file_name, buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
     ut::expect(json["b"].get<std::string>() == "bar");
 
     conf.make_change()->a.set(2);
     conf.make_change()->b = "test";
 
-    glz::read_file_json(json, file_name);
+    buffer = {};
+    glz::read_file_json(json, file_name, buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 2);
     ut::expect(json["b"].get<std::string>() == "test");
   };
@@ -97,7 +99,8 @@ auto main(int argc, char** argv) -> int {
   "write to file"_test = [&] {
     file_testable<test_me> const conf{ ctx, file_name };
     glz::json_t json{};
-    glz::read_file_json(json, file_name);
+    std::string buffer{};
+    glz::read_file_json(json, file_name, buffer);
 
     uint32_t a_called{};
     conf->a.observe([&a_called](int new_a, int old_a) {
@@ -108,7 +111,8 @@ auto main(int argc, char** argv) -> int {
 
     json["a"] = 32;
     json["b"] = "test";
-    std::ignore = glz::write_file_json(json, file_name);
+    buffer = {};
+    std::ignore = glz::write_file_json(json, file_name, buffer);
 
     ctx.run_for(std::chrono::milliseconds(10));
 

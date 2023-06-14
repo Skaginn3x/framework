@@ -22,6 +22,7 @@
     "gtest",
     "spdlog",
     "magic-enum",
+    "mp-units",
     "bext-sml",
     "soem-master",
     {

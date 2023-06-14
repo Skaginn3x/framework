@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.21)
 find_path(BEXT_SML_INCLUDE_DIRS "boost/sml.hpp")
 find_package(fmt CONFIG REQUIRED)
 find_package(soem CONFIG REQUIRED)
+find_package(mp-units CONFIG REQUIRED)
 
 
 add_library(ec src/ec.cpp src/base.cpp)
@@ -23,6 +24,7 @@ target_link_libraries(ec
     soem
     tfc::ipc
     tfc::confman
+    mp-units::si
   PRIVATE
     fmt::fmt
 )
