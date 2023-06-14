@@ -33,10 +33,9 @@ struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
       "unit",
       [](auto&&) -> auto const& { return unit; },
       "dimension",
-      [](auto&&) -> auto const& { return dimension; }
-      ,"ratio",
-      [](auto&&) -> auto const& { return ratio; }
-      ) };
+      [](auto&&) -> auto const& { return dimension; },
+      "ratio",
+      [](auto&&) -> auto const& { return ratio; }) };
   static std::string_view constexpr prefix{ "units::quantity<" };
   static std::string_view constexpr postfix{ ">" };
   static std::string_view constexpr separator{ "," };
@@ -103,4 +102,4 @@ inline constexpr auto dimension_name() -> std::string_view {
     ();
   }
 }
-}
+}  // namespace tfc::unit

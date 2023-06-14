@@ -12,7 +12,112 @@
 #include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::detail {
+template <std::intmax_t num, std::intmax_t den>
+inline constexpr auto make_ratio_symbol() -> std::string_view;
 
+template <std::intmax_t num, std::intmax_t den>
+static constexpr auto make_name() -> std::string_view;
+
+template <typename rep_t, typename period_t>
+struct duration_hack {
+  rep_t rep{};
+};
+}  // namespace tfc::detail
+
+template <std::intmax_t num, std::intmax_t den>
+struct glz::meta<std::ratio<num, den>> {
+  using type = std::ratio<num, den>;
+  static constexpr auto value{ glz::object("numerator", &type::num, "denominator", &type::den) };
+  static constexpr auto name{ tfc::detail::make_name<num, den>() };
+};
+template <typename rep_t, typename period_t>
+struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
+  using type = tfc::detail::duration_hack<rep_t, period_t>;
+  static constexpr std::string_view unit_symbol{ "s" };
+  static constexpr std::string_view unit_ratio{ tfc::detail::make_ratio_symbol<period_t::num, period_t::den>() };
+  static constexpr std::string_view unit{ tfc::stx::string_view_join_v<unit_ratio, unit_symbol> };
+  static constexpr std::string_view dimension{ "time" };
+  static constexpr auto ratio{ period_t{} };
+  static constexpr auto value{ glz::object(
+      "value",
+      &type::rep,
+      "unit",
+      [](auto&&) -> auto const& { return unit; },
+      "dimension",
+      [](auto&&) -> auto const& { return dimension; },
+      "ratio",
+      [](auto&&) -> auto const& { return ratio; }) };
+  static constexpr std::string_view prefix{ "std::chrono::duration<" };
+  static constexpr std::string_view postfix{ ">" };
+  static constexpr std::string_view separator{ "," };
+  static constexpr auto name{
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
+  };
+};
+template <typename rep_t, typename period_t>
+struct glz::meta<std::chrono::duration<rep_t, period_t>> {
+  static constexpr std::string_view prefix{ "std::chrono::duration<" };
+  static constexpr std::string_view postfix{ ">" };
+  static constexpr std::string_view separator{ "," };
+  static constexpr auto name{
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
+  };
+};
+
+namespace glz::detail {
+inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
+  std::istringstream in{ save };
+  date::sys_time<std::chrono::milliseconds> tp;
+  in >> date::parse("%FT%TZ", tp);
+  if (in.fail()) {
+    in.clear();
+    in.exceptions(std::ios::failbit);
+    in.str(save);
+    in >> date::parse("%FT%T%Ez", tp);
+  }
+  return tp;
+}
+template <>
+struct from_json<std::chrono::time_point<std::chrono::system_clock>> {
+  template <auto Opts>
+  static void op(auto& value, auto&&... args) {
+    std::string rep;
+    read<json>::op<Opts>(rep, args...);
+    value = parse8601(rep);
+  }
+};
+
+template <>
+struct to_json<std::chrono::time_point<std::chrono::system_clock>> {
+  template <auto Opts>
+  static void op(auto& value, auto&&... args) noexcept {
+    std::stringstream str_stream;
+    str_stream << date::format("%FT%T%Ez", value);
+    write<json>::op<Opts>(str_stream.str(), args...);
+  }
+};
+
+template <typename rep_t, typename period_t>
+struct from_json<std::chrono::duration<rep_t, period_t>> {
+  template <auto opts>
+  static void op(std::chrono::duration<rep_t, period_t>& value, auto&&... args) {
+    tfc::detail::duration_hack<rep_t, period_t> substitute{};
+    read<json>::op<opts>(substitute, args...);
+    value = std::chrono::duration<rep_t, period_t>{ substitute.rep };
+  }
+};
+template <typename rep_t, typename period_t>
+struct to_json<std::chrono::duration<rep_t, period_t>> {
+  template <auto opts>
+  static void op(auto& value, auto&&... args) noexcept {
+    tfc::detail::duration_hack<rep_t, period_t> substitute{ .rep = value.count() };
+    write<json>::op<opts>(substitute, args...);
+  }
+};
+
+}  // namespace glz::detail
+
+namespace tfc::detail {
 template <std::intmax_t num, std::intmax_t den>
 inline constexpr auto make_ratio_symbol() -> std::string_view {
   using type = std::ratio<num, den>;
@@ -55,6 +160,7 @@ inline constexpr auto make_ratio_symbol() -> std::string_view {
     ();
   }
 }
+
 template <std::intmax_t num, std::intmax_t den>
 static constexpr auto make_name() -> std::string_view {
   using type = std::ratio<num, den>;
@@ -97,120 +203,4 @@ static constexpr auto make_name() -> std::string_view {
     ();
   }
 }
-
-template <std::intmax_t num_v, std::intmax_t den_v>
-struct ratio_hack {
-  std::intmax_t num{ num_v };
-  std::intmax_t den{ den_v };
-};
-template <typename rep_t, typename period_t>
-struct duration_hack {
-  using rep_type = rep_t;
-  using period_type = period_t;
-  rep_type rep{};
-  ratio_hack<period_t::num, period_t::den> ratio{};
-  static constexpr std::string_view unit_ratio{ make_ratio_symbol<period_t::num, period_t::den>() };
-  static constexpr std::string_view unit_symbol{ "s" };
-  std::string_view unit{ stx::string_view_join_v<unit_ratio, unit_symbol> };
-  std::string_view dimension{ "time" };
-};
 }  // namespace tfc::detail
-
-template <std::intmax_t num, std::intmax_t den>
-struct glz::meta<std::ratio<num, den>> {
-  using type = std::ratio<num, den>;
-  static constexpr auto value{ glz::object("numerator", type::num, "denominator", type::den) };
-  static constexpr auto name{ tfc::detail::make_name<num, den>() };
-};
-template <std::intmax_t num, std::intmax_t den>
-struct glz::meta<tfc::detail::ratio_hack<num, den>> {
-  using type = tfc::detail::ratio_hack<num, den>;
-  static constexpr auto value{ glz::object("numerator", &type::num, "denominator", &type::den) };
-  static constexpr auto name{ tfc::detail::make_name<num, den>() };
-};
-template <typename rep_t, typename period_t>
-struct glz::meta<std::chrono::duration<rep_t, period_t>> {
-  static constexpr std::string_view prefix{ "std::chrono::duration<" };
-  static constexpr std::string_view postfix{ ">" };
-  static constexpr std::string_view separator{ "," };
-  static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
-  };
-};
-template <typename rep_t, typename period_t>
-struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
-  using type = tfc::detail::duration_hack<rep_t, period_t>;
-  static constexpr auto value{
-    glz::object("value", &type::rep, "unit", &type::unit, "dimension", &type::dimension, "ratio", &type::ratio)
-  };
-  static constexpr std::string_view prefix{ "std::chrono::duration<" };
-  static constexpr std::string_view postfix{ ">" };
-  static constexpr std::string_view separator{ "," };
-  static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
-  };
-};
-
-namespace glz::detail {
-inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
-  std::istringstream in{ save };
-  date::sys_time<std::chrono::milliseconds> tp;
-  in >> date::parse("%FT%TZ", tp);
-  if (in.fail()) {
-    in.clear();
-    in.exceptions(std::ios::failbit);
-    in.str(save);
-    in >> date::parse("%FT%T%Ez", tp);
-  }
-  return tp;
-}
-template <>
-struct from_json<std::chrono::time_point<std::chrono::system_clock>> {
-  template <auto Opts>
-  static void op(auto& value, auto&&... args) {
-    std::string rep;
-    read<json>::op<Opts>(rep, args...);
-    value = parse8601(rep);
-  }
-};
-
-template <>
-struct to_json<std::chrono::time_point<std::chrono::system_clock>> {
-  template <auto Opts>
-  static void op(auto& value, auto&&... args) noexcept {
-    std::stringstream str_stream;
-    str_stream << date::format("%FT%T%Ez", value);
-    write<json>::op<Opts>(str_stream.str(), args...);
-  }
-};
-
-// TODO: when glaze adds support for constexpr this should be removed.
-template <std::intmax_t num, std::intmax_t den>
-struct to_json<std::ratio<num, den>> {
-  template <auto opts>
-  static void op(std::ratio<num, den>& value, auto&&... args) noexcept {
-    tfc::detail::ratio_hack<num, den> substitute{};
-    write<json>::op<opts>(substitute, args...);
-  }
-};
-
-template <typename rep_t, typename period_t>
-struct from_json<std::chrono::duration<rep_t, period_t>> {
-  template <auto opts>
-  static void op(std::chrono::duration<rep_t, period_t>& value, auto&&... args) {
-    // todo if I could access rep of std::chrono::duration by reference this would be unnecessary
-    tfc::detail::duration_hack<rep_t, period_t> substitute{};
-    read<json>::op<opts>(substitute, args...);
-    value = std::chrono::duration<rep_t, period_t>{ substitute.rep };
-  }
-};
-template <typename rep_t, typename period_t>
-struct to_json<std::chrono::duration<rep_t, period_t>> {
-  template <auto opts>
-  static void op(auto& value, auto&&... args) noexcept {
-    tfc::detail::duration_hack<rep_t, period_t> substitute{ .rep = value.count() };
-    write<json>::op<opts>(substitute, args...);
-  }
-};
-
-}  // namespace glz::detail
