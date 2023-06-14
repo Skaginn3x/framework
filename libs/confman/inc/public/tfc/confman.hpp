@@ -70,16 +70,18 @@ public:
   [[nodiscard]] auto string() const -> std::string { return glz::write_json(storage_.value()); }
 
   /// TODO can we do this differently, jsonforms requires object as root element
-  template <typename some_type>
-  struct hack {
-    some_type placeholder{};
+  /// an example of failure would be confman<std::vector<int>> as the json schema root element would be array
+  /// which is expected but jsonforms requires object. Hopefully we can remove this later.
+  template <typename to_be_wrapped_t>
+  struct object_wrapper {
+    to_be_wrapped_t placeholder{};
     struct glaze {
-      static constexpr auto value{ glz::object("config", &hack::placeholder) };
-      static constexpr auto name{ glz::name_v<some_type> };
+      static constexpr auto value{ glz::object("config", &object_wrapper::placeholder) };
+      static constexpr auto name{ glz::name_v<to_be_wrapped_t> };
     };
   };
   /// \return storage_t json schema
-  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<hack<config_storage_t>>(); }
+  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<object_wrapper<config_storage_t>>(); }
 
   auto set_changed() const noexcept -> std::error_code {
     client_.set(detail::config_property{ .value = string(), .schema = schema() });
