@@ -10,7 +10,42 @@
 
 #include <tfc/stx/string_view_join.hpp>
 
-namespace tfc {
+namespace tfc::unit {
+template <typename dim_t>
+inline constexpr auto dimension_name() -> std::string_view;
+}  // namespace tfc::unit
+
+template <>
+struct glz::meta<units::ratio> {
+  static constexpr auto value{ glz::object("numerator", &units::ratio::num, "denominator", &units::ratio::den) };
+  static constexpr auto name{ "units::ratio" };
+};
+
+template <typename dimension_t, typename unit_t, typename rep_t>
+struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
+  using type = units::quantity<dimension_t, unit_t, rep_t>;
+  static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
+  static constexpr units::ratio ratio{ units::as_ratio(unit_t::mag) };
+  static constexpr auto dimension{ tfc::unit::dimension_name<dimension_t>() };
+  static auto constexpr value{ glz::object(
+      "value",
+      [](auto&& self) -> auto& { return self.number(); },
+      "unit",
+      [](auto&&) -> auto const& { return unit; },
+      "dimension",
+      [](auto&&) -> auto const& { return dimension; }
+      ,"ratio",
+      [](auto&&) -> auto const& { return ratio; }
+      ) };
+  static std::string_view constexpr prefix{ "units::quantity<" };
+  static std::string_view constexpr postfix{ ">" };
+  static std::string_view constexpr separator{ "," };
+  static auto constexpr name{
+    tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
+  };
+};
+
+namespace tfc::unit {
 template <typename dim_t>
 inline constexpr auto dimension_name() -> std::string_view {
   using stripped_dim_t = std::remove_cvref_t<dim_t>;
@@ -57,8 +92,6 @@ inline constexpr auto dimension_name() -> std::string_view {
     return "resistance";
   } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_pressure>) {
     return "pressure";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_power>) {
-    return "power";
   } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_torque>) {
     return "torque";
   } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_luminance>) {
@@ -70,92 +103,4 @@ inline constexpr auto dimension_name() -> std::string_view {
     ();
   }
 }
-}  // namespace tfc
-
-template <>
-struct glz::meta<units::ratio> {
-  static constexpr auto value{ glz::object("numerator", &units::ratio::num, "denominator", &units::ratio::den) };
-  static constexpr auto name{ "ratio" };
-};
-
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
-  using type = units::quantity<dimension_t, unit_t, rep_t>;
-  static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
-  static constexpr units::ratio ratio{ units::as_ratio(unit_t::mag) };
-  static constexpr auto dimension{ tfc::dimension_name<dimension_t>() };
-  static auto constexpr value{ glz::object(
-      "value",
-      [](auto&& self) -> auto& { return self.number(); },
-      "unit",
-      dimension,
-      "dimension",
-      tfc::dimension_name<dimension_t>()
-      // ,"ratio",
-      // ratio
-      ) };
-  static std::string_view constexpr prefix{ "units::quantity<" };
-  static std::string_view constexpr postfix{ ">" };
-  static std::string_view constexpr separator{ "," };
-  static auto constexpr name{
-    tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
-  };
-};
-
-namespace tfc::detail {
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct quantity_hack {
-  std::string_view unit{ unit_t::symbol.standard().data_ };
-  std::string_view dimension{ tfc::dimension_name<dimension_t>() };
-  units::ratio ratio{ units::as_ratio(unit_t::mag) };
-  rep_t value{};
-};
-}  // namespace tfc::detail
-
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct glz::meta<tfc::detail::quantity_hack<dimension_t, unit_t, rep_t>> {
-  using quantity = tfc::detail::quantity_hack<dimension_t, unit_t, rep_t>;
-  static constexpr auto value{ glz::object("value",
-                                           &quantity::value,
-                                           "unit",
-                                           &quantity::unit,
-                                           "dimension",
-                                           &quantity::dimension,
-                                           "ratio",
-                                           &quantity::ratio) };
-  static std::string_view constexpr prefix{ "units::quantity<" };
-  static std::string_view constexpr postfix{ ">" };
-  static std::string_view constexpr unit{ unit_t::symbol.standard().data_ };
-  static auto constexpr name{ tfc::stx::string_view_join_v<prefix, unit, postfix> };
-};
-
-namespace glz::detail {
-
-template <typename value_t>
-struct to_json;
-
-// TODO: when glaze adds support for constexpr this should be removed.
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct to_json<units::quantity<dimension_t, unit_t, rep_t>> {
-  template <auto opts>
-  static void op(auto& value, auto&&... args) noexcept {
-    tfc::detail::quantity_hack<dimension_t, unit_t, rep_t> substitute{ .value = value.number() };
-    write<json>::op<opts>(substitute, args...);
-  }
-};
-
-template <typename value_t>
-struct from_json;
-
-// TODO: when glaze adds support for constexpr this should be removed.
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct from_json<units::quantity<dimension_t, unit_t, rep_t>> {
-  template <auto opts>
-  static void op(units::quantity<dimension_t, unit_t, rep_t>& value, auto&&... args) noexcept {
-    tfc::detail::quantity_hack<dimension_t, unit_t, rep_t> substitute{};
-    read<json>::op<opts>(substitute, args...);
-    value = units::quantity<dimension_t, unit_t, rep_t>{ substitute.value };
-  }
-};
-
-}  // namespace glz::detail
+}

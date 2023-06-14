@@ -14,7 +14,7 @@ using ut::fatal;
 using ut::operator>>;
 
 namespace compile_test {
-using tfc::dimension_name;
+using tfc::unit::dimension_name;
 namespace si = units::isq::si;
 static_assert(dimension_name<si::dim_length>() == "length");
 static_assert(dimension_name<si::dim_time>() == "time");
