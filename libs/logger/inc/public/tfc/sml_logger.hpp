@@ -2,7 +2,6 @@
 #include <memory>
 
 // Third party
-#include <fmt/core.h>
 #include <boost/sml.hpp>
 #include <tfc/logger.hpp>
 
