@@ -1,7 +1,5 @@
 // Standard
 #include <memory>
-#include <string>
-#include <string_view>
 
 // Third party
 #include <fmt/core.h>
@@ -11,10 +9,9 @@
 namespace tfc::logger {
 
 /**
- * @brief tfc::logger class used to implement a logger for the Boost SML library, can be used in projects that implement
- * state machines
+ * @brief Boost state machine library (SML) logger with tfc::logger instance.
  * */
-struct SmlLogger {
+struct sml_logger {
   /**
    * @brief log event that happens in the state machine to the logger
    * */
