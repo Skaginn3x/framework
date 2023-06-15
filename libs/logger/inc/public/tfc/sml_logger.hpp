@@ -1,12 +1,11 @@
 // Standard
 #include <memory>
+#include <string>
+#include <string_view>
 
 // Third party
 #include <fmt/core.h>
 #include <boost/sml.hpp>
-#include <memory>
-#include <string>
-#include <string_view>
 #include <tfc/logger.hpp>
 
 namespace tfc::logger {

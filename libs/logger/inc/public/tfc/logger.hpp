@@ -1,15 +1,9 @@
 #pragma once
 
-// Standard
-#include <memory>
-
-// Third party
 #include <fmt/core.h>
-#include <boost/sml.hpp>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <tfc/logger.hpp>
 
 namespace spdlog {
 class async_logger;
@@ -59,7 +53,6 @@ public:
   void log(fmt::format_string<args_t...> msg, args_t&&... parameters) const {
     log_(log_level, fmt::vformat(msg, fmt::make_format_args(parameters...)));
   }
-
   /**
    * @brief Log messages
    * @param msg String to log
@@ -68,47 +61,35 @@ public:
   void log(std::string_view msg) const {
     log_(log_level, msg);
   }
-
   template <typename... args_t>
   void trace(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
     log<lvl_e::trace>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-
   void trace(std::string_view msg) const { log<lvl_e::trace>(msg); }
-
   template <typename... args_t>
   void debug(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
     log<lvl_e::debug>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-
   void debug(std::string_view msg) const { log<lvl_e::debug>(msg); }
-
   template <typename... args_t>
   void info(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
     log<lvl_e::info>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-
   void info(std::string_view msg) const { log<lvl_e::info>(msg); }
-
   template <typename... args_t>
   void warn(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
     log<lvl_e::warn>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-
   void warn(std::string_view msg) const { log<lvl_e::warn>(msg); }
-
   template <typename... args_t>
   void error(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
     log<lvl_e::error>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-
   void error(std::string_view msg) const { log<lvl_e::error>(msg); }
-
   template <typename... args_t>
   void critical(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
     log<lvl_e::critical>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-
   void critical(std::string_view msg) const { log<lvl_e::critical>(msg); }
 
   /**
@@ -124,10 +105,7 @@ private:
    * @param msg String to log
    */
   void log_(lvl_e log_lvl, std::string_view msg) const;
-
   std::string key_;
   std::shared_ptr<spdlog::async_logger> async_logger_;
 };
-
-
 };  // namespace tfc::logger
