@@ -5,3 +5,4 @@ vcpkg/
 .vscode
 CMakeUserPresets.json
 *.kdev4
+scripts/llvm-project-16.0.0.src
