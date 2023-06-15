@@ -30,6 +30,7 @@
       "features": ["cxx-bindings"]
     },
     "sdbusplus",
-    "date"
+    "date",
+    "pybind11"
   ]
 }
