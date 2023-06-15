@@ -472,9 +472,8 @@ public:
                         fmt::format("atv320.{}.out.freq", slave_index),
                         "Output Frequency",
                         [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); }),
-        frequency_transmit_(ctx, client, fmt::format("atv320.{}.in.freq", slave_index), "Current Frequency"), config_{
-          ctx, fmt::format("atv320_i{}", slave_index)
-        } {
+        frequency_transmit_(ctx, client, fmt::format("atv320.{}.in.freq", slave_index), "Current Frequency"),
+        config_{ ctx, fmt::format("atv320_i{}", slave_index) } {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");

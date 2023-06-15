@@ -6,8 +6,8 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/sml_logger.hpp>
 #include <tfc/operation_mode/common.hpp>
+#include <tfc/sml_logger.hpp>
 #include <tfc/utils/pragmas.hpp>
 
 namespace boost::asio {

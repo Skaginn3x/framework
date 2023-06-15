@@ -16,9 +16,9 @@
 namespace tfc::ec::devices {
 template <typename setting_t>
 concept setting_c = requires {
-                      std::remove_cvref_t<setting_t>::index;
-                      std::remove_cvref_t<setting_t>::value;
-                    };
+  std::remove_cvref_t<setting_t>::index;
+  std::remove_cvref_t<setting_t>::value;
+};
 
 class base {
 public:
