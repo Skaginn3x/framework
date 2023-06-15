@@ -11,6 +11,11 @@ namespace tfc::logger {
  * @brief Boost state machine library (SML) logger with tfc::logger instance.
  * */
 struct sml_logger {
+
+  sml_logger() = default;
+
+  sml_logger(std::string_view key) : logger_{ std::make_shared<tfc::logger::logger>(key) } {}
+
   /**
    * @brief log event that happens in the state machine to the logger
    * */
