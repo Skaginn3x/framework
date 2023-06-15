@@ -6,18 +6,10 @@
 #include <system_error>
 #include <vector>
 
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/operation_mode/common.hpp>
 
-namespace sdbusplus::asio {
-class connection;
-}
-namespace sdbusplus::bus::match {
-struct match;
-}
-namespace sdbusplus::message {
-class message;
-}
 namespace boost::asio {
 class io_context;
 }
@@ -37,6 +29,10 @@ class interface {
 public:
   explicit interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
   interface(boost::asio::io_context& ctx, std::string_view log_key);
+  interface(interface const&) = delete;
+  auto operator=(interface const&) -> interface& = delete;
+  interface(interface&&) noexcept;
+  auto operator=(interface&&) noexcept -> interface&;
 
   /// \brief set operation mode controller to new state
   /// \note take care since this will affect the whole system

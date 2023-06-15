@@ -16,6 +16,7 @@
 
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/logger.hpp>
@@ -24,12 +25,14 @@
 
 namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
+static constexpr std::string_view dbus_name{ "ipc_ruler" };
+static constexpr std::string_view dbus_manager_name{ "manager" };
 // service name
-static auto ipc_ruler_service_name = "com.skaginn3x.ipc_ruler";
+static constexpr auto ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
 // object path
-static auto ipc_ruler_object_path = "/com/skaginn3x/ipc_ruler";
+static constexpr auto ipc_ruler_object_path = dbus::const_dbus_path<dbus_name>;
 // Interface name
-static auto ipc_ruler_interface_name = "com.skaginn3x.manager";
+static constexpr auto ipc_ruler_interface_name = dbus::const_dbus_name<dbus_manager_name>;
 
 using dbus_error = tfc::dbus::exception::runtime;
 
@@ -227,8 +230,8 @@ public:
       : ipc_manager_{ std::move(ipc_manager) } {
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
-    connection_->request_name(ipc_ruler_service_name);
-    dbus_iface_ = object_server_->add_unique_interface(ipc_ruler_object_path, ipc_ruler_interface_name);
+    connection_->request_name(ipc_ruler_service_name.data());
+    dbus_iface_ = object_server_->add_unique_interface(ipc_ruler_object_path.data(), ipc_ruler_interface_name.data());
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
       auto message = dbus_iface_->new_signal("ConnectionChange");
@@ -237,24 +240,16 @@ public:
     });
     dbus_iface_->register_method("Connect", [&](const std::string& slot_name, const std::string& signal_name) {
       ipc_manager_->connect(slot_name, signal_name);
-      dbus_iface_->signal_property("Slots");
-      dbus_iface_->signal_property("Connections");
     });
 
-    dbus_iface_->register_method("Disconnect", [&](const std::string& slot_name) {
-      ipc_manager_->disconnect(slot_name);
-      dbus_iface_->signal_property("Slots");
-      dbus_iface_->signal_property("Connections");
-    });
+    dbus_iface_->register_method("Disconnect", [&](const std::string& slot_name) { ipc_manager_->disconnect(slot_name); });
 
     dbus_iface_->register_method("RegisterSignal",
                                  [&](const std::string& name, const std::string& description, uint8_t type) {
                                    ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
-                                   dbus_iface_->signal_property("Signals");
                                  });
     dbus_iface_->register_method("RegisterSlot", [&](const std::string& name, const std::string& description, uint8_t type) {
       ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
-      dbus_iface_->signal_property("Slots");
     });
 
     dbus_iface_->register_property_r<std::string>("Signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
@@ -284,11 +279,25 @@ class ipc_manager_client {
 public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
     connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
-    match_ = std::make_unique<sdbusplus::bus::match::match>(
-        *connection_,
-        fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name, ipc_ruler_interface_name,
-                    ipc_ruler_object_path),
-        std::bind_front(&ipc_manager_client::match_callback, this));
+    match_ = make_match();
+  }
+  // Todo copy constructors can be implemented but I don't see why we need them
+  ipc_manager_client(ipc_manager_client const&) = delete;
+  auto operator=(ipc_manager_client const&) -> ipc_manager_client& = delete;
+  ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept {
+    connection_ = std::move(to_be_erased.connection_);
+    slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
+    // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
+    // it could throw if we are out of memory but then we are already screwed and the process will terminate.
+    match_ = make_match();
+  }
+  auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
+    connection_ = std::move(to_be_erased.connection_);
+    slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
+    // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
+    // it could throw if we are out of memory but then we are already screwed and the process will terminate.
+    match_ = make_match();
+    return *this;
   }
 
   /**
@@ -301,9 +310,9 @@ public:
                        const std::string_view description,
                        type_e type,
                        std::invocable<const std::error_code&> auto&& handler) -> void {
-    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "RegisterSignal", name, description,
-                                   static_cast<uint8_t>(type));
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name.data(),
+                                   ipc_ruler_object_path.data(), ipc_ruler_interface_name.data(), "RegisterSignal", name,
+                                   description, static_cast<uint8_t>(type));
   }
 
   /**
@@ -316,8 +325,9 @@ public:
                      const std::string_view description,
                      type_e type,
                      std::invocable<const std::error_code&> auto&& handler) -> void {
-    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "RegisterSlot", name, description, static_cast<uint8_t>(type));
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name.data(),
+                                   ipc_ruler_object_path.data(), ipc_ruler_interface_name.data(), "RegisterSlot", name,
+                                   description, static_cast<uint8_t>(type));
   }
 
   /**
@@ -421,6 +431,13 @@ public:
   }
 
 private:
+  auto make_match() -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return std::make_unique<sdbusplus::bus::match::match>(
+        *connection_,
+        fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name, ipc_ruler_interface_name,
+                    ipc_ruler_object_path),
+        std::bind_front(&ipc_manager_client::match_callback, this));
+  }
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
     std::string const slot_name = std::get<0>(container);
