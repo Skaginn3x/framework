@@ -17,7 +17,7 @@ struct sml_logger {
    * */
   template <class SM, class TEvent>
   void log_process_event(const TEvent& /*event*/) {  // NOLINT(readability-identifier-naming)
-    logger_->log<tfc::logger::lvl_e::info>("[{}][process_event] {}\n", boost::sml::aux::get_type_name<SM>(),
+    logger_->trace("[{}][process_event] {}\n", boost::sml::aux::get_type_name<SM>(),
                                            boost::sml::aux::get_type_name<TEvent>());
   }
 
@@ -28,7 +28,7 @@ struct sml_logger {
   void log_guard(const TGuard& /*guard*/,
                  const TEvent& /*event*/,
                  bool result) {  // NOLINT(readability-identifier-naming)
-    logger_->log<tfc::logger::lvl_e::info>("[{}][guard] {} {} {}\n", boost::sml::aux::get_type_name<SM>(),
+    logger_->trace("[{}][guard] {} {} {}\n", boost::sml::aux::get_type_name<SM>(),
                                            boost::sml::aux::get_type_name<TGuard>(),
                                            boost::sml::aux::get_type_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
   }
@@ -38,7 +38,7 @@ struct sml_logger {
    * */
   template <class SM, class TAction, class TEvent>
   void log_action(const TAction& /*action*/, const TEvent& /*event*/) {  // NOLINT(readability-identifier-naming)
-    logger_->log<tfc::logger::lvl_e::info>("[{}][action] {} {}\n", boost::sml::aux::get_type_name<SM>(),
+    logger_->trace("[{}][action] {} {}\n", boost::sml::aux::get_type_name<SM>(),
                                            boost::sml::aux::get_type_name<TAction>(),
                                            boost::sml::aux::get_type_name<TEvent>());
   }
@@ -48,7 +48,7 @@ struct sml_logger {
    * */
   template <class SM, class TSrcState, class TDstState>
   void log_state_change(const TSrcState& src, const TDstState& dst) {  // NOLINT(readability-identifier-naming)
-    logger_->log<tfc::logger::lvl_e::info>("[{}][transition] {} -> {}\n", boost::sml::aux::get_type_name<SM>(), src.c_str(),
+    logger_->trace("[{}][transition] {} -> {}\n", boost::sml::aux::get_type_name<SM>(), src.c_str(),
                                            dst.c_str());
   }
 
