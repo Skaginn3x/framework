@@ -3,7 +3,7 @@ set(VCPKG_LIBRARY_LINKAGE static)
 set(VCPKG_CRT_LINKAGE dynamic)
 set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 
-find_program(GCC-12 "gcc-12")
+find_program(GCC-12 "g++-12")
 if(GCC-12)
   set(CMAKE_C_COMPILER gcc-12)
   set(CMAKE_CXX_COMPILER g++-12)
