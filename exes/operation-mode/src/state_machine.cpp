@@ -97,34 +97,6 @@ private:
   tfc::operation::state_machine& owner_;
 };
 
-struct sml_logger {
-  template <class SM, class TEvent>
-  void log_process_event(const TEvent&) {
-    logger_->trace("[{}][process_event] {}\n", boost::sml::aux::get_type_name<SM>(),
-                   boost::sml::aux::get_type_name<TEvent>());
-  }
-
-  template <class SM, class TGuard, class TEvent>
-  void log_guard(const TGuard&, const TEvent&, bool result) {
-    logger_->trace("[{}][guard] {} {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TGuard>(),
-                   boost::sml::aux::get_type_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
-  }
-
-  template <class SM, class TAction, class TEvent>
-  void log_action(const TAction&, const TEvent&) {
-    logger_->trace("[{}][action] {} {}\n", boost::sml::aux::get_type_name<SM>(), boost::sml::aux::get_type_name<TAction>(),
-                   boost::sml::aux::get_type_name<TEvent>());
-  }
-
-  template <class SM, class TSrcState, class TDstState>
-  void log_state_change(const TSrcState& src, const TDstState& dst) {
-    logger_->trace("[{}][transition] {} -> {}\n", boost::sml::aux::get_type_name<SM>(), src.c_str(), dst.c_str());
-  }
-
-private:
-  std::shared_ptr<tfc::logger::logger> logger_{ std::make_shared<tfc::logger::logger>("sml") };
-};
-
 }  // namespace detail
 
 state_machine::state_machine(boost::asio::io_context& ctx)
@@ -141,9 +113,9 @@ state_machine::state_machine(boost::asio::io_context& ctx)
       maintenance_button_{ ctx, mclient_, "maintenance_button",
                            std::bind_front(&state_machine::maintenance_new_state, this) },
       logger_{ "state_machine" }, config_{ ctx, "state_machine" },
-      states_{ std::make_shared<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::sml_logger>>>(
+      states_{ std::make_shared<boost::sml::sm<detail::state_machine, boost::sml::logger<tfc::logger::sml_logger>>>(
           detail::state_machine{ *this },
-          detail::sml_logger{}) },
+          tfc::logger::sml_logger{}) },
       ctx_{ ctx } {}
 
 auto operation::state_machine::set_mode(tfc::operation::mode_e new_mode) -> std::error_code {
