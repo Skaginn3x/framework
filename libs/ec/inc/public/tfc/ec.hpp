@@ -6,6 +6,7 @@
 #include <chrono>
 #include <vector>
 
+#include <fmt/chrono.h>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
@@ -157,8 +158,8 @@ public:
     auto start = high_resolution_clock::now();
     auto found_state = statecheck(0, EC_STATE_SAFE_OP, milliseconds(2000));
     if (found_state != EC_STATE_SAFE_OP) {
-      logger_.warn("Found State {} in {} expected {}", found_state,
-                   duration_cast<milliseconds>(high_resolution_clock::now() - start), EC_STATE_SAFE_OP);
+      logger_.warn("Found State {} in {} expected {}", static_cast<int>(found_state),
+                   duration_cast<milliseconds>(high_resolution_clock::now() - start), static_cast<int>(EC_STATE_SAFE_OP));
     }
 
     auto value = processdata(milliseconds{ 100 });

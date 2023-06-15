@@ -2,20 +2,19 @@
   "default-registry": {
     "kind": "git",
     "repository": "https://github.com/microsoft/vcpkg",
-    "baseline": "4eda0e3c7062e61dd89a91357ddc50f742da75ef"
+    "baseline": "dc6188d0eb3f9fd7b53f4e21b1878ea868e34c02"
   },
   "registries": [
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "720d19840dff30f9b5bc94d045a120acb4472e13",
+      "baseline": "2ddb70b48f0cebc94c605fa96f0ccd458f403ed0",
       "packages": [
         "libcap",
         "libsystemd",
         "libxcrypt",
         "sdbusplus",
         "small-vectors",
-        "soem-master",
         "mp-units"
       ]
     }
