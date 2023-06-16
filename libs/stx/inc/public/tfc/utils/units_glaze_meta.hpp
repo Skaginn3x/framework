@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string_view>
 
+#include <units/isq/si/si.h>
 #include <units/magnitude.h>
 #include <units/quantity.h>
 #include <units/ratio.h>

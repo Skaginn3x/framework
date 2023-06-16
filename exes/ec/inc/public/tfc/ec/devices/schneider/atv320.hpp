@@ -5,6 +5,10 @@
 #include <memory>
 #include <optional>
 
+#include <units/isq/si/electric_current.h>
+#include <units/isq/si/frequency.h>
+#include <units/isq/si/power.h>
+#include <units/isq/si/voltage.h>
 #include <tfc/cia/402.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
@@ -12,6 +16,8 @@
 #include <tfc/ec/devices/util.hpp>
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/utils/units_common.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::ec::devices::schneider {
 using tfc::ec::util::setting;
@@ -350,61 +356,50 @@ enum struct atv320_psl_e : uint16_t {
 using assignment_R1 =
     setting<ecx::index_t{ 0x2014, 0x02 }, "AO1", "AQ1 assignment", atv320_psl_e, atv320_psl_e::not_assigned>;
 
+// ATV320 specific data type and multiplier for unit
+using decifrequency = units::isq::si::frequency<tfc::unit::decihertz, uint16_t>;
+using hectowatt = units::isq::si::power<tfc::unit::hectowatt, uint16_t>;
+using atv_deciampere_rep = units::aliases::isq::si::electric_current::dA<uint16_t>;
+
 // Units 0.01 KW / 10W
-using nominal_motor_power_NPR = setting<ecx::index_t{ 0x2042, 0x0E }, "NPR", "Nominal motor power", uint16_t, 15>;
+using nominal_motor_power_NPR = setting<ecx::index_t{ 0x2042, 0x0E }, "NPR", "Nominal motor power", hectowatt, 15>;
 
-// TODO: These parameters are aligned, find a way to write them as a single sdo_write
-using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 }, "UNS", "Nominal motor voltage", uint16_t, 400>;
+using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
+                                          "UNS",
+                                          "Nominal motor voltage",
+                                          units::aliases::isq::si::voltage::V<uint16_t>,
+                                          400>;
 
-using nominal_motor_frequency_FRS = setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", uint16_t, 500>;
+using nominal_motor_frequency_FRS =
+    setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500>;
 
-using nominal_motor_current_NCR = setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", uint16_t, 20>;
+using nominal_motor_current_NCR =
+    setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20>;
 
 using nominal_motor_speed_NSP = setting<ecx::index_t{ 0x2042, 0x05 }, "NSP", "Nominal motor speed", uint16_t, 1500>;
 
 // Units 0.01
 using motor_1_cos_phi_COS = setting<ecx::index_t{ 0x2042, 0x07 }, "COS", "Motor 1 cosinus phi", uint16_t, 80>;
 
-using motor_thermal_current_ITH = setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", uint16_t, 20>;
+using motor_thermal_current_ITH =
+    setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20>;
 
-// TODO: These parameters are aligned, find a way to write them as a single sdo_write
 //  Units 0.1 Hz, Range 10Hz - 500Hz
-using max_frequency_TFR = setting<ecx::index_t{ 0x2001, 0x04 }, "TFR", "Max frequency", uint16_t, 800>;
-using high_speed_HSP = setting<ecx::index_t{ 0x2001, 0x05 }, "HSP", "High speed", uint16_t, 800>;
-using low_speed_LSP = setting<ecx::index_t{ 0x2001, 0x06 }, "LSP", "Low speed", uint16_t, 20>;
+
+using max_frequency_TFR = setting<ecx::index_t{ 0x2001, 0x04 }, "TFR", "Max frequency", decifrequency, 800>;
+using high_speed_HSP = setting<ecx::index_t{ 0x2001, 0x05 }, "HSP", "High speed", decifrequency, 800>;
+using low_speed_LSP = setting<ecx::index_t{ 0x2001, 0x06 }, "LSP", "Low speed", decifrequency, 200>;
+
+using deciseconds = std::chrono::duration<uint16_t, std::deci>;
+// 100 = 10 seconds
+// 10 = 1 second
+using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", "Acceleration ramp time", deciseconds, 1>;
 
 // 100 = 10 seconds
 // 10 = 1 second
-using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", "Acceleration ramp time", uint16_t, 10>;
-
-// 100 = 10 seconds
-// 10 = 1 second
-using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", uint16_t, 10>;
+using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", deciseconds, 1>;
 }  // namespace tfc::ec::devices::schneider
-// template <>
-// struct glz::meta<tfc::ec::devices::schneider::atv320_aiot_e> {
-//     using T = tfc::ec::devices::schneider::atv320_aiot_e;
-//     using enum T;
-//     static constexpr auto value = glz::enumerate("asdf", T::current);
-// };
-// template <>
-// struct glz::meta<tfc::ec::devices::schneider::atv320_psa_e> {
-//     using T = tfc::ec::devices::schneider::atv320_psa_e;
-//     using enum T;
-//     static constexpr auto value = glz::enumerate("asdf", T::not_configured);
-// };
-// template <>
-// struct glz::meta<tfc::ec::devices::schneider::atv320_psl_e> {
-//     using T = tfc::ec::devices::schneider::atv320_psl_e;
-//     using enum T;
-//     static constexpr auto value = glz::enumerate("asdf", T::not_assigned);
-// };
-// template <>
-// struct glz::meta<tfc::ec::devices::schneider::atv320_aiol_e> {
-//     using T = tfc::ec::devices::schneider::atv320_aiot_e;
-//     using enum T;
-//     static constexpr auto value = glz::enumerate("asdf", T::current);
-// };
+
 namespace tfc::ec::devices::schneider {
 template <typename manager_client_type>
 class atv320 final : public base {
@@ -617,6 +612,7 @@ public:
     // sdo_write<uint16_t>({ 0x2024, 0x92 }, 1337);  // 2 - Current
 
     // assign motor parameters from config. For now just setup the test motor
+
     sdo_write(config_->value().nominal_motor_power);
     sdo_write(config_->value().nominal_motor_voltage);
     sdo_write(config_->value().nominal_motor_current);

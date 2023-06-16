@@ -4,7 +4,7 @@
 #include <units/isq/si/si.h>
 #include <units/quantity.h>
 #include <boost/ut.hpp>
-
+#include <tfc/ec/devices/schneider/atv320.hpp>
 #include <tfc/ec/devices/util.hpp>
 
 namespace ut = boost::ut;
@@ -61,5 +61,11 @@ auto main(int, char**) -> int {
     auto const exp = glz::read_json<example::trivial_type_setting>(json);
     expect(exp.has_value() >> fatal);
     expect(exp.value() == test);
+  };
+
+  "Test atv320 custom units"_test = []() {
+    static_assert(std::chrono::seconds{ 1 } == tfc::ec::devices::schneider::deciseconds{ 10 });
+    tfc::ec::devices::schneider::deciseconds an_hour = std::chrono::hours{ 1 };
+    expect(an_hour == tfc::ec::devices::schneider::deciseconds{ 36000 });
   };
 }

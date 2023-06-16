@@ -11,7 +11,8 @@
 
 #include <tfc/logger.hpp>
 
-#include "tfc/ec/soem_interface.hpp"
+#include <tfc/ec/devices/util.hpp>
+#include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::devices {
 template <typename setting_t>
@@ -19,6 +20,27 @@ concept setting_c = requires {
                       std::remove_cvref_t<setting_t>::index;
                       std::remove_cvref_t<setting_t>::value;
                     };
+template <typename setting_t>
+concept trivial_setting_c = requires {
+                              requires std::is_integral_v<decltype(std::remove_cvref_t<setting_t>::value)> ||
+                                           std::is_enum_v<decltype(std::remove_cvref_t<setting_t>::value)>;
+                              requires setting_c<setting_t>;
+                            };
+
+template <typename setting_t>
+concept chrono_setting_c =
+    requires {
+      requires std::is_member_function_pointer_v<decltype(&std::remove_cvref_t<setting_t>::type::count)>;
+      requires setting_c<setting_t>;
+    };
+
+template <typename setting_t>
+concept mp_units_quantity_setting_c = requires {
+                                        typename std::remove_cvref_t<setting_t>::type::rep;
+                                        typename std::remove_cvref_t<setting_t>::type::unit;
+                                        typename std::remove_cvref_t<setting_t>::type::dimension;
+                                        requires setting_c<setting_t>;
+                                      };
 
 class base {
 public:
@@ -53,13 +75,29 @@ public:
     return {};
   }
 
-  template <setting_c setting_t>
+  template <trivial_setting_c setting_t>
   auto sdo_write(setting_t&& in) const {
-    if constexpr (std::is_enum_v<decltype(std::remove_cvref_t<setting_t>::value)>) {
+    using value_t = decltype(std::remove_cvref_t<setting_t>::value);
+    if constexpr (std::is_enum_v<value_t>) {
       return base::sdo_write(in.index, std::to_underlying(in.value));
-    } else {
+    } else if constexpr (std::is_integral_v<value_t>) {
       return base::sdo_write(in.index, in.value);
+    } else {
+      []<bool flag = false>() {
+        static_assert(flag);
+      }
+      ();
     }
+  }
+
+  template <chrono_setting_c setting_t>
+  auto sdo_write(setting_t&& in) const {
+    return base::sdo_write(in.index, in.value.count());
+  }
+
+  template <mp_units_quantity_setting_c setting_t>
+  auto sdo_write(setting_t&& in) const {
+    return base::sdo_write(in.index, in.value.number());
   }
 
 protected:
