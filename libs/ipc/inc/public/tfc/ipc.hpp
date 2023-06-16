@@ -79,16 +79,6 @@ private:
   manager_client_type& client_;
 };
 
-namespace detail {
-template <typename type_desc>
-auto try_make_signal(asio::io_context& ctx, std::string_view name) noexcept(false) {
-  auto exp{ details::signal<type_desc>::create(ctx, name) };
-  if (exp.has_value()) {
-    return std::move(exp.value());
-  }
-  throw std::runtime_error{ fmt::format("Unable to bind to socket, reason: {}", exp.error().message()) };
-}
-};  // namespace detail
 /**
  * an ipc component, registers its existence with an
  * ipc-ruler service.
@@ -107,7 +97,7 @@ public:
    * @param name Signals name
    */
   signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description = "")
-      : signal_{ detail::try_make_signal<type_desc>(ctx, name) }, client_(client) {
+      : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(client) {
     client_.register_signal(signal_->name_w_type(), description, type_desc::value_e,
                             details::register_cb(signal_->name_w_type()));
   }
