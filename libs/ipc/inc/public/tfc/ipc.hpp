@@ -97,7 +97,12 @@ public:
    * @param name Signals name
    */
   signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description = "")
-      : signal_{ details::signal<type_desc>::create(ctx, name).value() }, client_(client) {
+      : client_(client) {
+    auto exp{ details::signal<type_desc>::create(ctx, name) };
+    if (!exp.has_value()) {
+      throw std::runtime_error{ fmt::format("Unable to bind to socket, reason: {}", exp.error().message()) };
+    }
+    signal_ = std::move(exp.value());
     client_.register_signal(signal_->name_w_type(), description, type_desc::value_e,
                             details::register_cb(signal_->name_w_type()));
   }
@@ -110,8 +115,8 @@ public:
 
 private:
   static constexpr std::string_view self_name{ signal_tag };
-  std::shared_ptr<details::signal<type_desc>> signal_;
   manager_client_type& client_;
+  std::shared_ptr<details::signal<type_desc>> signal_;
 };
 
 using bool_slot = slot<details::type_bool, ipc_ruler::ipc_manager_client>;
