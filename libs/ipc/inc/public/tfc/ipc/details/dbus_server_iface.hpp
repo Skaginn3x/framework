@@ -254,9 +254,11 @@ public:
     dbus_iface_->register_method("RegisterSignal",
                                  [&](const std::string& name, const std::string& description, uint8_t type) {
                                    ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
+                                   dbus_iface_->signal_property("Signals");
                                  });
     dbus_iface_->register_method("RegisterSlot", [&](const std::string& name, const std::string& description, uint8_t type) {
       ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
+      dbus_iface_->signal_property("Slots");
     });
 
     dbus_iface_->register_property_r<std::string>("Signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
