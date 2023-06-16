@@ -41,3 +41,28 @@ target_link_libraries(ethercat
 if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
+
+include(GNUInstallDirs)
+install(
+  FILES
+    systemd/ethercat.service
+  DESTINATION
+    ${CMAKE_INSTALL_LIBDIR}/systemd/user/
+  CONFIGURATIONS Release
+)
+
+install(
+  TARGETS
+    ethercat
+  DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
+  CONFIGURATIONS Release
+)
+
+install(
+  TARGETS
+    ethercat
+  DESTINATION
+    ${CMAKE_INSTALL_BINDIR}/debug/
+  CONFIGURATIONS Debug
+)
