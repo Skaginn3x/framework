@@ -231,7 +231,8 @@ public:
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
     connection_->request_name(const_ipc_ruler_service_name.data());
-    dbus_iface_ = object_server_->add_unique_interface(const_ipc_ruler_object_path.data(), const_ipc_ruler_interface_name.data());
+    dbus_iface_ =
+        object_server_->add_unique_interface(const_ipc_ruler_object_path.data(), const_ipc_ruler_interface_name.data());
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
       auto message = dbus_iface_->new_signal("ConnectionChange");
@@ -317,8 +318,8 @@ public:
                        type_e type,
                        std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "RegisterSignal", name,
-                                   description, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name_, "RegisterSignal", name, description,
+                                   static_cast<uint8_t>(type));
   }
 
   /**
@@ -332,8 +333,7 @@ public:
                      type_e type,
                      std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "RegisterSlot", name,
-                                   description, static_cast<uint8_t>(type));
+                                   ipc_ruler_interface_name_, "RegisterSlot", name, description, static_cast<uint8_t>(type));
   }
 
   /**
