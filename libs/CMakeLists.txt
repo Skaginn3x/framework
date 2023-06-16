@@ -5,7 +5,7 @@ add_subdirectory(logger)
 add_subdirectory(progbase)
 add_subdirectory(confman)
 add_subdirectory(ipc)
-add_subdirectory(ec)
+add_subdirectory(soem_interface)
 add_subdirectory(operation_mode)
 
 add_library(tfc INTERFACE)
