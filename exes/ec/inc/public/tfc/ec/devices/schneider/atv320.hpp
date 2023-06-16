@@ -5,6 +5,10 @@
 #include <memory>
 #include <optional>
 
+#include <units/isq/si/electric_current.h>
+#include <units/isq/si/frequency.h>
+#include <units/isq/si/power.h>
+#include <units/isq/si/voltage.h>
 #include <tfc/cia/402.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
@@ -13,10 +17,6 @@
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/utils/units_common.hpp>
-#include <units/isq/si/frequency.h>
-#include <units/isq/si/electric_current.h>
-#include <units/isq/si/voltage.h>
-#include <units/isq/si/power.h>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::ec::devices::schneider {
@@ -364,18 +364,25 @@ using atv_deciampere_rep = units::aliases::isq::si::electric_current::dA<uint16_
 // Units 0.01 KW / 10W
 using nominal_motor_power_NPR = setting<ecx::index_t{ 0x2042, 0x0E }, "NPR", "Nominal motor power", hectowatt, 15>;
 
-using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 }, "UNS", "Nominal motor voltage", units::aliases::isq::si::voltage::V<uint16_t>, 400>;
+using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
+                                          "UNS",
+                                          "Nominal motor voltage",
+                                          units::aliases::isq::si::voltage::V<uint16_t>,
+                                          400>;
 
-using nominal_motor_frequency_FRS = setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500>;
+using nominal_motor_frequency_FRS =
+    setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500>;
 
-using nominal_motor_current_NCR = setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20>;
+using nominal_motor_current_NCR =
+    setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20>;
 
 using nominal_motor_speed_NSP = setting<ecx::index_t{ 0x2042, 0x05 }, "NSP", "Nominal motor speed", uint16_t, 1500>;
 
 // Units 0.01
 using motor_1_cos_phi_COS = setting<ecx::index_t{ 0x2042, 0x07 }, "COS", "Motor 1 cosinus phi", uint16_t, 80>;
 
-using motor_thermal_current_ITH = setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20>;
+using motor_thermal_current_ITH =
+    setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20>;
 
 //  Units 0.1 Hz, Range 10Hz - 500Hz
 

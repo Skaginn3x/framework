@@ -63,9 +63,9 @@ auto main(int, char**) -> int {
     expect(exp.value() == test);
   };
 
-  "Test atv320 custom units"_test = [](){
-      static_assert(std::chrono::seconds{1} == tfc::ec::devices::schneider::deciseconds{10});
-      tfc::ec::devices::schneider::deciseconds an_hour = std::chrono::hours{1};
-      expect(an_hour == tfc::ec::devices::schneider::deciseconds{36000});
+  "Test atv320 custom units"_test = []() {
+    static_assert(std::chrono::seconds{ 1 } == tfc::ec::devices::schneider::deciseconds{ 10 });
+    tfc::ec::devices::schneider::deciseconds an_hour = std::chrono::hours{ 1 };
+    expect(an_hour == tfc::ec::devices::schneider::deciseconds{ 36000 });
   };
 }
