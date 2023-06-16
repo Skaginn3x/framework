@@ -6,8 +6,8 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/logger.hpp>
 #include <tfc/operation_mode/common.hpp>
+#include <tfc/sml_logger.hpp>
 #include <tfc/utils/pragmas.hpp>
 
 namespace boost::asio {
@@ -25,7 +25,6 @@ using boost::sml::literals::operator""_e;
 using boost::sml::literals::operator""_s;
 
 struct state_machine;
-struct sml_logger;
 
 struct storage {
   std::optional<std::chrono::milliseconds> startup_time{};
@@ -91,7 +90,7 @@ private:
   tfc::ipc::bool_slot maintenance_button_;
   tfc::logger::logger logger_;
   tfc::confman::config<detail::storage> config_;
-  std::shared_ptr<boost::sml::sm<detail::state_machine, boost::sml::logger<detail::sml_logger>>> states_;
+  std::shared_ptr<boost::sml::sm<detail::state_machine, boost::sml::logger<tfc::logger::sml_logger>>> states_;
   boost::asio::io_context& ctx_;
 };
 
