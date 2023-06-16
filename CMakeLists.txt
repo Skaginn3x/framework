@@ -9,6 +9,7 @@ project(tfc-framework
   LANGUAGES
     CXX
 )
+
 set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
 include(CTest)
 
