@@ -100,11 +100,12 @@ private:
 }  // namespace detail
 
 state_machine::state_machine(boost::asio::io_context& ctx)
-    : mclient_(ctx), stopped_{ ctx, mclient_, "stopped" }, starting_{ ctx, mclient_, "starting" },
-      running_{ ctx, mclient_, "running" }, stopping_{ ctx, mclient_, "stopping" }, cleaning_{ ctx, mclient_, "cleaning" },
-      mode_{ ctx, mclient_, "mode" }, mode_str_{ ctx, mclient_, "mode" },
-      starting_finished_{ ctx, mclient_, "starting_finished",
-                          std::bind_front(&state_machine::starting_finished_new_state, this) },
+    : mclient_(ctx), stopped_{ ctx, mclient_, "stopped" }, starting_{ ctx, mclient_, "starting" }, running_{ ctx, mclient_,
+                                                                                                             "running" },
+      stopping_{ ctx, mclient_, "stopping" }, cleaning_{ ctx, mclient_, "cleaning" }, mode_{ ctx, mclient_, "mode" },
+      mode_str_{ ctx, mclient_, "mode" }, starting_finished_{ ctx, mclient_, "starting_finished",
+                                                              std::bind_front(&state_machine::starting_finished_new_state,
+                                                                              this) },
       stopping_finished_{ ctx, mclient_, "stopping_finished",
                           std::bind_front(&state_machine::stopping_finished_new_state, this) },
       run_button_{ ctx, mclient_, "run_button", std::bind_front(&state_machine::running_new_state, this) },
