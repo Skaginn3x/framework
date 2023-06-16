@@ -422,7 +422,7 @@ public:
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "disconnect", slot_name);
+                                   ipc_ruler_interface_name_, "Disconnect", slot_name);
   }
 
   /**
