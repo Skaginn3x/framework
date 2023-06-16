@@ -16,6 +16,3 @@ add_test(
   COMMAND
     test_ec_util
 )
-
-
-add_subdirectory(examples)
