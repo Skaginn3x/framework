@@ -13,7 +13,10 @@ find_package(soem CONFIG REQUIRED)
 target_link_libraries(soem_interface
   INTERFACE
     soem
+    tfc::stx
 )
+
+add_library_to_docs(tfc::soem_interface)
 
 include(tfc_install)
 tfc_install_lib(soem_interface)
