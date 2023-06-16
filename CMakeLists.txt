@@ -9,6 +9,13 @@ project(tfc-framework
   LANGUAGES
     CXX
 )
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_compile_options(
+          -Wno-error=null-dereference
+  )
+endif ()
+
 set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
 include(CTest)
 
