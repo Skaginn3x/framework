@@ -6,6 +6,7 @@
 
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
+#include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::ec::util {
 template <typename from, typename to>
@@ -54,5 +55,5 @@ struct glz::meta<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_
   };
   static constexpr std::string_view name_prefix = "tfc::ec::setting::";
   static constexpr std::string_view name_suffix = name_value;
-  static constexpr std::string_view name = "tfc::ec::setting";  // tfc::stx::string_view_join_v<name_prefix, name_suffix>;
+  static constexpr std::string_view name = tfc::stx::string_view_join_v<name_prefix, name_suffix>;
 };
