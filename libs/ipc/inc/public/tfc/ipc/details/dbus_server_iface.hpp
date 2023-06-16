@@ -28,11 +28,11 @@ using tfc::ipc::details::type_e;
 static constexpr std::string_view dbus_name{ "ipc_ruler" };
 static constexpr std::string_view dbus_manager_name{ "manager" };
 // service name
-static constexpr auto ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
+static constexpr auto const_ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
 // object path
-static constexpr auto ipc_ruler_object_path = dbus::const_dbus_path<dbus_name>;
+static constexpr auto const_ipc_ruler_object_path = dbus::const_dbus_path<dbus_name>;
 // Interface name
-static constexpr auto ipc_ruler_interface_name = dbus::const_dbus_name<dbus_manager_name>;
+static constexpr auto const_ipc_ruler_interface_name = dbus::const_dbus_name<dbus_manager_name>;
 
 using dbus_error = tfc::dbus::exception::runtime;
 
@@ -230,8 +230,8 @@ public:
       : ipc_manager_{ std::move(ipc_manager) } {
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
-    connection_->request_name(ipc_ruler_service_name.data());
-    dbus_iface_ = object_server_->add_unique_interface(ipc_ruler_object_path.data(), ipc_ruler_interface_name.data());
+    connection_->request_name(const_ipc_ruler_service_name.data());
+    dbus_iface_ = object_server_->add_unique_interface(const_ipc_ruler_object_path.data(), const_ipc_ruler_interface_name.data());
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
       auto message = dbus_iface_->new_signal("ConnectionChange");
@@ -316,8 +316,8 @@ public:
                        const std::string_view description,
                        type_e type,
                        std::invocable<const std::error_code&> auto&& handler) -> void {
-    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name.data(),
-                                   ipc_ruler_object_path.data(), ipc_ruler_interface_name.data(), "RegisterSignal", name,
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
+                                   ipc_ruler_interface_name_, "RegisterSignal", name,
                                    description, static_cast<uint8_t>(type));
   }
 
@@ -331,8 +331,8 @@ public:
                      const std::string_view description,
                      type_e type,
                      std::invocable<const std::error_code&> auto&& handler) -> void {
-    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name.data(),
-                                   ipc_ruler_object_path.data(), ipc_ruler_interface_name.data(), "RegisterSlot", name,
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
+                                   ipc_ruler_interface_name_, "RegisterSlot", name,
                                    description, static_cast<uint8_t>(type));
   }
 
@@ -343,16 +343,16 @@ public:
    * @param handler a function like object that is called back with a vector of signals
    */
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
-                                              ipc_ruler_interface_name, "Signals",
-                                              [handler = std::forward<decltype(handler)>(handler)](
+    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name_, ipc_ruler_object_path_,
+                                              ipc_ruler_interface_name_, "Signals",
+                                              [captured_handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
                                                   return;
                                                 }
                                                 auto signals = glz::read_json<std::vector<signal>>(response);
                                                 if (signals) {
-                                                  handler(signals.value());
+                                                  captured_handler(signals.value());
                                                 }
                                               });
   }
@@ -364,16 +364,16 @@ public:
    * @param handler a function like object that is called back with a vector of slots
    */
   auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
-    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name, ipc_ruler_object_path,
-                                              ipc_ruler_interface_name, "Slots",
-                                              [handler = std::forward<decltype(handler)>(handler)](
+    sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name_, ipc_ruler_object_path_,
+                                              ipc_ruler_interface_name_, "Slots",
+                                              [captured_handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
                                                   return;
                                                 }
                                                 auto slots = glz::read_json<std::vector<slot>>(response);
                                                 if (slots) {
-                                                  handler(slots.value());
+                                                  captured_handler(slots.value());
                                                 }
                                               });
   }
@@ -384,7 +384,7 @@ public:
    */
   auto connections(std::invocable<const std::map<std::string, std::vector<std::string>>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name, ipc_ruler_object_path, ipc_ruler_interface_name, "Connections",
+        *connection_, ipc_ruler_service_name_, ipc_ruler_object_path_, ipc_ruler_interface_name_, "Connections",
         [handler](const boost::system::error_code& error, const std::string& response) {
           if (error) {
             return;
@@ -407,8 +407,8 @@ public:
   auto connect(const std::string& slot_name,
                const std::string& signal_name,
                std::invocable<const std::error_code&> auto&& handler) -> void {
-    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "Connect", slot_name, signal_name);
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
+                                   ipc_ruler_interface_name_, "Connect", slot_name, signal_name);
   }
 
   /**
@@ -419,8 +419,8 @@ public:
    */
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
-    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name, ipc_ruler_object_path,
-                                   ipc_ruler_interface_name, "disconnect", slot_name);
+    connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
+                                   ipc_ruler_interface_name_, "disconnect", slot_name);
   }
 
   /**
@@ -440,8 +440,8 @@ private:
   auto make_match() -> std::unique_ptr<sdbusplus::bus::match::match> {
     return std::make_unique<sdbusplus::bus::match::match>(
         *connection_,
-        fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name, ipc_ruler_interface_name,
-                    ipc_ruler_object_path),
+        fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_, ipc_ruler_interface_name_,
+                    ipc_ruler_object_path_),
         std::bind_front(&ipc_manager_client::match_callback, this));
   }
   auto match_callback(sdbusplus::message_t& msg) -> void {
@@ -453,6 +453,9 @@ private:
       std::invoke(iterator->second, signal_name);
     }
   }
+  const std::string ipc_ruler_service_name_{ const_ipc_ruler_service_name };
+  const std::string ipc_ruler_interface_name_{ const_ipc_ruler_interface_name };
+  const std::string ipc_ruler_object_path_{ const_ipc_ruler_object_path };
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> match_;
