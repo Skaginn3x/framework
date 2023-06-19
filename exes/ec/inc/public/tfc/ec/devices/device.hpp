@@ -27,7 +27,7 @@ using devices_list = devices_type<
   //beckhoff::el3054,
   beckhoff::el4002,
   schneider::atv320<manager_client_t>,
-  schneider::lxm32m<manager_client_t>
+  schneider::lxm32m::lxm32m<manager_client_t>
 >;
 // clang-format on
 
