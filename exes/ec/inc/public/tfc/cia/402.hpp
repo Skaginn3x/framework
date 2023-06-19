@@ -268,4 +268,17 @@ inline auto transition(states_e current_state, bool quick_stop) -> commands_e {
   return commands_e::disable_voltage;
 }
 
+enum struct operation_mode_e : int8_t {
+  profile_position = 1,
+  velocity = 2,  // frequency converter
+  profile_velocity = 3,
+  profile_torque = 4,
+  homing = 6,
+  interpolated_position = 7,
+  cyclic_synchronous_position = 8,
+  cyclic_synchronous_velocity = 9,
+  cyclic_synchronous_torque = 10,
+  cyclic_synchronous_torque_with_commutation_angle = 11,
+};
+
 }  // namespace tfc::ec::cia_402

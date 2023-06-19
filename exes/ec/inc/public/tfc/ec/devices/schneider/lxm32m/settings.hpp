@@ -1,27 +1,36 @@
 #pragma once
 
+#include <utility>
+
+#include "tfc/cia/402.hpp"
 #include "tfc/ec/devices/util.hpp"
 
 namespace tfc::ec::devices::schneider::lxm32m::settings {
 using ec::util::setting;
 
-enum struct operation_mode_e : int8_t {  // datasheet says that canopen is only int8_t, but get an error if set as int16_t
+// datasheet says that canopen is only int8_t, but get an error if set as int16_t
+enum struct operation_mode_e : int8_t {
+  // vendor specific operation modes are <= 0
   manual_or_autotuning = -6,
   motion_sequence = -3,
   electronic_gear = -2,
   jog = -1,
   reserved = 0,
-  profile_position = 1,
-  profile_velocity = 3,
-  profile_torque = 4,
-  homing = 6,
-  interpolated_position = 7,
-  cyclic_synchronous_position = 8,
-  cyclic_synchronous_velocity = 9,
-  cyclic_synchronous_torque = 10,
+  profile_position = std::to_underlying(cia_402::operation_mode_e::profile_position),
+  profile_velocity = std::to_underlying(cia_402::operation_mode_e::profile_velocity),
+  profile_torque = std::to_underlying(cia_402::operation_mode_e::profile_torque),
+  homing = std::to_underlying(cia_402::operation_mode_e::homing),
+  interpolated_position = std::to_underlying(cia_402::operation_mode_e::interpolated_position),
+  cyclic_synchronous_position = std::to_underlying(cia_402::operation_mode_e::cyclic_synchronous_position),
+  cyclic_synchronous_velocity = std::to_underlying(cia_402::operation_mode_e::cyclic_synchronous_velocity),
+  cyclic_synchronous_torque = std::to_underlying(cia_402::operation_mode_e::cyclic_synchronous_torque),
 };
+
 using operation_mode =
     setting<ecx::index_t{ 0x6060, 0x0 }, "DCOMopmode", "Mode of operation", operation_mode_e, operation_mode_e::reserved>;
+using operation_mode_read =
+    setting<ecx::index_t{ 0x6061, 0x0 }, "DCOMopmode", "Mode of operation", operation_mode_e, operation_mode_e::reserved>;
+// Todo fetch supported drive modes with 0x6502
 
 // CompParSyncMot
 // Todo is CompParSyncMot 16 bit unsigned?
@@ -103,6 +112,18 @@ using deceleration_ramp = setting<ecx::index_t{ 0x6084, 0x0 },
                                   uint32_t,
                                   600>;
 
+namespace electric_current = units::aliases::isq::si::electric_current;
+using actual_motor_current = setting<ecx::index_t{ 0x301E, 0x01 },
+                                     "_Iq_act_rms",
+                                     "Actual motor current (q component, generating torque)\n"
+                                     "In increments of 0.01 Arms.",
+                                     electric_current::cA<int16_t>,
+                                     0>;
+using reference_motor_current = setting<ecx::index_t{ 0x301E, 0x10 },
+                                        "_Iq_ref_rms",
+                                        "Reference motor current (q component, generating torque)\n"
+                                        "In increments of 0.01 Arms.",
+                                        electric_current::cA<int16_t>,
+                                        0>;
 
-
-}
+}  // namespace tfc::ec::devices::schneider::lxm32m::settings
