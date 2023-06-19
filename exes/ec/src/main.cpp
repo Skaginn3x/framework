@@ -7,6 +7,7 @@
  */
 
 #include <ranges>
+#include <sched.h>
 
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
@@ -15,6 +16,16 @@
 #include "tfc/progbase.hpp"
 
 auto main(int argc, char* argv[]) -> int {
+
+  sched_param scheduling{ .sched_priority = sched_get_priority_max(SCHED_FIFO) };
+  if (scheduling.sched_priority < 0) {
+    throw std::runtime_error{ fmt::format("Unable to get scheduling priority, error: {}", strerror(errno))};
+  }
+  auto const me{ 0 };
+  if (sched_setscheduler(me, SCHED_FIFO, &scheduling) < 0) {
+    throw std::runtime_error{ fmt::format("Unable to set scheduling priority, error: {}", strerror(errno))};
+  }
+
   auto prog_desc{ tfc::base::default_description() };
   std::string iface;
   prog_desc.add_options()("iface,i", boost::program_options::value<std::string>(&iface)->required(), "Adapter name");
