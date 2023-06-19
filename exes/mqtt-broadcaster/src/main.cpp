@@ -1,153 +1,204 @@
-#include <async_mqtt/all.hpp>
-#include <boost/asio.hpp>
+// Copyright Takatoshi Kondo 2023
+//
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+
 #include <iostream>
 #include <string>
-#include <tfc/confman/file_storage.hpp>
-#include <tfc/ipc.hpp>
-#include <tfc/ipc/details/dbus_server_iface.hpp>
-#include <tfc/progbase.hpp>
+#include <vector>
+
+#include <boost/asio.hpp>
+
+#include <async_mqtt/all.hpp>
 
 namespace as = boost::asio;
 namespace am = async_mqtt;
 
-std::vector<std::string> banned_strings = { "mainn", "ec_run", "operation-mode", "uint64_t" };
+#include <boost/asio/yield.hpp>
 
-auto take_out_bad_strings(std::vector<std::string> signals) -> std::vector<std::string> {
-  for (auto it = signals.begin(); it != signals.end();) {
-    bool found = false;
-    for (auto const& banned_string : banned_strings) {
-      if (it->find(banned_string) != std::string::npos) {
-        found = true;
-        break;
+struct app {
+  app(as::ip::tcp::resolver& res,
+      std::string host,
+      std::string port,
+      am::endpoint<am::role::client, am::protocol::mqtt>& amep,
+      std::vector<std::string> signals_on_client
+      ):res{res},
+        host{std::move(host)},
+        port{std::move(port)},
+        amep{amep},
+        signals_on_client{std::move(signals_on_client)}
+  {}
+
+  // forwarding callbacks
+  void operator()() { proc({}, {}, {}, {}); }
+  void operator()(boost::system::error_code const& ec) { proc(ec, {}, {}, {}); }
+  void operator()(boost::system::error_code ec, as::ip::tcp::resolver::results_type eps) {
+    proc(ec, {}, {}, std::move(eps));
+  }
+  void operator()(boost::system::error_code ec, as::ip::tcp::endpoint /*unused*/) { proc(ec, {}, {}, {}); }
+  void operator()(am::system_error const& se) { proc({}, se, {}, {}); }
+  void operator()(am::packet_variant pv) { proc({}, {}, am::force_move(pv), {}); }
+
+private:
+  void proc(boost::system::error_code const& ec,
+            am::system_error const& se,
+            am::packet_variant pv,
+            std::optional<as::ip::tcp::resolver::results_type> eps) {
+    reenter(coro) {
+      // Resolve hostname
+      yield res.async_resolve(host, port, *this);
+      if (ec)
+        return;
+
+      // Layer
+      // am::stream -> TCP
+
+      // Underlying TCP connect
+      yield as::async_connect(amep.next_layer(), *eps, *this);
+
+      if (ec)
+        return;
+
+      // Send MQTT CONNECT
+      yield amep.send(
+          am::v3_1_1::connect_packet{
+              true,         // clean_session
+              0x1234,       // keep_alive
+              am::allocate_buffer("cid1"),
+              am::nullopt,  // will
+              am::nullopt,  // username set like am::allocate_buffer("user1"),
+              am::nullopt   // password set like am::allocate_buffer("pass1")
+          },
+          *this);
+      if (se) {
+        return;
       }
-    }
-    if (found) {
-      it = signals.erase(it);
-    } else {
-      ++it;
+
+      // Recv MQTT CONNACK
+      yield amep.recv(*this);
+      if (pv) {
+        pv.visit(am::overload{ [&](am::v3_1_1::connack_packet const& p) {
+                                std::cout << "MQTT CONNACK recv"
+                                          << " sp:" << p.session_present() << std::endl;
+                              },
+                               [](auto const&) {} });
+      } else {
+        std::cout << "MQTT CONNACK recv error:" << pv.get<am::system_error>().what() << std::endl;
+        return;
+      }
+
+      // Send MQTT SUBSCRIBE
+      yield amep.send(am::v3_1_1::subscribe_packet{ *amep.acquire_unique_packet_id(),
+                                                    { { am::allocate_buffer("signal_topic"), am::qos::at_most_once } } },
+                      *this);
+      if (se) {
+        std::cout << "MQTT SUBSCRIBE send error:" << se.what() << std::endl;
+        return;
+      }
+      // Recv MQTT SUBACK
+      yield amep.recv(*this);
+      if (pv) {
+        pv.visit(am::overload{ [&](am::v3_1_1::suback_packet const& p) {
+                                std::cout << "MQTT SUBACK recv"
+                                          << " pid:" << p.packet_id() << " entries:";
+                                for (auto const& e : p.entries()) {
+                                  std::cout << e << " ";
+                                }
+                                std::cout << std::endl;
+                              },
+                               [](auto const&) {} });
+      } else {
+        std::cout << "MQTT SUBACK recv error:" << pv.get<am::system_error>().what() << std::endl;
+        return;
+      }
+      // Send MQTT PUBLISH
+      yield amep.send(am::v3_1_1::publish_packet{ *amep.acquire_unique_packet_id(), am::allocate_buffer("signal_topic"),
+                                                  am::allocate_buffer("signal_payload"), am::qos::at_least_once },
+                      *this);
+      if (se) {
+        std::cout << "MQTT PUBLISH send error:" << se.what() << std::endl;
+        return;
+      }
+
+      // Recv MQTT PUBLISH and PUBACK (order depends on broker)
+      // for (count = 0; count != 2; ++count) {
+      //  yield amep.recv(*this);
+      //  if (pv) {
+      //    pv.visit(
+      //        am::overload {
+      //            [&](am::v3_1_1::publish_packet const& p) {
+      //              std::cout
+      //                  << "MQTT PUBLISH recv"
+      //                  << " pid:" << p.packet_id()
+      //                  << " topic:" << p.topic()
+      //                  << " payload:" << am::to_string(p.payload())
+      //                  << " qos:" << p.opts().get_qos()
+      //                  << " retain:" << p.opts().get_retain()
+      //                  << " dup:" << p.opts().get_dup()
+      //                  << std::endl;
+      //            },
+      //            [&](am::v3_1_1::puback_packet const& p) {
+      //              std::cout
+      //                  << "MQTT PUBACK recv"
+      //                  << " pid:" << p.packet_id()
+      //                  << std::endl;
+      //            },
+      //            [](auto const&) {}
+      //        }
+      //    );
+      //  }
+      //  else {
+      //    std::cout
+      //        << "MQTT recv error:"
+      //        << pv.get<am::system_error>().what()
+      //        << std::endl;
+      //    return;
+      //  }
+      //}
+      // std::cout << "close" << std::endl;
+      // yield amep.close(*this);
     }
   }
 
-  return signals;
-}
-
-auto send_message(std::string const& slot_name,
-                  auto const& val,
-                  [[maybe_unused]] as::io_context& ctx,
-                  am::endpoint<am::role::client, am::protocol::mqtt>& amep) -> void {
-  std::ostringstream oss;
-  oss << val;
-  std::string payload = "Slot: " + slot_name + ", Value: " + oss.str();
-
-  std::cout << payload << "\n";
-
-  boost::asio::strand<boost::asio::io_context::executor_type> strand(ctx.get_executor());
-  std::allocator<void> allocator;
-
-  strand.post([&amep, payload] () {
-    amep.send(
-        am::v3_1_1::publish_packet{ *amep.acquire_unique_packet_id(), am::allocate_buffer("topic1"),
-                                    am::allocate_buffer(payload), am::qos::at_least_once },
-        [](auto const& ec) { std::cout << "Publish: " << ec.message() << "\n"; }
-    );
-  }, allocator);
+  as::ip::tcp::resolver& res;
+  std::string host;
+  std::string port;
+  am::endpoint<am::role::client, am::protocol::mqtt>& amep;
+  std::vector<std::string> signals_on_client;
+  std::size_t count = 0;
+  as::coroutine coro;
+};
 
 
 
-}
 
-auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
 
-  boost::asio::io_context ctx;
 
-  // Initialize the MQTT client endpoint
-  am::setup_log(am::severity_level::trace);
-  as::ip::tcp::socket resolve_sock{ ctx };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <boost/asio/unyield.hpp>
+
+auto main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) -> int {
+  as::io_context ioc;
+  //std::vector<std::string> signals_on_client = available_signals(ioc, argc, argv);
+  as::ip::tcp::socket resolve_sock{ ioc };
   as::ip::tcp::resolver res{ resolve_sock.get_executor() };
-  am::endpoint<am::role::client, am::protocol::mqtt> amep{ am::protocol_version::v3_1_1, ctx.get_executor() };
-
-  // Resolve the MQTT broker hostname
-  res.async_resolve(
-      "localhost", "1883", [&]([[maybe_unused]] boost::system::error_code ec, as::ip::tcp::resolver::results_type eps) {
-        // Underlying TCP connect
-        as::async_connect(amep.next_layer(), eps,
-                          [&]([[maybe_unused]] boost::system::error_code ec, as::ip::tcp::endpoint /*unused*/) {
-                            // Send MQTT CONNECT
-                            amep.send(
-                                am::v3_1_1::connect_packet{
-                                    true,         // clean_session
-                                    0x1234,       // keep_alive
-                                    am::allocate_buffer("cid1"),
-                                    am::nullopt,  // will
-                                    am::nullopt,  // username set like am::allocate_buffer("user1"),
-                                    am::nullopt   // password set like am::allocate_buffer("pass1")
-                                },
-                                [&]([[maybe_unused]] am::system_error const& se) {
-                                  amep.recv([&](am::packet_variant pv) {
-                                    pv.visit(am::overload{ [&]([[maybe_unused]] am::v3_1_1::connack_packet const& p) {
-                                                            // Do nothing here or do some initial setup if needed
-                                                          },
-                                                           [](auto const&) {} });
-                                  });
-                                });
-                          });
-      });
-
-  // tfc::ipc_ruler::ipc_manager_client ipc_client(ctx);
-
-  // std::vector<std::string> signals_on_client;
-
-  // ipc_client.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
-  //   for (auto const& signal : signals) {
-  //     signals_on_client.push_back(signal.name);
-  //   }
-  // });
-
-  // ctx.run_for(std::chrono::seconds(1));
-
-  //// take out all strings that are banned
-  // signals_on_client = take_out_bad_strings(signals_on_client);
-
-  // for (auto const& signal : signals_on_client) {
-  //   std::cout << "name: " << signal << std::endl;
-  // }
-
-  // std::vector<tfc::ipc::details::any_recv_cb> connect_slots;
-
-  // timer for 3 seconds
-  as::steady_timer timer(ctx);
-
-  timer.async_wait([&](auto const&) { send_message("timer", "timer", ctx, amep); });
-
-  timer.expires_from_now(std::chrono::seconds(3));
-
-  // for (auto& signal_connect : signals_on_client) {
-  //   connect_slots.emplace_back([&ctx, &amep](std::string_view sig) -> tfc::ipc::details::any_recv_cb {
-  //     std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
-
-  //    std::cout << "slot name: " << slot_name << std::endl;
-
-  //    auto ipc{ tfc::ipc::details::create_ipc_recv_cb<tfc::ipc::details::any_recv_cb>(ctx, slot_name) };
-  //    std::visit(
-
-  //        [&](auto&& receiver) {
-  //          using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-
-  //          if constexpr (!std::same_as<std::monostate, receiver_t>) {
-  //            auto error = receiver->init(
-
-  //                sig, [&, sig, slot_name](auto const& val) { send_message(slot_name, val, ctx, amep); });
-
-  //            if (error) {
-  //              std::cout << "Failed to connect: " << error.message() << std::endl;
-  //            }
-  //          }
-  //        },
-  //        ipc);
-  //    return ipc;
-  //  }(signal_connect));
-  //}
-
-  ctx.run();
+  am::endpoint<am::role::client, am::protocol::mqtt> amep{ am::protocol_version::v3_1_1, ioc.get_executor() };
+  app a{ res, "localhost", "1883", amep, signals_on_client };
+  //app a{ res, "localhost", "1883", amep };
+  a();
+  ioc.run();
 }
