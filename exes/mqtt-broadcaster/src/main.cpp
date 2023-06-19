@@ -41,17 +41,21 @@ auto send_message(std::string const& slot_name,
 
   std::cout << payload << "\n";
 
-  amep.send(
-      am::v3_1_1::publish_packet{ *amep.acquire_unique_packet_id(), am::allocate_buffer("topic1"),
-                                  am::allocate_buffer(payload), am::qos::at_least_once },
-      [&amep, payload]([[maybe_unused]] am::system_error const& se) { std::cout << "Sent message: " << payload << "\n"; });
+  boost::asio::strand<boost::asio::io_context::executor_type> strand(ctx.get_executor());
+  std::allocator<void> allocator;
 
-  //  amep.send(
-  //      am::v3_1_1::publish_packet{ *amep.acquire_unique_packet_id(), am::allocate_buffer("topic1"),
-  //                                  am::allocate_buffer(payload), am::qos::at_least_once },
-  //      [&amep, payload]([[maybe_unused]] am::system_error const& se) { std::cout << "Sent message: " << payload << "\n";
-  //      });
+  strand.post([&amep, payload] () {
+    amep.send(
+        am::v3_1_1::publish_packet{ *amep.acquire_unique_packet_id(), am::allocate_buffer("topic1"),
+                                    am::allocate_buffer(payload), am::qos::at_least_once },
+        [](auto const& ec) { std::cout << "Publish: " << ec.message() << "\n"; }
+    );
+  }, allocator);
+
+
+
 }
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
@@ -90,38 +94,37 @@ auto main(int argc, char** argv) -> int {
                           });
       });
 
-  //tfc::ipc_ruler::ipc_manager_client ipc_client(ctx);
+  // tfc::ipc_ruler::ipc_manager_client ipc_client(ctx);
 
-  //std::vector<std::string> signals_on_client;
+  // std::vector<std::string> signals_on_client;
 
-  //ipc_client.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
-  //  for (auto const& signal : signals) {
-  //    signals_on_client.push_back(signal.name);
-  //  }
-  //});
+  // ipc_client.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
+  //   for (auto const& signal : signals) {
+  //     signals_on_client.push_back(signal.name);
+  //   }
+  // });
 
-  //ctx.run_for(std::chrono::seconds(1));
+  // ctx.run_for(std::chrono::seconds(1));
 
   //// take out all strings that are banned
-  //signals_on_client = take_out_bad_strings(signals_on_client);
+  // signals_on_client = take_out_bad_strings(signals_on_client);
 
-  //for (auto const& signal : signals_on_client) {
-  //  std::cout << "name: " << signal << std::endl;
-  //}
+  // for (auto const& signal : signals_on_client) {
+  //   std::cout << "name: " << signal << std::endl;
+  // }
 
-  //std::vector<tfc::ipc::details::any_recv_cb> connect_slots;
+  // std::vector<tfc::ipc::details::any_recv_cb> connect_slots;
 
   // timer for 3 seconds
   as::steady_timer timer(ctx);
 
-  timer.async_wait(
-      [&](auto const& ) { send_message("timer", "timer", ctx, amep); });
+  timer.async_wait([&](auto const&) { send_message("timer", "timer", ctx, amep); });
 
   timer.expires_from_now(std::chrono::seconds(3));
 
-  //for (auto& signal_connect : signals_on_client) {
-  //  connect_slots.emplace_back([&ctx, &amep](std::string_view sig) -> tfc::ipc::details::any_recv_cb {
-  //    std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
+  // for (auto& signal_connect : signals_on_client) {
+  //   connect_slots.emplace_back([&ctx, &amep](std::string_view sig) -> tfc::ipc::details::any_recv_cb {
+  //     std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
 
   //    std::cout << "slot name: " << slot_name << std::endl;
 
