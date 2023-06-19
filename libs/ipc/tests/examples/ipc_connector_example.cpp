@@ -3,6 +3,8 @@
 
 #include <glaze/glaze.hpp>
 
+#include <iostream>
+
 namespace asio = boost::asio;
 
 auto main(int argc, char** argv) -> int {
