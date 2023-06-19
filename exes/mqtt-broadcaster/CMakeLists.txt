@@ -1,21 +1,98 @@
-project(mqtt_broadcaster)
+ add_executable(mqtt-broadcaster "src/main.cpp")
+ add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
+ add_executable(sample "src/sample.cpp")
 
-cmake_minimum_required(VERSION 3.21)
+ find_package(Boost REQUIRED COMPONENTS log program_options)
 
-add_executable(mqtt-broadcaster "src/main.cpp")
+ find_package(OpenSSL REQUIRED)
 
-find_package(Boost REQUIRED)
+ target_include_directories(mqtt-broadcaster
+         PUBLIC
+         ${CMAKE_CURRENT_SOURCE_DIR}/inc
+         )
 
-find_package(async_mqtt_iface CONFIG REQUIRED)
+ target_link_libraries(mqtt-broadcaster
+         tfc::base
+         tfc::logger
+         tfc::stx
+         tfc::ipc
+         tfc::operation_mode
+         tfc::confman
+         Boost::boost
+         Boost::log
+         Boost::program_options
+         OpenSSL::SSL OpenSSL::Crypto
+         )
 
-target_link_libraries(mqtt-broadcaster
-        PUBLIC
-        tfc::base
-        tfc::logger
-        tfc::stx
-        tfc::ipc
-        tfc::operation_mode
-        tfc::confman
-        Boost::boost
-        async_mqtt_iface::async_mqtt_iface
-        )
+ target_compile_definitions(mqtt-broadcaster
+         PUBLIC
+         ASYNC_MQTT_USE_LOG
+         ASYNC_MQTT_USE_TLS
+         )
+
+ target_compile_options(mqtt-broadcaster PRIVATE -g)
+
+ # ------------------------------------------------------------
+
+ target_include_directories(sample
+         PUBLIC
+         ${CMAKE_CURRENT_SOURCE_DIR}/inc
+         )
+
+ target_link_libraries(sample
+         tfc::base
+         tfc::logger
+         tfc::stx
+         tfc::ipc
+         tfc::operation_mode
+         tfc::confman
+         Boost::boost
+         Boost::log
+         Boost::program_options
+         OpenSSL::SSL OpenSSL::Crypto
+         )
+
+ target_compile_definitions(sample
+         PUBLIC
+         ASYNC_MQTT_USE_LOG
+         ASYNC_MQTT_USE_TLS
+         )
+
+ target_compile_options(sample PRIVATE -g)
+
+ # ------------------------------------------------------------
+
+ target_include_directories(mqtt-broadcaster-tests
+         PUBLIC
+         ${CMAKE_CURRENT_SOURCE_DIR}/inc
+         )
+
+ target_link_libraries(mqtt-broadcaster-tests
+         tfc::base
+         tfc::logger
+         tfc::stx
+         tfc::ipc
+         tfc::operation_mode
+         tfc::confman
+         Boost::boost
+         Boost::log
+         Boost::program_options
+         )
+
+ target_compile_definitions(mqtt-broadcaster-tests
+         PUBLIC
+         ASYNC_MQTT_USE_LOG
+         )
+
+ include(GNUInstallDirs)
+ install(
+         TARGETS mqtt-broadcaster
+         DESTINATION ${CMAKE_INSTALL_BINDIR}
+         CONFIGURATIONS Release
+ )
+
+ install(
+         TARGETS mqtt-broadcaster
+         DESTINATION ${CMAKE_INSTALL_BINDIR}/debug/
+         CONFIGURATIONS Debug
+ )

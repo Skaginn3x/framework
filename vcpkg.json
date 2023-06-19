@@ -10,6 +10,7 @@
       "name": "vcpkg-cmake-config",
       "host": true
     },
+    "async-mqtt",
     "azmq",
     "bext-sml",
     "bext-ut",
@@ -29,6 +30,7 @@
     "magic-enum",
     "mp-units",
     "sdbusplus",
-    "protobuf"
+    "protobuf",
+    "openssl"
   ]
 }
