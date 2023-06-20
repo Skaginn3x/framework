@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/tfc-toolchain.yml'
       - 'containers/tfc-toolchain.dockerfile'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

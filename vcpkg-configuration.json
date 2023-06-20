@@ -2,14 +2,15 @@
   "default-registry": {
     "kind": "git",
     "repository": "https://github.com/microsoft/vcpkg",
-    "baseline": "dc6188d0eb3f9fd7b53f4e21b1878ea868e34c02"
+    "baseline": "fbc868ee5e12e3e81f464104be246ec06553c274"
   },
   "registries": [
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "2ddb70b48f0cebc94c605fa96f0ccd458f403ed0",
+      "baseline": "0a5015490425b3b31044f21a357cc4861e987806",
       "packages": [
+        "azmq",
         "libcap",
         "libsystemd",
         "libxcrypt",

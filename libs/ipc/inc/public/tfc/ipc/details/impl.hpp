@@ -12,8 +12,10 @@
 
 #include <fmt/format.h>
 #include <azmq/socket.hpp>
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <tfc/ipc/enums.hpp>
@@ -119,6 +121,17 @@ public:
     auto serialized = std::make_shared<std::vector<std::byte>>(attempted_serialize.value());
     socket_.async_send(asio::buffer(serialized->data(), serialized->size()),
                        [callback, buffer = serialized](std::error_code error, size_t size) { callback(error, size); });
+  }
+
+  auto coro_send(value_t const& value) -> asio::awaitable<std::error_code> {
+    last_value_ = value;
+    packet_t packet{ .value = last_value_ };
+    const auto attempted_serialize{ packet_t::serialize(packet) };
+    if (!attempted_serialize.has_value()) {
+      co_return attempted_serialize.error();
+    }
+    co_await azmq::async_send(socket_, asio::buffer(attempted_serialize.value()), asio::use_awaitable);
+    co_return std::error_code{};
   }
 
 private:
@@ -234,15 +247,23 @@ public:
             callback(std::unexpected(err_code));
             return;
           }
-          if (bytes_received < packet_t::header_size()) {
-            // TODO: return some sane code here
-            // callback(std::unexpected({}));
-            return;
-          }
           auto packet = packet_t::deserialize(std::span(static_cast<std::byte const*>(msg.data()), bytes_received));
-          callback(packet.value);
+          if (packet.has_value()) {
+            return callback(std::move(packet.value().value));
+          }
+          callback(std::unexpected(std::move(packet.error())));
         },
         0);
+  }
+  auto coro_receive() -> asio::awaitable<std::expected<value_t, std::error_code>> {
+    std::vector<std::byte> msg{};
+    msg.resize(4096, {});
+    size_t bytes_received = co_await azmq::async_receive(socket_, asio::buffer(msg), asio::use_awaitable);
+    auto packet = packet_t::deserialize(std::span{ msg.data(), bytes_received });
+    if (packet.has_value()) {
+      co_return std::move(packet.value().value);
+    }
+    co_return std::move(std::unexpected(packet.error()));
   }
 
   /**
