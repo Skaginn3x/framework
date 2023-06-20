@@ -71,7 +71,12 @@ struct packet {
     return buffer;
   }
 
-  static constexpr auto deserialize(std::ranges::view auto buffer) -> packet<value_t, type_v> {
+  static constexpr auto deserialize(std::ranges::view auto buffer)
+      -> std::expected<packet<value_t, type_v>, std::error_code> {
+    if (buffer.size() < header_size()) {
+      return std::unexpected(std::make_error_code(std::errc::message_size));
+    }
+
     packet<value_t, type_v> result{};
     auto buffer_iter{ std::begin(buffer) };
     std::copy_n(buffer_iter, sizeof(version), reinterpret_cast<std::byte*>(&result.version));
@@ -82,15 +87,16 @@ struct packet {
     buffer_iter += sizeof(value_size);
 
     if (result.type != type_v) {
-      // TODO: Return error
+      return std::unexpected(std::make_error_code(std::errc::wrong_protocol_type));
     }
     if (result.version != version_e::v0) {
-      // TODO: Return error
+      return std::unexpected(std::make_error_code(std::errc::wrong_protocol_type));
+      // TODO: explicit version error
     }
 
     // todo partial buffer?
     if (buffer.size() != header_size() + result.value_size) {
-      throw std::runtime_error("Inconsistent buffer size");
+      return std::unexpected(std::make_error_code(std::errc::message_size));
     }
 
     if constexpr (std::is_fundamental_v<value_t>) {

@@ -24,7 +24,8 @@ auto main(int, char**) -> int {
       const auto serialized = packet_t::serialize(pack);
       expect(serialized.has_value());
       const auto& serialized_value = serialized.value();
-      auto supposed_packet = packet_t::deserialize(std::span(std::cbegin(serialized_value), std::cend(serialized_value)));
+      auto supposed_packet =
+          packet_t::deserialize(std::span(std::cbegin(serialized_value), std::cend(serialized_value))).value();
       expect(pack.version == supposed_packet.version);
       expect(pack.type == supposed_packet.type);
       expect(pack.type == pack_t::type_v);
@@ -56,7 +57,8 @@ auto main(int, char**) -> int {
         const auto serialized = packet_t::serialize(pack);
         expect(serialized.has_value());
         const auto& serialized_value = serialized.value();
-        auto supposed_packet = packet_t::deserialize(std::span(std::cbegin(serialized_value), std::cend(serialized_value)));
+        auto supposed_packet =
+            packet_t::deserialize(std::span(std::cbegin(serialized_value), std::cend(serialized_value))).value();
         expect(pack.version == supposed_packet.version);
         expect(pack.type == supposed_packet.type);
         expect(pack.type == pack_t::type_v);
