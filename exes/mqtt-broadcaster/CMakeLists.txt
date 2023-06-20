@@ -8,6 +8,8 @@ find_package(Boost REQUIRED)
 
 find_package(async_mqtt_iface CONFIG REQUIRED)
 
+find_package(Boost 1.81.0 REQUIRED COMPONENTS log)
+target_compile_definitions(mqtt-broadcaster PUBLIC ASYNC_MQTT_USE_LOG)
 target_link_libraries(mqtt-broadcaster
         PUBLIC
         tfc::base
@@ -17,5 +19,8 @@ target_link_libraries(mqtt-broadcaster
         tfc::operation_mode
         tfc::confman
         Boost::boost
+        Boost::log
         async_mqtt_iface::async_mqtt_iface
         )
+
+

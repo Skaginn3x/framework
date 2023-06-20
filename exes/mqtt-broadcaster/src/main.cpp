@@ -4,6 +4,7 @@
 #include <string>
 #include <tfc/ipc.hpp>
 #include <boost/asio/yield.hpp>
+
 #include <tfc/progbase.hpp>
 #include <vector>
 
@@ -36,19 +37,21 @@ private:
             am::packet_variant pv,
             std::optional<as::ip::tcp::resolver::results_type> eps) {
     reenter(coro) {
+
       // Resolve hostname
-      yield res.async_resolve(host, port, *this);
+      res.async_resolve(host, port, *this);
+
       if (ec)
         return;
 
       // Underlying TCP connect
-      yield as::async_connect(amep.next_layer(), *eps, *this);
+      co_await as::async_connect(amep.next_layer(), *eps, *this);
 
       if (ec)
         return;
 
       // Send MQTT CONNECT
-      yield amep.send(
+      co_yield amep.send(
           am::v3_1_1::connect_packet{
               true,         // clean_session
               0x1234,       // keep_alive
@@ -63,7 +66,7 @@ private:
       }
 
       // Recv MQTT CONNACK
-      yield amep.recv(*this);
+      co_yield amep.recv(*this);
       if (pv) {
         pv.visit(am::overload{ [&](am::v3_1_1::connack_packet const& p) {
                                 std::cout << "MQTT CONNACK recv"
@@ -76,7 +79,7 @@ private:
       }
 
       // Send MQTT SUBSCRIBE
-      yield amep.send(am::v3_1_1::subscribe_packet{ *amep.acquire_unique_packet_id(),
+      co_yield amep.send(am::v3_1_1::subscribe_packet{ *amep.acquire_unique_packet_id(),
                                                     { { am::allocate_buffer("signal_topic"), am::qos::at_most_once } } },
                       *this);
 
@@ -84,9 +87,9 @@ private:
         std::cout << "MQTT SUBSCRIBE send error:" << se.what() << std::endl;
         return;
       }
-      // Recv MQTT SUBACK
 
-      yield amep.recv(*this);
+      // Recv MQTT SUBACK
+      co_yield amep.recv(*this);
 
       if (pv) {
         pv.visit(am::overload{ [&](am::v3_1_1::suback_packet const& p) {
@@ -204,8 +207,6 @@ auto available_signals([[maybe_unused]] boost::asio::io_context& ctx) -> std::ve
 
   return signals_on_client;
 }
-
-#include <boost/asio/unyield.hpp>
 
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) -> int {
   as::io_context ioc;
