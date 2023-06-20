@@ -1,4 +1,5 @@
 
+find_package(date CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options)
