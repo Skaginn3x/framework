@@ -126,4 +126,44 @@ using reference_motor_current = setting<ecx::index_t{ 0x301E, 0x10 },
                                         electric_current::cA<int16_t>,
                                         0>;
 
+// Warning that requires a reset
+struct latched_warning {
+  static constexpr ecx::index_t index{ 0x301C, 0x0C };
+  bool general : 1 {};
+  bool reserved_0 : 1 {};
+  bool out_of_range : 1 {};
+  bool reserved_1 : 1 {};
+  bool active_operating_mode : 1 {};
+  bool commissioning_interface_rs485 : 1{};
+  bool integrated_fieldbus : 1 {};
+  bool reserved_2 : 1 {};
+  bool following_error : 1 {};
+  bool reserved_3 : 1 {};
+  bool inputs_STO_A_and_or_STO_B : 1 {};
+  bool reserved_4 : 1 {};
+  bool reserved_5 : 1 {};
+  bool low_voltage_DC_bus_or_mains_phase_missing : 1 {};
+  bool reserved_6 : 1 {};
+  bool reserved_7 : 1 {};
+  bool integrated_encoder_interface : 1 {};
+  bool temperature_of_motor_high : 1 {};
+  bool temperature_of_power_stage_high : 1 {};
+  bool reserved_8 : 1 {};
+  bool memory_card : 1 {};
+  bool fieldbus_module : 1 {};
+  bool encoder_module : 1 {};
+  bool safety_module_eSM_or_module_IOM1 : 1 {};
+  bool reserved_9 : 1 {};
+  bool reserved_10 : 1 {};
+  bool reserved_11 : 1 {};
+  bool reserved_12 : 1 {};
+  bool transistor_for_braking_resistor_overload : 1 {};
+  bool braking_resistor_overload : 1 {};
+  bool power_stage_overload : 1 {};
+  bool motor_overload : 1 {};
+};
+
+static_assert(sizeof(latched_warning) == 4);
+
+
 }  // namespace tfc::ec::devices::schneider::lxm32m::settings
