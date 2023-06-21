@@ -25,7 +25,7 @@ auto slot_coro(tfc::ipc::details::slot<tfc::ipc::details::type_bool>& slot,
       fmt::print("message={}\n", msg.value());
       co_await amep->send(
           am::v3_1_1::publish_packet{ *amep->acquire_unique_packet_id(), am::allocate_buffer("something"),
-                                      am::allocate_buffer("something"), am::qos::at_least_once }, asio::use_awaitable);
+                                      am::allocate_buffer("something"), am::qos::exactly_once }, asio::use_awaitable);
 
     } else {
       fmt::print("error={}\n", msg.error().message());
