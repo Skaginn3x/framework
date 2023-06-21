@@ -9,8 +9,7 @@
 namespace asio = boost::asio;
 namespace am = async_mqtt;
 
-auto slot_coro(tfc::ipc::details::slot<tfc::ipc::details::type_bool>& slot,
-               std::shared_ptr<am::endpoint<am::role::client, am::protocol::mqtt>> amep, [[maybe_unused]] std::string slot_name) -> asio::awaitable<void> {
+auto slot_coro(auto amep, auto& slot) -> asio::awaitable<void> {
   while (true) {
     std::cout << "before coro wait\n";
     std::expected<bool, std::error_code> msg = co_await slot.coro_receive();
@@ -20,17 +19,37 @@ auto slot_coro(tfc::ipc::details::slot<tfc::ipc::details::type_bool>& slot,
     std::stringstream ss;
     ss << std::boolalpha << msg.value();
     std::string s = ss.str();
+    co_await asio::post(amep->strand(), asio::use_awaitable);
 
     if (msg) {
       fmt::print("message={}\n", msg.value());
-      co_await amep->send(
-          am::v3_1_1::publish_packet{ *amep->acquire_unique_packet_id(), am::allocate_buffer("something"),
-                                      am::allocate_buffer("something"), am::qos::exactly_once }, asio::use_awaitable);
+
+      co_await amep->send(am::v3_1_1::publish_packet{ amep->acquire_unique_packet_id().value(), am::allocate_buffer("something"),
+                                                      am::allocate_buffer("something"), am::qos::at_least_once },
+                          asio::use_awaitable);
 
     } else {
       fmt::print("error={}\n", msg.error().message());
     }
   }
+}
+
+auto mqtt_connect(asio::io_context& ctx, auto amep) -> asio::awaitable<void> {
+  asio::ip::tcp::socket resolve_sock{ ctx };
+  asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
+  asio::ip::tcp::resolver::results_type resolved_ip = co_await res.async_resolve("localhost", "1883", asio::use_awaitable);
+
+  [[maybe_unused]] asio::ip::tcp::endpoint endpoint =
+      co_await asio::async_connect(amep->next_layer(), resolved_ip, asio::use_awaitable);
+
+  co_await amep->send(
+      am::v3_1_1::connect_packet{ true, 0x1234, am::allocate_buffer("cid1"), am::nullopt, am::nullopt, am::nullopt },
+      asio::use_awaitable);
+
+  [[maybe_unused]] am::packet_variant packet_variant = co_await amep->recv(asio::use_awaitable);  // connack
+  co_await amep->send(am::v3_1_1::publish_packet{ amep->acquire_unique_packet_id().value() , am::allocate_buffer("signal_topic"),
+                                                  am::allocate_buffer("signal_payload"), am::qos::at_least_once },
+                      asio::use_awaitable);
 }
 
 std::vector<std::string> banned_strings = {
@@ -73,44 +92,25 @@ auto available_signals([[maybe_unused]] boost::asio::io_context& ctx) -> std::ve
   return signals_on_client;
 }
 
-auto run(int argc,
-         char* argv[],
-         asio::io_context& ctx,
-         std::shared_ptr<am::endpoint<am::role::client, am::protocol::mqtt>> amep) -> asio::awaitable<void> {
+int main(int argc, char* argv[]) {
   tfc::base::init(argc, argv);
 
-  asio::ip::tcp::socket resolve_sock{ ctx };
-  asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
-  asio::ip::tcp::resolver::results_type resolved_ip = co_await res.async_resolve("localhost", "1883", asio::use_awaitable);
-
-  [[maybe_unused]] asio::ip::tcp::endpoint endpoint =
-      co_await asio::async_connect(amep->next_layer(), resolved_ip, asio::use_awaitable);
-
-  co_await amep->send(
-      am::v3_1_1::connect_packet{ true, 0x1234, am::allocate_buffer("cid1"), am::nullopt, am::nullopt, am::nullopt },
-      asio::use_awaitable);
-
-  [[maybe_unused]] am::packet_variant packet_variant = co_await amep->recv(asio::use_awaitable);
-
-  co_await amep->send(am::v3_1_1::publish_packet{ *amep->acquire_unique_packet_id(), am::allocate_buffer("signal_topic"),
-                                                  am::allocate_buffer("signal_payload"), am::qos::at_least_once },
-                      asio::use_awaitable);
-
-  tfc::ipc::details::slot<tfc::ipc::details::type_bool> slot{ ctx, "tfcctl_slot" };
-  slot.connect("tfcctl.def.bool.bool.test");
-  asio::co_spawn(ctx, slot_coro(slot, amep, "tfcctl_slot"), asio::detached);
-
-  asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
-
-  ctx.run();
-}
-
-int main(int argc, char* argv[]) {
   asio::io_context ctx{};
+
   auto amep =
       std::make_shared<am::endpoint<am::role::client, am::protocol::mqtt>>(am::protocol_version::v3_1_1, ctx.get_executor());
+  auto timer = asio::steady_timer{ amep->strand() };
+  auto slot = tfc::ipc::details::slot<tfc::ipc::details::type_bool>{ ctx, "name" };
 
-  asio::co_spawn(ctx, run(argc, argv, ctx, amep), asio::detached);
+  slot.connect("tfcctl.def.bool.bool.test");
+
+  asio::co_spawn(ctx, mqtt_connect(ctx, amep), [amep, &slot](std::exception_ptr ptr){
+    if (ptr) {
+      std::rethrow_exception(ptr);
+    }
+    asio::co_spawn(amep->strand(), slot_coro(amep, slot), asio::detached);
+  });
+  asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
 
   ctx.run();
   return 0;
