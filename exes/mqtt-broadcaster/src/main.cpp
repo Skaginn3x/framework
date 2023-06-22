@@ -7,7 +7,8 @@ using namespace std;
 namespace asio = boost::asio;
 using tfc::ipc::details::slot;
 
-template<tfc::ipc::details::type_e> struct type_mapping;
+template <tfc::ipc::details::type_e>
+struct type_mapping;
 
 class mqtt_broadcaster {
 public:
@@ -22,8 +23,19 @@ public:
       }
     });
 
+    // asio::co_spawn(ctx, mqtt_connect(ctx, mqtt_client), asio::detached);
+
+    std::cout << "continuing\n";
+
     // getting all signals from the ipc manager
     std::vector<tfc::ipc_ruler::signal> signals = get_signals(ctx);
+
+    std::cout << "signal size: " << signals.size() << "\n";
+    for (auto& signal: signals) {
+      std::cout << "signal: " << signal.name << "\n";
+    }
+
+    std::cout << "got signals\n";
 
     asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
 
@@ -33,13 +45,11 @@ public:
 
       switch (signal.type) {
         case tfc::ipc::details::type_e::_bool: {
-
-          bool_slots.push_back(
-              std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_bool>>(ctx, signal.name));
+          bool_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_bool>>(ctx, signal.name));
           bool_slots.back()->connect(signal.name);
           asio::co_spawn(
               mqtt_client->strand(),
-              slot_coroutine<tfc::ipc::details::type_bool, bool>(mqtt_client, *bool_slots.back(), signal.name),
+              slot_coroutine<tfc::ipc::details::type_bool, bool>(ctx, mqtt_client, *bool_slots.back(), signal.name),
               asio::detached);
 
           break;
@@ -50,7 +60,7 @@ public:
           int_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_int>>(ctx, signal.name));
           int_slots.back()->connect(signal.name);
           asio::co_spawn(mqtt_client->strand(),
-                         slot_coroutine<tfc::ipc::details::type_int, int>(mqtt_client, *int_slots.back(), signal.name),
+                         slot_coroutine<tfc::ipc::details::type_int, int>(ctx, mqtt_client, *int_slots.back(), signal.name),
                          asio::detached);
 
           break;
@@ -58,12 +68,11 @@ public:
         case tfc::ipc::details::type_e::_uint64_t: {
           std::cout << "slot value is uint64_t\n";
 
-          uint_slots.push_back(
-              std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_uint>>(ctx, signal.name));
+          uint_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_uint>>(ctx, signal.name));
           uint_slots.back()->connect(signal.name);
           asio::co_spawn(
               mqtt_client->strand(),
-              slot_coroutine<tfc::ipc::details::type_uint, uint>(mqtt_client, *uint_slots.back(), signal.name),
+              slot_coroutine<tfc::ipc::details::type_uint, uint>(ctx, mqtt_client, *uint_slots.back(), signal.name),
               asio::detached);
 
           break;
@@ -76,7 +85,7 @@ public:
           double_slots.back()->connect(signal.name);
           asio::co_spawn(
               mqtt_client->strand(),
-              slot_coroutine<tfc::ipc::details::type_double, double>(mqtt_client, *double_slots.back(), signal.name),
+              slot_coroutine<tfc::ipc::details::type_double, double>(ctx, mqtt_client, *double_slots.back(), signal.name),
               asio::detached);
 
           break;
@@ -88,7 +97,7 @@ public:
               std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_string>>(ctx, signal.name));
           string_slots.back()->connect(signal.name);
           asio::co_spawn(mqtt_client->strand(),
-                         slot_coroutine<tfc::ipc::details::type_string, std::string>(mqtt_client, *string_slots.back(),
+                         slot_coroutine<tfc::ipc::details::type_string, std::string>(ctx, mqtt_client, *string_slots.back(),
                                                                                      signal.name),
                          asio::detached);
 
@@ -108,7 +117,6 @@ public:
   }
 
 private:
-
   // get all signals from the ipc manager
   auto get_signals(boost::asio::io_context& ctx) -> std::vector<tfc::ipc_ruler::signal> {
     tfc::ipc_ruler::ipc_manager_client ipc_client(ctx);
@@ -122,7 +130,7 @@ private:
     });
 
     // TODO: might be unnecessary
-    ctx.run_for(std::chrono::seconds(1));
+    // ctx.run_for(std::chrono::seconds(1));
 
     // remove all signals that contain banned strings
     signals_on_client = clean_signals(signals_on_client);
@@ -160,7 +168,11 @@ private:
   }
 
   template <class T, class N>
-  auto slot_coroutine(auto amep, tfc::ipc::details::slot<T>& slot, std::string signal_name) -> asio::awaitable<void> {
+  auto slot_coroutine(
+      asio::io_context& ctx,
+      std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>& coroutine_mqtt_client,
+      tfc::ipc::details::slot<T>& slot,
+      std::string signal_name) -> asio::awaitable<void> {
     // string parsing for mqtt topic
     std::cout << "starting coroutine for : " << signal_name << "\n";
     std::replace(signal_name.begin(), signal_name.end(), '.', '/');
@@ -170,16 +182,31 @@ private:
 
       std::string value_string = convert_to_string(msg.value());
 
-      co_await asio::post(amep->strand(), asio::use_awaitable);
+      co_await asio::post(coroutine_mqtt_client->strand(), asio::use_awaitable);
 
       if (msg) {
         fmt::print("message={}\n", msg.value());
-        co_await amep->send(
-            async_mqtt::v3_1_1::publish_packet{ amep->acquire_unique_packet_id().value(),
+        auto result = co_await coroutine_mqtt_client->send(
+            async_mqtt::v3_1_1::publish_packet{ coroutine_mqtt_client->acquire_unique_packet_id().value(),
                                                 async_mqtt::allocate_buffer(signal_name),
-                                                async_mqtt::allocate_buffer(value_string),
-                                                async_mqtt::qos::at_least_once },
+                                                async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
             asio::use_awaitable);
+
+        if (result) {
+          std::cout << "failure \n";
+          std::cout << "result:" << result.message() << ":"
+                    << "\n";
+          co_await coroutine_mqtt_client->close(boost::asio::use_awaitable);
+
+          asio::co_spawn(ctx, mqtt_connect(ctx, mqtt_client), [&](std::exception_ptr ptr) {
+            if (ptr) {
+              std::rethrow_exception(ptr);
+            }
+          });
+
+        } else {
+          std::cout << "result: success \n";
+        }
 
       } else {
         fmt::print("send error in sending ={}\n", msg.error().message());
@@ -213,6 +240,7 @@ private:
   };
 
   std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client;
+  // asio::io_context& _ctx;
 
   std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_bool>>> bool_slots;
   std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_string>>> string_slots;
@@ -222,7 +250,6 @@ private:
   std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_json>>> json_slots;
 
   std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_json>>> slots;
-
 };
 
 int main(int argc, char* argv[]) {
