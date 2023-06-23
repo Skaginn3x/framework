@@ -52,10 +52,19 @@ public:
             std::bind_front(&mqtt_broadcaster::mode_update, this))),
         _config(ctx, "mqtt_broadcaster") {
 
+    std::string const file_name{ "/etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json" };
+
     // this is hacky
-    file_testable<config> conf{ ctx, "/etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json",
+    file_testable<config> conf{ ctx, file_name,
                                 config{ ._banned_topics = tfc::confman::observable<std::vector<std::string>>{
                                             std::vector<std::string>{ "first", "second" } } } };
+
+
+    conf.on_change([&, this]() {
+      _logger.info("new observable");
+      _logger.info("new observable");
+      _logger.info("new observable");
+    });
 
     conf->_banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
       _logger.info("new observable");
