@@ -7,6 +7,7 @@
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/unpack_properties.hpp>
 #include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
@@ -22,16 +23,17 @@ namespace asio = boost::asio;
 using tfc::ipc::details::slot;
 
 struct config {
-  std::vector<std::string> _banned_topics;
-
+  tfc::confman::observable<std::vector<std::string>> _banned_topics{};
   struct glaze {
-
-    static constexpr auto value{
-      glz::object("banned topics", &config::_banned_topics, "The signals that shall not be named")
-    };
-
-    static constexpr auto name{ "MQTT broadcaster" };
+    static constexpr auto value{ glz::object("banned topics", &config::_banned_topics) };
+    static constexpr auto name{ "mqtt_broadcaster" };
   };
+};
+
+template <typename storage_t>
+class file_testable : public tfc::confman::file_storage<storage_t> {
+public:
+  using tfc::confman::file_storage<storage_t>::file_storage;
 };
 
 class mqtt_broadcaster {
@@ -49,6 +51,17 @@ public:
             sdbusplus::bus::match::rules::propertiesChanged(_object_path, _interface_name),
             std::bind_front(&mqtt_broadcaster::mode_update, this))),
         _config(ctx, "mqtt_broadcaster") {
+
+    // this is hacky
+    file_testable<config> conf{ ctx, "/etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json",
+                                config{ ._banned_topics = tfc::confman::observable<std::vector<std::string>>{
+                                            std::vector<std::string>{ "first", "second" } } } };
+
+    conf->_banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
+      _logger.info("new observable");
+      _logger.info("new observable");
+      _logger.info("new observable");
+    });
 
     asio::co_spawn(_mqtt_client->strand(), tfc::base::exit_signals(ctx), asio::detached);
     load_signals();
@@ -139,7 +152,7 @@ private:
   auto clean_signals(std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
     signals.erase(std::remove_if(signals.begin(), signals.end(),
                                  [&](const tfc::ipc_ruler::signal& signal) {
-                                   for (std::string banned_string : _config->_banned_topics) {
+                                   for (std::string banned_string : _config->_banned_topics.value()) {
                                      if (signal.name.find(banned_string) != std::string::npos) {
                                        return true;
                                      }
