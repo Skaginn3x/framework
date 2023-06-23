@@ -1,16 +1,12 @@
 #include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
-#include <exception>
-#include <iostream>
 #include <iterator>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
-#include <sdbusplus/asio/property.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/unpack_properties.hpp>
+#include <tfc/confman.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
@@ -25,6 +21,19 @@ using namespace std;
 namespace asio = boost::asio;
 using tfc::ipc::details::slot;
 
+struct config {
+  std::vector<std::string> _banned_topics;
+
+  struct glaze {
+
+    static constexpr auto value{
+      glz::object("banned topics", &config::_banned_topics, "The signals that shall not be named")
+    };
+
+    static constexpr auto name{ "MQTT broadcaster" };
+  };
+};
+
 class mqtt_broadcaster {
 public:
   mqtt_broadcaster(asio::io_context& ctx, std::string const& broker_address, std::string const& mqtt_port)
@@ -34,76 +43,52 @@ public:
             async_mqtt::protocol_version::v3_1_1,
             ctx.get_executor())),
         _mqtt_host(broker_address), _mqtt_port(mqtt_port), _logger("mqtt_broadcaster"),
-        dbus_connection_(std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())),
-
-        mode_updates_(std::make_unique<sdbusplus::bus::match_t>(
-            *dbus_connection_,
+        _dbus_connection(std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())),
+        _signal_updates(std::make_unique<sdbusplus::bus::match_t>(
+            *_dbus_connection,
             sdbusplus::bus::match::rules::propertiesChanged(_object_path, _interface_name),
-            std::bind_front(&mqtt_broadcaster::mode_update, this))) {
-    asio::co_spawn(_mqtt_client->strand(), tfc::base::exit_signals(ctx), asio::detached);
+            std::bind_front(&mqtt_broadcaster::mode_update, this))),
+        _config(ctx, "mqtt_broadcaster") {
 
+    asio::co_spawn(_mqtt_client->strand(), tfc::base::exit_signals(ctx), asio::detached);
     load_signals();
   }
 
 private:
-  // auto load_signals(asio::io_context& ctx) -> void {
   auto load_signals() -> void {
-    auto signals = get_signals();
+    std::vector<tfc::ipc_ruler::signal> signals = get_signals();
 
     // connecting to all signals
-    for (auto& signal : signals) {
-      _logger.log<tfc::logger::lvl_e::info>("connecting to signal: {}", signal.name);
+    for (tfc::ipc_ruler::signal& signal : signals) {
       handle_signal(signal);
     }
   }
 
   // auto handle_signal(asio::io_context& ctx, auto& signal) -> void {
-  auto handle_signal(auto& signal) -> void {
+  auto handle_signal(tfc::ipc_ruler::signal& signal) -> void {
     switch (signal.type) {
       case tfc::ipc::details::type_e::_bool: {
-        bool_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_bool>>(_ctx, signal.name));
-        bool_slots.back()->connect(signal.name);
-
-        asio::co_spawn(_mqtt_client->strand(),
-                       slot_coroutine<tfc::ipc::details::type_bool, bool>(_mqtt_client, *bool_slots.back(), signal.name),
-                       asio::detached);
+        run_slot<tfc::ipc::details::type_bool, bool>(signal);
         break;
       }
       case tfc::ipc::details::type_e::_int64_t: {
-        int_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_int>>(_ctx, signal.name));
-        int_slots.back()->connect(signal.name);
-        asio::co_spawn(_mqtt_client->strand(),
-                       slot_coroutine<tfc::ipc::details::type_int, int>(_mqtt_client, *int_slots.back(), signal.name),
-                       asio::detached);
+        run_slot<tfc::ipc::details::type_int, int>(signal);
         break;
       }
       case tfc::ipc::details::type_e::_uint64_t: {
-        uint_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_uint>>(_ctx, signal.name));
-        uint_slots.back()->connect(signal.name);
-        asio::co_spawn(_mqtt_client->strand(),
-                       slot_coroutine<tfc::ipc::details::type_uint, uint>(_mqtt_client, *uint_slots.back(), signal.name),
-                       asio::detached);
+        run_slot<tfc::ipc::details::type_uint, uint>(signal);
         break;
       }
       case tfc::ipc::details::type_e::_double_t: {
-        double_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_double>>(_ctx, signal.name));
-        double_slots.back()->connect(signal.name);
-        asio::co_spawn(
-            _mqtt_client->strand(),
-            slot_coroutine<tfc::ipc::details::type_double, double>(_mqtt_client, *double_slots.back(), signal.name),
-            asio::detached);
+        run_slot<tfc::ipc::details::type_double, double>(signal);
         break;
       }
       case tfc::ipc::details::type_e::_string: {
-        string_slots.push_back(std::make_shared<tfc::ipc::details::slot<tfc::ipc::details::type_string>>(_ctx, signal.name));
-        string_slots.back()->connect(signal.name);
-        asio::co_spawn(
-            _mqtt_client->strand(),
-            slot_coroutine<tfc::ipc::details::type_string, std::string>(_mqtt_client, *string_slots.back(), signal.name),
-            asio::detached);
+        run_slot<tfc::ipc::details::type_string, std::string>(signal);
         break;
       }
       case tfc::ipc::details::type_e::_json: {
+        run_slot<tfc::ipc::details::type_json, std::string>(signal);
         break;
       }
       case tfc::ipc::details::type_e::unknown: {
@@ -112,25 +97,31 @@ private:
     }
   }
 
+  // template the types away
+  template <typename T, typename N>
+  auto run_slot(tfc::ipc_ruler::signal& signal) -> void {
+    _slots.push_back(std::make_shared<tfc::ipc::details::slot<T>>(_ctx, signal.name));
+    auto& slot = std::get<std::shared_ptr<tfc::ipc::details::slot<T>>>(_slots.back());
+    slot->connect(signal.name);
+    asio::co_spawn(_mqtt_client->strand(), slot_coroutine<T, N>(_mqtt_client, *slot, signal.name), asio::detached);
+  }
+
+  // cancel everything that is running on the coroutines and load the signals again
   void mode_update([[maybe_unused]] sdbusplus::message::message& msg) noexcept {
-    // cancel everything that is running on the coroutines
     _stop_coroutine = true;
-
     _logger.info("New signal has arrived, reloading signals");
-
     load_signals();
     _stop_coroutine = false;
   }
 
   // get all signals from the ipc manager
-  // auto get_signals(asio::io_context& ctx) -> std::vector<tfc::ipc_ruler::signal> {
   auto get_signals() -> std::vector<tfc::ipc_ruler::signal> {
     tfc::ipc_ruler::ipc_manager_client ipc_client(_ctx);
     std::vector<tfc::ipc_ruler::signal> signals_on_client;
 
     // store the found signals in a vector
     ipc_client.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
-      for (auto const& signal : signals) {
+      for (const tfc::ipc_ruler::signal& signal : signals) {
         signals_on_client.push_back(signal);
       }
     });
@@ -148,7 +139,7 @@ private:
   auto clean_signals(std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
     signals.erase(std::remove_if(signals.begin(), signals.end(),
                                  [&](const tfc::ipc_ruler::signal& signal) {
-                                   for (auto const& banned_string : banned_strings) {
+                                   for (std::string banned_string : _config->_banned_topics) {
                                      if (signal.name.find(banned_string) != std::string::npos) {
                                        return true;
                                      }
@@ -240,11 +231,6 @@ private:
     }
   }
 
-  std::vector<std::string> banned_strings = {
-    "mainn",   "ec_run", "operation-mode", "uint64_t", "tub_tipper", "ex_example_run_context", "ec_example_run_context",
-    "ethercat"
-  };
-
   asio::io_context& _ctx;
 
   std::string _service_name;
@@ -256,38 +242,39 @@ private:
   std::string _mqtt_port;
   tfc::logger::logger _logger;
 
-  std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_;
-  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> mode_updates_;
+  std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> _dbus_connection;
+  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> _signal_updates;
 
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_bool>>> bool_slots;
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_string>>> string_slots;
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_int>>> int_slots;
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_uint>>> uint_slots;
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_double>>> double_slots;
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_json>>> json_slots;
+  tfc::confman::config<config> _config;
 
-  std::vector<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_json>>> slots;
+  std::vector<std::variant<std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_bool>>,
+                           std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_string>>,
+                           std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_int>>,
+                           std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_uint>>,
+                           std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_double>>,
+                           std::shared_ptr<tfc::ipc::details::slot<tfc::ipc::details::type_json>>>>
+      _slots;
 
-  std::vector<std::unique_ptr<sdbusplus::bus::match::match>> signals_;
+  std::vector<std::unique_ptr<sdbusplus::bus::match::match>> _signals;
 
   bool _stop_coroutine = false;
 };
 
 int main(int argc, char* argv[]) {
-  std::cout << "here\n";
   auto prog_desc{ tfc::base::default_description() };
-  std::cout << "here\n";
+
   std::string mqtt_host, mqtt_port;
-  std::cout << "here\n";
+
   prog_desc.add_options()("mqtt_host", boost::program_options::value<std::string>(&mqtt_host)->required(),
                           "ip address of mqtt broker")(
       "mqtt_port", boost::program_options::value<std::string>(&mqtt_port)->required(), "port of mqtt broker");
-  std::cout << "here\n";
+
   tfc::base::init(argc, argv, prog_desc);
-  std::cout << "here\n";
 
   asio::io_context ctx{};
+
   mqtt_broadcaster application(ctx, mqtt_host, mqtt_port);
+
   ctx.run();
 
   return 0;
