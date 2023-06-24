@@ -449,15 +449,15 @@ struct ipc_manager_client_mock {
                      std::string_view description,
                      type_e type,
                      std::invocable<const std::error_code&> auto&& handler) -> void {
-    slots.emplace_back(slot{ .name = std::string(name),
-                             .type = type,
-                             .created_by = "",
-                             .created_at = std::chrono::system_clock::now(),
-                             .last_registered = std::chrono::system_clock::now(),
-                             .last_modified = std::chrono::system_clock::now(),
-                             .modified_by = "",
-                             .connected_to = "",
-                             .description = std::string(description) });
+    _slots.emplace_back(slot{ .name = std::string(name),
+                              .type = type,
+                              .created_by = "",
+                              .created_at = std::chrono::system_clock::now(),
+                              .last_registered = std::chrono::system_clock::now(),
+                              .last_modified = std::chrono::system_clock::now(),
+                              .modified_by = "",
+                              .connected_to = "",
+                              .description = std::string(description) });
     handler(std::error_code());
   }
 
@@ -465,19 +465,19 @@ struct ipc_manager_client_mock {
                        std::string_view description,
                        type_e type,
                        std::invocable<const std::error_code&> auto&& handler) -> void {
-    signals.emplace_back(signal{ .name = std::string(name),
-                                 .type = type,
-                                 .created_by = "",
-                                 .created_at = std::chrono::system_clock::now(),
-                                 .last_registered = std::chrono::system_clock::now(),
-                                 .description = std::string(description) });
+    _signals.emplace_back(signal{ .name = std::string(name),
+                                  .type = type,
+                                  .created_by = "",
+                                  .created_at = std::chrono::system_clock::now(),
+                                  .last_registered = std::chrono::system_clock::now(),
+                                  .description = std::string(description) });
     handler(std::error_code());
   }
 
   auto connect(const std::string& slot_name,
                const std::string& signal_name,
                std::invocable<const std::error_code&> auto&& handler) -> void {
-    for (auto& slot : slots) {
+    for (auto& slot : _slots) {
       if (slot.name == slot_name) {
         slot.connected_to = signal_name;
         auto iterator = slot_callbacks.find(slot_name);
@@ -492,8 +492,12 @@ struct ipc_manager_client_mock {
     throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
   }
 
-  std::vector<slot> slots;
-  std::vector<signal> signals;
+  auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(_slots); }
+
+  auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(_signals); }
+
+  std::vector<slot> _slots;
+  std::vector<signal> _signals;
 };
 
 }  // namespace tfc::ipc_ruler
