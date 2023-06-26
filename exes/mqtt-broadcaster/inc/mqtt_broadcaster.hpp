@@ -31,39 +31,34 @@ public:
   mqtt_broadcaster(asio::io_context& ctx,
                    std::string mqtt_address,
                    std::string mqtt_port,
-                   ipc_client_type& ipc_client)
+                   ipc_client_type& ipc_client,
+                   std::shared_ptr<mqtt_client_type> mqtt_client)
       : ctx_(ctx), ipc_client_(ipc_client), service_name_(tfc::dbus::make_dbus_name("ipc_ruler")),
         object_path_(tfc::dbus::make_dbus_path("ipc_ruler")), interface_name_(tfc::dbus::make_dbus_name("manager")),
-        mqtt_client_(std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor())),
-        mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)), logger_("mqtt_broadcaster"),
+        // mqtt_client_(std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor())),
+        mqtt_client_(mqtt_client), mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)),
+        logger_("mqtt_broadcaster"),
         dbus_connection_(std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())),
         signal_updates_(
             std::make_unique<match_client>(*dbus_connection_,
-                                          sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
-                                          std::bind_front(&mqtt_broadcaster::update_signals, this))),
+                                           sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
+                                           std::bind_front(&mqtt_broadcaster::update_signals, this))),
         config_(ctx, "mqtt_broadcaster") {
     asio::co_spawn(mqtt_client_->strand(), mqtt_connect(), asio::detached);
 
-    // TODO: this only works for the first file change, not the following file changes
-    config_.value()._banned_topics.observe([&, this](auto& new_conf, auto& old_conf) {
-      for (auto const& topic : new_conf) {
-        logger_.info("new topic: {}", topic);
-      }
+    config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
+      banned_signals_.clear();
 
-      for (auto const& topic : old_conf) {
-        logger_.info("old topic: {}", topic);
+      for (auto const& con : new_conf) {
+        banned_signals_.push_back(con);
       }
-
-      logger_.info("new observable");
-      logger_.info("new observable");
-      logger_.info("new observable");
-      logger_.info("new observable");
-      logger_.info("new observable");
-      // restart();
+      restart();
     });
 
     // TODO: do we need this?, need to change for mock mqtt client in order to work
     asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
+
+    banned_signals_ = config_.value()._banned_topics.value();
     load_signals();
   }
 
@@ -73,9 +68,42 @@ private:
 
     // connecting to all signals
     for (tfc::ipc_ruler::signal& signal : signals) {
-      std::cout << "signal: " << signal.name << "\n";
       handle_signal(signal);
     }
+  }
+
+  // get all signals from the ipc manager
+  auto get_signals() -> std::vector<tfc::ipc_ruler::signal> {
+    std::vector<tfc::ipc_ruler::signal> signals_on_client;
+
+    // store the found signals in a vector
+    ipc_client_.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
+      for (const tfc::ipc_ruler::signal& signal : signals) {
+        signals_on_client.push_back(signal);
+      }
+    });
+
+    // give the signals some time to arrive
+    ctx_.run_for(std::chrono::milliseconds(20));
+
+    // remove all signals that contain banned strings
+    signals_on_client = clean_signals(signals_on_client);
+
+    return signals_on_client;
+  }
+
+  // remove all signals that contain banned strings
+  auto clean_signals(std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
+    signals.erase(std::remove_if(signals.begin(), signals.end(),
+                                 [&](const tfc::ipc_ruler::signal& signal) {
+                                   return std::ranges::any_of(banned_signals_.begin(), banned_signals_.end(),
+                                                              [&](const std::string& banned_string) {
+                                                                return signal.name.find(banned_string) != std::string::npos;
+                                                              });
+                                 }),
+                  signals.end());
+
+    return signals;
   }
 
   // auto handle_signal(asio::io_context& ctx, auto& signal) -> void {
@@ -131,40 +159,6 @@ private:
   //
   void update_signals([[maybe_unused]] sdbusplus::message::message& msg) noexcept { restart(); }
 
-  // get all signals from the ipc manager
-  auto get_signals() -> std::vector<tfc::ipc_ruler::signal> {
-    std::vector<tfc::ipc_ruler::signal> signals_on_client;
-
-    // store the found signals in a vector
-    ipc_client_.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
-      for (const tfc::ipc_ruler::signal& signal : signals) {
-        signals_on_client.push_back(signal);
-      }
-    });
-
-    // give the signals some time to arrive
-    ctx_.run_for(std::chrono::milliseconds(20));
-
-    // remove all signals that contain banned strings
-    signals_on_client = clean_signals(signals_on_client);
-
-    return signals_on_client;
-  }
-
-  // remove all signals that contain banned strings
-  auto clean_signals(std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
-    signals.erase(std::remove_if(signals.begin(), signals.end(),
-                                 [&](const tfc::ipc_ruler::signal& signal) {
-                                   return std::ranges::any_of(config_->_banned_topics.value().begin(), config_->_banned_topics.value().end(),
-                                                              [&](const std::string& banned_string) {
-                                                                return signal.name.find(banned_string) != std::string::npos;
-                                                              });
-                                 }),
-                  signals.end());
-
-    return signals;
-  }
-
   template <typename value_type>
   auto convert_to_string(value_type value) -> std::string {
     if constexpr (std::is_same_v<value_type, bool>) {
@@ -186,27 +180,44 @@ private:
     while (!stop_coroutine_) {
       std::expected<value_type, std::error_code> msg = co_await slot.coro_receive();
       std::string value_string = convert_to_string(msg.value());
+      co_await send_message<value_type>(msg, value_string, signal_name);
+    }
+  }
+
+  template <class value_type>
+  auto send_message(std::expected<value_type, std::error_code> msg, std::string value_string, std::string signal_name)
+      -> asio::awaitable<void> {
+    while (true) {
       co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
 
       if (msg) {
         logger_.log<tfc::logger::lvl_e::info>("sending message: {} to topic: {}", value_string, signal_name);
+
         auto result = co_await mqtt_client_->send(
             async_mqtt::v3_1_1::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
                                                 async_mqtt::allocate_buffer(signal_name),
                                                 async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
             asio::use_awaitable);
 
+        // TODO: after broker goes down the next message seems to be successful, need some sort of ack confirmation from the broker which I am not getting
+        logger_.trace(result.message());
+        logger_.trace(result.message());
+
         if (result) {
           logger_.log<tfc::logger::lvl_e::error>("failed to connect to mqtt client: {}", result.message());
           co_await mqtt_client_->close(boost::asio::use_awaitable);
-
-          asio::co_spawn(ctx_, mqtt_connect(), asio::detached);
+          co_await mqtt_connect();
+        } else {
+          logger_.trace("message sent successfully");
+          break;
         }
       }
     }
+    co_return;
   }
 
   auto mqtt_connect() -> asio::awaitable<void> {
+    logger_.trace("connecting to mqtt broker: {}:{}", mqtt_host_, mqtt_port_);
     while (true) {
       try {
         asio::ip::tcp::socket resolve_sock{ ctx_ };
@@ -231,13 +242,13 @@ private:
                                                                         async_mqtt::qos::at_least_once },
                                     asio::use_awaitable);
 
+        logger_.trace("mqtt connection successful");
         break;
       } catch (std::exception& e) {
         logger_.log<tfc::logger::lvl_e::error>("exception in mqtt_connect: {}", e.what());
-        std::cout << "exception in mqtt_connect: " << e.what() << std::endl;
       }
       logger_.trace("retrying mqtt connection");
-      co_await asio::steady_timer{ ctx_, std::chrono::milliseconds(20) }.async_wait(asio::use_awaitable);
+      co_await asio::steady_timer{ ctx_, std::chrono::milliseconds(100) }.async_wait(asio::use_awaitable);
     }
   }
 
@@ -269,4 +280,5 @@ private:
   std::vector<std::unique_ptr<sdbusplus::bus::match::match>> signals_;
 
   bool stop_coroutine_ = false;
+  std::vector<std::string> banned_signals_;
 };

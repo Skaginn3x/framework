@@ -11,7 +11,7 @@ auto main(int argc, char* argv[]) -> int {
     std::string mqtt_port;
 
     program_description.add_options()("mqtt_host", boost::program_options::value<std::string>(&mqtt_host)->required(),
-                            "ip address of mqtt broker")(
+                                      "ip address of mqtt broker")(
         "mqtt_port", boost::program_options::value<std::string>(&mqtt_port)->required(), "port of mqtt broker");
 
     tfc::base::init(argc, argv, program_description);
@@ -20,9 +20,13 @@ auto main(int argc, char* argv[]) -> int {
 
     tfc::ipc_ruler::ipc_manager_client ipc_client{ ctx };
 
+    const std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client =
+        std::make_shared<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>(
+            async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
+
     mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client&, sdbusplus::bus::match::match,
                      async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>
-        application(ctx, mqtt_host, mqtt_port, ipc_client);
+        application(ctx, mqtt_host, mqtt_port, ipc_client, mqtt_client);
 
     ctx.run();
 
