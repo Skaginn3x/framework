@@ -67,16 +67,16 @@ auto main(int argc, char** argv) -> int {
     test_instance instance{};
     // Check if the correct empty list is reported for signals
     bool ran = false;
-    instance.ipc_manager_client.signals([&](auto v) {
-      ut::expect(v.empty());
+    instance.ipc_manager_client.signals([&](auto signals) {
+      ut::expect(signals.empty());
       ran = true;
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
     ut::expect(ran);
 
     // Check if the correct empty list is reported for slots
-    instance.ipc_manager_client.slots([&](auto v) {
-      ut::expect(v.empty());
+    instance.ipc_manager_client.slots([&](auto slots) {
+      ut::expect(slots.empty());
       ran = true;
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
@@ -94,11 +94,11 @@ auto main(int argc, char** argv) -> int {
 
     // check that the signal appears
     ran = false;
-    instance.ipc_manager_client.signals([&](auto v) {
-      ut::expect(!v.empty());
-      ut::expect(v.size() == 1);
-      if (v.size() == 1) {
-        ut::expect(v[0].name == "test_signal");
+    instance.ipc_manager_client.signals([&](auto signals) {
+      ut::expect(!signals.empty());
+      ut::expect(signals.size() == 1);
+      if (signals.size() == 1) {
+        ut::expect(signals[0].name == "test_signal");
       }
       ran = true;
     });
@@ -117,11 +117,11 @@ auto main(int argc, char** argv) -> int {
     instance.ctx.run_for(std::chrono::milliseconds(5));
     ut::expect(ran);
     ran = false;
-    instance.ipc_manager_client.slots([&](auto v) {
-      ut::expect(!v.empty());
-      ut::expect(v.size() == 1);
-      if (v.size() == 1) {
-        ut::expect(v[0].name == "test_slot");
+    instance.ipc_manager_client.slots([&](auto slots) {
+      ut::expect(!slots.empty());
+      ut::expect(slots.size() == 1);
+      if (slots.size() == 1) {
+        ut::expect(slots[0].name == "test_slot");
       }
       ran = true;
     });
@@ -175,8 +175,8 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc_ruler::signal signal_copy;
     tfc::ipc_ruler::slot slot_copy;
     // Copy the registered slot and signal and then re-register and verify the information is intact
-    instance.ipc_manager_client.signals([&](auto v) {
-      for (auto& signal : v) {
+    instance.ipc_manager_client.signals([&](auto signals) {
+      for (auto& signal : signals) {
         if (signal.name == "signal_register_retest") {
           signal_copy = signal;
           return;
@@ -185,8 +185,8 @@ auto main(int argc, char** argv) -> int {
       ut::expect(false);
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    instance.ipc_manager_client.slots([&](auto v) {
-      for (auto& slot : v) {
+    instance.ipc_manager_client.slots([&](auto slots) {
+      for (auto& slot : slots) {
         if (slot.name == "slot_register_retest") {
           slot_copy = slot;
           return;
@@ -218,8 +218,8 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc_ruler::signal signal_copy2;
     tfc::ipc_ruler::slot slot_copy2;
     // Copy the registered slot and signal and then re-register and verify the information is intact
-    instance.ipc_manager_client.signals([&](auto v) {
-      for (auto& signal : v) {
+    instance.ipc_manager_client.signals([&](auto signals) {
+      for (auto& signal : signals) {
         if (signal.name == "signal_register_retest") {
           signal_copy2 = signal;
           return;
@@ -228,8 +228,8 @@ auto main(int argc, char** argv) -> int {
       ut::expect(false);
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    instance.ipc_manager_client.slots([&](auto v) {
-      for (auto& slot : v) {
+    instance.ipc_manager_client.slots([&](auto slots) {
+      for (auto& slot : slots) {
         if (slot.name == "slot_register_retest") {
           slot_copy2 = slot;
           return;
@@ -263,9 +263,9 @@ auto main(int argc, char** argv) -> int {
     uint8_t invocation{};
     bool ignore_first{ true };
 
-    tfc::ipc_ruler::ipc_manager_client_mock mclient;
-    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(
-        isolated_ctx, mclient, "bool_slot", "", [&](bool value) {
+    tfc::ipc_ruler::ipc_manager_client_mock mock_client;
+    const tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+        isolated_ctx, mock_client, "bool_slot", "", [&](bool value) {
           if (ignore_first) {
             ignore_first = false;
             return;
@@ -275,10 +275,11 @@ auto main(int argc, char** argv) -> int {
             isolated_ctx.stop();
           }
         });
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mock_client,
                                                                                                 "bool_signal", "");
 
-    mclient.connect(mclient.slots[0].name, mclient.signals[0].name, [&](const std::error_code& err) { ut::expect(!err); });
+    mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
+                        [&](const std::error_code& err) { ut::expect(!err); });
 
     asio::steady_timer timer{ isolated_ctx };
     timer.expires_from_now(std::chrono::milliseconds(10));
@@ -293,14 +294,14 @@ auto main(int argc, char** argv) -> int {
   "Test ipc communication connection and disconnection with mocking int"_test = []() {
     asio::io_context isolated_ctx{};
 
-    tfc::ipc_ruler::ipc_manager_client_mock mclient;
+    tfc::ipc_ruler::ipc_manager_client_mock mock_client;
 
     uint8_t invocation{};
     bool ignore_first{ true };
     std::array<std::int64_t, 3> test_values{ 25, 1337, 42 };
 
-    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(
-        isolated_ctx, mclient, "bool_slot", "", [&](int value) {
+    const tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+        isolated_ctx, mock_client, "bool_slot", "", [&](int value) {
           if (ignore_first) {
             ignore_first = false;
             return;
@@ -310,10 +311,39 @@ auto main(int argc, char** argv) -> int {
             isolated_ctx.stop();
           }
         });
-    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
+    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mock_client,
                                                                                                "bool_signal", "");
 
-    mclient.connect(mclient.slots[0].name, mclient.signals[0].name, [](const std::error_code& err) { ut::expect(!err); });
+    mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
+                        [](const std::error_code& err) { ut::expect(!err); });
+
+    std::array<std::string, 1> slot_names = { "ipc_manager_test.def.int64_t.bool_slot" };
+
+    mock_client.slots([&](auto slots) {
+      std::size_t counter = 0;
+      for (auto& i_slot : slots) {
+        if (i_slot.name == slot_names[counter]) {
+          ut::expect(i_slot.name == slot_names[counter]);
+        } else {
+          ut::expect(false);
+        }
+        counter++;
+      }
+    });
+
+    std::array<std::string, 1> signal_names = { "ipc_manager_test.def.int64_t.bool_signal" };
+
+    mock_client.signals([&](auto signals) {
+      std::size_t counter = 0;
+      for (auto& signal : signals) {
+        if (signal.name == signal_names[counter]) {
+          ut::expect(signal.name == signal_names[counter]);
+        } else {
+          ut::expect(false);
+        }
+        counter++;
+      }
+    });
 
     asio::steady_timer timer{ isolated_ctx };
     timer.expires_from_now(std::chrono::milliseconds(10));
