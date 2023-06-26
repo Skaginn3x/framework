@@ -321,9 +321,9 @@ auto main(int argc, char** argv) -> int {
 
     mock_client.slots([&](auto slots) {
       std::size_t counter = 0;
-      for (auto& slot : slots) {
-        if (slot.name == slot_names[counter]) {
-          ut::expect(slot.name == slot_names[counter]);
+      for (auto& i_slot : slots) {
+        if (i_slot.name == slot_names[counter]) {
+          ut::expect(i_slot.name == slot_names[counter]);
         } else {
           ut::expect(false);
         }
