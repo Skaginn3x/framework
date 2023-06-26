@@ -278,7 +278,7 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
                                                                                                 "bool_signal", "");
 
-    mclient.connect(mclient.slots[0].name, mclient.signals[0].name, [&](const std::error_code& err) { ut::expect(!err); });
+    mclient.connect(mclient.slots_[0].name, mclient.signals_[0].name, [&](const std::error_code& err) { ut::expect(!err); });
 
     asio::steady_timer timer{ isolated_ctx };
     timer.expires_from_now(std::chrono::milliseconds(10));
@@ -313,7 +313,37 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mclient,
                                                                                                "bool_signal", "");
 
-    mclient.connect(mclient.slots[0].name, mclient.signals[0].name, [](const std::error_code& err) { ut::expect(!err); });
+    mclient.connect(mclient.slots_[0].name, mclient.signals_[0].name, [](const std::error_code& err) { ut::expect(!err); });
+
+    std::string slot_names[1];
+    slot_names[0] = "ipc_manager_test.def.int64_t.bool_slot";
+
+    mclient.slots([&](auto v) {
+      int counter = 0;
+      for (auto& slot : v) {
+        if (slot.name == slot_names[counter]) {
+          ut::expect(slot.name == slot_names[counter]);
+        } else {
+          ut::expect(false);
+        }
+        counter++;
+      }
+    });
+
+    std::string signal_names[1];
+    signal_names[0] = "ipc_manager_test.def.int64_t.bool_signal";
+
+    mclient.signals([&](auto v) {
+      int counter = 0;
+      for (auto& signal : v) {
+        if (signal.name == signal_names[counter]) {
+          ut::expect(signal.name == signal_names[counter]);
+        } else {
+          ut::expect(false);
+        }
+        counter++;
+      }
+    });
 
     asio::steady_timer timer{ isolated_ctx };
     timer.expires_from_now(std::chrono::milliseconds(10));
