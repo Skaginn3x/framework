@@ -252,18 +252,19 @@ public:
     });
 
     dbus_interface_->register_method("RegisterSignal",
-                                 [&](const std::string& name, const std::string& description, uint8_t type) {
-                                   ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
-                                   dbus_interface_->signal_property("Signals");
-                                 });
-    dbus_interface_->register_method("RegisterSlot", [&](const std::string& name, const std::string& description, uint8_t type) {
-      ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
-      dbus_interface_->signal_property("Slots");
-    });
+                                     [&](const std::string& name, const std::string& description, uint8_t type) {
+                                       ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
+                                       dbus_interface_->signal_property("Signals");
+                                     });
+    dbus_interface_->register_method("RegisterSlot",
+                                     [&](const std::string& name, const std::string& description, uint8_t type) {
+                                       ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
+                                       dbus_interface_->signal_property("Slots");
+                                     });
 
-    dbus_interface_->register_property_r<std::string>("Signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
-      return glz::write_json(ipc_manager_->get_all_signals());
-    });
+    dbus_interface_->register_property_r<std::string>(
+        "Signals", sdbusplus::vtable::property_::emits_change,
+        [&](const auto&) { return glz::write_json(ipc_manager_->get_all_signals()); });
 
     dbus_interface_->register_property_r<std::string>("Slots", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
       return glz::write_json(ipc_manager_->get_all_slots());
@@ -478,14 +479,14 @@ struct ipc_manager_client_mock {
                      type_e type,
                      std::invocable<const std::error_code&> auto&& handler) -> void {
     slots_.emplace_back(slot{ .name = std::string(name),
-                             .type = type,
-                             .created_by = "",
-                             .created_at = std::chrono::system_clock::now(),
-                             .last_registered = std::chrono::system_clock::now(),
-                             .last_modified = std::chrono::system_clock::now(),
-                             .modified_by = "",
-                             .connected_to = "",
-                             .description = std::string(description) });
+                              .type = type,
+                              .created_by = "",
+                              .created_at = std::chrono::system_clock::now(),
+                              .last_registered = std::chrono::system_clock::now(),
+                              .last_modified = std::chrono::system_clock::now(),
+                              .modified_by = "",
+                              .connected_to = "",
+                              .description = std::string(description) });
     handler(std::error_code());
   }
 
@@ -494,11 +495,11 @@ struct ipc_manager_client_mock {
                        type_e type,
                        std::invocable<const std::error_code&> auto&& handler) -> void {
     signals_.emplace_back(signal{ .name = std::string(name),
-                                 .type = type,
-                                 .created_by = "",
-                                 .created_at = std::chrono::system_clock::now(),
-                                 .last_registered = std::chrono::system_clock::now(),
-                                 .description = std::string(description) });
+                                  .type = type,
+                                  .created_by = "",
+                                  .created_at = std::chrono::system_clock::now(),
+                                  .last_registered = std::chrono::system_clock::now(),
+                                  .description = std::string(description) });
     handler(std::error_code());
   }
 
