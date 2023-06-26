@@ -278,7 +278,8 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mock_client,
                                                                                                 "bool_signal", "");
 
-    mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name, [&](const std::error_code& err) { ut::expect(!err); });
+    mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
+                        [&](const std::error_code& err) { ut::expect(!err); });
 
     asio::steady_timer timer{ isolated_ctx };
     timer.expires_from_now(std::chrono::milliseconds(10));
@@ -313,12 +314,13 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mock_client,
                                                                                                "bool_signal", "");
 
-    mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name, [](const std::error_code& err) { ut::expect(!err); });
+    mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
+                        [](const std::error_code& err) { ut::expect(!err); });
 
     std::array<std::string, 1> slot_names = { "ipc_manager_test.def.int64_t.bool_slot" };
 
     mock_client.slots([&](auto slots) {
-      int counter = 0;
+      std::size_t counter = 0;
       for (auto& slot : slots) {
         if (slot.name == slot_names[counter]) {
           ut::expect(slot.name == slot_names[counter]);
@@ -332,7 +334,7 @@ auto main(int argc, char** argv) -> int {
     std::array<std::string, 1> signal_names = { "ipc_manager_test.def.int64_t.bool_signal" };
 
     mock_client.signals([&](auto signals) {
-      int counter = 0;
+      std::size_t counter = 0;
       for (auto& signal : signals) {
         if (signal.name == signal_names[counter]) {
           ut::expect(signal.name == signal_names[counter]);
