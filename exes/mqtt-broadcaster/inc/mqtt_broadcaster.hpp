@@ -263,40 +263,59 @@ private:
     asio::co_spawn(mqtt_client_->strand(), puback(), asio::detached);
   }
 
-  // function which operates in a loop, if there is a message in the puback_map_, wait for ack on that message
   auto puback() -> asio::awaitable<void> {
-    logger_.trace("starting puback listener");
-
     while (true) {
       co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
-
       co_await async_wait();
+      async_mqtt::packet_variant packet_variant;
 
-      logger_.trace("received value on puback_map_");
-
-      async_mqtt::packet_variant packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
+      try {
+        logger_.error("try recv");
+        packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
+      } catch (std::exception& e) {
+        logger_.error("exception in puback: {}", e.what());
+        continue;
+      } catch (...) {
+        logger_.error("exception in puback");
+        continue;
+      }
 
       auto p_id = packet_variant.get<async_mqtt::v3_1_1::puback_packet>().packet_id();
 
-      for (auto& p : puback_map_) {
-        std::cout << "puback_map_ key: " << p.first << std::endl;
-        std::cout << "puback_map_ value: " << p.second.first << " and " << p.second.second << std::endl;
-
+      std::vector<short unsigned int> keys_to_remove;
+      for (const auto& p : puback_map_) {
         if (p.first == p_id) {
-          logger_.trace("received puback for packet id: {}", p_id);
-          // puback_map_.erase(p_id);
-          puback_map_.erase(puback_map_.begin(), puback_map_.find(p_id));
+          keys_to_remove.push_back(p.first);
         }
-
       }
 
-      for (auto& p : puback_map_) {
-        logger_.trace("sending a packet again, with packet id: {} topic: {} and payload: {}", p.first, p.second.first,
-                      p.second.second);
-        co_await mqtt_client_->send(async_mqtt::v3_1_1::publish_packet{ p.first, async_mqtt::allocate_buffer(p.second.first),
-                                                                        async_mqtt::allocate_buffer(p.second.second),
-                                                                        async_mqtt::qos::at_least_once },
-                                    asio::use_awaitable);
+      for (const auto& key : keys_to_remove) {
+        puback_map_.erase(key);
+      }
+
+      bool should_reconnect = false;
+
+      for (const auto& p : puback_map_) {
+        logger_.trace("trying to send again because the first one didn't make it :( ");
+
+        try {
+          co_await mqtt_client_->send(
+              async_mqtt::v3_1_1::publish_packet{ p.first, async_mqtt::allocate_buffer(p.second.first),
+                                                  async_mqtt::allocate_buffer(p.second.second),
+                                                  async_mqtt::qos::at_least_once },
+              asio::use_awaitable);
+
+        } catch (std::exception& e) {
+          logger_.error("exception in puback: {}", e.what());
+
+          should_reconnect = true;
+        } catch (...) {
+          logger_.error("exception in puback");
+          should_reconnect = true;
+        }
+        if (should_reconnect) {
+          co_await mqtt_connect();
+        }
 
         co_await asio::steady_timer{ ctx_, std::chrono::milliseconds(10000) }.async_wait(asio::use_awaitable);
       }
