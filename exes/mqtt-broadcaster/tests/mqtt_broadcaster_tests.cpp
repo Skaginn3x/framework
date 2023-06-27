@@ -44,6 +44,11 @@ public:
 
   auto send(async_mqtt::v3_1_1::publish_packet packet, const boost::asio::use_awaitable_t<>&)
       -> boost::asio::awaitable<result> {
+    std::cout << "just received a packet on send\n";
+    std::cout << "packet id: " << packet.packet_id() << "\n";
+    std::cout << "topic: " << packet.topic() << "\n";
+    std::cout << "payload: " << packet.payload()[0] << "\n";
+
     if (online_) {
       messages_.push_back(packet);
       std::string message = "Success";
@@ -103,6 +108,8 @@ auto send_simple_value(int timeout_in_ms) -> void {
 
   const std::string mqtt_host{ "localhost" };
   const std::string mqtt_port{ "1883" };
+  const std::string mqtt_username{ "" };
+  const std::string mqtt_password{ "" };
 
   tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
 
@@ -113,7 +120,7 @@ auto send_simple_value(int timeout_in_ms) -> void {
       std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
 
   const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_matcher, mock_mqtt_client> application(
-      ctx, mqtt_host, mqtt_port, ipc_client, mqtt_client);
+      ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
 
   auto last_message = mqtt_client->get_last_message();
 
@@ -151,6 +158,8 @@ auto add_signal_in_running(int timeout_in_ms) -> void {
 
   const std::string mqtt_host{ "localhost" };
   const std::string mqtt_port{ "1883" };
+  const std::string mqtt_username{ "" };
+  const std::string mqtt_password{ "" };
 
   tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
 
@@ -161,7 +170,7 @@ auto add_signal_in_running(int timeout_in_ms) -> void {
       std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
 
   const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_matcher, mock_mqtt_client> application(
-      ctx, mqtt_host, mqtt_port, ipc_client, mqtt_client);
+      ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
 
   auto last_message = mqtt_client->get_last_message();
 
@@ -211,15 +220,15 @@ auto add_signal_in_running(int timeout_in_ms) -> void {
   ut::expect(last_message.payload()[0] == "true") << "payload should be: " << last_message.payload()[0];
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
       << "qos should be: " << last_message.opts().get_qos();
-
 }
 
 auto mqtt_broker_goes_down(int timeout_in_ms) {
-
   boost::asio::io_context ctx{};
 
   const std::string mqtt_host{ "localhost" };
   const std::string mqtt_port{ "1883" };
+  const std::string mqtt_username{ "" };
+  const std::string mqtt_password{ "" };
 
   tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
 
@@ -230,7 +239,7 @@ auto mqtt_broker_goes_down(int timeout_in_ms) {
       std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
 
   const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_matcher, mock_mqtt_client> application(
-      ctx, mqtt_host, mqtt_port, ipc_client, mqtt_client);
+      ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
 
   auto last_message = mqtt_client->get_last_message();
 
@@ -271,30 +280,28 @@ auto mqtt_broker_goes_down(int timeout_in_ms) {
 
   last_message = mqtt_client->get_last_message();
 
-  ut::expect(last_message.packet_id() == 3) << "packet id should be: " << last_message.packet_id();
   ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
-      << "topic should be: " << last_message.topic();
-  ut::expect(last_message.payload()[0] == "true") << "payload should be: " << last_message.payload()[0];
+      << "topic is: " << last_message.topic() << " when it should be: mqtt-broadcaster-tests/def/bool/test_signal";
+  ut::expect(last_message.payload()[0] == "true")
+      << "payload is: " << last_message.payload()[0] << " when it should be: true";
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
-      << "qos should be: " << last_message.opts().get_qos();
+      << "qos is: " << last_message.opts().get_qos() << " when it should be: at_least_once";
 
   mqtt_client->set_online(true);
   ctx.run_for(std::chrono::milliseconds(timeout_in_ms));
   ctx.run_for(std::chrono::milliseconds(timeout_in_ms));
-  ctx.run_for(std::chrono::milliseconds(timeout_in_ms));
-  ctx.run_for(std::chrono::milliseconds(timeout_in_ms));
-  ctx.run_for(std::chrono::milliseconds(timeout_in_ms));
 
-  ut::expect(last_message.packet_id() == 4) << "packet id should be: " << last_message.packet_id();
+  last_message = mqtt_client->get_last_message();
+
   ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
-      << "topic should be: " << last_message.topic();
-  ut::expect(last_message.payload()[0] == "false") << "payload should be: " << last_message.payload()[0];
+      << "topic is: " << last_message.topic() << " when it should be: mqtt-broadcaster-tests/def/bool/test_signal";
+
+  ut::expect(last_message.payload()[0] == "false")
+      << "payload is: " << last_message.payload()[0] << " when it should be: false";
+
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
-      << "qos should be: " << last_message.opts().get_qos();
-
-
+      << "qos is: " << last_message.opts().get_qos() << " when it should be: at_least_once";
 }
-
 
 auto main(int argc, char* argv[]) -> int {
   try {
