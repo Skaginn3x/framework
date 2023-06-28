@@ -1,4 +1,4 @@
-#include <async_mqtt/all.hpp>
+#include <mqtt/async_client.h>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <iterator>
@@ -25,7 +25,7 @@ struct config {
   };
 };
 
-template <class ipc_client_type, class match_client, class mqtt_client_type>
+template <class ipc_client_type, class match_client>
 class mqtt_broadcaster {
 public:
   mqtt_broadcaster(asio::io_context& ctx,
@@ -34,7 +34,7 @@ public:
                    std::string mqtt_username,
                    std::string mqtt_password,
                    ipc_client_type& ipc_client,
-                   std::shared_ptr<mqtt_client_type> mqtt_client)
+                   std::shared_ptr<mqtt::async_client> mqtt_client)
       : ctx_(ctx), ipc_client_(ipc_client), service_name_(tfc::dbus::make_dbus_name("ipc_ruler")),
         object_path_(tfc::dbus::make_dbus_path("ipc_ruler")), interface_name_(tfc::dbus::make_dbus_name("manager")),
         mqtt_client_(std::move(mqtt_client)), mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)),
@@ -45,7 +45,7 @@ public:
                                            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
                                            std::bind_front(&mqtt_broadcaster::update_signals, this))),
         config_(ctx, "mqtt_broadcaster"), puback_map_(std::map<short unsigned int, std::pair<std::string, std::string>>{}) {
-    asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
+    asio::co_spawn(ctx, connect_to_broker(), asio::detached);
 
     config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
       banned_signals_.clear();
@@ -57,7 +57,7 @@ public:
     });
 
     // TODO: do we need this?, need to change for mock mqtt client in order to work
-    asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
+    asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
 
     banned_signals_ = config_.value()._banned_topics.value();
     load_signals();
@@ -65,32 +65,17 @@ public:
 
 private:
   auto connect_to_broker() -> asio::awaitable<void> {
-    asio::ip::tcp::socket resolve_sock{ ctx_ };
-    asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
-    asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(mqtt_host_, mqtt_port_, asio::use_awaitable);
+    auto connOpts = mqtt::connect_options_builder().clean_session().finalize();
 
-    logger_.trace("Connecting to endpoint");
-    //[[maybe_unused]] asio::ip::tcp::endpoint endpoint =
-    co_await asio::async_connect(mqtt_client_->next_layer(), resolved_ip, asio::use_awaitable);
+    mqtt::token_ptr conntok = mqtt_client_->connect(connOpts);
 
-    logger_.trace("Sending connect packet");
-    co_await mqtt_client_->send(
-        async_mqtt::v3_1_1::connect_packet{ true, 0x0010, async_mqtt::allocate_buffer("cid1"), async_mqtt::nullopt,
-                                            async_mqtt::allocate_buffer(mqtt_username_),
-                                            async_mqtt::allocate_buffer(mqtt_password_) },
-        asio::use_awaitable);
+    conntok->wait();
 
-    logger_.trace("Waiting for CONNACK response");
-    async_mqtt::packet_variant packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
+    mqtt::message_ptr pubmsg = mqtt::make_message("test topic", "test payload");
+    pubmsg->set_qos(qos_);
+    mqtt_client_->publish(pubmsg)->wait_for(timeout_);
 
-    logger_.trace("Sending SUBSCRIBE packet");
-
-    co_await mqtt_client_->send(
-        async_mqtt::v3_1_1::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
-                                            async_mqtt::allocate_buffer("test_topic2"),
-                                            async_mqtt::allocate_buffer("test_payload2"), async_mqtt::qos::at_least_once },
-        asio::use_awaitable);
+    co_return;
   }
 
   auto load_signals() -> void {
@@ -175,7 +160,7 @@ private:
     slots_.push_back(std::make_shared<details::slot<slot_type>>(ctx_, signal.name));
     auto& slot = std::get<std::shared_ptr<details::slot<slot_type>>>(slots_.back());
     slot->connect(signal.name);
-    asio::co_spawn(mqtt_client_->strand(), slot_coroutine<slot_type, value_type>(*slot, signal.name), asio::detached);
+    asio::co_spawn(ctx_, slot_coroutine<slot_type, value_type>(*slot, signal.name), asio::detached);
   }
 
   // read all the signals again and restart the coroutine
@@ -218,49 +203,19 @@ private:
   template <class value_type>
   auto send_message(std::expected<value_type, std::error_code> msg, std::string value_string, std::string signal_name)
       -> asio::awaitable<void> {
-    bool exception = false;
 
     while (true) {
-      exception = false;
-
-      std::cout << "STATUS: " << mqtt_client_->get_status() << std::endl;
-
-      co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
 
       if (msg) {
         logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
 
         try {
-
-          auto result = co_await mqtt_client_->send(
-              async_mqtt::v3_1_1::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
-                                                  async_mqtt::allocate_buffer(signal_name),
-                                                  async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
-              asio::use_awaitable);
-
-          // TODO: after broker goes down the next message seems to be successful, need some sort of ack confirmation from
-
-          logger_.trace(result.message());
-
-          if (result) {
-            logger_.error("failed to connect to mqtt client: {}", result.message());
-            co_await asio::steady_timer{ ctx_, std::chrono::milliseconds{ 100 } }.async_wait(asio::use_awaitable);
-            // co_await mqtt_connect();
-          } else {
-            logger_.trace("message sent successfully");
-            break;
-          }
+          mqtt::message_ptr pubmsg = mqtt::make_message(signal_name, value_string);
+          pubmsg->set_qos(qos_);
+          mqtt_client_->publish(pubmsg)->wait_for(timeout_);
         } catch (std::exception& e) {
           logger_.error("exception in send: {}", e.what());
-          exception = true;
         }
-      }
-
-      if (exception) {
-        mqtt_client_->close([this]() { logger_.info("mqtt client closed"); });
-
-        co_await asio::steady_timer{ ctx_, std::chrono::milliseconds{ 100 } }.async_wait(asio::use_awaitable);
-        asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
       }
     }
     co_return;
@@ -346,7 +301,7 @@ private:
   std::string object_path_;
   std::string interface_name_;
 
-  std::shared_ptr<mqtt_client_type> mqtt_client_;
+  std::shared_ptr<mqtt::async_client> mqtt_client_;
 
   std::string mqtt_host_;
   std::string mqtt_port_;
@@ -374,4 +329,7 @@ private:
 
   // TODO:  key is not int but packet id, wait for compiler fix
   std::map<short unsigned int, std::pair<std::string, std::string>> puback_map_;
+
+  int qos_ = 1;
+  std::chrono::seconds timeout_ = std::chrono::seconds(10);
 };
