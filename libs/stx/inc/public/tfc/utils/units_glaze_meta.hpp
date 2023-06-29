@@ -45,6 +45,21 @@ struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
   };
 };
 
+namespace glz::detail {
+
+template <typename value_t>
+struct to_json_schema;
+
+template <typename dimension_t, typename unit_t, typename rep_t>
+struct to_json_schema<units::quantity<dimension_t, unit_t, rep_t>> {
+  template <auto opts>
+  static void op(auto& schema, auto& defs) {
+    to_json_schema<rep_t>::template op<opts>(schema, defs);
+  }
+};
+
+}  // namespace glz::detail
+
 namespace tfc::unit {
 template <typename dim_t>
 inline constexpr auto dimension_name() -> std::string_view {
