@@ -1,10 +1,12 @@
-#include <async_mqtt/all.hpp>
+#include "paho2.hpp"
+#include <mqtt/async_client.h>
 #include <tfc/ipc.hpp>
-#include "mqtt_broadcaster.hpp"
 
 // TODO: if nothing is printed when the program is started, ipc-ruler is not running
 auto main(int argc, char* argv[]) -> int {
-  // try {
+
+  std::string persist_dir_ = "./persist";
+
   auto program_description{ tfc::base::default_description() };
 
   std::string mqtt_host;
@@ -24,22 +26,13 @@ auto main(int argc, char* argv[]) -> int {
 
   tfc::ipc_ruler::ipc_manager_client ipc_client{ ctx };
 
-  const std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client =
-      std::make_shared<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>(
-          async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
+  auto mqtt_client = mqtt::async_client(mqtt_host, "cid1", persist_dir_);
 
-  mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client&, sdbusplus::bus::match::match,
-                   async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>
-      application(ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
+  // TODO: test this using ipc-ruler and gets this baby going
+  mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client&, sdbusplus::bus::match::match>
+      application(mqtt_client);
 
   ctx.run();
 
   return 0;
-  //} catch (const std::exception& e) {
-  //    std::cerr << "Exception caught: " << e.what() << '\n';
-  //    return 1;  // or any other non-zero exit code
-  //  } catch (...) {
-  //    std::cerr << "Unknown exception caught\n";
-  //    return 2;  // or any other non-zero exit code
-  //  }
 }
