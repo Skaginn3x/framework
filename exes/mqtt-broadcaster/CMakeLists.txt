@@ -4,19 +4,19 @@
  add_executable(mqtt-broadcaster "src/main.cpp")
  add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
  add_executable(minimum-example "src/minimum_example.cpp")
- add_executable(paho "src/paho.cpp")
+ add_executable(paho "src/paho2.cpp")
 
  # find packages
  find_package(Boost 1.81.0 REQUIRED COMPONENTS log program_options)
  # find_package(async_mqtt_iface CONFIG REQUIRED)
 
  # a bit hacky but works for now
- list(APPEND CMAKE_PREFIX_PATH "/opt/vcpkg/packages/libuuid_x64-linux/share/unofficial-libuuid")
- find_package(unofficial-libuuid CONFIG REQUIRED)
+ # list(APPEND CMAKE_PREFIX_PATH "/opt/vcpkg/packages/libuuid_x64-linux/share/unofficial-libuuid")
+find_package(unofficial-libuuid CONFIG REQUIRED)
 
  find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
 
- list(APPEND CMAKE_PREFIX_PATH "/opt/vcpkg/packages/paho-mqttpp3_x64-linux/share/PahoMqttCpp/")
+ # list(APPEND CMAKE_PREFIX_PATH "/opt/vcpkg/packages/paho-mqttpp3_x64-linux/share/PahoMqttCpp/")
  find_package(PahoMqttCpp CONFIG REQUIRED)
 
  # set common libraries
@@ -31,12 +31,12 @@
          Boost::log
          Boost::program_options
          # async_mqtt_iface::async_mqtt_iface
-         eclipse-paho-mqtt-c::paho-mqtt3a-static
-         eclipse-paho-mqtt-c::paho-mqtt3c-static
+         #eclipse-paho-mqtt-c::paho-mqtt3a-static
+         #eclipse-paho-mqtt-c::paho-mqtt3c-static
          eclipse-paho-mqtt-c::paho-mqtt3as-static
-         eclipse-paho-mqtt-c::paho-mqtt3cs-static
+         # eclipse-paho-mqtt-c::paho-mqtt3cs-static
+         unofficial::UUID::uuid
          PahoMqttCpp::paho-mqttpp3-static
-         uuid
          )
 
  # set common compile definitions

@@ -1,3 +1,4 @@
+#pragma once
 #include <mqtt/async_client.h>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -45,10 +46,7 @@ public:
                                            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
                                            std::bind_front(&mqtt_broadcaster::update_signals, this))),
         config_(ctx, "mqtt_broadcaster") {
-
-    std::cout << "here\n";
-    connect_to_broker();
-    std::cout << "here\n";
+    asio::co_spawn(ctx, connect_to_broker(), asio::detached);
 
     config_.value()._banned_topics.observe([this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
       banned_topics_.clear();
@@ -57,46 +55,63 @@ public:
       }
       restart();
     });
-    std::cout << "here\n";
 
     asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
-    std::cout << "here\n";
 
     banned_topics_ = config_.value()._banned_topics.value();
-    std::cout << "here\n";
 
     load_signals();
-    std::cout << "here\n";
   }
 
 private:
+  auto wait_for_mqtt_client_connect(mqtt::token_ptr& token) -> asio::awaitable<void> {
+    while (true) {
+      if (token->is_complete()) {
+        logger_.info("Connection token has completed");
+        co_return;
+      }
+      if (mqtt_client_->is_connected()) {
+        logger_.info("MQTT client is connected");
+        co_return;
+      }
+      asio::steady_timer timer(ctx_);
+      timer.expires_after(std::chrono::seconds(1));
+      co_await timer.async_wait(asio::use_awaitable);
+    }
+  }
+
   // will repeatedly try to connect to the broker until successful
-  auto connect_to_broker() -> void {
+  auto connect_to_broker() -> asio::awaitable<void> {
     while (true) {
       try {
         mqtt::token_ptr connection_token = mqtt_client_->connect(mqtt::connect_options_builder().clean_session().finalize());
-        connection_token->wait();
-        mqtt::message_ptr test_message = mqtt::make_message("connected", "true");
-        test_message->set_qos(qos_);
-        mqtt_client_->publish(test_message)->wait_for(timeout_);
+        co_await wait_for_mqtt_client_connect(connection_token);
+        mqtt::message_ptr connect_message = mqtt::make_message("connected", "true");
+        connect_message->set_qos(qos_);
+        mqtt_client_->publish(connect_message)->wait_for(timeout_);
         break;
       } catch (const mqtt::exception& exc) {
         logger_.error("Failed to connect to MQTT broker: {}", exc.what());
       }
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      asio::steady_timer timer(ctx_);
+      timer.expires_after(std::chrono::seconds(5));
+      co_await timer.async_wait(asio::use_awaitable);
     }
   }
 
   auto load_signals() -> void {
-    for (tfc::ipc_ruler::signal& signal : signals_on_client) {
+    get_signals();
+    clean_signals();
+
+    for (tfc::ipc_ruler::signal& signal : signals_on_client_) {
       handle_signal(signal);
     }
   }
 
   auto get_signals() -> void {
     ipc_client_.signals([this]([[maybe_unused]] const std::vector<tfc::ipc_ruler::signal>& signals) {
-      for (tfc::ipc_ruler::signal signal : signals) {
-        signals_on_client.push_back(signal);
+      for (const tfc::ipc_ruler::signal& signal : signals) {
+        signals_on_client_.push_back(signal);
       }
     });
 
@@ -105,16 +120,15 @@ private:
   }
 
   auto clean_signals() -> void {
-    signals_on_client.erase(std::remove_if(signals_on_client.begin(), signals_on_client.end(),
-                                           [&](const tfc::ipc_ruler::signal& signal) {
-                                             return std::ranges::any_of(banned_topics_,
-                                                                        banned_topics_,
-                                                                        [&](const std::string& banned_string) {
-                                                                          return signal.name.find(banned_string) !=
-                                                                                 std::string::npos;
-                                                                        });
-                                           }),
-                            signals_on_client.end());
+    signals_on_client_.erase(std::remove_if(signals_on_client_.begin(), signals_on_client_.end(),
+                                            [&](const tfc::ipc_ruler::signal& signal) {
+                                              return std::ranges::any_of(banned_topics_.begin(), banned_topics_.end(),
+                                                                         [&](const std::string& banned_string) {
+                                                                           return signal.name.find(banned_string) !=
+                                                                                  std::string::npos;
+                                                                         });
+                                            }),
+                             signals_on_client_.end());
   }
 
   auto handle_signal(tfc::ipc_ruler::signal& signal) -> void {
@@ -199,22 +213,18 @@ private:
 
   // template <class value_type>
   auto send_message(std::string value_string, std::string signal_name) -> asio::awaitable<void> {
-    bool exception = false;
     while (true) {
       logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
       try {
-        mqtt::message_ptr pubmsg = mqtt::make_message(signal_name, value_string);
-        pubmsg->set_qos(qos_);
-        mqtt_client_->publish(pubmsg)->wait_for(timeout_);
+        mqtt::message_ptr message = mqtt::make_message(signal_name, value_string);
+        message->set_qos(qos_);
+        mqtt_client_->publish(message)->wait_for(timeout_);
         break;
       } catch (std::exception& e) {
-        exception = true;
         logger_.error("exception in send: {}", e.what());
       }
 
-      if (exception) {
-        connect_to_broker();
-      }
+      co_await connect_to_broker();
     }
     co_return;
   }
@@ -252,8 +262,8 @@ private:
   bool stop_coroutine_ = false;
 
   int qos_ = 1;
-  std::chrono::seconds timeout_ = std::chrono::seconds(10);
-  std::vector<tfc::ipc_ruler::signal> signals_on_client;
+  std::chrono::seconds timeout_ = std::chrono::seconds(1);
+  std::vector<tfc::ipc_ruler::signal> signals_on_client_;
 
   std::vector<std::string> banned_topics_;
 };

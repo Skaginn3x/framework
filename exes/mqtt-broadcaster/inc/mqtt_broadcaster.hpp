@@ -1,3 +1,4 @@
+#pragma once
 #include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -223,20 +224,20 @@ private:
     while (true) {
       exception = false;
 
-      std::cout << "STATUS: " << mqtt_client_->get_status() << std::endl;
-
       co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
 
       if (msg) {
         logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
 
         try {
-
           auto result = co_await mqtt_client_->send(
-              async_mqtt::v3_1_1::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
-                                                  async_mqtt::allocate_buffer(signal_name),
-                                                  async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
+              async_mqtt::v3_1_1::publish_packet{
+                  mqtt_client_->acquire_unique_packet_id().value(), async_mqtt::allocate_buffer(signal_name),
+                  async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
               asio::use_awaitable);
+
+          using packet_type = async_mqtt::control_packet_type;
+          async_mqtt::packet_variant packet_variant = co_await mqtt_client_->recv({ packet_type::puback }, asio::use_awaitable);
 
           // TODO: after broker goes down the next message seems to be successful, need some sort of ack confirmation from
 
