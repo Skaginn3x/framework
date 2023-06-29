@@ -44,84 +44,79 @@ public:
             std::make_unique<match_client>(*dbus_connection_,
                                            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
                                            std::bind_front(&mqtt_broadcaster::update_signals, this))),
-        config_(ctx, "mqtt_broadcaster"), puback_map_(std::map<short unsigned int, std::pair<std::string, std::string>>{}) {
-    asio::co_spawn(ctx, connect_to_broker(), asio::detached);
+        config_(ctx, "mqtt_broadcaster") {
 
-    config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
-      banned_signals_.clear();
+    std::cout << "here\n";
+    connect_to_broker();
+    std::cout << "here\n";
 
-      for (auto const& con : new_conf) {
-        banned_signals_.push_back(con);
+    config_.value()._banned_topics.observe([this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
+      banned_topics_.clear();
+      for (auto& topic : new_conf) {
+        banned_topics_.push_back(topic);
       }
       restart();
     });
+    std::cout << "here\n";
 
-    // TODO: do we need this?, need to change for mock mqtt client in order to work
     asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
+    std::cout << "here\n";
 
-    banned_signals_ = config_.value()._banned_topics.value();
+    banned_topics_ = config_.value()._banned_topics.value();
+    std::cout << "here\n";
+
     load_signals();
+    std::cout << "here\n";
   }
 
 private:
-  auto connect_to_broker() -> asio::awaitable<void> {
-    auto connOpts = mqtt::connect_options_builder().clean_session().finalize();
-
-    mqtt::token_ptr conntok = mqtt_client_->connect(connOpts);
-
-    conntok->wait();
-
-    mqtt::message_ptr pubmsg = mqtt::make_message("test topic", "test payload");
-    pubmsg->set_qos(qos_);
-    mqtt_client_->publish(pubmsg)->wait_for(timeout_);
-
-    co_return;
+  // will repeatedly try to connect to the broker until successful
+  auto connect_to_broker() -> void {
+    while (true) {
+      try {
+        mqtt::token_ptr connection_token = mqtt_client_->connect(mqtt::connect_options_builder().clean_session().finalize());
+        connection_token->wait();
+        mqtt::message_ptr test_message = mqtt::make_message("connected", "true");
+        test_message->set_qos(qos_);
+        mqtt_client_->publish(test_message)->wait_for(timeout_);
+        break;
+      } catch (const mqtt::exception& exc) {
+        logger_.error("Failed to connect to MQTT broker: {}", exc.what());
+      }
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
   }
 
   auto load_signals() -> void {
-    std::vector<tfc::ipc_ruler::signal> signals = get_signals();
-
-    // connecting to all signals
-    for (tfc::ipc_ruler::signal& signal : signals) {
+    for (tfc::ipc_ruler::signal& signal : signals_on_client) {
       handle_signal(signal);
     }
   }
 
-  // get all signals from the ipc manager
-  auto get_signals() -> std::vector<tfc::ipc_ruler::signal> {
-    std::vector<tfc::ipc_ruler::signal> signals_on_client;
-
-    // store the found signals in a vector
-    ipc_client_.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
-      for (const tfc::ipc_ruler::signal& signal : signals) {
+  auto get_signals() -> void {
+    ipc_client_.signals([this]([[maybe_unused]] const std::vector<tfc::ipc_ruler::signal>& signals) {
+      for (tfc::ipc_ruler::signal signal : signals) {
         signals_on_client.push_back(signal);
       }
     });
 
     // give the signals some time to arrive
-    ctx_.run_for(std::chrono::milliseconds(20));
-
-    // remove all signals that contain banned strings
-    signals_on_client = clean_signals(signals_on_client);
-
-    return signals_on_client;
+    ctx_.run_for(std::chrono::milliseconds(100));
   }
 
-  // remove all signals that contain banned strings
-  auto clean_signals(std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
-    signals.erase(std::remove_if(signals.begin(), signals.end(),
-                                 [&](const tfc::ipc_ruler::signal& signal) {
-                                   return std::ranges::any_of(banned_signals_.begin(), banned_signals_.end(),
-                                                              [&](const std::string& banned_string) {
-                                                                return signal.name.find(banned_string) != std::string::npos;
-                                                              });
-                                 }),
-                  signals.end());
-
-    return signals;
+  auto clean_signals() -> void {
+    signals_on_client.erase(std::remove_if(signals_on_client.begin(), signals_on_client.end(),
+                                           [&](const tfc::ipc_ruler::signal& signal) {
+                                             return std::ranges::any_of(banned_topics_,
+                                                                        banned_topics_,
+                                                                        [&](const std::string& banned_string) {
+                                                                          return signal.name.find(banned_string) !=
+                                                                                 std::string::npos;
+                                                                        });
+                                           }),
+                            signals_on_client.end());
   }
 
-  // auto handle_signal(asio::io_context& ctx, auto& signal) -> void {
   auto handle_signal(tfc::ipc_ruler::signal& signal) -> void {
     switch (signal.type) {
       case details::type_e::_bool: {
@@ -195,102 +190,32 @@ private:
     while (!stop_coroutine_) {
       logger_.trace("waiting for signal: {}", signal_name);
       std::expected<value_type, std::error_code> msg = co_await slot.coro_receive();
-      std::string value_string = convert_to_string(msg.value());
-      co_await send_message<value_type>(msg, value_string, signal_name);
-    }
-  }
-
-  template <class value_type>
-  auto send_message(std::expected<value_type, std::error_code> msg, std::string value_string, std::string signal_name)
-      -> asio::awaitable<void> {
-
-    while (true) {
-
       if (msg) {
-        logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
-
-        try {
-          mqtt::message_ptr pubmsg = mqtt::make_message(signal_name, value_string);
-          pubmsg->set_qos(qos_);
-          mqtt_client_->publish(pubmsg)->wait_for(timeout_);
-        } catch (std::exception& e) {
-          logger_.error("exception in send: {}", e.what());
-        }
+        std::string value_string = convert_to_string(msg.value());
+        co_await send_message(value_string, signal_name);
       }
     }
-    co_return;
   }
 
-  // auto puback() -> asio::awaitable<void> {
-  //   while (true) {
-  //     co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
-  //     co_await async_wait();
-  //     async_mqtt::packet_variant packet_variant;
+  // template <class value_type>
+  auto send_message(std::string value_string, std::string signal_name) -> asio::awaitable<void> {
+    bool exception = false;
+    while (true) {
+      logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
+      try {
+        mqtt::message_ptr pubmsg = mqtt::make_message(signal_name, value_string);
+        pubmsg->set_qos(qos_);
+        mqtt_client_->publish(pubmsg)->wait_for(timeout_);
+        break;
+      } catch (std::exception& e) {
+        exception = true;
+        logger_.error("exception in send: {}", e.what());
+      }
 
-  //    try {
-  //      logger_.error("try recv");
-  //      packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
-  //    } catch (std::exception& e) {
-  //      logger_.error("exception in puback: {}", e.what());
-  //      continue;
-  //    } catch (...) {
-  //      logger_.error("exception in puback");
-  //      continue;
-  //    }
-
-  //    auto p_id = packet_variant.get<async_mqtt::v3_1_1::puback_packet>().packet_id();
-
-  //    std::vector<short unsigned int> keys_to_remove;
-  //    for (const auto& p : puback_map_) {
-  //      if (p.first == p_id) {
-  //        keys_to_remove.push_back(p.first);
-  //      }
-  //    }
-
-  //    for (const auto& key : keys_to_remove) {
-  //      puback_map_.erase(key);
-  //    }
-
-  //    bool should_reconnect = false;
-
-  //    for (const auto& p : puback_map_) {
-  //      logger_.trace("trying to send again because the first one didn't make it :( ");
-
-  //      try {
-  //        co_await mqtt_client_->send(
-  //            async_mqtt::v3_1_1::publish_packet{ p.first, async_mqtt::allocate_buffer(p.second.first),
-  //                                                async_mqtt::allocate_buffer(p.second.second),
-  //                                                async_mqtt::qos::exactly_once },
-  //            asio::use_awaitable);
-
-  //      } catch (std::exception& e) {
-  //        logger_.error("exception in puback: {}", e.what());
-
-  //        should_reconnect = true;
-  //      } catch (...) {
-  //        logger_.error("exception in puback");
-  //        should_reconnect = true;
-  //      }
-  //      if (should_reconnect) {
-  //        co_await mqtt_connect();
-  //      }
-
-  //      co_await asio::steady_timer{ ctx_, std::chrono::milliseconds(10000) }.async_wait(asio::use_awaitable);
-  //    }
-  //  }
-
-  //  co_return;
-  //}
-
-  auto async_wait() -> asio::awaitable<void> {
-    while (puback_map_.size() == 0) {
-      std::cout << "doing loop\n";
-      asio::steady_timer timer(ctx_);
-      timer.expires_after(std::chrono::milliseconds(100));
-
-      co_await timer.async_wait(asio::use_awaitable);
+      if (exception) {
+        connect_to_broker();
+      }
     }
-
     co_return;
   }
 
@@ -325,11 +250,10 @@ private:
   std::vector<std::unique_ptr<sdbusplus::bus::match::match>> signals_;
 
   bool stop_coroutine_ = false;
-  std::vector<std::string> banned_signals_;
-
-  // TODO:  key is not int but packet id, wait for compiler fix
-  std::map<short unsigned int, std::pair<std::string, std::string>> puback_map_;
 
   int qos_ = 1;
   std::chrono::seconds timeout_ = std::chrono::seconds(10);
+  std::vector<tfc::ipc_ruler::signal> signals_on_client;
+
+  std::vector<std::string> banned_topics_;
 };
