@@ -67,7 +67,7 @@ struct mqtt_connection {
     mqtt_client_->next_layer().set_option(asio::socket_base::keep_alive(true));
     mqtt_client_->send(
         async_mqtt::v5::connect_packet{ false, 10, async_mqtt::allocate_buffer("cid1"), std::nullopt,
-                                            std::nullopt, std::nullopt }, std::bind_front(&mqtt_connection::mqtt_connect_cb, this)
+                                            std::nullopt, std::nullopt, {async_mqtt::property::session_expiry_interval{10000}} }, std::bind_front(&mqtt_connection::mqtt_connect_cb, this)
     );
   }
   void resolve_cb(std::error_code err, asio::ip::tcp::resolver::results_type const& resolved_ip) {
