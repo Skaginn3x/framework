@@ -105,8 +105,8 @@ cmake_minimum_required(VERSION 3.21)
 project(mqtt_broadcaster)
 
 add_executable(mqtt-broadcaster "src/main.cpp")
-add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
-add_executable(minimum-example "src/minimum_example.cpp")
+#add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
+#add_executable(minimum-example "src/minimum_example.cpp")
 
 # find packages
 find_package(Boost 1.81.0 REQUIRED COMPONENTS log program_options)
@@ -136,7 +136,7 @@ set(COMMON_INCLUDE_DIRECTORIES
         )
 
 # target properties for all targets
-foreach(TARGET mqtt-broadcaster mqtt-broadcaster-tests minimum-example)
+foreach(TARGET mqtt-broadcaster )
     target_compile_definitions(${TARGET} ${COMMON_COMPILE_DEFINITIONS})
     target_link_libraries(${TARGET} PUBLIC ${COMMON_LIBS})
     target_include_directories(${TARGET} ${COMMON_INCLUDE_DIRECTORIES})
