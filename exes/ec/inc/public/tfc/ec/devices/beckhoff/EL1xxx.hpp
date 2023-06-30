@@ -38,5 +38,7 @@ private:
 };
 
 template <typename manager_client_type>
+using el1002 = el100x<manager_client_type, 2, 0x3ea3052>;
+template <typename manager_client_type>
 using el1008 = el100x<manager_client_type, 8, 0x3f03052>;
 }  // namespace tfc::ec::devices::beckhoff
