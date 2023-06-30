@@ -4,7 +4,6 @@
 
 // TODO: if nothing is printed when the program is started, ipc-ruler is not running
 auto main(int argc, char* argv[]) -> int {
-  // try {
   auto program_description{ tfc::base::default_description() };
 
   std::string mqtt_host;
@@ -35,11 +34,4 @@ auto main(int argc, char* argv[]) -> int {
   ctx.run();
 
   return 0;
-  //} catch (const std::exception& e) {
-  //    std::cerr << "Exception caught: " << e.what() << '\n';
-  //    return 1;  // or any other non-zero exit code
-  //  } catch (...) {
-  //    std::cerr << "Unknown exception caught\n";
-  //    return 2;  // or any other non-zero exit code
-  //  }
 }

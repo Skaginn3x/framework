@@ -1,11 +1,10 @@
 #include "paho2.hpp"
-#include <mqtt/async_client.h>
-#include <tfc/ipc.hpp>
+#include <boost/program_options.hpp>
+
+namespace asio = boost::asio;
 
 // TODO: if nothing is printed when the program is started, ipc-ruler is not running
 auto main(int argc, char* argv[]) -> int {
-
-  std::string persist_dir_ = "./persist";
 
   auto program_description{ tfc::base::default_description() };
 
@@ -24,12 +23,16 @@ auto main(int argc, char* argv[]) -> int {
 
   asio::io_context ctx{};
 
-  tfc::ipc_ruler::ipc_manager_client ipc_client{ ctx };
+  const tfc::ipc_ruler::ipc_manager_client ipc_client{ ctx };
 
-  auto mqtt_client = mqtt::async_client(mqtt_host, "cid1", persist_dir_);
+  const std::string server_address("mqtt://localhost:1883");
 
-  // TODO: test this using ipc-ruler and gets this baby going
-  mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client&, sdbusplus::bus::match::match>
+  std::cout << "server_address: " << fmt::format("mqtt://{}:{}", mqtt_host, mqtt_port) << "\n";
+
+  // const std::shared_ptr<mqtt::async_client> mqtt_client = std::make_shared<mqtt::async_client>(server_address, "cid1");
+  const std::shared_ptr<mqtt::async_client> mqtt_client = std::make_shared<mqtt::async_client>(fmt::format("mqtt://{}:{}", mqtt_host, mqtt_port), "cid1");
+
+  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client&, sdbusplus::bus::match::match>
       application(mqtt_client);
 
   ctx.run();

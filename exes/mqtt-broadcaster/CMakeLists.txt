@@ -3,7 +3,6 @@
 
  add_executable(mqtt-broadcaster "src/main.cpp")
  add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
- add_executable(minimum-example "src/minimum_example.cpp")
  add_executable(paho "src/paho2.cpp")
 
  # find packages
@@ -30,11 +29,7 @@ find_package(unofficial-libuuid CONFIG REQUIRED)
          Boost::boost
          Boost::log
          Boost::program_options
-         # async_mqtt_iface::async_mqtt_iface
-         #eclipse-paho-mqtt-c::paho-mqtt3a-static
-         #eclipse-paho-mqtt-c::paho-mqtt3c-static
          eclipse-paho-mqtt-c::paho-mqtt3as-static
-         # eclipse-paho-mqtt-c::paho-mqtt3cs-static
          unofficial::UUID::uuid
          PahoMqttCpp::paho-mqttpp3-static
          )
@@ -49,7 +44,7 @@ find_package(unofficial-libuuid CONFIG REQUIRED)
          )
 
  # target properties for all targets
- foreach (TARGET mqtt-broadcaster mqtt-broadcaster-tests minimum-example paho)
+ foreach (TARGET mqtt-broadcaster mqtt-broadcaster-tests paho)
      target_compile_definitions(${TARGET} ${COMMON_COMPILE_DEFINITIONS})
      target_link_libraries(${TARGET} PUBLIC ${COMMON_LIBS})
      target_include_directories(${TARGET} ${COMMON_INCLUDE_DIRECTORIES})

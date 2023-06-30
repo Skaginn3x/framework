@@ -48,43 +48,64 @@ public:
         config_(ctx, "mqtt_broadcaster"), puback_map_(std::map<short unsigned int, std::pair<std::string, std::string>>{}) {
     asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
 
-    config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
-      banned_signals_.clear();
+    //config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
+    //  banned_signals_.clear();
 
-      for (auto const& con : new_conf) {
-        banned_signals_.push_back(con);
-      }
-      restart();
-    });
+    //  for (auto const& con : new_conf) {
+    //    banned_signals_.push_back(con);
+    //  }
+    //  restart();
+    //});
 
-    // TODO: do we need this?, need to change for mock mqtt client in order to work
-    asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
+    //// TODO: do we need this?, need to change for mock mqtt client in order to work
+    //asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
 
-    banned_signals_ = config_.value()._banned_topics.value();
-    load_signals();
+    //banned_signals_ = config_.value()._banned_topics.value();
+    //load_signals();
   }
 
 private:
   auto connect_to_broker() -> asio::awaitable<void> {
+    logger_.trace("Starting to connect to broker");
+    logger_.trace("Starting to connect to broker");
+    logger_.trace("Starting to connect to broker");
+
     asio::ip::tcp::socket resolve_sock{ ctx_ };
     asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
     asio::ip::tcp::resolver::results_type resolved_ip =
         co_await res.async_resolve(mqtt_host_, mqtt_port_, asio::use_awaitable);
 
     logger_.trace("Connecting to endpoint");
-    //[[maybe_unused]] asio::ip::tcp::endpoint endpoint =
-    co_await asio::async_connect(mqtt_client_->next_layer(), resolved_ip, asio::use_awaitable);
+    logger_.trace("Connecting to endpoint");
+    logger_.trace("Connecting to endpoint");
+
+    // asio::async_connect(mqtt_client_->next_layer(), resolved_ip, [this](const boost::system::error_code& error) {
+    mqtt_client_->next_layer().async_connect(resolved_ip, [this](const boost::system::error_code& error) {
+      if (error) {
+        logger_.error("Error connecting to endpoint: {}", error.message());
+        logger_.error("Error connecting to endpoint: {}", error.message());
+        logger_.error("Error connecting to endpoint: {}", error.message());
+      }
+    });
+
+    co_await asio::steady_timer{ ctx_, std::chrono::seconds(50) }.async_wait(asio::use_awaitable);
 
     logger_.trace("Sending connect packet");
+    logger_.trace("Sending connect packet");
+    logger_.trace("Sending connect packet");
     co_await mqtt_client_->send(
-        async_mqtt::v3_1_1::connect_packet{ true, 0x0010, async_mqtt::allocate_buffer("cid1"), async_mqtt::nullopt,
-                                            async_mqtt::allocate_buffer(mqtt_username_),
+        async_mqtt::v3_1_1::connect_packet{ false, std::chrono::seconds(1).count(), async_mqtt::allocate_buffer("cid1"),
+                                            async_mqtt::nullopt, async_mqtt::allocate_buffer(mqtt_username_),
                                             async_mqtt::allocate_buffer(mqtt_password_) },
         asio::use_awaitable);
 
     logger_.trace("Waiting for CONNACK response");
+    logger_.trace("Waiting for CONNACK response");
+    logger_.trace("Waiting for CONNACK response");
     async_mqtt::packet_variant packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
 
+    logger_.trace("Sending SUBSCRIBE packet");
+    logger_.trace("Sending SUBSCRIBE packet");
     logger_.trace("Sending SUBSCRIBE packet");
 
     co_await mqtt_client_->send(
@@ -209,7 +230,7 @@ private:
     std::replace(signal_name.begin(), signal_name.end(), '.', '/');
 
     while (!stop_coroutine_) {
-      logger_.trace("waiting for signal: {}", signal_name);
+      // logger_.trace("waiting for signal: {}", signal_name);
       std::expected<value_type, std::error_code> msg = co_await slot.coro_receive();
       std::string value_string = convert_to_string(msg.value());
       co_await send_message<value_type>(msg, value_string, signal_name);
@@ -234,12 +255,11 @@ private:
               async_mqtt::v3_1_1::publish_packet{
                   mqtt_client_->acquire_unique_packet_id().value(), async_mqtt::allocate_buffer(signal_name),
                   async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
+
               asio::use_awaitable);
 
-          using packet_type = async_mqtt::control_packet_type;
-          async_mqtt::packet_variant packet_variant = co_await mqtt_client_->recv({ packet_type::puback }, asio::use_awaitable);
-
-          // TODO: after broker goes down the next message seems to be successful, need some sort of ack confirmation from
+          // TODO: after broker goes down the next message seems to be successful, need some sort of ack
+          // confirmation from
 
           logger_.trace(result.message());
 
@@ -329,7 +349,7 @@ private:
   //}
 
   auto async_wait() -> asio::awaitable<void> {
-    while (puback_map_.size() == 0) {
+    while (puback_map_.empty()) {
       std::cout << "doing loop\n";
       asio::steady_timer timer(ctx_);
       timer.expires_after(std::chrono::milliseconds(100));
