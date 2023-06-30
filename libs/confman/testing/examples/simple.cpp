@@ -1,10 +1,10 @@
+#include <chrono>
 #include <cstdint>
 #include <string>
-#include <chrono>
 
-#include <boost/asio.hpp>
-#include <units/quantity.h>
 #include <units/isq/si/electric_current.h>
+#include <units/quantity.h>
+#include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
@@ -22,12 +22,23 @@ struct simple_config {
   units::aliases::isq::si::electric_current::dA<uint16_t> amper{};
   struct glaze {
     using type = simple_config;
-    static constexpr auto value{ glz::object("a", &type::a, "A description",
-                                              "b", &type::b,
-                                              "c", &type::c, "C description",
-                                              "d", &type::d, "D description",
-                                             "sec", &type::sec, "Sec description",
-                                             "amper", &type::amper, "Amper description") };
+    static constexpr auto value{ glz::object("a",
+                                             &type::a,
+                                             "A description",
+                                             "b",
+                                             &type::b,
+                                             "c",
+                                             &type::c,
+                                             "C description",
+                                             "d",
+                                             &type::d,
+                                             "D description",
+                                             "sec",
+                                             &type::sec,
+                                             "Sec description",
+                                             "amper",
+                                             &type::amper,
+                                             "Amper description") };
     static constexpr auto name{ "simple_config" };
   };
 };
@@ -36,9 +47,8 @@ int main() {
   asio::io_context ctx{};
 
   tfc::confman::config<simple_config> const config{ ctx, "key" };
-  config->c.observe([](bool new_value, bool old_value){
-             fmt::print("new value: {}, old value: {}\n", new_value, old_value);
-           });
+  config->c.observe(
+      [](bool new_value, bool old_value) { fmt::print("new value: {}, old value: {}\n", new_value, old_value); });
 
   fmt::print("Schema is: {}\n", config.schema());
   fmt::print("Config is: {}\n", config.string());

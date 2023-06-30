@@ -1,12 +1,12 @@
+#include <chrono>
 #include <cstdint>
 #include <string>
-#include <chrono>
 
-#include <fmt/core.h>
 #include <fmt/chrono.h>
-#include <boost/asio.hpp>
-#include <units/quantity.h>
+#include <fmt/core.h>
 #include <units/isq/si/electric_current.h>
+#include <units/quantity.h>
+#include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
@@ -29,8 +29,7 @@ struct option_2 {
   tfc::confman::observable<std::chrono::nanoseconds> sec{};
   struct glaze {
     using type = option_2;
-    static constexpr auto value{ glz::object("a", &type::a, "A description",
-                                             "sec", &type::sec, "sec description") };
+    static constexpr auto value{ glz::object("a", &type::a, "A description", "sec", &type::sec, "sec description") };
     static constexpr auto name{ "option_2" };
   };
 };
@@ -40,8 +39,9 @@ struct with_variant {
   std::variant<std::monostate, option_1, option_2> variant{};
   struct glaze {
     using type = with_variant;
-    static constexpr auto value{ glz::object("a_int", &type::a, "A int description",
-                                             "variant", &type::variant, "variant description") };
+    static constexpr auto value{
+      glz::object("a_int", &type::a, "A int description", "variant", &type::variant, "variant description")
+    };
     static constexpr auto name{ "with_variant" };
   };
 };
