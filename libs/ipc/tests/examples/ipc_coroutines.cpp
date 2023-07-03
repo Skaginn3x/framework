@@ -15,14 +15,14 @@ auto timer_coro(asio::steady_timer& timer, std::shared_ptr<tfc::ipc::details::si
   while (true) {
     timer.expires_from_now(std::chrono::seconds{ 3 });
     co_await timer.async_wait(asio::use_awaitable);
-    co_await signal->coro_send(send_value);
+    co_await signal->async_send(send_value, asio::use_awaitable);
     send_value = !send_value;
   }
 }
 
 auto slot_coro(tfc::ipc::details::slot<tfc::ipc::details::type_bool>& slot) -> asio::awaitable<void> {
   while (true) {
-    std::expected<bool, std::error_code> msg = co_await slot.coro_receive();
+    std::expected<bool, std::error_code> msg = co_await slot.async_receive(asio::use_awaitable);
     if (msg) {
       fmt::print("message={}\n", msg.value());
     } else {

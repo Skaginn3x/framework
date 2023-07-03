@@ -12,15 +12,13 @@
 
 #include <fmt/format.h>
 #include <azmq/socket.hpp>
-#include <boost/asio/awaitable.hpp>
+#include <boost/asio/compose.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include <boost/asio/use_awaitable.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
-#include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
@@ -94,44 +92,54 @@ public:
   /// @return std::error_code, empty if no error.
   auto send(value_t const& value) -> std::error_code {
     last_value_ = value;
-    packet_t packet{ .value = last_value_ };
-    const auto attempted_serialize{ packet_t::serialize(packet) };
-    if (!attempted_serialize.has_value()) {
-      return attempted_serialize.error();
+    std::vector<std::byte> send_buffer{};
+    if (auto serialize_err{ packet_t::serialize(last_value_, send_buffer) }) {
+      return serialize_err;
     }
-    const auto serialized = attempted_serialize.value();
-    std::size_t size = socket_.send(asio::buffer(serialized, serialized.size()));
-    if (size != serialized.size()) {
-      // todo: create custom error codes and return here
-      std::terminate();
+    std::size_t size = socket_.send(asio::buffer(send_buffer));
+    if (size != send_buffer.size()) {
+      return std::make_error_code(std::errc::value_too_large);
     }
     return {};
   }
 
   /// @brief send value to subscriber
+  /// @tparam completion_token_t a concept of type void(std::error_code, std::size_t)
   /// @param value is sent
-  auto async_send(value_t const& value, std::invocable<std::error_code, std::size_t> auto&& callback) -> void {
+  template <typename completion_token_t>
+  auto async_send(value_t const& value, completion_token_t&& token)
+      -> asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
     last_value_ = value;
-    packet_t packet{ .value = last_value_ };
-    const auto attempted_serialize{ packet_t::serialize(packet) };
-    if (!attempted_serialize.has_value()) {
-      callback(attempted_serialize.error(), 0);
-      return;
+    std::unique_ptr<std::vector<std::byte>> send_buffer{ std::make_unique<std::vector<std::byte>>() };
+    if (auto serialize_error{ packet_t::serialize(last_value_, *send_buffer) }) {
+      return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
+          [serialize_error](auto& self, std::error_code = {}, std::size_t = 0) { self.complete(serialize_error, 0); },
+          token);
     }
-    auto serialized = std::make_shared<std::vector<std::byte>>(attempted_serialize.value());
-    socket_.async_send(asio::buffer(serialized->data(), serialized->size()),
-                       [callback, buffer = serialized](std::error_code error, size_t size) { callback(error, size); });
-  }
 
-  auto coro_send(value_t const& value) -> asio::awaitable<std::error_code> {
-    last_value_ = value;
-    packet_t packet{ .value = last_value_ };
-    const auto attempted_serialize{ packet_t::serialize(packet) };
-    if (!attempted_serialize.has_value()) {
-      co_return attempted_serialize.error();
-    }
-    co_await azmq::async_send(socket_, asio::buffer(attempted_serialize.value()), asio::use_awaitable);
-    co_return std::error_code{};
+    enum struct state_e { write, complete };
+
+    auto& socket{ socket_ };
+    return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
+        [&socket, buffer = std::move(send_buffer), state = state_e::write](auto& self, std::error_code err = {},
+                                                                           std::size_t bytes_sent = 0) mutable {
+          if (err) {
+            self.complete(err, bytes_sent);
+            return;
+          }
+          switch (state) {
+            case state_e::write: {
+              state = state_e::complete;
+              azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
+              break;
+            }
+            case state_e::complete: {
+              self.complete(err, bytes_sent);
+              break;
+            }
+          }
+        },
+        token, socket_);
   }
 
 private:
@@ -194,7 +202,8 @@ template <typename type_desc>
 class slot : public transmission_base<type_desc> {
 public:
   using value_t = typename type_desc::value_t;
-  using packet_t = packet<value_t, type_desc::value_e>;
+  static auto constexpr value_e{ type_desc::value_e };
+  using packet_t = packet<value_t, value_e>;
   static auto constexpr direction_v = direction_e::slot;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
@@ -210,12 +219,10 @@ public:
     socket_ = azmq::sub_socket(socket_.get_io_context(), true);
     boost::system::error_code error_code;
     std::string const socket_path{ utils::socket::zmq::ipc_endpoint_str(signal_name) };
-    socket_.connect(socket_path, error_code);
-    if (error_code) {
+    if (socket_.connect(socket_path, error_code)) {
       return error_code;
     }
-    socket_.set_option(azmq::socket::subscribe(""), error_code);
-    if (error_code) {
+    if (socket_.set_option(azmq::socket::subscribe(""), error_code)) {
       return error_code;
     }
     return {};
@@ -237,33 +244,41 @@ public:
     return packet_t::deserialize(std::span(buffer.data(), bytes_received)).value;
   }
 
-  /**
-   * @brief schedule an async_read of the slot
-   * */
-  auto async_receive(auto callback) -> void {
-    socket_.async_receive(
-        [callback](std::error_code const& err_code, azmq::message& msg, size_t bytes_received) {
-          if (err_code) {
-            callback(std::unexpected(err_code));
+  /// \brief schedule an async_read on the slot
+  /// \tparam completion_token_t completion token in asio format, example a callback or coroutine handler
+  /// callback of format: void(std::expected<type_desc::value_t, std::error_code>)
+  /// coroutine either asio::awaitable<std::expected<value_t, std::error_code>> or
+  /// asio::experimental::coro<void, std::expected<value_t, std::error_code>>
+  template <typename completion_token_t>
+  auto async_receive(completion_token_t&& token)
+      -> asio::async_result<std::decay_t<completion_token_t>, void(std::expected<value_t, std::error_code>)>::return_type {
+    enum struct state_e { read, complete };
+
+    std::unique_ptr<std::vector<std::byte>> receive_buffer{ std::make_unique<std::vector<std::byte>>() };
+    receive_buffer->resize(4096, {});
+    // todo receive header first then value
+
+    azmq::sub_socket& socket{ socket_ };
+    return asio::async_compose<completion_token_t, void(std::expected<value_t, std::error_code>)>(
+        [&socket, state = state_e::read, buffer = std::move(receive_buffer)](auto& self, std::error_code err = {},
+                                                                             std::size_t bytes_received = 0) mutable {
+          if (err) {
+            self.complete(std::unexpected(err));
             return;
           }
-          auto packet = packet_t::deserialize(std::span(static_cast<std::byte const*>(msg.data()), bytes_received));
-          if (packet.has_value()) {
-            return callback(std::move(packet.value().value));
+          switch (state) {
+            case state_e::read: {
+              state = state_e::complete;
+              azmq::async_receive(socket, asio::buffer(*buffer), std::move(self));
+              break;
+            }
+            case state_e::complete: {
+              self.complete(packet_t::deserialize(std::span{ buffer->data(), bytes_received }));
+              break;
+            }
           }
-          callback(std::unexpected(std::move(packet.error())));
         },
-        0);
-  }
-  auto coro_receive() -> asio::awaitable<std::expected<value_t, std::error_code>> {
-    std::vector<std::byte> msg{};
-    msg.resize(4096, {});
-    size_t bytes_received = co_await azmq::async_receive(socket_, asio::buffer(msg), asio::use_awaitable);
-    auto packet = packet_t::deserialize(std::span{ msg.data(), bytes_received });
-    if (packet.has_value()) {
-      co_return std::move(packet.value().value);
-    }
-    co_return std::move(std::unexpected(packet.error()));
+        token, socket_);
   }
 
   /**
