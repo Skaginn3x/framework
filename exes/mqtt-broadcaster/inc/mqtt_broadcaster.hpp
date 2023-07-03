@@ -1,5 +1,6 @@
 #pragma once
 #include <async_mqtt/all.hpp>
+#include <async_mqtt/store.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <iterator>
@@ -46,7 +47,10 @@ public:
                                            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
                                            std::bind_front(&mqtt_broadcaster::update_signals, this))),
         config_(ctx, "mqtt_broadcaster") {
-    asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
+    if (!connect_active) {
+      connect_active = true;
+      asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
+    }
 
     config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
       banned_signals_.clear();
@@ -64,36 +68,10 @@ public:
   }
 
 private:
-  auto receive_packet(async_mqtt::control_packet_type packet_type) -> asio::awaitable<void> {
-    for (int i = 0; i < 5; i++) {
-      async_mqtt::packet_variant packet_variant;
-
-      try {
-        packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
-
-        if (packet_variant.type() == packet_type) {
-          logger_.trace("Received MQTT connack");
-          co_return;
-        }
-
-      } catch (std::exception& e) {
-        logger_.error("Exception: {}", e.what());
-        continue;
-      }
-
-      co_await asio::steady_timer{ ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
-    }
-
-    logger_.error("Timed out");
-    throw std::exception();
-  }
-
   auto connect_to_broker() -> asio::awaitable<void> {
     while (true) {
-      bool exception = false;
       try {
-        logger_.trace("Connecting to MQTT broker, closing the previous connection");
-        // [[maybe_unused]] auto result = mqtt_client_->close(asio::use_awaitable);
+        logger_.trace("Connecting to MQTT broker");
 
         asio::ip::tcp::socket resolve_sock{ ctx_ };
         asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
@@ -117,19 +95,18 @@ private:
             asio::use_awaitable);
 
         logger_.trace("Waiting for MQTT connack");
-
-        co_await receive_packet(async_mqtt::control_packet_type::connack);
+        co_await mqtt_client_->recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::connack },
+                                    asio::use_awaitable);
 
         connect_active = false;
         break;
       } catch (std::exception& e) {
-        logger_.error("Error Error Error while connecting: {}", e.what());
-        exception = true;
+        logger_.error("Error while connecting to MQTT broker: {}", e.what());
+      } catch (...) {
+        logger_.error("Other error");
       }
-      if (exception) {
-        logger_.error("Error Error Error while connecting: {}", "exception");
-        co_await asio::steady_timer{ ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
-      }
+      co_await asio::co_spawn(mqtt_client_->strand(), mqtt_client_->close(asio::use_awaitable), asio::use_awaitable);
+      co_await asio::steady_timer{ ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
     }
   }
 
@@ -255,52 +232,43 @@ private:
     }
   }
 
+  // while the broker is not connected and a message is sent, it gets lost in all the excitement
   template <class value_type>
   auto send_message(std::expected<value_type, std::error_code> msg, std::string value_string, std::string signal_name)
       -> asio::awaitable<void> {
-    bool exception = false;
 
-    while (true) {
-      exception = false;
+    bool send_failed = false;
 
-      co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
+    co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
 
-      if (msg) {
-        logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
+    if (msg) {
+      logger_.trace("sending message: {} to topic: {}", value_string, signal_name);
 
-        try {
-          auto result = co_await mqtt_client_->send(
-              async_mqtt::v5::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
-                                              async_mqtt::allocate_buffer(signal_name),
-                                              async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
+      try {
+        auto result = co_await mqtt_client_->send(
+            async_mqtt::v5::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
+                                            async_mqtt::allocate_buffer(signal_name),
+                                            async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
+            asio::use_awaitable);
 
-              asio::use_awaitable);
+        if (result) {
+          logger_.error("Send failed: {}", result.message());
+          send_failed = true;
 
-          // co_await receive_packet(async_mqtt::control_packet_type::puback);
-
-          logger_.trace(result.message());
-
-          if (result) {
-            exception = true;
-            logger_.error("failed to connect to mqtt client: {}", result.message());
-            co_await asio::steady_timer{ ctx_, std::chrono::milliseconds{ 100 } }.async_wait(asio::use_awaitable);
-            // co_await mqtt_connect();
-          } else {
-            logger_.trace("message sent successfully");
-            break;
-          }
-        } catch (std::exception& e) {
-          logger_.error("exception in send: {}", e.what());
-          exception = true;
+        } else {
+          logger_.trace("Message sent successfully");
         }
+      } catch (std::exception& e) {
+        logger_.error("Exception in send: {}", e.what());
+        send_failed = true;
       }
+    }
 
-      if (exception) {
-        if (!connect_active) {
-          connect_active = true;
-          logger_.trace("Exception in send, reconnecting to broker");
-          asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
-        }
+    if (send_failed) {
+      logger_.trace("Exception in send, reconnecting to broker");
+      if (!connect_active) {
+        connect_active = true;
+        co_await asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::use_awaitable);
       }
     }
     co_return;
@@ -338,5 +306,6 @@ private:
 
   bool stop_coroutine_ = false;
   std::vector<std::string> banned_signals_;
+
   bool connect_active = false;
 };
