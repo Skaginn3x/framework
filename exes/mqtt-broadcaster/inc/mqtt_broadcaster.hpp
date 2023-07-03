@@ -45,74 +45,92 @@ public:
             std::make_unique<match_client>(*dbus_connection_,
                                            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
                                            std::bind_front(&mqtt_broadcaster::update_signals, this))),
-        config_(ctx, "mqtt_broadcaster"), puback_map_(std::map<short unsigned int, std::pair<std::string, std::string>>{}) {
+        config_(ctx, "mqtt_broadcaster") {
     asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
 
-    //config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
-    //  banned_signals_.clear();
+    config_.value()._banned_topics.observe([&, this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) {
+      banned_signals_.clear();
 
-    //  for (auto const& con : new_conf) {
-    //    banned_signals_.push_back(con);
-    //  }
-    //  restart();
-    //});
+      for (auto const& con : new_conf) {
+        banned_signals_.push_back(con);
+      }
+      restart();
+    });
 
-    //// TODO: do we need this?, need to change for mock mqtt client in order to work
-    //asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
+    asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
 
-    //banned_signals_ = config_.value()._banned_topics.value();
-    //load_signals();
+    banned_signals_ = config_.value()._banned_topics.value();
+    load_signals();
   }
 
 private:
-  auto connect_to_broker() -> asio::awaitable<void> {
-    logger_.trace("Starting to connect to broker");
-    logger_.trace("Starting to connect to broker");
-    logger_.trace("Starting to connect to broker");
+  auto receive_packet(async_mqtt::control_packet_type packet_type) -> asio::awaitable<void> {
+    for (int i = 0; i < 5; i++) {
+      async_mqtt::packet_variant packet_variant;
 
-    asio::ip::tcp::socket resolve_sock{ ctx_ };
-    asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
-    asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(mqtt_host_, mqtt_port_, asio::use_awaitable);
+      try {
+        packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
 
-    logger_.trace("Connecting to endpoint");
-    logger_.trace("Connecting to endpoint");
-    logger_.trace("Connecting to endpoint");
+        if (packet_variant.type() == packet_type) {
+          logger_.trace("Received MQTT connack");
+          co_return;
+        }
 
-    // asio::async_connect(mqtt_client_->next_layer(), resolved_ip, [this](const boost::system::error_code& error) {
-    mqtt_client_->next_layer().async_connect(resolved_ip, [this](const boost::system::error_code& error) {
-      if (error) {
-        logger_.error("Error connecting to endpoint: {}", error.message());
-        logger_.error("Error connecting to endpoint: {}", error.message());
-        logger_.error("Error connecting to endpoint: {}", error.message());
+      } catch (std::exception& e) {
+        logger_.error("Exception: {}", e.what());
+        continue;
       }
-    });
 
-    co_await asio::steady_timer{ ctx_, std::chrono::seconds(50) }.async_wait(asio::use_awaitable);
+      co_await asio::steady_timer{ ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
+    }
 
-    logger_.trace("Sending connect packet");
-    logger_.trace("Sending connect packet");
-    logger_.trace("Sending connect packet");
-    co_await mqtt_client_->send(
-        async_mqtt::v3_1_1::connect_packet{ false, std::chrono::seconds(1).count(), async_mqtt::allocate_buffer("cid1"),
-                                            async_mqtt::nullopt, async_mqtt::allocate_buffer(mqtt_username_),
-                                            async_mqtt::allocate_buffer(mqtt_password_) },
-        asio::use_awaitable);
+    logger_.error("Timed out");
+    throw std::exception();
+  }
 
-    logger_.trace("Waiting for CONNACK response");
-    logger_.trace("Waiting for CONNACK response");
-    logger_.trace("Waiting for CONNACK response");
-    async_mqtt::packet_variant packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
+  auto connect_to_broker() -> asio::awaitable<void> {
+    while (true) {
+      bool exception = false;
+      try {
+        logger_.trace("Connecting to MQTT broker, closing the previous connection");
+        // [[maybe_unused]] auto result = mqtt_client_->close(asio::use_awaitable);
 
-    logger_.trace("Sending SUBSCRIBE packet");
-    logger_.trace("Sending SUBSCRIBE packet");
-    logger_.trace("Sending SUBSCRIBE packet");
+        asio::ip::tcp::socket resolve_sock{ ctx_ };
+        asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
 
-    co_await mqtt_client_->send(
-        async_mqtt::v3_1_1::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
-                                            async_mqtt::allocate_buffer("test_topic2"),
-                                            async_mqtt::allocate_buffer("test_payload2"), async_mqtt::qos::at_least_once },
-        asio::use_awaitable);
+        logger_.trace("Resolving IP number");
+        asio::ip::tcp::resolver::results_type resolved_ip =
+            co_await res.async_resolve(mqtt_host_, mqtt_port_, asio::use_awaitable);
+
+        logger_.trace("Connecting to IP number");
+        co_await asio::async_connect(mqtt_client_->next_layer(), resolved_ip, asio::use_awaitable);
+
+        logger_.trace("Performing MQTT handshake");
+        co_await mqtt_client_->send(
+            async_mqtt::v5::connect_packet{ false,
+                                            std::chrono::seconds(100).count(),
+                                            async_mqtt::allocate_buffer("cid1"),
+                                            async_mqtt::nullopt,
+                                            async_mqtt::allocate_buffer(mqtt_username_),
+                                            async_mqtt::allocate_buffer(mqtt_password_),
+                                            { async_mqtt::property::session_expiry_interval{ UINT_MAX } } },
+            asio::use_awaitable);
+
+        logger_.trace("Waiting for MQTT connack");
+
+        co_await receive_packet(async_mqtt::control_packet_type::connack);
+
+        connect_active = false;
+        break;
+      } catch (std::exception& e) {
+        logger_.error("Error Error Error while connecting: {}", e.what());
+        exception = true;
+      }
+      if (exception) {
+        logger_.error("Error Error Error while connecting: {}", "exception");
+        co_await asio::steady_timer{ ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
+      }
+    }
   }
 
   auto load_signals() -> void {
@@ -252,18 +270,18 @@ private:
 
         try {
           auto result = co_await mqtt_client_->send(
-              async_mqtt::v3_1_1::publish_packet{
-                  mqtt_client_->acquire_unique_packet_id().value(), async_mqtt::allocate_buffer(signal_name),
-                  async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
+              async_mqtt::v5::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
+                                              async_mqtt::allocate_buffer(signal_name),
+                                              async_mqtt::allocate_buffer(value_string), async_mqtt::qos::at_least_once },
 
               asio::use_awaitable);
 
-          // TODO: after broker goes down the next message seems to be successful, need some sort of ack
-          // confirmation from
+          // co_await receive_packet(async_mqtt::control_packet_type::puback);
 
           logger_.trace(result.message());
 
           if (result) {
+            exception = true;
             logger_.error("failed to connect to mqtt client: {}", result.message());
             co_await asio::steady_timer{ ctx_, std::chrono::milliseconds{ 100 } }.async_wait(asio::use_awaitable);
             // co_await mqtt_connect();
@@ -278,85 +296,13 @@ private:
       }
 
       if (exception) {
-        mqtt_client_->close([this]() { logger_.info("mqtt client closed"); });
-
-        co_await asio::steady_timer{ ctx_, std::chrono::milliseconds{ 100 } }.async_wait(asio::use_awaitable);
-        asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
+        if (!connect_active) {
+          connect_active = true;
+          logger_.trace("Exception in send, reconnecting to broker");
+          asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
+        }
       }
     }
-    co_return;
-  }
-
-  // auto puback() -> asio::awaitable<void> {
-  //   while (true) {
-  //     co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
-  //     co_await async_wait();
-  //     async_mqtt::packet_variant packet_variant;
-
-  //    try {
-  //      logger_.error("try recv");
-  //      packet_variant = co_await mqtt_client_->recv(asio::use_awaitable);
-  //    } catch (std::exception& e) {
-  //      logger_.error("exception in puback: {}", e.what());
-  //      continue;
-  //    } catch (...) {
-  //      logger_.error("exception in puback");
-  //      continue;
-  //    }
-
-  //    auto p_id = packet_variant.get<async_mqtt::v3_1_1::puback_packet>().packet_id();
-
-  //    std::vector<short unsigned int> keys_to_remove;
-  //    for (const auto& p : puback_map_) {
-  //      if (p.first == p_id) {
-  //        keys_to_remove.push_back(p.first);
-  //      }
-  //    }
-
-  //    for (const auto& key : keys_to_remove) {
-  //      puback_map_.erase(key);
-  //    }
-
-  //    bool should_reconnect = false;
-
-  //    for (const auto& p : puback_map_) {
-  //      logger_.trace("trying to send again because the first one didn't make it :( ");
-
-  //      try {
-  //        co_await mqtt_client_->send(
-  //            async_mqtt::v3_1_1::publish_packet{ p.first, async_mqtt::allocate_buffer(p.second.first),
-  //                                                async_mqtt::allocate_buffer(p.second.second),
-  //                                                async_mqtt::qos::exactly_once },
-  //            asio::use_awaitable);
-
-  //      } catch (std::exception& e) {
-  //        logger_.error("exception in puback: {}", e.what());
-
-  //        should_reconnect = true;
-  //      } catch (...) {
-  //        logger_.error("exception in puback");
-  //        should_reconnect = true;
-  //      }
-  //      if (should_reconnect) {
-  //        co_await mqtt_connect();
-  //      }
-
-  //      co_await asio::steady_timer{ ctx_, std::chrono::milliseconds(10000) }.async_wait(asio::use_awaitable);
-  //    }
-  //  }
-
-  //  co_return;
-  //}
-
-  auto async_wait() -> asio::awaitable<void> {
-    while (puback_map_.empty()) {
-      std::cout << "doing loop\n";
-      asio::steady_timer timer(ctx_);
-      timer.expires_after(std::chrono::milliseconds(100));
-
-      co_await timer.async_wait(asio::use_awaitable);
-    }
-
     co_return;
   }
 
@@ -392,7 +338,5 @@ private:
 
   bool stop_coroutine_ = false;
   std::vector<std::string> banned_signals_;
-
-  // TODO:  key is not int but packet id, wait for compiler fix
-  std::map<short unsigned int, std::pair<std::string, std::string>> puback_map_;
+  bool connect_active = false;
 };

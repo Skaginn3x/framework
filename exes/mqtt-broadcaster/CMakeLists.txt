@@ -3,7 +3,6 @@
 
  add_executable(mqtt-broadcaster "src/main.cpp")
  add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
- add_executable(paho "src/paho2.cpp")
 
  # find packages
  find_package(Boost 1.81.0 REQUIRED COMPONENTS log program_options)
@@ -16,7 +15,7 @@ find_package(unofficial-libuuid CONFIG REQUIRED)
  find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
 
  # list(APPEND CMAKE_PREFIX_PATH "/opt/vcpkg/packages/paho-mqttpp3_x64-linux/share/PahoMqttCpp/")
- find_package(PahoMqttCpp CONFIG REQUIRED)
+ # find_package(PahoMqttCpp CONFIG REQUIRED)
 
  # set common libraries
  set(COMMON_LIBS
@@ -31,7 +30,7 @@ find_package(unofficial-libuuid CONFIG REQUIRED)
          Boost::program_options
          eclipse-paho-mqtt-c::paho-mqtt3as-static
          unofficial::UUID::uuid
-         PahoMqttCpp::paho-mqttpp3-static
+         # PahoMqttCpp::paho-mqttpp3-static
          )
 
  # set common compile definitions
@@ -44,7 +43,7 @@ find_package(unofficial-libuuid CONFIG REQUIRED)
          )
 
  # target properties for all targets
- foreach (TARGET mqtt-broadcaster mqtt-broadcaster-tests paho)
+ foreach (TARGET mqtt-broadcaster mqtt-broadcaster-tests)
      target_compile_definitions(${TARGET} ${COMMON_COMPILE_DEFINITIONS})
      target_link_libraries(${TARGET} PUBLIC ${COMMON_LIBS})
      target_include_directories(${TARGET} ${COMMON_INCLUDE_DIRECTORIES})

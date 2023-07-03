@@ -25,7 +25,7 @@ auto main(int argc, char* argv[]) -> int {
 
   const std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client =
       std::make_shared<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>(
-          async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
+          async_mqtt::protocol_version::v5, ctx.get_executor());
 
   mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client&, sdbusplus::bus::match::match,
                    async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>>
