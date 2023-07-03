@@ -42,7 +42,7 @@ public:
 
   auto strand() -> boost::asio::strand<boost::asio::io_context::executor_type>& { return strand_; }
 
-  auto send(async_mqtt::v3_1_1::publish_packet packet, const boost::asio::use_awaitable_t<>&)
+  auto send(async_mqtt::v5::publish_packet packet, const boost::asio::use_awaitable_t<>&)
       -> boost::asio::awaitable<result> {
     std::cout << "just received a packet on send\n";
     std::cout << "packet id: " << packet.packet_id() << "\n";
@@ -59,13 +59,13 @@ public:
     }
   }
 
-  auto get_last_message() -> async_mqtt::v3_1_1::publish_packet {
+  auto get_last_message() -> async_mqtt::v5::publish_packet {
     auto last_message = messages_.back();
     return last_message;
   }
 
   // Overload for connect_packet
-  auto send([[maybe_unused]] async_mqtt::v3_1_1::connect_packet packet, const boost::asio::use_awaitable_t<>&)
+  auto send([[maybe_unused]] async_mqtt::v5::connect_packet packet, const boost::asio::use_awaitable_t<>&)
       -> boost::asio::awaitable<result> {
     if (online_) {
       std::string message = "Success";
@@ -85,9 +85,10 @@ public:
 
   auto recv(boost::asio::use_awaitable_t<>) -> boost::asio::awaitable<async_mqtt::packet_variant> {
     if (online_) {
-      co_return async_mqtt::v3_1_1::connack_packet{ true, async_mqtt::connect_return_code::accepted };
+      co_return async_mqtt::v5::connack_packet{ true, async_mqtt::connect_return_code::accepted };
+      // co_return async_mqtt::v5::connack_packet{ true, async_mqtt::connect_return_code::accepted };
     } else {
-      co_return async_mqtt::v3_1_1::connack_packet{ false, async_mqtt::connect_return_code::accepted };
+      co_return async_mqtt::v5::connack_packet{ false, async_mqtt::connect_return_code::accepted };
     }
   }
 
@@ -97,13 +98,13 @@ public:
 
 private:
   boost::asio::strand<boost::asio::io_context::executor_type> strand_;
-  std::vector<async_mqtt::v3_1_1::publish_packet> messages_;
+  std::vector<async_mqtt::v5::publish_packet> messages_;
   boost::asio::ip::tcp::socket socket_;
   uint16_t packet_id_ = 0;
   bool online_;
 };
 
-auto send_simple_value(int timeout_in_ms) -> void {
+static auto send_simple_value(int timeout_in_ms) -> void {
   boost::asio::io_context ctx{};
 
   const std::string mqtt_host{ "localhost" };
@@ -117,7 +118,7 @@ auto send_simple_value(int timeout_in_ms) -> void {
                                                                                               "description");
 
   const std::shared_ptr<mock_mqtt_client> mqtt_client =
-      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
+      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
 
   const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_matcher, mock_mqtt_client> application(
       ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
@@ -153,7 +154,7 @@ auto send_simple_value(int timeout_in_ms) -> void {
       << "qos should be: " << last_message.opts().get_qos();
 }
 
-auto add_signal_in_running(int timeout_in_ms) -> void {
+static auto add_signal_in_running(int timeout_in_ms) -> void {
   boost::asio::io_context ctx{};
 
   const std::string mqtt_host{ "localhost" };
@@ -167,7 +168,7 @@ auto add_signal_in_running(int timeout_in_ms) -> void {
                                                                                               "description");
 
   const std::shared_ptr<mock_mqtt_client> mqtt_client =
-      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
+      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
 
   const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_matcher, mock_mqtt_client> application(
       ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
@@ -222,7 +223,7 @@ auto add_signal_in_running(int timeout_in_ms) -> void {
       << "qos should be: " << last_message.opts().get_qos();
 }
 
-auto mqtt_broker_goes_down(int timeout_in_ms) {
+static auto mqtt_broker_goes_down(int timeout_in_ms) {
   boost::asio::io_context ctx{};
 
   const std::string mqtt_host{ "localhost" };
@@ -236,7 +237,7 @@ auto mqtt_broker_goes_down(int timeout_in_ms) {
                                                                                               "description");
 
   const std::shared_ptr<mock_mqtt_client> mqtt_client =
-      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v3_1_1, ctx.get_executor());
+      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
 
   const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_matcher, mock_mqtt_client> application(
       ctx, mqtt_host, mqtt_port, mqtt_username, mqtt_password, ipc_client, mqtt_client);
