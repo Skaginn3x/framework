@@ -8,7 +8,6 @@
  find_package(unofficial-libuuid CONFIG REQUIRED)
  find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
 
- # set common libraries
  set(COMMON_LIBS
          tfc::base
          tfc::logger
