@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <array>
 #include <concepts>
 #include <expected>
@@ -129,6 +131,12 @@ private:
   auto init() -> std::error_code {
     boost::system::error_code error_code;
     socket_.bind(this->endpoint(), error_code);
+    auto const filename{ this->name_w_type().insert(0, tfc::utils::socket::file_path) };
+    // read, write and execute by owner, group and others
+    // allow non-root processes to connect to socket if ran by root
+    if (chmod(filename.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
+      return boost::system::error_code(errno, azmq::error_category{});
+    }
     if (error_code) {
       return error_code;
     }
