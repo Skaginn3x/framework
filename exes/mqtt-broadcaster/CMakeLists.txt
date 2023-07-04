@@ -5,7 +5,7 @@
  add_executable(mqtt-broadcaster-tests "tests/mqtt_broadcaster_tests.cpp")
 
  find_package(Boost 1.81.0 REQUIRED COMPONENTS log program_options)
- find_package(unofficial-libuuid CONFIG REQUIRED)
+ # find_package(unofficial-libuuid CONFIG REQUIRED)
  find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
 
  set(COMMON_LIBS
@@ -19,7 +19,7 @@
          Boost::log
          Boost::program_options
          eclipse-paho-mqtt-c::paho-mqtt3as-static
-         unofficial::UUID::uuid
+         # unofficial::UUID::uuid
          )
 
  set(COMMON_COMPILE_DEFINITIONS PUBLIC ASYNC_MQTT_USE_LOG)
