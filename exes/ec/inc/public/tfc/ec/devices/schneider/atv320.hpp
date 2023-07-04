@@ -447,6 +447,7 @@ public:
                                                 &T::acceleration,
                                                 "deceleration",
                                                 &T::deceleration);
+      static constexpr auto name{ "atv320" };
     };
     auto operator==(const atv_config&) const noexcept -> bool = default;
   };
