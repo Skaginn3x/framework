@@ -289,6 +289,13 @@ public:
     return socket_.disconnect(signal_name.data(), code);
   }
 
+  /**
+   * @brief cancel the socket
+   */
+  auto cancel() -> void {
+    socket_.cancel();
+  }
+
 private:
   azmq::sub_socket socket_;
 };

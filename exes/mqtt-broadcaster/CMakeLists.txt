@@ -10,7 +10,7 @@
 
  # a bit hacky but works for now
  # list(APPEND CMAKE_PREFIX_PATH "/opt/vcpkg/packages/libuuid_x64-linux/share/unofficial-libuuid")
-find_package(unofficial-libuuid CONFIG REQUIRED)
+ find_package(unofficial-libuuid CONFIG REQUIRED)
 
  find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
 

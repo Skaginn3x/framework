@@ -21,7 +21,7 @@ struct config {
 };
 
 // In order to ease testing, types are injected into the class
-template <class ipc_client_type, class match_client, class mqtt_client_type>
+template <class ipc_client_type, class mqtt_client_type>
 class mqtt_broadcaster {
 public:
   mqtt_broadcaster(asio::io_context& ctx,
@@ -36,15 +36,20 @@ public:
         mqtt_password_(std::move(mqtt_password)), ctx_(ctx), ipc_client_(ipc_client), mqtt_client_(std::move(mqtt_client)),
         logger_("mqtt_broadcaster"),
         dbus_connection_(std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())),
-        signal_updates_(
-            std::make_unique<match_client>(*dbus_connection_,
-                                           sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
-                                           std::bind_front(&mqtt_broadcaster::update_signals, this))),
+        signal_updates_(std::make_unique<sdbusplus::bus::match::match>(
+            *dbus_connection_,
+            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
+            std::bind_front(&mqtt_broadcaster::update_signals, this))),
         config_(ctx, "mqtt_broadcaster") {
+    asio::co_spawn(mqtt_client_->strand(), initialize(), asio::detached);
+  }
+
+private:
+  auto initialize() -> asio::awaitable<void> {
     // Initial connect to the broker
     if (!connect_active_) {
       connect_active_ = true;
-      asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::detached);
+      co_await asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::use_awaitable);
     }
 
     // When a new list of banned string arrives the program is restarted
@@ -56,13 +61,11 @@ public:
       restart();
     });
 
-    asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx), asio::detached);
+    asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx_), asio::detached);
 
     banned_signals_ = config_.value()._banned_topics.value();
     load_signals();
   }
-
-private:
 
   // Connect the mqtt client to the broker. Only a single "thread" can run this at a time. The routine that calls this
   // function must set the connect_active_ flag to true before calling this function and the function sets it to false when
@@ -113,6 +116,15 @@ private:
 
   // Function which has oversight over the signals
   auto load_signals() -> void {
+
+    // Stop reading the current signals by canceling the slots
+    for (auto& slot : slots_) {
+      std::visit([](auto& ptr) {
+        ptr->cancel();
+      }, slot);
+    }
+
+    active_signals_.clear();
     get_signals();
     clean_signals();
 
@@ -121,10 +133,7 @@ private:
     }
   }
 
-  // This function loads signals from the ipc-client
   auto get_signals() -> void {
-    active_signals_.clear();
-
     ipc_client_.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
       for (const tfc::ipc_ruler::signal& signal : signals) {
         active_signals_.push_back(signal);
@@ -192,12 +201,13 @@ private:
   // This function stops the coroutines that are currently running and then restarts them
   auto restart() -> void {
     stop_coroutine_ = true;
+    ctx_.run_for(std::chrono::milliseconds(20));
     logger_.info("Signal list has been updated, reloading all signals");
     load_signals();
     stop_coroutine_ = false;
   }
 
-        // This function is called when a signal is received
+  // This function is called when a signal is received
   void update_signals([[maybe_unused]] sdbusplus::message::message& msg) noexcept { restart(); }
 
   // This function is called when a value is received and its value needs to be converted to a string
@@ -221,10 +231,10 @@ private:
     std::replace(signal_name.begin(), signal_name.end(), '.', '/');
 
     while (!stop_coroutine_) {
-      std::expected<value_type, std::error_code> msg = co_await slot.coro_receive();
+      std::expected<value_type, std::error_code> msg = co_await slot.async_receive(asio::use_awaitable);
       if (msg) {
-        std::string value = convert_to_string(msg.value());
-        co_await send_message<value_type>(signal_name, value);
+        std::string message_value = convert_to_string(msg.value());
+        co_await send_message<value_type>(signal_name, message_value);
       }
     }
   }
@@ -276,7 +286,7 @@ private:
   std::shared_ptr<mqtt_client_type> mqtt_client_;
   tfc::logger::logger logger_;
   std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_;
-  std::unique_ptr<match_client, std::function<void(match_client*)>> signal_updates_;
+  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> signal_updates_;
   tfc::confman::config<config> config_;
 
   std::vector<std::string> banned_signals_;
