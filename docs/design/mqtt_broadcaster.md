@@ -127,7 +127,7 @@ Install Wireshark with your package manager and add your user to the Wireshark g
 ```bash
 sudo pacman -S wireshark-qt
 sudo usermod -a -G wireshark $USER
-# restart or relogin
+# restart or log in again
 ```
 
 If you are using Docker, the traffic will be limited to that interface (assuming you are not running other containers).
