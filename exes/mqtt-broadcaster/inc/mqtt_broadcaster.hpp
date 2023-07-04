@@ -85,22 +85,26 @@ private:
         co_await asio::async_connect(mqtt_client_->next_layer(), resolved_ip, asio::use_awaitable);
 
         logger_.trace("Sending Connect request to the MQTT broker");
-        co_await mqtt_client_->send(
+
+        // Connect is initialized with clean start set to false, which means that the broker will keep the session alive even
+        // if the client disconnect, and it will keep that session alive for UINT_MAX seconds.
+        auto connect_packet =
             async_mqtt::v5::connect_packet{ false,
                                             std::chrono::seconds(100).count(),
                                             async_mqtt::allocate_buffer("cid1"),
                                             async_mqtt::nullopt,
                                             async_mqtt::allocate_buffer(mqtt_username_),
                                             async_mqtt::allocate_buffer(mqtt_password_),
-                                            { async_mqtt::property::session_expiry_interval{ UINT_MAX } } },
-            asio::use_awaitable);
+                                            { async_mqtt::property::session_expiry_interval{ UINT_MAX } } };
+
+        co_await mqtt_client_->send(connect_packet, asio::use_awaitable);
 
         logger_.trace("Waiting for MQTT connection acknowledgement");
         co_await mqtt_client_->recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::connack },
                                     asio::use_awaitable);
 
         connect_active_ = false;
-        break;
+        co_return;
       } catch (std::exception& e) {
         logger_.error("Error while connecting to MQTT broker: {}", e.what());
       } catch (...) {
@@ -116,12 +120,9 @@ private:
 
   // Function which has oversight over the signals
   auto load_signals() -> void {
-
     // Stop reading the current signals by canceling the slots
     for (auto& slot : slots_) {
-      std::visit([](auto& ptr) {
-        ptr->cancel();
-      }, slot);
+      std::visit([](auto& ptr) { ptr->cancel(); }, slot);
     }
 
     active_signals_.clear();
