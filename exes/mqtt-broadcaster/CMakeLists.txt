@@ -6,7 +6,7 @@
 
  find_package(Boost 1.81.0 REQUIRED COMPONENTS log program_options)
  # find_package(unofficial-libuuid CONFIG REQUIRED)
- find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
+ # find_package(eclipse-paho-mqtt-c CONFIG REQUIRED)
 
  set(COMMON_LIBS
          tfc::base
@@ -18,7 +18,7 @@
          Boost::boost
          Boost::log
          Boost::program_options
-         eclipse-paho-mqtt-c::paho-mqtt3as-static
+         # eclipse-paho-mqtt-c::paho-mqtt3as-static
          # unofficial::UUID::uuid
          )
 
