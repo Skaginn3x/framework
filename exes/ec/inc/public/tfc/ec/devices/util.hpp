@@ -52,7 +52,7 @@ struct glz::meta<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_
   using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
   static constexpr std::string_view description{ desc };
   static constexpr auto value{
-    glz::object("value", &setting::value, description)  // todo concat description, index and name
+    glz::object("value", &setting::value, "index", &setting::index, "name", &setting::name_v, "desc", &setting::desc_v)
   };
   static constexpr std::string_view name_prefix = "tfc::ec::setting::";
   static constexpr std::string_view name_suffix = name_value;
