@@ -3,8 +3,7 @@
 ## Description
 
 This document provides a guide on using the MQTT broadcaster executable. The service forwards signal values
-from the IPC manager to MQTT topics, providing a connection between IPC and Aveva. It can also be used for other
-purposes.
+from the IPC manager to MQTT topics, providing a connection between IPC and MQTT.
 
 ## Command line arguments
 
