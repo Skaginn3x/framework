@@ -24,9 +24,6 @@ jobs:
       - name: Build
         run: |
           cmake --workflow --preset workflow-docs
-          # hax for next command
-          echo "where am i"
-          ls
 
       - name: Upload read the docs
         uses: actions/upload-pages-artifact@v1
