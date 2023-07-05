@@ -292,9 +292,7 @@ public:
   /**
    * @brief cancel the socket
    */
-  auto cancel() -> void {
-    socket_.cancel();
-  }
+  auto cancel() -> void { socket_.cancel(); }
 
 private:
   azmq::sub_socket socket_;
