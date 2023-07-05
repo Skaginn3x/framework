@@ -1,12 +1,16 @@
 #include <async_mqtt/all.hpp>
 #include <boost/ut.hpp>
+#include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/stubs/confman.hpp>
+#include "config.hpp"
 #include "mqtt_broadcaster.hpp"
 
 namespace ut = boost::ut;
 using boost::ut::operator""_test;
 
-const int TIMEOUT_IN_MS = 100;
+constexpr std::chrono::duration timeout_duration = std::chrono::milliseconds(25);
 
 // This class mocks the response to send for the MQTT client
 class result {
@@ -105,26 +109,23 @@ private:
   uint16_t packet_id_ = 0;
 };
 
+template <typename storage_t>
+class file_testable : public tfc::confman::file_storage<storage_t> {
+public:
+  using tfc::confman::file_storage<storage_t>::file_storage;
+
+  ~file_testable() {
+    std::error_code ignore{};
+    std::filesystem::remove(this->file(), ignore);
+  }
+};
+
 // This function tests the sending of a simple value (bool) to the MQTT client
-static auto send_simple_value(std::string mqtt_host,
-                              std::string mqtt_port,
-                              std::string mqtt_username,
-                              std::string mqtt_password) -> void {
-  boost::asio::io_context ctx{};
-
-  tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
-
-  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, ipc_client, "test_signal",
-                                                                                              "description");
-
-  const std::shared_ptr<mock_mqtt_client> mqtt_client =
-      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
-
-  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_mqtt_client> application(
-      ctx, std::move(mqtt_host), std::move(mqtt_port), std::move(mqtt_username), std::move(mqtt_password), ipc_client,
-      mqtt_client);
-
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+static auto send_simple_value(asio::io_context& ctx,
+                              std::shared_ptr<mock_mqtt_client> mqtt_client,
+                              tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& sig)
+    -> void {
+  ctx.run_for(timeout_duration);
 
   auto last_message = mqtt_client->get_last_message();
 
@@ -136,7 +137,7 @@ static auto send_simple_value(std::string mqtt_host,
       << "qos should be: " << last_message.opts().get_qos();
 
   sig.send(true);
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
   last_message = mqtt_client->get_last_message();
 
   ut::expect(last_message.packet_id() == 2) << "packet id should be: " << last_message.packet_id();
@@ -149,25 +150,12 @@ static auto send_simple_value(std::string mqtt_host,
 
 // This function tests adding a signal while the program is running to see weather the signal is added correctly and values
 // are sent from the added signal.
-static auto add_signal_in_running(std::string mqtt_host,
-                                  std::string mqtt_port,
-                                  std::string mqtt_username,
-                                  std::string mqtt_password) -> void {
-  boost::asio::io_context ctx{};
-
-  tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
-
-  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, ipc_client, "test_signal",
-                                                                                              "description");
-
-  const std::shared_ptr<mock_mqtt_client> mqtt_client =
-      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
-
-  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_mqtt_client> application(
-      ctx, std::move(mqtt_host), std::move(mqtt_port), std::move(mqtt_username), std::move(mqtt_password), ipc_client,
-      mqtt_client);
-
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+static auto add_signal_in_running(
+    asio::io_context& ctx,
+    std::shared_ptr<mock_mqtt_client> mqtt_client,
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client,
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& sig) -> void {
+  ctx.run_for(timeout_duration);
 
   auto last_message = mqtt_client->get_last_message();
 
@@ -179,7 +167,7 @@ static auto add_signal_in_running(std::string mqtt_host,
       << "qos should be: " << last_message.opts().get_qos();
 
   sig.send(true);
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
   last_message = mqtt_client->get_last_message();
 
   ut::expect(last_message.packet_id() == 2) << "packet id should be: " << last_message.packet_id();
@@ -189,16 +177,16 @@ static auto add_signal_in_running(std::string mqtt_host,
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
       << "qos should be: " << last_message.opts().get_qos();
 
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
 
   tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig2(
       ctx, ipc_client, "test_signal2", "description2");
 
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
 
   sig2.send(true);
 
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
   ut::expect(last_message.packet_id() == 2) << "packet id should be: " << last_message.packet_id();
@@ -210,25 +198,11 @@ static auto add_signal_in_running(std::string mqtt_host,
 }
 
 // This function tests if the program works correctly when the MQTT broker goes down and comes back up.
-static auto mqtt_broker_goes_down(std::string mqtt_host,
-                                  std::string mqtt_port,
-                                  std::string mqtt_username,
-                                  std::string mqtt_password) -> void {
-  boost::asio::io_context ctx{};
-
-  tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
-
-  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, ipc_client, "test_signal",
-                                                                                              "description");
-
-  const std::shared_ptr<mock_mqtt_client> mqtt_client =
-      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
-
-  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_mqtt_client> application(
-      ctx, std::move(mqtt_host), std::move(mqtt_port), std::move(mqtt_username), std::move(mqtt_password), ipc_client,
-      mqtt_client);
-
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+static auto mqtt_broker_goes_down(
+    asio::io_context& ctx,
+    std::shared_ptr<mock_mqtt_client> mqtt_client,
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& sig) -> void {
+  ctx.run_for(timeout_duration);
 
   auto last_message = mqtt_client->get_last_message();
 
@@ -240,7 +214,7 @@ static auto mqtt_broker_goes_down(std::string mqtt_host,
       << "qos should be: " << last_message.opts().get_qos();
 
   sig.send(true);
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
 
@@ -251,11 +225,11 @@ static auto mqtt_broker_goes_down(std::string mqtt_host,
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
       << "qos should be: " << last_message.opts().get_qos();
 
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
   mqtt_client->set_online(false);
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
   sig.send(false);
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
 
@@ -267,7 +241,7 @@ static auto mqtt_broker_goes_down(std::string mqtt_host,
       << "qos is: " << last_message.opts().get_qos() << " when it should be: at_least_once";
 
   mqtt_client->set_online(true);
-  ctx.run_for(std::chrono::milliseconds(TIMEOUT_IN_MS));
+  ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
 
@@ -284,11 +258,45 @@ static auto mqtt_broker_goes_down(std::string mqtt_host,
 auto main(int argc, char* argv[]) -> int {
   tfc::base::init(argc, argv);
 
-  "Sending a single value"_test = [] { send_simple_value("localhost", "1883", "", ""); };
+  std::string mqtt_host{ "localhost" };
+  std::string mqtt_port{ "1883" };
+  std::string mqtt_username{ "" };
+  std::string mqtt_password{ "" };
 
-  "Adding a signal while the program is running"_test = [] { add_signal_in_running("localhost", "1883", "", ""); };
+  boost::asio::io_context ctx{};
 
-  "MQTT broker goes down"_test = [] { mqtt_broker_goes_down("localhost", "1883", "", ""); };
+  tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
+
+  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, ipc_client, "test_signal",
+                                                                                              "description");
+
+  const std::shared_ptr<mock_mqtt_client> mqtt_client =
+      std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
+
+  tfc::confman::stub_config<config> cfg{
+    ctx, "mqtt_broadcaster", config{ ._allowed_topics = tfc::confman::observable<std::vector<std::string>>{} }
+  };
+
+  cfg.access()._allowed_topics = { "test_signal" };
+
+  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_mqtt_client, tfc::confman::stub_config<config>>
+      application(ctx, std::move(mqtt_host), std::move(mqtt_port), std::move(mqtt_username), std::move(mqtt_password),
+                  ipc_client, mqtt_client, cfg);
+
+  "Sending a single value"_test = [&] {
+    std::cout << "First test\n";
+    send_simple_value(ctx, mqtt_client, sig);
+  };
+
+  "Adding a signal while the program is running"_test = [&] {
+    std::cout << "Second test\n";
+    add_signal_in_running(ctx, mqtt_client, ipc_client, sig);
+  };
+
+  "MQTT broker goes down"_test = [&] {
+    std::cout << "Third test\n";
+    mqtt_broker_goes_down(ctx, mqtt_client, sig);
+  };
 
   return 0;
 }
