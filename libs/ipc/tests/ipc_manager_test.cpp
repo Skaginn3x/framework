@@ -289,7 +289,7 @@ auto main(int argc, char** argv) -> int {
       }
     });
     isolated_ctx.run_for(std::chrono::seconds(3));
-    ut::expect(invocation == test_values.size());
+    ut::expect(invocation == test_values.size()) << "got invoked: " << invocation;
   };
   "Test ipc communication connection and disconnection with mocking int"_test = []() {
     asio::io_context isolated_ctx{};

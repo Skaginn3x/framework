@@ -58,7 +58,7 @@ if(ENABLE_SANITIZATION)
         -fPIC
         -fno-omit-frame-pointer
         -g )
-    add_link_options( -lasan -lubsan -ltsan)
+    add_link_options( -lasan -lubsan )
   endif()
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(
