@@ -27,12 +27,10 @@ jobs:
           # hax for next command
           echo "where am i"
           ls
-          mkdir -p /home/runner/work/_temp/
 
       - name: Upload read the docs
-        uses: actions/upload-pages-artifact@v0
+        uses: actions/upload-pages-artifact@v1
         with:
-          name: github-pages
           path: './build/pack-gcc-debug/docs/sphinx'
           retention-days: 1
 
