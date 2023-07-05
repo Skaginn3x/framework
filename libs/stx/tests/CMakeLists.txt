@@ -22,3 +22,23 @@ add_test(
   COMMAND
     test_glaze_meta
 )
+
+add_executable(test_json test_json.cpp)
+
+target_link_libraries(test_json
+  PRIVATE
+    tfc::stx
+    Boost::ut
+    glaze::glaze
+    fmt::fmt
+    mp-units::si
+    mp-units::isq
+    mp-units::core
+)
+
+add_test(
+  NAME
+    test_json
+  COMMAND
+    test_json
+)
