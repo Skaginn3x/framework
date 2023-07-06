@@ -23,7 +23,6 @@ public:
                    std::string mqtt_password,
                    ipc_client_type& ipc_client,
                    std::shared_ptr<mqtt_client_type> mqtt_client,
-                   // TODO: the stub deletes if it is not passed by reference
                    config_manager<config_type>& cfg)
       : object_path_(tfc::dbus::make_dbus_path("ipc_ruler")), interface_name_(tfc::dbus::make_dbus_name("manager")),
         mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)), mqtt_username_(std::move(mqtt_username)),
@@ -59,17 +58,11 @@ private:
     }
 
     // When a new list of allowed string arrives the program is restarted
-    config_.value()._allowed_topics.observe([this](auto& new_conf, [[maybe_unused]] auto& old_conf) {
-      allowed_signals_.clear();
-      for (auto const& con : new_conf) {
-        allowed_signals_.push_back(con);
-      }
-      restart();
-    });
+    config_.value()._allowed_topics.observe(
+        [this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) { restart(); });
 
     asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx_), asio::detached);
 
-    allowed_signals_ = config_.value()._allowed_topics.value();
     load_signals();
   }
 
@@ -125,7 +118,6 @@ private:
 
   // Function which has oversight over the signals
   auto load_signals() -> void {
-
     logger_.info("Cancelling running slots");
     // Stop reading the current signals by canceling the slots
     for (auto& slot : slots_) {
@@ -134,10 +126,7 @@ private:
 
     ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) {
       logger_.info("Received {} signals from IPC client", signals.size());
-      active_signals_.clear();
-      for (const tfc::ipc_ruler::signal& signal : signals) {
-        active_signals_.push_back(signal);
-      }
+      active_signals_ = signals;
       clean_signals();
       for (tfc::ipc_ruler::signal& signal : active_signals_) {
         handle_signal(signal);
@@ -148,15 +137,20 @@ private:
   // This function filter out signals that are not allowed
   auto clean_signals() -> void {
     logger_.info("Filtering signals");
-    active_signals_.erase(std::remove_if(active_signals_.begin(), active_signals_.end(),
-                                         [&](const tfc::ipc_ruler::signal& signal) {
-                                           return std::ranges::none_of(allowed_signals_.begin(), allowed_signals_.end(),
-                                                                       [&](const std::string& allowed_string) {
-                                                                         return signal.name.find(allowed_string) !=
-                                                                                std::string::npos;
-                                                                       });
-                                         }),
-                          active_signals_.end());
+
+    auto it = active_signals_ | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
+                        for (const auto& topic : config_.value()._allowed_topics.value()) {
+                          if (signal.name.find(topic) == std::string::npos) {
+                            return true;
+                          }
+                        }
+                        return false;
+                      });
+
+    for(auto& bla : it){
+      std::cout << bla.name << std::endl;
+    }
+
   }
 
   // This function checks the type of the signal in order to determine how to read from the slot
@@ -276,13 +270,9 @@ private:
   ipc_client_type ipc_client_;
   std::shared_ptr<mqtt_client_type> mqtt_client_;
   tfc::logger::logger logger_;
-  // std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_;
-
-  // std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> signal_updates_;
 
   config_manager<config_type> config_;
 
-  std::vector<std::string> allowed_signals_;
   std::vector<tfc::ipc_ruler::signal> active_signals_;
   std::vector<std::variant<std::shared_ptr<details::slot<details::type_bool>>,
                            std::shared_ptr<details::slot<details::type_string>>,
