@@ -290,8 +290,8 @@ public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
     connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
-                                    ipc_ruler_interface_name_, ipc_ruler_object_path_),
-                        std::bind_front(&ipc_manager_client::match_callback, this));
+                                               ipc_ruler_interface_name_, ipc_ruler_object_path_),
+                                   std::bind_front(&ipc_manager_client::match_callback, this));
   }
   // Todo copy constructors can be implemented but I don't see why we need them
   ipc_manager_client(ipc_manager_client const&) = delete;
@@ -302,8 +302,8 @@ public:
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
     connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
-                                    ipc_ruler_interface_name_, ipc_ruler_object_path_),
-                        std::bind_front(&ipc_manager_client::match_callback, this));
+                                               ipc_ruler_interface_name_, ipc_ruler_object_path_),
+                                   std::bind_front(&ipc_manager_client::match_callback, this));
   }
   auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
     connection_ = std::move(to_be_erased.connection_);
@@ -311,8 +311,8 @@ public:
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
     connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
-                                    ipc_ruler_interface_name_, ipc_ruler_object_path_),
-                        std::bind_front(&ipc_manager_client::match_callback, this));
+                                               ipc_ruler_interface_name_, ipc_ruler_object_path_),
+                                   std::bind_front(&ipc_manager_client::match_callback, this));
     return *this;
   }
 
