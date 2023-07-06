@@ -289,7 +289,9 @@ class ipc_manager_client {
 public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
     connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
-    match_ = make_match();
+    connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
+                                    ipc_ruler_interface_name_, ipc_ruler_object_path_),
+                        std::bind_front(&ipc_manager_client::match_callback, this));
   }
   // Todo copy constructors can be implemented but I don't see why we need them
   ipc_manager_client(ipc_manager_client const&) = delete;
@@ -299,14 +301,18 @@ public:
     slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-    match_ = make_match();
+    connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
+                                    ipc_ruler_interface_name_, ipc_ruler_object_path_),
+                        std::bind_front(&ipc_manager_client::match_callback, this));
   }
   auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
     connection_ = std::move(to_be_erased.connection_);
     slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-    match_ = make_match();
+    connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
+                                    ipc_ruler_interface_name_, ipc_ruler_object_path_),
+                        std::bind_front(&ipc_manager_client::match_callback, this));
     return *this;
   }
 
@@ -439,13 +445,22 @@ public:
     slot_callbacks_.emplace(std::string(slot_name), connection_change_callback);
   }
 
+  /**
+   * Register a callback function that gets "pinged" each time there is a change in the properties of the ipc manager
+   * @param match_change_callback a function like object on each property change that gets called with the dbus message
+   * @note There can only be a single callback registered for the change in property on the client, if you register a new
+   * one. The old callback will be overwritten.
+   */
+  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback) -> void {
+    properties_match_ =
+        make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
+                   std::move(match_change_callback));
+  }
+
 private:
-  auto make_match() -> std::unique_ptr<sdbusplus::bus::match::match> {
-    return std::make_unique<sdbusplus::bus::match::match>(
-        *connection_,
-        fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_, ipc_ruler_interface_name_,
-                    ipc_ruler_object_path_),
-        std::bind_front(&ipc_manager_client::match_callback, this));
+  auto make_match(const std::string& match_rule, std::function<void(sdbusplus::message_t&)> callback)
+      -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return std::make_unique<sdbusplus::bus::match::match>(*connection_, match_rule, std::move(callback));
   }
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
@@ -461,11 +476,14 @@ private:
   const std::string ipc_ruler_object_path_{ const_ipc_ruler_object_path };
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
-  std::unique_ptr<sdbusplus::bus::match::match> match_;
+  std::unique_ptr<sdbusplus::bus::match::match> connection_match_;
+  std::unique_ptr<sdbusplus::bus::match::match> properties_match_;
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks_;
 };
 
 struct ipc_manager_client_mock {
+  ipc_manager_client_mock() : callback_([](sdbusplus::message_t&) { /* no-op */ }) {}
+
   auto register_connection_change_callback(std::string_view slot_name,
                                            const std::function<void(std::string_view const)>& connection_change_callback)
       -> void {
@@ -500,6 +518,10 @@ struct ipc_manager_client_mock {
                                   .created_at = std::chrono::system_clock::now(),
                                   .last_registered = std::chrono::system_clock::now(),
                                   .description = std::string(description) });
+
+    sdbusplus::message_t dbus_message = sdbusplus::message_t{};
+    callback_(dbus_message);
+
     handler(std::error_code());
   }
 
@@ -525,8 +547,13 @@ struct ipc_manager_client_mock {
 
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
 
+  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)>& callback) -> void {
+    callback_ = callback;
+  }
+
   std::vector<slot> slots_;
   std::vector<signal> signals_;
+  std::function<void(sdbusplus::message_t&)> callback_;
 };
 
 }  // namespace tfc::ipc_ruler
