@@ -6,12 +6,13 @@
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include "config.hpp"
 
 namespace asio = boost::asio;
 namespace details = tfc::ipc::details;
 
-// In order to ease testing, types are injected into the class
-template <class ipc_client_type, class mqtt_client_type, class config_manager>
+// There is probably a better way to template the config_manager, but my attempts have been futile
+template <class ipc_client_type, class mqtt_client_type, class config_type, template <class> class config_manager>
 class mqtt_broadcaster {
 public:
   // Constructor used for testing, enables injection of config
@@ -23,20 +24,12 @@ public:
                    ipc_client_type& ipc_client,
                    std::shared_ptr<mqtt_client_type> mqtt_client,
                    // TODO: the stub deletes if it is not passed by reference
-                   config_manager& cfg)
+                   config_manager<config_type>& cfg)
       : object_path_(tfc::dbus::make_dbus_path("ipc_ruler")), interface_name_(tfc::dbus::make_dbus_name("manager")),
         mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)), mqtt_username_(std::move(mqtt_username)),
         mqtt_password_(std::move(mqtt_password)), ctx_(ctx), ipc_client_(ipc_client), mqtt_client_(std::move(mqtt_client)),
-        logger_("mqtt_broadcaster"),
-        dbus_connection_(std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())),
-        signal_updates_(std::make_unique<sdbusplus::bus::match::match>(
-            *dbus_connection_,
-            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
-            std::bind_front(&mqtt_broadcaster::update_signals, this))),
-        config_(cfg) {
-
-    std::cout << "topics: " << config_.string() << std::endl;
-
+        logger_("mqtt_broadcaster"), config_(std::move(cfg)) {
+    ipc_client.register_properties_change_callback(std::bind_front(&mqtt_broadcaster::update_signals, this));
     asio::co_spawn(mqtt_client_->strand(), initialize(), asio::detached);
   }
 
@@ -51,13 +44,8 @@ public:
       : object_path_(tfc::dbus::make_dbus_path("ipc_ruler")), interface_name_(tfc::dbus::make_dbus_name("manager")),
         mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)), mqtt_username_(std::move(mqtt_username)),
         mqtt_password_(std::move(mqtt_password)), ctx_(ctx), ipc_client_(ipc_client), mqtt_client_(std::move(mqtt_client)),
-        logger_("mqtt_broadcaster"),
-        dbus_connection_(std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())),
-        signal_updates_(std::make_unique<sdbusplus::bus::match::match>(
-            *dbus_connection_,
-            sdbusplus::bus::match::rules::propertiesChanged(object_path_, interface_name_),
-            std::bind_front(&mqtt_broadcaster::update_signals, this))),
-        config_(ctx, "mqtt_broadcaster") {
+        logger_("mqtt_broadcaster"), config_(ctx, "mqtt_broadcaster") {
+    ipc_client.register_properties_change_callback(std::bind_front(&mqtt_broadcaster::update_signals, this));
     asio::co_spawn(mqtt_client_->strand(), initialize(), asio::detached);
   }
 
@@ -83,7 +71,6 @@ private:
 
     allowed_signals_ = config_.value()._allowed_topics.value();
     load_signals();
-
   }
 
   // Connect the mqtt client to the broker. This function can only be spawned once to avoid multiple spawns to open/close
@@ -138,40 +125,29 @@ private:
 
   // Function which has oversight over the signals
   auto load_signals() -> void {
-    logger_.info("Loading signals");
+
+    logger_.info("Cancelling running slots");
     // Stop reading the current signals by canceling the slots
     for (auto& slot : slots_) {
       std::visit([](auto& ptr) { ptr->cancel(); }, slot);
     }
 
-    active_signals_.clear();
-    get_signals();
-    clean_signals();
-
-    for (tfc::ipc_ruler::signal& signal : active_signals_) {
-      handle_signal(signal);
-    }
-  }
-
-  auto get_signals() -> void {
-    logger_.info("Getting signals from IPC client");
-    ipc_client_.signals([&](const std::vector<tfc::ipc_ruler::signal>& signals) {
+    ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) {
+      logger_.info("Received {} signals from IPC client", signals.size());
+      active_signals_.clear();
       for (const tfc::ipc_ruler::signal& signal : signals) {
         active_signals_.push_back(signal);
       }
+      clean_signals();
+      for (tfc::ipc_ruler::signal& signal : active_signals_) {
+        handle_signal(signal);
+      }
     });
-
-    ctx_.run_for(std::chrono::milliseconds(20));
   }
 
   // This function filter out signals that are not allowed
   auto clean_signals() -> void {
     logger_.info("Filtering signals");
-
-    for (auto& signal : allowed_signals_) {
-      logger_.trace("Signal {}", signal);
-    }
-
     active_signals_.erase(std::remove_if(active_signals_.begin(), active_signals_.end(),
                                          [&](const tfc::ipc_ruler::signal& signal) {
                                            return std::ranges::none_of(allowed_signals_.begin(), allowed_signals_.end(),
@@ -237,7 +213,7 @@ private:
   }
 
   // This function is called when a signal is received
-  void update_signals([[maybe_unused]] sdbusplus::message::message& msg) { restart(); }
+  void update_signals([[maybe_unused]] sdbusplus::message_t& msg) { restart(); }
 
   // This function runs a coroutine for a slot, when a new value is received a message is sent to the MQTT broker
   template <class slot_type, class value_type>
@@ -300,10 +276,11 @@ private:
   ipc_client_type ipc_client_;
   std::shared_ptr<mqtt_client_type> mqtt_client_;
   tfc::logger::logger logger_;
-  std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_;
-  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> signal_updates_;
+  // std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_;
 
-  config_manager& config_;
+  // std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> signal_updates_;
+
+  config_manager<config_type> config_;
 
   std::vector<std::string> allowed_signals_;
   std::vector<tfc::ipc_ruler::signal> active_signals_;

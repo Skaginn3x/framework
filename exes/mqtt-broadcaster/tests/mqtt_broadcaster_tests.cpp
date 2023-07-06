@@ -1,5 +1,6 @@
 #include <async_mqtt/all.hpp>
 #include <boost/ut.hpp>
+#include <sdbusplus/test/sdbus_mock.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/ipc.hpp>
@@ -36,6 +37,8 @@ public:
 
   // This function sends a publishing packet (normal packet) to the mock client
   auto send(async_mqtt::v5::publish_packet packet, const boost::asio::use_awaitable_t<>&) -> boost::asio::awaitable<result> {
+    std::cout << "publish packet arrived: " << packet.payload()[0] << "\n";
+    std::cout << "publish packet arrived: " << packet.topic() << "\n";
     if (online_) {
       messages_.push_back(packet);
       std::string message = "Success";
@@ -121,12 +124,11 @@ public:
 };
 
 // This function tests the sending of a simple value (bool) to the MQTT client
-static auto send_simple_value(asio::io_context& ctx,
-                              std::shared_ptr<mock_mqtt_client> mqtt_client,
-                              tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& sig)
-    -> void {
+static auto send_simple_value(
+    asio::io_context& ctx,
+    std::shared_ptr<mock_mqtt_client> mqtt_client,
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& signal) -> void {
   ctx.run_for(timeout_duration);
-
   auto last_message = mqtt_client->get_last_message();
 
   ut::expect(last_message.packet_id() == 1) << last_message.packet_id();
@@ -136,7 +138,7 @@ static auto send_simple_value(asio::io_context& ctx,
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
       << "qos should be: " << last_message.opts().get_qos();
 
-  sig.send(true);
+  signal.send(true);
   ctx.run_for(timeout_duration);
   last_message = mqtt_client->get_last_message();
 
@@ -153,44 +155,49 @@ static auto send_simple_value(asio::io_context& ctx,
 static auto add_signal_in_running(
     asio::io_context& ctx,
     std::shared_ptr<mock_mqtt_client> mqtt_client,
-    tfc::ipc_ruler::ipc_manager_client_mock ipc_client,
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& sig) -> void {
+    tfc::ipc_ruler::ipc_manager_client_mock& ipc_client,
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& signal) -> void {
   ctx.run_for(timeout_duration);
 
   auto last_message = mqtt_client->get_last_message();
 
-  ut::expect(last_message.packet_id() == 1) << last_message.packet_id();
-  ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
-      << "topic should be: " << last_message.topic();
-  ut::expect(last_message.payload()[0] == "false") << "payload should be: " << last_message.payload()[0];
-  ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
-      << "qos should be: " << last_message.opts().get_qos();
-
-  sig.send(true);
-  ctx.run_for(timeout_duration);
-  last_message = mqtt_client->get_last_message();
-
-  ut::expect(last_message.packet_id() == 2) << "packet id should be: " << last_message.packet_id();
+  ut::expect(last_message.packet_id() == 2) << last_message.packet_id();
   ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
       << "topic should be: " << last_message.topic();
   ut::expect(last_message.payload()[0] == "true") << "payload should be: " << last_message.payload()[0];
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
       << "qos should be: " << last_message.opts().get_qos();
 
+  signal.send(false);
+  ctx.run_for(timeout_duration);
+  last_message = mqtt_client->get_last_message();
+
+  ut::expect(last_message.packet_id() == 3) << "packet id should be: " << last_message.packet_id();
+  ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
+      << "topic should be: " << last_message.topic();
+  ut::expect(last_message.payload()[0] == "false") << "payload should be: " << last_message.payload()[0];
+  ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
+      << "qos should be: " << last_message.opts().get_qos();
+
   ctx.run_for(timeout_duration);
 
-  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig2(
-      ctx, ipc_client, "test_signal2", "description2");
+  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> added_signal(
+      ctx, ipc_client, "added_signal", "description2");
+
+  std::cout << "after adding\n";
 
   ctx.run_for(timeout_duration);
 
-  sig2.send(true);
+  added_signal.send(true);
 
   ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
-  ut::expect(last_message.packet_id() == 2) << "packet id should be: " << last_message.packet_id();
-  ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
+
+  // the packet ID should be 6, 3 before and then both signals are reloaded, sending their initial values on reload, and then
+  // the added signal sends another value
+  ut::expect(last_message.packet_id() == 6) << "packet id should be: " << last_message.packet_id();
+  ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/added_signal")
       << "topic should be: " << last_message.topic();
   ut::expect(last_message.payload()[0] == "true") << "payload should be: " << last_message.payload()[0];
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
@@ -201,24 +208,24 @@ static auto add_signal_in_running(
 static auto mqtt_broker_goes_down(
     asio::io_context& ctx,
     std::shared_ptr<mock_mqtt_client> mqtt_client,
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>& sig) -> void {
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> signal) -> void {
   ctx.run_for(timeout_duration);
 
   auto last_message = mqtt_client->get_last_message();
 
-  ut::expect(last_message.packet_id() == 1) << last_message.packet_id();
-  ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
+  ut::expect(last_message.packet_id() == 6) << last_message.packet_id();
+  ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/added_signal")
       << "topic should be: " << last_message.topic();
-  ut::expect(last_message.payload()[0] == "false") << "payload should be: " << last_message.payload()[0];
+  ut::expect(last_message.payload()[0] == "true") << "payload should be: " << last_message.payload()[0];
   ut::expect(last_message.opts().get_qos() == async_mqtt::qos::at_least_once)
       << "qos should be: " << last_message.opts().get_qos();
 
-  sig.send(true);
+  signal.send(true);
   ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
 
-  ut::expect(last_message.packet_id() == 2) << "packet id should be: " << last_message.packet_id();
+  ut::expect(last_message.packet_id() == 7) << "packet id should be: " << last_message.packet_id();
   ut::expect(last_message.topic() == "mqtt-broadcaster-tests/def/bool/test_signal")
       << "topic should be: " << last_message.topic();
   ut::expect(last_message.payload()[0] == "true") << "payload should be: " << last_message.payload()[0];
@@ -228,7 +235,7 @@ static auto mqtt_broker_goes_down(
   ctx.run_for(timeout_duration);
   mqtt_client->set_online(false);
   ctx.run_for(timeout_duration);
-  sig.send(false);
+  signal.send(false);
   ctx.run_for(timeout_duration);
 
   last_message = mqtt_client->get_last_message();
@@ -267,35 +274,34 @@ auto main(int argc, char* argv[]) -> int {
 
   tfc::ipc_ruler::ipc_manager_client_mock ipc_client;
 
-  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(ctx, ipc_client, "test_signal",
-                                                                                              "description");
+  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> signal(
+      ctx, ipc_client, "test_signal", "description2");
 
   const std::shared_ptr<mock_mqtt_client> mqtt_client =
       std::make_shared<mock_mqtt_client>(async_mqtt::protocol_version::v5, ctx.get_executor());
 
-  tfc::confman::stub_config<config> cfg{
-    ctx, "mqtt_broadcaster", config{ ._allowed_topics = tfc::confman::observable<std::vector<std::string>>{} }
-  };
+  tfc::confman::stub_config<config> cfg{ ctx, "mqtt_broadcaster",
+                                         config{ ._allowed_topics = tfc::confman::observable<std::vector<std::string>>{} } };
 
-  cfg.access()._allowed_topics = { "test_signal" };
+  cfg.access()._allowed_topics = { "test_signal", "added_signal" };
 
-  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_mqtt_client, tfc::confman::stub_config<config>>
+  const mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client_mock&, mock_mqtt_client, config, tfc::confman::stub_config>
       application(ctx, std::move(mqtt_host), std::move(mqtt_port), std::move(mqtt_username), std::move(mqtt_password),
                   ipc_client, mqtt_client, cfg);
 
   "Sending a single value"_test = [&] {
     std::cout << "First test\n";
-    send_simple_value(ctx, mqtt_client, sig);
+    send_simple_value(ctx, mqtt_client, signal);
   };
 
   "Adding a signal while the program is running"_test = [&] {
     std::cout << "Second test\n";
-    add_signal_in_running(ctx, mqtt_client, ipc_client, sig);
+    add_signal_in_running(ctx, mqtt_client, ipc_client, signal);
   };
 
   "MQTT broker goes down"_test = [&] {
     std::cout << "Third test\n";
-    mqtt_broker_goes_down(ctx, mqtt_client, sig);
+    mqtt_broker_goes_down(ctx, mqtt_client, signal);
   };
 
   return 0;
