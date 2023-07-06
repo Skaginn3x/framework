@@ -454,13 +454,13 @@ public:
   auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback) -> void {
     properties_match_ =
         make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
-                   std::move(match_change_callback));
+                   match_change_callback);
   }
 
 private:
   auto make_match(const std::string& match_rule, std::function<void(sdbusplus::message_t&)> callback)
       -> std::unique_ptr<sdbusplus::bus::match::match> {
-    return std::make_unique<sdbusplus::bus::match::match>(*connection_, match_rule, std::move(callback));
+    return std::make_unique<sdbusplus::bus::match::match>(*connection_, match_rule, callback);
   }
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
@@ -547,8 +547,9 @@ struct ipc_manager_client_mock {
 
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
 
-  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)>& callback) -> void {
-    callback_ = callback;
+  template <typename callback>
+  auto register_properties_change_callback(callback&& property_callback) -> void {
+    callback_ = std::forward<callback>(property_callback);
   }
 
   std::vector<slot> slots_;
