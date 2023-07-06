@@ -44,6 +44,19 @@ struct test_instance {
     ctx, std::make_unique<manager_t>(signals, slots)
   };
   tfc::ipc_ruler::ipc_manager_client ipc_manager_client{ ctx };
+
+  int test_value = 0;
+
+  auto increment([[maybe_unused]] sdbusplus::message_t& msg) -> void { test_value++; }
+};
+
+class test_class {
+  int test_value = 0;
+
+public:
+  auto increment([[maybe_unused]] sdbusplus::message_t& msg) -> void { test_value++; }
+
+  auto value() -> int { return test_value; }
 };
 
 auto main(int argc, char** argv) -> int {
@@ -152,6 +165,7 @@ auto main(int argc, char** argv) -> int {
                                                   ut::expect(!err);
                                                   registered_signal = true;
                                                 });
+
     // Expect to get a callback
     bool got_callback = false;
     instance.ipc_manager_client.register_connection_change_callback("slot_register_retest",
@@ -256,6 +270,7 @@ auto main(int argc, char** argv) -> int {
     ut::expect(slot_copy.connected_to == slot_copy2.connected_to);
     ut::expect(slot_copy.last_registered != slot_copy2.last_registered);
   };
+
   "Test ipc communication connection and disconnection with mocking bool"_test = []() {
     asio::io_context isolated_ctx{};
 
@@ -354,6 +369,44 @@ auto main(int argc, char** argv) -> int {
     });
     isolated_ctx.run_for(std::chrono::seconds(3));
     ut::expect(invocation == test_values.size());
+  };
+
+  "Test callback functionality"_test = []() {
+    test_class test_class_instance;
+
+    asio::io_context isolated_ctx{};
+    tfc::ipc_ruler::ipc_manager_client_mock mock_client;
+
+    mock_client.register_properties_change_callback(std::bind_front(&test_class::increment, &test_class_instance));
+
+    ut::expect(test_class_instance.value() == 0);
+
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> signal(
+        isolated_ctx, mock_client, "test_signal", "description2");
+
+    isolated_ctx.run_for(std::chrono::milliseconds(20));
+
+    ut::expect(test_class_instance.value() == 1);
+  };
+
+  "Testing callback functionality on IPC client"_test = []() {
+    test_instance instance{};
+
+    instance.ipc_manager_client.register_signal("test1", "", tfc::ipc::details::type_e::_string,
+                                                [&](const std::error_code& err) { ut::expect(!err); });
+
+    instance.ctx.run_for(std::chrono::milliseconds(20));
+
+    instance.ipc_manager_client.register_properties_change_callback(std::bind_front(&test_instance::increment, &instance));
+
+    instance.ctx.run_for(std::chrono::milliseconds(20));
+
+    instance.ipc_manager_client.register_signal("test2", "", tfc::ipc::details::type_e::_string,
+                                                [&](const std::error_code& err) { ut::expect(!err); });
+
+    instance.ctx.run_for(std::chrono::milliseconds(20));
+
+    ut::expect(instance.test_value == 1);
   };
 
   return EXIT_SUCCESS;
