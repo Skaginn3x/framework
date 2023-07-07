@@ -397,7 +397,8 @@ auto main(int argc, char** argv) -> int {
 
     instance.ctx.run_for(std::chrono::milliseconds(20));
 
-    instance.ipc_manager_client.register_properties_change_callback(std::bind_front(&test_instance::increment, &instance));
+    std::unique_ptr<sdbusplus::bus::match::match> cb = instance.ipc_manager_client.register_properties_change_callback(
+        std::bind_front(&test_instance::increment, &instance));
 
     instance.ctx.run_for(std::chrono::milliseconds(20));
 

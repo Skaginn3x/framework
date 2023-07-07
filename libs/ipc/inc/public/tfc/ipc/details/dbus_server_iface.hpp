@@ -15,6 +15,7 @@
 #include <sdbusplus/asio/property.hpp>
 
 #include <tfc/dbus/exception.hpp>
+#include <tfc/dbus/match_rules.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc/enums.hpp>
@@ -289,9 +290,11 @@ class ipc_manager_client {
 public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
     connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
-    connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
-                                               ipc_ruler_interface_name_, ipc_ruler_object_path_),
-                                   std::bind_front(&ipc_manager_client::match_callback, this));
+    connection_match_ = make_match(
+        std::string(
+            tfc::dbus::match::rules::make_match_rule<ipc_ruler_service_name_c_, ipc_ruler_interface_name_c_,
+                                                     ipc_ruler_object_path_c_, tfc::dbus::match::rules::type::signal>()),
+        std::bind_front(&ipc_manager_client::match_callback, this));
   }
   // Todo copy constructors can be implemented but I don't see why we need them
   ipc_manager_client(ipc_manager_client const&) = delete;
@@ -301,18 +304,22 @@ public:
     slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-    connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
-                                               ipc_ruler_interface_name_, ipc_ruler_object_path_),
-                                   std::bind_front(&ipc_manager_client::match_callback, this));
+    connection_match_ = make_match(
+        std::string(
+            tfc::dbus::match::rules::make_match_rule<ipc_ruler_service_name_c_, ipc_ruler_interface_name_c_,
+                                                     ipc_ruler_object_path_c_, tfc::dbus::match::rules::type::signal>()),
+        std::bind_front(&ipc_manager_client::match_callback, this));
   }
   auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
     connection_ = std::move(to_be_erased.connection_);
     slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-    connection_match_ = make_match(fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_,
-                                               ipc_ruler_interface_name_, ipc_ruler_object_path_),
-                                   std::bind_front(&ipc_manager_client::match_callback, this));
+    connection_match_ = make_match(
+        std::string(
+            tfc::dbus::match::rules::make_match_rule<ipc_ruler_service_name_c_, ipc_ruler_interface_name_c_,
+                                                     ipc_ruler_object_path_c_, tfc::dbus::match::rules::type::signal>()),
+        std::bind_front(&ipc_manager_client::match_callback, this));
     return *this;
   }
 
@@ -448,13 +455,13 @@ public:
   /**
    * Register a callback function that gets "pinged" each time there is a change in the properties of the ipc manager
    * @param match_change_callback a function like object on each property change that gets called with the dbus message
-   * @note There can only be a single callback registered for the change in property on the client, if you register a new
-   * one the old callback will be overwritten.
+   * @return a unique pointer to the match object, this is needed to keep the match object alive
+   * @note The match object is kept alive by the unique pointer, if the unique pointer is destroyed the match object will be destroyed.
    */
-  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback) -> void {
-    properties_match_ =
-        make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
-                   match_change_callback);
+  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback)
+      -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
+                      match_change_callback);
   }
 
 private:
@@ -474,10 +481,12 @@ private:
   const std::string ipc_ruler_service_name_{ const_ipc_ruler_service_name };
   const std::string ipc_ruler_interface_name_{ const_ipc_ruler_interface_name };
   const std::string ipc_ruler_object_path_{ const_ipc_ruler_object_path };
+  static constexpr std::string_view ipc_ruler_service_name_c_{ const_ipc_ruler_service_name };
+  static constexpr std::string_view ipc_ruler_interface_name_c_{ const_ipc_ruler_interface_name };
+  static constexpr std::string_view ipc_ruler_object_path_c_{ const_ipc_ruler_object_path };
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> connection_match_;
-  std::unique_ptr<sdbusplus::bus::match::match> properties_match_;
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks_;
 };
 
