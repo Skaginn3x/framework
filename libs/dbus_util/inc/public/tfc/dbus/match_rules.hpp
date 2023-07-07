@@ -2,7 +2,6 @@
 
 #include <string_view>
 #include <tfc/stx/string_view_join.hpp>
-#include <sdbusplus/bus/match.hpp>
 
 namespace tfc::dbus::match::rules {
 namespace type {
