@@ -11,24 +11,23 @@
       "host": true
     },
     "azmq",
+    "bext-sml",
     "bext-ut",
-    "boost-url",
     "boost-asio",
     "boost-program-options",
     "boost-stacktrace",
-    "boost-beast",
+    "date",
     "fmt",
     "glaze",
     "gtest",
     "spdlog",
-    "magic-enum",
-    "mp-units",
-    "bext-sml",
     "soem",
     {
       "name": "libgpiod",
       "features": ["cxx-bindings"]
     },
+    "magic-enum",
+    "mp-units",
     "sdbusplus",
     "date"
   ]
