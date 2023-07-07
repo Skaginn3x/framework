@@ -269,9 +269,9 @@ public:
         std::string(signals_property), sdbusplus::vtable::property_::emits_change,
         [&](const auto&) { return glz::write_json(ipc_manager_->get_all_signals()); });
 
-    dbus_interface_->register_property_r<std::string>(std::string(slots_property), sdbusplus::vtable::property_::emits_change, [&](const auto&) {
-      return glz::write_json(ipc_manager_->get_all_slots());
-    });
+    dbus_interface_->register_property_r<std::string>(
+        std::string(slots_property), sdbusplus::vtable::property_::emits_change,
+        [&](const auto&) { return glz::write_json(ipc_manager_->get_all_slots()); });
 
     dbus_interface_->register_property_r<std::string>(
         "Connections", sdbusplus::vtable::property_::emits_change,
