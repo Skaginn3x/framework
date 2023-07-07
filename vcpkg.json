@@ -29,6 +29,6 @@
     "magic-enum",
     "mp-units",
     "sdbusplus",
-    "date"
+    "protobuf"
   ]
 }
