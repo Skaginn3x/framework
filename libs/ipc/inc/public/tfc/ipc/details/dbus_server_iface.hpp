@@ -292,8 +292,8 @@ public:
     connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     connection_match_ = make_match(
         std::string(
-            tfc::dbus::match::rules::make_match_rule<ipc_ruler_service_name_c_, ipc_ruler_interface_name_c_,
-                                                     ipc_ruler_object_path_c_, tfc::dbus::match::rules::type::signal>()),
+            tfc::dbus::match::rules::make_match_rule<const_ipc_ruler_service_name, const_ipc_ruler_interface_name,
+                                                     const_ipc_ruler_object_path, tfc::dbus::match::rules::type::signal>()),
         std::bind_front(&ipc_manager_client::match_callback, this));
   }
   // Todo copy constructors can be implemented but I don't see why we need them
@@ -306,8 +306,8 @@ public:
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
     connection_match_ = make_match(
         std::string(
-            tfc::dbus::match::rules::make_match_rule<ipc_ruler_service_name_c_, ipc_ruler_interface_name_c_,
-                                                     ipc_ruler_object_path_c_, tfc::dbus::match::rules::type::signal>()),
+            tfc::dbus::match::rules::make_match_rule<const_ipc_ruler_service_name, const_ipc_ruler_interface_name,
+                                                     const_ipc_ruler_object_path, tfc::dbus::match::rules::type::signal>()),
         std::bind_front(&ipc_manager_client::match_callback, this));
   }
   auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
@@ -317,8 +317,8 @@ public:
     // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
     connection_match_ = make_match(
         std::string(
-            tfc::dbus::match::rules::make_match_rule<ipc_ruler_service_name_c_, ipc_ruler_interface_name_c_,
-                                                     ipc_ruler_object_path_c_, tfc::dbus::match::rules::type::signal>()),
+            tfc::dbus::match::rules::make_match_rule<const_ipc_ruler_service_name, const_ipc_ruler_interface_name,
+                                                     const_ipc_ruler_object_path, tfc::dbus::match::rules::type::signal>()),
         std::bind_front(&ipc_manager_client::match_callback, this));
     return *this;
   }
@@ -482,9 +482,6 @@ private:
   const std::string ipc_ruler_service_name_{ const_ipc_ruler_service_name };
   const std::string ipc_ruler_interface_name_{ const_ipc_ruler_interface_name };
   const std::string ipc_ruler_object_path_{ const_ipc_ruler_object_path };
-  static constexpr std::string_view ipc_ruler_service_name_c_{ const_ipc_ruler_service_name };
-  static constexpr std::string_view ipc_ruler_interface_name_c_{ const_ipc_ruler_interface_name };
-  static constexpr std::string_view ipc_ruler_object_path_c_{ const_ipc_ruler_object_path };
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match> connection_match_;
@@ -557,8 +554,12 @@ struct ipc_manager_client_mock {
 
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
 
+
+    return make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
+                      match_change_callback);
+
   template <typename callback>
-  auto register_properties_change_callback(callback&& property_callback) -> void {
+  auto register_properties_change_callback(callback&& property_callback) -> std::unique_ptr<sdbusplus::bus::match::match> {
     callback_ = std::forward<callback>(property_callback);
   }
 
