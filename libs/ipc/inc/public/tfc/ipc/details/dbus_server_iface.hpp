@@ -28,8 +28,17 @@ namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
 static constexpr std::string_view dbus_name{ "ipc_ruler" };
 static constexpr std::string_view dbus_manager_name{ "manager" };
-static constexpr std::string_view signals_property{ "Signals" };
-static constexpr std::string_view slots_property{ "Slots" };
+
+const std::string signals_property{ "Signals" };
+const std::string slots_property{ "Slots" };
+const std::string register_signal{ "RegisterSignal" };
+const std::string register_slot{ "RegisterSlot" };
+const std::string disconnect_method{ "Disconnect" };
+const std::string connect_method{ "Connect" };
+const std::string connections_property{ "Connections" };
+
+const char* connection_change = "ConnectionChange";
+
 // service name
 static constexpr auto const_ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
 // object path
@@ -238,46 +247,46 @@ public:
         object_server_->add_unique_interface(const_ipc_ruler_object_path.data(), const_ipc_ruler_interface_name.data());
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
-      auto message = dbus_interface_->new_signal("ConnectionChange");
+      auto message = dbus_interface_->new_signal(connection_change);
       message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
       message.signal_send();
     });
-    dbus_interface_->register_method("Connect", [&](const std::string& slot_name, const std::string& signal_name) {
+    dbus_interface_->register_method(connect_method, [&](const std::string& slot_name, const std::string& signal_name) {
       ipc_manager_->connect(slot_name, signal_name);
-      dbus_interface_->signal_property(std::string(slots_property));
-      dbus_interface_->signal_property("Connections");
+      dbus_interface_->signal_property(slots_property);
+      dbus_interface_->signal_property(connections_property);
     });
 
-    dbus_interface_->register_method("Disconnect", [&](const std::string& slot_name) {
+    dbus_interface_->register_method(disconnect_method, [&](const std::string& slot_name) {
       ipc_manager_->disconnect(slot_name);
-      dbus_interface_->signal_property(std::string(slots_property));
-      dbus_interface_->signal_property("Connections");
+      dbus_interface_->signal_property(slots_property);
+      dbus_interface_->signal_property(connections_property);
     });
 
-    dbus_interface_->register_method("RegisterSignal",
+    dbus_interface_->register_method(register_signal,
                                      [&](const std::string& name, const std::string& description, uint8_t type) {
                                        ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
-                                       dbus_interface_->signal_property(std::string(signals_property));
+                                       dbus_interface_->signal_property(signals_property);
                                      });
-    dbus_interface_->register_method("RegisterSlot",
+    dbus_interface_->register_method(register_slot,
                                      [&](const std::string& name, const std::string& description, uint8_t type) {
                                        ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
-                                       dbus_interface_->signal_property(std::string(slots_property));
+                                       dbus_interface_->signal_property(slots_property);
                                      });
 
     dbus_interface_->register_property_r<std::string>(
-        std::string(signals_property), sdbusplus::vtable::property_::emits_change,
+        signals_property, sdbusplus::vtable::property_::emits_change,
         [&](const auto&) { return glz::write_json(ipc_manager_->get_all_signals()); });
 
     dbus_interface_->register_property_r<std::string>(
-        std::string(slots_property), sdbusplus::vtable::property_::emits_change,
+        slots_property, sdbusplus::vtable::property_::emits_change,
         [&](const auto&) { return glz::write_json(ipc_manager_->get_all_slots()); });
 
     dbus_interface_->register_property_r<std::string>(
-        "Connections", sdbusplus::vtable::property_::emits_change,
+        connections_property, sdbusplus::vtable::property_::emits_change,
         [&](const auto&) { return glz::write_json(ipc_manager_->get_all_connections()); });
 
-    dbus_interface_->register_signal<std::tuple<std::string, std::string>>("ConnectionChange");
+    dbus_interface_->register_signal<std::tuple<std::string, std::string>>("");
     dbus_interface_->initialize();
   }
 
@@ -362,7 +371,7 @@ public:
    */
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                              ipc_ruler_interface_name_, std::string(signals_property),
+                                              ipc_ruler_interface_name_, signals_property,
                                               [captured_handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -383,7 +392,7 @@ public:
    */
   auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                              ipc_ruler_interface_name_, std::string(slots_property),
+                                              ipc_ruler_interface_name_, slots_property,
                                               [captured_handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -402,7 +411,7 @@ public:
    */
   auto connections(std::invocable<const std::map<std::string, std::vector<std::string>>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name_, ipc_ruler_object_path_, ipc_ruler_interface_name_, "Connections",
+        *connection_, ipc_ruler_service_name_, ipc_ruler_object_path_, ipc_ruler_interface_name_, connections_property,
         [handler](const boost::system::error_code& error, const std::string& response) {
           if (error) {
             return;
@@ -426,7 +435,7 @@ public:
                const std::string& signal_name,
                std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "Connect", slot_name, signal_name);
+                                   ipc_ruler_interface_name_, connect_method, slot_name, signal_name);
   }
 
   /**
@@ -438,7 +447,7 @@ public:
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "Disconnect", slot_name);
+                                   ipc_ruler_interface_name_, disconnect_method, slot_name);
   }
 
   /**
