@@ -456,7 +456,8 @@ public:
    * Register a callback function that gets "pinged" each time there is a change in the properties of the ipc manager
    * @param match_change_callback a function like object on each property change that gets called with the dbus message
    * @return a unique pointer to the match object, this is needed to keep the match object alive
-   * @note The match object is kept alive by the unique pointer, if the unique pointer is destroyed the match object will be destroyed.
+   * @note The match object is kept alive by the unique pointer, if the unique pointer is destroyed the match object will be
+   * destroyed.
    */
   auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback)
       -> std::unique_ptr<sdbusplus::bus::match::match> {
