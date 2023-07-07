@@ -119,12 +119,16 @@ private:
   // Function which has oversight over the signals
   auto load_signals() -> void {
     logger_.info("Cancelling running slots");
-    // Stop reading the current signals by canceling the slots
-    for (auto& slot : slots_) {
-      std::visit([](auto& ptr) { ptr->cancel(); }, slot);
-    }
+
 
     ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) {
+
+      // Stop reading the current signals by canceling the slots
+      for (auto& slot : slots_) {
+        std::cout << "Canceling slot" << slot->name << std::endl;
+        // std::visit([](auto& ptr) { ptr->cancel(); }, slot);
+      }
+
       logger_.info("Received {} signals from IPC client", signals.size());
       active_signals_ = signals;
       clean_signals();
@@ -134,22 +138,24 @@ private:
     });
   }
 
-  // This function filter out signals that are not allowed
+  // This function filter out signals that are not allowed using a lazy iterator
   auto clean_signals() -> void {
-    logger_.info("Filtering signals");
 
-    auto it = active_signals_ | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
-                        for (const auto& topic : config_.value()._allowed_topics.value()) {
-                          if (signal.name.find(topic) == std::string::npos) {
-                            return true;
-                          }
+    auto iterator = active_signals_ | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
+                      for (const auto& topic : config_.value()._allowed_topics.value()) {
+                        if (signal.name.find(topic) != std::string::npos) {
+                          return true;
                         }
-                        return false;
-                      });
+                      }
+                      return false;
+                    });
 
-    for(auto& bla : it){
-      std::cout << bla.name << std::endl;
+    std::vector<tfc::ipc_ruler::signal> new_signals;
+    for (auto& signal : iterator) {
+      new_signals.emplace_back(signal);
     }
+
+    active_signals_ = new_signals;
 
   }
 
