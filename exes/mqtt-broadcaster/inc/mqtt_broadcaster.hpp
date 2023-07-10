@@ -120,6 +120,7 @@ private:
 
   // This function filter out signals that are not allowed using a lazy iterator
   auto clean_signals(const std::vector<tfc::ipc_ruler::signal>& signals) -> std::vector<tfc::ipc_ruler::signal> {
+
     auto iterator = signals | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
                       for (const auto& topic : config_.value()._allowed_topics.value()) {
                         if (signal.name.find(topic) != std::string::npos) {
@@ -154,133 +155,73 @@ private:
                       });
 
       std::vector<std::string> new_signals;
+
       for (auto& signal : iterator) {
         logger_.info("Adding signal {}", signal.name);
         new_signals.emplace_back(signal.name);
+        active_signals_.emplace_back(signal.name);
       }
-      // asio::co_spawn(mqtt_client_->strand(), intermediate(new_signals), asio::detached);
-      intermediate(new_signals);
+
+      asio::co_spawn(mqtt_client_->strand(), connect_new_slots(new_signals), asio::detached);
     });
   }
 
-  auto intermediate(std::vector<std::string> new_sig) -> void {
-    for (auto& new_signal : new_sig) {
-      std::cout << new_signal << std::endl;
-      // auto& sig = active_signals_.back();
-      // TODO: if more than one signal runs this then a segmentation fault occurs
-      // if this uses a asio::use_awaitable then it will run one signal and work
-      // if it runs asio::detached it will run all signals and not work
-      asio::co_spawn(mqtt_client_->strand(), run_slot(new_signal), asio::detached);
-      // asio::co_spawn(ctx_, run_slot(new_signal), asio::detached);
-    }
-  }
-
-  // This function runs the coroutine for the slot
-  auto run_slot(std::string signal_name) -> asio::awaitable<void> {
-    logger_.info("Running slot for signal {}", signal_name);
-
-    auto ipc{ tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx_, signal_name) };
+  // This function attempts to connect to the signal
+  asio::awaitable<bool> attempt_connect_to_signal(std::string signal_name,
+                                                  std::shared_ptr<tfc::ipc::details::any_recv> ipc) {
     co_await std::visit(
-        [&, this](auto&& receiver) -> asio::awaitable<void> {
+        [&, this](auto&& receiver) -> asio::awaitable<bool> {
           using receiver_t = std::remove_cvref_t<decltype(receiver)>;
           if constexpr (!std::same_as<std::monostate, receiver_t>) {
-            logger_.trace("Connecting to signal {}", signal_name);
             auto error = receiver->connect(signal_name);
             if (error) {
-              logger_.log<tfc::logger::lvl_e::error>("Error: {}", error.message());
             } else {
-              co_await std::visit(
-                  [&, this](auto&& receiver) -> asio::awaitable<void> {
-                    using r_t = std::remove_cvref_t<decltype(receiver)>;
-                    if constexpr (!std::same_as<std::monostate, r_t>) {
-                      while (true) {
-                        logger_.trace("Waiting for signal {}", signal_name);
+              co_return true;
+            }
+          }
+          co_return false;
+        },
+        *ipc);
+  }
 
-                        auto msg = co_await ipc.async_receive(asio::use_awaitable);
-
-                        std::string message_value = fmt::format("{}", msg.value());
-
-                        if (msg) {
-                          std::cout << " sending on topic " << signal_name << " value " << message_value << std::endl;
-                          co_await send_message(signal_name, message_value);
-                        } else {
-                          logger_.error("Failed to receive message: {}", msg.error().message());
-                        }
-                      }
-                    }
-                  },
-                  ipc);
+  // This function is responsible for receiving and sending the message
+  auto receive_and_send_message(std::shared_ptr<tfc::ipc::details::any_recv> ipc) -> asio::awaitable<void> {
+    co_await std::visit(
+        [&, this](auto&& receiver) -> asio::awaitable<void> {
+          using r_t = std::remove_cvref_t<decltype(receiver)>;
+          if constexpr (!std::same_as<std::monostate, r_t>) {
+            while (true) {
+              logger_.trace("Waiting for signal {}", receiver->get_name());
+              auto msg = co_await receiver->async_receive(asio::use_awaitable);
+              std::string message_value = fmt::format("{}", msg.value());
+              if (msg) {
+                std::cout << " sending on topic " << receiver->get_name() << " value " << message_value << std::endl;
+                co_await send_message(receiver->get_name(), message_value);
+              } else {
+                logger_.error("Failed to receive message: {}", msg.error().message());
+              }
             }
           }
         },
-        ipc);
+        *ipc);
+  }
 
-    //     slots_.emplace_back([&, this](std::string_view signal_name) -> tfc::ipc::details::any_recv {
-    //       auto ipc{ tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx_, signal_name) };
-    //       co_await std::visit(
-    //           [&, this](auto&& receiver) -> asio::awaitable<void> {
-    //             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-    //             if constexpr (!std::same_as<std::monostate, receiver_t>) {
-    //               logger_.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", signal_name);
-    //               auto error = receiver->connect(signal_name);
-    //               if (error) {
-    //                 logger_.log<tfc::logger::lvl_e::error>("Error: {}", error.message());
-    //               } else {
-    //                 co_await std::visit(
-    //                     [&, this](auto&& slot_) -> asio::awaitable<void> {
-    //                       // using receiver_t = std::remove_cvref_t<decltype(slot_)>;
-    //                       // if constexpr (!std::same_as<std::monostate, receiver_t>) {
-    //                       while (true) {
-    //                         logger_.trace("Waiting for signal {}", signal_name);
-    //
-    //                         auto msg = co_await slot_->async_receive(asio::use_awaitable);
-    //
-    //                         std::string message_value = fmt::format("{}", msg.value());
-    //
-    //                         if (msg) {
-    //                           std::cout << " sending on topic " << signal_name << " value " << message_value <<
-    //                           std::endl; co_await send_message(signal_name, message_value);
-    //                         } else {
-    //                           logger_.error("Failed to receive message: {}", msg.error().message());
-    //                         }
-    //                         // }
-    //                       }
-    //                     },
-    //                     ipc);
-    //               }
-    //             }
-    //           },
-    //           ipc);
-    //       // return ipc
-    //           co_return;
-    //           ;
-    //     }(signal_name));
+  // This function runs the coroutine for the slot
+  auto connect_new_slots(std::vector<std::string> new_slots) -> asio::awaitable<void> {
+    for (auto& signal_name : new_slots) {
+      auto ipc = std::make_shared<tfc::ipc::details::any_recv>(
+          tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx_, signal_name));
+      ipc_receivers_.emplace_back(ipc);
+      auto boo = co_await attempt_connect_to_signal(signal_name, ipc);
 
-    // auto& slot = slots_.back();
+      if (!boo) {
+        logger_.error("Failed to connect complete list of slots {}", signal_name);
+      }
+    }
 
-    // co_await std::visit(
-    //     [&, this](auto&& slot_) -> asio::awaitable<void> {
-    //       using receiver_t = std::remove_cvref_t<decltype(slot_)>;
-    //       if constexpr (!std::same_as<std::monostate, receiver_t>) {
-    //         while (true) {
-    //           logger_.trace("Waiting for signal {}", signal_name);
-
-    //           auto msg = co_await slot_->async_receive(asio::use_awaitable);
-
-    //           std::string message_value = fmt::format("{}", msg.value());
-
-    //           if (msg) {
-    //             std::cout << " sending on topic " << signal_name << " value " << message_value << std::endl;
-    //             co_await send_message(signal_name, message_value);
-    //           } else {
-    //             logger_.error("Failed to receive message: {}", msg.error().message());
-    //           }
-    //         }
-    //       }
-    //     },
-    //     slot);
-
-    co_return;
+    for (std::shared_ptr<tfc::ipc::details::any_recv> receiver : ipc_receivers_) {
+      asio::co_spawn(mqtt_client_->strand(), receive_and_send_message(receiver), asio::detached);
+    }
   }
 
   // This function is called when a signal is received
@@ -336,8 +277,9 @@ private:
 
   std::vector<tfc::ipc::details::any_recv> slots_;
 
-  // std::vector<tfc::ipc_ruler::signal> active_signals_;
   std::vector<std::string> active_signals_;
+
+  std::vector<std::shared_ptr<tfc::ipc::details::any_recv>> ipc_receivers_;
 
   std::unique_ptr<sdbusplus::bus::match::match> properties_callback_;
 
