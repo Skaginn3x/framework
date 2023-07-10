@@ -120,8 +120,24 @@ private:
   auto load_signals() -> void {
     logger_.info("Cancelling running slots");
 
-
     ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) {
+      // find signals that need to be cancelled
+      std::vector<tfc::ipc_ruler::signal> cancelled_signals;
+
+      auto iterator = active_signals_ | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
+                        for (auto signal : active_signals_) {
+                          if (signal.name.find(topic) == ) {
+                            return true;
+                          }
+                        }
+                        return false;
+                      });
+
+      for (auto& signal : iterator) {
+        new_signals.emplace_back(signal);
+      }
+
+      active_signals_ = new_signals;
 
       // Stop reading the current signals by canceling the slots
       for (auto& slot : slots_) {
@@ -136,27 +152,6 @@ private:
         handle_signal(signal);
       }
     });
-  }
-
-  // This function filter out signals that are not allowed using a lazy iterator
-  auto clean_signals() -> void {
-
-    auto iterator = active_signals_ | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
-                      for (const auto& topic : config_.value()._allowed_topics.value()) {
-                        if (signal.name.find(topic) != std::string::npos) {
-                          return true;
-                        }
-                      }
-                      return false;
-                    });
-
-    std::vector<tfc::ipc_ruler::signal> new_signals;
-    for (auto& signal : iterator) {
-      new_signals.emplace_back(signal);
-    }
-
-    active_signals_ = new_signals;
-
   }
 
   // This function checks the type of the signal in order to determine how to read from the slot

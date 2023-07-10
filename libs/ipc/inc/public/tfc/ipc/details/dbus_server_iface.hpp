@@ -15,6 +15,7 @@
 #include <sdbusplus/asio/property.hpp>
 
 #include <tfc/dbus/exception.hpp>
+#include <tfc/dbus/match_rules.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc/enums.hpp>
@@ -27,6 +28,15 @@ namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
 static constexpr std::string_view dbus_name{ "ipc_ruler" };
 static constexpr std::string_view dbus_manager_name{ "manager" };
+
+static constexpr std::string_view signals_property{ "Signals" };
+static constexpr std::string_view slots_property{ "Slots" };
+static constexpr std::string_view register_signal{ "RegisterSignal" };
+static constexpr std::string_view register_slot{ "RegisterSlot" };
+static constexpr std::string_view disconnect_method{ "Disconnect" };
+static constexpr std::string_view connect_method{ "Connect" };
+static constexpr std::string_view connections_property{ "Connections" };
+
 // service name
 static constexpr auto const_ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
 // object path
@@ -157,7 +167,7 @@ public:
     std::vector<signal> ret;
     ret.reserve(signals_->size());
     std::transform(signals_->begin(), signals_->end(), std::back_inserter(ret),
-                   [](const auto& tple) { return tple.second; });
+                   [](const auto& tuple) { return tuple.second; });
     return ret;
   }
 
@@ -165,17 +175,17 @@ public:
     logger_.trace("get_all_slots called");
     std::vector<slot> ret;
     ret.reserve(slots_->size());
-    std::transform(slots_->begin(), slots_->end(), std::back_inserter(ret), [](const auto& tple) { return tple.second; });
+    std::transform(slots_->begin(), slots_->end(), std::back_inserter(ret), [](const auto& tuple) { return tuple.second; });
     return ret;
   }
 
   auto get_all_connections() -> std::map<std::string, std::vector<std::string>> {
     std::map<std::string, std::vector<std::string>> connections;
     std::for_each(signals_->begin(), signals_->end(),
-                  [&](std::pair<std::string, signal> kv) { connections[kv.second.name] = {}; });
-    std::for_each(slots_->begin(), slots_->end(), [&](std::pair<std::string, slot> kv) {
-      if (kv.second.connected_to != "") {
-        connections[kv.second.connected_to].emplace_back(kv.second.name);
+                  [&](const std::pair<std::string, signal>& key_value) { connections[key_value.second.name] = {}; });
+    std::for_each(slots_->begin(), slots_->end(), [&](const std::pair<std::string, slot>& slot) {
+      if (!slot.second.connected_to.empty()) {
+        connections[slot.second.connected_to].emplace_back(slot.second.name);
       }
     });
     return connections;
@@ -231,64 +241,72 @@ public:
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
     connection_->request_name(const_ipc_ruler_service_name.data());
-    dbus_iface_ =
+    dbus_interface_ =
         object_server_->add_unique_interface(const_ipc_ruler_object_path.data(), const_ipc_ruler_interface_name.data());
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
-      auto message = dbus_iface_->new_signal("ConnectionChange");
+      auto message = dbus_interface_->new_signal(connection_change);
       message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
       message.signal_send();
     });
-    dbus_iface_->register_method("Connect", [&](const std::string& slot_name, const std::string& signal_name) {
-      ipc_manager_->connect(slot_name, signal_name);
-      dbus_iface_->signal_property("Slots");
-      dbus_iface_->signal_property("Connections");
-    });
+    dbus_interface_->register_method(std::string(connect_method),
+                                     [&](const std::string& slot_name, const std::string& signal_name) {
+                                       ipc_manager_->connect(slot_name, signal_name);
+                                       dbus_interface_->signal_property(std::string(slots_property));
+                                       dbus_interface_->signal_property(std::string(connections_property));
+                                     });
 
-    dbus_iface_->register_method("Disconnect", [&](const std::string& slot_name) {
+    dbus_interface_->register_method(std::string(disconnect_method), [&](const std::string& slot_name) {
       ipc_manager_->disconnect(slot_name);
-      dbus_iface_->signal_property("Slots");
-      dbus_iface_->signal_property("Connections");
+      dbus_interface_->signal_property(std::string(slots_property));
+      dbus_interface_->signal_property(std::string(connections_property));
     });
 
-    dbus_iface_->register_method("RegisterSignal",
-                                 [&](const std::string& name, const std::string& description, uint8_t type) {
-                                   ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
-                                   dbus_iface_->signal_property("Signals");
-                                 });
-    dbus_iface_->register_method("RegisterSlot", [&](const std::string& name, const std::string& description, uint8_t type) {
-      ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
-      dbus_iface_->signal_property("Slots");
-    });
+    dbus_interface_->register_method(std::string(register_signal),
+                                     [&](const std::string& name, const std::string& description, uint8_t type) {
+                                       ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
+                                       dbus_interface_->signal_property(std::string(signals_property));
+                                     });
+    dbus_interface_->register_method(std::string(register_slot),
+                                     [&](const std::string& name, const std::string& description, uint8_t type) {
+                                       ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
+                                       dbus_interface_->signal_property(std::string(slots_property));
+                                     });
 
-    dbus_iface_->register_property_r<std::string>("Signals", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
-      return glz::write_json(ipc_manager_->get_all_signals());
-    });
+    dbus_interface_->register_property_r<std::string>(
+        std::string(signals_property), sdbusplus::vtable::property_::emits_change,
+        [&](const auto&) { return glz::write_json(ipc_manager_->get_all_signals()); });
 
-    dbus_iface_->register_property_r<std::string>("Slots", sdbusplus::vtable::property_::emits_change, [&](const auto&) {
-      return glz::write_json(ipc_manager_->get_all_slots());
-    });
+    dbus_interface_->register_property_r<std::string>(
+        std::string(slots_property), sdbusplus::vtable::property_::emits_change,
+        [&](const auto&) { return glz::write_json(ipc_manager_->get_all_slots()); });
 
-    dbus_iface_->register_property_r<std::string>(
-        "Connections", sdbusplus::vtable::property_::emits_change,
+    dbus_interface_->register_property_r<std::string>(
+        std::string(connections_property), sdbusplus::vtable::property_::emits_change,
         [&](const auto&) { return glz::write_json(ipc_manager_->get_all_connections()); });
 
-    dbus_iface_->register_signal<std::tuple<std::string, std::string>>("ConnectionChange");
-    dbus_iface_->initialize();
+    dbus_interface_->register_signal<std::tuple<std::string, std::string>>("");
+    dbus_interface_->initialize();
   }
 
 private:
   std::shared_ptr<sdbusplus::asio::connection> connection_;
-  std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_iface_;
+  std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
   std::unique_ptr<ipc_manager<signal_storage, slot_storage>> ipc_manager_;
+
+  const char* connection_change = "ConnectionChange";
 };
 
 class ipc_manager_client {
 public:
   explicit ipc_manager_client(boost::asio::io_context& ctx) {
     connection_ = std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
-    match_ = make_match();
+    connection_match_ = make_match(
+        std::string(
+            tfc::dbus::match::rules::make_match_rule<const_ipc_ruler_service_name, const_ipc_ruler_interface_name,
+                                                     const_ipc_ruler_object_path, tfc::dbus::match::rules::type::signal>()),
+        std::bind_front(&ipc_manager_client::match_callback, this));
   }
   // Todo copy constructors can be implemented but I don't see why we need them
   ipc_manager_client(ipc_manager_client const&) = delete;
@@ -297,15 +315,23 @@ public:
     connection_ = std::move(to_be_erased.connection_);
     slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
-    // it could throw if we are out of memory but then we are already screwed and the process will terminate.
-    match_ = make_match();
+    // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
+    connection_match_ = make_match(
+        std::string(
+            tfc::dbus::match::rules::make_match_rule<const_ipc_ruler_service_name, const_ipc_ruler_interface_name,
+                                                     const_ipc_ruler_object_path, tfc::dbus::match::rules::type::signal>()),
+        std::bind_front(&ipc_manager_client::match_callback, this));
   }
   auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
     connection_ = std::move(to_be_erased.connection_);
     slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
     // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
-    // it could throw if we are out of memory but then we are already screwed and the process will terminate.
-    match_ = make_match();
+    // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
+    connection_match_ = make_match(
+        std::string(
+            tfc::dbus::match::rules::make_match_rule<const_ipc_ruler_service_name, const_ipc_ruler_interface_name,
+                                                     const_ipc_ruler_object_path, tfc::dbus::match::rules::type::signal>()),
+        std::bind_front(&ipc_manager_client::match_callback, this));
     return *this;
   }
 
@@ -346,7 +372,7 @@ public:
    */
   auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                              ipc_ruler_interface_name_, "Signals",
+                                              ipc_ruler_interface_name_, std::string(signals_property),
                                               [captured_handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -367,7 +393,7 @@ public:
    */
   auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(*connection_, ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                              ipc_ruler_interface_name_, "Slots",
+                                              ipc_ruler_interface_name_, std::string(slots_property),
                                               [captured_handler = std::forward<decltype(handler)>(handler)](
                                                   const boost::system::error_code& error, const std::string& response) {
                                                 if (error) {
@@ -386,7 +412,7 @@ public:
    */
   auto connections(std::invocable<const std::map<std::string, std::vector<std::string>>&> auto&& handler) -> void {
     sdbusplus::asio::getProperty<std::string>(
-        *connection_, ipc_ruler_service_name_, ipc_ruler_object_path_, ipc_ruler_interface_name_, "Connections",
+        *connection_, ipc_ruler_service_name_, ipc_ruler_object_path_, ipc_ruler_interface_name_, connections_property,
         [handler](const boost::system::error_code& error, const std::string& response) {
           if (error) {
             return;
@@ -410,7 +436,7 @@ public:
                const std::string& signal_name,
                std::invocable<const std::error_code&> auto&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "Connect", slot_name, signal_name);
+                                   ipc_ruler_interface_name_, std::string(connect_method), slot_name, signal_name);
   }
 
   /**
@@ -422,7 +448,7 @@ public:
   template <typename message_handler>
   auto disconnect(const std::string& slot_name, message_handler&& handler) -> void {
     connection_->async_method_call(std::forward<decltype(handler)>(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
-                                   ipc_ruler_interface_name_, "Disconnect", slot_name);
+                                   ipc_ruler_interface_name_, std::string(disconnect_method), slot_name);
   }
 
   /**
@@ -438,13 +464,23 @@ public:
     slot_callbacks_.emplace(std::string(slot_name), connection_change_callback);
   }
 
+  /**
+   * Register a callback function that gets "pinged" each time there is a change in the properties of the ipc manager
+   * @param match_change_callback a function like object on each property change that gets called with the dbus message
+   * @return a unique pointer to the match object, this is needed to keep the match object alive
+   * @note The match object is kept alive by the unique pointer, if the unique pointer is destroyed the match object will be
+   * destroyed.
+   */
+  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback)
+      -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
+                      match_change_callback);
+  }
+
 private:
-  auto make_match() -> std::unique_ptr<sdbusplus::bus::match::match> {
-    return std::make_unique<sdbusplus::bus::match::match>(
-        *connection_,
-        fmt::format("sender='{}',interface='{}',path='{}',type='signal'", ipc_ruler_service_name_, ipc_ruler_interface_name_,
-                    ipc_ruler_object_path_),
-        std::bind_front(&ipc_manager_client::match_callback, this));
+  auto make_match(const std::string& match_rule, std::function<void(sdbusplus::message_t&)> callback)
+      -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return std::make_unique<sdbusplus::bus::match::match>(*connection_, match_rule, callback);
   }
   auto match_callback(sdbusplus::message_t& msg) -> void {
     auto container = msg.unpack<std::tuple<std::string, std::string>>();
@@ -460,68 +496,8 @@ private:
   const std::string ipc_ruler_object_path_{ const_ipc_ruler_object_path };
 
   std::unique_ptr<sdbusplus::asio::connection> connection_;
-  std::unique_ptr<sdbusplus::bus::match::match> match_;
+  std::unique_ptr<sdbusplus::bus::match::match> connection_match_;
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks_;
-};
-
-struct ipc_manager_client_mock {
-  auto register_connection_change_callback(std::string_view slot_name,
-                                           const std::function<void(std::string_view const)>& connection_change_callback)
-      -> void {
-    slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
-  }
-
-  std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
-
-  auto register_slot(const std::string_view name,
-                     std::string_view description,
-                     type_e type,
-                     std::invocable<const std::error_code&> auto&& handler) -> void {
-    slots.emplace_back(slot{ .name = std::string(name),
-                             .type = type,
-                             .created_by = "",
-                             .created_at = std::chrono::system_clock::now(),
-                             .last_registered = std::chrono::system_clock::now(),
-                             .last_modified = std::chrono::system_clock::now(),
-                             .modified_by = "",
-                             .connected_to = "",
-                             .description = std::string(description) });
-    handler(std::error_code());
-  }
-
-  auto register_signal(const std::string_view name,
-                       std::string_view description,
-                       type_e type,
-                       std::invocable<const std::error_code&> auto&& handler) -> void {
-    signals.emplace_back(signal{ .name = std::string(name),
-                                 .type = type,
-                                 .created_by = "",
-                                 .created_at = std::chrono::system_clock::now(),
-                                 .last_registered = std::chrono::system_clock::now(),
-                                 .description = std::string(description) });
-    handler(std::error_code());
-  }
-
-  auto connect(const std::string& slot_name,
-               const std::string& signal_name,
-               std::invocable<const std::error_code&> auto&& handler) -> void {
-    for (auto& slot : slots) {
-      if (slot.name == slot_name) {
-        slot.connected_to = signal_name;
-        auto iterator = slot_callbacks.find(slot_name);
-        if (iterator != slot_callbacks.end()) {
-          std::invoke(iterator->second, signal_name);
-        }
-        std::error_code no_err{};
-        handler(no_err);
-        return;
-      }
-    }
-    throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
-  }
-
-  std::vector<slot> slots;
-  std::vector<signal> signals;
 };
 
 }  // namespace tfc::ipc_ruler
