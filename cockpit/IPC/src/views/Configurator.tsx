@@ -9,7 +9,10 @@ import Form from '@rjsf/core';
 import Collapse from '@mui/material/Collapse';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
-import { demoRJSFSchema, demoRJSFData2, demoRJSFSchema2 } from './demoData';
+import {
+  demoRJSFSchema, demoRJSFData2, demoRJSFSchema2, demoUiSchema,
+} from './demoData';
+import Generator from '../Components/Form/Form';
 
 declare global {
   interface Window { cockpit: any; }
@@ -242,7 +245,7 @@ export default function Configurator() {
   }, [formData]);
 
   return (
-    <div style={{ minWidth: '500px' }}>
+    <div style={{ minWidth: '500px', maxWidth: '40vw' }}>
       <Title headingLevel="h1" size="xl" style={{ marginBottom: '1rem' }}> Configurator - Time For Change</Title>
       {names.length && Object.keys(schemas).length && Object.keys(schemas).map((name: string) => {
         if (schemas[name] && formData[name]) {
@@ -266,17 +269,7 @@ export default function Configurator() {
         }
         return null;
       })}
-      {/* <Form
-        schema={demoRJSF}
-        formData={formData.demo}
-        templates={{ ArrayFieldTemplate, ArrayFieldDescriptionTemplate }}
-        validator={validator}
-        onChange={(e) => updateFormData('demo', e.formData)}
-        onError={() => console.log('errors')}
-      > */}
-      { /* eslint-disable-next-line react/jsx-no-useless-fragment */}
-      {/* <></>
-      </Form> */}
+      <Generator inputSchema={demoUiSchema()} />
     </div>
   );
 }

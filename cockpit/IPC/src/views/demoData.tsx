@@ -708,3 +708,108 @@ export function demoRJSFSchema2(): RJSFSchema {
   };
   return data;
 }
+
+export function demoUiSchema(): any {
+  return {
+    type: [
+      'object',
+    ],
+    properties: {
+      config: {
+        $ref: '#/$defs/with_variant',
+      },
+    },
+    additionalProperties: false,
+    $defs: {
+      int32_t: {
+        type: [
+          'integer',
+        ],
+      },
+      'std::string': {
+        type: [
+          'string',
+        ],
+      },
+      'std::variant<std::monostate,option_1,option_2>': {
+        type: [
+          'string',
+        ],
+        enum: [
+          'None',
+          'Option 1',
+          'Option 2',
+        ],
+      },
+      'tfc::observable<std::chrono::duration<int64_t,std::nano>>': {
+        type: [
+          'integer',
+        ],
+      },
+      'units::quantity<electric_current,dA,uint16_t>': {
+        type: [
+          'integer',
+        ],
+      },
+      with_variant: {
+        type: [
+          'object',
+        ],
+        properties: {
+          a_int: {
+            $ref: '#/$defs/int32_t',
+            description: 'A int description',
+          },
+          variant: {
+            $ref: '#/$defs/std::variant<std::monostate,option_1,option_2>',
+            description: 'variant description',
+            title: 'Options',
+            default: 'None',
+          },
+        },
+        allOf: [
+          {
+            if: {
+              properties: {
+                variant: {
+                  type: 'string',
+                  const: 'Option 1',
+                },
+              },
+            },
+            then: {
+              properties: {
+                amper: {
+                  $ref: '#/$defs/units::quantity<electric_current,dA,uint16_t>',
+                  description: 'amper description',
+                },
+              },
+            },
+          },
+          {
+            if: {
+              properties: {
+                variant: {
+                  type: 'string',
+                  const: 'Option 2',
+                },
+              },
+            },
+            then: {
+              properties: {
+                a: {
+                  $ref: '#/$defs/std::string',
+                  description: 'A description',
+                },
+                sec: {
+                  $ref: '#/$defs/tfc::observable<std::chrono::duration<int64_t,std::nano>>',
+                  description: 'sec description',
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
+  };
+}
