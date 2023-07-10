@@ -28,7 +28,8 @@ public:
         mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)), mqtt_username_(std::move(mqtt_username)),
         mqtt_password_(std::move(mqtt_password)), ctx_(ctx), ipc_client_(ipc_client), mqtt_client_(std::move(mqtt_client)),
         logger_("mqtt_broadcaster"), config_(std::move(cfg)) {
-    ipc_client.register_properties_change_callback(std::bind_front(&mqtt_broadcaster::update_signals, this));
+    properties_callback_ =
+        ipc_client.register_properties_change_callback(std::bind_front(&mqtt_broadcaster::update_signals, this));
     asio::co_spawn(mqtt_client_->strand(), initialize(), asio::detached);
   }
 
@@ -44,7 +45,8 @@ public:
         mqtt_host_(std::move(mqtt_address)), mqtt_port_(std::move(mqtt_port)), mqtt_username_(std::move(mqtt_username)),
         mqtt_password_(std::move(mqtt_password)), ctx_(ctx), ipc_client_(ipc_client), mqtt_client_(std::move(mqtt_client)),
         logger_("mqtt_broadcaster"), config_(ctx, "mqtt_broadcaster") {
-    ipc_client.register_properties_change_callback(std::bind_front(&mqtt_broadcaster::update_signals, this));
+    properties_callback_ =
+        ipc_client.register_properties_change_callback(std::bind_front(&mqtt_broadcaster::update_signals, this));
     asio::co_spawn(mqtt_client_->strand(), initialize(), asio::detached);
   }
 
@@ -59,11 +61,11 @@ private:
 
     // When a new list of allowed string arrives the program is restarted
     config_.value()._allowed_topics.observe(
-        [this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) { restart(); });
+        [this]([[maybe_unused]] auto& new_conf, [[maybe_unused]] auto& old_conf) { add_new_signals(); });
 
     asio::co_spawn(mqtt_client_->strand(), tfc::base::exit_signals(ctx_), asio::detached);
 
-    load_signals();
+    add_new_signals();
   }
 
   // Connect the mqtt client to the broker. This function can only be spawned once to avoid multiple spawns to open/close
@@ -116,39 +118,44 @@ private:
     }
   }
 
+  // This function filter out signals that are not allowed using a lazy iterator
+  auto clean_signals(const std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
+    auto iterator = signals | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
+                      for (const auto& topic : config_.value()._allowed_topics.value()) {
+                        if (signal.name.find(topic) != std::string::npos) {
+                          return true;
+                        }
+                      }
+                      return false;
+                    });
+
+    std::vector<tfc::ipc_ruler::signal> new_signals;
+    for (auto& signal : iterator) {
+      new_signals.emplace_back(signal);
+    }
+
+    return new_signals;
+  }
+
   // Function which has oversight over the signals
-  auto load_signals() -> void {
-    logger_.info("Cancelling running slots");
+  auto add_new_signals() -> void {
+    logger_.info("Adding new signals");
 
     ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) {
-      // find signals that need to be cancelled
-      std::vector<tfc::ipc_ruler::signal> cancelled_signals;
+      auto cleaned_signals = clean_signals(signals);
 
-      auto iterator = active_signals_ | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
-                        for (auto signal : active_signals_) {
-                          if (signal.name.find(topic) == ) {
-                            return true;
+      auto iterator = cleaned_signals | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
+                        for (const auto& active_signal : active_signals_) {
+                          if (signal.name == active_signal.name) {
+                            return false;
                           }
                         }
-                        return false;
+                        return true;
                       });
 
       for (auto& signal : iterator) {
-        new_signals.emplace_back(signal);
-      }
-
-      active_signals_ = new_signals;
-
-      // Stop reading the current signals by canceling the slots
-      for (auto& slot : slots_) {
-        std::cout << "Canceling slot" << slot->name << std::endl;
-        // std::visit([](auto& ptr) { ptr->cancel(); }, slot);
-      }
-
-      logger_.info("Received {} signals from IPC client", signals.size());
-      active_signals_ = signals;
-      clean_signals();
-      for (tfc::ipc_ruler::signal& signal : active_signals_) {
+        logger_.info("Adding signal {}", signal.name);
+        active_signals_.emplace_back(signal);
         handle_signal(signal);
       }
     });
@@ -198,17 +205,8 @@ private:
     asio::co_spawn(mqtt_client_->strand(), slot_coroutine<slot_type, value_type>(*slot, signal.name), asio::detached);
   }
 
-  // This function stops the coroutines that are currently running and then restarts them
-  auto restart() -> void {
-    stop_coroutine_ = true;
-    ctx_.run_for(std::chrono::milliseconds(20));
-    logger_.info("Signal list has been updated, reloading all signals");
-    load_signals();
-    stop_coroutine_ = false;
-  }
-
   // This function is called when a signal is received
-  void update_signals([[maybe_unused]] sdbusplus::message_t& msg) { restart(); }
+  void update_signals([[maybe_unused]] sdbusplus::message_t& msg) { add_new_signals(); }
 
   // This function runs a coroutine for a slot, when a new value is received a message is sent to the MQTT broker
   template <class slot_type, class value_type>
@@ -282,6 +280,8 @@ private:
                            std::shared_ptr<details::slot<details::type_double>>,
                            std::shared_ptr<details::slot<details::type_json>>>>
       slots_;
+
+  std::unique_ptr<sdbusplus::bus::match::match> properties_callback_;
 
   bool connect_active_ = false;
   bool stop_coroutine_ = false;
