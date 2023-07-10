@@ -37,6 +37,8 @@ static constexpr std::string_view disconnect_method{ "Disconnect" };
 static constexpr std::string_view connect_method{ "Connect" };
 static constexpr std::string_view connections_property{ "Connections" };
 
+const char* connection_change = "ConnectionChange";
+
 // service name
 static constexpr auto const_ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
 // object path
@@ -294,8 +296,6 @@ private:
   std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
   std::unique_ptr<ipc_manager<signal_storage, slot_storage>> ipc_manager_;
-
-  const char* connection_change = "ConnectionChange";
 };
 
 class ipc_manager_client {

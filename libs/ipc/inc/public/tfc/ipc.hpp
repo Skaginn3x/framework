@@ -74,8 +74,6 @@ public:
 
   [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
 
-  auto something() -> std::string { return "something"; }
-
 private:
   static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
