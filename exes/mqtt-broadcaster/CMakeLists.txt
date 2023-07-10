@@ -25,6 +25,8 @@
          ASYNC_MQTT_USE_LOG
  )
 
+ target_compile_options(mqtt-broadcaster PRIVATE -g)
+
  target_include_directories(mqtt-broadcaster-tests
          PUBLIC
          ${CMAKE_CURRENT_SOURCE_DIR}/inc

@@ -119,7 +119,7 @@ private:
   }
 
   // This function filter out signals that are not allowed using a lazy iterator
-  auto clean_signals(const std::vector<tfc::ipc_ruler::signal> signals) -> std::vector<tfc::ipc_ruler::signal> {
+  auto clean_signals(const std::vector<tfc::ipc_ruler::signal>& signals) -> std::vector<tfc::ipc_ruler::signal> {
     auto iterator = signals | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
                       for (const auto& topic : config_.value()._allowed_topics.value()) {
                         if (signal.name.find(topic) != std::string::npos) {
@@ -146,94 +146,156 @@ private:
 
       auto iterator = cleaned_signals | std::views::filter([this](const tfc::ipc_ruler::signal& signal) {
                         for (const auto& active_signal : active_signals_) {
-                          if (signal.name == active_signal.name) {
+                          if (signal.name == active_signal) {
                             return false;
                           }
                         }
                         return true;
                       });
 
+      std::vector<std::string> new_signals;
       for (auto& signal : iterator) {
         logger_.info("Adding signal {}", signal.name);
-        active_signals_.emplace_back(signal);
-        handle_signal(signal);
+        new_signals.emplace_back(signal.name);
       }
+      // asio::co_spawn(mqtt_client_->strand(), intermediate(new_signals), asio::detached);
+      intermediate(new_signals);
     });
   }
 
-  // This function checks the type of the signal in order to determine how to read from the slot
-  auto handle_signal(tfc::ipc_ruler::signal& signal) -> void {
-    logger_.info("Handling signal {}", signal.name);
-    switch (signal.type) {
-      case details::type_e::_bool: {
-        run_slot<tfc::ipc::details::type_bool, bool>(signal);
-        break;
-      }
-      case details::type_e::_int64_t: {
-        run_slot<tfc::ipc::details::type_int, int>(signal);
-        break;
-      }
-      case details::type_e::_uint64_t: {
-        run_slot<tfc::ipc::details::type_uint, uint>(signal);
-        break;
-      }
-      case details::type_e::_double_t: {
-        run_slot<tfc::ipc::details::type_double, double>(signal);
-        break;
-      }
-      case details::type_e::_string: {
-        run_slot<tfc::ipc::details::type_string, std::string>(signal);
-        break;
-      }
-      case details::type_e::_json: {
-        run_slot<tfc::ipc::details::type_json, std::string>(signal);
-        break;
-      }
-      case details::type_e::unknown: {
-        break;
-      }
+  auto intermediate(std::vector<std::string> new_sig) -> void {
+    for (auto& new_signal : new_sig) {
+      std::cout << new_signal << std::endl;
+      // auto& sig = active_signals_.back();
+      // TODO: if more than one signal runs this then a segmentation fault occurs
+      // if this uses a asio::use_awaitable then it will run one signal and work
+      // if it runs asio::detached it will run all signals and not work
+      asio::co_spawn(mqtt_client_->strand(), run_slot(new_signal), asio::detached);
+      // asio::co_spawn(ctx_, run_slot(new_signal), asio::detached);
     }
   }
 
   // This function runs the coroutine for the slot
-  template <typename slot_type, typename value_type>
-  auto run_slot(tfc::ipc_ruler::signal& signal) -> void {
-    logger_.info("Running slot for signal {}", signal.name);
-    slots_.emplace_back(std::make_shared<details::slot<slot_type>>(ctx_, signal.name));
-    auto& slot = std::get<std::shared_ptr<details::slot<slot_type>>>(slots_.back());
-    slot->connect(signal.name);
-    asio::co_spawn(mqtt_client_->strand(), slot_coroutine<slot_type, value_type>(*slot, signal.name), asio::detached);
+  auto run_slot(std::string signal_name) -> asio::awaitable<void> {
+    logger_.info("Running slot for signal {}", signal_name);
+
+    auto ipc{ tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx_, signal_name) };
+    co_await std::visit(
+        [&, this](auto&& receiver) -> asio::awaitable<void> {
+          using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+          if constexpr (!std::same_as<std::monostate, receiver_t>) {
+            logger_.trace("Connecting to signal {}", signal_name);
+            auto error = receiver->connect(signal_name);
+            if (error) {
+              logger_.log<tfc::logger::lvl_e::error>("Error: {}", error.message());
+            } else {
+              co_await std::visit(
+                  [&, this](auto&& receiver) -> asio::awaitable<void> {
+                    using r_t = std::remove_cvref_t<decltype(receiver)>;
+                    if constexpr (!std::same_as<std::monostate, r_t>) {
+                      while (true) {
+                        logger_.trace("Waiting for signal {}", signal_name);
+
+                        auto msg = co_await ipc.async_receive(asio::use_awaitable);
+
+                        std::string message_value = fmt::format("{}", msg.value());
+
+                        if (msg) {
+                          std::cout << " sending on topic " << signal_name << " value " << message_value << std::endl;
+                          co_await send_message(signal_name, message_value);
+                        } else {
+                          logger_.error("Failed to receive message: {}", msg.error().message());
+                        }
+                      }
+                    }
+                  },
+                  ipc);
+            }
+          }
+        },
+        ipc);
+
+    //     slots_.emplace_back([&, this](std::string_view signal_name) -> tfc::ipc::details::any_recv {
+    //       auto ipc{ tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx_, signal_name) };
+    //       co_await std::visit(
+    //           [&, this](auto&& receiver) -> asio::awaitable<void> {
+    //             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+    //             if constexpr (!std::same_as<std::monostate, receiver_t>) {
+    //               logger_.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", signal_name);
+    //               auto error = receiver->connect(signal_name);
+    //               if (error) {
+    //                 logger_.log<tfc::logger::lvl_e::error>("Error: {}", error.message());
+    //               } else {
+    //                 co_await std::visit(
+    //                     [&, this](auto&& slot_) -> asio::awaitable<void> {
+    //                       // using receiver_t = std::remove_cvref_t<decltype(slot_)>;
+    //                       // if constexpr (!std::same_as<std::monostate, receiver_t>) {
+    //                       while (true) {
+    //                         logger_.trace("Waiting for signal {}", signal_name);
+    //
+    //                         auto msg = co_await slot_->async_receive(asio::use_awaitable);
+    //
+    //                         std::string message_value = fmt::format("{}", msg.value());
+    //
+    //                         if (msg) {
+    //                           std::cout << " sending on topic " << signal_name << " value " << message_value <<
+    //                           std::endl; co_await send_message(signal_name, message_value);
+    //                         } else {
+    //                           logger_.error("Failed to receive message: {}", msg.error().message());
+    //                         }
+    //                         // }
+    //                       }
+    //                     },
+    //                     ipc);
+    //               }
+    //             }
+    //           },
+    //           ipc);
+    //       // return ipc
+    //           co_return;
+    //           ;
+    //     }(signal_name));
+
+    // auto& slot = slots_.back();
+
+    // co_await std::visit(
+    //     [&, this](auto&& slot_) -> asio::awaitable<void> {
+    //       using receiver_t = std::remove_cvref_t<decltype(slot_)>;
+    //       if constexpr (!std::same_as<std::monostate, receiver_t>) {
+    //         while (true) {
+    //           logger_.trace("Waiting for signal {}", signal_name);
+
+    //           auto msg = co_await slot_->async_receive(asio::use_awaitable);
+
+    //           std::string message_value = fmt::format("{}", msg.value());
+
+    //           if (msg) {
+    //             std::cout << " sending on topic " << signal_name << " value " << message_value << std::endl;
+    //             co_await send_message(signal_name, message_value);
+    //           } else {
+    //             logger_.error("Failed to receive message: {}", msg.error().message());
+    //           }
+    //         }
+    //       }
+    //     },
+    //     slot);
+
+    co_return;
   }
 
   // This function is called when a signal is received
   void update_signals([[maybe_unused]] sdbusplus::message_t& msg) { add_new_signals(); }
 
-  // This function runs a coroutine for a slot, when a new value is received a message is sent to the MQTT broker
-  template <class slot_type, class value_type>
-  auto slot_coroutine(details::slot<slot_type>& slot, std::string signal_name) -> asio::awaitable<void> {
-    logger_.info("Starting coroutine for signal: {}", signal_name);
-    std::replace(signal_name.begin(), signal_name.end(), '.', '/');
-
-    while (!stop_coroutine_) {
-      std::expected<value_type, std::error_code> msg = co_await slot.async_receive(asio::use_awaitable);
-      if (msg) {
-        std::string message_value = fmt::format("{}", msg.value());
-        co_await send_message<value_type>(signal_name, message_value);
-      }
-    }
-  }
-
   // This function sends a message to the MQTT broker. If the send fails then it will try to restart the broker
-  template <class value_type>
-  auto send_message(std::string signal, std::string value) -> asio::awaitable<void> {
-    logger_.trace("Sending message: {} to topic: {}", value, signal);
+  auto send_message(std::string topic, std::string payload) -> asio::awaitable<void> {
+    logger_.trace("Sending message {} to topic {}", payload, topic);
     co_await asio::post(mqtt_client_->strand(), asio::use_awaitable);
 
     bool send_failed = false;
     try {
       auto result = co_await mqtt_client_->send(
           async_mqtt::v5::publish_packet{ mqtt_client_->acquire_unique_packet_id().value(),
-                                          async_mqtt::allocate_buffer(signal), async_mqtt::allocate_buffer(value),
+                                          async_mqtt::allocate_buffer(topic), async_mqtt::allocate_buffer(payload),
                                           async_mqtt::qos::at_least_once },
           asio::use_awaitable);
 
@@ -272,17 +334,12 @@ private:
 
   config_manager<config_type> config_;
 
-  std::vector<tfc::ipc_ruler::signal> active_signals_;
-  std::vector<std::variant<std::shared_ptr<details::slot<details::type_bool>>,
-                           std::shared_ptr<details::slot<details::type_string>>,
-                           std::shared_ptr<details::slot<details::type_int>>,
-                           std::shared_ptr<details::slot<details::type_uint>>,
-                           std::shared_ptr<details::slot<details::type_double>>,
-                           std::shared_ptr<details::slot<details::type_json>>>>
-      slots_;
+  std::vector<tfc::ipc::details::any_recv> slots_;
+
+  // std::vector<tfc::ipc_ruler::signal> active_signals_;
+  std::vector<std::string> active_signals_;
 
   std::unique_ptr<sdbusplus::bus::match::match> properties_callback_;
 
   bool connect_active_ = false;
-  bool stop_coroutine_ = false;
 };
