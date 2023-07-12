@@ -18,5 +18,4 @@ Table of Contents
     :glob:
 
     functionality/*
-
-    Doxygen </doxygen/html/index.html#http://>
+    doxygen
