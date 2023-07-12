@@ -22,6 +22,7 @@
     "gtest",
     "spdlog",
     "soem",
+    "async-mqtt",
     {
       "name": "libgpiod",
       "features": ["cxx-bindings"]
