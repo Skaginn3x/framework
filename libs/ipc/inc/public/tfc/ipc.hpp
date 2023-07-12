@@ -3,6 +3,7 @@
 #include <system_error>
 
 #include <tfc/ipc/details/dbus_server_iface.hpp>
+#include <tfc/ipc/details/dbus_server_iface_mock.hpp>
 #include <tfc/ipc/details/impl.hpp>
 
 namespace tfc::ipc {
