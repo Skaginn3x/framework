@@ -17,7 +17,7 @@ jobs:
   build:
     name: 'build and run tests'
     runs-on: ubuntu-22.04
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-7315878
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-a9cc12c
     strategy:
       fail-fast: false
       matrix:
@@ -33,7 +33,7 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '/opt/vcpkg'
-          vcpkgGitCommitId: 'dc6188d0eb3f9fd7b53f4e21b1878ea868e34c02'
+          vcpkgGitCommitId: 'fbc868ee5e12e3e81f464104be246ec06553c274'
           vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
