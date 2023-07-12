@@ -37,7 +37,7 @@ static constexpr std::string_view disconnect_method{ "Disconnect" };
 static constexpr std::string_view connect_method{ "Connect" };
 static constexpr std::string_view connections_property{ "Connections" };
 
-const char* connection_change = "ConnectionChange";
+static const char* connection_change = "ConnectionChange";
 
 // service name
 static constexpr auto const_ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
