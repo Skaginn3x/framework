@@ -14,6 +14,8 @@ auto main(int, char**) -> int {
   using boost::ut::expect;
   using boost::ut::bdd::given;
   using boost::ut::bdd::when;
+  using boost::ut::operator>>;
+  using boost::ut::fatal;
   using tfc::ipc::details::packet;
   using tfc::ipc::details::type_e;
 
@@ -21,17 +23,13 @@ auto main(int, char**) -> int {
     constexpr auto deserialize_serialize{ [](auto&& pack) {
       using pack_t = std::remove_cvref_t<decltype(pack)>;
       using packet_t = packet<typename pack_t::value_t, pack_t::type_v>;
-      const auto serialized = packet_t::serialize(pack);
-      expect(serialized.has_value());
-      const auto& serialized_value = serialized.value();
-      auto supposed_packet = packet_t::deserialize(std::span(std::cbegin(serialized_value), std::cend(serialized_value)));
-      expect(pack.version == supposed_packet.version);
-      expect(pack.type == supposed_packet.type);
-      expect(pack.type == pack_t::type_v);
-      expect(pack.value_size == supposed_packet.value_size);
-      expect(pack.value == supposed_packet.value);
+      std::vector<std::byte> serialized{};
+      auto err{ packet_t::serialize(pack.value, serialized) };
+      expect(!err >> fatal);
+      auto supposed_value = packet_t::deserialize(std::span(std::cbegin(serialized), std::cend(serialized)));
 
-      expect(pack == supposed_packet);
+      expect(supposed_value.has_value() >> fatal);
+      expect(pack.value == supposed_value.value());
     } };
     given("serialization") = [&deserialize_serialize] {
       when("bool=true") = [&deserialize_serialize] { deserialize_serialize(packet<bool, type_e::_bool>{ .value = true }); };
@@ -53,18 +51,16 @@ auto main(int, char**) -> int {
 
         using pack_t = std::remove_cvref_t<decltype(pack)>;
         using packet_t = packet<typename pack_t::value_t, pack_t::type_v>;
-        const auto serialized = packet_t::serialize(pack);
-        expect(serialized.has_value());
-        const auto& serialized_value = serialized.value();
-        auto supposed_packet = packet_t::deserialize(std::span(std::cbegin(serialized_value), std::cend(serialized_value)));
-        expect(pack.version == supposed_packet.version);
-        expect(pack.type == supposed_packet.type);
-        expect(pack.type == pack_t::type_v);
-        expect(pack.value_size == supposed_packet.value_size);
+        std::vector<std::byte> serialized{};
+        auto err{ packet_t::serialize(pack.value, serialized) };
+        expect(!err >> fatal);
+        auto supposed_value = packet_t::deserialize(std::span(std::cbegin(serialized), std::cend(serialized)));
+
+        expect(supposed_value.has_value() >> fatal);
         // unsafe equal comparison of float
         //        expect(pack.value == supposed_packet.value);
         //        expect(pack == supposed_packet);
-        expect(pack.value > 4.2 && pack.value < 4.22);
+        expect(supposed_value.value() > 4.2 && supposed_value.value() < 4.22);
       };
       when("string=hello world from another world") = [&deserialize_serialize] {
         deserialize_serialize(packet<std::string, type_e::_string>{ .value = "hello world from another world" });
