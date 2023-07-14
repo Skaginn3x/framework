@@ -62,9 +62,6 @@ public:
     return fmt::format("{}.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), type_desc::type_name, name_);
   }
 
-  /// \return <name>
-  [[nodiscard]] auto _name_() const -> std::string { return fmt::format("{}", name_); }
-
   static constexpr std::string_view path_prefix{ "/tmp/" };  // todo remove
 
 private:
@@ -292,11 +289,6 @@ public:
     return socket_.disconnect(signal_name.data(), code);
   }
 
-  /**
-   * @brief cancel the socket
-   */
-  auto cancel() -> void { socket_.cancel(); }
-
 private:
   azmq::sub_socket socket_;
 };
@@ -331,9 +323,6 @@ public:
 
   /// \return <type>.<name> for example: bool.my_name
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
-
-  /// \return <name> for example: my_name
-  [[nodiscard]] auto _name_() const -> std::string { return slot_._name_(); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}
