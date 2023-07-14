@@ -70,8 +70,8 @@ private:
       // Send MQTT CONNECT
       yield amep.send(
           async_mqtt::v3_1_1::connect_packet{
-              true,                 // clean_session
-              0x1234,               // keep_alive
+              true,    // clean_session
+              0x1234,  // keep_alive
               async_mqtt::allocate_buffer("cid1"),
               async_mqtt::nullopt,  // will
               async_mqtt::nullopt,  // username set like am::allocate_buffer("user1"),

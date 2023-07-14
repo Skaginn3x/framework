@@ -148,8 +148,8 @@ private:
         co_await mqtt_client_->send(connect_packet, asio::use_awaitable);
 
         logger_.trace("Waiting for MQTT connection acknowledgement");
-        auto connack_received = co_await mqtt_client_->recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::connack },
-                                               asio::use_awaitable);
+        auto connack_received = co_await mqtt_client_->recv(
+            async_mqtt::filter::match, { async_mqtt::control_packet_type::connack }, asio::use_awaitable);
 
         // TODO: check for valid connack
         auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
