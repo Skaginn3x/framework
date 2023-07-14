@@ -57,7 +57,8 @@ struct mqtt_connection {
     char hostname[256];
     gethostname(hostname, 256);
     ep_.send(async_mqtt::v3_1_1::connect_packet{ true, 50, async_mqtt::allocate_buffer(fmt::format("client-{}", hostname)),
-                                                 async_mqtt::nullopt, async_mqtt::buffer(username_), async_mqtt::buffer(password_) },
+                                                 async_mqtt::nullopt, async_mqtt::buffer(username_),
+                                                 async_mqtt::buffer(password_) },
              std::bind_front(&mqtt_connection::send_callback, this));
   }
   void send_callback(const async_mqtt::system_error& err) {
@@ -73,8 +74,7 @@ struct mqtt_connection {
     pv.visit(async_mqtt::overload{ [&](async_mqtt::v3_1_1::connack_packet const& connack_packet) {
                                     logger_.trace("Connack Packet recieved\nSession present {} Code {}",
                                                   connack_packet.session_present(),
-                                                  static_cast<uint8_t>(connack_packet.code())
-                                                  );
+                                                  static_cast<uint8_t>(connack_packet.code()));
                                   },
                                    [](auto const&) {} });
   }
