@@ -16,7 +16,8 @@
         "libxcrypt",
         "sdbusplus",
         "small-vectors",
-        "mp-units"
+        "mp-units",
+        "async-mqtt"
       ]
     }
   ],
