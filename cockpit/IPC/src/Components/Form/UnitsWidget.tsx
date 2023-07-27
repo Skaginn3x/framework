@@ -160,6 +160,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       });
     }
   };
+
   const hideTitle = schema.getIn(['view', 'hideTitle']);
   const InfoRenderer = widgets?.InfoRenderer;
   if (InfoRenderer && schema?.get('info')) {
