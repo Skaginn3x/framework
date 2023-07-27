@@ -36,8 +36,7 @@ static constexpr std::string_view register_slot{ "RegisterSlot" };
 static constexpr std::string_view disconnect_method{ "Disconnect" };
 static constexpr std::string_view connect_method{ "Connect" };
 static constexpr std::string_view connections_property{ "Connections" };
-
-static const char* connection_change = "ConnectionChange";
+static constexpr std::string_view connection_change{ "ConnectionChange" };
 
 // service name
 static constexpr auto const_ipc_ruler_service_name = dbus::const_dbus_name<dbus_name>;
@@ -247,7 +246,7 @@ public:
         object_server_->add_unique_interface(const_ipc_ruler_object_path.data(), const_ipc_ruler_interface_name.data());
 
     ipc_manager_->set_callback([&](std::string_view slot_name, std::string_view signal_name) {
-      auto message = dbus_interface_->new_signal(connection_change);
+      auto message = dbus_interface_->new_signal(connection_change.data());
       message.append(std::tuple<std::string, std::string>(slot_name, signal_name));
       message.signal_send();
     });
