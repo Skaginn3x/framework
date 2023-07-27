@@ -2,7 +2,7 @@
   "default-registry": {
     "kind": "git",
     "repository": "https://github.com/microsoft/vcpkg",
-    "baseline": "fbc868ee5e12e3e81f464104be246ec06553c274"
+    "baseline": "7771648f32626142222bbd3b91421e53314bee69"
   },
   "registries": [
     {
@@ -15,15 +15,11 @@
         "libsystemd",
         "libxcrypt",
         "sdbusplus",
-        "small-vectors",
-        "mp-units"
+        "small-vectors"
       ]
     }
   ],
   "overlay-triplets": [
     "./vcpkg-overlays/triplets"
-  ],
-  "overlay-ports": [
-    "./vcpkg-overlays/ports"
   ]
 }

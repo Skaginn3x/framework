@@ -42,6 +42,26 @@ int main() {
   p.ParseFromArray(data.data(), data.size());
   p.PrintDebugString();
 
+  std::cout << "--------Sparkplug b Nbirth #3-----------" << std::endl;
+  data = { 8,   132, 213, 209, 164, 149, 49,  18, 26,  10,  20,  78,  111, 100, 101, 32, 67,
+           111, 110, 116, 114, 111, 108, 47,  82, 101, 98,  105, 114, 116, 104, 32,  11, 112,
+           0,   18,  11,  10,  5,   98,  100, 83, 101, 113, 32,  8,   88,  0,   24,  0 };
+  p.ParseFromArray(data.data(), data.size());
+  p.PrintDebugString();
+
+  std::cout << "--------Sparkplug b NDEATH #1-----------" << std::endl;
+  data = { 8,   132, 213, 209, 164, 149, 49,  18,  26,  10,  20,  78,  111, 100, 101, 95, 82, 101, 100, 47,  115, 111,
+           109, 101, 95,  110, 117, 109, 98,  101, 114, 32,  3,   56,  1,   18,  26,  10, 20, 78,  111, 100, 101, 95,
+           82,  101, 100, 47,  115, 111, 109, 101, 95,  115, 116, 114, 105, 110, 103, 32, 12, 56,  1,   24,  1 };
+  p.ParseFromArray(data.data(), data.size());
+  p.PrintDebugString();
+
+  std::cout << "--------Sparkplug b NCMD #1-----------" << std::endl;
+  data = { 8,  205, 185, 167, 169, 149, 49,  18,  37, 10,  20,  78,  111, 100, 101, 32, 67, 111, 110, 116, 114, 111, 108,
+           47, 82,  101, 98,  105, 114, 116, 104, 24, 205, 185, 167, 169, 149, 49,  32, 11, 56,  0,   74,  0,   112, 1 };
+  p.ParseFromArray(data.data(), data.size());
+  p.PrintDebugString();
+
   std::cout << "-------------------" << std::endl;
   for (auto& k : p.metrics()) {
     std::cout << k.name() << std::endl;
