@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(mqtt-sparkplug)
 
-find_package(protobuf CONFIG REQUIRED)
+find_package(Protobuf CONFIG REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
