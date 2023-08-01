@@ -4,55 +4,6 @@
  find_package(protobuf CONFIG REQUIRED)
 
  # ----------------------------------------------------------
-#  include(FetchContent)
-#  FetchContent_Declare(
-#          sparkplug_proto
-#          GIT_REPOSITORY https://github.com/eclipse/tahu.git
-#          GIT_TAG v1.0.4
-#  )
-#  FetchContent_Populate(sparkplug_proto)
-#
-#
-#  message(STATUS "Looking for sparkplug file")
-#
-#  set(SPARK_PATH "${sparkplug_proto_SOURCE_DIR}")
-#
-#  message(STATUS "file path: ${SPARK_PATH}")
-#
-#  if (EXISTS ${SPARK_PATH})
-#      set(checkSuccess TRUE)
-#  else ()
-#      set(checkSuccess FALSE)
-#  endif ()
-#
-#  if (checkSuccess)
-#      message(STATUS "Found sparkplug file")
-#      message(STATUS "Found sparkplug file")
-#      message(STATUS "Found sparkplug file")
-#      message(STATUS "Found sparkplug file")
-#      message(STATUS "Found sparkplug file")
-#  else ()
-#      message(STATUS "Could not find sparkplug file")
-#      message(STATUS "Could not find sparkplug file")
-#      message(STATUS "Could not find sparkplug file")
-#      message(STATUS "Could not find sparkplug file")
-#      message(STATUS "Could not find sparkplug file")
-#  endif ()
-#
-#
-#  file(
-#          COPY
-#          ${sparkplug_proto_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
-#          DESTINATION
-#          ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/
-#  )
-#
-#  add_library(sparkplug_proto
-#          ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
-#          )
-
- # ----------------------------------------------------------
-
  include(FetchContent)
  FetchContent_Declare(
          sparkplug_proto
@@ -61,27 +12,35 @@
  )
  FetchContent_Populate(sparkplug_proto)
 
- message(STATUS "Looking for sparkplug_b.proto file")
+ message(STATUS "Looking for sparkplug file")
 
- set(SPARK_PATH "${sparkplug_proto_SOURCE_DIR}/path_to_sparkplug_b_directory/sparkplug_b.proto")
+ set(SPARK_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
  message(STATUS "file path: ${SPARK_PATH}")
 
- if(EXISTS ${SPARK_PATH})
-  set(checkSuccess TRUE)
- else()
-  set(checkSuccess FALSE)
- endif()
+ if (EXISTS ${SPARK_PATH})
+     set(checkSuccess TRUE)
+ else ()
+     set(checkSuccess FALSE)
+ endif ()
 
- if(checkSuccess)
-  message(STATUS "Found sparkplug_b.proto file")
- else()
-  message(STATUS "Could not find sparkplug_b.proto file")
- endif()
+ if (checkSuccess)
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+ else ()
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+ endif ()
 
  file(
          COPY
-         ${SPARK_PATH}
+         ${sparkplug_proto_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
          DESTINATION
          ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/
  )
@@ -90,11 +49,7 @@
          ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
          )
 
-
  # ----------------------------------------------------------
-
-
-
 
  # It looks like the code protobuf generates
  # generates some warnings inside clang
