@@ -11,10 +11,33 @@
  )
  FetchContent_Populate(sparkplug_proto)
 
- message(STATUS "sparkplug_proto_SOURCE_DIR = ${sparkplug_proto_SOURCE_DIR}")
+ # ----------------------------------------------------------
 
- file(GLOB SPARKPLUG_FILES "${sparkplug_proto_SOURCE_DIR}/*")
- message(STATUS "Sparkplug Files: ${SPARKPLUG_FILES}")
+ message(STATUS "Looking for sparkplug file")
+
+ set(SPARK_PATH "${sparkplug_proto_SOURCE_DIR}")
+
+ if (EXISTS ${SPARK_PATH})
+     set(checkSuccess TRUE)
+ else ()
+     set(checkSuccess FALSE)
+ endif ()
+
+ if (checkSuccess)
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+     message(STATUS "Found sparkplug file")
+ else ()
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+     message(STATUS "Could not find sparkplug file")
+ endif ()
+
+ # ----------------------------------------------------------
 
  file(
          COPY
