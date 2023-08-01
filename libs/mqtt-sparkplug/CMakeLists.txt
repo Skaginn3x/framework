@@ -11,6 +11,8 @@ FetchContent_Declare(
 )
 FetchContent_Populate(sparkplug_proto)
 
+message(sparkplug_proto_SOURCE_DIR: ${sparkplug_proto_SOURCE_DIR})
+
 file(
   COPY
     ${sparkplug_proto_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
