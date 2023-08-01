@@ -12,10 +12,8 @@
  )
  FetchContent_Populate(sparkplug_proto)
 
+ message(STATUS " sparkplug proto: ${sparkplug_proto}")
  message(STATUS "Looking for sparkplug file")
-
- # set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel")
- # set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel/_deps/sparkplug_proto-src/sparkplug_b/sparkplug_b.proto")
 
  file(GLOB SPARKPLUG_FILES "${sparkplug_proto_SOURCE_DIR}/*")
  message(STATUS "Sparkplug Files: ${SPARKPLUG_FILES}")
