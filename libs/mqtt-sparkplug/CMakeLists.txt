@@ -15,25 +15,25 @@
 
  message(STATUS "---------------------------------------------------")
  get_cmake_property(_variableNames VARIABLES)
- list (SORT _variableNames)
+ list(SORT _variableNames)
  foreach (_variableName ${_variableNames})
-  if (_variableName MATCHES "sparkplug_proto")
-   message(STATUS "${_variableName}=${${_variableName}}")
-  endif()
- endforeach()
+     if (_variableName MATCHES "sparkplug_proto")
+         message(STATUS "${_variableName}=${${_variableName}}")
+     endif ()
+ endforeach ()
  message(STATUS "---------------------------------------------------")
 
-#  if (EXISTS ${sparkplug_proto_SOURCE_DIR})
-#      message(STATUS "Found sparkplug file")
-#  else ()
-#      message(STATUS "Could not find sparkplug file")
-#  endif ()
-#
-#  if (EXISTS ${sparkplug_proto_BINARY_DIR})
-#   message(STATUS "Found sparkplug file - binary")
-#  else ()
-#   message(STATUS "Could not find sparkplug file - binary")
-#  endif ()
+ # -- sparkplug_proto_SOURCE_DIR=/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-dbg/_deps/sparkplug_proto-src
+
+ # set glob variable to ls this file
+ file(GLOB sparkplug_proto_files ${sparkplug_proto_SOURCE_DIR}/*)
+
+ # print all files in the glob variable
+ foreach (file ${sparkplug_proto_files})
+     message(STATUS "sparkplug_proto_files: ${file}")
+ endforeach ()
+
+ message(STATUS "---------------------------------------------------")
 
  # ----------------------------------------------------------
 
