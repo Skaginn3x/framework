@@ -22,6 +22,7 @@ target_compile_options(sparkplug_proto
     -Wno-missing-prototypes
     -Wno-global-constructors
     -Wno-used-but-marked-unused
+    -Wno-extra-semi-stmt
 )
 endif()
 
