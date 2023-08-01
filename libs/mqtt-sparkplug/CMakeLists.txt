@@ -14,15 +14,13 @@
 
  message(STATUS "Looking for sparkplug file")
 
- set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel")
+ # set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel")
  # set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel/_deps/sparkplug_proto-src/sparkplug_b/sparkplug_b.proto")
 
- file(GLOB SPARKPLUG_FILES "${SPARK_PATH}/*")
+ file(GLOB SPARKPLUG_FILES "${sparkplug_proto_SOURCE_DIR}/*")
  message(STATUS "Sparkplug Files: ${SPARKPLUG_FILES}")
 
- message(STATUS "file path: ${SPARK_PATH}")
-
- if (EXISTS ${SPARK_PATH})
+ if (EXISTS ${sparkplug_proto_SOURCE_DIR})
      set(checkSuccess TRUE)
  else ()
      set(checkSuccess FALSE)
