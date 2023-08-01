@@ -3,26 +3,6 @@ project(mqtt-sparkplug)
 
 find_package(protobuf CONFIG REQUIRED)
 
-include(FetchContent)
-FetchContent_Declare(
-    sparkplug_proto_content
-    GIT_REPOSITORY https://github.com/eclipse/tahu.git
-    GIT_TAG        v1.0.4
-)
-FetchContent_MakeAvailable(sparkplug_proto_content)
-
-FetchContent_GetProperties(sparkplug_proto_content SOURCE_DIR sparkplug_proto_content_SOURCE_DIR_from_property)
-
-message(sparkplug_proto_content_SOURCE_DIR:               ${sparkplug_proto_content_SOURCE_DIR})
-message(sparkplug_proto_content_SOURCE_DIR_from_property: ${sparkplug_proto_content_SOURCE_DIR_from_property})
-
-file(
-  COPY
-    ${sparkplug_proto_content_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
-  DESTINATION
-    ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/
-)
-
 add_library(sparkplug_proto
   ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
 )
