@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(mqtt-sparkplug)
 
-find_package(Protobuf CONFIG REQUIRED)
+find_package(protobuf CONFIG REQUIRED)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -10,6 +10,8 @@ FetchContent_Declare(
     GIT_TAG        v1.0.4
 )
 FetchContent_Populate(sparkplug_proto)
+
+message(STATUS "sparkplug_proto_SOURCE_DIR = ${sparkplug_proto_SOURCE_DIR}")
 
 file(
   COPY
