@@ -14,7 +14,8 @@
 
  message(STATUS "Looking for sparkplug file")
 
- set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel/_deps/sparkplug_proto-src/sparkplug_b/sparkplug_b.proto")
+ set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel")
+ # set(SPARK_PATH "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-rel/_deps/sparkplug_proto-src/sparkplug_b/sparkplug_b.proto")
 
  message(STATUS "file path: ${SPARK_PATH}")
 
