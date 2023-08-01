@@ -17,6 +17,8 @@
 
  set(SPARK_PATH "${sparkplug_proto_SOURCE_DIR}")
 
+ message(STATUS "file path: ${SPARK_PATH}")
+
  if (EXISTS ${SPARK_PATH})
      set(checkSuccess TRUE)
  else ()
