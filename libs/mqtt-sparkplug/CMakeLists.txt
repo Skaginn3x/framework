@@ -1,7 +1,7 @@
  cmake_minimum_required(VERSION 3.24)
  project(mqtt-sparkplug)
 
- find_package(protobuf CONFIG REQUIRED)
+ find_package(Protobuf CONFIG REQUIRED)
 
  # ----------------------------------------------------------
  include(FetchContent)
@@ -10,8 +10,7 @@
          GIT_REPOSITORY https://github.com/eclipse/tahu.git
          GIT_TAG v1.0.4
  )
- FetchContent_MakeAvailable(sparkplug_proto)
- # FetchContent_Populate(sparkplug_proto)
+ FetchContent_Populate(sparkplug_proto)
 
  message(STATUS "---------------------------------------------------")
  get_cmake_property(_variableNames VARIABLES)
