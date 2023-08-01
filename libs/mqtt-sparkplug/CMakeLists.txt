@@ -22,10 +22,9 @@
  endforeach ()
  message(STATUS "---------------------------------------------------")
 
- # -- sparkplug_proto_SOURCE_DIR=/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-dbg/_deps/sparkplug_proto-src
 
  # set glob variable to ls this file
- file(GLOB sparkplug_proto_files ${sparkplug_proto_SOURCE_DIR}/*)
+ file(GLOB sparkplug_proto_files "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-dbg/_deps")
 
  # print all files in the glob variable
  foreach (file ${sparkplug_proto_files})
