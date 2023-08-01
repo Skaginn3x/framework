@@ -24,7 +24,7 @@
 
 
  # set glob variable to ls this file
- file(GLOB sparkplug_proto_files "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-dbg")
+ file(GLOB sparkplug_proto_files "/opt/vcpkg/buildtrees/tfc-framework/x64-linux-clang-dbg/*")
 
  # print all files in the glob variable
  foreach (file ${sparkplug_proto_files})
