@@ -13,31 +13,18 @@
  FetchContent_MakeAvailable(sparkplug_proto)
  # FetchContent_Populate(sparkplug_proto)
 
- message(STATUS " sparkplug proto: ${sparkplug_proto}")
- message(STATUS "Looking for sparkplug file")
-
- file(GLOB SPARKPLUG_FILES "${sparkplug_proto_SOURCE_DIR}/*")
- message(STATUS "Sparkplug Files: ${SPARKPLUG_FILES}")
-
  if (EXISTS ${sparkplug_proto_SOURCE_DIR})
-     set(checkSuccess TRUE)
+     message(STATUS "Found sparkplug file")
  else ()
-     set(checkSuccess FALSE)
+     message(STATUS "Could not find sparkplug file")
  endif ()
 
- if (checkSuccess)
-     message(STATUS "Found sparkplug file")
-     message(STATUS "Found sparkplug file")
-     message(STATUS "Found sparkplug file")
-     message(STATUS "Found sparkplug file")
-     message(STATUS "Found sparkplug file")
+ if (EXISTS ${sparkplug_proto_BINARY_DIR})
+  message(STATUS "Found sparkplug file - binary")
  else ()
-     message(STATUS "Could not find sparkplug file")
-     message(STATUS "Could not find sparkplug file")
-     message(STATUS "Could not find sparkplug file")
-     message(STATUS "Could not find sparkplug file")
-     message(STATUS "Could not find sparkplug file")
+  message(STATUS "Could not find sparkplug file - binary")
  endif ()
+ # ----------------------------------------------------------
 
  file(
          COPY
@@ -49,8 +36,6 @@
  add_library(sparkplug_proto
          ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
          )
-
- # ----------------------------------------------------------
 
  # It looks like the code protobuf generates
  # generates some warnings inside clang
