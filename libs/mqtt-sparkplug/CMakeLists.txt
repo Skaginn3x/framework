@@ -11,7 +11,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(sparkplug_proto_content)
 
-message(sparkplug_proto_content_SOURCE_DIR: ${sparkplug_proto_content_SOURCE_DIR})
+FetchContent_GetProperties(sparkplug_proto_content SOURCE_DIR sparkplug_proto_content_SOURCE_DIR_from_property)
+
+message(sparkplug_proto_content_SOURCE_DIR:               ${sparkplug_proto_content_SOURCE_DIR})
+message(sparkplug_proto_content_SOURCE_DIR_from_property: ${sparkplug_proto_content_SOURCE_DIR_from_property})
 
 file(
   COPY
