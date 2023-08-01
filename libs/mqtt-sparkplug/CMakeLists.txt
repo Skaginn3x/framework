@@ -10,7 +10,8 @@
          GIT_REPOSITORY https://github.com/eclipse/tahu.git
          GIT_TAG v1.0.4
  )
- FetchContent_Populate(sparkplug_proto)
+ FetchContent_MakeAvailable(sparkplug_proto)
+ # FetchContent_Populate(sparkplug_proto)
 
  message(STATUS " sparkplug proto: ${sparkplug_proto}")
  message(STATUS "Looking for sparkplug file")
