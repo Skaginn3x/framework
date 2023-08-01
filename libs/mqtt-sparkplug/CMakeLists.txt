@@ -13,17 +13,28 @@
  FetchContent_MakeAvailable(sparkplug_proto)
  # FetchContent_Populate(sparkplug_proto)
 
- if (EXISTS ${sparkplug_proto_SOURCE_DIR})
-     message(STATUS "Found sparkplug file")
- else ()
-     message(STATUS "Could not find sparkplug file")
- endif ()
+ message(STATUS "---------------------------------------------------")
+ get_cmake_property(_variableNames VARIABLES)
+ list (SORT _variableNames)
+ foreach (_variableName ${_variableNames})
+  if (_variableName MATCHES "sparkplug_proto")
+   message(STATUS "${_variableName}=${${_variableName}}")
+  endif()
+ endforeach()
+ message(STATUS "---------------------------------------------------")
 
- if (EXISTS ${sparkplug_proto_BINARY_DIR})
-  message(STATUS "Found sparkplug file - binary")
- else ()
-  message(STATUS "Could not find sparkplug file - binary")
- endif ()
+#  if (EXISTS ${sparkplug_proto_SOURCE_DIR})
+#      message(STATUS "Found sparkplug file")
+#  else ()
+#      message(STATUS "Could not find sparkplug file")
+#  endif ()
+#
+#  if (EXISTS ${sparkplug_proto_BINARY_DIR})
+#   message(STATUS "Found sparkplug file - binary")
+#  else ()
+#   message(STATUS "Could not find sparkplug file - binary")
+#  endif ()
+
  # ----------------------------------------------------------
 
  file(
