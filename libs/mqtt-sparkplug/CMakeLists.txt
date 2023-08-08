@@ -3,21 +3,6 @@ project(mqtt-sparkplug)
 
 find_package(protobuf CONFIG REQUIRED)
 
-include(FetchContent)
-FetchContent_Declare(
-    sparkplug_proto
-    GIT_REPOSITORY https://github.com/eclipse/tahu.git
-    GIT_TAG        v1.0.4
-)
-FetchContent_Populate(sparkplug_proto)
-
-file(
-  COPY
-    ${sparkplug_proto_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
-  DESTINATION
-    ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/
-)
-
 add_library(sparkplug_proto
   ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
 )
@@ -36,6 +21,8 @@ target_compile_options(sparkplug_proto
     -Wno-unsafe-buffer-usage
     -Wno-missing-prototypes
     -Wno-global-constructors
+    -Wno-used-but-marked-unused
+    -Wno-extra-semi-stmt
 )
 endif()
 
