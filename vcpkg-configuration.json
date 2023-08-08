@@ -8,7 +8,7 @@
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "0a5015490425b3b31044f21a357cc4861e987806",
+      "baseline": "e029fecb5e282b6c2f1114d46217b6c6b202a0eb",
       "packages": [
         "azmq",
         "libcap",
