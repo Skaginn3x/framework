@@ -4,7 +4,17 @@
 #include <cstdint>
 #include <string_view>
 
+#include <tfc/utils/pragmas.hpp>
+
 namespace tfc::stx {
+
+namespace concepts {
+template <typename value_type>
+concept unsigned_arithmetic_integral = requires {
+  requires not std::same_as<std::remove_cv_t<value_type>, bool>;
+  requires std::unsigned_integral<value_type>;
+};
+}
 
 template <typename CharType, unsigned N>
 struct [[nodiscard]] basic_fixed_string {
@@ -16,11 +26,40 @@ struct [[nodiscard]] basic_fixed_string {
 
   [[nodiscard]] constexpr char_type const* begin() const noexcept { return &data_[0]; }
 
+  [[nodiscard]] constexpr char_type const* end() const noexcept {
+    // todo use iterators instead of raw pointer to get rid of this unsafe buffer usage
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    return &data_[N];
+    PRAGMA_CLANG_WARNING_POP
+  }
+
   [[nodiscard]] constexpr char_type* data() noexcept { return &data_[0]; }
 
   [[nodiscard]] constexpr char_type const* data() const noexcept { return &data_[0]; }
 
-  //[[nodiscard]] constexpr char_type const* end() const noexcept { return &data_[N]; }
+  [[nodiscard]] inline constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) const noexcept
+      -> char_type const& {
+    return data_[index];
+  }
+
+  [[nodiscard]] inline constexpr auto at(concepts::unsigned_arithmetic_integral auto index) const noexcept
+      -> char_type const& {
+    return data_[index];
+  }
+
+  [[nodiscard]] inline constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) noexcept
+      -> char_type& {
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    return data_[index];
+    PRAGMA_CLANG_WARNING_POP
+  }
+
+  [[nodiscard]] inline constexpr auto at(concepts::unsigned_arithmetic_integral auto index) noexcept
+      -> char_type& {
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    return data_[index];
+    PRAGMA_CLANG_WARNING_POP
+  }
 
   constexpr basic_fixed_string() noexcept : data_{} {}
 

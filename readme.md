@@ -127,10 +127,14 @@ User can change the file on the system and the process will get notification via
 
 ## Executables
 
-Todo
+### IPC ruler
 
+The one and only required process to run the TFC ecosystem, the inter process communication ruler is needed to store and maintain a list of connections between slots and signals.
+Each slot spawned by any TFC process will be notified from this process which signal to connect to. More detailed overview of its functionality [here](docs/functionality/ipc_manager.md).  
 
 ## Start hacking
+
+// Todo
 
 ### Package management
 
