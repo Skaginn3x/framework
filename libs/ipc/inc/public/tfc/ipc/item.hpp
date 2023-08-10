@@ -255,8 +255,13 @@ template<>
 struct meta<tfc::ipc::item::item> {
   using type = tfc::ipc::item::item;
   static constexpr auto name{ "ipc_item" };
-  static constexpr auto value{ glz::object("id", &type::item_id, "Unique id of this item"
-                                           "batch_id", &type::batch_id, "Unique id of this batch"
+  static constexpr auto value{ glz::object("id", &type::item_id, "Unique id of this item",
+                                           "batch_id", &type::batch_id, "Unique id of this batch",
+                                           "barcode", &type::batch_id, "Unique barcode of this item",
+                                           "qr_code", &type::batch_id, "Unique QR code of this item",
+                                           "category", &type::batch_id, "Item category",
+                                           "fao_species", &type::batch_id, "Food and agriculture organitation species code",
+                                           "fao_species", &type::batch_id, "Food and agriculture organitation species code"
                                            ) };
 
 };
