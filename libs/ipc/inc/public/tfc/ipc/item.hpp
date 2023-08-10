@@ -12,6 +12,7 @@
 #include <units/isq/si/length.h>
 #include <units/isq/si/mass.h>
 #include <units/isq/si/volume.h>
+#include <glaze/core/common.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
 
@@ -144,6 +145,12 @@ namespace si = units::isq::si;
 /// \struct item
 /// \brief given attributes of an item
 struct item {
+  static constexpr auto make() {
+    // todo generate uuid
+    // todo generate entry time point
+    return item{};
+  }
+
   // ids
   std::optional<std::string> item_id{ std::nullopt };
   std::optional<std::string> batch_id{ std::nullopt };
@@ -180,3 +187,79 @@ struct item {
 };
 
 }  // namespace tfc::ipc::item
+
+
+namespace glz {
+
+template<>
+struct meta<tfc::ipc::item::details::category_e> {
+  using enum tfc::ipc::item::details::category_e;
+  static constexpr auto name{ "item_category" };
+  static constexpr auto value{ glz::enumerate("unknown", unknown,
+                                              "box", box,
+                                              "tub", tub,
+                                              "bag", bag,
+                                              "pallet", pallet,
+                                              "fish", fish,
+                                              "meat", meat,
+                                              "poultry", poultry,
+                                              "ice", ice
+                                              ) };
+
+};
+template<>
+struct meta<tfc::ipc::item::details::quality_e> {
+  using enum tfc::ipc::item::details::quality_e;
+  static constexpr auto name{ "item_quality" };
+  static constexpr auto value{ glz::enumerate("unknown", unknown,
+                                              "inferior", inferior,
+                                              "weak", weak,
+                                              "ordinary", ordinary,
+                                              "exceptional", exceptional,
+                                              "superior", superior
+                                              ) };
+
+};
+template<>
+struct meta<tfc::ipc::item::details::color> {
+  using type = tfc::ipc::item::details::color;
+  static constexpr auto name{ "item_color" };
+  static constexpr auto value{ glz::object("red", &type::red, "Red value 0-255"
+                                           "green", &type::green, "Green value 0-255"
+                                           "blue", &type::blue, "Blue value 0-255"
+                                          ) };
+
+};
+template<>
+struct meta<tfc::ipc::item::details::supplier> {
+  using type = tfc::ipc::item::details::supplier;
+  static constexpr auto name{ "item_supplier" };
+  static constexpr auto value{ glz::object("name", &type::name, "Company name"
+                                           "contact_info", &type::contact_info, "Company contact information"
+                                           "origin", &type::origin, "Company country"
+                                           ) };
+
+};
+template<>
+struct meta<tfc::ipc::item::fao::species> {
+  using type = tfc::ipc::item::fao::species;
+  static constexpr auto name{ "fao_species" };
+  static constexpr auto value{ glz::object("code", &type::code, "3 letter food and agriculture organization code"
+                                           "outside_spec", &type::outside_spec, "Code is not according to FAO"
+                                           ) };
+
+};
+
+
+template<>
+struct meta<tfc::ipc::item::item> {
+  using type = tfc::ipc::item::item;
+  static constexpr auto name{ "ipc_item" };
+  static constexpr auto value{ glz::object("id", &type::item_id, "Unique id of this item"
+                                           "batch_id", &type::batch_id, "Unique id of this batch"
+                                           ) };
+
+};
+
+
+}
