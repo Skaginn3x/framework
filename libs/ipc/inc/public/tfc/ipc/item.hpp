@@ -93,7 +93,9 @@ struct species {
     }
     return impl(code);
   }
-  constexpr auto operator==(species const& rhs) const noexcept { return outside_spec == rhs.outside_spec && code == rhs.code; }
+  constexpr auto operator==(species const& rhs) const noexcept {
+    return outside_spec == rhs.outside_spec && code == rhs.code;
+  }
 
 private:
   static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
@@ -192,13 +194,13 @@ struct item {
 
 }  // namespace tfc::ipc::item
 
-
 namespace glz {
 
-template<>
+template <>
 struct meta<tfc::ipc::item::details::category_e> {
   using enum tfc::ipc::item::details::category_e;
   static constexpr auto name{ "item_category" };
+  // clang-format off
   static constexpr auto value{ glz::enumerate("unknown", unknown,
                                               "box", box,
                                               "tub", tub,
@@ -209,12 +211,13 @@ struct meta<tfc::ipc::item::details::category_e> {
                                               "poultry", poultry,
                                               "ice", ice
                                               ) };
-
+  // clang-format on
 };
-template<>
+template <>
 struct meta<tfc::ipc::item::details::quality_e> {
   using enum tfc::ipc::item::details::quality_e;
   static constexpr auto name{ "item_quality" };
+  // clang-format off
   static constexpr auto value{ glz::enumerate("unknown", unknown,
                                               "inferior", inferior,
                                               "weak", weak,
@@ -222,43 +225,46 @@ struct meta<tfc::ipc::item::details::quality_e> {
                                               "exceptional", exceptional,
                                               "superior", superior
                                               ) };
-
+  // clang-format on
 };
-template<>
+template <>
 struct meta<tfc::ipc::item::details::color> {
   using type = tfc::ipc::item::details::color;
   static constexpr auto name{ "item_color" };
+  // clang-format off
   static constexpr auto value{ glz::object("red", &type::red, "Red value 0-255"
                                            "green", &type::green, "Green value 0-255"
                                            "blue", &type::blue, "Blue value 0-255"
                                           ) };
-
+  // clang-format on
 };
-template<>
+template <>
 struct meta<tfc::ipc::item::details::supplier> {
   using type = tfc::ipc::item::details::supplier;
   static constexpr auto name{ "item_supplier" };
+  // clang-format off
   static constexpr auto value{ glz::object("name", &type::name, "Company name"
                                            "contact_info", &type::contact_info, "Company contact information"
                                            "origin", &type::origin, "Company country"
                                            ) };
-
+  // clang-format on
 };
-template<>
+template <>
 struct meta<tfc::ipc::item::fao::species> {
   using type = tfc::ipc::item::fao::species;
   static constexpr auto name{ "fao_species" };
+  // clang-format off
   static constexpr auto value{ glz::object("code", &type::code, "3 letter food and agriculture organization code"
                                            "outside_spec", &type::outside_spec, "Code is not according to FAO"
                                            ) };
-
+  // clang-format on
 };
 
-
-template<>
+template <>
 struct meta<tfc::ipc::item::item> {
   using type = tfc::ipc::item::item;
   static constexpr auto name{ "ipc_item" };
+  // clang-format off
   static constexpr auto value{ glz::object("id", &type::item_id, "Unique id of this item",
                                            "batch_id", &type::batch_id, "Unique id of this batch",
                                            "barcode", &type::barcode, "Unique barcode of this item",
@@ -287,8 +293,7 @@ struct meta<tfc::ipc::item::item> {
                                            "destination", &type::destination, "Routing destination of item",
                                            "items", &type::items, "List of owning items, like tub of 100 fishes"
                                            ) };
-
+  // clang-format on
 };
 
-
-}
+}  // namespace glz

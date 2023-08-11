@@ -24,3 +24,5 @@ target_include_directories(sensor_control
     ${CMAKE_CURRENT_LIST_DIR}/inc
     ${BEXT_SML_INCLUDE_DIRS}
 )
+
+add_subdirectory(tests)

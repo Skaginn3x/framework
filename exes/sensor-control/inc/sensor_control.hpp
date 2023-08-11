@@ -3,10 +3,14 @@
 #include <functional>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/sml.hpp>
 
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/item.hpp>
 #include <tfc/logger.hpp>
+#include <tfc/sml_logger.hpp>
+
+#include "state_machine.hpp"
 
 namespace tfc {
 
@@ -15,6 +19,9 @@ namespace asio = boost::asio;
 class sensor_control {
 public:
   explicit sensor_control(asio::io_context&);
+
+  void enter_idle();
+  void leave_idle();
 
 private:
   void on_sensor(bool new_value);
@@ -36,6 +43,12 @@ private:
 
   ipc::item::item queued_item_{};
   logger::logger logger_{ "sensor_control" };
+  std::shared_ptr<
+      boost::sml::sm<sensor::control::state_machine<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>>
+      sm_{ std::make_shared<
+          boost::sml::sm<sensor::control::state_machine<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>>(
+          sensor::control::state_machine<sensor_control>{ *this },
+          tfc::logger::sml_logger{}) };
 };
 
 }  // namespace tfc
