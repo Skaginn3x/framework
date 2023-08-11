@@ -7,6 +7,7 @@
 #include <units/magnitude.h>
 #include <units/quantity.h>
 #include <units/ratio.h>
+#include <units/generic/angle.h>
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/string_view_join.hpp>
@@ -113,6 +114,10 @@ inline constexpr auto dimension_name() -> std::string_view {
     return "torque";
   } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_luminance>) {
     return "luminance";
+  } else if constexpr (std::is_convertible_v<stripped_dim_t, units::dim_angle<units::degree>>) {
+    return "angle degree";
+  } else if constexpr (std::is_convertible_v<stripped_dim_t, units::dim_angle<units::radian>>) {
+    return "angle radian";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list. Or use compile time regex.");

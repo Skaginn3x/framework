@@ -10,6 +10,8 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/stx/to_string_view.hpp>
+#include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/utils/json_schema.hpp>
 
 namespace tfc::detail {
@@ -49,6 +51,15 @@ struct glz::meta<std::chrono::duration<rep_t, period_t>> {
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
     tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
+  };
+};
+template <typename char_type, unsigned len>
+struct glz::meta<tfc::stx::basic_fixed_string<char_type, len>> {
+  static constexpr std::string_view prefix{ "basic_fixed_string<" };
+  static constexpr std::string_view postfix{ ">" };
+  static constexpr std::string_view separator{ "," };
+  static constexpr auto name{
+    tfc::stx::string_view_join_v<prefix, glz::name_v<char_type>, separator, tfc::stx::to_string_view_v<len>, postfix>
   };
 };
 
@@ -100,6 +111,31 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
   static void op(auto& value, auto&&... args) noexcept {
     tfc::detail::duration_hack<rep_t, period_t> substitute{ .rep = value.count() };
     write<json>::op<opts>(substitute, args...);
+  }
+};
+
+template <typename char_type, unsigned len>
+struct from_json<tfc::stx::basic_fixed_string<char_type, len>> {
+  using type = tfc::stx::basic_fixed_string<char_type, len>;
+  template <auto opts>
+  static void op(type& value, auto&&... args) {
+    std::basic_string<char_type> substitute{};
+    read<json>::op<opts>(substitute, args...);
+    std::size_t cnt{};
+    for (auto const& character : substitute) {
+      if (cnt >= len) {
+        break;
+      }
+      value.at(cnt++) = character;
+    }
+  }
+};
+
+template <typename char_type, unsigned len>
+struct to_json<tfc::stx::basic_fixed_string<char_type, len>> {
+  template <auto opts>
+  static void op(auto& value, auto&&... args) noexcept {
+    write<json>::op<opts>(value.view(), args...);
   }
 };
 
@@ -180,8 +216,6 @@ inline constexpr auto make_ratio_symbol() -> std::string_view {
     return "E";
   } else {
     []<bool flag = false>() {
-      static_assert(1 == num);
-      static_assert(1000 == den);
       static_assert(flag, "Missing ratio symbol, please add it to the list.");
     }
     ();

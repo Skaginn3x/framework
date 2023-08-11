@@ -15,6 +15,7 @@
 #include <glaze/core/common.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::ipc::item {
 
@@ -157,9 +158,11 @@ struct item {
   std::optional<std::string> barcode{ std::nullopt };
   std::optional<std::string> qr_code{ std::nullopt };
 
+  // type
   std::optional<details::category_e> category{ std::nullopt };
   std::optional<fao::species> fao_species{ std::nullopt };
   std::optional<std::string> sub_type{ std::nullopt };  // any specification of the given type
+
   // dimensions
   std::optional<si::mass<si::milligram, std::uint64_t>> item_weight{ std::nullopt };
   std::optional<si::mass<si::milligram, std::uint64_t>> target_weight{ std::nullopt };
@@ -181,9 +184,10 @@ struct item {
   std::optional<std::chrono::system_clock::time_point> expiration_date{ std::nullopt };
   std::optional<std::string> description{ std::nullopt };
   std::optional<details::supplier> supplier{ std::nullopt };
+  std::optional<std::string> destination{ std::nullopt };
 
   // item may contain other items
-  std::optional<std::vector<item>> items{};
+  std::optional<std::vector<item>> items{ std::nullopt };
 };
 
 }  // namespace tfc::ipc::item
@@ -257,11 +261,31 @@ struct meta<tfc::ipc::item::item> {
   static constexpr auto name{ "ipc_item" };
   static constexpr auto value{ glz::object("id", &type::item_id, "Unique id of this item",
                                            "batch_id", &type::batch_id, "Unique id of this batch",
-                                           "barcode", &type::batch_id, "Unique barcode of this item",
-                                           "qr_code", &type::batch_id, "Unique QR code of this item",
-                                           "category", &type::batch_id, "Item category",
-                                           "fao_species", &type::batch_id, "Food and agriculture organitation species code",
-                                           "fao_species", &type::batch_id, "Food and agriculture organitation species code"
+                                           "barcode", &type::barcode, "Unique barcode of this item",
+                                           "qr_code", &type::qr_code, "Unique QR code of this item",
+                                           "category", &type::category, "Item category",
+                                           "fao_species", &type::fao_species, "Food and agriculture organization species code",
+                                           "sub_type", &type::sub_type, "More specific type related information",
+                                           "item_weight", &type::item_weight, "Weight of item",
+                                           "target_weight", &type::target_weight, "Presumed weight of item",
+                                           "min_weight", &type::min_weight, "Minimum acceptable weight of item",
+                                           "max_weight", &type::max_weight, "Maximum acceptable weight of item",
+                                           "length", &type::length, "Length of item",
+                                           "width", &type::width, "Width of item",
+                                           "height", &type::height, "Height of item",
+                                           "area", &type::area, "Area of item",
+                                           "volume", &type::volume, "Volume of item",
+//                                           "temperature", &type::temperature, "Temperature in celsius",
+                                           "angle", &type::angle, "Angle of item in its place",
+                                           "color", &type::color, "Color of item",
+                                           "quality", &type::quality, "Quality/grade of item",
+                                           "entry", &type::entry, "Entry time of item entering the scope of tfc",
+                                           "production_date", &type::production_date, "Production date of item",
+                                           "expiration_date", &type::expiration_date, "Expiration date of item",
+                                           "description", &type::description, "Description of item, some kind of metadata",
+                                           "supplier", &type::supplier, "Supplier information of item",
+                                           "destination", &type::destination, "Routing destination of item",
+                                           "items", &type::items, "List of owning items, like tub of 100 fishes"
                                            ) };
 
 };
