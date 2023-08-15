@@ -5,6 +5,7 @@
 #include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/ipc/details/dbus_server_iface_mock.hpp>
 #include <tfc/ipc/details/impl.hpp>
+#include <tfc/ipc/details/filter.hpp>
 
 namespace tfc::ipc {
 
@@ -55,9 +56,9 @@ public:
        std::string_view name,
        std::string_view description,
        std::invocable<value_t> auto&& callback)
-      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
-    client_.register_connection_change_callback(slot_->name_w_type(), [this, &callback](const std::string_view signal_name) {
-      slot_->init(signal_name, std::forward<decltype(callback)>(callback));
+      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client), filters_{ ctx, std::forward<decltype(callback)>(callback) } {
+    client_.register_connection_change_callback(slot_->name_w_type(), [this](const std::string_view signal_name) {
+      slot_->init(signal_name, filters_);
     });
     client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
@@ -79,6 +80,7 @@ private:
   static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   manager_client_type& client_;
+  filter::filters<std::function<void(value_t&)>> filters_; // todo prefer some other type erasure mechanism
 };
 
 /**

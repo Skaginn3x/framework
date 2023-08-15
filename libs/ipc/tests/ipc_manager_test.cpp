@@ -316,7 +316,7 @@ auto main(int argc, char** argv) -> int {
     std::array<std::int64_t, 3> test_values{ 25, 1337, 42 };
 
     const tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(
-        isolated_ctx, mock_client, "bool_slot", "", [&](int value) {
+        isolated_ctx, mock_client, "bool_slot", "", [&](int64_t value) {
           if (ignore_first) {
             ignore_first = false;
             return;
