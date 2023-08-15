@@ -20,7 +20,8 @@ using std::chrono_literals::operator""ms;
 inline auto blink(boost::asio::io_context& ctx, milliseconds const& period, tfc::ipc_ruler::ipc_manager_client& client)
     -> asio::awaitable<void> {
   asio::steady_timer timer{ ctx, period };
-  tfc::ipc::bool_signal signal{ ctx, client, fmt::format("blinker_{}", period), "Period blinker" };
+  double frequency = 1.0/ (static_cast<double>(period.count()) * 2.0 / 1000.0);
+  tfc::ipc::bool_signal signal{ ctx, client, fmt::format("square_wave_{}", period), fmt::format("Boolean square wave {}, {:.3f}Hz", period, frequency) };
   bool state{ false };
   for (;;) {
     timer.expires_after(period);
