@@ -15,35 +15,20 @@ namespace bpo = boost::program_options;
 namespace asio = boost::asio;
 
 using std::chrono::milliseconds;
+using std::chrono_literals::operator""ms;
 
-struct blinker {
-  blinker(boost::asio::io_context& ctx, milliseconds const& period, tfc::ipc_ruler::ipc_manager_client& mgr)
-      : timer{ ctx, period }, period{ period }, logger(fmt::format("blinker_{}", period)),
-        signal(ctx, mgr, fmt::format("blinker_{}", period), "Period blinker") {}
-
-  void start() {
+inline auto blink(boost::asio::io_context& ctx, milliseconds const& period, tfc::ipc_ruler::ipc_manager_client& client)
+    -> asio::awaitable<void> {
+  asio::steady_timer timer{ ctx, period };
+  tfc::ipc::bool_signal signal{ ctx, client, fmt::format("blinker_{}", period), "Period blinker" };
+  bool state{ false };
+  for (;;) {
     timer.expires_after(period);
-    timer.async_wait([this](auto const& ec) {
-      if (ec) {
-        return;
-      }
-      state = !state;
-      signal.async_send(state, [&](const std::error_code& err, size_t) {
-        if (err) {
-          logger.error("Failed to send signal: {}", err.message());
-        }
-      });
-      logger.trace("Blinking ({}): {}", period, state);
-      start();
-    });
+    co_await timer.async_wait(asio::use_awaitable);
+    state = !state;
+    co_await signal.async_send(state, asio::use_awaitable);
   }
-
-  asio::steady_timer timer;
-  milliseconds period;
-  tfc::logger::logger logger;
-  tfc::ipc::bool_signal signal;
-  bool state = false;
-};
+}
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
@@ -51,19 +36,9 @@ auto main(int argc, char** argv) -> int {
   asio::io_context ctx{};
   tfc::ipc_ruler::ipc_manager_client client{ ctx };
 
-  std::vector<blinker> blinkers_instances;
-
-  auto blinkers = { milliseconds{ 100 },  milliseconds{ 200 },  milliseconds{ 300 },  milliseconds{ 400 },
-                    milliseconds{ 500 },  milliseconds{ 750 },  milliseconds{ 1000 }, milliseconds{ 1500 },
-                    milliseconds{ 2000 }, milliseconds{ 3000 }, milliseconds{ 4000 }, milliseconds{ 5000 },
-                    milliseconds{ 7500 }, milliseconds{ 10000 } };
-
-  for (auto& blink_duration : blinkers) {
-    blinkers_instances.emplace_back(ctx, blink_duration, client);
-  }
-
-  for (auto& blink_instance : blinkers_instances) {
-    blink_instance.start();
+  for (const auto& blink_duration :
+       { 100ms, 200ms, 300ms, 400ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms, 3000ms, 4000ms, 5000ms, 7500ms, 10000ms }) {
+    co_spawn(ctx, blink(ctx, blink_duration, client), asio::detached);
   }
 
   ctx.run();
