@@ -111,7 +111,7 @@ public:
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
 
   template <typename CompletionToken>
-  auto async_send(value_t const& value, CompletionToken&& token) -> auto {
+  auto async_send(value_t const& value, CompletionToken&& token) -> auto{
     return signal_->async_send(value, std::forward<decltype(token)>(token));
   }
 
