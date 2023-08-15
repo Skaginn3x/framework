@@ -4,14 +4,7 @@ find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 
 target_include_directories(signal_source
   PUBLIC
-    inc
     ${AZMQ_INCLUDE_DIRS}
-)
-
-target_link_directories(signal_source
-  PUBLIC
-    $<$<CONFIG:Debug>:${GPIOD_INCLUDE_DIRS}/../debug/lib>
-    $<$<CONFIG:Release>:${GPIOD_INCLUDE_DIRS}/../lib>
 )
 
 find_package(Boost REQUIRED COMPONENTS program_options)
@@ -25,8 +18,6 @@ target_link_libraries(signal_source
     tfc::confman
     Boost::program_options
     glaze::glaze
-    gpiodcxx
-    gpiod
 )
 
 include(GNUInstallDirs)
