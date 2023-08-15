@@ -43,9 +43,4 @@ constexpr auto el2809_name = "EL2809"sv;
 template <typename manager_client_type>
 using el2809 = el2xxx<manager_client_type, 16, 0xaf93052, el2809_name>;
 
-// void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final {
-//   output[0] = static_cast<std::byte>(output_states_.to_ulong());
-//   output[1] = static_cast<std::byte>(output_states_.to_ulong() >> 8);
-// }
-
 }  // namespace tfc::ec::devices::beckhoff
