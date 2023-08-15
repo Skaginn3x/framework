@@ -54,10 +54,11 @@ public:
        manager_client_type& client,
        std::string_view name,
        std::string_view description,
-       auto&& callback)
+       std::invocable<value_t> auto&& callback)
       : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client) {
-    client_.register_connection_change_callback(
-        slot_->name_w_type(), [this, callback](const std::string_view signal_name) { slot_->init(signal_name, callback); });
+    client_.register_connection_change_callback(slot_->name_w_type(), [this, &callback](const std::string_view signal_name) {
+      slot_->init(signal_name, std::forward<decltype(callback)>(callback));
+    });
     client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
