@@ -128,7 +128,10 @@ public:
     auto str_name = std::string(name);
     auto change_signals = signals_.make_change();
     if (signals_->find(str_name) != signals_->end()) {
-      change_signals->at(str_name).last_registered = timestamp_now;
+      auto it = change_signals->find(str_name);
+      it->second.last_registered = timestamp_now;
+      it->second.description = std::string(description);
+      it->second.type = type;
     } else {
       change_signals->emplace(name, signal{ .name = std::string(name),
                                             .type = type,
@@ -147,7 +150,10 @@ public:
     auto str_name = std::string(name);
     auto change_slots = slots_.make_change();
     if (change_slots->find(str_name) != slots_->end()) {
-      change_slots->at(str_name).last_registered = timestamp_now;
+      auto it = change_slots->find(str_name);
+      it->second.last_registered = timestamp_now;
+      it->second.description = std::string(description);
+      it->second.type = type;
     } else {
       change_slots->emplace(name, slot{ .name = std::string(name),
                                         .type = type,
