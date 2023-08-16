@@ -80,7 +80,7 @@ private:
   static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   manager_client_type& client_;
-  filter::filters<std::function<void(value_t&)>> filters_; // todo prefer some other type erasure mechanism
+  filter::filters<value_t, std::function<void(value_t&)>> filters_; // todo prefer some other type erasure mechanism
 };
 
 /**
