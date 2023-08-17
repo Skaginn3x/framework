@@ -202,7 +202,7 @@ export default function Configurator() {
         role="region"
         isOverflowHorizontal={false}
       >
-        {names.length && Object.keys(schemas).length && Object.keys(schemas).map((name: string, index: number) => {
+        {Object.keys(schemas).length && Object.keys(schemas).map((name: string, index: number) => {
           if (schemas[name] && formData[name]) {
             return (
               <Tab
