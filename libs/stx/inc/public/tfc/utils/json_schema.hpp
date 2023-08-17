@@ -53,62 +53,35 @@ struct schema final {
   // TODO We should be able to generate the json schema compiletime
   struct glaze {
     using T = schema;
-    static constexpr auto value = glz::object("$ref",
-                                              &T::ref,  //
-                                              "title",
-                                              &T::title,  //
-                                              "description",
-                                              &T::description,  //
-                                              "default",
-                                              &T::default_value,  //
-                                              "deprecated",
-                                              &T::deprecated,  //
-#ifdef __cpp_lib_constexpr_vector
-                                              "examples",
-                                              &T::examples,  //
-#endif
-                                              "readOnly",
-                                              &T::read_only,  //
-                                              "writeOnly",
-                                              &T::write_only,  //
-                                              "const",
-                                              &T::constant,  //
-                                              "minLength",
-                                              &T::min_length,  //
-                                              "maxLength",
-                                              &T::max_length,  //
-                                              "pattern",
-                                              &T::pattern,
-                                              "minimum",
-                                              &T::minimum,  //
-                                              "maximum",
-                                              &T::maximum,  //
-                                              "exclusiveMinimum",
-                                              &T::exclusive_minimum,  //
-                                              "exclusiveMaximum",
-                                              &T::exclusive_maximum,  //
-                                              "multipleOf",
-                                              &T::multiple_of,  //
-                                              "minProperties",
-                                              &T::min_properties,  //
-                                              "maxProperties",
-                                              &T::max_properties,  //
+    // clang-format off
+    static constexpr auto value = glz::object(
+      "$ref", &T::ref, //
+      "title", &T::title, //
+      "description", &T::description, //
+      "default", &T::default_value, //
+      "deprecated", &T::deprecated, //
+      "examples", &T::examples, //
+      "readOnly", &T::read_only, //
+      "writeOnly", &T::write_only, //
+      "const", &T::constant, //
+      "minLength", &T::min_length, //
+      "maxLength", &T::max_length, //
+      "pattern", &T::pattern, "minimum", &T::minimum, //
+      "maximum", &T::maximum, //
+      "exclusiveMinimum", &T::exclusive_minimum, //
+      "exclusiveMaximum", &T::exclusive_maximum, //
+      "multipleOf", &T::multiple_of, //
+      "minProperties", &T::min_properties, //
+      "maxProperties", &T::max_properties, //
 //               "dependentRequired", &T::dependent_required, //
-#ifdef __cpp_lib_constexpr_vector
-                                              "required",
-                                              &T::required,  //
-#endif
-                                              "minItems",
-                                              &T::min_items,  //
-                                              "maxItems",
-                                              &T::max_items,  //
-                                              "minContains",
-                                              &T::min_contains,  //
-                                              "maxContains",
-                                              &T::max_contains,  //
-                                              "uniqueItems",
-                                              &T::unique_items  //
+      "required", &T::required, //
+      "minItems", &T::min_items, //
+      "maxItems", &T::max_items, //
+      "minContains", &T::min_contains, //
+      "maxContains", &T::max_contains, //
+      "uniqueItems", &T::unique_items //
     );
+    // clang-format on
   };
 };
 
