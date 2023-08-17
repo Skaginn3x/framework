@@ -1,14 +1,13 @@
 #pragma once
-#include <boost/asio/io_context.hpp>
 #include <concepts>
 #include <vector>
+#include <exception>
 
-//#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/async_result.hpp>
-#include <boost/asio/awaitable.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/compose.hpp>
-#include <boost/asio/use_awaitable.hpp>
 
 #include <glaze/core/common.hpp>
 
@@ -42,13 +41,17 @@ struct filter_interface {
   explicit filter_interface(type_e input) : type{ input } {}
   virtual ~filter_interface() = default;
   const type_e type{ type_e::unknown };
+
+  using function_signature_t = void(std::expected<value_t, std::error_code>);
+  using async_process_result_t = typename asio::async_result<std::decay_t<completion_token_t>, function_signature_t>::return_type;
+
   virtual auto async_process(value_t const& value, completion_token_t const& completion_token) const
-      -> asio::async_result<std::decay_t<completion_token_t>, void(decltype(value))>::return_type = 0;
+      -> async_process_result_t = 0;
 protected:
   auto async_process_helper(auto&& process, auto const& completion_token) const {
     auto executor{ asio::get_associated_executor(completion_token) };
     // todo get rid of const_cast
-    return asio::async_compose<completion_token_t, void(value_t)>(process, const_cast<completion_token_t&>(completion_token), executor);
+    return asio::async_compose<completion_token_t, function_signature_t>(process, const_cast<completion_token_t&>(completion_token), executor);
   }
 };
 
@@ -57,22 +60,20 @@ struct filter;
 
 template <typename completion_token_t>
 struct filter<type_e::invert, bool, completion_token_t> : filter_interface<bool, completion_token_t> {
-  filter() : filter_interface<bool, completion_token_t>{ type_e::invert } {}
-  bool invert{ true };
   using value_t = bool;
-  using result_t = asio::async_result<std::decay_t<completion_token_t>, void(value_t)>::return_type;
-  auto async_process(value_t const& value, completion_token_t const& completion_token) const -> result_t override {
-    auto executor{ asio::get_associated_executor(completion_token) };
-    auto const impl{ [this, copy = value](auto& self){
+  using parent = filter_interface<value_t, completion_token_t>;
+  filter() : parent{ type_e::invert } {}
+  bool invert{ true };
+
+  auto async_process(value_t const& value, completion_token_t const& completion_token) const -> parent::async_process_result_t override {
+    return parent::async_process_helper([this, copy = value](auto& self){
       if (invert) {
         self.complete(!copy);
       }
       else {
         self.complete(copy);
       }
-    } };
-    // todo get rid of const_cast
-    return asio::async_compose<completion_token_t, void(bool)>(impl, const_cast<completion_token_t&>(completion_token), executor);
+    }, completion_token);
   }
 
   struct glaze {
@@ -82,32 +83,40 @@ struct filter<type_e::invert, bool, completion_token_t> : filter_interface<bool,
   };
 };
 
-template <typename value_t, typename completion_token_t>
-struct filter<type_e::timer, value_t, completion_token_t> : filter_interface<value_t, completion_token_t> {
+template <typename completion_token_t>
+struct filter<type_e::timer, bool, completion_token_t> : filter_interface<bool, completion_token_t> {
+  using value_t = bool;
   using parent = filter_interface<value_t, completion_token_t>;
   filter() : parent{ type_e::timer } {}
   std::chrono::milliseconds time_on{ 5000 };
   std::chrono::milliseconds time_off{ 0 };
 
-  using result_t = asio::async_result<std::decay_t<completion_token_t>, void(value_t)>::return_type;
-  auto async_process(value_t const& value, completion_token_t const& completion_token) const -> result_t override {
+  auto async_process(value_t const& value, completion_token_t const& completion_token) const -> parent::async_process_result_t override {
     return parent::async_process_helper([this, copy = value, first_call = true](auto& self, std::error_code code = {}) mutable {
       if (code) {
         fmt::print("TODO DO serious business\n ");
+        self.complete(std::unexpected(code));
         return;
       }
       if (first_call) {
         first_call = false;
         if (timer_) {
-          // already waiting need to cancel and begin again
-          timer_->cancel();
+          // already waiting need to cancel and return
+          timer_->cancel(); // this will make a recall to this very same lambda with error code
+          timer_ = std::nullopt;
+          return;
         }
         auto executor = asio::get_associated_executor(self);
         timer_ = asio::steady_timer{ executor };
-        timer_->expires_from_now(time_on);
+        if (copy) {
+          timer_->expires_from_now(time_on);
+        } else {
+          timer_->expires_from_now(time_off);
+        }
         timer_->async_wait(std::move(self));
       }
       else {
+        timer_ = std::nullopt;
         self.complete(copy);
       }
     }, completion_token);
@@ -160,6 +169,11 @@ public:
 //   };
 // };
 
+class filter_out : public std::runtime_error {
+public:
+  explicit filter_out(std::error_code code) : std::runtime_error(code.message()) {}
+};
+
 template <typename value_t, typename callback_t>
 class filters {
 public:
@@ -176,14 +190,23 @@ public:
         ctx_,
         [this, copy = value] mutable -> asio::awaitable<value_t> {
           for (auto const& filter : filters_) {
-            copy = co_await filter->async_process(copy, asio::use_awaitable);
+            auto return_value = co_await filter->async_process(copy, asio::use_awaitable);
+            if (return_value) {
+              copy = std::move(return_value.value());
+            } else {
+              throw filter_out(return_value.error());
+            }
           }
-          // todo throw explicit runtime error if we should discard value, catch it and return silently
           co_return copy;
         },
-        [this](std::exception_ptr exception_ptr, value_t return_val) {
-          if (exception_ptr) {
-            // todo log
+        [this](std::exception_ptr const& exception_ptr, value_t return_val) {
+          try {
+            if (exception_ptr) {
+              std::rethrow_exception(exception_ptr);
+            }
+          }
+          catch (filter_out const&) {
+            fmt::print("IM OUT !!! drop the mic\n");
             return;
           }
           std::invoke(callback_, return_val);
