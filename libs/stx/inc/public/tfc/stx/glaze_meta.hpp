@@ -38,15 +38,7 @@ struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
   static constexpr std::string_view unit{ tfc::stx::string_view_join_v<unit_ratio, unit_symbol> };
   static constexpr std::string_view dimension{ "time" };
   static constexpr auto ratio{ period_t{} };
-  static constexpr auto value{ glz::object(
-      "value",
-      &type::rep,
-      "unit",
-      [](auto&&) -> auto const& { return unit; },
-      "dimension",
-      [](auto&&) -> auto const& { return dimension; },
-      "ratio",
-      [](auto&&) -> auto const& { return ratio; }) };
+  static constexpr auto value{ &type::rep };
   static constexpr std::string_view prefix{ "std::chrono::duration<" };
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };

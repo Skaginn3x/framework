@@ -46,8 +46,7 @@ auto main() -> int {
     using test_t = std::chrono::duration<uint16_t, std::deci>;
     test_t foo{ std::chrono::seconds(32) };
     std::string const json{ glz::write_json(foo) };
-    ut::expect(json == R"({"value":320,"unit":"ds","dimension":"time","ratio":{"numerator":1,"denominator":10}})")
-        << "got: " << json;
+    ut::expect(json == "320") << "got: " << json;
     ut::expect(glz::read_json<test_t>(json).value() == foo);
   };
   "mp"_test = [] {
