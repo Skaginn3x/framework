@@ -6,7 +6,7 @@
 #include <glaze/api/impl.hpp>
 #include <glaze/json/write.hpp>
 
-namespace glz {
+namespace tfc {
 struct schema final {
   std::string_view ref{};
   using schema_number = std::optional<std::variant<std::int64_t, std::uint64_t, double>>;
@@ -16,9 +16,7 @@ struct schema final {
   std::optional<std::string_view> description{};
   std::optional<schema_any> default_value{};
   std::optional<bool> deprecated{};
-#ifdef __cpp_lib_constexpr_vector
   std::optional<std::vector<schema_any>> examples{};
-#endif
   std::optional<bool> read_only{};
   std::optional<bool> write_only{};
   // hereafter validation keywords, ref: https://www.learnjsonschema.com/2020-12/validation/
@@ -37,9 +35,7 @@ struct schema final {
   std::optional<std::uint64_t> min_properties{};
   std::optional<std::uint64_t> max_properties{};
 //      std::optional<std::map<std::string_view, std::vector<std::string_view>>> dependent_required{};
-#ifdef __cpp_lib_constexpr_vector
   std::optional<std::vector<std::string_view>> required{};
-#endif
   // array only keywords
   std::optional<std::uint64_t> min_items{};
   std::optional<std::uint64_t> max_items{};
@@ -98,33 +94,27 @@ struct schematic final {
   std::optional<std::vector<schematic>> oneOf{};
 };
 }  // namespace detail
-}  // namespace glz
+}  // namespace tfc
 
 template <>
-struct glz::meta<glz::detail::schematic> {
+struct glz::meta<tfc::detail::schematic> {
   static constexpr std::string_view name = "glz::detail::schema";
-  using T = detail::schematic;
-  static constexpr auto value = glz::object("type",
-                                            &T::type,  //
-                                            "description",
-                                            &T::description,  //
-                                            "properties",
-                                            &T::properties,  //
-                                            "items",
-                                            &T::items,  //
-                                            "additionalProperties",
-                                            &T::additionalProperties,  //
-                                            "$defs",
-                                            &T::defs,  //
-                                            "enum",
-                                            &T::enumeration,  //
-                                            "oneOf",
-                                            &T::oneOf,  //
-                                            "const",
-                                            &T::constant);
+  using T = tfc::detail::schematic;
+  // clang-format off
+  static constexpr auto value = glz::object(
+      "type", &T::type,  //
+      "description", &T::description,  //
+      "properties", &T::properties,  //
+      "items", &T::items,  //
+      "additionalProperties", &T::additionalProperties,  //
+      "$defs", &T::defs,  //
+      "enum", &T::enumeration,  //
+      "oneOf", &T::oneOf,  //
+      "const", &T::constant);
+  // clang-format on
 };
 
-namespace glz {
+namespace tfc {
 namespace detail {
 template <class T = void>
 struct to_json_schema {
@@ -144,7 +134,7 @@ struct to_json_schema<T> {
   }
 };
 
-template <num_t T>
+template <glz::detail::num_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
@@ -157,7 +147,7 @@ struct to_json_schema<T> {
 };
 
 template <class T>
-  requires str_t<T> || char_t<T>
+  requires glz::detail::str_t<T> || glz::detail::char_t<T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
@@ -165,7 +155,7 @@ struct to_json_schema<T> {
   }
 };
 
-template <always_null_t T>
+template <glz::detail::always_null_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
@@ -173,7 +163,7 @@ struct to_json_schema<T> {
   }
 };
 
-template <glaze_enum_t T>
+template <glz::detail::glaze_enum_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
@@ -181,7 +171,7 @@ struct to_json_schema<T> {
 
     // TODO use oneOf instead of enum to handle doc comments
     using V = std::decay_t<T>;
-    static constexpr auto N = std::tuple_size_v<meta_t<V>>;
+    static constexpr auto N = std::tuple_size_v<glz::meta_t<V>>;
     // s.enumeration = std::vector<std::string_view>(N);
     // for_each<N>([&](auto I) {
     //    static constexpr auto item = std::get<I>(meta_v<V>);
@@ -189,7 +179,7 @@ struct to_json_schema<T> {
     // });
     s.oneOf = std::vector<schematic>(N);
     for_each<N>([&](auto I) {
-      static constexpr auto item = glz::tuplet::get<I>(meta_v<V>);
+      static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
       enumeration.constant = glz::tuplet::get<0>(item);
       if constexpr (std::tuple_size_v < decltype(item) >> 2) {
@@ -200,42 +190,42 @@ struct to_json_schema<T> {
 };
 
 template <class T>
-struct to_json_schema<basic_raw_json<T>> {
+struct to_json_schema<glz::basic_raw_json<T>> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
     s.type = { "number", "string", "boolean", "object", "array", "null" };
   }
 };
 
-template <array_t T>
+template <glz::detail::array_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
-    using V = std::decay_t<range_value_t<std::decay_t<T>>>;
+    using V = std::decay_t<glz::range_value_t<std::decay_t<T>>>;
     s.type = { "array" };
-    auto& def = defs[name_v<V>];
+    auto& def = defs[glz::name_v<V>];
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
     }
-    s.items = schema{ join_v<chars<"#/$defs/">, name_v<V>> };
+    s.items = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
   }
 };
 
-template <writable_map_t T>
+template <glz::detail::writable_map_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
-    using V = std::decay_t<std::tuple_element_t<1, range_value_t<std::decay_t<T>>>>;
+    using V = std::decay_t<std::tuple_element_t<1, glz::range_value_t<std::decay_t<T>>>>;
     s.type = { "object" };
-    auto& def = defs[name_v<V>];
+    auto& def = defs[glz::name_v<V>];
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
     }
-    s.additionalProperties = schema{ join_v<chars<"#/$defs/">, name_v<V>> };
+    s.additionalProperties = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
   }
 };
 
-template <nullable_t T>
+template <glz::detail::nullable_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
@@ -245,7 +235,7 @@ struct to_json_schema<T> {
   }
 };
 
-template <is_variant T>
+template <glz::is_variant T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
@@ -257,14 +247,14 @@ struct to_json_schema<T> {
       auto& schema_val = (*s.oneOf)[I.value];
       // TODO use ref to avoid duplication in schema
       to_json_schema<V>::template op<Opts>(schema_val, defs);
-      constexpr bool glaze_object = glaze_object_t<V>;
+      constexpr bool glaze_object = glz::detail::glaze_object_t<V>;
       if constexpr (glaze_object) {
-        auto& def = defs[name_v<std::string>];
+        auto& def = defs[glz::name_v<std::string>];
         if (!def.type) {
           to_json_schema<std::string>::template op<Opts>(def, defs);
         }
-        if constexpr (!tag_v<T>.empty()) {
-          (*schema_val.properties)[tag_v<T>] = schema{ join_v<chars<"#/$defs/">, name_v<std::string>> };
+        if constexpr (!glz::tag_v<T>.empty()) {
+          (*schema_val.properties)[glz::tag_v<T>] = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>> };
           // TODO use enum or oneOf to get the ids_v to validate type name
         }
       }
@@ -273,7 +263,7 @@ struct to_json_schema<T> {
 };
 
 template <class T>
-  requires glaze_array_t<std::decay_t<T>> || tuple_t<std::decay_t<T>>
+  requires glz::detail::glaze_array_t<std::decay_t<T>> || glz::detail::tuple_t<std::decay_t<T>>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
@@ -283,24 +273,24 @@ struct to_json_schema<T> {
   }
 };
 
-template <glaze_object_t T>
+template <glz::detail::glaze_object_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
     s.type = { "object" };
 
     using V = std::decay_t<T>;
-    static constexpr auto N = std::tuple_size_v<meta_t<V>>;
+    static constexpr auto N = std::tuple_size_v<glz::meta_t<V>>;
     s.properties = std::map<std::string_view, schema, std::less<>>();
     for_each<N>([&](auto I) {
-      static constexpr auto item = glz::tuplet::get<I>(meta_v<V>);
+      static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       using mptr_t = decltype(glz::tuplet::get<1>(item));
-      using val_t = std::decay_t<member_t<V, mptr_t>>;
-      auto& def = defs[name_v<val_t>];
+      using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
+      auto& def = defs[glz::name_v<val_t>];
       if (!def.type) {
         to_json_schema<val_t>::template op<Opts>(def, defs);
       }
-      auto ref_val = schema{ join_v<chars<"#/$defs/">, name_v<val_t>> };
+      auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
                if constexpr (std::tuple_size_v<decltype(item)> > 2) {
         // clang-format on
@@ -309,7 +299,7 @@ struct to_json_schema<T> {
           ref_val.description = glz::tuplet::get<2>(item);
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
           ref_val = glz::tuplet::get<2>(item);
-          ref_val.ref = join_v<chars<"#/$defs/">, name_v<val_t>>;
+          ref_val.ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>>;
         }
       }
       (*s.properties)[glz::tuplet::get<0>(item)] = ref_val;
@@ -324,8 +314,8 @@ template <class T, class Buffer>
 inline void write_json_schema(Buffer&& buffer) noexcept {
   detail::schematic s{};
   s.defs.emplace();
-  detail::to_json_schema<std::decay_t<T>>::template op<opts{}>(s, *s.defs);
-  write<opts{}>(std::move(s), std::forward<Buffer>(buffer));
+  detail::to_json_schema<std::decay_t<T>>::template op<glz::opts{}>(s, *s.defs);
+  write<glz::opts{}>(std::move(s), std::forward<Buffer>(buffer));
 }
 
 template <class T>
@@ -333,8 +323,8 @@ inline auto write_json_schema() noexcept {
   std::string buffer{};
   detail::schematic s{};
   s.defs.emplace();
-  detail::to_json_schema<std::decay_t<T>>::template op<opts{}>(s, *s.defs);
-  write<opts{ .write_type_info = false }>(std::move(s), buffer);
+  detail::to_json_schema<std::decay_t<T>>::template op<glz::opts{}>(s, *s.defs);
+  glz::write<glz::opts{ .write_type_info = false }>(std::move(s), buffer);
   return buffer;
 }
-}  // namespace glz
+}  // namespace tfc
