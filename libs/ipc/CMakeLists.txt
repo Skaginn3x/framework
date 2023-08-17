@@ -26,6 +26,7 @@ target_link_libraries(ipc
     tfc::logger
     tfc::base
     tfc::dbus_util
+    tfc::confman
     Boost::boost
     fmt::fmt
     glaze::glaze

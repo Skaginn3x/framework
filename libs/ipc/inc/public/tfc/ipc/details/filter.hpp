@@ -3,15 +3,15 @@
 #include <vector>
 #include <exception>
 
+#include <fmt/core.h>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/compose.hpp>
-
 #include <glaze/core/common.hpp>
 
-#include <tfc/stx/te.hpp>
+#include <tfc/confman.hpp>
 
 namespace tfc::ipc::filter {
 
@@ -38,6 +38,7 @@ enum struct type_e : std::uint8_t {
 
 template <typename value_t, typename completion_token_t>
 struct filter_interface {
+  filter_interface() = default; // should only be used by json serializing
   explicit filter_interface(type_e input) : type{ input } {}
   virtual ~filter_interface() = default;
   const type_e type{ type_e::unknown };
@@ -45,14 +46,21 @@ struct filter_interface {
   using function_signature_t = void(std::expected<value_t, std::error_code>);
   using async_process_result_t = typename asio::async_result<std::decay_t<completion_token_t>, function_signature_t>::return_type;
 
+  // Todo this should be pure virtual but json library makes this class when serializing
   virtual auto async_process(value_t const& value, completion_token_t const& completion_token) const
-      -> async_process_result_t = 0;
+      -> async_process_result_t { throw std::runtime_error("should never be called"); }
 protected:
   auto async_process_helper(auto&& process, auto const& completion_token) const {
     auto executor{ asio::get_associated_executor(completion_token) };
     // todo get rid of const_cast
     return asio::async_compose<completion_token_t, function_signature_t>(process, const_cast<completion_token_t&>(completion_token), executor);
   }
+public:
+  struct glaze {
+    using me = filter_interface<value_t, completion_token_t>;
+    static constexpr auto name{ "tfc::ipc::filter_interface" };
+    static constexpr auto value{ glz::object("type", &me::type) };
+  };
 };
 
 template <type_e type, typename value_t, typename completion_token_t>
@@ -78,7 +86,7 @@ struct filter<type_e::invert, bool, completion_token_t> : filter_interface<bool,
 
   struct glaze {
     using type = filter<type_e::invert, value_t, completion_token_t>;
-    static constexpr auto name{ "ipc::filter::invert" };
+    static constexpr auto name{ "tfc::ipc::filter::invert" };
     static constexpr auto value{ glz::object("invert", &type::invert, "Invert outputting value") };
   };
 };
@@ -127,47 +135,13 @@ private:
 public:
   struct glaze {
     using type = filter<type_e::timer, value_t, completion_token_t>;
-    static constexpr auto name{ "ipc::filter::timer" };
+    static constexpr auto name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object("time_on", &type::time_on, "Rising edge settling delay",
                                             "time_off", &type::time_off, "Falling edge settling delay") };
     // clang-format on
   };
 };
-
-// template <>
-// struct filter<type_e::timer> {
-//   std::chrono::milliseconds time_on{ 3000 };
-//   std::chrono::milliseconds time_off{ 0 };
-//
-//   auto async_process(auto&& value, auto&& completion_token) const
-//       -> asio::async_result<std::decay_t<decltype(completion_token)>, void(decltype(value))>::return_type {
-//     auto executor{ asio::get_associated_executor(completion_token) };
-//     return asio::async_compose<decltype(completion_token), void(decltype(value))>>
-//             ([this, first_call = true, value](auto& self, std::error_code = {}, std::size_t = 0) mutable {
-//                                                                    if (first_call) {
-//                                                                      first_call = false;
-//                                                                      auto executor{ asio::get_associated_executor(self) };
-//                                                                      asio::steady_timer timer{ executor };
-//                                                                      timer.expires_from_now(time_on);
-//                                                                      timer.async_wait(std::move(self));
-//                                                                    }
-//                                                                    else {
-//                                                                      self.complete(value);
-//                                                                    }
-//                                                                  },
-//                                                                   executor);
-//   }
-//
-//   struct glaze {
-//     using type = filter<type_e::timer>;
-//     static constexpr auto name{ "ipc::filter::timer" };
-//     // clang-format off
-//     static constexpr auto value{ glz::object("time_on", &type::time_on, "Rising edge settling delay",
-//                                              "time_off", &type::time_off, "Falling edge settling delay") };
-//     // clang-format on
-//   };
-// };
 
 class filter_out : public std::runtime_error {
 public:
@@ -177,11 +151,11 @@ public:
 template <typename value_t, typename callback_t>
 class filters {
 public:
-  filters(asio::io_context& ctx, callback_t&& callback) : ctx_{ ctx }, callback_{ callback } {
+  filters(asio::io_context& ctx, std::string_view name, callback_t&& callback) : ctx_{ ctx }, filters_{ ctx, fmt::format("{}/_filters_", name) }, callback_{ callback } {
     if constexpr (std::is_same_v<bool, value_t>) {
-      filters_.emplace_back(std::make_unique<filter<type_e::invert, value_t, asio::use_awaitable_t<>>>());
-      filters_.emplace_back(std::make_unique<filter<type_e::timer, value_t, asio::use_awaitable_t<>>>());
-      filters_.emplace_back(std::make_unique<filter<type_e::invert, value_t, asio::use_awaitable_t<>>>());
+      filters_.make_change()->emplace_back(std::make_unique<filter<type_e::invert, value_t, asio::use_awaitable_t<>>>());
+      filters_.make_change()->emplace_back(std::make_unique<filter<type_e::timer, value_t, asio::use_awaitable_t<>>>());
+      filters_.make_change()->emplace_back(std::make_unique<filter<type_e::invert, value_t, asio::use_awaitable_t<>>>());
     }
   }
 
@@ -189,7 +163,7 @@ public:
     asio::co_spawn(
         ctx_,
         [this, copy = value] mutable -> asio::awaitable<value_t> {
-          for (auto const& filter : filters_) {
+          for (auto const& filter : filters_.value()) {
             auto return_value = co_await filter->async_process(copy, asio::use_awaitable);
             if (return_value) {
               copy = std::move(return_value.value());
@@ -215,7 +189,7 @@ public:
 
 private:
   asio::io_context& ctx_;
-  std::vector<std::unique_ptr<filter_interface<value_t, asio::use_awaitable_t<>>>> filters_{};
+  tfc::confman::config<std::vector<std::unique_ptr<filter_interface<value_t, asio::use_awaitable_t<>>>>> filters_;
   callback_t callback_;
 };
 

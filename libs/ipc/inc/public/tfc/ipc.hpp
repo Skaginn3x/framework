@@ -56,7 +56,7 @@ public:
        std::string_view name,
        std::string_view description,
        std::invocable<value_t> auto&& callback)
-      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client), filters_{ ctx, std::forward<decltype(callback)>(callback) } {
+      : slot_(details::slot_callback<type_desc>::create(ctx, name)), client_(client), filters_{ ctx, name, std::forward<decltype(callback)>(callback) } {
     client_.register_connection_change_callback(slot_->name_w_type(), [this](const std::string_view signal_name) {
       slot_->init(signal_name, filters_);
     });
