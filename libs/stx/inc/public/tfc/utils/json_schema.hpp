@@ -6,7 +6,35 @@
 #include <glaze/api/impl.hpp>
 #include <glaze/json/write.hpp>
 
-namespace tfc {
+namespace tfc::json {
+struct schema_meta final {
+  struct ratio_impl {
+    std::optional<std::uint64_t> numerator{};
+    std::optional<std::uint64_t> denominator{};
+    struct glaze {
+      // clang-format off
+      static constexpr auto value{ glz::object(
+          "numerator", &ratio_impl::numerator,
+          "denominator", &ratio_impl::denominator
+          ) };
+      // clang-format on
+    };
+  };
+  std::optional<std::string_view> unit{};
+  std::optional<std::string_view> dimension{};
+  std::optional<ratio_impl> ratio{};
+  struct glaze {
+    using type = schema_meta;
+    // clang-format off
+    static constexpr auto value{ glz::object(
+        "unit", &type::unit,
+        "dimension", &type::dimension,
+        "ratio", &type::ratio
+        ) };
+    // clang-format on
+  };
+};
+
 struct schema final {
   std::string_view ref{};
   using schema_number = std::optional<std::variant<std::int64_t, std::uint64_t, double>>;
@@ -16,7 +44,8 @@ struct schema final {
   std::optional<std::string_view> description{};
   std::optional<schema_any> default_value{};
   std::optional<bool> deprecated{};
-  std::optional<std::vector<schema_any>> examples{};
+  // std vector requires exit destructor & global constructor
+//  std::optional<std::vector<schema_any>> examples{};
   std::optional<bool> read_only{};
   std::optional<bool> write_only{};
   // hereafter validation keywords, ref: https://www.learnjsonschema.com/2020-12/validation/
@@ -43,6 +72,9 @@ struct schema final {
   std::optional<std::uint64_t> max_contains{};
   std::optional<bool> unique_items{};
 
+  // metadata
+  std::optional<schema_meta> tfc_metadata{};
+
   static constexpr auto schema_attributes{ true };  // allowance flag to indicate metadata within glz::Object
 
   // TODO switch to using variants when we have write support to get rid of nulls
@@ -56,7 +88,7 @@ struct schema final {
       "description", &T::description, //
       "default", &T::default_value, //
       "deprecated", &T::deprecated, //
-      "examples", &T::examples, //
+//      "examples", &T::examples, //
       "readOnly", &T::read_only, //
       "writeOnly", &T::write_only, //
       "const", &T::constant, //
@@ -69,13 +101,14 @@ struct schema final {
       "multipleOf", &T::multiple_of, //
       "minProperties", &T::min_properties, //
       "maxProperties", &T::max_properties, //
-//               "dependentRequired", &T::dependent_required, //
-      "required", &T::required, //
+//    "dependentRequired", &T::dependent_required, //
+//      "required", &T::required, //
       "minItems", &T::min_items, //
       "maxItems", &T::max_items, //
       "minContains", &T::min_contains, //
       "maxContains", &T::max_contains, //
-      "uniqueItems", &T::unique_items //
+      "uniqueItems", &T::unique_items, //
+      "x-tfc", &T::tfc_metadata
     );
     // clang-format on
   };
@@ -94,12 +127,12 @@ struct schematic final {
   std::optional<std::vector<schematic>> oneOf{};
 };
 }  // namespace detail
-}  // namespace tfc
+}  // namespace tfc::json
 
 template <>
-struct glz::meta<tfc::detail::schematic> {
+struct glz::meta<tfc::json::detail::schematic> {
   static constexpr std::string_view name = "glz::detail::schema";
-  using T = tfc::detail::schematic;
+  using T = tfc::json::detail::schematic;
   // clang-format off
   static constexpr auto value = glz::object(
       "type", &T::type,  //
@@ -114,7 +147,7 @@ struct glz::meta<tfc::detail::schematic> {
   // clang-format on
 };
 
-namespace tfc {
+namespace tfc::json {
 namespace detail {
 template <class T = void>
 struct to_json_schema {
@@ -282,7 +315,7 @@ struct to_json_schema<T> {
     using V = std::decay_t<T>;
     static constexpr auto N = std::tuple_size_v<glz::meta_t<V>>;
     s.properties = std::map<std::string_view, schema, std::less<>>();
-    for_each<N>([&](auto I) {
+    glz::for_each<N>([&](auto I) {
       static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       using mptr_t = decltype(glz::tuplet::get<1>(item));
       using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
@@ -292,8 +325,8 @@ struct to_json_schema<T> {
       }
       auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
-               if constexpr (std::tuple_size_v<decltype(item)> > 2) {
-        // clang-format on
+      if constexpr (std::tuple_size_v<decltype(item)> > 2) {
+      // clang-format on
         using additional_data_type = decltype(glz::tuplet::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
           ref_val.description = glz::tuplet::get<2>(item);

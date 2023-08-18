@@ -6,12 +6,25 @@
 #include <units/quantity.h>
 #include <boost/asio.hpp>
 
+#include <glaze/glaze.hpp>
+#include <glaze/json/schema.hpp>
+
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace asio = boost::asio;
+
+struct super_simple {
+  int min{};
+  int max{};
+  struct glaze {
+    using type = super_simple;
+    static constexpr auto min_schema{ tfc::json::schema{.minimum=1} };
+    static constexpr auto value{ glz::object("min", &type::min) };
+  };
+};
 
 struct simple_config {
   int a{};

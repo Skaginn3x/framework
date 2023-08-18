@@ -107,6 +107,9 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
   }
 };
 
+}  // namespace glz::detail
+
+namespace tfc::json::detail {
 template <typename rep_t, typename period_t>
 struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
   template <auto opts>
@@ -114,8 +117,7 @@ struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
-
-}  // namespace glz::detail
+}
 
 namespace tfc::detail {
 template <std::intmax_t num, std::intmax_t den>
