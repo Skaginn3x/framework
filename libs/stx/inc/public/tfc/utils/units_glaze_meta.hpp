@@ -26,17 +26,8 @@ template <typename dimension_t, typename unit_t, typename rep_t>
 struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
   using type = units::quantity<dimension_t, unit_t, rep_t>;
   static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
-  static constexpr units::ratio ratio{ units::as_ratio(unit_t::mag) };
   static constexpr auto dimension{ tfc::unit::dimension_name<dimension_t>() };
-  static auto constexpr value{ glz::object(
-      "value",
-      [](auto&& self) -> auto& { return self.number(); },
-      "unit",
-      [](auto&&) -> auto const& { return unit; },
-      "dimension",
-      [](auto&&) -> auto const& { return dimension; },
-      "ratio",
-      [](auto&&) -> auto const& { return ratio; }) };
+  static auto constexpr value{ [](auto&& self) -> auto& { return self.number(); } };
   static std::string_view constexpr prefix{ "units::quantity<" };
   static std::string_view constexpr postfix{ ">" };
   static std::string_view constexpr separator{ "," };
@@ -45,20 +36,30 @@ struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
   };
 };
 
-namespace glz::detail {
+namespace tfc::json::detail {
 
 template <typename value_t>
 struct to_json_schema;
 
 template <typename dimension_t, typename unit_t, typename rep_t>
 struct to_json_schema<units::quantity<dimension_t, unit_t, rep_t>> {
+  static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
+  static constexpr units::ratio ratio{ units::as_ratio(unit_t::mag) };
+  static constexpr auto dimension{ tfc::unit::dimension_name<dimension_t>() };
   template <auto opts>
   static void op(auto& schema, auto& defs) {
+    auto& data = schema.attributes.tfc_metadata;
+    if (!data.has_value()) {
+      data = tfc::json::schema_meta{};
+    }
+    data->unit = unit;
+    data->dimension = dimension;
+    data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator=ratio.num, .denominator=ratio.den };
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
 
-}  // namespace glz::detail
+}  // namespace tfc::json::detail
 
 namespace tfc::unit {
 template <typename dim_t>

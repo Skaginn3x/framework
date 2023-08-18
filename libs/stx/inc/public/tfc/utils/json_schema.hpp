@@ -9,8 +9,8 @@
 namespace tfc::json {
 struct schema_meta final {
   struct ratio_impl {
-    std::optional<std::uint64_t> numerator{};
-    std::optional<std::uint64_t> denominator{};
+    std::uint64_t numerator{};
+    std::uint64_t denominator{};
     struct glaze {
       // clang-format off
       static constexpr auto value{ glz::object(
@@ -20,6 +20,7 @@ struct schema_meta final {
       // clang-format on
     };
   };
+  bool required{ true };
   std::optional<std::string_view> unit{};
   std::optional<std::string_view> dimension{};
   std::optional<ratio_impl> ratio{};
@@ -29,13 +30,14 @@ struct schema_meta final {
     static constexpr auto value{ glz::object(
         "unit", &type::unit,
         "dimension", &type::dimension,
-        "ratio", &type::ratio
+        "ratio", &type::ratio,
+        "required", &type::required
         ) };
     // clang-format on
   };
 };
 
-struct schema final {
+struct schema {
   std::string_view ref{};
   using schema_number = std::optional<std::variant<std::int64_t, std::uint64_t, double>>;
   using schema_any = std::variant<bool, std::int64_t, std::uint64_t, double, std::string_view>;
@@ -64,7 +66,7 @@ struct schema final {
   std::optional<std::uint64_t> min_properties{};
   std::optional<std::uint64_t> max_properties{};
 //      std::optional<std::map<std::string_view, std::vector<std::string_view>>> dependent_required{};
-  std::optional<std::vector<std::string_view>> required{};
+//  std::optional<std::vector<std::string_view>> required{};
   // array only keywords
   std::optional<std::uint64_t> min_items{};
   std::optional<std::uint64_t> max_items{};
@@ -94,7 +96,8 @@ struct schema final {
       "const", &T::constant, //
       "minLength", &T::min_length, //
       "maxLength", &T::max_length, //
-      "pattern", &T::pattern, "minimum", &T::minimum, //
+      "pattern", &T::pattern,
+      "minimum", &T::minimum, //
       "maximum", &T::maximum, //
       "exclusiveMinimum", &T::exclusive_minimum, //
       "exclusiveMaximum", &T::exclusive_maximum, //
@@ -115,16 +118,15 @@ struct schema final {
 };
 
 namespace detail {
-struct schematic final {
+struct schematic {
   std::optional<std::vector<std::string_view>> type{};
-  std::optional<std::string_view> constant{};
-  std::optional<std::string_view> description{};
   std::optional<std::map<std::string_view, schema, std::less<>>> properties{};  // glaze_object
   std::optional<schema> items{};                                                // array
   std::optional<std::variant<bool, schema>> additionalProperties{};             // map
   std::optional<std::map<std::string_view, schematic, std::less<>>> defs{};
   std::optional<std::vector<std::string_view>> enumeration{};  // enum
   std::optional<std::vector<schematic>> oneOf{};
+  schema attributes{};
 };
 }  // namespace detail
 }  // namespace tfc::json
@@ -136,14 +138,39 @@ struct glz::meta<tfc::json::detail::schematic> {
   // clang-format off
   static constexpr auto value = glz::object(
       "type", &T::type,  //
-      "description", &T::description,  //
       "properties", &T::properties,  //
       "items", &T::items,  //
       "additionalProperties", &T::additionalProperties,  //
       "$defs", &T::defs,  //
       "enum", &T::enumeration,  //
       "oneOf", &T::oneOf,  //
-      "const", &T::constant);
+      "title", [](auto&& self) -> auto& { return self.attributes.title; }, //
+      "description", [](auto&& self) -> auto& { return self.attributes.description; }, //
+      "default", [](auto&& self) -> auto& { return self.attributes.default_value; }, //
+      "deprecated", [](auto&& self) -> auto& { return self.attributes.deprecated; }, //
+      //      "examples", [](auto&& self) -> auto& { return self.attributes.examples; }, //
+      "readOnly", [](auto&& self) -> auto& { return self.attributes.read_only; }, //
+      "writeOnly", [](auto&& self) -> auto& { return self.attributes.write_only; }, //
+      "const", [](auto&& self) -> auto& { return self.attributes.constant; }, //
+      "minLength", [](auto&& self) -> auto& { return self.attributes.min_length; }, //
+      "maxLength", [](auto&& self) -> auto& { return self.attributes.max_length; }, //
+      "pattern", [](auto&& self) -> auto& { return self.attributes.pattern; },
+      "minimum", [](auto&& self) -> auto& { return self.attributes.minimum; }, //
+      "maximum", [](auto&& self) -> auto& { return self.attributes.maximum; }, //
+      "exclusiveMinimum", [](auto&& self) -> auto& { return self.attributes.exclusive_minimum; }, //
+      "exclusiveMaximum", [](auto&& self) -> auto& { return self.attributes.exclusive_maximum; }, //
+      "multipleOf", [](auto&& self) -> auto& { return self.attributes.multiple_of; }, //
+      "minProperties", [](auto&& self) -> auto& { return self.attributes.min_properties; }, //
+      "maxProperties", [](auto&& self) -> auto& { return self.attributes.max_properties; }, //
+      //    "dependentRequired", [](auto&& self) -> auto& { return self.attributes.dependent_required; }, //
+      //      "required", [](auto&& self) -> auto& { return self.attributes.required; }, //
+      "minItems", [](auto&& self) -> auto& { return self.attributes.min_items; }, //
+      "maxItems", [](auto&& self) -> auto& { return self.attributes.max_items; }, //
+      "minContains", [](auto&& self) -> auto& { return self.attributes.min_contains; }, //
+      "maxContains", [](auto&& self) -> auto& { return self.attributes.max_contains; }, //
+      "uniqueItems", [](auto&& self) -> auto& { return self.attributes.unique_items; }, //
+      "x-tfc", [](auto&& self) -> auto& { return self.attributes.tfc_metadata; }
+  );
   // clang-format on
 };
 
@@ -320,9 +347,6 @@ struct to_json_schema<T> {
       using mptr_t = decltype(glz::tuplet::get<1>(item));
       using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
       auto& def = defs[glz::name_v<val_t>];
-      if (!def.type) {
-        to_json_schema<val_t>::template op<Opts>(def, defs);
-      }
       auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
@@ -336,6 +360,11 @@ struct to_json_schema<T> {
         }
       }
       (*s.properties)[glz::tuplet::get<0>(item)] = ref_val;
+
+      if (!def.type) {
+        to_json_schema<val_t>::template op<Opts>(def, defs);
+      }
+
     });
     s.additionalProperties = false;
   }
