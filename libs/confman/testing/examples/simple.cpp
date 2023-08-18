@@ -21,7 +21,7 @@ struct super_simple {
   int max{};
   struct glaze {
     using type = super_simple;
-    static constexpr auto min_schema{ tfc::json::schema{.minimum=1} };
+    static constexpr auto min_schema{ tfc::json::schema{ .minimum = 1 } };
     static constexpr auto value{ glz::object("min", &type::min) };
   };
 };

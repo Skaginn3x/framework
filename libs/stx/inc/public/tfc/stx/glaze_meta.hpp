@@ -108,7 +108,9 @@ namespace tfc::json::detail {
 template <typename rep_t, typename period_t>
 struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
   [[maybe_unused]] static constexpr std::string_view unit_symbol{ "s" };
-  [[maybe_unused]] static constexpr std::string_view unit_ratio{ tfc::detail::make_ratio_symbol<period_t::num, period_t::den>() };
+  [[maybe_unused]] static constexpr std::string_view unit_ratio{
+    tfc::detail::make_ratio_symbol<period_t::num, period_t::den>()
+  };
   static constexpr std::string_view unit{ tfc::stx::string_view_join_v<unit_ratio, unit_symbol> };
   template <auto opts>
   static void op(auto& schema, auto& defs) {
@@ -118,7 +120,7 @@ struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
     }
     data->unit = unit;
     data->dimension = "time";
-    data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator=period_t::num, .denominator=period_t::den };
+    data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = period_t::num, .denominator = period_t::den };
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
@@ -217,7 +219,7 @@ static constexpr auto make_name() -> std::string_view {
     return "std::peta";
   } else if constexpr (std::is_same_v<type, std::exa>) {
     return "std::exa";
-  } else if constexpr (num == den) { // example std::chrono::seconds
+  } else if constexpr (num == den) {  // example std::chrono::seconds
     return "none";
   } else {
     []<bool flag = false>() {

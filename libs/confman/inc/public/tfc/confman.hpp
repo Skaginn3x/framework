@@ -6,11 +6,11 @@
 
 #include <glaze/glaze.hpp>
 
-#include <tfc/utils/json_schema.hpp>
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::confman {
 

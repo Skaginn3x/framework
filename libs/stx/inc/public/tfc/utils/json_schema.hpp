@@ -47,7 +47,7 @@ struct schema {
   std::optional<schema_any> default_value{};
   std::optional<bool> deprecated{};
   // std vector requires exit destructor & global constructor
-//  std::optional<std::vector<schema_any>> examples{};
+  //  std::optional<std::vector<schema_any>> examples{};
   std::optional<bool> read_only{};
   std::optional<bool> write_only{};
   // hereafter validation keywords, ref: https://www.learnjsonschema.com/2020-12/validation/
@@ -65,8 +65,8 @@ struct schema {
   // object only keywords
   std::optional<std::uint64_t> min_properties{};
   std::optional<std::uint64_t> max_properties{};
-//      std::optional<std::map<std::string_view, std::vector<std::string_view>>> dependent_required{};
-//  std::optional<std::vector<std::string_view>> required{};
+  //      std::optional<std::map<std::string_view, std::vector<std::string_view>>> dependent_required{};
+  //  std::optional<std::vector<std::string_view>> required{};
   // array only keywords
   std::optional<std::uint64_t> min_items{};
   std::optional<std::uint64_t> max_items{};
@@ -314,7 +314,8 @@ struct to_json_schema<T> {
           to_json_schema<std::string>::template op<Opts>(def, defs);
         }
         if constexpr (!glz::tag_v<T>.empty()) {
-          (*schema_val.properties)[glz::tag_v<T>] = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>> };
+          (*schema_val.properties)[glz::tag_v<T>] =
+              schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>> };
           // TODO use enum or oneOf to get the ids_v to validate type name
         }
       }
@@ -350,7 +351,7 @@ struct to_json_schema<T> {
       auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
-      // clang-format on
+        // clang-format on
         using additional_data_type = decltype(glz::tuplet::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
           ref_val.description = glz::tuplet::get<2>(item);
@@ -364,7 +365,6 @@ struct to_json_schema<T> {
       if (!def.type) {
         to_json_schema<val_t>::template op<Opts>(def, defs);
       }
-
     });
     s.additionalProperties = false;
   }
@@ -389,4 +389,4 @@ inline auto write_json_schema() noexcept {
   glz::write<glz::opts{ .write_type_info = false }>(std::move(s), buffer);
   return buffer;
 }
-}  // namespace tfc
+}  // namespace tfc::json
