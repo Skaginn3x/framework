@@ -9,6 +9,7 @@
 #include <units/ratio.h>
 #include <glaze/glaze.hpp>
 
+#include <tfc/utils/json_schema.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::unit {

@@ -64,6 +64,11 @@ struct from_json<tfc::confman::read_only<value_t>> {
     skip_value<opts>(ctx, args...);
   }
 };
+}  // namespace glz::detail
+namespace tfc::json::detail {
+
+template <typename value_t>
+struct to_json_schema;
 
 template <typename value_t>
 struct to_json_schema<tfc::confman::read_only<value_t>> {
@@ -72,4 +77,4 @@ struct to_json_schema<tfc::confman::read_only<value_t>> {
     to_json_schema<value_t>::template op<opts>(schema, defs);
   }
 };
-}  // namespace glz::detail
+}  // namespace tfc::json::detail

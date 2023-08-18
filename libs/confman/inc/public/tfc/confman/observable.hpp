@@ -13,11 +13,11 @@
 namespace tfc::confman {
 template <typename conf_param_t>
 concept observable_type = requires {
-                            requires std::is_default_constructible_v<conf_param_t>;
-                            requires std::equality_comparable<conf_param_t>;
-                            //  requires std::three_way_comparable<conf_param_t>;
-                            requires !std::is_floating_point_v<conf_param_t>;  // todo why not
-                          };
+  requires std::is_default_constructible_v<conf_param_t>;
+  requires std::equality_comparable<conf_param_t>;
+  //  requires std::three_way_comparable<conf_param_t>;
+  requires !std::is_floating_point_v<conf_param_t>;  // todo why not
+};
 
 /// \brief observable variable, the user can get notified if it is changed with `set` function
 /// \tparam conf_param_t equality comparable and default constructible type
@@ -114,9 +114,6 @@ template <typename value_t>
 struct from_json;
 
 template <typename value_t>
-struct to_json_schema;
-
-template <typename value_t>
 struct from_json<tfc::confman::observable<value_t>> {
   template <auto opts>
   inline static void op(auto& value, auto&&... args) noexcept {
@@ -125,6 +122,12 @@ struct from_json<tfc::confman::observable<value_t>> {
     value.set(std::move(value_copy));  // invoke callback
   }
 };
+}  // namespace glz::detail
+
+namespace tfc::json::detail {
+
+template <typename value_t>
+struct to_json_schema;
 
 template <typename value_t>
 struct to_json_schema<tfc::confman::observable<value_t>> {
@@ -134,4 +137,4 @@ struct to_json_schema<tfc::confman::observable<value_t>> {
   }
 };
 
-}  // namespace glz::detail
+}  // namespace tfc::json::detail

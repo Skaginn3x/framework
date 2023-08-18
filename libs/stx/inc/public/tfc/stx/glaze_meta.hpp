@@ -9,6 +9,7 @@
 #include <fmt/chrono.h>
 #include <glaze/glaze.hpp>
 
+#include <tfc/utils/json_schema.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::detail {
@@ -105,6 +106,9 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
 }  // namespace glz::detail
 
 namespace tfc::json::detail {
+template <typename value_t>
+struct to_json_schema;
+
 template <typename rep_t, typename period_t>
 struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
   [[maybe_unused]] static constexpr std::string_view unit_symbol{ "s" };
