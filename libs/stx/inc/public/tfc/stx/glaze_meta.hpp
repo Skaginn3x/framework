@@ -9,8 +9,8 @@
 #include <fmt/chrono.h>
 #include <glaze/glaze.hpp>
 
-#include <tfc/utils/json_schema.hpp>
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::detail {
 template <std::intmax_t num, std::intmax_t den>
