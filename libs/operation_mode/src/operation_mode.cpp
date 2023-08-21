@@ -43,10 +43,10 @@ interface::interface(asio::io_context& ctx, std::string_view log_key)
       logger_{ log_key } {}
 
 interface::interface(interface&& to_be_erased) noexcept
-    : dbus_connection_(std::move(to_be_erased.dbus_connection_)), mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(
-                                                                      *dbus_connection_,
-                                                                      mode_update_match_rule.data(),
-                                                                      std::bind_front(&interface::mode_update, this)) },
+    : dbus_connection_(std::move(to_be_erased.dbus_connection_)),
+      mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
+                                                               mode_update_match_rule.data(),
+                                                               std::bind_front(&interface::mode_update, this)) },
       logger_{ std::move(to_be_erased.logger_) } {
   // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
   // it could throw if we are out of memory but then we are already screwed and the process will terminate.

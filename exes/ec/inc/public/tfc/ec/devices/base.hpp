@@ -17,30 +17,29 @@
 namespace tfc::ec::devices {
 template <typename setting_t>
 concept setting_c = requires {
-                      std::remove_cvref_t<setting_t>::index;
-                      std::remove_cvref_t<setting_t>::value;
-                    };
+  std::remove_cvref_t<setting_t>::index;
+  std::remove_cvref_t<setting_t>::value;
+};
 template <typename setting_t>
 concept trivial_setting_c = requires {
-                              requires std::is_integral_v<decltype(std::remove_cvref_t<setting_t>::value)> ||
-                                           std::is_enum_v<decltype(std::remove_cvref_t<setting_t>::value)>;
-                              requires setting_c<setting_t>;
-                            };
+  requires std::is_integral_v<decltype(std::remove_cvref_t<setting_t>::value)> ||
+               std::is_enum_v<decltype(std::remove_cvref_t<setting_t>::value)>;
+  requires setting_c<setting_t>;
+};
 
 template <typename setting_t>
-concept chrono_setting_c =
-    requires {
-      requires std::is_member_function_pointer_v<decltype(&std::remove_cvref_t<setting_t>::type::count)>;
-      requires setting_c<setting_t>;
-    };
+concept chrono_setting_c = requires {
+  requires std::is_member_function_pointer_v<decltype(&std::remove_cvref_t<setting_t>::type::count)>;
+  requires setting_c<setting_t>;
+};
 
 template <typename setting_t>
 concept mp_units_quantity_setting_c = requires {
-                                        typename std::remove_cvref_t<setting_t>::type::rep;
-                                        typename std::remove_cvref_t<setting_t>::type::unit;
-                                        typename std::remove_cvref_t<setting_t>::type::dimension;
-                                        requires setting_c<setting_t>;
-                                      };
+  typename std::remove_cvref_t<setting_t>::type::rep;
+  typename std::remove_cvref_t<setting_t>::type::unit;
+  typename std::remove_cvref_t<setting_t>::type::dimension;
+  requires setting_c<setting_t>;
+};
 
 class base {
 public:

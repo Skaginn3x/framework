@@ -1,10 +1,10 @@
-#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <units/isq/si/si.h>
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/glaze_meta.hpp>
+#include <tfc/utils/json_schema.hpp>
 #include <tfc/utils/units_common.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
@@ -46,16 +46,14 @@ auto main() -> int {
     using test_t = std::chrono::duration<uint16_t, std::deci>;
     test_t foo{ std::chrono::seconds(32) };
     std::string const json{ glz::write_json(foo) };
-    ut::expect(json == R"({"value":320,"unit":"ds","dimension":"time","ratio":{"numerator":1,"denominator":10}})")
-        << "got: " << json;
+    ut::expect(json == "320") << "got: " << json;
     ut::expect(glz::read_json<test_t>(json).value() == foo);
   };
   "mp"_test = [] {
     using target_velocity_t = units::quantity<units::isq::si::dim_speed, tfc::unit::millimetre_per_second, int32_t>;
     target_velocity_t foo{ 42 };
     std::string const json{ glz::write_json(foo) };
-    ut::expect(json == R"({"value":42,"unit":"mm/s","dimension":"speed","ratio":{"numerator":1,"denominator":1000}})")
-        << "got: " << json;
+    ut::expect(json == "42") << "got: " << json;
     [[maybe_unused]] auto bar = glz::read_json<target_velocity_t>(json);
     if (!bar.has_value()) {
       fmt::print("{}\n", glz::format_error(bar.error(), json));
