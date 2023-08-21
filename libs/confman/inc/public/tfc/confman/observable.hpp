@@ -13,11 +13,11 @@
 namespace tfc::confman {
 template <typename conf_param_t>
 concept observable_type = requires {
-                            requires std::is_default_constructible_v<conf_param_t>;
-                            requires std::equality_comparable<conf_param_t>;
-                            //  requires std::three_way_comparable<conf_param_t>;
-                            requires !std::is_floating_point_v<conf_param_t>;  // todo why not
-                          };
+  requires std::is_default_constructible_v<conf_param_t>;
+  requires std::equality_comparable<conf_param_t>;
+  //  requires std::three_way_comparable<conf_param_t>;
+  requires !std::is_floating_point_v<conf_param_t>;  // todo why not
+};
 
 /// \brief observable variable, the user can get notified if it is changed with `set` function
 /// \tparam conf_param_t equality comparable and default constructible type
