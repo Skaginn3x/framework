@@ -5,6 +5,7 @@
 
 #include <glaze/api/impl.hpp>
 #include <glaze/json/write.hpp>
+#include <glaze/util/for_each.hpp>
 
 namespace tfc::json {
 struct schema_meta final {
@@ -238,7 +239,7 @@ struct to_json_schema<T> {
     //    (*s.enumeration)[I.value] = std::get<0>(item);
     // });
     s.oneOf = std::vector<schematic>(N);
-    for_each<N>([&](auto I) {
+    glz::for_each<N>([&](auto I) {
       static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
       enumeration.constant = glz::tuplet::get<0>(item);
@@ -302,7 +303,7 @@ struct to_json_schema<T> {
     static constexpr auto N = std::variant_size_v<T>;
     s.type = { "number", "string", "boolean", "object", "array", "null" };
     s.oneOf = std::vector<schematic>(N);
-    for_each<N>([&](auto I) {
+    glz::for_each<N>([&](auto I) {
       using V = std::decay_t<std::variant_alternative_t<I, T>>;
       auto& schema_val = (*s.oneOf)[I.value];
       // TODO use ref to avoid duplication in schema
