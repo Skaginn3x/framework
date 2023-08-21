@@ -23,7 +23,6 @@ struct glz::meta<units::ratio> {
   static constexpr auto name{ "units::ratio" };
 };
 
-// clang-format off
 template <typename dimension_t, typename unit_t, typename rep_t>
 struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
   using type = units::quantity<dimension_t, unit_t, rep_t>;
@@ -37,7 +36,6 @@ struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
     tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
   };
 };
-// clang-format on
 
 namespace tfc::json::detail {
 
