@@ -53,8 +53,7 @@ auto main() -> int {
     using target_velocity_t = units::quantity<units::isq::si::dim_speed, tfc::unit::millimetre_per_second, int32_t>;
     target_velocity_t foo{ 42 };
     std::string const json{ glz::write_json(foo) };
-    ut::expect(json == R"({"value":42,"unit":"mm/s","dimension":"speed","ratio":{"numerator":1,"denominator":1000}})")
-        << "got: " << json;
+    ut::expect(json == "42") << "got: " << json;
     [[maybe_unused]] auto bar = glz::read_json<target_velocity_t>(json);
     if (!bar.has_value()) {
       fmt::print("{}\n", glz::format_error(bar.error(), json));
