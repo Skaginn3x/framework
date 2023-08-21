@@ -28,18 +28,14 @@ struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
   using type = units::quantity<dimension_t, unit_t, rep_t>;
   static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
   static constexpr auto dimension{ tfc::unit::dimension_name<dimension_t>() };
-  static auto constexpr value{ [](auto&& self) -> auto& { return self.number();
-}
-}
-;
-static std::string_view constexpr prefix{ "units::quantity<" };
-static std::string_view constexpr postfix{ ">" };
-static std::string_view constexpr separator{ "," };
-static auto constexpr name{
-  tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
+  static auto constexpr value{ [](auto&& self) -> auto& { return self.number(); } };
+  static std::string_view constexpr prefix{ "units::quantity<" };
+  static std::string_view constexpr postfix{ ">" };
+  static std::string_view constexpr separator{ "," };
+  static auto constexpr name{
+    tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
+  };
 };
-}
-;
 
 namespace tfc::json::detail {
 
