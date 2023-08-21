@@ -52,7 +52,7 @@ struct schema {
   std::optional<bool> read_only{};
   std::optional<bool> write_only{};
   // hereafter validation keywords, ref: https://www.learnjsonschema.com/2020-12/validation/
-  std::optional<bool> constant{};
+  std::optional<schema_any> constant{};
   // string only keywords
   std::optional<std::uint64_t> min_length{};
   std::optional<std::uint64_t> max_length{};
@@ -242,9 +242,9 @@ struct to_json_schema<T> {
     glz::for_each<N>([&](auto I) {
       static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
-      enumeration.constant = glz::tuplet::get<0>(item);
+      enumeration.attributes.constant = glz::tuplet::get<0>(item);
       if constexpr (std::tuple_size_v < decltype(item) >> 2) {
-        enumeration.description = std::get<2>(item);
+        enumeration.attributes.description = std::get<2>(item);
       }
     });
   }
