@@ -1,8 +1,11 @@
 #include <async_mqtt/all.hpp>
 #include <boost/program_options.hpp>
+#include <boost/asio.hpp>
 #include <tfc/ipc.hpp>
 
 #include "mqtt_broadcaster.hpp"
+
+namespace asio = boost::asio;
 
 auto main(int argc, char* argv[]) -> int {
   auto program_description{ tfc::base::default_description() };
@@ -11,9 +14,9 @@ auto main(int argc, char* argv[]) -> int {
 
   asio::io_context io_ctx{};
 
-  mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client,
-                   async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>, tfc::confman::config<config>,
-                   network_manager>
+  tfc::mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client,
+                        async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>,
+                        tfc::confman::config<config>, tfc::network_manager>
       application(io_ctx);
 
   application.run();
