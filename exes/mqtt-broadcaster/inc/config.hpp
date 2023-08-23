@@ -15,28 +15,17 @@ struct config {
   std::string client_id{};
 
   struct glaze {
-    static constexpr auto value{ glz::object("address",
-                                             &config::address,
-
-                                             "port",
-                                             &config::port,
-
-                                             "username",
-                                             &config::username,
-
-                                             "password",
-                                             &config::password,
-
-                                             "node_id",
-                                             &config::node_id,
-
-                                             "group_id",
-                                             &config::group_id,
-
-                                             "client_id",
-                                             &config::client_id
-
-                                             ) };
+    // clang-format off
+    static constexpr auto value{ glz::object(
+        "address", &config::address,
+        "port", &config::port,
+        "username", &config::username,
+        "password", &config::password,
+        "node_id", &config::node_id,
+        "group_id", &config::group_id,
+        "client_id", &config::client_id
+      ) };
+    // clang-format on
     static constexpr auto name{ "mqtt_broadcaster" };
   };
 };

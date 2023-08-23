@@ -1,5 +1,21 @@
 #pragma once
 
+#include <algorithm>
+#include <any>
+#include <chrono>
+#include <concepts>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <type_traits>
+#include <utility>
+#include <variant>
+#include <vector>
+
 #include <openssl/ssl.h>
 #include <sparkplug_b/sparkplug_b.pb.h>
 #include <async_mqtt/all.hpp>
@@ -10,29 +26,29 @@
 #include "config.hpp"
 #include "error_codes.hpp"
 
-using org::eclipse::tahu::protobuf::Payload;
-using org::eclipse::tahu::protobuf::Payload_Metric;
+namespace tfc {
 
 namespace asio = boost::asio;
 namespace details = tfc::ipc::details;
 
-// constexpr auto use_nothrow_awaitable = asio::experimental::as_tuple(asio::use_awaitable);
+using org::eclipse::tahu::protobuf::Payload;
+using org::eclipse::tahu::protobuf::Payload_Metric;
 
 class network_manager {
 public:
-  auto connect_socket(auto&& socket, auto&& resolved_ip) -> asio::awaitable<void> {
+  static auto connect_socket(auto&& socket, auto&& resolved_ip) -> asio::awaitable<void> {
     co_await asio::async_connect(std::forward<decltype(socket)>(socket), std::forward<decltype(resolved_ip)>(resolved_ip),
                                  asio::use_awaitable);
   }
 
-  auto set_sni_hostname(auto&& native_handle, std::string const& broker_address) -> void {
+  static auto set_sni_hostname(auto&& native_handle, std::string const& broker_address) -> void {
     if (!SSL_set_tlsext_host_name(std::forward<decltype(native_handle)>(native_handle), broker_address.c_str())) {
       const boost::system::error_code error{ static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
       throw boost::system::system_error{ error };
     }
   }
 
-  auto async_handshake(auto&& socket) -> asio::awaitable<void> {
+  static auto async_handshake(auto&& socket) -> asio::awaitable<void> {
     co_await std::forward<decltype(socket)>(socket).async_handshake(async_mqtt::tls::stream_base::client,
                                                                     asio::use_awaitable);
   }
@@ -73,7 +89,7 @@ private:
     co_await ncmd_listener();
   }
 
-  auto timestamp_milliseconds() -> std::chrono::milliseconds {
+  static auto timestamp_milliseconds() -> std::chrono::milliseconds {
     using std::chrono::duration_cast;
     using std::chrono::milliseconds;
     using std::chrono::system_clock;
@@ -153,19 +169,19 @@ private:
     }
   }
 
-  auto set_value_payload(Payload_Metric* metric, bool& value) -> void { metric->set_boolean_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const bool& value) -> void { metric->set_boolean_value(value); }
 
-  auto set_value_payload(Payload_Metric* metric, std::string& value) -> void { metric->set_string_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const std::string& value) -> void { metric->set_string_value(value); }
 
-  auto set_value_payload(Payload_Metric* metric, uint64_t& value) -> void { metric->set_long_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const uint64_t& value) -> void { metric->set_long_value(value); }
 
-  auto set_value_payload(Payload_Metric* metric, int64_t& value) -> void { metric->set_long_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const int64_t& value) -> void { metric->set_long_value(value); }
 
-  auto set_value_payload(Payload_Metric* metric, double& value) -> void { metric->set_double_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const double& value) -> void { metric->set_double_value(value); }
 
-  auto set_value_payload(Payload_Metric* metric, float& value) -> void { metric->set_float_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const float& value) -> void { metric->set_float_value(value); }
 
-  auto set_value_payload(Payload_Metric* metric, uint32_t& value) -> void { metric->set_int_value(value); }
+  auto set_value_payload(Payload_Metric* metric, const uint32_t& value) -> void { metric->set_int_value(value); }
 
   auto resolve() -> asio::awaitable<asio::ip::tcp::resolver::results_type> {
     logger_.trace("Resolving the MQTT broker address...");
@@ -226,7 +242,7 @@ private:
     auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
 
     if (connack_packet.code() != async_mqtt::connect_reason_code::success) {
-      std::cout << "Connection to MQTT broker failed with code: " << connack_packet.code() << "\n";
+      // logger_.error("Connection to MQTT broker failed with code: {}", connack_packet.code());
       co_return false;
     }
 
@@ -314,24 +330,21 @@ private:
     auto publish_packet_received = co_await mqtt_client_->recv(
         async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
 
-    // try/catch block is needed because the get function throws an error if the packet is not of the specified type
-    try {
-      auto publish_packet = publish_packet_received.template get<async_mqtt::v5::publish_packet>();
+    auto publish_packet = publish_packet_received.template get_if<async_mqtt::v5::publish_packet>();
 
-      logger_.trace("Received PUBLISH packet. Parsing payload...");
-
-      for (long unsigned int i = 0; i < publish_packet.payload().size(); i++) {
-        auto data = publish_packet.payload()[i];
-        co_await process_payload(data, publish_packet);
-      }
-
-      co_return std::error_code{};
-
-    } catch (std::exception const& exc) {
-      logger_.error("Error in NCMD listener: {}", exc.what());
-      co_return std::error_code{ static_cast<int>(async_mqtt::suback_reason_code::unspecified_error),
-                                 std::generic_category() };
+    if (!publish_packet) {
+      logger_.error("Received packet is not a PUBLISH packet");
+      co_return std::error_code{ static_cast<int>(74), std::generic_category() };
     }
+
+    logger_.trace("Received PUBLISH packet. Parsing payload...");
+
+    for (long unsigned int i = 0; i < publish_packet->payload().size(); i++) {
+      auto data = publish_packet->payload()[i];
+      co_await process_payload(data, *publish_packet);
+    }
+
+    co_return std::error_code{};
   }
 
   auto process_payload(auto&& data, async_mqtt::v5::publish_packet publish_packet) -> asio::awaitable<void> {
@@ -643,3 +656,4 @@ private:
 
   friend class testing_mqtt_broadcaster;
 };
+}  // namespace tfc
