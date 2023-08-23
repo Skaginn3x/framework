@@ -10,6 +10,8 @@ namespace tfc::ipc_ruler {
 struct ipc_manager_client_mock {
   ipc_manager_client_mock() {}
 
+  ipc_manager_client_mock(boost::asio::io_context&) {}
+
   auto register_connection_change_callback(std::string_view slot_name,
                                            const std::function<void(std::string_view const)>& connection_change_callback)
       -> void {
