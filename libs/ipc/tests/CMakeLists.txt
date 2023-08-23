@@ -15,4 +15,10 @@ target_link_libraries(ipc_test PRIVATE Boost::ut tfc::ipc tfc::base)
 
 add_test(NAME ipc_test COMMAND ipc_test)
 
+
+add_executable(ipc_coro ipc_coro.cpp)
+target_link_libraries(ipc_coro PRIVATE Boost::ut tfc::ipc tfc::base)
+
+add_test(NAME ipc_coro COMMAND ipc_coro)
+
 add_subdirectory(examples)
