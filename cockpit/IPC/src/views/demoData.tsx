@@ -458,3 +458,125 @@ export function demoUiSchema3(): any {
     },
   };
 }
+
+export function newDemoSchema1(): any {
+  return {
+    type: [
+      'object',
+    ],
+    properties: {
+      config: {
+        $ref: '#/$defs/state_machine',
+      },
+    },
+    additionalProperties: false,
+    $defs: {
+      state_machine: {
+        type: [
+          'object',
+        ],
+        properties: {
+          startup_time2: {
+            $ref: '#/$defs/std::optional<std::chrono::duration<int64,std::milli>>',
+            description: '[ms] Delay to run',
+            'x-tfc': {
+              unit: 'ms',
+              required: true,
+              dimension: 'time',
+              ratio: {
+                numerator: 1,
+                denominator: 1000,
+              },
+            },
+          },
+          stopping_time2: {
+            $ref: '#/$defs/std::optional<std::chrono::duration<int64,std::milli>>',
+            description: '[ms] Delay.',
+            'x-tfc': {
+              unit: 'ms',
+              required: true,
+              dimension: 'time',
+              ratio: {
+                numerator: 1,
+                denominator: 1000,
+              },
+            },
+          },
+        },
+        additionalProperties: false,
+      },
+      'std::optional<std::chrono::duration<int64,std::milli>>': {
+        type: [
+          'integer',
+          'null',
+        ],
+      },
+    },
+  };
+}
+
+export function newDemoData1(): any {
+  return {
+    config: {
+      startup_time2: 1200,
+      stopping_time2: 800,
+    },
+  };
+}
+
+export function newDemoSchema2(): any {
+  return {
+    type: ['object'],
+    properties: {
+      config: {
+        type: [
+          'array',
+        ],
+        items: {
+          $ref: '#/$defs/object_in_array',
+        },
+      },
+    },
+    $defs: {
+      int32_t: {
+        type: [
+          'integer',
+        ],
+      },
+      object_in_array: {
+        type: [
+          'object',
+        ],
+        view: {
+          notSortable: true,
+          notDeletable: true,
+        },
+        properties: {
+          a_int: {
+            $ref: '#/$defs/int32_t',
+            description: 'A int description',
+          },
+          amper: {
+            $ref: '#/$defs/units::quantity<electric_current,dA,uint16_t>',
+            description: 'amper description',
+          },
+        },
+        additionalProperties: false,
+      },
+      'units::quantity<electric_current,dA,uint16_t>': {
+        type: [
+          'integer',
+        ],
+        'x-tfc': {
+          unit: 'dA',
+          dimension: 'electric_current',
+          ratio: {
+            numerator: 1,
+            denominator: 10,
+          },
+          required: true,
+        },
+      },
+    },
+  };
+}

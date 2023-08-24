@@ -16,14 +16,15 @@ import { TransTitle } from '@ui-schema/ui-schema/Translate/TransTitle';
 import { mapSchema } from '@ui-schema/ui-schema/Utils/schemaToNative';
 import { schemaTypeIs } from '@ui-schema/ui-schema/Utils/schemaTypeIs';
 import {
-  StoreKeys, UIStoreType, WidgetProps, WithValue, useUIStore,
+  WidgetProps, WithValue, useUIStore,
 } from '@ui-schema/ui-schema';
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 
 import * as math from 'mathjs';
-import { AlertVariant } from '@patternfly/react-core';
+// import { AlertVariant } from '@patternfly/react-core';
 import { Units } from './units';
-import { useAlertContext } from '../Alert/AlertContext';
+// import { useAlertContext } from '../Alert/AlertContext';
+import './UnitsWidget.css';
 
 export interface UnitWidgetBaseProps {
   style?: CSSProperties
@@ -38,82 +39,52 @@ export interface UnitWidgetBaseProps {
   inputRef?: any
 }
 
-interface StoreType {
-  unit: string
-  value: string
-  dimension: string
-}
-
-function updateStore(
-  store: UIStoreType<any> | undefined,
-  storeKeys: StoreKeys,
-  updatedStoreValue: { value: number; unit?: string; dimension?: string | undefined; },
-  includesUnits: boolean,
-) {
-  // First, we make a deep copy of the store
-  const newStore = JSON.parse(JSON.stringify(store)).values;
-
-  const keyList = storeKeys.toJS();
-  const parentObject = newStore;
-  keyList.reduce((object: any, key: any, index) => {
-    if (key === 'config' && !object[key]) { return object; }
-    // if we're at the last index, return the updated store value
-    if (index === keyList.length - 1) {
-      // eslint-disable-next-line no-param-reassign
-      object[key] = includesUnits ? updatedStoreValue : updatedStoreValue.value;
-    }
-    return object[key];
-  }, parentObject);
-
-  // Finally, we return the new store object
-  console.log('newStore: ', newStore);
-  return newStore;
-}
-
 export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
   storeKeys, schema, onChange,
-  showValidity, valid, errors, required,
-  style,
+  valid, errors, style,
   onClick, onFocus, onBlur, onKeyUp, onKeyDown,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   inputProps = {}, InputProps = {}, inputRef: customInputRef,
   widgets, steps = 'any',
 }: P & UnitWidgetBaseProps & WithValue): React.ReactElement {
+  // const { addAlert } = useAlertContext();
   const uid = useUID();
+  const { store } = useUIStore();
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const inputRef = customInputRef || React.useRef();
 
-  const { store } = useUIStore();
-
-  const { addAlert } = useAlertContext();
-
-  let storeValue: StoreType;
   let initialDimension: string | undefined;
   let includesUnits = true;
 
-  const storeValues = store!.getValues() || {};
-  let currentStoreValue = storeValues;
-  // eslint-disable-next-line no-restricted-syntax
-  for (const key of storeKeys.toJS()) {
-    if (currentStoreValue[key] && typeof currentStoreValue[key] === 'object') {
-      currentStoreValue = currentStoreValue[key];
-    } else if (currentStoreValue[key]) {
-      currentStoreValue.value = currentStoreValue[key];
-      break;
-    } else {
-      try {
-        currentStoreValue = currentStoreValue.toJS()[key];
-      } catch (e) {
-        if (key === 'config') { continue; } // Depending on data, config may or may not be the top object
-        addAlert('Something went wrong, Key not found in store', AlertVariant.danger);
-        console.warn(`Key "${key}" not found in store. ${JSON.stringify(currentStoreValue)}`);
-        break;
+  const storeValues = store!.toJS().values || {};
+  function getNestedValue(obj: any, keys: Array<any>): any {
+    let currentValue = obj;
+    for (let i = 0; i < keys.length; i += 1) {
+      let key = keys[i];
+      if (currentValue[key] === undefined) {
+        // If the key doesn't exist, determine what default value to set based on the next key
+        if (i < keys.length - 1) {
+          currentValue[key] = (typeof keys[i + 1] === 'number') ? [] : {};
+        } else {
+          // If it's the last key, set the value to undefined
+          currentValue[key] = undefined;
+        }
       }
+      currentValue = currentValue[key];
     }
+    return currentValue;
   }
-  storeValue = currentStoreValue;
-  initialDimension = storeValue.dimension || undefined;
+
+  const storeValue = getNestedValue(storeValues, storeKeys.toJS());
+  console.log('--------------------------');
+  console.log('schemaaa:', schema.toJS());
+  console.log('storeKeys:', storeKeys.toJS());
+  console.log('storeValues:', storeValues);
+  console.log('storeValue!:', storeValue);
+  initialDimension = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].dimension : undefined;
+  const initialUnit = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].unit : 'NoUnit';
+  const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
   if (!initialDimension) {
     includesUnits = false;
   }
@@ -122,40 +93,35 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   inputProps = mapSchema(inputProps, schema);
   const AllUnits = Units as { [key: string]: { all: string[], default: string } };
 
-  const initialUnit = storeValue.unit || 'NoUnit';
   // Maybe we could default to SI units using .toSI().toJSON() (properties: unit, value)
   // Could make it easier to configure.
   // Hz becomes s^-1, m/s becomes m*s^-1, etc. (https://mathjs.org/docs/datatypes/units.html)
   // We might want to override this to get Hz instead of s^-1, etc.
 
   const [unit, setUnit] = React.useState(initialUnit);
-  const [value, setValue] = React.useState<string>((storeValue && storeValue.value) ? storeValue.value : '0');
+  const [value, setValue] = React.useState<string>(storeValue || '');
 
   // empty storeKeys
-  const rootStore = [] as unknown as StoreKeys;
+  // const rootStore = [] as unknown as StoreKeys;
 
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
     if (value !== null && newUnit && initialUnit) {
       const floatValue = parseFloat(value);
-      const valueueInBaseUnit = math.unit(floatValue, unit).toNumber(initialUnit); // Convert current value to base unit (e.g. m)
-      const newValueInNewUnit = math.round(math.unit(valueueInBaseUnit, initialUnit).toNumber(newUnit), 3); // Convert value to new unit
+      const valueInBaseUnit = math.unit(floatValue, unit).toNumber(initialUnit); // Convert current value to base unit (e.g. m)
+      const newValueInNewUnit = math.round(math.unit(valueInBaseUnit, initialUnit).toNumber(newUnit), 3); // Convert value to new unit
       setValue(newValueInNewUnit.toString());
       setUnit(newUnit);
 
       onChange({
-        storeKeys: rootStore,
+        storeKeys,
         scopes: ['value'],
         type: 'set',
         schema,
         required,
         data: {
-          value: updateStore(
-            store,
-            storeKeys,
-            { value: valueueInBaseUnit, unit: initialUnit, dimension: initialDimension },
-            true,
-          ),
+          value:
+            valueInBaseUnit,
         },
       });
     }
@@ -195,9 +161,65 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     width: includesUnits ? 'calc(80% - 0.5rem)' : '100%',
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  const onChangeWithValue = (value: number | null) => {
+    onChange({
+      storeKeys,
+      scopes: ['value'],
+      type: 'set',
+      schema,
+      required,
+      data: { value },
+    });
+  };
+  const handleEmptyValue = () => {
+    onChange({
+      storeKeys,
+      scopes: ['value'],
+      type: 'set',
+      schema,
+      required,
+      data: {
+        value: null,
+      },
+    });
+  };
+
+  const handleUnitValue = (floatValue: math.MathNumericType) => {
+    const valueInBaseUnit2 = math.round(
+      math.unit(floatValue, unit).toNumber(initialUnit),
+      3,
+    ); // Convert value to base unit (e.g. m)
+    onChangeWithValue(valueInBaseUnit2);
+  };
+
+  const handleNormalValue = (floatValue: number) => {
+    onChangeWithValue(floatValue);
+  };
+
+  const handleChange = (e: { target: { value: any; }; }) => {
+    const val = e.target.value;
+    const isLastCharDot = val.slice(-1) === '.';
+    const isValidNumber = /^-?\d+(\.\d*)?$/.test(val);
+
+    if (isLastCharDot || isValidNumber || val === '') {
+      setValue(val); // Update value with the current value
+    } else {
+      return;
+    }
+
+    if (val === '') {
+      handleEmptyValue();
+    } else if (includesUnits) {
+      handleUnitValue(parseFloat(val));
+    } else {
+      handleNormalValue(parseFloat(val));
+    }
+  };
+
   return (
     <>
-      <Tooltip title={schema.get('description') as string} placement="top">
+      <Tooltip title={schema.get('description') as string} placement="top" disableInteractive>
         <TextField
           label={hideTitle ? undefined : <TransTitle schema={schema} storeKeys={storeKeys} />}
           aria-label={hideTitle ? <TransTitle schema={schema} storeKeys={storeKeys} /> as unknown as string : undefined}
@@ -206,7 +228,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           disabled={schema.get('readOnly') as boolean | undefined}
           multiline={false}
           required={required}
-          error={!valid && showValidity && false}
+          error={required && !value}
           minRows={1}
           maxRows={1}
           inputRef={inputRef}
@@ -224,50 +246,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           onKeyDown={(e) => {
             if (onKeyDown) { onKeyDown(e); }
           }}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (val.slice(-1) === '.') {
-              setValue(val);
-              return;
-            }
-            if (!/^-?\d+(\.\d*)?$/.test(val)) {
-              return;
-            }
-            const floatValue = parseFloat(val);
-            setValue(val); // Update value with the current value
-
-            if (includesUnits) {
-              const valueueInBaseUnit2 = math.round(
-                math.unit(floatValue, unit).toNumber(initialUnit),
-                3,
-              ); // Convert current value to base unit
-              onChange({
-                storeKeys: rootStore,
-                scopes: ['value'],
-                type: 'set',
-                schema,
-                required,
-                data: {
-                  value: updateStore(
-                    store,
-                    storeKeys,
-                    { value: valueueInBaseUnit2, unit: initialUnit, dimension: initialDimension },
-                    true,
-                  ),
-                },
-              });
-            } else {
-              onChange({
-                storeKeys: rootStore,
-                scopes: ['value'],
-                type: 'set',
-                schema,
-                required,
-                // eslint-disable-next-line max-len
-                data: { value: updateStore(store, storeKeys, { value: floatValue }, false) },
-              });
-            }
-          }}
+          onChange={handleChange}
           InputLabelProps={{ shrink: schema.getIn(['view', 'shrink']) as boolean }}
           InputProps={InputProps}
           // eslint-disable-next-line react/jsx-no-duplicate-props
@@ -285,22 +264,20 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
               value={unit}
               onChange={handleUnitChange}
             >
-              {(AllUnits && initialDimension) ? AllUnits[initialDimension].all.map((mapunit: string, index: number) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <MenuItem key={mapunit + uid + index} value={mapunit}>
-                  {mapunit}
-                </MenuItem>
-              )) : null}
+              {(AllUnits && initialDimension && initialUnit)
+                ? AllUnits[initialDimension].all.slice(AllUnits[initialDimension].all.indexOf(initialUnit))
+                  .map((mapunit: string, index: number) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <MenuItem key={mapunit + uid + index} value={mapunit}>
+                      {mapunit}
+                    </MenuItem>
+                  )) : null}
             </Select>
           </FormControl>
         )
         : null}
 
-      {/* <ValidityHelperText
-        errors={errors}
-        showValidity={showValidity}
-        schema={schema}
-      /> */}
+      {required && !value ? <h2 className="RequiredText">Required</h2> : null}
     </>
   );
 }

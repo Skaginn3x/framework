@@ -53,7 +53,7 @@ const useDbusInterface = (busName: string, interfaceName: string, objectPath: st
     const handleScript = (e: Event) => {
       if (e.type === 'load') {
         // @ts-ignore
-        const newDbus = cockpit.dbus(busName);
+        const newDbus = cockpit.dbus(busName, { superuser: 'try' });
         const newDbusObjectProxy = newDbus.proxy(interfaceName, objectPath);
         newDbusObjectProxy.wait().then(() => {
           setDbusObjectProxy(newDbusObjectProxy);

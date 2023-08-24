@@ -16,7 +16,7 @@ import { createOrderedMap } from '@ui-schema/ui-schema/Utils/createMap';
 import { relTranslator } from '@ui-schema/ui-schema/Translate/relT';
 
 // import the widgets for your design-system.
-import { MuiWidgetBinding, widgets } from '@ui-schema/ds-material';
+import { GenericList, MuiWidgetBinding, widgets } from '@ui-schema/ds-material';
 import { injectPluginStack } from '@ui-schema/ui-schema';
 import { GridContainer } from '@ui-schema/ds-material/GridContainer';
 import Immutable from 'immutable';
@@ -49,33 +49,65 @@ export default function FormGenerator(
   };
 
   function parseJson(json: JsonType): JsonType {
+    if (json.type instanceof Array && json.type.length === 1) {
+      // eslint-disable-next-line prefer-destructuring
+      json.type = json.type[0];
+    }
+
+    if (json.type === 'array') {
+      json.widget = 'GenericList';
+      json.notSortable = true;
+    }
+
     // eslint-disable-next-line no-restricted-syntax
     for (const key in json) {
       if (typeof json[key] === 'object' && json[key] !== null) {
         // If the object already has a 'widget' property, skip it
-        if (Object.prototype.hasOwnProperty.call(json[key], 'widget')) {
+        if ('widget' in json[key]) {
           // eslint-disable-next-line no-continue
           continue;
-        } else if (Object.prototype.hasOwnProperty.call(json[key], 'enum')) {
-          json[key].widget = 'Select';
-        } else if (json[key].type instanceof Array && ['integer', 'number', 'string'].includes(json[key].type[0])) {
-          json[key].widget = 'Text';
-        } else if (json[key].type instanceof Array && json[key].type[0] === 'array') {
-          json[key].widget = 'GenericList';
         }
+
+        // Unwrap single-item 'type' arrays
+        if (json[key].type instanceof Array && json[key].type.length > 0) {
+          // eslint-disable-next-line prefer-destructuring
+          json[key].type = json[key].type[0];
+        }
+
+        if ('enum' in json[key]) {
+          json[key].widget = 'Select';
+        } else if (['integer', 'number'].includes(json[key].type)) {
+          json[key].widget = 'Units';
+        } else if (json[key].type === 'string') {
+          json[key].widget = 'Text';
+        } else if (json[key].type === 'array') {
+          json[key].widget = 'GenericList';
+          json[key].notSortable = true;
+        }
+
         // Recursively parse nested objects
         parseJson(json[key]);
       }
     }
+    console.log('parsed schema: ', json);
     return json;
   }
 
   const [schema, setSchema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
-  const [store, setStore] = React.useState(() => createStore(values));
+  const [store, setStore] = React.useState(createStore(createOrderedMap(values)));
 
   const onInternalChange = React.useCallback((actions: any) => {
+    console.log('actions: ', actions);
     setStore(storeUpdater(actions));
   }, [setStore]);
+
+  React.useEffect(() => {
+    console.log('data: ', store.toJS().values);
+  }, [store]);
+
+  React.useEffect(() => {
+    console.log('schema: ', schema.toJS());
+  }, [schema]);
 
   return (
     <UIMetaProvider
@@ -87,7 +119,7 @@ export default function FormGenerator(
         onChange={onInternalChange}
         showValidity
       >
-        <GridStack isRoot schema={schema} />
+        <GridStack isRoot schema={schema} showValidity={false} />
       </UIStoreProvider>
 
       <Button
