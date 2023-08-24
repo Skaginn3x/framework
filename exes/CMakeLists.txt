@@ -1,4 +1,4 @@
-add_subdirectory(ec)
+add_subdirectory(ethercat)
 add_subdirectory(gpio)
 add_subdirectory(operation-mode)
 add_subdirectory(tfcctl)

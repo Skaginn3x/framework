@@ -7,6 +7,7 @@
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::ec::util {
 template <typename from, typename to>
@@ -51,9 +52,28 @@ template <ecx::index_t idx,
 struct glz::meta<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>> {
   using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
   static constexpr auto value{
-    glz::object("value", &setting::value, "index", &setting::index, "name", &setting::name_v, "desc", &setting::desc_v)
+    &setting::value,
   };
   static constexpr std::string_view name_prefix = "tfc::ec::setting::";
   static constexpr std::string_view name_suffix = name_value;
   static constexpr std::string_view name = tfc::stx::string_view_join_v<name_prefix, name_suffix>;
 };
+namespace tfc::json::detail {
+
+template <ecx::index_t idx,
+    tfc::stx::basic_fixed_string name_value,
+    tfc::stx::basic_fixed_string desc,
+    typename value_t,
+    auto... value_t_construct_params>
+struct to_json_schema<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>> {
+  using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
+  template <auto opts>
+  static void op(auto& schema, auto& defs) {
+    schema.attributes.title = desc;
+    //TODO MAKE THIS WORK
+    //schema.attributes.description = fmt::format<"Variable({}) at index 0x{0:x} sub 0x{0:x}">(name_value, idx.first, idx.second);
+    to_json_schema<value_t>::template op<opts>(schema, defs);
+  }
+};
+
+}  // namespace tfc::json::detail
