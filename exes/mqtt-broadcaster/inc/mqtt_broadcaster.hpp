@@ -60,6 +60,18 @@ struct signal_data {
   std::optional<std::any> current_value;
 };
 
+struct scada_signal_info {
+  std::variant<tfc::ipc::bool_signal,
+               tfc::ipc::double_signal,
+               tfc::ipc::int_signal,
+               tfc::ipc::json_signal,
+               tfc::ipc::string_signal,
+               tfc::ipc::uint_signal>
+      signal;
+  std::string name;
+  tfc::ipc::details::type_e type;
+};
+
 template <class ipc_client_type, class mqtt_client_type, class config_type, class network_manager_type>
 class mqtt_broadcaster {
 public:
@@ -84,9 +96,53 @@ public:
 
 private:
   auto initialize() -> asio::awaitable<void> {
+    create_scada_signals();
     co_await connect_to_broker();
     add_new_signals();
     co_await ncmd_listener();
+  }
+
+  // TODO: might be unnecessary to have this awaitable
+  auto create_scada_signals() -> void {
+    auto config_scada_signals = config_.value().scada_signals;
+
+    std::vector<std::string> allowed_types = { "_bool", "_double_t", "_int64_t", "_json", "_string", "_uint64_t" };
+
+    // _json
+
+    // each element is a tuple of (signal_name, signal_type)
+    for (auto const& sig : config_scada_signals) {
+      std::string signal_name = std::get<0>(sig);
+      std::string signal_type = std::get<1>(sig);
+
+      if (signal_name != "") {
+        if (std::find(allowed_types.begin(), allowed_types.end(), signal_type) == allowed_types.end()) {
+          logger_.error("Signal type not allowed: {}", signal_type);
+          logger_.error("Allowed types: _bool, _double_t, _int64_t, _json, _string, _uint64_t");
+          std::exit(-1);
+        }
+
+        if (signal_type == "_bool") {
+          scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, signal_name, "" },
+                                     "mqtt-broadcaster/def/bool/" + signal_name, tfc::ipc::details::type_e::_bool);
+        } else if (signal_type == "_double_t") {
+          scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, signal_name, "" },
+                                     "mqtt-broadcaster/def/double/" + signal_name, tfc::ipc::details::type_e::_double_t);
+        } else if (signal_type == "_int64_t") {
+          scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, signal_name, "" },
+                                     "mqtt-broadcaster/def/int64_t/" + signal_name, tfc::ipc::details::type_e::_int64_t);
+        } else if (signal_type == "_json") {
+          scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, signal_name, "" },
+                                     "mqtt-broadcaster/def/json/" + signal_name, tfc::ipc::details::type_e::_json);
+        } else if (signal_type == "_string") {
+          scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, signal_name, "" },
+                                     "mqtt-broadcaster/def/string/" + signal_name, tfc::ipc::details::type_e::_string);
+        } else if (signal_type == "_uint64_t") {
+          scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, signal_name, "" },
+                                     "mqtt-broadcaster/def/uint64_t/" + signal_name, tfc::ipc::details::type_e::_uint64_t);
+        }
+      }
+    }
   }
 
   static auto timestamp_milliseconds() -> std::chrono::milliseconds {
@@ -242,7 +298,6 @@ private:
     auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
 
     if (connack_packet.code() != async_mqtt::connect_reason_code::success) {
-      // logger_.error("Connection to MQTT broker failed with code: {}", connack_packet.code());
       co_return false;
     }
 
@@ -363,9 +418,28 @@ private:
 
     if (payload.has_timestamp() && !payload.has_seq() &&
         (publish_packet.opts().get_qos() == async_mqtt::qos::at_most_once) &&
-        (publish_packet.opts().get_retain() == async_mqtt::pub::retain::no) && (metric.name() == rebirth_metric)) {
-      logger_.trace("Conditions met. Sending NBIRTH...");
-      co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
+        (publish_packet.opts().get_retain() == async_mqtt::pub::retain::no)) {
+      if (metric.name() == rebirth_metric) {
+        logger_.trace("Conditions met. Sending NBIRTH...");
+        co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
+      } else {
+        logger_.trace("Metric received. Checking conditions...");
+        payload.PrintDebugString();
+
+        if (metric.has_boolean_value()) {
+          send_value_on_signal(metric.name(), metric.boolean_value());
+        } else if (metric.has_double_value()) {
+          send_value_on_signal(metric.name(), metric.double_value());
+        } else if (metric.has_float_value()) {
+          send_value_on_signal(metric.name(), metric.float_value());
+        } else if (metric.has_int_value()) {
+          send_value_on_signal(metric.name(), metric.int_value());
+        } else if (metric.has_long_value()) {
+          send_value_on_signal(metric.name(), metric.long_value());
+        } else if (metric.has_string_value()) {
+          send_value_on_signal(metric.name(), metric.string_value());
+        }
+      }
     } else {
       logger_.trace(
           "Conditions not met, payload has timestamp (should be true): {}, "
@@ -377,6 +451,47 @@ private:
     }
   }
 
+  // TODO: this could be many different functions with function overloading
+  auto send_value_on_signal(std::string signal_name,
+                            std::variant<bool, double, std::string, int64_t, uint64_t, uint32_t> value) -> void {
+    for (auto& sig : scada_signals) {
+      if (sig.name == signal_name) {
+        std::visit(
+            [&value](auto&& signal) -> void {
+              using signal_t = std::remove_cvref_t<decltype(signal)>;
+              if constexpr (std::is_same_v<signal_t, tfc::ipc::bool_signal>) {
+                if (std::holds_alternative<bool>(value)) {
+                  signal.send(std::get<bool>(value));
+                }
+              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::double_signal>) {
+                if (std::holds_alternative<double>(value)) {
+                  signal.send(std::get<double>(value));
+                }
+              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::string_signal>) {
+                if (std::holds_alternative<std::string>(value)) {
+                  signal.send(std::get<std::string>(value));
+                }
+                // Spark Plug B treats int as uint64_t
+              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::int_signal>) {
+                if (std::holds_alternative<uint64_t>(value)) {
+                  signal.send(std::get<uint64_t>(value));
+                }
+              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::uint_signal>) {
+                if (std::holds_alternative<uint64_t>(value)) {
+                  signal.send(std::get<uint64_t>(value));
+                }
+              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::json_signal>) {
+                if (std::holds_alternative<std::string>(value)) {
+                  signal.send(std::get<std::string>(value));
+                }
+              }
+            },
+            sig.signal);
+      }
+    }
+  }
+
+  // TODO: known bug: after SCADA signals get added this function is run again
   auto add_new_signals() -> void {
     logger_.trace("Starting to add new signals...");
 
@@ -524,7 +639,7 @@ private:
     logger_.info("Node rebirth metric added to the payload");
 
     for (signal_data& signal_data : signals_) {
-      logger_.info("Processing signal_data: {}", signal_data.information.name);
+      logger_.info("signals: Processing signal_data: {}", signal_data.information.name);
       auto* variable_metric = payload.add_metrics();
       variable_metric->set_name(format_signal_name(signal_data.information.name));
       variable_metric->set_timestamp(timestamp_milliseconds().count());
@@ -653,6 +768,8 @@ private:
   asio::steady_timer timer_;
 
   asio::cancellation_signal cancel_signal_;
+
+  std::vector<scada_signal_info> scada_signals;
 
   friend class testing_mqtt_broadcaster;
 };
