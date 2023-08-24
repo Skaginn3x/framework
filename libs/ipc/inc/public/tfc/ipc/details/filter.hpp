@@ -74,7 +74,10 @@ struct filter<type_e::invert, bool> {
   struct glaze {
     using type = filter<type_e::invert, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object("invert", &type::invert, "Invert outputting value") };
+    static constexpr auto value{ glz::object(
+        "type", &type::type, "Type of filter",
+        "invert", &type::invert, "Invert outputting value"
+    ) };
   };
 };
 
@@ -139,8 +142,11 @@ public:
     using type = filter<type_e::timer, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::timer" };
     // clang-format off
-    static constexpr auto value{ glz::object("time_on", &type::time_on, "Rising edge settling delay",
-                                            "time_off", &type::time_off, "Falling edge settling delay") };
+    static constexpr auto value{ glz::object(
+      "type", &type::type, "Type of filter",
+      "time_on", &type::time_on, "Rising edge settling delay",
+      "time_off", &type::time_off, "Falling edge settling delay"
+    ) };
     // clang-format on
   };
 };
@@ -167,7 +173,9 @@ struct filter<type_e::filter_out, value_t> {
     using type = filter<type_e::filter_out, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::filter_out" };
     static constexpr auto value{
-      glz::object("filter_out", &type::filter_out, "If value is equivalent to this `filter_out` it will be ignored")
+      glz::object(
+        "type", &type::type, "Type of filter",
+        "filter_out", &type::filter_out, "If value is equivalent to this `filter_out` it will be ignored")
     };
   };
 };
