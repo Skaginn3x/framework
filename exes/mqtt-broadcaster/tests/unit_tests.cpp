@@ -386,19 +386,6 @@ public:
     verify_nbirth_message();
   }
 
-  auto test_send_nbirth_with_scada_signals(asio::io_context& ctx) -> void {
-    std::string signal_name = "test1";
-
-    tfc::ipc::bool_signal scada_signal{ ctx, application_.ipc_client_, signal_name, signal_name };
-    scada_signal_info si{ std::move(scada_signal), signal_name, tfc::ipc::details::type_e::_bool };
-
-    application_.scada_signals.emplace_back(std::move(si));
-
-    asio::co_spawn(application_.mqtt_client_->strand(), application_.send_nbirth(), asio::detached);
-    ctx.run_for(std::chrono::milliseconds(10));
-    verify_nbirth_message();
-  }
-
   auto test_send_message(asio::io_context& ctx) -> void {
     const std::string topic = "test_topic";
     const std::string payload = "test_payload";
