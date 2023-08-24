@@ -60,7 +60,7 @@ struct signal_data {
   std::optional<std::any> current_value;
 };
 
-struct scada_signal_info {
+struct scada_signal {
   std::variant<tfc::ipc::bool_signal,
                tfc::ipc::double_signal,
                tfc::ipc::int_signal,
@@ -102,15 +102,11 @@ private:
     co_await ncmd_listener();
   }
 
-  // TODO: might be unnecessary to have this awaitable
   auto create_scada_signals() -> void {
     auto config_scada_signals = config_.value().scada_signals;
 
     std::vector<std::string> allowed_types = { "_bool", "_double_t", "_int64_t", "_json", "_string", "_uint64_t" };
 
-    // _json
-
-    // each element is a tuple of (signal_name, signal_type)
     for (auto const& sig : config_scada_signals) {
       std::string signal_name = std::get<0>(sig);
       std::string signal_type = std::get<1>(sig);
@@ -451,7 +447,6 @@ private:
     }
   }
 
-  // TODO: this could be many different functions with function overloading
   auto send_value_on_signal(std::string signal_name,
                             std::variant<bool, double, std::string, int64_t, uint64_t, uint32_t> value) -> void {
     for (auto& sig : scada_signals) {
@@ -491,7 +486,6 @@ private:
     }
   }
 
-  // TODO: known bug: after SCADA signals get added this function is run again
   auto add_new_signals() -> void {
     logger_.trace("Starting to add new signals...");
 
@@ -769,7 +763,7 @@ private:
 
   asio::cancellation_signal cancel_signal_;
 
-  std::vector<scada_signal_info> scada_signals;
+  std::vector<scada_signal> scada_signals;
 
   friend class testing_mqtt_broadcaster;
 };
