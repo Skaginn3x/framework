@@ -61,17 +61,18 @@ struct glz::meta<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_
 namespace tfc::json::detail {
 
 template <ecx::index_t idx,
-    tfc::stx::basic_fixed_string name_value,
-    tfc::stx::basic_fixed_string desc,
-    typename value_t,
-    auto... value_t_construct_params>
+          tfc::stx::basic_fixed_string name_value,
+          tfc::stx::basic_fixed_string desc,
+          typename value_t,
+          auto... value_t_construct_params>
 struct to_json_schema<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>> {
   using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
   template <auto opts>
   static void op(auto& schema, auto& defs) {
     schema.attributes.title = desc;
-    //TODO MAKE THIS WORK
-    //schema.attributes.description = fmt::format<"Variable({}) at index 0x{0:x} sub 0x{0:x}">(name_value, idx.first, idx.second);
+    // TODO MAKE THIS WORK
+    // schema.attributes.description = fmt::format<"Variable({}) at index 0x{0:x} sub 0x{0:x}">(name_value, idx.first,
+    // idx.second);
     to_json_schema<value_t>::template op<opts>(schema, defs);
   }
 };
