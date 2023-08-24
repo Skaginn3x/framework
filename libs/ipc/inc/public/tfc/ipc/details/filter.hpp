@@ -165,7 +165,7 @@ struct filter<type_e::filter_out, value_t> {
           PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
           if (copy == filter_out) {
           PRAGMA_CLANG_WARNING_POP
-          // clang-format on
+            // clang-format on
             self.complete(std::unexpected(std::make_error_code(std::errc::bad_message)));
           } else {
             self.complete(copy);
