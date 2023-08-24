@@ -160,7 +160,12 @@ struct filter<type_e::filter_out, value_t> {
     auto executor{ asio::get_associated_executor(completion_token) };
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value](auto& self) {
+          // Todo should this filter be available for double?
+          // clang-format off
+          PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
           if (copy == filter_out) {
+          PRAGMA_CLANG_WARNING_POP
+          // clang-format on
             self.complete(std::unexpected(std::make_error_code(std::errc::bad_message)));
           } else {
             self.complete(copy);
