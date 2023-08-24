@@ -9,9 +9,9 @@
 #include <fmt/chrono.h>
 #include <glaze/glaze.hpp>
 
+#include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>
-#include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/utils/json_schema.hpp>
 
 namespace tfc::detail {

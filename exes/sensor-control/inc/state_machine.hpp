@@ -7,12 +7,12 @@
 namespace tfc::sensor::control {
 
 namespace events {
-struct sensor_active{};
-struct new_info{};
-struct on_release{};
-}
+struct sensor_active {};
+struct new_info {};
+struct on_release {};
+}  // namespace events
 
-template<typename owner_t>
+template <typename owner_t>
 struct state_machine {
   explicit state_machine(owner_t& owner) : owner_{ owner } {}
 

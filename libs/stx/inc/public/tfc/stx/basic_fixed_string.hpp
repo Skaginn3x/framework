@@ -28,7 +28,7 @@ struct [[nodiscard]] basic_fixed_string {
 
   [[nodiscard]] constexpr char_type const* end() const noexcept {
     // todo use iterators instead of raw pointer to get rid of this unsafe buffer usage
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe - buffer - usage)
     return &data_[N];
     PRAGMA_CLANG_WARNING_POP
   }
@@ -47,16 +47,14 @@ struct [[nodiscard]] basic_fixed_string {
     return data_[index];
   }
 
-  [[nodiscard]] inline constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) noexcept
-      -> char_type& {
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+  [[nodiscard]] inline constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) noexcept -> char_type& {
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe - buffer - usage)
     return data_[index];
     PRAGMA_CLANG_WARNING_POP
   }
 
-  [[nodiscard]] inline constexpr auto at(concepts::unsigned_arithmetic_integral auto index) noexcept
-      -> char_type& {
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+  [[nodiscard]] inline constexpr auto at(concepts::unsigned_arithmetic_integral auto index) noexcept -> char_type& {
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe - buffer - usage)
     return data_[index];
     PRAGMA_CLANG_WARNING_POP
   }

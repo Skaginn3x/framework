@@ -1,6 +1,6 @@
-#include <boost/ut.hpp>
-#include <boost/sml.hpp>
 #include <gmock/gmock.h>
+#include <boost/sml.hpp>
+#include <boost/ut.hpp>
 
 #include <tfc/progbase.hpp>
 #include "state_machine.hpp"
@@ -20,7 +20,6 @@ namespace events = tfc::sensor::control::events;
 using boost::ut::operator""_test;
 using boost::sml::literals::operator""_s;
 using tfc::sensor::control::state_machine;
-
 
 struct test_instance {
   testing::NiceMock<the_owner> owner{};
@@ -56,7 +55,6 @@ auto main(int argc, char** argv) -> int {
     instance.sm.process_event(events::new_info{});
     ut::expect(instance.sm.is("awaiting_sensor"_s));
   };
-
 
   return EXIT_SUCCESS;
 }

@@ -74,10 +74,9 @@ struct filter<type_e::invert, bool> {
   struct glaze {
     using type = filter<type_e::invert, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object(
-        "type", &type::type, "Type of filter",
-        "invert", &type::invert, "Invert outputting value"
-    ) };
+    static constexpr auto value{
+      glz::object("type", &type::type, "Type of filter", "invert", &type::invert, "Invert outputting value")
+    };
   };
 };
 
@@ -172,11 +171,12 @@ struct filter<type_e::filter_out, value_t> {
   struct glaze {
     using type = filter<type_e::filter_out, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::filter_out" };
-    static constexpr auto value{
-      glz::object(
-        "type", &type::type, "Type of filter",
-        "filter_out", &type::filter_out, "If value is equivalent to this `filter_out` it will be ignored")
-    };
+    static constexpr auto value{ glz::object("type",
+                                             &type::type,
+                                             "Type of filter",
+                                             "filter_out",
+                                             &type::filter_out,
+                                             "If value is equivalent to this `filter_out` it will be ignored") };
   };
 };
 

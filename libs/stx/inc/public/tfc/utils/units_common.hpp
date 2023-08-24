@@ -17,5 +17,4 @@ struct decihertz : units::prefixed_unit<decihertz, ::units::isq::si::deci, ::uni
 struct hectowatt : units::prefixed_unit<hectowatt, units::isq::si::hecto, units::isq::si::watt> {};
 }  // namespace tfc::unit
 
-
 // todo celsius

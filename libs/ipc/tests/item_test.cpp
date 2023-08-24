@@ -11,10 +11,9 @@ auto main(int, char**) -> int {
 
   namespace fao = tfc::ipc::item::fao;
 
-  "test"_test = [](){
+  "test"_test = []() {
     static constexpr auto foo = fao::species::from_int(fao::atlantic_cod.to_int());
     fmt::print("foo is: {}\n", foo.code.view());
-
   };
 
   return 0;
