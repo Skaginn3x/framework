@@ -343,23 +343,23 @@ private:
   void register_read(std::invocable<value_t> auto&& callback) {
     auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
     if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
-      slot_.async_receive([bind_reference, &callback](
-                              std::expected<value_t, std::error_code> value) {
+      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code> value) {
         if (auto sptr = bind_reference.lock()) {
           sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
         }
       });
-    }
-    else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
+    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
       slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
                               std::expected<value_t, std::error_code> value) mutable {
         if (auto sptr = bind_reference.lock()) {
           sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
         }
       });
-    }
-    else {
-      []<bool flag = false>(){ static_assert(flag, "Something strange is happening"); }();
+    } else {
+      []<bool flag = false>() {
+        static_assert(flag, "Something strange is happening");
+      }
+      ();
     }
   }
   slot<type_desc> slot_;
