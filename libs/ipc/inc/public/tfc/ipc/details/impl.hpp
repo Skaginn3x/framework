@@ -342,7 +342,8 @@ private:
   }
   void register_read(std::invocable<value_t> auto&& callback) {
     auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](std::expected<value_t, std::error_code> value) mutable {
+    slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
+                            std::expected<value_t, std::error_code> value) mutable {
       if (auto sptr = bind_reference.lock()) {
         sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
       }
