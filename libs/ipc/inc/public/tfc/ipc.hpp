@@ -134,5 +134,6 @@ using uint_signal = signal<details::type_uint, ipc_ruler::ipc_manager_client>;
 using double_signal = signal<details::type_double, ipc_ruler::ipc_manager_client>;
 using string_signal = signal<details::type_string, ipc_ruler::ipc_manager_client>;
 using json_signal = signal<details::type_json, ipc_ruler::ipc_manager_client>;
+using any_signal = std::variant<bool_signal, int_signal, uint_signal, double_signal, string_signal, json_signal>;
 
 }  // namespace tfc::ipc
