@@ -50,6 +50,37 @@ public:
     });
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
   /// \brief Advanced constructor providing file storage interface and dbus client
   /// \param key identification of this config storage, requires to be unique
   /// \param file_storage lvalue reference to file storage implementation
