@@ -92,29 +92,6 @@ public:
     return storage_.set_changed();
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
   /// \brief get config key used to index the given object of type storage_t
   [[nodiscard]] auto file() const noexcept -> std::filesystem::path const& { return storage_.file(); }
 
