@@ -74,16 +74,6 @@ public:
   /// an example of failure would be confman<std::vector<int>> as the json schema root element would be array
   /// which is expected but jsonforms requires object. Hopefully we can remove this later.
   template <typename to_be_wrapped_t>
-
-
-
-
-
-
-
-
-
-  
   struct object_wrapper {
     to_be_wrapped_t placeholder{};
     struct glaze {
