@@ -12,7 +12,7 @@ struct config {
   std::string node_id{};
   std::string group_id{};
   std::string client_id{};
-  std::array<std::tuple<std::string, std::string>, 10> scada_signals{};
+  std::vector<std::tuple<std::string, std::string>> scada_signals{};
 
   struct glaze {
     // clang-format off
