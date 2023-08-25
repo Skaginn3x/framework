@@ -247,8 +247,13 @@ struct to_json_schema<T> {
       static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
       enumeration.attributes.constant = glz::tuplet::get<0>(item);
-      if constexpr (std::tuple_size_v < decltype(item) >> 2) {
-        enumeration.attributes.description = std::get<2>(item);
+      if constexpr (std::tuple_size_v<decltype(item)> > 2) {
+        using additional_data_type = decltype(glz::tuplet::get<2>(item));
+        if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
+          enumeration.attributes.description = glz::tuplet::get<2>(item);
+        } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
+          enumeration.attributes = glz::tuplet::get<2>(item);
+        }
       }
     });
   }
