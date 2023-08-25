@@ -97,50 +97,43 @@ private:
   }
 
   auto create_scada_signals() -> void {
-    std::vector<std::string> allowed_types = { "_bool", "_double_t", "_int64_t", "_json", "_string", "_uint64_t" };
-
     for (auto const& sig : config_.value().scada_signals) {
-      std::string signal_name = sig.name;
-      std::string signal_type = "_bool";
-
-      // tfc::ipc::details::type_e type = sig.type;
-
-      std::cout << "name: " << signal_name << " type: " << signal_type << "\n";
-    }
-
-    std::exit(-1);
-
-    for (auto const& sig : config_.value().scada_signals) {
-      std::string signal_name = sig.name;
-      // std::string signal_name = std::get<0>(sig);
-      // std::string signal_type = std::get<1>(sig);
-      std::string signal_type = "_bool";
-
-      if (signal_name != "") {
-        if (std::find(allowed_types.begin(), allowed_types.end(), signal_type) == allowed_types.end()) {
-          logger_.error("Signal type not allowed: {}", signal_type);
-          logger_.error("Allowed types: _bool, _double_t, _int64_t, _json, _string, _uint64_t");
-          std::exit(-1);
-        }
-
-        if (signal_type == "_bool") {
-          scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, signal_name, "" },
-                                     "mqtt-broadcaster/def/bool/" + signal_name, tfc::ipc::details::type_e::_bool);
-        } else if (signal_type == "_double_t") {
-          scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, signal_name, "" },
-                                     "mqtt-broadcaster/def/double/" + signal_name, tfc::ipc::details::type_e::_double_t);
-        } else if (signal_type == "_int64_t") {
-          scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, signal_name, "" },
-                                     "mqtt-broadcaster/def/int64_t/" + signal_name, tfc::ipc::details::type_e::_int64_t);
-        } else if (signal_type == "_json") {
-          scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, signal_name, "" },
-                                     "mqtt-broadcaster/def/json/" + signal_name, tfc::ipc::details::type_e::_json);
-        } else if (signal_type == "_string") {
-          scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, signal_name, "" },
-                                     "mqtt-broadcaster/def/string/" + signal_name, tfc::ipc::details::type_e::_string);
-        } else if (signal_type == "_uint64_t") {
-          scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, signal_name, "" },
-                                     "mqtt-broadcaster/def/uint64_t/" + signal_name, tfc::ipc::details::type_e::_uint64_t);
+      if (sig.name != "") {
+        switch (sig.type) {
+          case tfc::ipc::details::type_e::_bool: {
+            scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, "" },
+                                       "mqtt-broadcaster/def/bool/" + sig.name, sig.type);
+            break;
+          }
+          case tfc::ipc::details::type_e::_double_t: {
+            scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, "" },
+                                       "mqtt-broadcaster/def/double/" + sig.name, sig.type);
+            break;
+          }
+          case tfc::ipc::details::type_e::_int64_t: {
+            scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, "" },
+                                       "mqtt-broadcaster/def/int64_t/" + sig.name, sig.type);
+            break;
+          }
+          case tfc::ipc::details::type_e::_json: {
+            scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, "" },
+                                       "mqtt-broadcaster/def/json/" + sig.name, sig.type);
+            break;
+          }
+          case tfc::ipc::details::type_e::_string: {
+            scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, "" },
+                                       "mqtt-broadcaster/def/string/" + sig.name, sig.type);
+            break;
+          }
+          case tfc::ipc::details::type_e::_uint64_t: {
+            scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, "" },
+                                       "mqtt-broadcaster/def/uint64_t/" + sig.name, sig.type);
+            break;
+          }
+          default: {
+            logger_.error("Unknown type for signal: {}", sig.name);
+            std::exit(-1);
+          }
         }
       }
     }

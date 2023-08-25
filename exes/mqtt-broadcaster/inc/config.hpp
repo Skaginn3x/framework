@@ -24,7 +24,8 @@ struct config {
   std::string node_id{};
   std::string group_id{};
   std::string client_id{};
-  std::vector<signal_defintion> scada_signals{};
+  // give it a default value
+  std::vector<signal_defintion> scada_signals{ { "test", tfc::ipc::details::type_e::_bool } };
 
   struct glaze {
     // clang-format off
@@ -36,7 +37,7 @@ struct config {
         "node_id", &config::node_id, "Spark Plug B Node ID, used to identify which node is sending information",
         "group_id", &config::group_id, "Spark Plug B Group ID, used to identify which group the node belongs to",
         "client_id", &config::client_id, "Spark Plug B Client ID, used to identify which client is sending information",
-        "scada_signals", &config::scada_signals, "Array of signals that SCADA can write to, each signal is a tuple of (signal name, signal type). Allowed types are: _bool, _double_t, _int64_t, _json, _string, _uint64_t"
+        "scada_signals", &config::scada_signals, "Array of signals that SCADA can write to, each signal is a tuple of (signal name, signal type). Allowed types are: bool, double, int64_t, json, string, uint64_t"
       ) };
     // clang-format on
     static constexpr auto name{ "mqtt_broadcaster" };
