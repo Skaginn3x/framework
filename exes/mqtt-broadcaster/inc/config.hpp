@@ -1,7 +1,19 @@
 #pragma once
 
 #include <tfc/confman.hpp>
-#include <tfc/confman/observable.hpp>
+
+struct signal_defintion {
+  std::string name{};
+  tfc::ipc::details::type_e type{};
+  struct glaze {
+    // clang-format off
+        static constexpr auto value{ glz::object(
+          "name", &signal_defintion::name,
+          "type", &signal_defintion::type
+        )};
+    // clang-format on
+  };
+};
 
 // File under /etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json which specifies the connection values for the MQTT broker.
 struct config {
@@ -12,7 +24,7 @@ struct config {
   std::string node_id{};
   std::string group_id{};
   std::string client_id{};
-  std::vector<std::tuple<std::string, std::string>> scada_signals{};
+  std::vector<signal_defintion> scada_signals{};
 
   struct glaze {
     // clang-format off

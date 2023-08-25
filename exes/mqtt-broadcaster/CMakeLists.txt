@@ -2,6 +2,10 @@ add_executable(mqtt-broadcaster
   src/main.cpp
 )
 
+add_executable(example
+        src/example.cpp
+        )
+
 find_package(Boost REQUIRED COMPONENTS log program_options)
 find_package(OpenSSL REQUIRED)
 
@@ -31,6 +35,37 @@ target_compile_definitions(mqtt-broadcaster
 )
 
 target_compile_options(mqtt-broadcaster PRIVATE -Wno-exit-time-destructors)
+
+#-----------------------------------------------------------------------------
+
+target_include_directories(example
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/inc
+        )
+
+target_link_libraries(example
+        PUBLIC
+        tfc::base
+        tfc::logger
+        tfc::stx
+        tfc::ipc
+        tfc::operation_mode
+        tfc::confman
+        Boost::boost
+        Boost::log
+        Boost::program_options
+        OpenSSL::SSL OpenSSL::Crypto
+        tfc::sparkplug::proto
+        )
+
+target_compile_definitions(example
+        PUBLIC
+        ASYNC_MQTT_USE_TLS
+        )
+
+target_compile_options(example PRIVATE -Wno-exit-time-destructors)
+
+#-----------------------------------------------------------------------------
 
 if (BUILD_TESTING)
   add_subdirectory(tests)

@@ -61,13 +61,7 @@ struct signal_data {
 };
 
 struct scada_signal {
-  std::variant<tfc::ipc::bool_signal,
-               tfc::ipc::double_signal,
-               tfc::ipc::int_signal,
-               tfc::ipc::json_signal,
-               tfc::ipc::string_signal,
-               tfc::ipc::uint_signal>
-      signal;
+  tfc::ipc::any_signal signal;
   std::string name;
   tfc::ipc::details::type_e type;
 };
@@ -103,13 +97,24 @@ private:
   }
 
   auto create_scada_signals() -> void {
-    auto config_scada_signals = config_.value().scada_signals;
-
     std::vector<std::string> allowed_types = { "_bool", "_double_t", "_int64_t", "_json", "_string", "_uint64_t" };
 
-    for (auto const& sig : config_scada_signals) {
-      std::string signal_name = std::get<0>(sig);
-      std::string signal_type = std::get<1>(sig);
+    for (auto const& sig : config_.value().scada_signals) {
+      std::string signal_name = sig.name;
+      std::string signal_type = "_bool";
+
+      // tfc::ipc::details::type_e type = sig.type;
+
+      std::cout << "name: " << signal_name << " type: " << signal_type << "\n";
+    }
+
+    std::exit(-1);
+
+    for (auto const& sig : config_.value().scada_signals) {
+      std::string signal_name = sig.name;
+      // std::string signal_name = std::get<0>(sig);
+      // std::string signal_type = std::get<1>(sig);
+      std::string signal_type = "_bool";
 
       if (signal_name != "") {
         if (std::find(allowed_types.begin(), allowed_types.end(), signal_type) == allowed_types.end()) {
