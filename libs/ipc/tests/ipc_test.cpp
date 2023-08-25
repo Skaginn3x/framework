@@ -4,6 +4,8 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/packet.hpp>
 
+#include <fmt/chrono.h>
+#include <fmt/core.h>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/ut.hpp>
 
@@ -105,8 +107,8 @@ auto main(int, char**) -> int {
     receiver->init(sender->name_w_type(), [&ctx, &receiver_called, &uint64_to_time_point](auto val) {
       auto now{ std::chrono::high_resolution_clock::now() };
       auto past{ uint64_to_time_point(val) };
-      auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past).count();
-      fmt::print("Round time took: {} ns\n", duration_ns);
+      auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past);
+      fmt::print("Round time took: {}\n", duration_ns);
       receiver_called = true;
       ctx.stop();
     });

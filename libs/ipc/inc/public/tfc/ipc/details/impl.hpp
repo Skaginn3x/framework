@@ -308,12 +308,11 @@ public:
 
   auto init(
       std::string_view signal_name,
-      std::function<void(value_t const&)> callback = [](value_t const&) {}) -> std::error_code {
+      std::invocable<value_t> auto&& callback = [](value_t const&) {}) -> std::error_code {
     if (auto error = slot_.connect(signal_name)) {
       return error;
     }
-    cb_ = callback;
-    register_read();
+    register_read(std::forward<decltype(callback)>(callback));
     return {};
   }
   [[nodiscard]] auto get() const noexcept -> std::optional<value_t> const& { return last_value_; }
@@ -328,7 +327,7 @@ public:
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}
-  void async_new_state(std::expected<value_t, std::error_code> value) {
+  void async_new_state(std::expected<value_t, std::error_code> value, std::invocable<value_t> auto&& callback) {
     if (!value) {
       return;
     }
@@ -339,20 +338,19 @@ private:
     PRAGMA_CLANG_WARNING_POP
       // clang-format on
       last_value_ = value.value();
-      cb_(last_value_.value());
+      callback(last_value_.value());
     }
-    register_read();
+    register_read(std::forward<decltype(callback)>(callback));
   }
-  void register_read() {
+  void register_read(std::invocable<value_t> auto&& callback) {
     auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    slot_.async_receive([bind_reference](std::expected<value_t, std::error_code> value) {
+    slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](std::expected<value_t, std::error_code> value) mutable {
       if (auto sptr = bind_reference.lock()) {
-        sptr->async_new_state(value);
+        sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
       }
     });
   }
   slot<type_desc> slot_;
-  std::function<void(value_t const&)> cb_{ [](value_t const&) {} };
   std::optional<value_t> last_value_{};
 };
 
