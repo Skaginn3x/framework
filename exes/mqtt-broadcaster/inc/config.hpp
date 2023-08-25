@@ -18,14 +18,13 @@ struct signal_defintion {
 // File under /etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json which specifies the connection values for the MQTT broker.
 struct config {
   std::string address{};
-  std::string port{};
+  uint16_t port{};
   std::string username{};
   std::string password{};
   std::string node_id{};
   std::string group_id{};
   std::string client_id{};
-  // give it a default value
-  std::vector<signal_defintion> scada_signals{ { "test", tfc::ipc::details::type_e::_bool } };
+  std::vector<signal_defintion> scada_signals{};
 
   struct glaze {
     // clang-format off
