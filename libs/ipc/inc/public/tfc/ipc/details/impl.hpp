@@ -314,7 +314,7 @@ public:
     register_read();
     return {};
   }
-  [[nodiscard]] auto get() const noexcept -> value_t const& { return last_value_; }
+  [[nodiscard]] auto get() const noexcept -> std::optional<value_t> const& { return last_value_; }
 
   /**
    * @brief disconnect from signal

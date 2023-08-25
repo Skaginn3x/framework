@@ -83,7 +83,9 @@ public:
   };
 
   /// \return storage_t json schema
-  [[nodiscard]] auto schema() const -> std::string { return tfc::json::write_json_schema<object_wrapper<config_storage_t>>(); }
+  [[nodiscard]] auto schema() const -> std::string {
+    return tfc::json::write_json_schema<object_wrapper<config_storage_t>>();
+  }
 
   auto set_changed() const noexcept -> std::error_code {
     client_.set(detail::config_property{ .value = string(), .schema = schema() });
