@@ -62,6 +62,9 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     let currentValue = obj;
     for (let i = 0; i < keys.length; i += 1) {
       let key = keys[i];
+      if (keys.includes('nominal_motor_power')) {
+        console.log('SOMETYHING', key, currentValue);
+      }
       if (currentValue[key] === undefined) {
         // If the key doesn't exist, determine what default value to set based on the next key
         if (i < keys.length - 1) {
@@ -71,6 +74,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           currentValue[key] = undefined;
         }
       }
+      console.log('current is :', currentValue[key]);
       currentValue = currentValue[key];
     }
     return currentValue;
@@ -99,7 +103,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   // We might want to override this to get Hz instead of s^-1, etc.
 
   const [unit, setUnit] = React.useState(initialUnit);
-  const [value, setValue] = React.useState<string>(storeValue || '');
+  const [value, setValue] = React.useState<string>(storeValue !== undefined ? storeValue : '');
 
   // empty storeKeys
   // const rootStore = [] as unknown as StoreKeys;
@@ -228,7 +232,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           disabled={schema.get('readOnly') as boolean | undefined}
           multiline={false}
           required={required}
-          error={required && !value}
+          error={required && (value === undefined || value === '')}
           minRows={1}
           maxRows={1}
           inputRef={inputRef}
@@ -277,7 +281,9 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         )
         : null}
 
-      {required && !value ? <h2 className="RequiredText">Required</h2> : null}
+      {required && (value === undefined || value === '')
+        ? <h2 className="RequiredText">Required</h2>
+        : null}
     </>
   );
 }
