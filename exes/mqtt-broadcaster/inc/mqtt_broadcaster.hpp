@@ -243,8 +243,8 @@ private:
 
     std::string p_str = std::to_string(static_cast<unsigned int>(config_.value().port));
 
-    asio::ip::tcp::resolver::results_type resolved_ip = co_await res.async_resolve(
-        config_.value().address, p_str, asio::use_awaitable);
+    asio::ip::tcp::resolver::results_type resolved_ip =
+        co_await res.async_resolve(config_.value().address, p_str, asio::use_awaitable);
 
     co_return resolved_ip;
   }
