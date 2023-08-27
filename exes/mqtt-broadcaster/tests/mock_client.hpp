@@ -125,7 +125,7 @@ private:
 
 struct SparkplugBConfig {
   std::string address;
-  std::string port;
+  uint16_t port;
   std::string username;
   std::string password;
   std::string node_id;
@@ -139,7 +139,7 @@ class mock_config {
 public:
   mock_config(asio::io_context&, std::string) {
     _sparkplug_b.address = "localhost";
-    _sparkplug_b.port = "1883";
+    _sparkplug_b.port = 1883;
     _sparkplug_b.username = "username";
     _sparkplug_b.password = "password";
     _sparkplug_b.node_id = "edge_node_id";

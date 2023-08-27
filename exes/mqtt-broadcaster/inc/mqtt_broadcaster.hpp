@@ -242,7 +242,7 @@ private:
     tls_ctx_.set_verify_mode(async_mqtt::tls::verify_peer);
 
     asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(config_.value().address, config_.value().port, asio::use_awaitable);
+        co_await res.async_resolve(config_.value().address, std::to_string(config_.value().port), asio::use_awaitable);
 
     co_return resolved_ip;
   }
