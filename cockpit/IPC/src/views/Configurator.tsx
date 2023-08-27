@@ -182,14 +182,14 @@ export default function Configurator() {
   }
 
   return (
-    <div style={{ minWidth: '400px', maxWidth: '90vw' }}>
+    <div style={{ minWidth: '400px', maxWidth: 'calc (100vw - 20rem)' }}>
       <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem' }}> Configurator - Time For Change </Title>
       <Tabs
         activeKey={activeTabKey}
         onSelect={handleTabClick}
         aria-label="Tabs in the horizontal overflow example"
         role="region"
-        isOverflowHorizontal={false}
+        isOverflowHorizontal
       >
         {Object.keys(schemas).length && Object.keys(schemas).map((name: string, index: number) => {
           if (schemas[name] && formData[name]) {
