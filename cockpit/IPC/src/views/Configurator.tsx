@@ -8,6 +8,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import {
+  demoUiData3,
+  demoUiSchema3,
   newDemoData1, newDemoSchema1, newDemoSchema2,
 } from './demoData';
 import FormGenerator from '../Components/Form/Form';
@@ -29,6 +31,7 @@ export default function Configurator() {
       arrayTest: {
         config: [{ amper: 256, a_int: 128 }, { amper: 512, a_int: 256 }, { amper: 1024, a_int: 512 }],
       },
+      arrayTest2: demoUiData3(),
     },
   );
   const [schemas, setSchemas] = useState<any>(
@@ -36,6 +39,7 @@ export default function Configurator() {
       // atvDemo: demoUiSchema3(),
       brandNew: newDemoSchema1(),
       arrayTest: newDemoSchema2(),
+      arrayTest2: demoUiSchema3(),
     },
   );
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
@@ -83,10 +87,16 @@ export default function Configurator() {
         const OBJproxy = dbus.proxy(name);
         OBJproxy.wait().then(() => {
           const { data } = OBJproxy;
-          const parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
+          let parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
           const parsedSchema = JSON.parse(data.config[1].replace('\\"', '"'));
-          console.log('parsedData: ', parsedData);
-          console.log('parsedSchema: ', parsedSchema);
+
+          // TODO fix data coming from TFC to have config parent object like schema
+          // if parseddata does not have key 'config'
+          if (!Object.keys(parsedData).includes('config')) {
+            parsedData = { config: parsedData };
+          }
+          // REMOVE after TODO is complete
+
           // eslint-disable-next-line arrow-body-style
           setSchemas((prevState: any) => {
             return {
@@ -111,10 +121,10 @@ export default function Configurator() {
    */
   const updateFormData = (name: string, newData: any) => {
     if (!newData) return;
-    // if (newData.config) { // Unwrap config object if it exists (for nested schemas)
-    //   // eslint-disable-next-line no-param-reassign
-    //   newData = newData.config;
-    // }
+    if (newData.config) { // Unwrap config object if it exists (for nested schemas)
+      // eslint-disable-next-line no-param-reassign
+      newData = newData.config;
+    }
     setFormData((prevState: any) => ({
       ...prevState,
       [name]: newData,
