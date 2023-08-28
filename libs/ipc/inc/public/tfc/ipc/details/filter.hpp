@@ -1,6 +1,7 @@
 #pragma once
 #include <concepts>
 #include <exception>
+#include <expected>
 #include <vector>
 
 #include <fmt/core.h>
@@ -37,18 +38,6 @@ enum struct type_e : std::uint8_t {
   delta,
   lambda,
 };
-
-namespace detail {
-template <typename value_t>
-using function_signature_t = void(std::expected<value_t, std::error_code>);
-
-template <typename value_t>
-inline constexpr auto async_process_helper(auto&& process, auto&& completion_token) {
-  auto executor{ asio::get_associated_executor(completion_token) };
-  return asio::async_compose<std::remove_cvref_t<decltype(completion_token)>, function_signature_t<value_t>>(
-      process, completion_token, executor);
-}
-}  // namespace detail
 
 template <type_e type, typename value_t>
 struct filter;
