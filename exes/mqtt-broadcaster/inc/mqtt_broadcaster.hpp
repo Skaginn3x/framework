@@ -62,9 +62,7 @@ struct signal_data {
 
 struct scada_signal {
   tfc::ipc::any_signal signal;
-  std::string name;
-  tfc::ipc::details::type_e type;
-  // signal_defintion definition;
+  signal_defintion definition;
 };
 
 template <class ipc_client_type, class mqtt_client_type, class config_type, class network_manager_type>
@@ -99,41 +97,41 @@ private:
 
   auto create_scada_signals() -> void {
     for (auto const& sig : config_.value().scada_signals) {
-      if (sig.name != "") {
+      if (!sig.name.empty()) {
         switch (sig.type) {
-          case tfc::ipc::details::type_e::_bool: {
+          using enum tfc::ipc::details::type_e;
+          case _bool: {
             scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       "mqtt-broadcaster/def/bool/" + sig.name, sig.type);
+                                       signal_defintion{ "mqtt-broadcaster/def/bool/" + sig.name, sig.type });
             break;
           }
-          case tfc::ipc::details::type_e::_double_t: {
+          case _double_t: {
             scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       "mqtt-broadcaster/def/double/" + sig.name, sig.type);
+                                       signal_defintion{ "mqtt-broadcaster/def/double/" + sig.name, sig.type });
             break;
           }
-          case tfc::ipc::details::type_e::_int64_t: {
+          case _int64_t: {
             scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       "mqtt-broadcaster/def/int64_t/" + sig.name, sig.type);
+                                       signal_defintion{ "mqtt-broadcaster/def/int64_t/" + sig.name, sig.type });
             break;
           }
-          case tfc::ipc::details::type_e::_json: {
+          case _json: {
             scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       "mqtt-broadcaster/def/json/" + sig.name, sig.type);
+                                       signal_defintion{ "mqtt-broadcaster/def/json/" + sig.name, sig.type });
             break;
           }
-          case tfc::ipc::details::type_e::_string: {
+          case _string: {
             scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       "mqtt-broadcaster/def/string/" + sig.name, sig.type);
+                                       signal_defintion{ "mqtt-broadcaster/def/string/" + sig.name, sig.type });
             break;
           }
-          case tfc::ipc::details::type_e::_uint64_t: {
+          case _uint64_t: {
             scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       "mqtt-broadcaster/def/uint64_t/" + sig.name, sig.type);
+                                       signal_defintion{ "mqtt-broadcaster/def/uint64_t/" + sig.name, sig.type });
             break;
           }
-          default: {
+          case unknown: {
             logger_.error("Unknown type for signal: {}", sig.name);
-            std::exit(-1);
           }
         }
       }
@@ -434,7 +432,7 @@ private:
         co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
       } else {
         logger_.trace("Metric received. Checking conditions...");
-        payload.PrintDebugString();
+        logger_.trace("Payload: \n {}", payload.DebugString());
 
         if (metric.has_boolean_value()) {
           send_value_on_signal(metric.name(), metric.boolean_value());
@@ -464,10 +462,11 @@ private:
   auto send_value_on_signal(std::string signal_name,
                             std::variant<bool, double, std::string, int64_t, uint64_t, uint32_t> value) -> void {
     for (auto& sig : scada_signals) {
-      if (sig.name == signal_name) {
+      if (sig.definition.name == signal_name) {
         std::visit(
             [&value](auto&& signal) -> void {
               using signal_t = std::remove_cvref_t<decltype(signal)>;
+
               if constexpr (std::is_same_v<signal_t, tfc::ipc::bool_signal>) {
                 if (std::holds_alternative<bool>(value)) {
                   signal.send(std::get<bool>(value));
@@ -604,7 +603,7 @@ private:
 
                 logger_.trace("Payload for signal '{}' prepared.", signal_data.information.name);
 
-                logger_.trace("{}", payload.DebugString());
+                logger_.trace("Payload: \n {}", payload.DebugString());
 
                 std::string payload_string;
                 payload.SerializeToString(&payload_string);
@@ -674,7 +673,7 @@ private:
       logger_.info("Signal_data processed and added to the payload: {}", signal_data.information.name);
     }
 
-    payload.PrintDebugString();
+    logger_.trace("Payload: \n {}", payload.DebugString());
 
     std::string payload_string;
     payload.SerializeToString(&payload_string);
