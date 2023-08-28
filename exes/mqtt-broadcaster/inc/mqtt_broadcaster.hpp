@@ -64,6 +64,7 @@ struct scada_signal {
   tfc::ipc::any_signal signal;
   std::string name;
   tfc::ipc::details::type_e type;
+  // signal_defintion definition;
 };
 
 template <class ipc_client_type, class mqtt_client_type, class config_type, class network_manager_type>
@@ -241,31 +242,25 @@ private:
     tls_ctx_.set_default_verify_paths();
     tls_ctx_.set_verify_mode(async_mqtt::tls::verify_peer);
 
-    asio::ip::tcp::resolver::results_type resolved_ip;
+    std::string port = port_to_string(config_.value().port);
 
-    co_await std::visit(
-        [&](auto&& port) -> asio::awaitable<void> {
-          using T = std::remove_cvref_t<decltype(signal)>;
-
-          if constexpr (std::is_same_v<T, uint16_t>) {
-            resolved_ip = co_await res.async_resolve(config_.value().address, std::to_string(config_.value().port),
-                                                     asio::use_awaitable);
-          } else if constexpr (std::is_same_v<T, Port>) {
-            switch (port) {
-              case Port::mqtt: {
-                resolved_ip = co_await res.async_resolve(config_.value().address, std::to_string(1883), asio::use_awaitable);
-                break;
-              }
-              case Port::mqtts: {
-                resolved_ip = co_await res.async_resolve(config_.value().address, std::to_string(8883), asio::use_awaitable);
-                break;
-              }
-            }
-          }
-        },
-        config_.value().port);
+    asio::ip::tcp::resolver::results_type resolved_ip =
+        co_await res.async_resolve(config_.value().address, port, asio::use_awaitable);
 
     co_return resolved_ip;
+  }
+
+  std::string port_to_string(const std::variant<Port, uint16_t>& port) {
+    return std::visit(
+        [](auto&& arg) -> std::string {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, uint16_t>) {
+            return std::to_string(arg);
+          } else if constexpr (std::is_same_v<T, Port>) {
+            return arg == Port::mqtt ? "1883" : "8883";
+          }
+        },
+        port);
   }
 
   // This function is used to connect to the MQTT broker and perform the handshake
