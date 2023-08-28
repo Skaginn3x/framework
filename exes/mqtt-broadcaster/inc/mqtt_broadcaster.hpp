@@ -79,7 +79,9 @@ public:
   explicit mqtt_broadcaster(asio::io_context& io_ctx)
       : io_ctx_(io_ctx), tls_ctx_{ async_mqtt::tls::context::tlsv12 }, ipc_client_{ io_ctx_ },
         mqtt_client_(std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v5, io_ctx.get_executor(), tls_ctx_)),
-        logger_("mqtt_broadcaster"), config_(io_ctx, "mqtt_broadcaster"), network_manager_(), timer_{ io_ctx_ } {}
+        logger_("mqtt_broadcaster"), config_(io_ctx, "mqtt_broadcaster"), network_manager_(), timer_{ io_ctx_ } {
+    std::exit(-1);
+  }
 
   auto run() -> void {
     properties_callback_ = ipc_client_.register_properties_change_callback(
@@ -241,8 +243,28 @@ private:
     tls_ctx_.set_default_verify_paths();
     tls_ctx_.set_verify_mode(async_mqtt::tls::verify_peer);
 
-    asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(config_.value().address, std::to_string(config_.value().port), asio::use_awaitable);
+    asio::ip::tcp::resolver::results_type resolved_ip;
+
+    std::visit(
+        [&](auto&& port) {
+          using T = std::decay_t<decltype(port)>;
+          if constexpr (std::is_same_v<T, uint16_t>) {
+            resolved_ip = co_await res.async_resolve(config_.value().address, std::to_string(config_.value().port),
+                                                     asio::use_awaitable);
+          } else if constexpr (std::is_same_v<T, Port>) {
+            switch (port) {
+              case Port::mqtt: {
+                resolved_ip = co_await res.async_resolve(config_.value().address, std::to_string(1883), asio::use_awaitable);
+                break;
+              }
+              case Port::mqtts: {
+                resolved_ip = co_await res.async_resolve(config_.value().address, std::to_string(8883), asio::use_awaitable);
+                break;
+              }
+            }
+          }
+        },
+        config_.value().port);
 
     co_return resolved_ip;
   }

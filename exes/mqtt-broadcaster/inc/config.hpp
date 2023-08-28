@@ -15,10 +15,18 @@ struct signal_defintion {
   };
 };
 
+enum class Port { mqtt, mqtts };
+
+template <>
+struct glz::meta<Port> {
+  using enum Port;
+  static constexpr auto value = enumerate("mqtt", mqtt, "mqtts", mqtts);
+};
+
 // File under /etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json which specifies the connection values for the MQTT broker.
 struct config {
   std::string address{};
-  uint16_t port{};
+  std::variant<Port, uint16_t> port{};
   std::string username{};
   std::string password{};
   std::string node_id{};
@@ -30,7 +38,7 @@ struct config {
     // clang-format off
     static constexpr auto value{ glz::object(
         "address", &config::address, "Hostname or IP address of the MQTT broker",
-        "port", &config::port, "Port or service name of the MQTT broker",
+        "port", &config::port, "Port of the MQTT broker. Possible values are: mqtt, mqtts or a custom port number",
         "username", &config::username, "Username for the MQTT broker",
         "password", &config::password, "Password for the MQTT broker",
         "node_id", &config::node_id, "Spark Plug B Node ID, used to identify which node is sending information",
