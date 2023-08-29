@@ -5,7 +5,7 @@ import React, {
   CSSProperties, FocusEventHandler, KeyboardEventHandler, MouseEventHandler,
 } from 'react';
 import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
+// import InputAdornment from '@mui/material/InputAdornment';
 import { InputProps } from '@mui/material/Input';
 import {
   FormControl, InputLabel, MenuItem, Select, Tooltip,
@@ -41,11 +41,11 @@ export interface UnitWidgetBaseProps {
 
 export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
   storeKeys, schema, onChange,
-  valid, errors, style,
+  style,
   onClick, onFocus, onBlur, onKeyUp, onKeyDown,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   inputProps = {}, InputProps = {}, inputRef: customInputRef,
-  widgets, steps = 'any',
+  steps = 'any',
 }: P & UnitWidgetBaseProps & WithValue): React.ReactElement {
   // const { addAlert } = useAlertContext();
   const uid = useUID();
@@ -61,9 +61,11 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   function getNestedValue(obj: any, keys: Array<any>): any {
     let currentValue = obj;
     for (let i = 0; i < keys.length; i += 1) {
+      console.log('keys:', keys, 'index:', i);
+      console.log('currentValue:', currentValue);
       let key = keys[i];
-      if (keys.includes('nominal_motor_power')) {
-        console.log('SOMETYHING', key, currentValue);
+      if (currentValue === null) {
+        currentValue = (typeof keys[i + 1] === 'number') ? [] : {};
       }
       if (currentValue[key] === undefined) {
         // If the key doesn't exist, determine what default value to set based on the next key
@@ -74,18 +76,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           currentValue[key] = undefined;
         }
       }
-      console.log('current is :', currentValue[key]);
       currentValue = currentValue[key];
     }
     return currentValue;
   }
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
-  console.log('--------------------------');
-  console.log('schemaaa:', schema.toJS());
-  console.log('storeKeys:', storeKeys.toJS());
-  console.log('storeValues:', storeValues);
-  console.log('storeValue!:', storeValue);
   initialDimension = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].dimension : undefined;
   const initialUnit = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].unit : 'NoUnit';
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
@@ -132,22 +128,22 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   };
 
   const hideTitle = schema.getIn(['view', 'hideTitle']);
-  const InfoRenderer = widgets?.InfoRenderer;
-  if (InfoRenderer && schema?.get('info')) {
-    // eslint-disable-next-line no-param-reassign
-    InputProps.endAdornment = (
-      <InputAdornment position="end">
-        <InfoRenderer
-          schema={schema}
-          variant="icon"
-          openAs="modal"
-          storeKeys={storeKeys}
-          valid={valid}
-          errors={errors}
-        />
-      </InputAdornment>
-    );
-  }
+  // const InfoRenderer = widgets?.InfoRenderer;
+  // if (InfoRenderer && schema?.get('info')) {
+  //   // eslint-disable-next-line no-param-reassign
+  //   InputProps.endAdornment = (
+  //     <InputAdornment position="end">
+  //       <InfoRenderer
+  //         schema={schema}
+  //         variant="icon"
+  //         openAs="modal"
+  //         storeKeys={storeKeys}
+  //         valid={valid}
+  //         errors={errors}
+  //       />
+  //     </InputAdornment>
+  //   );
+  // }
 
   const schemaType = schema.get('type') as string | undefined;
   const newInputProps = React.useMemo(() => {

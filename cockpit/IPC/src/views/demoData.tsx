@@ -390,3 +390,71 @@ export function newDemoSchema2(): any {
     },
   };
 }
+
+export function VariantSchema(): any {
+  return {
+    type: ['object'],
+    properties: {
+      a_int: {
+        $ref: '#/$defs/int32_t',
+        description: 'A int description',
+      },
+      variant: {
+        $ref: '#/$defs/std::variant<std::monostate,option_1,option_2>',
+        description: 'variant description',
+      },
+    },
+    additionalProperties: false,
+    $defs: {
+      int32_t: { type: ['integer'] },
+      'std::string': { type: ['string'] },
+      'std::variant<std::monostate,option_1,option_2>': {
+        type: ['number', 'string', 'boolean', 'object', 'array', 'null'],
+        oneOf: [
+          { type: ['null'], title: 'std::monostate' },
+          {
+            type: ['object'],
+            title: 'option 1',
+            properties: {
+              amper: {
+                $ref: '#/$defs/units::quantity<electric_current,dA,uint16_t>',
+                description: 'amper description',
+              },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: ['object'],
+            title: 'option 2',
+            properties: {
+              a: {
+                $ref: '#/$defs/std::string',
+                description: 'A description',
+              },
+              sec: {
+                $ref: '#/$defs/tfc::observable<std::chrono::duration<glz::unknown,std::nano>>',
+                description: 'sec description',
+              },
+            },
+            additionalProperties: false,
+          },
+        ],
+      },
+      'tfc::observable<std::chrono::duration<glz::unknown,std::nano>>': {
+        type: ['integer'],
+        'x-tfc': {
+          unit: 'ns', dimension: 'time', ratio: { numerator: 1, denominator: 1000000000 }, required: true,
+        },
+      },
+      'units::quantity<electric_current,dA,uint16_t>': {
+        type: ['integer'],
+        'x-tfc': {
+          unit: 'dA', dimension: 'electric_current', ratio: { numerator: 1, denominator: 10 }, required: true,
+        },
+      },
+    },
+  };
+}
+export function VariantData(): any {
+  return { a_int: 0, variant: { sec: 22 } };
+}

@@ -23,6 +23,7 @@ import Immutable from 'immutable';
 import { Button } from '@patternfly/react-core';
 import { UnitWidget } from 'src/Components/Form/UnitsWidget';
 import { WidgetProps as BaseWidgetProps } from '@ui-schema/ui-schema/Widget';
+import { VariantWidget } from './VariantWidget';
 
 const GridStack = injectPluginStack(GridContainer);
 
@@ -45,6 +46,7 @@ export default function FormGenerator(
     custom: {
       ...widgets.custom,
       Units: UnitWidget as React.FunctionComponent<ExtendedWidgetProps>,
+      Variant: VariantWidget as React.FunctionComponent<ExtendedWidgetProps>,
     } as CustomWidgetBinding,
   };
 
@@ -76,6 +78,8 @@ export default function FormGenerator(
 
         if ('enum' in json[key]) {
           json[key].widget = 'Select';
+        } else if ('oneOf' in json[key]) {
+          json[key].widget = 'Variant';
         } else if (['integer', 'number'].includes(json[key].type)) {
           json[key].widget = 'Units';
         } else if (json[key].type === 'string') {

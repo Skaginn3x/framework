@@ -8,6 +8,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import {
+  VariantData,
+  VariantSchema,
   demoUiData3,
   demoUiSchema3,
   newDemoData1, newDemoSchema1, newDemoSchema2,
@@ -32,6 +34,7 @@ export default function Configurator() {
         config: [{ amper: 256, a_int: 128 }, { amper: 512, a_int: 256 }, { amper: 1024, a_int: 512 }],
       },
       arrayTest2: demoUiData3(),
+      variant: VariantData(),
     },
   );
   const [schemas, setSchemas] = useState<any>(
@@ -40,6 +43,7 @@ export default function Configurator() {
       brandNew: newDemoSchema1(),
       arrayTest: newDemoSchema2(),
       arrayTest2: demoUiSchema3(),
+      variant: VariantSchema(),
     },
   );
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
