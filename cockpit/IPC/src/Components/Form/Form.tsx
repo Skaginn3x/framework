@@ -86,7 +86,9 @@ export default function FormGenerator(
           json[key].widget = 'Select';
         } else if ('oneOf' in json[key]) {
           json[key].widget = 'Variant';
-        } else if (['integer', 'number'].includes(json[key].type)) {
+        } else if (
+          (!Array.isArray(json[key].type) && ['integer', 'number'].includes(json[key].type))
+          || (Array.isArray(json[key].type) && (json[key].type.includes('integer') || json[key].type.includes('number')))) {
           json[key].widget = 'Units';
         } else if (json[key].type === 'string') {
           json[key].widget = 'Text';

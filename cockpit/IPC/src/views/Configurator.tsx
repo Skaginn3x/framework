@@ -10,9 +10,9 @@ import './Configurator.css';
 import {
   VariantData,
   VariantSchema,
-  demoUiData3,
-  demoUiSchema3,
-  newDemoData1, newDemoSchema1, newDemoSchema2,
+  ATVDemoData,
+  ATVDemoSchema,
+  newDemoData1, newDemoSchema1, ArrayTestSchema,
 } from './demoData';
 import FormGenerator from '../Components/Form/Form';
 import { useAlertContext } from '../Components/Alert/AlertContext';
@@ -28,21 +28,19 @@ export default function Configurator() {
 
   const [formData, setFormData] = useState<any>(
     { // Demo Data, remove when done
-      // atvDemo: { config: demoUiData3() },
       brandNew: newDemoData1(),
       arrayTest: {
         config: [{ amper: 256, a_int: 128 }, { amper: 512, a_int: 256 }, { amper: 1024, a_int: 512 }],
       },
-      arrayTest2: demoUiData3(),
+      ATVDemo: ATVDemoData(),
       variant: VariantData(),
     },
   );
   const [schemas, setSchemas] = useState<any>(
     { // Demo Schemas, remove when done
-      // atvDemo: demoUiSchema3(),
       brandNew: newDemoSchema1(),
-      arrayTest: newDemoSchema2(),
-      arrayTest2: demoUiSchema3(),
+      arrayTest: ArrayTestSchema(),
+      ATVDemo: ATVDemoSchema(),
       variant: VariantSchema(),
     },
   );

@@ -32,7 +32,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const inputRef = customInputRef || useRef();
 
-  console.log('VariantSchema: ', schema.toJS());
   const storeValues = store!.toJS().values || {};
 
   /**
@@ -66,7 +65,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       return null;
     }
     const oneOfJS = oneOf.toJS();
-    console.log('aaaaaaaaa', oneOfJS, selected);
 
     // Look through each oneOf object to find key under properties.
     for (let i = 0; i < oneOfJS.length; i += 1) {
@@ -91,7 +89,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
     // if schema is invalid
     if (!oneOf || oneOf.toJS().length === 0) {
-      console.log('FAILURE', oneOf.toJS(), vals);
+      console.error('Cannot find selected object.');
       return null;
     }
     const oneOfJS = oneOf.toJS();
@@ -108,13 +106,10 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
-  console.log('storeValuez: ', storeValue);
-  console.log('findSelectedTitle: ', findSelectedTitle(oneOfSchema, storeValue));
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
-    console.log('type: ', type);
 
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({

@@ -61,7 +61,7 @@ export function demoUiSchema(): any {
             if: {
               properties: {
                 variant: {
-                  type: 'string',
+                  type: ['string'],
                   const: 'Option 1',
                 },
               },
@@ -79,7 +79,7 @@ export function demoUiSchema(): any {
             if: {
               properties: {
                 variant: {
-                  type: 'string',
+                  type: ['string'],
                   const: 'Option 2',
                 },
               },
@@ -130,7 +130,7 @@ export function demoUiSchema2(): any {
   };
 }
 
-export function demoUiData3(): any {
+export function ATVDemoData(): any {
   return {
     config: {
       nominal_motor_power: 0,
@@ -149,7 +149,7 @@ export function demoUiData3(): any {
   };
 }
 
-export function demoUiSchema3(): any {
+export function ATVDemoSchema(): any {
   return {
     type: ['object'],
     properties: { config: { $ref: '#/$defs/tfc::observable<atv320>' } },
@@ -338,7 +338,7 @@ export function newDemoData1(): any {
   };
 }
 
-export function newDemoSchema2(): any {
+export function ArrayTestSchema(): any {
   return {
     type: ['object'],
     properties: {
