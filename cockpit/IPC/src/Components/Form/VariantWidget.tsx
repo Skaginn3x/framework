@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-one-expression-per-line */
 /* eslint-disable react/require-default-props */
 import React, {
   CSSProperties, useState, useRef,
@@ -25,17 +26,21 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   storeKeys, schema, onChange,
   style, inputProps = {}, inputRef: customInputRef, level,
 }: P & VariantWidgetBaseProps & WithValue): React.ReactElement {
-  // const { addAlert } = useAlertContext();
   const uid = useUID();
   const { store } = useUIStore();
+  // VV  Might cause errors, need to look into VV
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const inputRef = customInputRef || useRef();
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  // const inputRef = customInputRef || React.useRef();
-
   console.log('VariantSchema: ', schema.toJS());
   const storeValues = store!.toJS().values || {};
+
+  /**
+   * Uses StoreKeys to navigate store and returns appropriate data.
+   * @param obj Store
+   * @param keys StoreKeys (as List)
+   * @returns CurentStore (as JSON)
+   */
   function getNestedValue(obj: any, keys: Array<any>): any {
     let currentValue = obj;
     for (let i = 0; i < keys.length; i += 1) {
@@ -52,6 +57,24 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       currentValue = currentValue[key];
     }
     return currentValue;
+  }
+
+  function getType(oneOf:any, selected:any): String | String[] | null {
+    if (!selected) { return null; }
+    // if schema is invalid
+    if (!oneOf || oneOf.toJS().length === 0) {
+      return null;
+    }
+    const oneOfJS = oneOf.toJS();
+    console.log('aaaaaaaaa', oneOfJS, selected);
+
+    // Look through each oneOf object to find key under properties.
+    for (let i = 0; i < oneOfJS.length; i += 1) {
+      if (oneOfJS[i] && oneOfJS[i].type && oneOfJS[i].title === selected) {
+        return oneOfJS[i].type;
+      }
+    }
+    return null;
   }
 
   /**
@@ -90,21 +113,38 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
 
   const handleSelectChange = (event: SelectChangeEvent) => {
-    onChange({
-      storeKeys,
-      scopes: ['value'],
-      type: 'set',
-      schema,
-      required,
-      data: { },
-    });
+    const type = getType(oneOfSchema, event.target.value);
+    console.log('type: ', type);
+
+    if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
+      onChange({
+        storeKeys,
+        scopes: ['value'],
+        type: 'set',
+        schema,
+        required,
+        data: { value: { internal_null_value_do_not_use: null } },
+      });
+    } else {
+      onChange({
+        storeKeys,
+        scopes: ['value'],
+        type: 'set',
+        schema,
+        required,
+        data: { },
+      });
+    }
     setSelectedTitle(event.target.value as string);
   };
 
+  /**
+   * Renders the appropriate schema depending on selection
+   * @param title Title of selected oneOf object
+   * @returns Nested schema render
+   */
   const renderSelectedObject = (title: string | null) => {
     const selectedObject = oneOfSchema.find((item: any) => item.get('title') === title);
-    // You can render the selected object here
-    // For demonstration, I'm just converting it to JSON string
     return (
       <PluginStack
         schema={selectedObject}
@@ -113,7 +153,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         level={level + 1}
       />
     );
-    return <pre>{JSON.stringify(selectedObject, null, 2)}</pre>;
   };
 
   const textStyle = {
@@ -124,7 +163,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   return (
     <>
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
-        <InputLabel>Choose Variant</InputLabel>
+        <InputLabel>Choose Variant</InputLabel> {/* Might want to change to actual title */}
         <Select
           value={selectedTitle || ''}
           onChange={handleSelectChange}
@@ -154,41 +193,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       </FormControl>
 
       {renderSelectedObject(selectedTitle)}
-
-      {/* <Tooltip title={schema.get('description') as string} placement="top" disableInteractive>
-        <TextField
-          label={hideTitle ? undefined : <TransTitle schema={schema} storeKeys={storeKeys} />}
-          aria-label={hideTitle ? <TransTitle schema={schema} storeKeys={storeKeys} /> as unknown as string : undefined}
-          // changing `type` to `text`, to be able to change invalid data
-          type="string"
-          disabled={schema.get('readOnly') as boolean | undefined}
-          multiline={false}
-          required={required}
-          error={required && (value === undefined || value === '')}
-          minRows={1}
-          maxRows={1}
-          inputRef={inputRef}
-          fullWidth
-          variant={schema.getIn(['view', 'variant']) as any}
-          margin={schema.getIn(['view', 'margin']) as InputProps['margin']}
-          size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
-          value={value}
-          onClick={onClick}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          onKeyUp={onKeyUp}
-          id={`uis-${uid}`}
-          style={textStyle}
-          onKeyDown={(e) => {
-            if (onKeyDown) { onKeyDown(e); }
-          }}
-          onChange={handleChange}
-          InputLabelProps={{ shrink: schema.getIn(['view', 'shrink']) as boolean }}
-          InputProps={InputProps}
-          // eslint-disable-next-line react/jsx-no-duplicate-props
-          inputProps={newInputProps}
-        />
-      </Tooltip> */}
 
       {/* {required && (value === undefined || value === '')
         ? <h2 className="RequiredText">Required</h2>

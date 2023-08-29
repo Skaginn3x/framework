@@ -16,7 +16,7 @@ import { createOrderedMap } from '@ui-schema/ui-schema/Utils/createMap';
 import { relTranslator } from '@ui-schema/ui-schema/Translate/relT';
 
 // import the widgets for your design-system.
-import { GenericList, MuiWidgetBinding, widgets } from '@ui-schema/ds-material';
+import { MuiWidgetBinding, widgets } from '@ui-schema/ds-material';
 import { injectPluginStack } from '@ui-schema/ui-schema';
 import { GridContainer } from '@ui-schema/ds-material/GridContainer';
 import Immutable from 'immutable';
@@ -50,6 +50,12 @@ export default function FormGenerator(
     } as CustomWidgetBinding,
   };
 
+  /**
+   *  Parses JSON to select the appropriate widget.
+   *  Makes use of custom widgets Units and Variant
+   * @param json Schema
+   * @returns Parsed Schema with widgets added
+   */
   function parseJson(json: JsonType): JsonType {
     if (json.type instanceof Array && json.type.length === 1) {
       // eslint-disable-next-line prefer-destructuring
@@ -71,7 +77,7 @@ export default function FormGenerator(
         }
 
         // Unwrap single-item 'type' arrays
-        if (json[key].type instanceof Array && json[key].type.length > 0) {
+        if (json[key].type instanceof Array && json[key].type.length === 1) {
           // eslint-disable-next-line prefer-destructuring
           json[key].type = json[key].type[0];
         }
@@ -93,7 +99,6 @@ export default function FormGenerator(
         parseJson(json[key]);
       }
     }
-    console.log('parsed schema: ', json);
     return json;
   }
 
@@ -101,17 +106,8 @@ export default function FormGenerator(
   const [store, setStore] = React.useState(createStore(createOrderedMap(values)));
 
   const onInternalChange = React.useCallback((actions: any) => {
-    console.log('actions: ', actions);
     setStore(storeUpdater(actions));
   }, [setStore]);
-
-  React.useEffect(() => {
-    console.log('data: ', store.toJS().values);
-  }, [store]);
-
-  React.useEffect(() => {
-    console.log('schema: ', schema.toJS());
-  }, [schema]);
 
   return (
     <UIMetaProvider

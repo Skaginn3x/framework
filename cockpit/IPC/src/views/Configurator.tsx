@@ -63,9 +63,12 @@ export default function Configurator() {
       const proxy = dbus.proxy();
       proxy.wait().then(() => {
         proxy.call('ListNames').then((Allnames: any[]) => {
-          // if name includes config, get interfaces (discard ipc_ruler)
-          console.log('names: ', Allnames[0].filter((name: string) => name.includes('config') && !name.includes('ipc_ruler')));
-          setNames(Allnames[0].filter((name: string) => name.includes('config') && !name.includes('ipc_ruler')));
+          // if name includes config, get interfaces (discard ipc_ruler and _filters_)
+          setNames(
+            Allnames[0].filter((name: string) => name.includes('config')
+            && !name.includes('ipc_ruler')
+            && !name.includes('_filters_')),
+          );
         });
       });
     };
@@ -117,6 +120,21 @@ export default function Configurator() {
     }
   }, [names]);
 
+  function handleNullValue(data: any) {
+    // go through data and find if there is a internal_null_value_do_not_use: { null }
+    // if found, remove the value part and make it null.
+    // Couldnt get UI-Schema to accept null as a vlaue
+    Object.keys(data).forEach((key) => {
+      if (!data[key] && typeof data[key] !== 'object') { return; }
+      if (!Object.keys(data[key]).includes('internal_null_value_do_not_use')) {
+        handleNullValue(data[key]);
+      } else if (Object.keys(data[key]).includes('internal_null_value_do_not_use') && data[key].internal_null_value_do_not_use === null) {
+        // eslint-disable-next-line no-param-reassign
+        data[key] = null;
+      }
+    });
+  }
+
   /**
    * Update form data and dbus property config
    * @param name string
@@ -129,6 +147,8 @@ export default function Configurator() {
       // eslint-disable-next-line no-param-reassign
       newData = newData.config;
     }
+    // eslint-disable-next-line no-param-reassign
+    handleNullValue(newData);
     setFormData((prevState: any) => ({
       ...prevState,
       [name]: newData,
