@@ -38,7 +38,7 @@ enum struct type_e : std::uint8_t {
   lambda,
 };
 
-template <type_e type, typename value_t, typename ...>
+template <type_e type, typename value_t, typename...>
 struct filter;
 
 template <>
@@ -67,7 +67,7 @@ struct filter<type_e::invert, bool> {
   };
 };
 
-template <typename clock_type> // default std::chrono::steady_clock
+template <typename clock_type>  // default std::chrono::steady_clock
 struct filter<type_e::timer, bool, clock_type> {
   using value_t = bool;
   std::chrono::milliseconds time_on{ 0 };
@@ -180,8 +180,9 @@ struct any_filter_decl;
 template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
-  using type =
-      std::variant<filter<type_e::invert, value_t>, filter<type_e::timer, value_t, std::chrono::steady_clock>, filter<type_e::filter_out, value_t>>;
+  using type = std::variant<filter<type_e::invert, value_t>,
+                            filter<type_e::timer, value_t, std::chrono::steady_clock>,
+                            filter<type_e::filter_out, value_t>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
@@ -239,8 +240,7 @@ public:
           }
           if (return_val.has_value()) {
             std::invoke(callback_, return_val.value());
-          }
-          else {
+          } else {
             // todo log. I have now forgotten the original value/s
           }
         });

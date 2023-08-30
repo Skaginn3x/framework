@@ -57,10 +57,11 @@ auto main(int, char**) -> int {
           co_await mini_test(false);
           finished = true;
           co_return;  //
-        }, asio::detached);
-    ctx.run_one_for(std::chrono::seconds{1}); // co_spawn
-    ctx.run_one_for(std::chrono::seconds{1}); // timer event 1
-    ctx.run_one_for(std::chrono::seconds{1}); // timer event 2
+        },
+        asio::detached);
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 2
     expect(finished);
   };
 
@@ -70,17 +71,18 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&finished]() -> asio::awaitable<void> {
-          filter<type_e::timer, bool, tfc::testing::clock> timer_test{.time_on = std::chrono::milliseconds{ 1 }};
-          timer_test.async_process(test_value, [&finished](auto&& return_value){
+          filter<type_e::timer, bool, tfc::testing::clock> timer_test{ .time_on = std::chrono::milliseconds{ 1 } };
+          timer_test.async_process(test_value, [&finished](auto&& return_value) {
             expect(return_value.has_value() >> fatal);
             expect(return_value.value() == test_value);
             finished = true;
           });
           co_return;  //
-        }, asio::detached);
-    ctx.run_one_for(std::chrono::seconds{1}); // co_spawn
-    ctx.run_one_for(std::chrono::seconds{1}); // timer event 1
-    ctx.run_one_for(std::chrono::seconds{1}); // timer event 2
+        },
+        asio::detached);
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 2
     expect(finished);
   };
 
