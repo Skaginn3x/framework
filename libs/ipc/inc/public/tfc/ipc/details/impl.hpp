@@ -142,10 +142,12 @@ public:
         token, socket_);
   }
 
+  auto get_name() -> std::string { return name_; }
+
 private:
   signal(asio::io_context& ctx, std::string_view name)
       : transmission_base<type_desc>(name), last_value_(), timer_(ctx), socket_(ctx),
-        socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)) {}
+        socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)), name_(name) {}
 
   auto init() -> std::error_code {
     boost::system::error_code error_code;
@@ -193,6 +195,7 @@ private:
   boost::asio::steady_timer timer_;
   azmq::pub_socket socket_;
   azmq::socket socket_monitor_;
+  std::string name_;
 };
 
 /**@brief slot
