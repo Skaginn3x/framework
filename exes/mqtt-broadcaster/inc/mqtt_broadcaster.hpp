@@ -62,7 +62,7 @@ struct signal_data {
 
 struct scada_signal {
   tfc::ipc::any_signal signal;
-  signal_defintion definition;
+  mqtt::signal_defintion definition;
 };
 
 template <class ipc_client_type, class mqtt_client_type, class config_type, class network_manager_type>
@@ -102,32 +102,32 @@ private:
           using enum tfc::ipc::details::type_e;
           case _bool: {
             scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       signal_defintion{ "mqtt-broadcaster/def/bool/" + sig.name, sig.type });
+                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/bool/" + sig.name, sig.type });
             break;
           }
           case _double_t: {
             scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       signal_defintion{ "mqtt-broadcaster/def/double/" + sig.name, sig.type });
+                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/double/" + sig.name, sig.type });
             break;
           }
           case _int64_t: {
             scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       signal_defintion{ "mqtt-broadcaster/def/int64_t/" + sig.name, sig.type });
+                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/int64_t/" + sig.name, sig.type });
             break;
           }
           case _json: {
             scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       signal_defintion{ "mqtt-broadcaster/def/json/" + sig.name, sig.type });
+                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/json/" + sig.name, sig.type });
             break;
           }
           case _string: {
             scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       signal_defintion{ "mqtt-broadcaster/def/string/" + sig.name, sig.type });
+                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/string/" + sig.name, sig.type });
             break;
           }
           case _uint64_t: {
             scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       signal_defintion{ "mqtt-broadcaster/def/uint64_t/" + sig.name, sig.type });
+                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/uint64_t/" + sig.name, sig.type });
             break;
           }
           case unknown: {
@@ -248,14 +248,14 @@ private:
     co_return resolved_ip;
   }
 
-  std::string port_to_string(const std::variant<Port, uint16_t>& port) {
+  std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
     return std::visit(
         [](auto&& arg) -> std::string {
           using T = std::decay_t<decltype(arg)>;
           if constexpr (std::is_same_v<T, uint16_t>) {
             return std::to_string(arg);
-          } else if constexpr (std::is_same_v<T, Port>) {
-            return arg == Port::mqtt ? "1883" : "8883";
+          } else if constexpr (std::is_same_v<T, mqtt::port_e>) {
+            return arg == mqtt::port_e::mqtt ? "1883" : "8883";
           }
         },
         port);
@@ -441,7 +441,7 @@ private:
         } else if (metric.has_float_value()) {
           send_value_on_signal(metric.name(), metric.float_value());
         } else if (metric.has_int_value()) {
-          send_value_on_signal(metric.name(), metric.int_value());
+          send_value_on_signal(metric.name(), static_cast<uint64_t>(metric.int_value()));
         } else if (metric.has_long_value()) {
           send_value_on_signal(metric.name(), metric.long_value());
         } else if (metric.has_string_value()) {
@@ -459,43 +459,23 @@ private:
     }
   }
 
-  auto send_value_on_signal(std::string signal_name,
-                            std::variant<bool, double, std::string, int64_t, uint64_t, uint32_t> value) -> void {
+  auto send_value_on_signal(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value)
+      -> void {
     for (auto& sig : scada_signals) {
-      if (sig.definition.name == signal_name) {
-        std::visit(
-            [&value](auto&& signal) -> void {
+      std::visit(
+          [&value, &signal_name](auto&& signal) -> void {
+            if (signal_name.ends_with(signal.get_name())) {
               using signal_t = std::remove_cvref_t<decltype(signal)>;
+              using value_t = typename signal_t::value_t;
 
-              if constexpr (std::is_same_v<signal_t, tfc::ipc::bool_signal>) {
-                if (std::holds_alternative<bool>(value)) {
-                  signal.send(std::get<bool>(value));
-                }
-              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::double_signal>) {
-                if (std::holds_alternative<double>(value)) {
-                  signal.send(std::get<double>(value));
-                }
-              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::string_signal>) {
-                if (std::holds_alternative<std::string>(value)) {
-                  signal.send(std::get<std::string>(value));
-                }
-                // Spark Plug B treats int as uint64_t
-              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::int_signal>) {
-                if (std::holds_alternative<uint64_t>(value)) {
-                  signal.send(std::get<uint64_t>(value));
-                }
-              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::uint_signal>) {
-                if (std::holds_alternative<uint64_t>(value)) {
-                  signal.send(std::get<uint64_t>(value));
-                }
-              } else if constexpr (std::is_same_v<signal_t, tfc::ipc::json_signal>) {
-                if (std::holds_alternative<std::string>(value)) {
-                  signal.send(std::get<std::string>(value));
-                }
+              if constexpr (std::is_same_v<value_t, int64_t>) {
+                signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
+              } else {
+                signal.send(std::get<value_t>(value));
               }
-            },
-            sig.signal);
-      }
+            }
+          },
+          sig.signal);
     }
   }
 

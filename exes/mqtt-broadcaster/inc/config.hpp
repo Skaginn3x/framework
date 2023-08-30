@@ -2,10 +2,13 @@
 
 #include <tfc/confman.hpp>
 
+namespace tfc::mqtt {
+
 struct signal_defintion {
   std::string name{};
-  tfc::ipc::details::type_e type{};
+  tfc::ipc::details::type_e type{ tfc::ipc::details::type_e::unknown };
   struct glaze {
+    static constexpr auto name{ "tfc::mqtt::signal_definition" };
     // clang-format off
         static constexpr auto value{ glz::object(
           "name", &signal_defintion::name,
@@ -15,18 +18,12 @@ struct signal_defintion {
   };
 };
 
-enum class Port { mqtt, mqtts };
-
-template <>
-struct glz::meta<Port> {
-  using enum Port;
-  static constexpr auto value = enumerate("mqtt", mqtt, "mqtts", mqtts);
-};
+enum struct port_e : std::uint16_t { mqtt = 1883, mqtts = 8883 };
 
 // File under /etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json which specifies the connection values for the MQTT broker.
 struct config {
   std::string address{};
-  std::variant<Port, uint16_t> port{};
+  std::variant<port_e, uint16_t> port{};
   std::string username{};
   std::string password{};
   std::string node_id{};
@@ -49,4 +46,11 @@ struct config {
     // clang-format on
     static constexpr auto name{ "mqtt_broadcaster" };
   };
+};
+}  // namespace tfc::mqtt
+
+template <>
+struct glz::meta<tfc::mqtt::port_e> {
+  using enum tfc::mqtt::port_e;
+  static constexpr auto value = enumerate("mqtt", mqtt, "mqtts", mqtts);
 };
