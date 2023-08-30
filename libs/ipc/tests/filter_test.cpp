@@ -3,6 +3,7 @@
 
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
+#include <tfc/testing/asio_clock.hpp>
 
 #include <fmt/chrono.h>
 #include <fmt/core.h>
@@ -39,19 +40,49 @@ auto main(int, char**) -> int {
     ctx.run_one();
   };
 
-  "filter edge timer"_test = []() {
+  "happy path filter edge timer"_test = []() {
     asio::io_context ctx{};
+    bool finished{ false };
     asio::co_spawn(
         ctx,
-        []() -> asio::awaitable<void> {
-          filter<type_e::timer, bool> timer_test{};
-          auto return_value = co_await timer_test.async_process(true, asio::use_awaitable);
-          expect(return_value.has_value() >> fatal);
-
+        [&finished]() -> asio::awaitable<void> {
+          auto constexpr mini_test{ [](bool test_value) -> asio::awaitable<void> {
+            filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
+            auto return_value = co_await timer_test.async_process(test_value, asio::use_awaitable);
+            expect(return_value.has_value() >> fatal);
+            expect(return_value.value() == test_value);
+            co_return;
+          } };
+          co_await mini_test(true);
+          co_await mini_test(false);
+          finished = true;
           co_return;  //
-        },
-        asio::detached);
-    ctx.run_one();
+        }, asio::detached);
+    ctx.run_one_for(std::chrono::seconds{1}); // co_spawn
+    ctx.run_one_for(std::chrono::seconds{1}); // timer event 1
+    ctx.run_one_for(std::chrono::seconds{1}); // timer event 2
+    expect(finished);
   };
+
+  "filter edge timer cancels"_test = []() {
+    asio::io_context ctx{};
+    bool finished{ false };
+    asio::co_spawn(
+        ctx,
+        [&finished]() -> asio::awaitable<void> {
+          filter<type_e::timer, bool, tfc::testing::clock> timer_test{.time_on = std::chrono::milliseconds{ 1 }};
+          timer_test.async_process(test_value, [&finished](auto&& return_value){
+            expect(return_value.has_value() >> fatal);
+            expect(return_value.value() == test_value);
+            finished = true;
+          });
+          co_return;  //
+        }, asio::detached);
+    ctx.run_one_for(std::chrono::seconds{1}); // co_spawn
+    ctx.run_one_for(std::chrono::seconds{1}); // timer event 1
+    ctx.run_one_for(std::chrono::seconds{1}); // timer event 2
+    expect(finished);
+  };
+
   return 0;
 }
