@@ -238,16 +238,7 @@ private:
   }
 
   std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
-    return std::visit(
-        [](auto&& arg) -> std::string {
-          using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, uint16_t>) {
-            return std::to_string(arg);
-          } else if constexpr (std::is_same_v<T, mqtt::port_e>) {
-            return arg == mqtt::port_e::mqtt ? "1883" : "8883";
-          }
-        },
-        port);
+    return std::visit([](auto&& arg) -> std::string { return std::to_string(static_cast<uint16_t>(arg)); }, port);
   }
 
   // This function is used to connect to the MQTT broker and perform the handshake
