@@ -126,7 +126,7 @@ private:
 
 struct SparkplugBConfig {
   std::string address;
-  std::variant<Port, uint16_t> port;
+  std::variant<tfc::mqtt::port_e, uint16_t> port;
   std::string username;
   std::string password;
   std::string node_id;
