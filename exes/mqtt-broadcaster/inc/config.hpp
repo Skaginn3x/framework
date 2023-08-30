@@ -43,7 +43,7 @@ struct config {
         "node_id", &config::node_id, "Spark Plug B Node ID, used to identify which node is sending information",
         "group_id", &config::group_id, "Spark Plug B Group ID, used to identify which group the node belongs to",
         "client_id", &config::client_id, "Spark Plug B Client ID, used to identify which client is sending information",
-        "scada_signals", &config::scada_signals, "Array of signals that SCADA can write to, each signal is a tuple of (signal name, signal type). Allowed types are: bool, double, int64_t, json, string, uint64_t"
+        "scada_signals", &config::scada_signals, "Array of signals that SCADA can write to"
       ) };
     // clang-format on
     static constexpr auto name{ "mqtt_broadcaster" };
