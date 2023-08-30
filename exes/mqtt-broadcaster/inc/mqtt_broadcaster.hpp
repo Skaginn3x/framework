@@ -60,11 +60,6 @@ struct signal_data {
   std::optional<std::any> current_value;
 };
 
-struct scada_signal {
-  tfc::ipc::any_signal signal;
-  mqtt::signal_defintion definition;
-};
-
 template <class ipc_client_type, class mqtt_client_type, class config_type, class network_manager_type>
 class mqtt_broadcaster {
 public:
@@ -101,33 +96,27 @@ private:
         switch (sig.type) {
           using enum tfc::ipc::details::type_e;
           case _bool: {
-            scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/bool/" + sig.name, sig.type });
+            scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, "" });
             break;
           }
           case _double_t: {
-            scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/double/" + sig.name, sig.type });
+            scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, "" });
             break;
           }
           case _int64_t: {
-            scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/int64_t/" + sig.name, sig.type });
+            scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, "" });
             break;
           }
           case _json: {
-            scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/json/" + sig.name, sig.type });
+            scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, "" });
             break;
           }
           case _string: {
-            scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/string/" + sig.name, sig.type });
+            scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, "" });
             break;
           }
           case _uint64_t: {
-            scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, "" },
-                                       mqtt::signal_defintion{ "mqtt-broadcaster/def/uint64_t/" + sig.name, sig.type });
+            scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, "" });
             break;
           }
           case unknown: {
@@ -475,7 +464,7 @@ private:
               }
             }
           },
-          sig.signal);
+          sig);
     }
   }
 
@@ -756,7 +745,7 @@ private:
 
   asio::cancellation_signal cancel_signal_;
 
-  std::vector<scada_signal> scada_signals;
+  std::vector<tfc::ipc::any_signal> scada_signals;
 
   friend class testing_mqtt_broadcaster;
 };

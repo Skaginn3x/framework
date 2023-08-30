@@ -115,7 +115,7 @@ public:
     return signal_->async_send(value, std::forward<decltype(token)>(token));
   }
 
-  auto get_name() -> std::string { return signal_->get_name();}
+  auto get_name() -> std::string { return signal_->get_name(); }
 
 private:
   static constexpr std::string_view self_name{ signal_tag };
