@@ -2,6 +2,7 @@
  * Read signal and slots property from ipc_ruler and print it out
  */
 #include <fmt/format.h>
+#include <iostream>
 #include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 

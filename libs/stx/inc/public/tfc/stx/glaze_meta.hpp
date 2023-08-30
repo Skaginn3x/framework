@@ -10,6 +10,7 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::detail {
 template <std::intmax_t num, std::intmax_t den>
@@ -33,25 +34,12 @@ struct glz::meta<std::ratio<num, den>> {
 template <typename rep_t, typename period_t>
 struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
   using type = tfc::detail::duration_hack<rep_t, period_t>;
-  static constexpr std::string_view unit_symbol{ "s" };
-  static constexpr std::string_view unit_ratio{ tfc::detail::make_ratio_symbol<period_t::num, period_t::den>() };
-  static constexpr std::string_view unit{ tfc::stx::string_view_join_v<unit_ratio, unit_symbol> };
-  static constexpr std::string_view dimension{ "time" };
-  static constexpr auto ratio{ period_t{} };
-  static constexpr auto value{ glz::object(
-      "value",
-      &type::rep,
-      "unit",
-      [](auto&&) -> auto const& { return unit; },
-      "dimension",
-      [](auto&&) -> auto const& { return dimension; },
-      "ratio",
-      [](auto&&) -> auto const& { return ratio; }) };
+  static constexpr auto value{ &type::rep };
   static constexpr std::string_view prefix{ "std::chrono::duration<" };
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
   };
 };
 template <typename rep_t, typename period_t>
@@ -60,7 +48,7 @@ struct glz::meta<std::chrono::duration<rep_t, period_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
   };
 };
 
@@ -115,15 +103,44 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
   }
 };
 
+}  // namespace glz::detail
+
+namespace tfc::json::detail {
+template <typename value_t>
+struct to_json_schema;
+
 template <typename rep_t, typename period_t>
 struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
+  [[maybe_unused]] static constexpr std::string_view unit_symbol{ "s" };
+  [[maybe_unused]] static constexpr std::string_view unit_ratio{
+    tfc::detail::make_ratio_symbol<period_t::num, period_t::den>()
+  };
+  static constexpr std::string_view unit{ tfc::stx::string_view_join_v<unit_ratio, unit_symbol> };
   template <auto opts>
   static void op(auto& schema, auto& defs) {
+    auto& data = schema.attributes.tfc_metadata;
+    if (!data.has_value()) {
+      data = tfc::json::schema_meta{};
+    }
+    data->unit = unit;
+    data->dimension = "time";
+    data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = period_t::num, .denominator = period_t::den };
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
-
-}  // namespace glz::detail
+template <typename rep_t>
+struct to_json_schema<std::optional<rep_t>> {
+  template <auto opts>
+  static void op(auto& schema, auto& defs) {
+    auto& data = schema.attributes.tfc_metadata;
+    if (!data.has_value()) {
+      data = tfc::json::schema_meta{};
+    }
+    data->required = false;
+    to_json_schema<rep_t>::template op<opts>(schema, defs);
+  }
+};
+}  // namespace tfc::json::detail
 
 namespace tfc::detail {
 template <std::intmax_t num, std::intmax_t den>
@@ -163,6 +180,8 @@ inline constexpr auto make_ratio_symbol() -> std::string_view {
     return "E";
   } else {
     []<bool flag = false>() {
+      static_assert(1 == num);
+      static_assert(1000 == den);
       static_assert(flag, "Missing ratio symbol, please add it to the list.");
     }
     ();
@@ -204,6 +223,8 @@ static constexpr auto make_name() -> std::string_view {
     return "std::peta";
   } else if constexpr (std::is_same_v<type, std::exa>) {
     return "std::exa";
+  } else if constexpr (num == den) {  // example std::chrono::seconds
+    return "none";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing ratio name, please add it to the list.");

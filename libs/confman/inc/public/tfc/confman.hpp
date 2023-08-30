@@ -10,6 +10,7 @@
 #include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::confman {
 
@@ -80,8 +81,11 @@ public:
       static constexpr auto name{ glz::name_v<to_be_wrapped_t> };
     };
   };
+
   /// \return storage_t json schema
-  [[nodiscard]] auto schema() const -> std::string { return glz::write_json_schema<object_wrapper<config_storage_t>>(); }
+  [[nodiscard]] auto schema() const -> std::string {
+    return tfc::json::write_json_schema<object_wrapper<config_storage_t>>();
+  }
 
   auto set_changed() const noexcept -> std::error_code {
     client_.set(detail::config_property{ .value = string(), .schema = schema() });

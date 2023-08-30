@@ -114,9 +114,6 @@ template <typename value_t>
 struct from_json;
 
 template <typename value_t>
-struct to_json_schema;
-
-template <typename value_t>
 struct from_json<tfc::confman::observable<value_t>> {
   template <auto opts>
   inline static void op(auto& value, auto&&... args) noexcept {
@@ -125,6 +122,12 @@ struct from_json<tfc::confman::observable<value_t>> {
     value.set(std::move(value_copy));  // invoke callback
   }
 };
+}  // namespace glz::detail
+
+namespace tfc::json::detail {
+
+template <typename value_t>
+struct to_json_schema;
 
 template <typename value_t>
 struct to_json_schema<tfc::confman::observable<value_t>> {
@@ -134,4 +137,4 @@ struct to_json_schema<tfc::confman::observable<value_t>> {
   }
 };
 
-}  // namespace glz::detail
+}  // namespace tfc::json::detail
