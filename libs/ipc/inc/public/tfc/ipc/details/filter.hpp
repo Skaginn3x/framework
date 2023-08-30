@@ -1,6 +1,5 @@
 #pragma once
 #include <concepts>
-#include <exception>
 #include <expected>
 #include <vector>
 
@@ -39,7 +38,7 @@ enum struct type_e : std::uint8_t {
   lambda,
 };
 
-template <type_e type, typename value_t>
+template <type_e type, typename value_t, typename ...>
 struct filter;
 
 template <>
@@ -64,16 +63,14 @@ struct filter<type_e::invert, bool> {
   struct glaze {
     using type = filter<type_e::invert, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{
-      glz::object("type", &type::type, "Type of filter", "invert", &type::invert, "Invert outputting value")
-    };
+    static constexpr auto value{ glz::object("invert", &type::invert, "Invert outputting value") };
   };
 };
 
-template <>
-struct filter<type_e::timer, bool> {
+template <typename clock_type> // default std::chrono::steady_clock
+struct filter<type_e::timer, bool, clock_type> {
   using value_t = bool;
-  std::chrono::milliseconds time_on{ 5000 };
+  std::chrono::milliseconds time_on{ 0 };
   std::chrono::milliseconds time_off{ 0 };
   static constexpr type_e type{ type_e::timer };
 
@@ -95,7 +92,7 @@ struct filter<type_e::timer, bool> {
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value, first_call = true](auto& self, std::error_code code = {}) mutable {
           if (code) {
-            fmt::print("TODO DO serious business\n ");
+            // Callee will handle the error code
             self.complete(std::unexpected(code));
             return;
           }
@@ -108,7 +105,7 @@ struct filter<type_e::timer, bool> {
               return;
             }
             auto executor = asio::get_associated_executor(self);
-            timer_ = asio::steady_timer{ executor };
+            timer_ = asio::basic_waitable_timer<clock_type>{ executor };
             if (copy) {
               timer_->expires_from_now(time_on);
             } else {
@@ -124,15 +121,14 @@ struct filter<type_e::timer, bool> {
   }
 
 private:
-  mutable std::optional<asio::steady_timer> timer_{ std::nullopt };
+  mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
 
 public:
   struct glaze {
-    using type = filter<type_e::timer, value_t>;
+    using type = filter<type_e::timer, value_t, clock_type>;
     static constexpr auto name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
-      "type", &type::type, "Type of filter",
       "time_on", &type::time_on, "Rising edge settling delay",
       "time_off", &type::time_off, "Falling edge settling delay"
     ) };
@@ -166,12 +162,9 @@ struct filter<type_e::filter_out, value_t> {
   struct glaze {
     using type = filter<type_e::filter_out, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::filter_out" };
-    static constexpr auto value{ glz::object("type",
-                                             &type::type,
-                                             "Type of filter",
-                                             "filter_out",
-                                             &type::filter_out,
-                                             "If value is equivalent to this `filter_out` it will be ignored") };
+    static constexpr auto value{
+      glz::object("filter_out", &type::filter_out, "If value is equivalent to this `filter_out` it will be ignored")
+    };
   };
 };
 
@@ -188,7 +181,7 @@ template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
   using type =
-      std::variant<filter<type_e::invert, value_t>, filter<type_e::timer, value_t>, filter<type_e::filter_out, value_t>>;
+      std::variant<filter<type_e::invert, value_t>, filter<type_e::timer, value_t, std::chrono::steady_clock>, filter<type_e::filter_out, value_t>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
@@ -228,7 +221,7 @@ public:
     }
     asio::co_spawn(
         ctx_,
-        [this, copy = value] mutable -> asio::awaitable<value_t> {
+        [this, copy = value] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
           for (auto const& filter : filters_.value()) {
             auto return_value = co_await std::visit(
                 [&copy](auto&& arg) -> auto { return arg.async_process(copy, asio::use_awaitable); }, filter);
@@ -240,16 +233,16 @@ public:
           }
           co_return copy;
         },
-        [this](std::exception_ptr const& exception_ptr, value_t return_val) {
-          try {
-            if (exception_ptr) {
-              std::rethrow_exception(exception_ptr);
-            }
-          } catch (exceptions::filter const&) {
-            fmt::print("Value has been forgotten\n");
-            return;
+        [this](std::exception_ptr const& exception_ptr, std::expected<value_t, std::error_code> return_val) {
+          if (exception_ptr) {
+            std::rethrow_exception(exception_ptr);
           }
-          std::invoke(callback_, return_val);
+          if (return_val.has_value()) {
+            std::invoke(callback_, return_val.value());
+          }
+          else {
+            // todo log. I have now forgotten the original value/s
+          }
         });
   }
 
@@ -266,7 +259,7 @@ struct glz::meta<tfc::ipc::filter::type_e> {
   using enum tfc::ipc::filter::type_e;
   static auto constexpr name{ "ipc::filter::type" };
   // clang-format off
-  static auto constexpr value{ glz::enumerate("unkown", unknown,
+  static auto constexpr value{ glz::enumerate("unknown", unknown,
                                               "invert", invert,
                                               "timer", timer,
                                               "offset", offset,
