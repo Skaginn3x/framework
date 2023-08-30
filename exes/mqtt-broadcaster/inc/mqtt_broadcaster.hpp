@@ -96,27 +96,27 @@ private:
         switch (sig.type) {
           using enum tfc::ipc::details::type_e;
           case _bool: {
-            scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, "" });
+            scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _double_t: {
-            scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, "" });
+            scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _int64_t: {
-            scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, "" });
+            scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _json: {
-            scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, "" });
+            scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _string: {
-            scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, "" });
+            scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _uint64_t: {
-            scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, "" });
+            scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case unknown: {
@@ -229,10 +229,8 @@ private:
     tls_ctx_.set_default_verify_paths();
     tls_ctx_.set_verify_mode(async_mqtt::tls::verify_peer);
 
-    std::string port = port_to_string(config_.value().port);
-
     asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(config_.value().address, port, asio::use_awaitable);
+        co_await res.async_resolve(config_.value().address, port_to_string(config_.value().port), asio::use_awaitable);
 
     co_return resolved_ip;
   }

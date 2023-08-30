@@ -4,15 +4,17 @@
 
 namespace tfc::mqtt {
 
-struct signal_defintion {
+struct signal_definition {
   std::string name{};
+  std::string description{};
   tfc::ipc::details::type_e type{ tfc::ipc::details::type_e::unknown };
   struct glaze {
     static constexpr auto name{ "tfc::mqtt::signal_definition" };
     // clang-format off
         static constexpr auto value{ glz::object(
-          "name", &signal_defintion::name,
-          "type", &signal_defintion::type
+          "name", &signal_definition::name,
+          "description", &signal_definition::description,
+          "type", &signal_definition::type
         )};
     // clang-format on
   };
@@ -29,7 +31,7 @@ struct config {
   std::string node_id{};
   std::string group_id{};
   std::string client_id{};
-  std::vector<signal_defintion> scada_signals{};
+  std::vector<signal_definition> scada_signals{};
 
   struct glaze {
     // clang-format off
