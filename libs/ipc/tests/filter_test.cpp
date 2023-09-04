@@ -121,5 +121,34 @@ auto main(int, char**) -> int {
     expect(finished);
   };
 
+  "move filter during processing happy path filter edge timer"_test = [](bool test_value) {
+    bool finished{ false };
+    asio::io_context ctx{};
+    auto const start_process{ [&finished, &ctx, test_value]() -> filter<type_e::timer, bool, tfc::testing::clock> {
+      filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
+      timer_test.time_on = std::chrono::milliseconds{ 1 };
+      timer_test.time_off = std::chrono::milliseconds{ 1 };
+      asio::co_spawn(
+          ctx,
+          [&finished, &timer_test, test_value]() -> asio::awaitable<void> {
+            timer_test.async_process(test_value, [&finished, test_value](auto&& return_value) {
+              expect(return_value.has_value() >> fatal);
+              expect(return_value.value() == test_value);
+              finished = true;
+            });
+            co_return;
+          },
+          asio::detached);
+      ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+      ctx.run_one_for(std::chrono::seconds{ 1 });  // async process (async_compose)
+      return timer_test;
+    } };
+
+    auto call_move_constructor{ start_process() };
+    tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
+    expect(finished);
+  } | std::vector{true, false};
+
   return 0;
 }

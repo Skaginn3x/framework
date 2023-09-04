@@ -78,8 +78,10 @@ struct filter<type_e::timer, bool, clock_type> {
   static constexpr type_e type{ type_e::timer };
 
   explicit filter(asio::io_context& ctx) : ctx_{ ctx } {};
+  // if we move this filter we will move everything, and keep hold on to the previous caller
   filter(filter&&) noexcept = default;
   auto operator=(filter&&) noexcept -> filter& = default;
+  // if we copy this filter we will move data, previous caller will only be called to from `other` (the copied one)
   filter(filter const& other) {
     this->time_on = other.time_on;
     this->time_off = other.time_off;
