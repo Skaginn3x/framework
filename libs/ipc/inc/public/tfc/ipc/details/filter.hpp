@@ -38,7 +38,7 @@ enum struct type_e : std::uint8_t {
   lambda,
 };
 
-// typename executor_t
+// todo nicer pattern where to generalize the type of the executor
 template <type_e type, typename value_t, typename...>
 struct filter;
 
@@ -78,9 +78,6 @@ struct filter<type_e::timer, bool, clock_type> {
   static constexpr type_e type{ type_e::timer };
 
   explicit filter(asio::io_context& ctx) : ctx_{ ctx } {};
-  ~filter() {
-    printf("destruct\n");
-  }
   filter(filter&&) noexcept = default;
   auto operator=(filter&&) noexcept -> filter& = default;
   filter(filter const& other) {

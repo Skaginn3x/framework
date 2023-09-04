@@ -20,6 +20,7 @@ auto main(int, char**) -> int {
   using ut::expect;
   using ut::operator>>;
   using ut::fatal;
+  using ut::operator|;
 
   using tfc::ipc::filter::filter;
   using tfc::ipc::filter::type_e;
@@ -67,40 +68,30 @@ auto main(int, char**) -> int {
     expect(finished);
   };
 
-  "filter edge timer delayed"_test = []() {
+  "filter edge delayed"_test = [](bool test_value) {
     bool finished{ false };
     asio::io_context ctx{};
     filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
-    //    asio::basic_waitable_timer<tfc::testing::clock> timer_test{ ctx };
-
     asio::co_spawn(
         ctx,
-        [&finished, &timer_test]() -> asio::awaitable<void> {
+        [&finished, &timer_test, test_value]() -> asio::awaitable<void> {
           timer_test.time_on = std::chrono::milliseconds{ 1 };
-          bool constexpr test_value{ true };
-          timer_test.async_process(test_value, [&finished](auto&& return_value) {
+          timer_test.time_off = std::chrono::milliseconds{ 1 };
+          timer_test.async_process(test_value, [&finished, test_value](auto&& return_value) {
             expect(return_value.has_value() >> fatal);
             expect(return_value.value() == test_value);
             finished = true;
           });
-          //          timer_test.expires_after(std::chrono::milliseconds{ 1 });
-          //          timer_test.async_wait([&finished](std::error_code const& err) {
-          //            if (!err) {
-          //              finished = true;
-          //              return;
-          //            }
-          //            expect(false);
-          //          });
           tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
           co_return;
         },
         asio::detached);
-    //    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    //    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
-    //    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
-    ctx.run_for(std::chrono::seconds{ 3 });
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
     expect(finished);
-  };
+  } | std::vector{true, false};
+
 
   return 0;
 }
