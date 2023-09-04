@@ -38,7 +38,6 @@ enum struct type_e : std::uint8_t {
   lambda,
 };
 
-// todo nicer pattern where to generalize the type of the executor
 template <type_e type, typename value_t, typename...>
 struct filter;
 
@@ -91,6 +90,7 @@ struct filter<type_e::timer, bool, clock_type> {
     return *this;
   }
 
+  // async_process is const to not require making change to config object while processing the filter state
   auto async_process(value_t const& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is unknown?
     auto exe = asio::get_associated_executor(completion_token);
@@ -126,6 +126,7 @@ struct filter<type_e::timer, bool, clock_type> {
   }
 
 private:
+  // mutable is required since async_process is const
   mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
 
 public:
@@ -134,8 +135,8 @@ public:
     static constexpr auto name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
-      "time_on", &type::time_on, "Rising edge settling delay",
-      "time_off", &type::time_off, "Falling edge settling delay"
+      "time_on", &type::time_on, "Rising edge settling delay, applied on next event NOT current one if already processing",
+      "time_off", &type::time_off, "Falling edge settling delay, applied on next event NOT current one if already processing"
     ) };
     // clang-format on
   };
