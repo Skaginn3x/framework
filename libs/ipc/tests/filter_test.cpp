@@ -72,26 +72,54 @@ auto main(int, char**) -> int {
     bool finished{ false };
     asio::io_context ctx{};
     filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
+    timer_test.time_on = std::chrono::milliseconds{ 1 };
+    timer_test.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
         ctx,
         [&finished, &timer_test, test_value]() -> asio::awaitable<void> {
-          timer_test.time_on = std::chrono::milliseconds{ 1 };
-          timer_test.time_off = std::chrono::milliseconds{ 1 };
           timer_test.async_process(test_value, [&finished, test_value](auto&& return_value) {
             expect(return_value.has_value() >> fatal);
             expect(return_value.value() == test_value);
             finished = true;
           });
-          tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
           co_return;
         },
         asio::detached);
     ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // async process (async_compose)
+    tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
     expect(finished);
   } | std::vector{true, false};
 
+  "edge back to previous state within the delayed time"_test = []() {
+    bool finished{ false };
+    asio::io_context ctx{};
+    filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
+    timer_test.time_on = std::chrono::milliseconds{ 1 };
+    timer_test.time_off = std::chrono::milliseconds{ 1 };
+    asio::co_spawn(
+        ctx,
+        [&finished, &timer_test, test_value = true]() -> asio::awaitable<void> {
+          timer_test.async_process(test_value, [](auto&& return_value) {
+            expect(!return_value.has_value() >> fatal);
+            // the following async process call should cancel the timer so the error here is cancelled
+            expect(return_value.error() == std::errc::operation_canceled);
+          });
+          timer_test.async_process(!test_value, [](auto&&) {
+            // this callback should never be called since we are back to the previous state
+            expect(false >> fatal);
+          });
+          finished = true;
+          co_return;
+        },
+        asio::detached);
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // async_process
+    tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
+    ctx.run_for(std::chrono::milliseconds{ 50 });  // try polling for this given time
+    expect(finished);
+  };
 
   return 0;
 }
