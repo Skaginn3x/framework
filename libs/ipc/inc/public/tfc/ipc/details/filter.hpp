@@ -47,9 +47,10 @@ struct filter<type_e::invert, bool> {
   using value_t = bool;
   bool invert{ true };
   static constexpr type_e type{ type_e::invert };
-  explicit filter(asio::io_context& ctx) : ctx_{ ctx } {};
 
   auto async_process(value_t const& value, auto&& completion_token) const {
+    // todo can we get a compile error if executor is unknown?
+    auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value](auto& self) {
           if (invert) {
@@ -58,7 +59,7 @@ struct filter<type_e::invert, bool> {
             self.complete(copy);
           }
         },
-        completion_token, ctx_);
+        completion_token, exe);
   }
 
   struct glaze {
@@ -66,8 +67,6 @@ struct filter<type_e::invert, bool> {
     static constexpr auto name{ "tfc::ipc::filter::invert" };
     static constexpr auto value{ glz::object("invert", &type::invert, "Invert outputting value") };
   };
-private:
-  asio::io_context& ctx_;
 };
 
 template <typename clock_type>  // default std::chrono::steady_clock
@@ -77,7 +76,7 @@ struct filter<type_e::timer, bool, clock_type> {
   std::chrono::milliseconds time_off{ 0 };
   static constexpr type_e type{ type_e::timer };
 
-  explicit filter(asio::io_context& ctx) : ctx_{ ctx } {};
+  filter() = default;
   // if we move this filter we will move everything, and keep hold on to the previous caller
   filter(filter&&) noexcept = default;
   auto operator=(filter&&) noexcept -> filter& = default;
@@ -93,6 +92,8 @@ struct filter<type_e::timer, bool, clock_type> {
   }
 
   auto async_process(value_t const& value, auto&& completion_token) const {
+    // todo can we get a compile error if executor is unknown?
+    auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value, first_call = true](auto& self, std::error_code code = {}) mutable {
           if (code) {
@@ -121,12 +122,11 @@ struct filter<type_e::timer, bool, clock_type> {
             self.complete(copy);
           }
         },
-        completion_token, ctx_);
+        completion_token, exe);
   }
 
 private:
   mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
-  asio::io_context& ctx_;
 
 public:
   struct glaze {

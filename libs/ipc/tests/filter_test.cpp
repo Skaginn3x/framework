@@ -4,6 +4,7 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/testing/asio_clock.hpp>
+#include <tfc/stubs/confman.hpp>
 
 #include <fmt/chrono.h>
 #include <fmt/core.h>
@@ -12,8 +13,6 @@
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
-
-struct filter_test {};
 
 auto main(int, char**) -> int {
   using ut::operator""_test;
@@ -30,7 +29,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&ctx]() -> asio::awaitable<void> {
-          filter<type_e::invert, bool> invert_test{ ctx };
+          filter<type_e::invert, bool> invert_test{};
           auto return_value = co_await invert_test.async_process(true, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(!return_value.value());
@@ -49,15 +48,15 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&finished, &ctx]() -> asio::awaitable<void> {
-          auto constexpr mini_test{ [](bool test_value, asio::io_context& this_ctx) -> asio::awaitable<void> {
-            filter<type_e::timer, bool, tfc::testing::clock> timer_test{ this_ctx };
+          auto constexpr mini_test{ [](bool test_value) -> asio::awaitable<void> {
+            filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
             auto return_value = co_await timer_test.async_process(test_value, asio::use_awaitable);
             expect(return_value.has_value() >> fatal);
             expect(return_value.value() == test_value);
             co_return;
           } };
-          co_await mini_test(true, ctx);
-          co_await mini_test(false, ctx);
+          co_await mini_test(true);
+          co_await mini_test(false);
           finished = true;
           co_return;  //
         },
@@ -71,17 +70,17 @@ auto main(int, char**) -> int {
   "filter edge delayed"_test = [](bool test_value) {
     bool finished{ false };
     asio::io_context ctx{};
-    filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
+    filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
     timer_test.time_on = std::chrono::milliseconds{ 1 };
     timer_test.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
         ctx,
-        [&finished, &timer_test, test_value]() -> asio::awaitable<void> {
-          timer_test.async_process(test_value, [&finished, test_value](auto&& return_value) {
+        [&finished, &timer_test, test_value, &ctx]() -> asio::awaitable<void> {
+          timer_test.async_process(test_value, asio::bind_executor(ctx.get_executor(), [&finished, test_value](auto&& return_value) {
             expect(return_value.has_value() >> fatal);
             expect(return_value.value() == test_value);
             finished = true;
-          });
+          }));
           co_return;
         },
         asio::detached);
@@ -95,7 +94,7 @@ auto main(int, char**) -> int {
   "edge back to previous state within the delayed time"_test = []() {
     bool finished{ false };
     asio::io_context ctx{};
-    filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
+    filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
     timer_test.time_on = std::chrono::milliseconds{ 1 };
     timer_test.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
@@ -125,17 +124,17 @@ auto main(int, char**) -> int {
     bool finished{ false };
     asio::io_context ctx{};
     auto const start_process{ [&finished, &ctx, test_value]() -> filter<type_e::timer, bool, tfc::testing::clock> {
-      filter<type_e::timer, bool, tfc::testing::clock> timer_test{ ctx };
+      filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
       timer_test.time_on = std::chrono::milliseconds{ 1 };
       timer_test.time_off = std::chrono::milliseconds{ 1 };
       asio::co_spawn(
           ctx,
-          [&finished, &timer_test, test_value]() -> asio::awaitable<void> {
-            timer_test.async_process(test_value, [&finished, test_value](auto&& return_value) {
+          [&finished, &timer_test, test_value, &ctx]() -> asio::awaitable<void> {
+            timer_test.async_process(test_value, asio::bind_executor(ctx.get_executor(), [&finished, test_value](auto&& return_value) {
               expect(return_value.has_value() >> fatal);
               expect(return_value.value() == test_value);
               finished = true;
-            });
+            }));
             co_return;
           },
           asio::detached);
@@ -149,6 +148,11 @@ auto main(int, char**) -> int {
     ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
     expect(finished);
   } | std::vector{true, false};
+
+//  "confman integrated timer filter"_test = [](bool test_value) {
+//    tfc::confman::stub_config<filter<type_e::timer, bool, tfc::testing::clock>>
+//
+//  } | std::vector{true, false};
 
   return 0;
 }
