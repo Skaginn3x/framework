@@ -81,7 +81,7 @@ auto main(int, char**) -> int {
 
     receiver->init(sender->name_w_type(), [](auto val) { std::cout << val << std::endl; });
     asio::deadline_timer verification_timer{ ctx };
-    verification_timer.expires_from_now(boost::posix_time::milliseconds(1));
+    verification_timer.expires_after(boost::posix_time::milliseconds(1));
     verification_timer.async_wait([&ctx, &sender](auto) {
       sender->send(10);
       ctx.stop();
@@ -114,7 +114,7 @@ auto main(int, char**) -> int {
     });
     asio::steady_timer timer{ ctx };
     boost::system::error_code error_code;
-    timer.expires_from_now(std::chrono::milliseconds(1), error_code);
+    timer.expires_after(std::chrono::milliseconds(1), error_code);
     timer.async_wait([&sender, &time_point_to_uint64](auto) {
       auto now{ std::chrono::high_resolution_clock::now() };
       sender->send(time_point_to_uint64(now));
@@ -133,7 +133,7 @@ auto main(int, char**) -> int {
       ctx.stop();
     });
     asio::steady_timer timer{ ctx };
-    timer.expires_from_now(std::chrono::milliseconds(100));
+    timer.expires_after(std::chrono::milliseconds(100));
     timer.async_wait([&sender](auto) { sender->send("hello-world"); });
     ctx.run();
   };

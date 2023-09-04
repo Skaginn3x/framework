@@ -162,7 +162,7 @@ void state_machine::leave_stopped() {
 void state_machine::enter_starting() {
   if (config_->startup_time) {
     auto timer{ std::make_shared<boost::asio::steady_timer>(ctx_) };
-    timer->expires_from_now(config_->startup_time.value());
+    timer->expires_after(config_->startup_time.value());
     timer->async_wait([this, timer](std::error_code const& err) {
       if (err) {
         return;
@@ -184,7 +184,7 @@ void state_machine::leave_running() {
 void state_machine::enter_stopping() {
   if (config_->stopping_time) {
     auto timer{ std::make_shared<boost::asio::steady_timer>(ctx_) };
-    timer->expires_from_now(config_->stopping_time.value());
+    timer->expires_after(config_->stopping_time.value());
     timer->async_wait([this, timer](std::error_code const& err) {
       if (err) {
         return;

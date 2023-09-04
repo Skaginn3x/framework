@@ -88,3 +88,6 @@ endif ()
 option(ENABLE_STATIC_LINKING "Globally add -static link flag to all targets" OFF)
 add_feature_info("ENABLE_STATIC_LINKING" ENABLE_STATIC_LINKING
     "Globally add -static link flag to all targets")
+
+# azmq heavily relies on deprecated asio API
+#add_compile_definitions(BOOST_ASIO_NO_DEPRECATED=1)

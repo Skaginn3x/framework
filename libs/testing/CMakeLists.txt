@@ -14,3 +14,5 @@ target_include_directories(testing
 
 include(tfc_install)
 tfc_install_lib(testing)
+
+add_subdirectory(tests)

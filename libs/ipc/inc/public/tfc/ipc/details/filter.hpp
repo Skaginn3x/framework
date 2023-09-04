@@ -75,6 +75,9 @@ struct filter<type_e::timer, bool, clock_type> {
   static constexpr type_e type{ type_e::timer };
 
   filter() = default;
+  ~filter() {
+    printf("destruct\n");
+  }
   filter(filter&&) noexcept = default;
   auto operator=(filter&&) noexcept -> filter& = default;
   filter(filter const& other) {
@@ -107,9 +110,9 @@ struct filter<type_e::timer, bool, clock_type> {
             auto executor = asio::get_associated_executor(self);
             timer_ = asio::basic_waitable_timer<clock_type>{ executor };
             if (copy) {
-              timer_->expires_from_now(time_on);
+              timer_->expires_after(time_on);
             } else {
-              timer_->expires_from_now(time_off);
+              timer_->expires_after(time_off);
             }
             timer_->async_wait(std::move(self));
           } else {
@@ -120,7 +123,7 @@ struct filter<type_e::timer, bool, clock_type> {
         completion_token, exe);
   }
 
-private:
+//private:
   mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
 
 public:

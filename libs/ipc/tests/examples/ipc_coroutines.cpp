@@ -13,7 +13,7 @@ auto timer_coro(asio::steady_timer& timer, std::shared_ptr<tfc::ipc::details::si
     -> asio::awaitable<void> {
   bool send_value{ true };
   while (true) {
-    timer.expires_from_now(std::chrono::seconds{ 3 });
+    timer.expires_after(std::chrono::seconds{ 3 });
     co_await timer.async_wait(asio::use_awaitable);
     co_await signal->async_send(send_value, asio::use_awaitable);
     send_value = !send_value;
@@ -33,10 +33,10 @@ auto slot_coro(tfc::ipc::details::slot<tfc::ipc::details::type_bool>& slot) -> a
 
 asio::experimental::coro<int, bool> work(asio::io_context& ctx) {
   asio::steady_timer timer{ ctx };
-  timer.expires_from_now(std::chrono::seconds{ 3 });
+  timer.expires_after(std::chrono::seconds{ 3 });
   co_await timer.async_wait(asio::experimental::use_coro);
   co_yield 42;
-  timer.expires_from_now(std::chrono::seconds{ 3 });
+  timer.expires_after(std::chrono::seconds{ 3 });
   co_await timer.async_wait(asio::experimental::use_coro);
   co_yield 31;
   co_return false;  // done

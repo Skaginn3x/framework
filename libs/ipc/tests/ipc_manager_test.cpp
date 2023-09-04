@@ -297,7 +297,7 @@ auto main(int argc, char** argv) -> int {
                         [&](const std::error_code& err) { ut::expect(!err); });
 
     asio::steady_timer timer{ isolated_ctx };
-    timer.expires_from_now(std::chrono::milliseconds(10));
+    timer.expires_after(std::chrono::milliseconds(10));
     timer.async_wait([&sig, &test_values](std::error_code) {
       for (auto const value : test_values) {
         sig.async_send(value, [](std::error_code, std::size_t) {});
@@ -361,7 +361,7 @@ auto main(int argc, char** argv) -> int {
     });
 
     asio::steady_timer timer{ isolated_ctx };
-    timer.expires_from_now(std::chrono::milliseconds(10));
+    timer.expires_after(std::chrono::milliseconds(10));
     timer.async_wait([&sig, &test_values](std::error_code) {
       for (auto const value : test_values) {
         sig.async_send(value, [](std::error_code, std::size_t) {});
