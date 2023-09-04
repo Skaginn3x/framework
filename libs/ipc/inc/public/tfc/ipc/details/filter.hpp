@@ -48,7 +48,7 @@ struct filter<type_e::invert, bool> {
   static constexpr type_e type{ type_e::invert };
 
   auto async_process(value_t const& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is unknown?
+    // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value](auto& self) {
@@ -92,7 +92,7 @@ struct filter<type_e::timer, bool, clock_type> {
 
   // async_process is const to not require making change to config object while processing the filter state
   auto async_process(value_t const& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is unknown?
+    // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value, first_call = true](auto& self, std::error_code code = {}) mutable {
@@ -101,26 +101,28 @@ struct filter<type_e::timer, bool, clock_type> {
             self.complete(std::unexpected(code));
             return;
           }
-          if (first_call) {
-            first_call = false;
-            if (timer_) {
-              // already waiting need to cancel and return
-              timer_->cancel();  // this will make a recall to this very same lambda with error code
-              timer_ = std::nullopt;
-              return;
-            }
-            auto executor = asio::get_associated_executor(self);
-            timer_ = asio::basic_waitable_timer<clock_type>{ executor };
-            if (copy) {
-              timer_->expires_after(time_on);
-            } else {
-              timer_->expires_after(time_off);
-            }
-            timer_->async_wait(std::move(self));
-          } else {
+          // second call meaning success, call owner and return
+          if (!first_call) {
             timer_ = std::nullopt;
             self.complete(copy);
+            return;
           }
+          first_call = false;
+          if (timer_) {
+            // already waiting need to cancel and return
+            timer_->cancel();  // this will make a recall to this very same lambda with error code
+            timer_ = std::nullopt;
+            return;
+          }
+          auto executor = asio::get_associated_executor(self);
+          timer_ = asio::basic_waitable_timer<clock_type>{ executor };
+          if (copy) {
+            timer_->expires_after(time_on);
+          } else {
+            timer_->expires_after(time_off);
+          }
+          // moving self makes this callback be called once again when expiry is reached
+          timer_->async_wait(std::move(self));
         },
         completion_token, exe);
   }
@@ -135,8 +137,8 @@ public:
     static constexpr auto name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
-      "time_on", &type::time_on, "Rising edge settling delay, applied on next event NOT current one if already processing",
-      "time_off", &type::time_off, "Falling edge settling delay, applied on next event NOT current one if already processing"
+      "time_on", &type::time_on, "Rising edge settling delay, applied on next event, NOT current one if already processing",
+      "time_off", &type::time_off, "Falling edge settling delay, applied on next event, NOT current one if already processing"
     ) };
     // clang-format on
   };
