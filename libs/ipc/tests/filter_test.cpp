@@ -28,7 +28,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         []() -> asio::awaitable<void> {
-          filter<type_e::invert, bool> invert_test{};
+          filter<type_e::invert, bool> const invert_test{};
           auto return_value = co_await invert_test.async_process(true, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(!return_value.value());
