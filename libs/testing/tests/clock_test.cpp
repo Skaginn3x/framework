@@ -23,8 +23,35 @@ int main() {
       expect(false);
     });
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
-    ctx.run_one_for(std::chrono::milliseconds{10});
+    ctx.run_one_for(std::chrono::milliseconds{ 10 });
     expect(finished);
   };
+
+  "timer test within awaitable"_test = [] {
+    asio::io_context ctx{};
+    asio::basic_waitable_timer<tfc::testing::clock> timer{ ctx };
+
+    bool finished{ false };
+    asio::co_spawn(
+        ctx,
+        [&finished, &timer]() -> asio::awaitable<void> {
+          timer.expires_after(std::chrono::milliseconds{ 1 });
+          timer.async_wait([&finished](std::error_code const& err) {
+            if (!err) {
+              finished = true;
+              return;
+            }
+            expect(false);
+          });
+          tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
+          co_return;
+        },
+        asio::detached);
+    ctx.run_one_for(std::chrono::seconds{ 1 });
+    ctx.run_one_for(std::chrono::seconds{ 1 });
+    ctx.run_one_for(std::chrono::seconds{ 1 });
+    expect(finished);
+  };
+
   return 0;
 }
