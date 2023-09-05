@@ -25,24 +25,6 @@ auto main(int, char**) -> int {
   using tfc::ipc::filter::filter;
   using tfc::ipc::filter::type_e;
 
-  "filter invert"_test = []() {
-    asio::io_context ctx{};
-    asio::co_spawn(
-        ctx,
-        []() -> asio::awaitable<void> {
-          filter<type_e::invert, bool> const invert_test{};
-          auto return_value = co_await invert_test.async_process(true, asio::use_awaitable);
-          expect(return_value.has_value() >> fatal);
-          expect(!return_value.value());
-          return_value = co_await invert_test.async_process(false, asio::use_awaitable);
-          expect(return_value.has_value() >> fatal);
-          expect(return_value.value());
-          co_return;  //
-        },
-        asio::detached);
-    ctx.run_one();
-  };
-
   "happy path filter edge timer"_test = [](bool test_value) {
     asio::io_context ctx{};
     bool finished{ false };
@@ -186,12 +168,30 @@ auto main(int, char**) -> int {
     expect(finished);
   } | std::vector{ true, false };
 
+  "filter invert"_test = []() {
+    asio::io_context ctx{};
+    asio::co_spawn(
+        ctx,
+        []() -> asio::awaitable<void> {
+          filter<type_e::invert, bool> const invert_test{};
+          auto return_value = co_await invert_test.async_process(true, asio::use_awaitable);
+          expect(return_value.has_value() >> fatal);
+          expect(!return_value.value());
+          return_value = co_await invert_test.async_process(false, asio::use_awaitable);
+          expect(return_value.has_value() >> fatal);
+          expect(return_value.value());
+          co_return;  //
+        },
+        asio::detached);
+    ctx.run_one_for(std::chrono::seconds{ 1 });
+  };
+
   "filter offset"_test = []() {
     asio::io_context ctx{};
     asio::co_spawn(
         ctx,
         []() -> asio::awaitable<void> {
-          filter<type_e::offset, std::int64_t> offset_test{.offset=2};
+          filter<type_e::offset, std::int64_t> offset_test{ .offset = 2 };
           auto return_value = co_await offset_test.async_process(40, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() == 42);
@@ -202,7 +202,26 @@ auto main(int, char**) -> int {
           co_return;  //
         },
         asio::detached);
-    ctx.run_one();
+    ctx.run_one_for(std::chrono::seconds{ 1 });
+  };
+
+  "filter multiply"_test = []() {
+    asio::io_context ctx{};
+    asio::co_spawn(
+        ctx,
+        []() -> asio::awaitable<void> {
+          filter<type_e::multiply, std::double_t> multiply_test{ .multiply = 2.5 };
+          auto return_value = co_await multiply_test.async_process(40, asio::use_awaitable);
+          expect(return_value.has_value() >> fatal);
+          expect(return_value.value() == 100);
+          multiply_test.multiply = -2.5;
+          return_value = co_await multiply_test.async_process(40, asio::use_awaitable);
+          expect(return_value.has_value() >> fatal);
+          expect(return_value.value() = -100);
+          co_return;  //
+        },
+        asio::detached);
+    ctx.run_one_for(std::chrono::seconds{ 1 });
   };
 
   return 0;
