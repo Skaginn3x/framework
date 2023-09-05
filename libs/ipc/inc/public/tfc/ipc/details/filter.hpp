@@ -22,12 +22,12 @@ enum struct type_e : std::uint8_t {
   unknown = 0,
   invert,
   timer,
-  // https://esphome.io/components/sensor/index.html#sensor-filters
-  // todo: make the below filters
   offset,
   multiply,
-  calibrate_linear,
   filter_out,
+  // https://esphome.io/components/sensor/index.html#sensor-filters
+  // todo: make the below filters
+  calibrate_linear,  // https://github.com/esphome/esphome/blob/v1.20.4/esphome/components/sensor/__init__.py#L594
   median,
   quantile,
   sliding_window_moving_average,
@@ -52,7 +52,7 @@ struct filter<type_e::invert, bool> {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, copy = value](auto& self) { self.complete(!copy); }, completion_token, exe);
+        [copy = value](auto& self) { self.complete(!copy); }, completion_token, exe);
   }
 
   struct glaze {
@@ -143,38 +143,6 @@ public:
 };
 
 template <typename value_t>
-struct filter<type_e::filter_out, value_t> {
-  value_t filter_out{};
-  static constexpr type_e type{ type_e::filter_out };
-
-  auto async_process(value_t const& value, auto&& completion_token) const {
-    auto executor{ asio::get_associated_executor(completion_token) };
-    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, copy = value](auto& self) {
-          // Todo should this filter be available for double?
-          // clang-format off
-          PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-          if (copy == filter_out) {
-          PRAGMA_CLANG_WARNING_POP
-            // clang-format on
-            self.complete(std::unexpected(std::make_error_code(std::errc::bad_message)));
-          } else {
-            self.complete(copy);
-          }
-        },
-        completion_token, executor);
-  }
-
-  struct glaze {
-    using type = filter<type_e::filter_out, value_t>;
-    static constexpr auto name{ "tfc::ipc::filter::filter_out" };
-    static constexpr auto value{
-      glz::object("filter_out", &type::filter_out, "Filter out specific values to drop and forget")
-    };
-  };
-};
-
-template <typename value_t>
   requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
 struct filter<type_e::offset, value_t> {
   value_t offset{};
@@ -217,6 +185,38 @@ struct filter<type_e::multiply, value_t> {
     using type = filter<type_e::multiply, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::multiply" };
     static constexpr auto value{ glz::object("multiply", &type::multiply, "Multiplies each value by a constant value.") };
+  };
+};
+
+template <typename value_t>
+struct filter<type_e::filter_out, value_t> {
+  value_t filter_out{};
+  static constexpr type_e type{ type_e::filter_out };
+
+  auto async_process(value_t const& value, auto&& completion_token) const {
+    auto executor{ asio::get_associated_executor(completion_token) };
+    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
+        [this, copy = value](auto& self) {
+          // Todo should this filter be available for double?
+          // clang-format off
+          PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+          if (copy == filter_out) {
+          PRAGMA_CLANG_WARNING_POP
+            // clang-format on
+            self.complete(std::unexpected(std::make_error_code(std::errc::bad_message)));
+          } else {
+            self.complete(copy);
+          }
+        },
+        completion_token, executor);
+  }
+
+  struct glaze {
+    using type = filter<type_e::filter_out, value_t>;
+    static constexpr auto name{ "tfc::ipc::filter::filter_out" };
+    static constexpr auto value{
+      glz::object("filter_out", &type::filter_out, "Filter out specific values to drop and forget")
+    };
   };
 };
 
