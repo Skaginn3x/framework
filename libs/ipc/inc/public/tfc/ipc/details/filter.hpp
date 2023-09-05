@@ -36,6 +36,7 @@ enum struct type_e : std::uint8_t {
   throttle_average,
   delta,
   lambda,
+  tfc_item,  // according to item json schema see ipc/item.hpp, TODO: implement
 };
 
 template <type_e type, typename value_t, typename...>
@@ -48,7 +49,7 @@ struct filter<type_e::invert, bool> {
   static constexpr bool invert{ true };
   static constexpr type_e type{ type_e::invert };
 
-  auto async_process(value_t const& value, auto&& completion_token) const {
+  auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
@@ -89,7 +90,7 @@ struct filter<type_e::timer, bool, clock_type> {
   }
 
   // async_process is const to not require making change to config object while processing the filter state
-  auto async_process(value_t const& value, auto&& completion_token) const {
+  auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
@@ -148,7 +149,7 @@ struct filter<type_e::offset, value_t> {
   value_t offset{};
   static constexpr type_e type{ type_e::offset };
 
-  auto async_process(value_t const& value, auto&& completion_token) const {
+  auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
@@ -171,7 +172,7 @@ struct filter<type_e::multiply, value_t> {
   value_t multiply{};
   static constexpr type_e type{ type_e::multiply };
 
-  auto async_process(value_t const& value, auto&& completion_token) const {
+  auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
@@ -193,19 +194,19 @@ struct filter<type_e::filter_out, value_t> {
   value_t filter_out{};
   static constexpr type_e type{ type_e::filter_out };
 
-  auto async_process(value_t const& value, auto&& completion_token) const {
+  auto async_process(value_t&& value, auto&& completion_token) const {
     auto executor{ asio::get_associated_executor(completion_token) };
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, copy = value](auto& self) {
+        [this, moved_value = std::move(value)](auto& self) {
           // Todo should this filter be available for double?
           // clang-format off
           PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-          if (copy == filter_out) {
+          if (moved_value == filter_out) {
           PRAGMA_CLANG_WARNING_POP
             // clang-format on
             self.complete(std::unexpected(std::make_error_code(std::errc::bad_message)));
           } else {
-            self.complete(copy);
+            self.complete(moved_value);
           }
         },
         completion_token, executor);
@@ -220,12 +221,6 @@ struct filter<type_e::filter_out, value_t> {
   };
 };
 
-namespace exceptions {
-class filter : public std::runtime_error {
-public:
-  explicit filter(std::error_code code) : std::runtime_error(code.message()) {}
-};
-}  // namespace exceptions
 namespace detail {
 template <typename value_t>
 struct any_filter_decl;
@@ -278,18 +273,22 @@ public:
     asio::co_spawn(
         ctx_,
         [this, copy = value] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
+          std::expected<value_t, std::error_code> return_value{ std::move(copy) };
           for (auto const& filter : filters_.value()) {
-            auto return_value = co_await std::visit(
-                [&copy](auto&& arg) -> auto { return arg.async_process(copy, asio::use_awaitable); }, filter);
-            if (return_value) {
-              copy = std::move(return_value.value());
-            } else {
-              throw exceptions::filter(return_value.error());
+            // move the value into the filter and the filter will return the value modified or not
+            return_value = co_await std::visit(
+                [&return_value](auto&& arg) -> auto {
+                  return arg.async_process(std::move(return_value.value()), asio::use_awaitable);  //
+                },
+                filter);
+            if (!return_value.has_value()) {
+              // The filter has erased the existence of inputted value, exit the coroutine and forget that this happened
+              co_return std::move(return_value);
             }
           }
-          co_return copy;
+          co_return std::move(return_value);
         },
-        [this](std::exception_ptr const& exception_ptr, std::expected<value_t, std::error_code> return_val) {
+        [this](std::exception_ptr const& exception_ptr, std::expected<value_t, std::error_code>&& return_val) {
           if (exception_ptr) {
             std::rethrow_exception(exception_ptr);
           }

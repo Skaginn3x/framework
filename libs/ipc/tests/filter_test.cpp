@@ -32,7 +32,7 @@ auto main(int, char**) -> int {
         ctx,
         [&finished, test_value]() -> asio::awaitable<void> {
           filter<type_e::timer, bool, tfc::testing::clock> const timer_test{};
-          auto return_value = co_await timer_test.async_process(test_value, asio::use_awaitable);
+          auto return_value = co_await timer_test.async_process(bool{ test_value }, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() == test_value);
           finished = true;
@@ -53,7 +53,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&finished, &timer_test, test_value, &ctx]() -> asio::awaitable<void> {
-          timer_test.async_process(test_value,
+          timer_test.async_process(bool{ test_value },
                                    asio::bind_executor(ctx.get_executor(), [&finished, test_value](auto&& return_value) {
                                      expect(return_value.has_value() >> fatal);
                                      expect(return_value.value() == test_value);
@@ -78,7 +78,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&finished, &timer_test, test_value = true]() -> asio::awaitable<void> {
-          timer_test.async_process(test_value, [](auto&& return_value) {
+          timer_test.async_process(bool{ test_value }, [](auto&& return_value) {
             expect(!return_value.has_value() >> fatal);
             // the following async process call should cancel the timer so the error here is cancelled
             expect(return_value.error() == std::errc::operation_canceled);
@@ -108,7 +108,7 @@ auto main(int, char**) -> int {
       asio::co_spawn(
           ctx,
           [&finished, &timer_test, test_value, &ctx]() -> asio::awaitable<void> {
-            timer_test.async_process(test_value,
+            timer_test.async_process(bool{ test_value },
                                      asio::bind_executor(ctx.get_executor(), [&finished, test_value](auto&& return_value) {
                                        expect(return_value.has_value() >> fatal);
                                        expect(return_value.value() == test_value);
@@ -137,7 +137,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&finished, &config, test_value, &ctx]() -> asio::awaitable<void> {
-          config->async_process(test_value,
+          config->async_process(bool{ test_value },
                                 asio::bind_executor(ctx.get_executor(), [&finished, test_value](auto&& return_value) {
                                   expect(return_value.has_value() >> fatal);
                                   expect(return_value.value() == test_value);
