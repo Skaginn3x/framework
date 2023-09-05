@@ -41,10 +41,11 @@ enum struct type_e : std::uint8_t {
 template <type_e type, typename value_t, typename...>
 struct filter;
 
+/// \brief behaviour flip the state of boolean
 template <>
 struct filter<type_e::invert, bool> {
   using value_t = bool;
-  bool invert{ true };
+  static constexpr bool invert{ true };
   static constexpr type_e type{ type_e::invert };
 
   auto async_process(value_t const& value, auto&& completion_token) const {
@@ -52,11 +53,7 @@ struct filter<type_e::invert, bool> {
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value](auto& self) {
-          if (invert) {
-            self.complete(!copy);
-          } else {
-            self.complete(copy);
-          }
+          self.complete(!copy);
         },
         completion_token, exe);
   }
@@ -64,10 +61,14 @@ struct filter<type_e::invert, bool> {
   struct glaze {
     using type = filter<type_e::invert, value_t>;
     static constexpr auto name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object("invert", &type::invert, "Invert outputting value") };
+    static constexpr auto value{
+      glz::object("invert", &type::invert, tfc::json::schema{ .description = "Invert outputting value", .read_only = true })
+    };
   };
 };
 
+/// \brief behaviour time on delay and or time off delay
+/// \note IMPORTANT: delay changes take effect on next event
 template <typename clock_type>  // default std::chrono::steady_clock
 struct filter<type_e::timer, bool, clock_type> {
   using value_t = bool;
@@ -76,10 +77,10 @@ struct filter<type_e::timer, bool, clock_type> {
   static constexpr type_e type{ type_e::timer };
 
   filter() = default;
-  // if we move this filter we will move everything, and keep hold on to the previous caller
+  // if the filter is moved everything is moved
   filter(filter&&) noexcept = default;
   auto operator=(filter&&) noexcept -> filter& = default;
-  // if we copy this filter we will move data, previous caller will only be called to from `other` (the copied one)
+  // if the filter is copied the data will be copied, the copied object will hold on to its timer `other`
   filter(filter const& other) {
     this->time_on = other.time_on;
     this->time_off = other.time_off;
