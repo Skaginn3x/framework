@@ -267,17 +267,31 @@ public:
 
   void operator()(auto&& value) const {
     if (filters_->empty()) {
-      std::invoke(callback_, value);
+      std::invoke(callback_, std::forward<decltype(value)>(value));
       return;
     }
+    std::expected<value_t, std::error_code> return_value{};
+    if constexpr (std::is_lvalue_reference_v<decltype(value)>) {
+      // todo we should not use lvalue strings or should we?
+      static_assert(!std::is_same_v<std::remove_cvref_t<decltype(value)>, std::string>);
+      return_value = value_t{ value };
+    }
+    else if constexpr (std::is_rvalue_reference_v<decltype(value)>) {
+      return_value = std::forward<decltype(value)>(value);
+    }
+    else {
+      []<bool flag = false>(){
+        static_assert(flag, "Invalid type of value");
+      }();
+    }
+
     asio::co_spawn(
         ctx_,
-        [this, copy = value] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
-          std::expected<value_t, std::error_code> return_value{ std::move(copy) };
+        [this, return_value = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
           for (auto const& filter : filters_.value()) {
             // move the value into the filter and the filter will return the value modified or not
             return_value = co_await std::visit(
-                [&return_value](auto&& arg) -> auto {
+                [this, return_value = std::move(return_value)](auto&& arg) mutable -> auto { // mutable to move return_value
                   return arg.async_process(std::move(return_value.value()), asio::use_awaitable);  //
                 },
                 filter);
@@ -304,6 +318,7 @@ private:
   asio::io_context& ctx_;
   tfc::confman::config<std::vector<detail::any_filter_decl_t<value_t>>> filters_;
   callback_t callback_;
+  std::expected<value_t, std::error_code> last_value_{};
 };
 
 }  // namespace tfc::ipc::filter
