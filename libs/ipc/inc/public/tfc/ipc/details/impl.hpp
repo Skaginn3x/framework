@@ -301,18 +301,16 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, std::invocable<value_t> auto&& callback)
       -> std::shared_ptr<slot_callback<type_desc>> {
-    return std::shared_ptr<slot_callback<type_desc>>(new slot_callback(ctx, name));
+    return std::make_shared<slot_callback<type_desc>>(ctx, name, std::forward<decltype(callback)>(callback));
   }
 
-  auto init(
-      std::string_view signal_name,
-      std::invocable<value_t> auto&& callback = [](value_t const&) {}) -> std::error_code {
+  auto connect(std::string_view signal_name) -> std::error_code {
     if (auto error = slot_.connect(signal_name)) {
       return error;
     }
-    register_read(std::forward<decltype(callback)>(callback));
+    register_read();
     return {};
   }
   [[nodiscard]] auto get() const noexcept -> std::optional<value_t> const& { return last_value_; }
@@ -326,7 +324,8 @@ public:
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
-  slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}
+  slot_callback(asio::io_context& ctx, std::string_view name, std::invocable<value_t> auto&& callback)
+      : slot_{ ctx, name }, filters_{ ctx, name, std::forward<decltype(callback)>(callback) } {}
   void async_new_state(std::expected<value_t, std::error_code> value, std::invocable<value_t> auto&& callback) {
     if (!value) {
       return;
@@ -366,6 +365,7 @@ private:
   }
   slot<type_desc> slot_;
   std::optional<value_t> last_value_{};
+  filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
 };
 
 using type_bool = type_description<bool, type_e::_bool>;
@@ -441,8 +441,10 @@ inline constexpr std::string_view invalid_type{
   "json\n"
 };
 
+
+
 template <typename return_t>
-inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name) -> return_t {
+inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name, auto&& callable) -> return_t {
   if (name.contains("bool")) {
     return bool_recv_cb::create(ctx, name);
   }

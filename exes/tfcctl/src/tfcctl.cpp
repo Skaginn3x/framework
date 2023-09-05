@@ -125,17 +125,19 @@ auto main(int argc, char** argv) -> int {
   for (auto& signal_connect : connect) {
     // For listening to connections
     connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::details::any_recv_cb {
-      std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
-      auto ipc{ tfc::ipc::details::create_ipc_recv_cb<tfc::ipc::details::any_recv_cb>(ctx, slot_name) };
+      std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
+      auto ipc{ tfc::ipc::details::create_ipc_recv_cb<tfc::ipc::details::any_recv_cb>(ctx, slot_name,
+                                                                                      [sig, &logger](auto const& val) {
+                                                                                        logger.info("{}: {}", sig, val);  //
+                                                                                      }) };
       std::visit(
-          [&](auto&& receiver) {
+          [sig, &logger](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<std::monostate, receiver_t>) {
-              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", sig);
-              auto error = receiver->init(
-                  sig, [&, sig](auto const& val) { logger.log<tfc::logger::lvl_e::info>("{}: {}", sig, val); });
+              logger.trace("Connecting to signal {}", sig);
+              auto error = receiver->connect(sig);
               if (error) {
-                logger.log<tfc::logger::lvl_e::error>("Failed to connect: {}", error.message());
+                logger.error("Failed to connect: {}", error.message());
               }
             }
           },
