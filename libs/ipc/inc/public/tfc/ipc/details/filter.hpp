@@ -52,10 +52,7 @@ struct filter<type_e::invert, bool> {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, copy = value](auto& self) {
-          self.complete(!copy);
-        },
-        completion_token, exe);
+        [this, copy = value](auto& self) { self.complete(!copy); }, completion_token, exe);
   }
 
   struct glaze {
@@ -174,6 +171,26 @@ struct filter<type_e::filter_out, value_t> {
     static constexpr auto value{
       glz::object("filter_out", &type::filter_out, "If value is equivalent to this `filter_out` it will be ignored")
     };
+  };
+};
+
+template <typename value_t>
+  requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
+struct filter<type_e::offset, value_t> {
+  value_t offset{};
+  static constexpr type_e type{ type_e::offset };
+
+  auto async_process(value_t const& value, auto&& completion_token) const {
+    // todo can we get a compile error if executor is non-existent?
+    auto exe = asio::get_associated_executor(completion_token);
+    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
+        [this, copy = value](auto& self) { self.complete(copy + offset); }, completion_token, exe);
+  }
+
+  struct glaze {
+    using type = filter<type_e::invert, value_t>;
+    static constexpr auto name{ "tfc::ipc::filter::offset" };
+    static constexpr auto value{ glz::object("offset", &type::offset, "Offset, to be added to value") };
   };
 };
 

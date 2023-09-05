@@ -186,5 +186,24 @@ auto main(int, char**) -> int {
     expect(finished);
   } | std::vector{ true, false };
 
+  "filter offset"_test = []() {
+    asio::io_context ctx{};
+    asio::co_spawn(
+        ctx,
+        []() -> asio::awaitable<void> {
+          filter<type_e::offset, std::int64_t> offset_test{.offset=2};
+          auto return_value = co_await offset_test.async_process(40, asio::use_awaitable);
+          expect(return_value.has_value() >> fatal);
+          expect(return_value.value() == 42);
+          offset_test.offset = -2;
+          return_value = co_await offset_test.async_process(44, asio::use_awaitable);
+          expect(return_value.has_value() >> fatal);
+          expect(return_value.value() = 42);
+          co_return;  //
+        },
+        asio::detached);
+    ctx.run_one();
+  };
+
   return 0;
 }
