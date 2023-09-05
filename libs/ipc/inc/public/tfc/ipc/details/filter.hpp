@@ -239,17 +239,20 @@ struct any_filter_decl<bool> {
 template <>
 struct any_filter_decl<std::int64_t> {
   using value_t = std::int64_t;
-  using type = std::variant<filter<type_e::filter_out, value_t>>;
+  using type =
+      std::variant<filter<type_e::filter_out, value_t>, filter<type_e::offset, value_t>, filter<type_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::uint64_t> {
   using value_t = std::uint64_t;
-  using type = std::variant<filter<type_e::filter_out, value_t>>;
+  using type =
+      std::variant<filter<type_e::filter_out, value_t>, filter<type_e::offset, value_t>, filter<type_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::double_t> {
   using value_t = std::double_t;
-  using type = std::variant<filter<type_e::filter_out, value_t>>;
+  using type =
+      std::variant<filter<type_e::filter_out, value_t>, filter<type_e::offset, value_t>, filter<type_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::string> {
@@ -312,12 +315,12 @@ struct glz::meta<tfc::ipc::filter::type_e> {
   static auto constexpr name{ "ipc::filter::type" };
   // clang-format off
   static auto constexpr value{ glz::enumerate("unknown", unknown,
-                                              "invert", invert,
-                                              "timer", timer,
-                                              "offset", offset,
-                                              "multiply", multiply,
+                                              "invert", invert, "Invert outputting value",
+                                              "timer", timer, "Timer on/off delay of boolean",
+                                              "offset", offset, "Adds a constant value to each sensor value",
+                                              "multiply", multiply, "Multiplies each value by a constant value",
+                                              "filter_out", filter_out, "Filter out specific values to drop and forget",
                                               "calibrate_linear", calibrate_linear,
-                                              "filter_out", filter_out,
                                               "median", median,
                                               "quantile", quantile,
                                               "sliding_window_moving_average", sliding_window_moving_average,
