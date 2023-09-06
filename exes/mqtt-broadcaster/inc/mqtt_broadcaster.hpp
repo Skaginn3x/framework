@@ -438,7 +438,7 @@ private:
   auto send_value_on_signal(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value) {
     for (auto& sig : scada_signals_) {
       std::visit(
-          [&value, &signal_name]<typename signal_t>(const signal_t&& signal) {
+          [&value, &signal_name]<typename signal_t>(signal_t& signal) {
             if (signal_name.ends_with(signal.name())) {
               using value_t = typename std::remove_cvref_t<signal_t>::value_t;
 
