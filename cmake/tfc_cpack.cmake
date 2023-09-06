@@ -7,10 +7,6 @@ if (NOT ENABLE_STATIC_LINKING)
   )
 endif ()
 
-if (LDD_RESULT EQUAL 0)
-  message("Host libc version is: ${LIBC_VERSION}")
-endif()
-
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CPACK_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-dbg")
@@ -26,21 +22,11 @@ set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(CPACK_VERBATIM_VARIABLES YES)
 
 #set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Installation prefix" FORCE)
-set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+#set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
 if(CMAKE_STRIP)
   set(CPACK_RPM_SPEC_MORE_DEFINE "%define __strip ${CMAKE_STRIP}")
 endif()
-
-# set dependencies to hosts libc version and cockpit for UI
-if (LDD_RESULT EQUAL 0)
-  # todo depend on libc version  (>= ${LIBC_VERSION})
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "cockpit, libc6")
-  set(CPACK_RPM_PACKAGE_REQUIRES "cockpit, glibc >= ${LIBC_VERSION}")
-else ()
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "cockpit")
-  set(CPACK_RPM_PACKAGE_REQUIRES "cockpit")
-endif ()
 
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES aarch64)
   set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-arm64")  # todo correct?

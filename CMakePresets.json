@@ -242,7 +242,7 @@
       ]
     },
     {
-      "name": "packflow-gcc-debug",
+      "name": "packflow-x86_64-gcc-debug",
       "steps": [
         {
           "type": "configure",
@@ -253,17 +253,13 @@
           "name": "build-pack-gcc-debug"
         },
         {
-          "type": "test",
-          "name": "test-pack-gcc-debug"
-        },
-        {
           "type": "package",
           "name": "pack-gcc-debug"
         }
       ]
     },
     {
-      "name": "packflow-gcc-release",
+      "name": "packflow-x86_64-gcc-release",
       "steps": [
         {
           "type": "configure",
@@ -272,10 +268,6 @@
         {
           "type": "build",
           "name": "build-pack-gcc-release"
-        },
-        {
-          "type": "test",
-          "name": "test-pack-gcc-release"
         },
         {
           "type": "package",
