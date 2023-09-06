@@ -144,7 +144,6 @@ public:
         token, socket_);
   }
 
-
 private:
   signal(asio::io_context& ctx, std::string_view name)
       : transmission_base<type_desc>(name), last_value_(), timer_(ctx), socket_(ctx),
