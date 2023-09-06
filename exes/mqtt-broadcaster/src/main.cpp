@@ -16,7 +16,7 @@ auto main(int argc, char* argv[]) -> int {
 
   tfc::mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client,
                         async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>,
-                        tfc::confman::config<config>, tfc::network_manager>
+                        tfc::confman::config<tfc::mqtt::config>, tfc::network_manager>
       application(io_ctx);
 
   application.run();

@@ -3,6 +3,7 @@
 #include <sparkplug_b/sparkplug_b.pb.h>
 #include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
+#include "config.hpp"
 
 using org::eclipse::tahu::protobuf::Payload;
 using org::eclipse::tahu::protobuf::Payload_Metric;
@@ -125,7 +126,7 @@ private:
 
 struct SparkplugBConfig {
   std::string address;
-  std::string port;
+  std::variant<tfc::mqtt::port_e, uint16_t> port;
   std::string username;
   std::string password;
   std::string node_id;
@@ -139,7 +140,7 @@ class mock_config {
 public:
   mock_config(asio::io_context&, std::string) {
     _sparkplug_b.address = "localhost";
-    _sparkplug_b.port = "1883";
+    _sparkplug_b.port = static_cast<uint16_t>(1883);
     _sparkplug_b.username = "username";
     _sparkplug_b.password = "password";
     _sparkplug_b.node_id = "edge_node_id";

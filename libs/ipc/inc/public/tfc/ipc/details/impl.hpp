@@ -57,6 +57,8 @@ public:
 
   [[nodiscard]] auto endpoint() const -> std::string { return utils::socket::zmq::ipc_endpoint_str(name_w_type()); }
 
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return name_; }
+
   /// \return <type>.<name>
   [[nodiscard]] auto name_w_type() const -> std::string {
     return fmt::format("{}.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), type_desc::type_name, name_);

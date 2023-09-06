@@ -70,10 +70,7 @@ public:
   static constexpr std::string_view ncmd = "NCMD";
   static constexpr std::string_view rebirth_metric = "Node Control/Rebirth";
 
-  explicit mqtt_broadcaster(asio::io_context& io_ctx)
-      : io_ctx_(io_ctx), tls_ctx_{ async_mqtt::tls::context::tlsv12 }, ipc_client_{ io_ctx_ },
-        mqtt_client_(std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v5, io_ctx.get_executor(), tls_ctx_)),
-        logger_("mqtt_broadcaster"), config_(io_ctx, "mqtt_broadcaster"), network_manager_(), timer_{ io_ctx_ } {}
+  explicit mqtt_broadcaster(asio::io_context& io_ctx) : io_ctx_(io_ctx) {}
 
   auto run() -> void {
     properties_callback_ = ipc_client_.register_properties_change_callback(
@@ -84,9 +81,47 @@ public:
 
 private:
   auto initialize() -> asio::awaitable<void> {
+    create_scada_signals();
     co_await connect_to_broker();
     add_new_signals();
     co_await ncmd_listener();
+  }
+
+  auto create_scada_signals() -> void {
+    for (auto const& sig : config_.value().scada_signals) {
+      if (!sig.name.empty()) {
+        switch (sig.type) {
+          using enum tfc::ipc::details::type_e;
+          case _bool: {
+            scada_signals_.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            break;
+          }
+          case _double_t: {
+            scada_signals_.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            break;
+          }
+          case _int64_t: {
+            scada_signals_.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            break;
+          }
+          case _json: {
+            scada_signals_.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            break;
+          }
+          case _string: {
+            scada_signals_.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            break;
+          }
+          case _uint64_t: {
+            scada_signals_.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            break;
+          }
+          case unknown: {
+            outgoing_logger_.error("Unknown type for signal: {}", sig.name);
+          }
+        }
+      }
+    }
   }
 
   static auto timestamp_milliseconds() -> std::chrono::milliseconds {
@@ -184,7 +219,7 @@ private:
   auto set_value_payload(Payload_Metric* metric, const uint32_t& value) -> void { metric->set_int_value(value); }
 
   auto resolve() -> asio::awaitable<asio::ip::tcp::resolver::results_type> {
-    logger_.trace("Resolving the MQTT broker address...");
+    networking_logger_.trace("Resolving the MQTT broker address...");
 
     asio::ip::tcp::socket resolve_sock{ io_ctx_ };
     asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
@@ -192,23 +227,28 @@ private:
     tls_ctx_.set_verify_mode(async_mqtt::tls::verify_peer);
 
     asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(config_.value().address, config_.value().port, asio::use_awaitable);
+        co_await res.async_resolve(config_.value().address, port_to_string(config_.value().port), asio::use_awaitable);
 
     co_return resolved_ip;
+  }
+
+  std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
+    return std::visit([](auto&& arg) { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
+                      port);
   }
 
   // This function is used to connect to the MQTT broker and perform the handshake
   // If the connection is successful it will return true, otherwise it will return false
   auto connect_and_handshake(asio::ip::tcp::resolver::results_type resolved_ip) -> asio::awaitable<bool> {
-    logger_.trace("Resolved the MQTT broker address. Connecting...");
+    networking_logger_.trace("Resolved the MQTT broker address. Connecting...");
 
     co_await network_manager_.connect_socket(mqtt_client_->lowest_layer(), resolved_ip);
 
-    logger_.trace("Setting SSL SNI");
+    networking_logger_.trace("Setting SSL SNI");
 
     network_manager_.set_sni_hostname(mqtt_client_->next_layer().native_handle(), config_.value().address);
 
-    logger_.trace("Starting SSL handshake");
+    networking_logger_.trace("Starting SSL handshake");
 
     co_await network_manager_.async_handshake(mqtt_client_->next_layer());
 
@@ -225,16 +265,16 @@ private:
                                         async_mqtt::allocate_buffer(config_.value().password),
                                         { async_mqtt::property::session_expiry_interval{ 0 } } };
 
-    logger_.trace("Sending MQTT connection packet...");
+    networking_logger_.trace("Sending MQTT connection packet...");
 
     auto send_error = co_await mqtt_client_->send(connect_packet, asio::use_awaitable);
 
     if (send_error) {
-      logger_.error("Error sending MQTT connection packet: {}", send_error.message());
+      networking_logger_.error("Error sending MQTT connection packet: {}", send_error.message());
       co_return false;
     }
 
-    logger_.trace("MQTT connection packet sent. Waiting for CONNACK...");
+    networking_logger_.trace("MQTT connection packet sent. Waiting for CONNACK...");
 
     auto connack_received = co_await mqtt_client_->recv(async_mqtt::filter::match,
                                                         { async_mqtt::control_packet_type::connack }, asio::use_awaitable);
@@ -242,17 +282,16 @@ private:
     auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
 
     if (connack_packet.code() != async_mqtt::connect_reason_code::success) {
-      // logger_.error("Connection to MQTT broker failed with code: {}", connack_packet.code());
       co_return false;
     }
 
-    logger_.trace("Received CONNACK. Connection successful.");
+    networking_logger_.trace("Received CONNACK. Connection successful.");
 
     co_return true;
   }
 
   auto connect_to_broker() -> asio::awaitable<void> {
-    logger_.trace("Connecting to the MQTT broker...");
+    networking_logger_.trace("Connecting to the MQTT broker...");
     asio::ip::tcp::resolver::results_type resolved_ip = co_await resolve();
 
     while (true) {
@@ -271,7 +310,7 @@ private:
     co_await secure_subscription();
     while (true) {
       if (auto error = co_await process_ncmd_packet()) {
-        logger_.error("Error processing NCMD packet: {}", error.message());
+        incoming_logger_.error("Error processing NCMD packet: {}", error.message());
         co_await secure_subscription();
       }
     }
@@ -288,35 +327,35 @@ private:
   }
 
   auto subscribe_to_ncmd_topic() -> asio::awaitable<std::error_code> {
-    logger_.trace("Starting NCMD listener...");
+    incoming_logger_.trace("Starting NCMD listener...");
 
     std::string ncmd_topic = topic_formatter({ namespace_element, config_.value().group_id, ncmd, config_.value().node_id });
 
     auto p_id = mqtt_client_->acquire_unique_packet_id();
 
-    logger_.trace("Preparing subscription packet for topic: {}", ncmd_topic);
+    incoming_logger_.trace("Preparing subscription packet for topic: {}", ncmd_topic);
 
     auto subscribe_packet = async_mqtt::v5::subscribe_packet{
       *p_id, { { async_mqtt::allocate_buffer(ncmd_topic), async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } }
     };
 
-    logger_.trace("Sending subscription packet...");
+    incoming_logger_.trace("Sending subscription packet...");
 
     co_await mqtt_client_->send(subscribe_packet, asio::use_awaitable);
 
-    logger_.trace("Subscription packet sent. Waiting for SUBACK...");
+    incoming_logger_.trace("Subscription packet sent. Waiting for SUBACK...");
 
     auto suback_received = co_await mqtt_client_->recv(async_mqtt::filter::match,
                                                        { async_mqtt::control_packet_type::suback }, asio::use_awaitable);
 
-    logger_.trace("SUBACK received. Checking for errors...");
+    incoming_logger_.trace("SUBACK received. Checking for errors...");
 
     auto suback_packet = suback_received.template get<async_mqtt::v5::suback_packet>();
 
     for (auto const& entry : suback_packet.entries()) {
       if (entry != async_mqtt::suback_reason_code::granted_qos_0) {
-        logger_.error("Error subscribing to topic: {}, reason code: {}", ncmd_topic,
-                      async_mqtt::suback_reason_code_to_str(entry));
+        incoming_logger_.error("Error subscribing to topic: {}, reason code: {}", ncmd_topic,
+                               async_mqtt::suback_reason_code_to_str(entry));
         co_return make_error_code(entry);
       }
     }
@@ -325,7 +364,7 @@ private:
   }
 
   auto process_ncmd_packet() -> asio::awaitable<std::error_code> {
-    logger_.trace("Waiting for NCMD packet...");
+    incoming_logger_.trace("Waiting for NCMD packet...");
 
     auto publish_packet_received = co_await mqtt_client_->recv(
         async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
@@ -333,11 +372,11 @@ private:
     auto publish_packet = publish_packet_received.template get_if<async_mqtt::v5::publish_packet>();
 
     if (!publish_packet) {
-      logger_.error("Received packet is not a PUBLISH packet");
+      incoming_logger_.error("Received packet is not a PUBLISH packet");
       co_return std::error_code{ static_cast<int>(74), std::generic_category() };
     }
 
-    logger_.trace("Received PUBLISH packet. Parsing payload...");
+    incoming_logger_.trace("Received PUBLISH packet. Parsing payload...");
 
     for (long unsigned int i = 0; i < publish_packet->payload().size(); i++) {
       auto data = publish_packet->payload()[i];
@@ -353,21 +392,40 @@ private:
     bool payload_valid = payload.ParseFromArray(data.data(), data.size());
 
     if (!payload_valid) {
-      logger_.warn("Received invalid payload. Continuing to next iteration...");
+      incoming_logger_.warn("Received invalid payload. Continuing to next iteration...");
       co_return;
     }
 
-    logger_.trace("Payload parsed successfully. Processing payload...");
+    incoming_logger_.trace("Payload parsed successfully. Processing payload...");
 
     auto metric = payload.metrics(0);
 
     if (payload.has_timestamp() && !payload.has_seq() &&
         (publish_packet.opts().get_qos() == async_mqtt::qos::at_most_once) &&
-        (publish_packet.opts().get_retain() == async_mqtt::pub::retain::no) && (metric.name() == rebirth_metric)) {
-      logger_.trace("Conditions met. Sending NBIRTH...");
-      co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
+        (publish_packet.opts().get_retain() == async_mqtt::pub::retain::no)) {
+      if (metric.name() == rebirth_metric) {
+        incoming_logger_.trace("Conditions met. Sending NBIRTH...");
+        co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
+      } else {
+        incoming_logger_.trace("Metric received. Checking conditions...");
+        incoming_logger_.trace("This is incoming from SCADA Payload: \n {}", payload.DebugString());
+
+        if (metric.has_boolean_value()) {
+          send_value_on_signal(metric.name(), metric.boolean_value());
+        } else if (metric.has_double_value()) {
+          send_value_on_signal(metric.name(), metric.double_value());
+        } else if (metric.has_float_value()) {
+          send_value_on_signal(metric.name(), metric.float_value());
+        } else if (metric.has_int_value()) {
+          send_value_on_signal(metric.name(), static_cast<uint64_t>(metric.int_value()));
+        } else if (metric.has_long_value()) {
+          send_value_on_signal(metric.name(), metric.long_value());
+        } else if (metric.has_string_value()) {
+          send_value_on_signal(metric.name(), metric.string_value());
+        }
+      }
     } else {
-      logger_.trace(
+      incoming_logger_.trace(
           "Conditions not met, payload has timestamp (should be true): {}, "
           "has seq (should be false): {}, qos (should be at_most_once): {}, "
           "retain (should be no): {}, "
@@ -377,11 +435,29 @@ private:
     }
   }
 
+  auto send_value_on_signal(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value) {
+    for (auto& sig : scada_signals_) {
+      std::visit(
+          [&value, &signal_name]<typename signal_t>(signal_t& signal) {
+            if (signal_name.ends_with(signal.name())) {
+              using value_t = typename std::remove_cvref_t<signal_t>::value_t;
+
+              if constexpr (std::is_same_v<value_t, int64_t>) {
+                signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
+              } else {
+                signal.send(std::get<value_t>(value));
+              }
+            }
+          },
+          sig);
+    }
+  }
+
   auto add_new_signals() -> void {
-    logger_.trace("Starting to add new signals...");
+    outgoing_logger_.trace("Starting to add new signals...");
 
     ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) -> void {
-      logger_.trace("Received {} new signals to add.", signals.size());
+      outgoing_logger_.trace("Received {} new signals to add.", signals.size());
 
       signals_.clear();
       signals_.reserve(signals.size());
@@ -420,7 +496,7 @@ private:
               if constexpr (!std::same_as<receiver_t, std::monostate>) {
                 auto error_code = receiver->connect(signal.name);
                 if (error_code) {
-                  logger_.trace("Error connecting to signal: {}, error: {}", signal.name, error_code.message());
+                  outgoing_logger_.trace("Error connecting to signal: {}, error: {}", signal.name, error_code.message());
                 }
               }
             },
@@ -428,15 +504,15 @@ private:
 
         signals_.emplace_back(signal, std::move(ipc), std::nullopt);
 
-        logger_.trace("Added signal_data for signal: {}", signal.name);
+        outgoing_logger_.trace("Added signal_data for signal: {}", signal.name);
       }
 
-      logger_.trace("All new signals added. Preparing to send NBIRTH and start signals...");
+      outgoing_logger_.trace("All new signals added. Preparing to send NBIRTH and start signals...");
 
       // this function is necessary because it is not possible to co_await inside the signals handler
       asio::co_spawn(mqtt_client_->strand(), send_nbirth_and_start_signals(), asio::detached);
 
-      logger_.trace("Sent NBIRTH and started signals.");
+      outgoing_logger_.trace("Sent NBIRTH and started signals.");
     });
   }
 
@@ -449,7 +525,7 @@ private:
   }
 
   auto receive_and_send_message(signal_data& signal_data) -> asio::awaitable<void> {
-    logger_.trace("Starting to receive and send messages for signal: {}", signal_data.information.name);
+    outgoing_logger_.trace("Starting to receive and send messages for signal: {}", signal_data.information.name);
 
     co_await std::visit(
         [&](auto&& receiver) -> asio::awaitable<void> {
@@ -461,7 +537,7 @@ private:
               auto msg = co_await receiver->async_receive(asio::use_awaitable);
 
               if (msg) {
-                logger_.trace("Received a new message for signal: {}", signal_data.information.name);
+                outgoing_logger_.trace("Received a new message for signal: {}", signal_data.information.name);
 
                 signal_data.current_value = msg.value();
 
@@ -469,7 +545,7 @@ private:
                 auto* metric = payload.add_metrics();
 
                 if (metric == nullptr) {
-                  logger_.error("Failed to add metric to payload for signal: {}", signal_data.information.name);
+                  outgoing_logger_.error("Failed to add metric to payload for signal: {}", signal_data.information.name);
                   break;
                 }
 
@@ -479,31 +555,31 @@ private:
 
                 set_value_payload(metric, msg.value());
 
-                logger_.trace("Payload for signal '{}' prepared.", signal_data.information.name);
+                outgoing_logger_.trace("Payload for signal '{}' prepared.", signal_data.information.name);
 
-                logger_.trace("{}", payload.DebugString());
+                outgoing_logger_.trace("Payload: \n {}", payload.DebugString());
 
                 std::string payload_string;
                 payload.SerializeToString(&payload_string);
 
                 co_await send_message(topic, payload_string, async_mqtt::qos::at_most_once);
 
-                logger_.trace("Sent a message with payload for signal: {}", signal_data.information.name);
+                outgoing_logger_.trace("Sent a message with payload for signal: {}", signal_data.information.name);
 
               } else {
-                logger_.error("Failed to receive message for signal: {}", signal_data.information.name);
+                outgoing_logger_.error("Failed to receive message for signal: {}", signal_data.information.name);
                 break;
               }
             }
           } else {
-            logger_.warn("Receiver is not initialized for signal: {}", signal_data.information.name);
+            outgoing_logger_.warn("Receiver is not initialized for signal: {}", signal_data.information.name);
           }
         },
         signal_data.receiver);
   }
 
   auto send_nbirth() -> asio::awaitable<void> {
-    logger_.info("Starting to send nbirth messages");
+    outgoing_logger_.info("Starting to send nbirth messages");
 
     std::string topic = topic_formatter({ namespace_element, config_.value().group_id, nbirth, config_.value().node_id });
 
@@ -521,10 +597,10 @@ private:
     node_rebirth->set_is_historical(false);
     node_rebirth->set_is_null(false);
 
-    logger_.info("Node rebirth metric added to the payload");
+    outgoing_logger_.info("Node rebirth metric added to the payload");
 
     for (signal_data& signal_data : signals_) {
-      logger_.info("Processing signal_data: {}", signal_data.information.name);
+      outgoing_logger_.info("signals: Processing signal_data: {}", signal_data.information.name);
       auto* variable_metric = payload.add_metrics();
       variable_metric->set_name(format_signal_name(signal_data.information.name));
       variable_metric->set_timestamp(timestamp_milliseconds().count());
@@ -537,7 +613,7 @@ private:
               if (signal_data.current_value.has_value()) {
                 set_value_payload(variable_metric, signal_data.current_value.value());
               } else {
-                logger_.trace("Waiting for initial value for : {}", signal_data.information.name);
+                outgoing_logger_.trace("Waiting for initial value for : {}", signal_data.information.name);
                 co_await set_initial_value(receiver, variable_metric);
               }
             }
@@ -548,17 +624,17 @@ private:
       variable_metric->set_is_transient(false);
       variable_metric->set_is_historical(false);
 
-      logger_.info("Signal_data processed and added to the payload: {}", signal_data.information.name);
+      outgoing_logger_.info("Signal_data processed and added to the payload: {}", signal_data.information.name);
     }
 
-    payload.PrintDebugString();
+    outgoing_logger_.trace("Payload: \n {}", payload.DebugString());
 
     std::string payload_string;
     payload.SerializeToString(&payload_string);
 
     co_await send_message(topic, payload_string, async_mqtt::qos::at_most_once);
 
-    logger_.info("Nbirth message sent successfully");
+    outgoing_logger_.info("Nbirth message sent successfully");
   }
 
   // This function reads the initial value off the signal.
@@ -612,7 +688,7 @@ private:
     if (_qos != async_mqtt::qos::at_most_once) {
       packet_id = mqtt_client_->acquire_unique_packet_id().value();
     }
-    logger_.info("Attempting to send message to topic: {}", topic);
+    networking_logger_.info("Attempting to send message to topic: {}", topic);
 
     auto error_code =
         co_await mqtt_client_->send(async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
@@ -620,29 +696,38 @@ private:
                                     asio::use_awaitable);
 
     if (error_code) {
-      logger_.error("Failed to send message to topic: {}", topic);
-      logger_.info("Attempting to reconnect to broker");
+      networking_logger_.error("Failed to send message to topic: {}", topic);
+      networking_logger_.info("Attempting to reconnect to broker");
       co_await asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::use_awaitable);
-      logger_.info("Reconnected to broker. Attempting to resend the message to topic: {}", topic);
+      networking_logger_.info("Reconnected to broker. Attempting to resend the message to topic: {}", topic);
       co_await send_message(topic, payload, _qos);
     } else {
-      logger_.info("Message successfully sent to topic: {}", topic);
+      networking_logger_.info("Message successfully sent to topic: {}", topic);
     }
   }
 
   asio::io_context& io_ctx_;
 
-  async_mqtt::tls::context tls_ctx_;
+  async_mqtt::tls::context tls_ctx_{ async_mqtt::tls::context::tlsv12 };
 
-  ipc_client_type ipc_client_;
+  ipc_client_type ipc_client_{ io_ctx_ };
 
-  std::shared_ptr<mqtt_client_type> mqtt_client_;
+  std::shared_ptr<mqtt_client_type> mqtt_client_{
+    std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v5, io_ctx_.get_executor(), tls_ctx_)
+  };
 
-  tfc::logger::logger logger_;
+  // pertains to all networking communication
+  tfc::logger::logger networking_logger_{ "networking" };
 
-  config_type config_;
+  // incoming means from scada to tfc
+  tfc::logger::logger incoming_logger_{ "incoming" };
 
-  network_manager_type network_manager_;
+  // outgoing means from tfc to scada
+  tfc::logger::logger outgoing_logger_{ "outgoing" };
+
+  config_type config_{ io_ctx_, "mqtt_broadcaster" };
+
+  network_manager_type network_manager_{};
 
   std::vector<signal_data> signals_;
 
@@ -650,9 +735,11 @@ private:
 
   uint64_t seq_ = 0;
 
-  asio::steady_timer timer_;
+  asio::steady_timer timer_{ io_ctx_ };
 
   asio::cancellation_signal cancel_signal_;
+
+  std::vector<tfc::ipc::any_signal> scada_signals_;
 
   friend class testing_mqtt_broadcaster;
 };
