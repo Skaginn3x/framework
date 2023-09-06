@@ -233,9 +233,8 @@ private:
   }
 
   std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
-    return std::visit(
-        [](auto&& arg) -> std::string { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
-        port);
+    return std::visit([](auto&& arg) { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
+                      port);
   }
 
   // This function is used to connect to the MQTT broker and perform the handshake
@@ -439,7 +438,7 @@ private:
   auto send_value_on_signal(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value) {
     for (auto& sig : scada_signals_) {
       std::visit(
-          [&value, &signal_name]<typename signal_t>(signal_t&& signal) -> void {
+          [&value, &signal_name]<typename signal_t>(signal_t&& signal) {
             if (signal_name.ends_with(signal.name())) {
               using value_t = typename std::remove_cvref_t<signal_t>::value_t;
 
