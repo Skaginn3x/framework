@@ -59,7 +59,7 @@ public:
       : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
         client_(client) {
     client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
-      slot_->connect(signal_name); //
+      slot_->connect(signal_name);  //
     });
     client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
@@ -118,13 +118,14 @@ public:
     return signal_->async_send(value, std::forward<decltype(token)>(token));
   }
 
-  auto name() const noexcept -> std::string_view { return signal_->name(); }
-
 private:
   static constexpr std::string_view self_name{ signal_tag };
   manager_client_type& client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
 };
+
+template <typename return_t, template <typename description_t, typename manager_client_t> typename ipc_base_t>
+struct make_any;
 
 using bool_slot = slot<details::type_bool, ipc_ruler::ipc_manager_client>;
 using int_slot = slot<details::type_int, ipc_ruler::ipc_manager_client>;
@@ -132,6 +133,15 @@ using uint_slot = slot<details::type_uint, ipc_ruler::ipc_manager_client>;
 using double_slot = slot<details::type_double, ipc_ruler::ipc_manager_client>;
 using string_slot = slot<details::type_string, ipc_ruler::ipc_manager_client>;
 using json_slot = slot<details::type_json, ipc_ruler::ipc_manager_client>;
+using any_slot = std::variant<std::monostate,  //
+                              bool_slot,       //
+                              int_slot,        //
+                              uint_slot,       //
+                              double_slot,     //
+                              string_slot,     //
+                              json_slot>;
+/// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
+using make_any_slot = make_any<any_slot, slot>;
 
 using bool_signal = signal<details::type_bool, ipc_ruler::ipc_manager_client>;
 using int_signal = signal<details::type_int, ipc_ruler::ipc_manager_client>;
@@ -139,6 +149,38 @@ using uint_signal = signal<details::type_uint, ipc_ruler::ipc_manager_client>;
 using double_signal = signal<details::type_double, ipc_ruler::ipc_manager_client>;
 using string_signal = signal<details::type_string, ipc_ruler::ipc_manager_client>;
 using json_signal = signal<details::type_json, ipc_ruler::ipc_manager_client>;
-using any_signal = std::variant<bool_signal, int_signal, uint_signal, double_signal, string_signal, json_signal>;
+using any_signal = std::variant<std::monostate,  //
+                              bool_signal,       //
+                              int_signal,        //
+                              uint_signal,       //
+                              double_signal,     //
+                              string_signal,     //
+                              json_signal>;
+/// \brief any_signal foo = make_any_signal(type_e::bool, ctx, client, "name", "description");
+using make_any_signal = make_any<any_signal, signal>;
+
+template <typename return_t, template <typename description_t, typename manager_client_t> typename ipc_base_t>
+struct make_any {
+  static auto make(details::type_e type, auto&&... args) -> return_t {
+    switch (type) {
+      using enum details::type_e;
+      case _bool:
+        return ipc_base_t<details::type_bool, ipc_ruler::ipc_manager_client>{ std::forward<decltype(args)>(args)... };
+      case _int64_t:
+        return ipc_base_t<details::type_int, ipc_ruler::ipc_manager_client>{ std::forward<decltype(args)>(args)... };
+      case _uint64_t:
+        return ipc_base_t<details::type_uint, ipc_ruler::ipc_manager_client>{ std::forward<decltype(args)>(args)... };
+      case _double_t:
+        return ipc_base_t<details::type_double, ipc_ruler::ipc_manager_client>{ std::forward<decltype(args)>(args)... };
+      case _string:
+        return ipc_base_t<details::type_string, ipc_ruler::ipc_manager_client>{ std::forward<decltype(args)>(args)... };
+      case _json:
+        return ipc_base_t<details::type_json, ipc_ruler::ipc_manager_client>{ std::forward<decltype(args)>(args)... };
+      case unknown:
+        return std::monostate{};
+    }
+    return {};
+  }
+};
 
 }  // namespace tfc::ipc

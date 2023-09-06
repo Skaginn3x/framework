@@ -341,27 +341,27 @@ private:
     }
     register_read(std::forward<decltype(callback)>(callback));
   }
-  void register_read(std::invocable<value_t> auto&& callback) {
-    auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
-      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code> value) {
-        if (auto sptr = bind_reference.lock()) {
-          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
-        }
-      });
-    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
-      slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
-                              std::expected<value_t, std::error_code> value) mutable {
-        if (auto sptr = bind_reference.lock()) {
-          sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
-        }
-      });
-    } else {
-      []<bool flag = false>() {
-        static_assert(flag, "Something strange is happening");
-      }
-      ();
-    }
+  void register_read() { // TODO continue and fix this
+//    auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
+//    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
+//      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code> value) {
+//        if (auto sptr = bind_reference.lock()) {
+//          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
+//        }
+//      });
+//    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
+//      slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
+//                              std::expected<value_t, std::error_code> value) mutable {
+//        if (auto sptr = bind_reference.lock()) {
+//          sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
+//        }
+//      });
+//    } else {
+//      []<bool flag = false>() {
+//        static_assert(flag, "Something strange is happening");
+//      }
+//      ();
+//    }
   }
   slot<type_desc> slot_;
   std::optional<value_t> last_value_{};
@@ -428,8 +428,7 @@ using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 
 template <typename return_t, template <typename description_t> typename ipc_base_t>
 struct make_any_ptr {
-  template <>
-  static auto operator()(type_e type, auto&&... args) -> return_t {
+  static auto make(type_e type, auto&&... args) -> return_t {
     switch (type) {
       case type_e::_bool:
         return ipc_base_t<type_bool>::create(std::forward<decltype(args)>(args)...);

@@ -37,8 +37,8 @@ static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bo
                                                                   "double",  "string", "json" };
 
 inline auto constexpr string_to_type(std::string_view name) -> type_e {
-  for (std::size_t idx = 0; idx < type_e_iterable.size(); idx++) {
-    if (type_e_iterable[idx] == name) {
+  for (std::size_t idx = type_e_iterable.size() - 1; idx > 0; idx--) {
+    if (name.contains(type_e_iterable[idx])) {
       return static_cast<type_e>(idx);
     }
   }
