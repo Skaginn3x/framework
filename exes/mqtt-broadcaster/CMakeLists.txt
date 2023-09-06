@@ -36,3 +36,19 @@ if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
 
+include(GNUInstallDirs)
+install(
+  TARGETS
+  mqtt-broadcaster
+  DESTINATION
+  ${CMAKE_INSTALL_BINDIR}
+  CONFIGURATIONS Release
+)
+
+install(
+  TARGETS
+  mqtt-broadcaster
+  DESTINATION
+  ${CMAKE_INSTALL_BINDIR}/debug/
+  CONFIGURATIONS Debug
+)
