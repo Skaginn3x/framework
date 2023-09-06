@@ -70,11 +70,7 @@ public:
   static constexpr std::string_view ncmd = "NCMD";
   static constexpr std::string_view rebirth_metric = "Node Control/Rebirth";
 
-  explicit mqtt_broadcaster(asio::io_context& io_ctx)
-      : io_ctx_(io_ctx), tls_ctx_{ async_mqtt::tls::context::tlsv12 }, ipc_client_{ io_ctx_ },
-        mqtt_client_(std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v5, io_ctx.get_executor(), tls_ctx_)),
-        logger_("mqtt_broadcaster"), networking_logger_("networking"), incoming_logger_("incoming"),
-        outgoing_logger_("outgoing"), config_(io_ctx, "mqtt_broadcaster"), network_manager_(), timer_{ io_ctx_ } {}
+  explicit mqtt_broadcaster(asio::io_context& io_ctx) : io_ctx_(io_ctx) {}
 
   auto run() -> void {
     properties_callback_ = ipc_client_.register_properties_change_callback(
@@ -97,31 +93,31 @@ private:
         switch (sig.type) {
           using enum tfc::ipc::details::type_e;
           case _bool: {
-            scada_signals.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            scada_signals_.emplace_back(tfc::ipc::bool_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _double_t: {
-            scada_signals.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            scada_signals_.emplace_back(tfc::ipc::double_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _int64_t: {
-            scada_signals.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            scada_signals_.emplace_back(tfc::ipc::int_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _json: {
-            scada_signals.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            scada_signals_.emplace_back(tfc::ipc::json_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _string: {
-            scada_signals.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            scada_signals_.emplace_back(tfc::ipc::string_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case _uint64_t: {
-            scada_signals.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
+            scada_signals_.emplace_back(tfc::ipc::uint_signal{ io_ctx_, ipc_client_, sig.name, sig.description });
             break;
           }
           case unknown: {
-            logger_.error("Unknown type for signal: {}", sig.name);
+            outgoing_logger_.error("Unknown type for signal: {}", sig.name);
           }
         }
       }
@@ -237,7 +233,9 @@ private:
   }
 
   std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
-    return std::visit([](auto&& arg) -> std::string { return std::to_string(static_cast<uint16_t>(arg)); }, port);
+    return std::visit(
+        [](auto&& arg) -> std::string { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
+        port);
   }
 
   // This function is used to connect to the MQTT broker and perform the handshake
@@ -358,7 +356,7 @@ private:
     for (auto const& entry : suback_packet.entries()) {
       if (entry != async_mqtt::suback_reason_code::granted_qos_0) {
         incoming_logger_.error("Error subscribing to topic: {}, reason code: {}", ncmd_topic,
-                      async_mqtt::suback_reason_code_to_str(entry));
+                               async_mqtt::suback_reason_code_to_str(entry));
         co_return make_error_code(entry);
       }
     }
@@ -411,7 +409,7 @@ private:
         co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
       } else {
         incoming_logger_.trace("Metric received. Checking conditions...");
-        incoming_logger_.trace("Payload: \n {}", payload.DebugString());
+        incoming_logger_.trace("This is incoming from SCADA Payload: \n {}", payload.DebugString());
 
         if (metric.has_boolean_value()) {
           send_value_on_signal(metric.name(), metric.boolean_value());
@@ -438,14 +436,12 @@ private:
     }
   }
 
-  auto send_value_on_signal(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value)
-      -> void {
-    for (auto& sig : scada_signals) {
+  auto send_value_on_signal(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value) {
+    for (auto& sig : scada_signals_) {
       std::visit(
-          [&value, &signal_name](auto&& signal) -> void {
-            if (signal_name.ends_with(signal.get_name())) {
-              using signal_t = std::remove_cvref_t<decltype(signal)>;
-              using value_t = typename signal_t::value_t;
+          [&value, &signal_name]<typename signal_t>(signal_t&& signal) -> void {
+            if (signal_name.ends_with(signal.name())) {
+              using value_t = typename std::remove_cvref_t<signal_t>::value_t;
 
               if constexpr (std::is_same_v<value_t, int64_t>) {
                 signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
@@ -693,7 +689,7 @@ private:
     if (_qos != async_mqtt::qos::at_most_once) {
       packet_id = mqtt_client_->acquire_unique_packet_id().value();
     }
-    logger_.info("Attempting to send message to topic: {}", topic);
+    networking_logger_.info("Attempting to send message to topic: {}", topic);
 
     auto error_code =
         co_await mqtt_client_->send(async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
@@ -701,38 +697,38 @@ private:
                                     asio::use_awaitable);
 
     if (error_code) {
-      logger_.error("Failed to send message to topic: {}", topic);
-      logger_.info("Attempting to reconnect to broker");
+      networking_logger_.error("Failed to send message to topic: {}", topic);
+      networking_logger_.info("Attempting to reconnect to broker");
       co_await asio::co_spawn(mqtt_client_->strand(), connect_to_broker(), asio::use_awaitable);
-      logger_.info("Reconnected to broker. Attempting to resend the message to topic: {}", topic);
+      networking_logger_.info("Reconnected to broker. Attempting to resend the message to topic: {}", topic);
       co_await send_message(topic, payload, _qos);
     } else {
-      logger_.info("Message successfully sent to topic: {}", topic);
+      networking_logger_.info("Message successfully sent to topic: {}", topic);
     }
   }
 
   asio::io_context& io_ctx_;
 
-  async_mqtt::tls::context tls_ctx_;
+  async_mqtt::tls::context tls_ctx_{ async_mqtt::tls::context::tlsv12 };
 
-  ipc_client_type ipc_client_;
+  ipc_client_type ipc_client_{ io_ctx_ };
 
-  std::shared_ptr<mqtt_client_type> mqtt_client_;
-
-  tfc::logger::logger logger_;
+  std::shared_ptr<mqtt_client_type> mqtt_client_{
+    std::make_shared<mqtt_client_type>(async_mqtt::protocol_version::v5, io_ctx_.get_executor(), tls_ctx_)
+  };
 
   // pertains to all networking communication
-  tfc::logger::logger networking_logger_;
+  tfc::logger::logger networking_logger_{ "networking" };
 
   // incoming means from scada to tfc
-  tfc::logger::logger incoming_logger_;
+  tfc::logger::logger incoming_logger_{ "incoming" };
 
   // outgoing means from tfc to scada
-  tfc::logger::logger outgoing_logger_;
+  tfc::logger::logger outgoing_logger_{ "outgoing" };
 
-  config_type config_;
+  config_type config_{ io_ctx_, "mqtt_broadcaster" };
 
-  network_manager_type network_manager_;
+  network_manager_type network_manager_{};
 
   std::vector<signal_data> signals_;
 
@@ -740,11 +736,11 @@ private:
 
   uint64_t seq_ = 0;
 
-  asio::steady_timer timer_;
+  asio::steady_timer timer_{ io_ctx_ };
 
   asio::cancellation_signal cancel_signal_;
 
-  std::vector<tfc::ipc::any_signal> scada_signals;
+  std::vector<tfc::ipc::any_signal> scada_signals_;
 
   friend class testing_mqtt_broadcaster;
 };

@@ -54,5 +54,6 @@ struct config {
 template <>
 struct glz::meta<tfc::mqtt::port_e> {
   using enum tfc::mqtt::port_e;
+  static constexpr auto name{ "tfc::mqtt::port_e" };
   static constexpr auto value = enumerate("mqtt", mqtt, "mqtts", mqtts);
 };
