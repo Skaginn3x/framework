@@ -303,7 +303,8 @@ public:
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, std::invocable<value_t> auto&& callback)
       -> std::shared_ptr<slot_callback<type_desc>> {
-    return std::make_shared<slot_callback<type_desc>>(ctx, name, std::forward<decltype(callback)>(callback));
+    return std::shared_ptr<slot_callback<type_desc>>(
+        new slot_callback<type_desc>{ ctx, name, std::forward<decltype(callback)>(callback) });
   }
 
   auto connect(std::string_view signal_name) -> std::error_code {
@@ -341,27 +342,27 @@ private:
     }
     register_read(std::forward<decltype(callback)>(callback));
   }
-  void register_read() { // TODO continue and fix this
-//    auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-//    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
-//      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code> value) {
-//        if (auto sptr = bind_reference.lock()) {
-//          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
-//        }
-//      });
-//    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
-//      slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
-//                              std::expected<value_t, std::error_code> value) mutable {
-//        if (auto sptr = bind_reference.lock()) {
-//          sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
-//        }
-//      });
-//    } else {
-//      []<bool flag = false>() {
-//        static_assert(flag, "Something strange is happening");
-//      }
-//      ();
-//    }
+  void register_read() {  // TODO continue and fix this
+    //    auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
+    //    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
+    //      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code> value) {
+    //        if (auto sptr = bind_reference.lock()) {
+    //          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
+    //        }
+    //      });
+    //    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
+    //      slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
+    //                              std::expected<value_t, std::error_code> value) mutable {
+    //        if (auto sptr = bind_reference.lock()) {
+    //          sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
+    //        }
+    //      });
+    //    } else {
+    //      []<bool flag = false>() {
+    //        static_assert(flag, "Something strange is happening");
+    //      }
+    //      ();
+    //    }
   }
   slot<type_desc> slot_;
   std::optional<value_t> last_value_{};
@@ -400,13 +401,13 @@ using uint_slot_ptr = std::shared_ptr<slot<type_uint>>;
 using double_slot_ptr = std::shared_ptr<slot<type_double>>;
 using string_slot_ptr = std::shared_ptr<slot<type_string>>;
 using json_slot_ptr = std::shared_ptr<slot<type_json>>;
-using any_slot = std::variant<std::monostate,     //
-                                bool_slot_ptr,    //
-                                int_slot_ptr,     //
-                                uint_slot_ptr,    //
-                                double_slot_ptr,  //
-                                string_slot_ptr,  //
-                                json_slot_ptr>;
+using any_slot = std::variant<std::monostate,   //
+                              bool_slot_ptr,    //
+                              int_slot_ptr,     //
+                              uint_slot_ptr,    //
+                              double_slot_ptr,  //
+                              string_slot_ptr,  //
+                              json_slot_ptr>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, "name");
 using make_any_slot = make_any_ptr<any_slot, slot>;
 
@@ -416,7 +417,7 @@ using uint_slot_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
 using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
 using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
 using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
-using any_slot_cb = std::variant<std::monostate,     //
+using any_slot_cb = std::variant<std::monostate,      //
                                  bool_slot_cb_ptr,    //
                                  int_slot_cb_ptr,     //
                                  uint_slot_cb_ptr,    //
@@ -445,6 +446,7 @@ struct make_any_ptr {
       case type_e::unknown:
         return std::monostate{};
     }
+    return {};
   }
 };
 

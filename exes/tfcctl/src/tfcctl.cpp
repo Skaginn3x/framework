@@ -99,29 +99,29 @@ auto main(int argc, char** argv) -> int {
   for (auto& signal_connect : connect) {
     // For listening to connections
     // todo fix
-//    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
-//      std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
-//      auto type{ ipc::details::string_to_type(sig) };
-//      if (type == ipc::details::type_e::unknown) {
-//        throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
-//      }
-//      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name, [sig, &logger](auto const& val) {
-//        logger.info("{}: {}", sig, val);  //
-//      }) };
-//      std::visit(
-//          [sig, &logger](auto&& receiver) {
-//            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-//            if constexpr (!std::same_as<std::monostate, receiver_t>) {
-//              logger.trace("Connecting to signal {}", sig);
-//              auto error = receiver->connect(sig);
-//              if (error) {
-//                logger.error("Failed to connect: {}", error.message());
-//              }
-//            }
-//          },
-//          ipc);
-//      return ipc;
-//    }(signal_connect));
+    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
+      std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
+      auto type{ ipc::details::string_to_type(sig) };
+      if (type == ipc::details::type_e::unknown) {
+        throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
+      }
+      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name, [sig, &logger](auto const& val) {
+        logger.info("{}: {}", sig, val);  //
+      }) };
+      std::visit(
+          [sig, &logger](auto&& receiver) {
+            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+            if constexpr (!std::same_as<std::monostate, receiver_t>) {
+              logger.trace("Connecting to signal {}", sig);
+              auto error = receiver->connect(sig);
+              if (error) {
+                logger.error("Failed to connect: {}", error.message());
+              }
+            }
+          },
+          ipc);
+      return ipc;
+    }(signal_connect));
   }
 
   asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
