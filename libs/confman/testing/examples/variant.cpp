@@ -20,7 +20,7 @@ struct option_1 {
   struct glaze {
     using type = option_1;
     static constexpr auto value{ glz::object("amper", &type::amper, "amper description") };
-    static constexpr auto name{ "option_1" };
+    static constexpr std::string_view name{ "option_1" };
   };
 };
 
@@ -30,7 +30,7 @@ struct option_2 {
   struct glaze {
     using type = option_2;
     static constexpr auto value{ glz::object("a", &type::a, "A description", "sec", &type::sec, "sec description") };
-    static constexpr auto name{ "option_2" };
+    static constexpr std::string_view name{ "option_2" };
   };
 };
 
@@ -42,7 +42,7 @@ struct with_variant {
     static constexpr auto value{
       glz::object("a_int", &type::a, "A int description", "variant", &type::variant, "variant description")
     };
-    static constexpr auto name{ "with_variant" };
+    static constexpr std::string_view name{ "with_variant" };
   };
 };
 

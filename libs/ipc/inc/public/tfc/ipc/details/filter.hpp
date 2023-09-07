@@ -58,9 +58,9 @@ struct filter<type_e::invert, bool> {
 
   struct glaze {
     using type = filter<type_e::invert, value_t>;
-    static constexpr auto name{ "tfc::ipc::filter::invert" };
+    static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
     static constexpr auto value{
-      glz::object("invert", &type::invert, tfc::json::schema{ .description = "Invert outputting value", .read_only = true })
+      glz::object("invert", &type::invert, tfc::json::schema{ .description = "Invert outputting value", .read_only = true, .constant = true })
     };
   };
 };
@@ -133,7 +133,7 @@ private:
 public:
   struct glaze {
     using type = filter<type_e::timer, value_t, clock_type>;
-    static constexpr auto name{ "tfc::ipc::filter::timer" };
+    static constexpr std::string_view name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
       "time_on", &type::time_on, "Rising edge settling delay, applied on next event, NOT current one if already processing",
@@ -161,7 +161,7 @@ struct filter<type_e::offset, value_t> {
 
   struct glaze {
     using type = filter<type_e::offset, value_t>;
-    static constexpr auto name{ "tfc::ipc::filter::offset" };
+    static constexpr std::string_view name{ "tfc::ipc::filter::offset" };
     static constexpr auto value{ glz::object("offset", &type::offset, "Adds a constant value to each sensor value.") };
   };
 };
@@ -184,7 +184,7 @@ struct filter<type_e::multiply, value_t> {
 
   struct glaze {
     using type = filter<type_e::multiply, value_t>;
-    static constexpr auto name{ "tfc::ipc::filter::multiply" };
+    static constexpr std::string_view name{ "tfc::ipc::filter::multiply" };
     static constexpr auto value{ glz::object("multiply", &type::multiply, "Multiplies each value by a constant value.") };
   };
 };
@@ -214,7 +214,7 @@ struct filter<type_e::filter_out, value_t> {
 
   struct glaze {
     using type = filter<type_e::filter_out, value_t>;
-    static constexpr auto name{ "tfc::ipc::filter::filter_out" };
+    static constexpr std::string_view name{ "tfc::ipc::filter::filter_out" };
     static constexpr auto value{
       glz::object("filter_out", &type::filter_out, "Filter out specific values to drop and forget")
     };
@@ -227,9 +227,7 @@ struct any_filter_decl;
 template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
-  using type = std::variant<filter<type_e::invert, value_t>,
-                            filter<type_e::timer, value_t, std::chrono::steady_clock>,
-                            filter<type_e::filter_out, value_t>>;
+  using type = std::variant<filter<type_e::invert, value_t>, filter<type_e::timer, value_t, std::chrono::steady_clock>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
@@ -277,14 +275,13 @@ public:
       // todo we should not use lvalue strings or should we?
       static_assert(!std::is_same_v<std::remove_cvref_t<decltype(value)>, std::string>);
       return_value = value_t{ value };
-    }
-    else if constexpr (std::is_rvalue_reference_v<decltype(value)>) {
+    } else if constexpr (std::is_rvalue_reference_v<decltype(value)>) {
       return_value = std::forward<decltype(value)>(value);
-    }
-    else {
-      []<bool flag = false>(){
+    } else {
+      []<bool flag = false>() {
         static_assert(flag, "Invalid type of value");
-      }();
+      }
+      ();
     }
 
     asio::co_spawn(
@@ -293,7 +290,7 @@ public:
           for (auto const& filter : filters_.value()) {
             // move the value into the filter and the filter will return the value modified or not
             return_value = co_await std::visit(
-                [return_value = std::move(return_value)](auto&& arg) mutable -> auto { // mutable to move return_value
+                [return_value = std::move(return_value)](auto&& arg) mutable -> auto {  // mutable to move return_value
                   return arg.async_process(std::move(return_value.value()), asio::use_awaitable);  //
                 },
                 filter);
@@ -316,9 +313,7 @@ public:
           }
         });
   }
-  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& {
-    return last_value_;
-  }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return last_value_; }
 
 private:
   asio::io_context& ctx_;
@@ -332,7 +327,7 @@ private:
 template <>
 struct glz::meta<tfc::ipc::filter::type_e> {
   using enum tfc::ipc::filter::type_e;
-  static auto constexpr name{ "ipc::filter::type" };
+  static std::string_view constexpr name{ "ipc::filter::type" };
   // clang-format off
   static auto constexpr value{ glz::enumerate("unknown", unknown,
                                               "invert", invert, "Invert outputting value",

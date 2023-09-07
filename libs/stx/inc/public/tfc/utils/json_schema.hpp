@@ -315,6 +315,7 @@ struct to_json_schema<T> {
     glz::for_each<N>([&](auto I) {
       using V = std::decay_t<std::variant_alternative_t<I, T>>;
       auto& schema_val = (*s.oneOf)[I.value];
+      schema_val.attributes.title = glz::name_v<V, true>; // please MAKE sure you declare name within variants
       // TODO use ref to avoid duplication in schema
       to_json_schema<V>::template op<Opts>(schema_val, defs);
       constexpr bool glaze_object = glz::detail::glaze_object_t<V>;
