@@ -56,7 +56,7 @@ public:
 
 struct signal_data {
   tfc::ipc_ruler::signal information;
-  tfc::ipc::details::any_recv receiver;
+  tfc::ipc::details::any_slot receiver;
   std::optional<std::any> current_value;
 };
 
@@ -488,7 +488,7 @@ private:
             break;
         }
 
-        auto ipc = tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(io_ctx_, slot_name);
+        auto ipc = tfc::ipc::details::make_any_slot::make(signal.type, io_ctx_, slot_name);
 
         std::visit(
             [&](auto&& receiver) -> void {
