@@ -19,7 +19,7 @@ inline constexpr auto dimension_name() -> std::string_view;
 
 template <>
 struct glz::meta<units::ratio> {
-  static constexpr auto value{ &units::ratio::num };
+  static constexpr auto value{ glz::object("numerator", &units::ratio::num, "denominator", &units::ratio::den) };
   static constexpr auto name{ "units::ratio" };
 };
 
