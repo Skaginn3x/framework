@@ -314,7 +314,7 @@ public:
     register_read();
     return {};
   }
-  [[nodiscard]] auto get() const noexcept -> std::optional<value_t> const& { return last_value_; }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
 
   /**
    * @brief disconnect from signal
@@ -327,45 +327,30 @@ public:
 private:
   slot_callback(asio::io_context& ctx, std::string_view name, std::invocable<value_t> auto&& callback)
       : slot_{ ctx, name }, filters_{ ctx, name, std::forward<decltype(callback)>(callback) } {}
-  void async_new_state(std::expected<value_t, std::error_code> value, std::invocable<value_t> auto&& callback) {
+  void async_new_state(std::expected<value_t, std::error_code> value) {
     if (!value) {
       return;
     }
     // Don't retransmit transmitted things.
     // clang-format off
+    auto const& last_value{ filters_.value() };
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-    if (!last_value_.has_value() || value.value() != last_value_) {
+    if (!last_value.has_value() || value.value() != last_value) {
     PRAGMA_CLANG_WARNING_POP
       // clang-format on
-      last_value_ = value.value();
-      callback(last_value_.value());
+      filters_(std::move(value.value()));
     }
-    register_read(std::forward<decltype(callback)>(callback));
+    register_read();
   }
-  void register_read() {  // TODO continue and fix this
-    //    auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    //    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
-    //      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code> value) {
-    //        if (auto sptr = bind_reference.lock()) {
-    //          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
-    //        }
-    //      });
-    //    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
-    //      slot_.async_receive([bind_reference, cb = std::forward<decltype(callback)>(callback)](
-    //                              std::expected<value_t, std::error_code> value) mutable {
-    //        if (auto sptr = bind_reference.lock()) {
-    //          sptr->async_new_state(value, std::forward<decltype(cb)>(cb));
-    //        }
-    //      });
-    //    } else {
-    //      []<bool flag = false>() {
-    //        static_assert(flag, "Something strange is happening");
-    //      }
-    //      ();
-    //    }
+  void register_read() {
+    auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
+    slot_.async_receive([bind_reference](std::expected<value_t, std::error_code> value) {
+      if (auto sptr = bind_reference.lock()) {
+        sptr->async_new_state(value);
+      }
+    });
   }
   slot<type_desc> slot_;
-  std::optional<value_t> last_value_{};
   filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
 };
 

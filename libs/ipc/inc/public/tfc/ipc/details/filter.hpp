@@ -265,9 +265,11 @@ public:
   filters(asio::io_context& ctx, std::string_view name, callback_t&& callback)
       : ctx_{ ctx }, filters_{ ctx, fmt::format("{}/_filters_", name) }, callback_{ callback } {}
 
-  void operator()(auto&& value) const {
+  /// \brief changes internal last_value state when filters have been processed
+  void operator()(value_t&& value) {
     if (filters_->empty()) {
-      std::invoke(callback_, std::forward<decltype(value)>(value));
+      last_value_ = std::move(value);
+      std::invoke(callback_, last_value_.value());
       return;
     }
     std::expected<value_t, std::error_code> return_value{};
@@ -291,7 +293,7 @@ public:
           for (auto const& filter : filters_.value()) {
             // move the value into the filter and the filter will return the value modified or not
             return_value = co_await std::visit(
-                [this, return_value = std::move(return_value)](auto&& arg) mutable -> auto { // mutable to move return_value
+                [return_value = std::move(return_value)](auto&& arg) mutable -> auto { // mutable to move return_value
                   return arg.async_process(std::move(return_value.value()), asio::use_awaitable);  //
                 },
                 filter);
@@ -307,18 +309,22 @@ public:
             std::rethrow_exception(exception_ptr);
           }
           if (return_val.has_value()) {
-            std::invoke(callback_, return_val.value());
+            last_value_ = std::move(return_val.value());
+            std::invoke(callback_, last_value_.value());
           } else {
             // todo log. I have now forgotten the original value/s
           }
         });
+  }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& {
+    return last_value_;
   }
 
 private:
   asio::io_context& ctx_;
   tfc::confman::config<std::vector<detail::any_filter_decl_t<value_t>>> filters_;
   callback_t callback_;
-  std::expected<value_t, std::error_code> last_value_{};
+  std::optional<value_t> last_value_{};
 };
 
 }  // namespace tfc::ipc::filter
