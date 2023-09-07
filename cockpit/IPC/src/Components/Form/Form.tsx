@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
@@ -27,7 +28,6 @@ import { VariantWidget } from './VariantWidget';
 
 const GridStack = injectPluginStack(GridContainer);
 
-// export default function FormGenerator(inputSchema: any) {
 export default function FormGenerator(
   { inputSchema, onSubmit, values }: { inputSchema: any, onSubmit: (data: any) => void, values: any },
 ) {
@@ -50,14 +50,33 @@ export default function FormGenerator(
     } as CustomWidgetBinding,
   };
 
+  // Function to handle widget assignment
+  function assignWidget(key: string, json: JsonType) {
+    const type = Array.isArray(json[key].type) ? json[key].type : [json[key].type];
+
+    if ('enum' in json[key]) {
+      json[key].widget = 'Select';
+    } else if ('oneOf' in json[key]) {
+      json[key].widget = 'Variant';
+    } else if (type.includes('integer') || type.includes('number')) {
+      json[key].widget = 'Units';
+    } else if (type.includes('string')) {
+      json[key].widget = 'Text';
+    } else if (type.includes('array')) {
+      json[key].widget = 'GenericList';
+      json[key].notSortable = true;
+    }
+  }
+
   /**
-   *  Parses JSON to select the appropriate widget.
-   *  Makes use of custom widgets Units and Variant
-   * @param json Schema
-   * @returns Parsed Schema with widgets added
-   */
+ *  Parses JSON to select the appropriate widget.
+ *  Makes use of custom widgets Units and Variant
+ * @param json Schema
+ * @returns Parsed Schema with widgets added
+ */
   function parseJson(json: JsonType): JsonType {
-    if (json.type instanceof Array && json.type.length === 1) {
+  // Unwrap single-item 'type' arrays for the root
+    if (Array.isArray(json.type) && json.type.length === 1) {
       // eslint-disable-next-line prefer-destructuring
       json.type = json.type[0];
     }
@@ -67,44 +86,30 @@ export default function FormGenerator(
       json.notSortable = true;
     }
 
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line guard-for-in, no-restricted-syntax
     for (const key in json) {
-      if (typeof json[key] === 'object' && json[key] !== null) {
-        // If the object already has a 'widget' property, skip it
-        if ('widget' in json[key]) {
-          // eslint-disable-next-line no-continue
-          continue;
-        }
+      const entry = json[key];
+      if (typeof entry === 'object' && entry !== null) {
+      // Skip if the object already has a 'widget' property
+        if ('widget' in entry) continue;
 
         // Unwrap single-item 'type' arrays
-        if (json[key].type instanceof Array && json[key].type.length === 1) {
+        if (Array.isArray(entry.type) && entry.type.length === 1) {
           // eslint-disable-next-line prefer-destructuring
-          json[key].type = json[key].type[0];
+          entry.type = entry.type[0];
         }
 
-        if ('enum' in json[key]) {
-          json[key].widget = 'Select';
-        } else if ('oneOf' in json[key]) {
-          json[key].widget = 'Variant';
-        } else if (
-          (!Array.isArray(json[key].type) && ['integer', 'number'].includes(json[key].type))
-          || (Array.isArray(json[key].type) && (json[key].type.includes('integer') || json[key].type.includes('number')))) {
-          json[key].widget = 'Units';
-        } else if (json[key].type === 'string') {
-          json[key].widget = 'Text';
-        } else if (json[key].type === 'array') {
-          json[key].widget = 'GenericList';
-          json[key].notSortable = true;
-        }
+        assignWidget(key, json);
 
         // Recursively parse nested objects
-        parseJson(json[key]);
+        parseJson(entry);
       }
     }
+
     return json;
   }
 
-  const [schema, setSchema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
+  const [schema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
   const [store, setStore] = React.useState(createStore(createOrderedMap(values)));
 
   const onInternalChange = React.useCallback((actions: any) => {

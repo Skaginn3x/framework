@@ -213,12 +213,13 @@ export default function Configurator() {
         role="region"
         isOverflowHorizontal
       >
-        {Object.keys(schemas).length && Object.keys(schemas).map((name: string, index: number) => {
+        {Object.keys(schemas).length > 0 && Object.keys(schemas).map((name: string, index: number) => {
           if (schemas[name] && formData[name]) {
             return (
               <Tab
                 eventKey={index}
                 title={<TabTitleText>{getTitle(name) || 'Unknown name'}</TabTitleText>}
+                key={name}
               >
                 <div style={{
                   width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',

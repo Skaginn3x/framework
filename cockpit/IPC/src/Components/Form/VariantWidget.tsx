@@ -1,20 +1,20 @@
 /* eslint-disable react/jsx-one-expression-per-line */
 /* eslint-disable react/require-default-props */
 import React, {
-  CSSProperties, useState, useRef,
+  CSSProperties, useState,
 } from 'react';
 import { InputProps } from '@mui/material/Input';
+import {
+  FormControl, InputLabel, MenuItem, Select, SelectChangeEvent,
+} from '@mui/material';
 import {
   PluginStack,
   WidgetProps, WithValue, useUIStore,
 } from '@ui-schema/ui-schema';
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { useUID } from 'react-uid';
 import './UnitsWidget.css';
-import {
-  FormControl, InputLabel, MenuItem, Select, SelectChangeEvent,
-} from '@mui/material';
+import { getNestedValue } from './WidgetFunctions';
 
 export interface VariantWidgetBaseProps {
   style?: CSSProperties
@@ -29,36 +29,14 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const uid = useUID();
   const { store } = useUIStore();
   // VV  Might cause errors, need to look into VV
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const inputRef = customInputRef || useRef();
+  let inputRef = React.useRef();
+  if (customInputRef) {
+    inputRef = customInputRef;
+  }
 
   const storeValues = store!.toJS().values || {};
 
-  /**
-   * Uses StoreKeys to navigate store and returns appropriate data.
-   * @param obj Store
-   * @param keys StoreKeys (as List)
-   * @returns CurentStore (as JSON)
-   */
-  function getNestedValue(obj: any, keys: Array<any>): any {
-    let currentValue = obj;
-    for (let i = 0; i < keys.length; i += 1) {
-      const key = keys[i];
-      if (currentValue[key] === undefined) {
-        // If the key doesn't exist, determine what default value to set based on the next key
-        if (i < keys.length - 1) {
-          currentValue[key] = (typeof keys[i + 1] === 'number') ? [] : {};
-        } else {
-          // If it's the last key, set the value to undefined
-          currentValue[key] = undefined;
-        }
-      }
-      currentValue = currentValue[key];
-    }
-    return currentValue;
-  }
-
-  function getType(oneOf:any, selected:any): String | String[] | null {
+  function getType(oneOf:any, selected:any): string | string[] | null {
     if (!selected) { return null; }
     // if schema is invalid
     if (!oneOf || oneOf.toJS().length === 0) {
@@ -67,9 +45,10 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     const oneOfJS = oneOf.toJS();
 
     // Look through each oneOf object to find key under properties.
-    for (let i = 0; i < oneOfJS.length; i += 1) {
-      if (oneOfJS[i] && oneOfJS[i].type && oneOfJS[i].title === selected) {
-        return oneOfJS[i].type;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const element of oneOfJS) {
+      if (element?.type && element.title === selected) {
+        return element.type;
       }
     }
     return null;
@@ -95,9 +74,10 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     const oneOfJS = oneOf.toJS();
 
     // Look through each oneOf object to find key under properties.
-    for (let i = 0; i < oneOfJS.length; i += 1) {
-      if (oneOfJS[i].properties && Object.keys(oneOfJS[i].properties).includes(selectedProp)) {
-        return oneOfJS[i].title;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const element of oneOfJS) {
+      if (element.properties && Object.keys(element.properties).includes(selectedProp)) {
+        return element.title;
       }
     }
     return null;
@@ -130,7 +110,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         data: { },
       });
     }
-    setSelectedTitle(event.target.value as string);
+    setSelectedTitle(event.target.value);
   };
 
   /**
@@ -160,7 +140,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
         <InputLabel>Choose Variant</InputLabel> {/* Might want to change to actual title */}
         <Select
-          value={selectedTitle || ''}
+          value={selectedTitle ?? ''}
           onChange={handleSelectChange}
           type="string"
           disabled={schema.get('readOnly') as boolean | undefined}
@@ -176,7 +156,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
           style={textStyle}
-          // eslint-disable-next-line react/jsx-no-duplicate-props
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (
@@ -189,9 +168,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
       {renderSelectedObject(selectedTitle)}
 
-      {/* {required && (value === undefined || value === '')
-        ? <h2 className="RequiredText">Required</h2>
-        : null} */}
     </>
   );
 }

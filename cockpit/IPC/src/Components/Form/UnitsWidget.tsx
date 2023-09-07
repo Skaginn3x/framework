@@ -5,12 +5,10 @@ import React, {
   CSSProperties, FocusEventHandler, KeyboardEventHandler, MouseEventHandler,
 } from 'react';
 import TextField from '@mui/material/TextField';
-// import InputAdornment from '@mui/material/InputAdornment';
 import { InputProps } from '@mui/material/Input';
 import {
   FormControl, InputLabel, MenuItem, Select, Tooltip,
 } from '@mui/material';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { useUID } from 'react-uid';
 import { TransTitle } from '@ui-schema/ui-schema/Translate/TransTitle';
 import { mapSchema } from '@ui-schema/ui-schema/Utils/schemaToNative';
@@ -21,18 +19,17 @@ import {
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 
 import * as math from 'mathjs';
-// import { AlertVariant } from '@patternfly/react-core';
 import { Units } from './units';
-// import { useAlertContext } from '../Alert/AlertContext';
+import { getNestedValue } from './WidgetFunctions';
 import './UnitsWidget.css';
 
 export interface UnitWidgetBaseProps {
   style?: CSSProperties
-  onClick?: MouseEventHandler<HTMLDivElement> | undefined
-  onFocus?: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement> | undefined
-  onBlur?: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement> | undefined
-  onKeyUp?: KeyboardEventHandler<HTMLDivElement> | undefined
-  onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined
+  onClick: MouseEventHandler<HTMLDivElement> | undefined
+  onFocus: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement> | undefined
+  onBlur: FocusEventHandler<HTMLInputElement | HTMLTextAreaElement> | undefined
+  onKeyUp: KeyboardEventHandler<HTMLDivElement> | undefined
+  onKeyDown: KeyboardEventHandler<HTMLDivElement> | undefined
   steps?: number | 'any'
   inputProps?: InputProps['inputProps']
   InputProps?: Partial<InputProps>
@@ -41,45 +38,18 @@ export interface UnitWidgetBaseProps {
 
 export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
   storeKeys, schema, onChange,
-  style,
-  onClick, onFocus, onBlur, onKeyUp, onKeyDown,
+  style, onClick, onFocus, onBlur, onKeyUp, onKeyDown,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   inputProps = {}, InputProps = {}, inputRef: customInputRef,
   steps = 'any',
 }: P & UnitWidgetBaseProps & WithValue): React.ReactElement {
-  // const { addAlert } = useAlertContext();
   const uid = useUID();
   const { store } = useUIStore();
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const inputRef = customInputRef || React.useRef();
 
   let initialDimension: string | undefined;
   let includesUnits = true;
 
-  const storeValues = store!.toJS().values || {};
-  function getNestedValue(obj: any, keys: Array<any>): any {
-    let currentValue = obj;
-    for (let i = 0; i < keys.length; i += 1) {
-      console.log('keys:', keys, 'index:', i);
-      console.log('currentValue:', currentValue);
-      let key = keys[i];
-      if (currentValue === null) {
-        currentValue = (typeof keys[i + 1] === 'number') ? [] : {};
-      }
-      if (currentValue[key] === undefined) {
-        // If the key doesn't exist, determine what default value to set based on the next key
-        if (i < keys.length - 1) {
-          currentValue[key] = (typeof keys[i + 1] === 'number') ? [] : {};
-        } else {
-          // If it's the last key, set the value to undefined
-          currentValue[key] = undefined;
-        }
-      }
-      currentValue = currentValue[key];
-    }
-    return currentValue;
-  }
+  const storeValues = store ? store.toJS().values : {};
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   initialDimension = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].dimension : undefined;
@@ -87,6 +57,10 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
   if (!initialDimension) {
     includesUnits = false;
+  }
+  let inputRef = React.useRef();
+  if (customInputRef) {
+    inputRef = customInputRef;
   }
 
   // eslint-disable-next-line no-param-reassign
@@ -100,9 +74,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   const [unit, setUnit] = React.useState(initialUnit);
   const [value, setValue] = React.useState<string>(storeValue !== undefined ? storeValue : '');
-
-  // empty storeKeys
-  // const rootStore = [] as unknown as StoreKeys;
 
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
@@ -128,22 +99,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   };
 
   const hideTitle = schema.getIn(['view', 'hideTitle']);
-  // const InfoRenderer = widgets?.InfoRenderer;
-  // if (InfoRenderer && schema?.get('info')) {
-  //   // eslint-disable-next-line no-param-reassign
-  //   InputProps.endAdornment = (
-  //     <InputAdornment position="end">
-  //       <InfoRenderer
-  //         schema={schema}
-  //         variant="icon"
-  //         openAs="modal"
-  //         storeKeys={storeKeys}
-  //         valid={valid}
-  //         errors={errors}
-  //       />
-  //     </InputAdornment>
-  //   );
-  // }
 
   const schemaType = schema.get('type') as string | undefined;
   const newInputProps = React.useMemo(() => {
@@ -156,10 +111,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     return inputProps;
   }, [inputProps, steps, schemaType]);
 
-  const textStyle = {
-    ...style,
-    width: includesUnits ? 'calc(80% - 0.5rem)' : '100%',
-  };
+  function getStyle() {
+    return {
+      ...style,
+      width: includesUnits ? 'calc(80% - 0.5rem)' : '100%',
+    };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-shadow
   const onChangeWithValue = (value: number | null) => {
@@ -217,6 +174,13 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     }
   };
 
+  function isWarning() {
+    if (required && (value === undefined || value === '')) {
+      return true;
+    }
+    return false;
+  }
+
   return (
     <>
       <Tooltip title={schema.get('description') as string} placement="top" disableInteractive>
@@ -228,7 +192,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           disabled={schema.get('readOnly') as boolean | undefined}
           multiline={false}
           required={required}
-          error={required && (value === undefined || value === '')}
+          error={isWarning()}
           minRows={1}
           maxRows={1}
           inputRef={inputRef}
@@ -242,7 +206,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           onBlur={onBlur}
           onKeyUp={onKeyUp}
           id={`uis-${uid}`}
-          style={textStyle}
+          style={getStyle()}
           onKeyDown={(e) => {
             if (onKeyDown) { onKeyDown(e); }
           }}
@@ -266,9 +230,8 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
             >
               {(AllUnits && initialDimension && initialUnit)
                 ? AllUnits[initialDimension].all.slice(AllUnits[initialDimension].all.indexOf(initialUnit))
-                  .map((mapunit: string, index: number) => (
-                    // eslint-disable-next-line react/no-array-index-key
-                    <MenuItem key={mapunit + uid + index} value={mapunit}>
+                  .map((mapunit: string) => (
+                    <MenuItem key={mapunit + uid} value={mapunit}>
                       {mapunit}
                     </MenuItem>
                   )) : null}
@@ -277,8 +240,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         )
         : null}
 
-      {required && (value === undefined || value === '')
-        ? <h2 className="RequiredText">Required</h2>
+      {isWarning() ? <h2 className="RequiredText">Required</h2>
         : null}
     </>
   );
