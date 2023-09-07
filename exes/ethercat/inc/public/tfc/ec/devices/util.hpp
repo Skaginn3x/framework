@@ -7,6 +7,7 @@
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/stx/to_string_view.hpp>
 #include <tfc/utils/json_schema.hpp>
 
 namespace tfc::ec::util {
@@ -51,9 +52,7 @@ template <ecx::index_t idx,
           auto... value_t_construct_params>
 struct glz::meta<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>> {
   using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
-  static constexpr auto value{
-    &setting::value,
-  };
+  static constexpr auto value{ &setting::value };
   static constexpr std::string_view name_prefix = "tfc::ec::setting::";
   static constexpr std::string_view name_suffix = name_value;
   static constexpr std::string_view name = tfc::stx::string_view_join_v<name_prefix, name_suffix>;
@@ -67,12 +66,19 @@ template <ecx::index_t idx,
           auto... value_t_construct_params>
 struct to_json_schema<tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>> {
   using setting = tfc::ec::util::setting<idx, name_value, desc, value_t, value_t_construct_params...>;
+  static constexpr auto name_view{ name_value.view() };
+  static constexpr auto description{ tfc::stx::string_view_join_v<   //
+      glz::chars<" variable(">,                                      //
+      name_view,                                                     //
+      glz::chars<") at index 0x">,                                   //
+      tfc::stx::to_string_view_v<idx.first, tfc::stx::base_e::hex>,  //
+      glz::chars<" sub 0x">,                                         //
+      tfc::stx::to_string_view_v<idx.second, tfc::stx::base_e::hex>  //
+      > };
   template <auto opts>
   static void op(auto& schema, auto& defs) {
     schema.attributes.title = desc;
-    // TODO MAKE THIS WORK
-    // schema.attributes.description = fmt::format<"Variable({}) at index 0x{0:x} sub 0x{0:x}">(name_value, idx.first,
-    // idx.second);
+    schema.attributes.description = description;
     to_json_schema<value_t>::template op<opts>(schema, defs);
   }
 };
