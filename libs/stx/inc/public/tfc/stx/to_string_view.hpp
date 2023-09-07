@@ -7,10 +7,7 @@
 
 namespace tfc::stx {
 
-enum struct base_e : std::uint8_t {
-  decimal=10,
-  hex=16
-};
+enum struct base_e : std::uint8_t { decimal = 10, hex = 16 };
 
 template <std::unsigned_integral auto integral, base_e base = base_e::decimal>
 struct to_string_view {
@@ -22,12 +19,11 @@ struct to_string_view {
   // Join all strings into a single std::array of chars
   static constexpr auto impl() noexcept {
     using integral_t = decltype(integral);
-    constexpr auto digits{ [](){
+    constexpr auto digits{ []() {
       if constexpr (base == base_e::decimal) {
         // digits10 is count from zero
         return std::numeric_limits<integral_t>::digits10 + 1;
-      }
-      else if constexpr (base == base_e::hex) {
+      } else if constexpr (base == base_e::hex) {
         return sizeof(decltype(integral)) * 2;
       }
     } };
@@ -37,7 +33,8 @@ struct to_string_view {
     impl_out<buffer_size> result{ .idx = buffer_size - 1 };
     constexpr auto radix = std::to_underlying(base);
     // Lookup table for digit characters
-    constexpr std::array<char, 16> digit_chars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+    constexpr std::array<char, 16> digit_chars = { '0', '1', '2', '3', '4', '5', '6', '7',
+                                                   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
     integral_t abs_value = integral;
 
@@ -71,7 +68,6 @@ static_assert(to_string_view_v<10U, base_e::hex> == "A"sv);
 static_assert(to_string_view_v<65536U, base_e::hex> == "10000"sv);
 static_assert(to_string_view_v<255U, base_e::hex> == "FF"sv);
 static_assert(to_string_view_v<18446744073709551615UL, base_e::hex> == "FFFFFFFFFFFFFFFF"sv);
-
 
 }  // namespace test
 
