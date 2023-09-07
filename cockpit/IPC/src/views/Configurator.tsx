@@ -1,5 +1,4 @@
 /* eslint-disable no-continue */
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useEffect, useState } from 'react';
 import {
   AlertVariant,
@@ -9,8 +8,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import {
-  demoUiData3,
-  demoUiSchema, demoUiSchema3,
+  VariantData,
+  VariantSchema,
+  ATVDemoData,
+  ATVDemoSchema,
+  newDemoData1, newDemoSchema1, ArrayTestSchema,
 } from './demoData';
 import FormGenerator from '../Components/Form/Form';
 import { useAlertContext } from '../Components/Alert/AlertContext';
@@ -19,13 +21,30 @@ declare global {
   interface Window { cockpit: any; }
 }
 
+// TODO: Remove demo data and schemas when done.
 export default function Configurator() {
-  const [names, setNames] = useState<string[]>([]);
-  const [formData, setFormData] = useState<any>({ variantDemo: {}, atvDemo: { config: demoUiData3() } });
-  const [schemas, setSchemas] = useState<any>({ variantDemo: demoUiSchema(), atvDemo: addUnits(demoUiSchema3()) });
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
-
   const { addAlert } = useAlertContext();
+  const [names, setNames] = useState<string[]>([]);
+
+  const [formData, setFormData] = useState<any>(
+    { // Demo Data, remove when done
+      brandNew: newDemoData1(),
+      arrayTest: {
+        config: [{ amper: 256, a_int: 128 }, { amper: 512, a_int: 256 }, { amper: 1024, a_int: 512 }],
+      },
+      ATVDemo: ATVDemoData(),
+      variant: VariantData(),
+    },
+  );
+  const [schemas, setSchemas] = useState<any>(
+    { // Demo Schemas, remove when done
+      brandNew: newDemoSchema1(),
+      arrayTest: ArrayTestSchema(),
+      ATVDemo: ATVDemoSchema(),
+      variant: VariantSchema(),
+    },
+  );
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
 
   // Handle Tabs for different DBus Interfaces
   const handleTabClick = (_event: any, tabIndex: string | number) => {
@@ -42,9 +61,12 @@ export default function Configurator() {
       const proxy = dbus.proxy();
       proxy.wait().then(() => {
         proxy.call('ListNames').then((Allnames: any[]) => {
-          // if name includes skaginn3x, get interfaces
-          console.log('names: ', Allnames[0].filter((name: string) => name.includes('config') && !name.includes('ipc_ruler')));
-          setNames(Allnames[0].filter((name: string) => name.includes('config') && !name.includes('ipc_ruler')));
+          // if name includes config, get interfaces (discard ipc_ruler and _filters_)
+          setNames(
+            Allnames[0].filter((name: string) => name.includes('config')
+            && !name.includes('ipc_ruler')
+            && !name.includes('_filters_')),
+          );
         });
       });
     };
@@ -70,9 +92,16 @@ export default function Configurator() {
         const OBJproxy = dbus.proxy(name);
         OBJproxy.wait().then(() => {
           const { data } = OBJproxy;
-          // const parsedData = valueAsNumber(JSON.parse(data.config[0].replace('\\"', '"')));
-          const parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
-          const parsedSchema = addUnits(JSON.parse(data.config[1].replace('\\"', '"')));
+          let parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
+          const parsedSchema = JSON.parse(data.config[1].replace('\\"', '"'));
+
+          // TODO fix data coming from TFC to have config parent object like schema
+          // if parseddata does not have key 'config'
+          if (!Object.keys(parsedData).includes('config')) {
+            parsedData = { config: parsedData };
+          }
+          // REMOVE after TODO is complete
+
           // eslint-disable-next-line arrow-body-style
           setSchemas((prevState: any) => {
             return {
@@ -82,45 +111,26 @@ export default function Configurator() {
           });
           setFormData((prevState: any) => ({
             ...prevState,
-            [name]: { config: parsedData },
+            [name]: parsedData,
           }));
         });
       });
     }
   }, [names]);
 
-  function shouldHaveUnits(key: string) {
-    const units = [
-      'std::chrono::duration',
-      'units::quantity',
-      'int',
-    ];
-    // if units is found in key, return true
-    return units.some((unit) => key.includes(unit));
-  }
-
-  /**
-   * Recursively add unit widget to schema if key includes units
-   */
-  function addUnits(inputSchema: any) {
-    // Deep clone the schema
-    const schema = JSON.parse(JSON.stringify(inputSchema));
-
-    function addUnitToObject(obj: any) {
-      Object.keys(obj).forEach((key) => {
-        if (typeof obj[key] === 'object') {
-          addUnitToObject(obj[key]);
-        }
-
-        if (key === '$ref' && shouldHaveUnits(obj[key])) {
-          // eslint-disable-next-line no-param-reassign
-          obj.widget = 'Units';
-        }
-      });
-    }
-
-    addUnitToObject(schema);
-    return schema;
+  function handleNullValue(data: any) {
+    // go through data and find if there is a internal_null_value_do_not_use: { null }
+    // if found, remove the value part and make it null.
+    // Couldnt get UI-Schema to accept null as a vlaue
+    Object.keys(data).forEach((key) => {
+      if (!data[key] && typeof data[key] !== 'object') { return; }
+      if (!Object.keys(data[key]).includes('internal_null_value_do_not_use')) {
+        handleNullValue(data[key]);
+      } else if (Object.keys(data[key]).includes('internal_null_value_do_not_use') && data[key].internal_null_value_do_not_use === null) {
+        // eslint-disable-next-line no-param-reassign
+        data[key] = null;
+      }
+    });
   }
 
   /**
@@ -135,6 +145,8 @@ export default function Configurator() {
       // eslint-disable-next-line no-param-reassign
       newData = newData.config;
     }
+    // eslint-disable-next-line no-param-reassign
+    handleNullValue(newData);
     setFormData((prevState: any) => ({
       ...prevState,
       [name]: newData,
@@ -142,7 +154,7 @@ export default function Configurator() {
 
     // set dbus property config to data
     console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
-    const newdbus = window.cockpit.dbus(name);
+    const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
     const propProxy = newdbus.proxy(name);
 
     propProxy.wait().then(() => {
@@ -153,7 +165,6 @@ export default function Configurator() {
         stringdata, // The new value
       ]).then(() => {
         addAlert('Property updated successfully', AlertVariant.success);
-        console.log('Property updated successfully');
       }).catch((error: any) => {
         addAlert('Failed to update property', AlertVariant.danger);
         console.error('Failed to update property:', error);
@@ -193,21 +204,22 @@ export default function Configurator() {
   }
 
   return (
-    <div style={{ minWidth: '400px', maxWidth: '90vw' }}>
+    <div style={{ minWidth: '400px', maxWidth: 'calc (100vw - 20rem)' }}>
       <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem' }}> Configurator - Time For Change </Title>
       <Tabs
         activeKey={activeTabKey}
         onSelect={handleTabClick}
         aria-label="Tabs in the horizontal overflow example"
         role="region"
-        isOverflowHorizontal={false}
+        isOverflowHorizontal
       >
-        {Object.keys(schemas).length && Object.keys(schemas).map((name: string, index: number) => {
+        {Object.keys(schemas).length > 0 && Object.keys(schemas).map((name: string, index: number) => {
           if (schemas[name] && formData[name]) {
             return (
               <Tab
                 eventKey={index}
                 title={<TabTitleText>{getTitle(name) || 'Unknown name'}</TabTitleText>}
+                key={name}
               >
                 <div style={{
                   width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',

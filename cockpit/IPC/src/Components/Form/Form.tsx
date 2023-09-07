@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
@@ -23,10 +24,10 @@ import Immutable from 'immutable';
 import { Button } from '@patternfly/react-core';
 import { UnitWidget } from 'src/Components/Form/UnitsWidget';
 import { WidgetProps as BaseWidgetProps } from '@ui-schema/ui-schema/Widget';
+import { VariantWidget } from './VariantWidget';
 
 const GridStack = injectPluginStack(GridContainer);
 
-// export default function FormGenerator(inputSchema: any) {
 export default function FormGenerator(
   { inputSchema, onSubmit, values }: { inputSchema: any, onSubmit: (data: any) => void, values: any },
 ) {
@@ -45,33 +46,71 @@ export default function FormGenerator(
     custom: {
       ...widgets.custom,
       Units: UnitWidget as React.FunctionComponent<ExtendedWidgetProps>,
+      Variant: VariantWidget as React.FunctionComponent<ExtendedWidgetProps>,
     } as CustomWidgetBinding,
   };
 
+  // Function to handle widget assignment
+  function assignWidget(key: string, json: JsonType) {
+    const type = Array.isArray(json[key].type) ? json[key].type : [json[key].type];
+
+    if ('enum' in json[key]) {
+      json[key].widget = 'Select';
+    } else if ('oneOf' in json[key]) {
+      json[key].widget = 'Variant';
+    } else if (type.includes('integer') || type.includes('number')) {
+      json[key].widget = 'Units';
+    } else if (type.includes('string')) {
+      json[key].widget = 'Text';
+    } else if (type.includes('array')) {
+      json[key].widget = 'GenericList';
+      json[key].notSortable = true;
+    }
+  }
+
+  /**
+ *  Parses JSON to select the appropriate widget.
+ *  Makes use of custom widgets Units and Variant
+ * @param json Schema
+ * @returns Parsed Schema with widgets added
+ */
   function parseJson(json: JsonType): JsonType {
-    // eslint-disable-next-line no-restricted-syntax
+  // Unwrap single-item 'type' arrays for the root
+    if (Array.isArray(json.type) && json.type.length === 1) {
+      // eslint-disable-next-line prefer-destructuring
+      json.type = json.type[0];
+    }
+
+    if (json.type === 'array') {
+      json.widget = 'GenericList';
+      json.notSortable = true;
+    }
+
+    // eslint-disable-next-line guard-for-in, no-restricted-syntax
     for (const key in json) {
-      if (typeof json[key] === 'object' && json[key] !== null) {
-        // If the object already has a 'widget' property, skip it
-        if (Object.prototype.hasOwnProperty.call(json[key], 'widget')) {
-          // eslint-disable-next-line no-continue
-          continue;
-        } else if (Object.prototype.hasOwnProperty.call(json[key], 'enum')) {
-          json[key].widget = 'Select';
-        } else if (json[key].type instanceof Array && ['integer', 'number', 'string'].includes(json[key].type[0])) {
-          json[key].widget = 'Text';
-        } else if (json[key].type instanceof Array && json[key].type[0] === 'array') {
-          json[key].widget = 'GenericList';
+      const entry = json[key];
+      if (typeof entry === 'object' && entry !== null) {
+      // Skip if the object already has a 'widget' property
+        if ('widget' in entry) continue;
+
+        // Unwrap single-item 'type' arrays
+        if (Array.isArray(entry.type) && entry.type.length === 1) {
+          // eslint-disable-next-line prefer-destructuring
+          entry.type = entry.type[0];
         }
+
+        assignWidget(key, json);
+
         // Recursively parse nested objects
-        parseJson(json[key]);
+        parseJson(entry);
       }
     }
+
     return json;
   }
 
-  const [schema, setSchema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
-  const [store, setStore] = React.useState(() => createStore(values));
+  const [schema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
+  const [store, setStore] = React.useState(createStore(createOrderedMap(values)));
 
   const onInternalChange = React.useCallback((actions: any) => {
     setStore(storeUpdater(actions));
@@ -87,7 +126,7 @@ export default function FormGenerator(
         onChange={onInternalChange}
         showValidity
       >
-        <GridStack isRoot schema={schema} />
+        <GridStack isRoot schema={schema} showValidity={false} />
       </UIStoreProvider>
 
       <Button
