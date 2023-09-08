@@ -5,7 +5,6 @@
 
 using org::eclipse::tahu::protobuf::Payload;
 
-
 namespace tfc::mqtt::impl {
 
 /// This function converts tfc types to Spark Plug B types

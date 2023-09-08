@@ -28,19 +28,15 @@ namespace asio = boost::asio;
 template <class config_type>
 class mqtt_client_wrapper_ {
 public:
-  mqtt_client_wrapper_(asio::io_context& io_ctx, config_type& config)
-      : io_ctx_(io_ctx), config_(std::move(config)) {
-
+  mqtt_client_wrapper_(asio::io_context& io_ctx, config_type& config) : io_ctx_(io_ctx), config_(std::move(config)) {
     if (config_.value().ssl_active == tfc::mqtt::ssl::yes) {
       auto d =
           async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>{ async_mqtt::protocol_version::v5,
                                                                                        io_ctx_.get_executor(), tls_ctx_ };
     } else {
-      auto k =
-          async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>{ async_mqtt::protocol_version::v5,
-                                                                                      io_ctx_.get_executor() };
+      auto k = async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>{ async_mqtt::protocol_version::v5,
+                                                                                           io_ctx_.get_executor() };
     }
-
   }
 
   auto get_strand() -> decltype(auto) {

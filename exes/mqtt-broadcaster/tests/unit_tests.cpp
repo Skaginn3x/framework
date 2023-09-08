@@ -14,9 +14,9 @@ namespace tfc {
 class testing_mqtt::broadcaster {
 public:
   explicit testing_mqtt::broadcaster(tfc::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                                                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>,
-                                                          mock_config,
-                                                          network_manager_mock>& application)
+                                                      mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>,
+                                                      mock_config,
+                                                      network_manager_mock>& application)
       : application_(application) {}
 
   auto verify_nbirth_message() -> void {
@@ -415,16 +415,16 @@ public:
 
 private:
   tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                        mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>,
-                        mock_config,
-                        network_manager_mock>& application_;
+                         mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>,
+                         mock_config,
+                         network_manager_mock>& application_;
 };
 }  // namespace tfc
 
 auto normal_unit_tests() -> void {
   asio::io_context io_ctx{};
   tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                        mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                         mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
       application(io_ctx);
 
   tfc::testing_mqtt::broadcaster test{ application };
@@ -448,7 +448,8 @@ auto networking_tests() -> void {
   "Test connect to broker"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
@@ -459,7 +460,8 @@ auto networking_tests() -> void {
   "Test subscribe to NCMD topic"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
@@ -470,7 +472,8 @@ auto networking_tests() -> void {
   "Test process NCMD topic"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
@@ -481,7 +484,8 @@ auto networking_tests() -> void {
   "Test receive and send messages"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
@@ -492,7 +496,8 @@ auto networking_tests() -> void {
   "Test receive and send messages"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
@@ -503,7 +508,8 @@ auto networking_tests() -> void {
   "Test receive and send messages"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
@@ -514,7 +520,8 @@ auto networking_tests() -> void {
   "Test receive and send messages"_test = [] {
     asio::io_context io_ctx{};
     tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client_mock,
-                          mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config, network_manager_mock>
+                           mock_mqtt_client<async_mqtt::role, async_mqtt::protocol::mqtts>, mock_config,
+                           network_manager_mock>
         application(io_ctx);
 
     tfc::testing_mqtt::broadcaster test{ application };
