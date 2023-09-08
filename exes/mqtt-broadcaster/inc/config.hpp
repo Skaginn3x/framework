@@ -9,7 +9,7 @@ struct signal_definition {
   std::string description{};
   tfc::ipc::details::type_e type{ tfc::ipc::details::type_e::unknown };
   struct glaze {
-    static constexpr auto name{ "tfc::mqtt::signal_definition" };
+    static constexpr std::string_view name{ "tfc::mqtt::signal_definition" };
     // clang-format off
         static constexpr auto value{ glz::object(
           "name", &signal_definition::name,
@@ -46,7 +46,7 @@ struct config {
         "scada_signals", &config::scada_signals, "Array of signals that SCADA can write to"
       ) };
     // clang-format on
-    static constexpr auto name{ "mqtt_broadcaster" };
+    static constexpr std::string_view name{ "mqtt_broadcaster" };
   };
 };
 }  // namespace tfc::mqtt
@@ -54,6 +54,6 @@ struct config {
 template <>
 struct glz::meta<tfc::mqtt::port_e> {
   using enum tfc::mqtt::port_e;
-  static constexpr auto name{ "tfc::mqtt::port_e" };
-  static constexpr auto value = enumerate("mqtt", mqtt, "mqtts", mqtts);
+  static constexpr std::string_view name{ "tfc::mqtt::port_e" };
+  static constexpr auto value = glz::enumerate("mqtt", mqtt, "mqtts", mqtts);
 };
