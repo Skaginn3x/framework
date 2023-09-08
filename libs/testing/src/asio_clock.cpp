@@ -2,7 +2,9 @@
 
 namespace tfc::testing {
 
+namespace {
 thread_local clock::time_point ticks{};
+}
 
 auto clock::now() noexcept -> clock::time_point {
   return ticker();
