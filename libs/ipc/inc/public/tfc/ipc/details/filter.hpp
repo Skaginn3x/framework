@@ -59,9 +59,10 @@ struct filter<type_e::invert, bool> {
   struct glaze {
     using type = filter<type_e::invert, value_t>;
     static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{
-      glz::object("invert", &type::invert, tfc::json::schema{ .description = "Invert outputting value", .read_only = true, .constant = true })
-    };
+    static constexpr auto value{ glz::object(
+        "invert",
+        &type::invert,
+        tfc::json::schema{ .description = "Invert outputting value", .read_only = true, .constant = true }) };
   };
 };
 
@@ -270,20 +271,7 @@ public:
       std::invoke(callback_, last_value_.value());
       return;
     }
-    std::expected<value_t, std::error_code> return_value{};
-    if constexpr (std::is_lvalue_reference_v<decltype(value)>) {
-      // todo we should not use lvalue strings or should we?
-      static_assert(!std::is_same_v<std::remove_cvref_t<decltype(value)>, std::string>);
-      return_value = value_t{ value };
-    } else if constexpr (std::is_rvalue_reference_v<decltype(value)>) {
-      return_value = std::forward<decltype(value)>(value);
-    } else {
-      []<bool flag = false>() {
-        static_assert(flag, "Invalid type of value");
-      }
-      ();
-    }
-
+    std::expected<value_t, std::error_code> return_value{ std::move(value) };
     asio::co_spawn(
         ctx_,
         [this, return_value = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {

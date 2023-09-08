@@ -49,13 +49,14 @@ public:
    * @param ctx Execution context
    * @param client manager_client_type a reference to a manager client
    * @param name The slot name
-   * @param callback Channel for value updates from the corosponding signal.
+   * @param callback Channel for value updates from the corresponding signal.
    */
   slot(asio::io_context& ctx,
        manager_client_type& client,
        std::string_view name,
        std::string_view description,
-       std::invocable<value_t> auto&& callback)
+       auto&& callback)
+    requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
       : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
         client_(client) {
     client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
@@ -152,12 +153,12 @@ using double_signal = signal<details::type_double, ipc_ruler::ipc_manager_client
 using string_signal = signal<details::type_string, ipc_ruler::ipc_manager_client>;
 using json_signal = signal<details::type_json, ipc_ruler::ipc_manager_client>;
 using any_signal = std::variant<std::monostate,  //
-                              bool_signal,       //
-                              int_signal,        //
-                              uint_signal,       //
-                              double_signal,     //
-                              string_signal,     //
-                              json_signal>;
+                                bool_signal,     //
+                                int_signal,      //
+                                uint_signal,     //
+                                double_signal,   //
+                                string_signal,   //
+                                json_signal>;
 /// \brief any_signal foo = make_any_signal(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, signal>;
 
