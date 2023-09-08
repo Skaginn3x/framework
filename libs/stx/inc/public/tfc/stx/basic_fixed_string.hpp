@@ -11,7 +11,7 @@ namespace tfc::stx {
 namespace concepts {
 template <typename value_type>
 concept unsigned_arithmetic_integral = requires {
-  requires not std::same_as<std::remove_cv_t<value_type>, bool>;
+  requires !std::same_as<std::remove_cv_t<value_type>, bool>;
   requires std::unsigned_integral<value_type>;
 };
 }
@@ -39,17 +39,16 @@ struct [[nodiscard]] basic_fixed_string {
 
   [[nodiscard]] constexpr char_type const* data() const noexcept { return &data_[0]; }
 
-  [[nodiscard]] inline constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) const noexcept
+  [[nodiscard]] constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) const noexcept
       -> char_type const& {
     return data_[index];
   }
 
-  [[nodiscard]] inline constexpr auto at(concepts::unsigned_arithmetic_integral auto index) const noexcept
-      -> char_type const& {
+  [[nodiscard]] constexpr auto at(concepts::unsigned_arithmetic_integral auto index) const noexcept -> char_type const& {
     return data_[index];
   }
 
-  [[nodiscard]] inline constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) noexcept -> char_type& {
+  [[nodiscard]] constexpr auto operator[](concepts::unsigned_arithmetic_integral auto index) noexcept -> char_type& {
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
     return data_[index];
@@ -57,7 +56,7 @@ struct [[nodiscard]] basic_fixed_string {
     // clang-format on
   }
 
-  [[nodiscard]] inline constexpr auto at(concepts::unsigned_arithmetic_integral auto index) noexcept -> char_type& {
+  [[nodiscard]] constexpr auto at(concepts::unsigned_arithmetic_integral auto index) noexcept -> char_type& {
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
     return data_[index];
