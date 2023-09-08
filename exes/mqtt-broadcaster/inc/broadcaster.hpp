@@ -402,63 +402,67 @@ private:
     outgoing_logger_.trace("Starting to add new signals...");
 
     ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) -> void {
-      outgoing_logger_.trace("Received {} new signals to add.", signals.size());
+      handle_incoming_signals_from_ipc_client(signals);
+    });
+  }
 
-      signals_.clear();
-      signals_.reserve(signals.size());
-      for (auto signal : signals) {
-        // slot must include type name
-        tfc::ipc::details::any_recv ipc;
-        switch (signal.type) {
-          case details::type_e::_bool:
-            ipc = tfc::ipc::details::bool_recv::create(io_ctx_, signal.name);
-            break;
-          case details::type_e::_int64_t:
-            ipc = tfc::ipc::details::int_recv::create(io_ctx_, signal.name);
-            break;
-          case details::type_e::_uint64_t:
-            ipc = tfc::ipc::details::uint_recv::create(io_ctx_, signal.name);
-            break;
-          case details::type_e::_double_t:
-            ipc = tfc::ipc::details::double_recv::create(io_ctx_, signal.name);
-            break;
-          case details::type_e::_string:
-            ipc = tfc::ipc::details::string_recv::create(io_ctx_, signal.name);
-            break;
-          case details::type_e::_json:
-            ipc = tfc::ipc::details::json_recv::create(io_ctx_, signal.name);
-            break;
-          default:
-            outgoing_logger_.warn(fmt::format("Unsupported type {}", static_cast<uint16_t>(signal.type)));
-        }
+  auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal>& signals) -> void {
+    outgoing_logger_.trace("Received {} new signals to add.", signals.size());
 
-        std::visit(
-            [&]<typename recv_t>(recv_t&& receiver) -> void {
-              using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-              if constexpr (!std::same_as<receiver_t, std::monostate>) {
-                auto error_code = receiver->connect(signal.name);
-                if (error_code) {
-                  outgoing_logger_.trace("Error connecting to signal: {}, error: {}", signal.name, error_code.message());
-                }
-              }
-            },
-            ipc);
-
-        signals_.emplace_back(signal, std::move(ipc), std::nullopt);
-
-        outgoing_logger_.trace("Added signal_data for signal: {}", signal.name);
+    signals_.clear();
+    signals_.reserve(signals.size());
+    for (auto signal : signals) {
+      // slot must include type name
+      tfc::ipc::details::any_recv ipc;
+      switch (signal.type) {
+        case details::type_e::_bool:
+          ipc = tfc::ipc::details::bool_recv::create(io_ctx_, signal.name);
+          break;
+        case details::type_e::_int64_t:
+          ipc = tfc::ipc::details::int_recv::create(io_ctx_, signal.name);
+          break;
+        case details::type_e::_uint64_t:
+          ipc = tfc::ipc::details::uint_recv::create(io_ctx_, signal.name);
+          break;
+        case details::type_e::_double_t:
+          ipc = tfc::ipc::details::double_recv::create(io_ctx_, signal.name);
+          break;
+        case details::type_e::_string:
+          ipc = tfc::ipc::details::string_recv::create(io_ctx_, signal.name);
+          break;
+        case details::type_e::_json:
+          ipc = tfc::ipc::details::json_recv::create(io_ctx_, signal.name);
+          break;
+        default:
+          outgoing_logger_.warn(fmt::format("Unsupported type {}", static_cast<uint16_t>(signal.type)));
       }
 
-      outgoing_logger_.trace("All new signals added. Preparing to send NBIRTH and start signals...");
-
       std::visit(
-          [this]<typename client_t>(client_t&& arg) {
-            asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), send_nbirth_and_start_signals(), asio::detached);
+          [&]<typename recv_t>(recv_t&& receiver) -> void {
+            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+            if constexpr (!std::same_as<receiver_t, std::monostate>) {
+              auto error_code = receiver->connect(signal.name);
+              if (error_code) {
+                outgoing_logger_.trace("Error connecting to signal: {}, error: {}", signal.name, error_code.message());
+              }
+            }
           },
-          *mqtt_client_);
+          ipc);
 
-      outgoing_logger_.trace("Sent NBIRTH and started signals.");
-    });
+      signals_.emplace_back(signal, std::move(ipc), std::nullopt);
+
+      outgoing_logger_.trace("Added signal_data for signal: {}", signal.name);
+    }
+
+    outgoing_logger_.trace("All new signals added. Preparing to send NBIRTH and start signals...");
+
+    std::visit(
+        [this]<typename client_t>(client_t&& arg) {
+          asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), send_nbirth_and_start_signals(), asio::detached);
+        },
+        *mqtt_client_);
+
+    outgoing_logger_.trace("Sent NBIRTH and started signals.");
   }
 
   auto send_nbirth_and_start_signals() -> asio::awaitable<void> {
