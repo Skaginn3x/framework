@@ -307,20 +307,20 @@ private:
 
     if (!publish_packet) {
       incoming_logger_.error("Received packet is not a PUBLISH packet");
-      co_return std::error_code{ static_cast<int>(74), std::generic_category() };
+      co_return std::error_code{ 74, std::generic_category() };
     }
 
     incoming_logger_.trace("Received PUBLISH packet. Parsing payload...");
 
     for (long unsigned int i = 0; i < publish_packet->payload().size(); i++) {
-      auto data = publish_packet->payload()[i];
-      co_await process_payload(data, *publish_packet);
+      co_await process_payload(publish_packet->payload()[i], *publish_packet);
     }
 
     co_return std::error_code{};
   }
 
-  auto process_payload(auto&& data, async_mqtt::v5::publish_packet publish_packet) -> asio::awaitable<void> {
+  auto process_payload(const async_mqtt::buffer& data, async_mqtt::v5::publish_packet publish_packet)
+      -> asio::awaitable<void> {
     Payload payload;
 
     bool payload_valid = payload.ParseFromArray(data.data(), data.size());
@@ -401,36 +401,35 @@ private:
   auto add_new_signals() -> void {
     outgoing_logger_.trace("Starting to add new signals...");
 
-    ipc_client_.signals([this](const std::vector<tfc::ipc_ruler::signal>& signals) -> void {
-      handle_incoming_signals_from_ipc_client(signals);
-    });
+    ipc_client_.signals(
+        [this](const std::vector<tfc::ipc_ruler::signal>& signals) { handle_incoming_signals_from_ipc_client(signals); });
   }
 
-  auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal>& signals) -> void {
+  auto handle_incoming_signals_from_ipc_client(const std::vector<tfc::ipc_ruler::signal>& signals) -> void {
     outgoing_logger_.trace("Received {} new signals to add.", signals.size());
 
     signals_.clear();
     signals_.reserve(signals.size());
     for (auto signal : signals) {
-      // slot must include type name
       tfc::ipc::details::any_recv ipc;
+      using enum tfc::ipc::details::type_e;
       switch (signal.type) {
-        case details::type_e::_bool:
+        case _bool:
           ipc = tfc::ipc::details::bool_recv::create(io_ctx_, signal.name);
           break;
-        case details::type_e::_int64_t:
+        case _int64_t:
           ipc = tfc::ipc::details::int_recv::create(io_ctx_, signal.name);
           break;
-        case details::type_e::_uint64_t:
+        case _uint64_t:
           ipc = tfc::ipc::details::uint_recv::create(io_ctx_, signal.name);
           break;
-        case details::type_e::_double_t:
+        case _double_t:
           ipc = tfc::ipc::details::double_recv::create(io_ctx_, signal.name);
           break;
-        case details::type_e::_string:
+        case _string:
           ipc = tfc::ipc::details::string_recv::create(io_ctx_, signal.name);
           break;
-        case details::type_e::_json:
+        case _json:
           ipc = tfc::ipc::details::json_recv::create(io_ctx_, signal.name);
           break;
         default:
@@ -438,7 +437,7 @@ private:
       }
 
       std::visit(
-          [&]<typename recv_t>(recv_t&& receiver) -> void {
+          [&]<typename recv_t>(recv_t&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<receiver_t, std::monostate>) {
               auto error_code = receiver->connect(signal.name);
@@ -494,34 +493,12 @@ private:
               auto msg = co_await receiver->async_receive(asio::use_awaitable);
 
               if (msg) {
-                outgoing_logger_.trace("Received a new message for signal: {}", signal_data.information.name);
-
-                signal_data.current_value = msg.value();
-
-                auto payload = impl::make_payload(seq_);
-                auto* metric = payload.add_metrics();
-
-                if (metric == nullptr) {
-                  outgoing_logger_.error("Failed to add metric to payload for signal: {}", signal_data.information.name);
-                  break;
-                }
-
-                metric->set_name(impl::format_signal_name(signal_data.information.name));
-                metric->set_timestamp(impl::timestamp_milliseconds().count());
-                metric->set_datatype(impl::type_enum_convert(signal_data.information.type));
-
-                impl::set_value_payload(metric, msg.value());
-
-                outgoing_logger_.trace("Payload for signal '{}' prepared.", signal_data.information.name);
-
-                outgoing_logger_.trace("Payload: \n {}", payload.DebugString());
-
-                std::string payload_string;
-                payload.SerializeToString(&payload_string);
-
-                co_await send_message(topic, payload_string, async_mqtt::qos::at_most_once);
-
-                outgoing_logger_.trace("Sent a message with payload for signal: {}", signal_data.information.name);
+                co_await std::visit(
+                    [this, &msg, &signal_data, &topic]<typename client_t>(client_t&& arg) {
+                      return asio::co_spawn(std::forward<decltype(arg)>(arg).strand(),
+                                            process_signal_message(msg, signal_data, topic), boost::asio::use_awaitable);
+                    },
+                    *mqtt_client_);
 
               } else {
                 outgoing_logger_.error("Failed to receive message for signal: {}", signal_data.information.name);
@@ -533,6 +510,37 @@ private:
           }
         },
         signal_data.receiver);
+  }
+
+  auto process_signal_message(auto& msg, impl::signal_data signal_data, std::string topic) -> asio::awaitable<void> {
+    outgoing_logger_.trace("Received a new message for signal: {}", signal_data.information.name);
+
+    signal_data.current_value = msg.value();
+
+    auto payload = impl::make_payload(seq_);
+    auto* metric = payload.add_metrics();
+
+    if (metric == nullptr) {
+      outgoing_logger_.error("Failed to add metric to payload for signal: {}", signal_data.information.name);
+      co_return;
+    }
+
+    metric->set_name(impl::format_signal_name(signal_data.information.name));
+    metric->set_timestamp(impl::timestamp_milliseconds().count());
+    metric->set_datatype(impl::type_enum_convert(signal_data.information.type));
+
+    impl::set_value_payload(metric, msg.value());
+
+    outgoing_logger_.trace("Payload for signal '{}' prepared.", signal_data.information.name);
+
+    outgoing_logger_.trace("Payload: \n {}", payload.DebugString());
+
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
+
+    co_await send_message(topic, payload_string, async_mqtt::qos::at_most_once);
+
+    outgoing_logger_.trace("Sent a message with payload for signal: {}", signal_data.information.name);
   }
 
   auto send_nbirth() -> asio::awaitable<void> {
