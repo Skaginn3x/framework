@@ -1,6 +1,6 @@
 add_executable(mqtt-broadcaster
   src/main.cpp
-)
+        inc/impl/network_manager_ssl.hpp inc/impl/sparkplug_b_spec.hpp)
 
 find_package(Boost REQUIRED COMPONENTS log program_options)
 find_package(OpenSSL REQUIRED)
