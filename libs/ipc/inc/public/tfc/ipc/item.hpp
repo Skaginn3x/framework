@@ -67,12 +67,13 @@ struct species {
     }
     unsigned int cnt{ 3 };
     while (input > 0 && cnt > 0) {
-      res.code[--cnt] = alphabet[input % alphabet.size()];
+      --cnt;
+      res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
     }
     return res;
   }
-  [[nodiscard]] inline constexpr auto to_int() const noexcept -> std::uint16_t {
+  [[nodiscard]] constexpr auto to_int() const noexcept -> std::uint16_t {
     static constexpr auto impl{ [](auto& input) -> std::uint16_t {
       static constexpr auto const_toupper{ [](char character) -> char {
         if ('a' <= character && character <= 'z') {

@@ -17,6 +17,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>
