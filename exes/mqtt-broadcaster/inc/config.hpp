@@ -22,10 +22,13 @@ struct signal_definition {
 
 enum struct port_e : std::uint16_t { mqtt = 1883, mqtts = 8883 };
 
+enum struct ssl { yes, no };
+
 // File under /etc/tfc/mqtt-broadcaster/def/mqtt_broadcaster.json which specifies the connection values for the MQTT broker.
 struct config {
   std::string address{};
   std::variant<port_e, uint16_t> port{};
+  ssl ssl_active{};
   std::string username{};
   std::string password{};
   std::string node_id{};
@@ -38,6 +41,7 @@ struct config {
     static constexpr auto value{ glz::object(
         "address", &config::address, "Hostname or IP address of the MQTT broker",
         "port", &config::port, "Port of the MQTT broker. Possible values are: mqtt, mqtts or a custom port number",
+        "ssl_active", &config::ssl_active, "Whether or not to use SSL to connect to the MQTT broker",
         "username", &config::username, "Username for the MQTT broker",
         "password", &config::password, "Password for the MQTT broker",
         "node_id", &config::node_id, "Spark Plug B Node ID, used to identify which node is sending information",
@@ -56,4 +60,10 @@ struct glz::meta<tfc::mqtt::port_e> {
   using enum tfc::mqtt::port_e;
   static constexpr auto name{ "tfc::mqtt::port_e" };
   static constexpr auto value = enumerate("mqtt", mqtt, "mqtts", mqtts);
+};
+
+template <>
+struct glz::meta<tfc::mqtt::ssl> {
+  using enum tfc::mqtt::ssl;
+  static constexpr auto value = enumerate("yes", yes, "no", no);
 };
