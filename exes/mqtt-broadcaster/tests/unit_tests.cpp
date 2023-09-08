@@ -304,7 +304,7 @@ public:
 
     std::string full_signal_name = "mqtt-broadcaster-unit-tests.def.bool.test_signal_bool";
 
-    auto ipc = tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx, full_signal_name);
+    auto ipc = tfc::ipc::details::make_any_slot::make(tfc::ipc::details::type_e::_bool, ctx, full_signal_name);
 
     std::visit(
         [&](auto&& receiver) -> void {
@@ -345,7 +345,7 @@ public:
 
     std::string signal_value = "mqtt-broadcaster-unit-tests.def.bool.test_signal_bool";
 
-    auto ipc = tfc::ipc::details::create_ipc_recv<tfc::ipc::details::any_recv>(ctx, signal_value);
+    auto ipc = tfc::ipc::details::make_any_slot::make(tfc::ipc::details::type_e::_bool, ctx, signal_value);
 
     std::visit(
         [&](auto&& receiver) -> void {
