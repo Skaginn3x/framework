@@ -66,13 +66,15 @@ public:
   }
 
   auto get_unique_packet_id() {
-    return std::visit([](auto&& arg) { return std::forward<decltype(arg)>(arg).acquire_unique_packet_id(); }, *mqtt_client_);
+    return std::visit(
+        []<typename client_t>(client_t&& arg) { return std::forward<decltype(arg)>(arg).acquire_unique_packet_id(); },
+        *mqtt_client_);
   }
 
   template <typename packet_t>
   auto send_via_variant(packet_t&& packet) {
     return std::visit(
-        [&packet](auto&& endpoint) {
+        [&packet]<typename client_t>(client_t&& endpoint) {
           return std::forward<decltype(endpoint)>(endpoint).send(std::forward<decltype(packet)>(packet),
                                                                  asio::use_awaitable);
         },
@@ -81,7 +83,7 @@ public:
 
   auto recv_via_variant(async_mqtt::control_packet_type&& packet_type) {
     return std::visit(
-        [&packet_type](auto&& endpoint) {
+        [&packet_type]<typename client_t>(client_t&& endpoint) {
           return endpoint.recv(async_mqtt::filter::match, { packet_type }, asio::use_awaitable);
         },
         *mqtt_client_);
@@ -92,7 +94,9 @@ public:
         [this]([[maybe_unused]] sdbusplus::message_t& msg) { add_new_signals(); });
 
     std::visit(
-        [this](auto&& arg) { asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), initialize(), asio::detached); },
+        [this]<typename client_t>(client_t&& arg) {
+          asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), initialize(), asio::detached);
+        },
         *mqtt_client_);
 
     io_ctx_.run();
@@ -161,7 +165,7 @@ private:
     networking_logger_.trace("Resolved the MQTT broker address. Connecting...");
 
     co_await std::visit(
-        [&resolved_ip](auto&& arg) {
+        [&resolved_ip]<typename client_t>(client_t&& arg) {
           return asio::async_connect(std::forward<decltype(arg)>(arg).lowest_layer(), resolved_ip, asio::use_awaitable);
         },
         *mqtt_client_);
@@ -169,7 +173,7 @@ private:
     networking_logger_.trace("Setting SSL SNI");
 
     std::visit(
-        [this](auto&& arg) {
+        [this]<typename client_t>(client_t&& arg) {
           return network_manager_.set_sni_hostname(std::forward<decltype(arg)>(arg).next_layer().native_handle(),
                                                    config_.value().address);
         },
@@ -178,7 +182,9 @@ private:
     networking_logger_.trace("Starting SSL handshake");
 
     co_await std::visit(
-        [this](auto&& arg) { return network_manager_.async_handshake(std::forward<decltype(arg)>(arg).next_layer()); },
+        [this]<typename client_t>(client_t&& arg) {
+          return network_manager_.async_handshake(std::forward<decltype(arg)>(arg).next_layer());
+        },
         *mqtt_client_);
 
     auto will_topic =
@@ -231,7 +237,7 @@ private:
       }
 
       co_await std::visit(
-          [](auto&& client_) {
+          []<typename client_t>(client_t&& client_) {
             return asio::co_spawn(std::forward<decltype(client_)>(client_).strand(),
                                   std::forward<decltype(client_)>(client_).close(asio::use_awaitable), asio::use_awaitable);
           },
@@ -336,7 +342,7 @@ private:
       if (metric.name() == rebirth_metric) {
         incoming_logger_.trace("Conditions met. Sending NBIRTH...");
         co_await std::visit(
-            [this](auto&& arg) {
+            [this]<typename client_t>(client_t&& arg) {
               return asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), send_nbirth(), asio::use_awaitable);
             },
             *mqtt_client_);
@@ -427,7 +433,7 @@ private:
         }
 
         std::visit(
-            [&](auto&& receiver) -> void {
+            [&]<typename recv_t>(recv_t&& receiver) -> void {
               using receiver_t = std::remove_cvref_t<decltype(receiver)>;
               if constexpr (!std::same_as<receiver_t, std::monostate>) {
                 auto error_code = receiver->connect(signal.name);
@@ -446,7 +452,7 @@ private:
       outgoing_logger_.trace("All new signals added. Preparing to send NBIRTH and start signals...");
 
       std::visit(
-          [this](auto&& arg) {
+          [this]<typename client_t>(client_t&& arg) {
             asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), send_nbirth_and_start_signals(), asio::detached);
           },
           *mqtt_client_);
@@ -457,14 +463,14 @@ private:
 
   auto send_nbirth_and_start_signals() -> asio::awaitable<void> {
     co_await std::visit(
-        [this](auto&& arg) {
+        [this]<typename client_t>(client_t&& arg) {
           return asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), send_nbirth(), asio::use_awaitable);
         },
         *mqtt_client_);
 
     for (auto& signal : signals_) {
       std::visit(
-          [this, &signal](auto&& arg) {
+          [this, &signal]<typename client_t>(client_t&& arg) {
             asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), receive_and_send_message(signal), asio::detached);
           },
           *mqtt_client_);
@@ -475,7 +481,7 @@ private:
     outgoing_logger_.trace("Starting to receive and send messages for signal: {}", signal_data.information.name);
 
     co_await std::visit(
-        [&](auto&& receiver) -> asio::awaitable<void> {
+        [&]<typename recv_t>(recv_t&& receiver) -> asio::awaitable<void> {
           using r_t = std::remove_cvref_t<decltype(receiver)>;
           std::string topic =
               impl::topic_formatter({ namespace_element, config_.value().group_id, ndata, config_.value().node_id });
@@ -555,7 +561,7 @@ private:
       variable_metric->set_datatype(impl::type_enum_convert(signal_data.information.type));
 
       co_await std::visit(
-          [&](auto&& receiver) -> asio::awaitable<void> {
+          [&]<typename recv_t>(recv_t&& receiver) -> asio::awaitable<void> {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<std::monostate, receiver_t>) {
               if (signal_data.current_value.has_value()) {
@@ -602,7 +608,7 @@ private:
     });
 
     std::visit(
-        [this, &receiver, &read_finished, &signal_value](auto&& arg) {
+        [this, &receiver, &read_finished, &signal_value]<typename client_t>(client_t&& arg) {
           asio::co_spawn(std::forward<decltype(arg)>(arg).strand(),
                          async_receive_routine(receiver, read_finished, signal_value),
                          asio::bind_cancellation_slot(cancel_signal_.slot(), boost::asio::detached));
@@ -651,7 +657,7 @@ private:
       networking_logger_.info("Attempting to reconnect to broker");
 
       co_await std::visit(
-          [this](auto&& arg) {
+          [this]<typename client_t>(client_t&& arg) {
             return asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), connect_to_broker(), asio::use_awaitable);
           },
           *mqtt_client_);
