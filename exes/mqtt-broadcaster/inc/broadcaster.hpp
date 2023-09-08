@@ -49,26 +49,13 @@ public:
   static constexpr std::string_view ncmd = "NCMD";
   static constexpr std::string_view rebirth_metric = "Node Control/Rebirth";
 
-  explicit broadcaster(asio::io_context& io_ctx) : io_ctx_(io_ctx) {
-    // mqtt_client_ = std::make_unique<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>>(
-    // async_mqtt::protocol_version::v5, io_ctx_.get_executor(), tls_ctx_);
-  }
-
-  // if (config_.value().ssl_active == tfc::mqtt::ssl::yes) {
-  // auto mqtt_client_ptr =
-  //     std::make_unique<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>>(
-  //     async_mqtt::protocol_version::v5,
-  //                                                                                  io_ctx_.get_executor(), tls_ctx_ );
-  // } else {
-  //   auto k = async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>{
-  //   async_mqtt::protocol_version::v5,
-  //                                                                                        io_ctx_.get_executor() };
-  // }
+  explicit broadcaster(asio::io_context& io_ctx) : io_ctx_(io_ctx) {}
 
   auto mqtt_client_close() {
     return std::visit(
         [this](auto&& arg) -> decltype(auto) {
-          return asio::co_spawn(arg.strand(), arg.close(asio::use_awaitable), asio::use_awaitable);
+          return asio::co_spawn(std::forward<decltype(arg)>(arg).strand(),
+                                std::forward<decltype(arg)>(arg).close(asio::use_awaitable), asio::use_awaitable);
         },
         *mqtt_client_);
   }
@@ -94,13 +81,18 @@ public:
   }
 
   auto send_via_variant(auto&&... args) {
-    return std::visit([&](auto&& endpoint) { co_return co_await endpoint.send(std::forward<decltype(args)>(args)...); },
-                      *mqtt_client_);
+    return std::visit(
+        [&args...](auto&& endpoint) -> decltype(auto) {
+          co_return co_await endpoint.send(std::forward<decltype(args)>(args)...);
+        },
+        *mqtt_client_);
   }
 
   auto recv_via_variant(auto&&... args) -> decltype(auto) {
     return std::visit(
-        [&](auto&& endpoint) -> decltype(auto) { co_return co_await endpoint.recv(std::forward<decltype(args)>(args)...); },
+        [&args...](auto&& endpoint) -> decltype(auto) {
+          co_return co_await endpoint.recv(std::forward<decltype(args)>(args)...);
+        },
         *mqtt_client_);
   }
 
@@ -206,8 +198,6 @@ private:
     }
   }
 
-
-
   auto resolve() -> asio::awaitable<asio::ip::tcp::resolver::results_type> {
     networking_logger_.trace("Resolving the MQTT broker address...");
 
@@ -230,8 +220,6 @@ private:
 
     co_return resolved_ip;
   }
-
-
 
   // This function is used to connect to the MQTT broker and perform the handshake
   // If the connection is successful it will return true, otherwise it will return false
@@ -724,8 +712,7 @@ private:
         // async_mqtt::allocate_buffer(payload), qos },
         // asio::use_awaitable);
 
-        send_via_variant(
-                         async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
+        send_via_variant(async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
                                                          async_mqtt::allocate_buffer(payload), qos },
                          asio::use_awaitable);
 
