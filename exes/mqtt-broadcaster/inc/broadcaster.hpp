@@ -49,11 +49,25 @@ public:
   static constexpr std::string_view ncmd = "NCMD";
   static constexpr std::string_view rebirth_metric = "Node Control/Rebirth";
 
-  explicit broadcaster(asio::io_context& io_ctx) : io_ctx_(io_ctx) {}
+  explicit broadcaster(asio::io_context& io_ctx) : io_ctx_(io_ctx) {
+    if (config_.value().ssl_active == tfc::mqtt::ssl::no) {
+      mqtt_client_ =
+          std::make_unique<std::variant<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>,
+                                        async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>>>(
+              async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>{ async_mqtt::protocol_version::v5,
+                                                                                          io_ctx_.get_executor() });
+    } else if (config_.value().ssl_active == tfc::mqtt::ssl::yes) {
+      mqtt_client_ =
+          std::make_unique<std::variant<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>,
+                                        async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>>>(
+              async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>{
+                  async_mqtt::protocol_version::v5, io_ctx_.get_executor(), tls_ctx_ });
+    }
+  }
 
   auto mqtt_client_close() {
     return std::visit(
-        [this](auto&& arg) -> decltype(auto) {
+        [](auto&& arg) -> decltype(auto) {
           return asio::co_spawn(std::forward<decltype(arg)>(arg).strand(),
                                 std::forward<decltype(arg)>(arg).close(asio::use_awaitable), asio::use_awaitable);
         },
@@ -69,29 +83,50 @@ public:
   }
 
   auto get_lowest_layer() {
-    return std::visit([](auto&& arg) -> decltype(auto) { return arg.lowest_layer(); }, *mqtt_client_);
+    return std::visit([](auto&& arg) { return std::ref(arg.lowest_layer()); }, *mqtt_client_);
   }
 
-  auto get_native_handle() {
-    return std::visit([](auto&& arg) -> decltype(auto) { return arg->next_layer().native_handle(); }, *mqtt_client_);
-  }
-
-  auto get_next_layer() {
-    return std::visit([](auto&& arg) -> decltype(auto) { return arg->next_layer(); }, *mqtt_client_);
-  }
-
-  auto send_via_variant(auto&&... args) {
+  auto get_connect_socket(asio::ip::tcp::resolver::results_type resolved_ip) {
     return std::visit(
-        [&args...](auto&& endpoint) -> decltype(auto) {
-          co_return co_await endpoint.send(std::forward<decltype(args)>(args)...);
+        [&resolved_ip](auto&& arg) {
+          return asio::async_connect(std::ref(arg.lowest_layer()), resolved_ip, asio::use_awaitable);
         },
         *mqtt_client_);
   }
 
-  auto recv_via_variant(auto&&... args) -> decltype(auto) {
+  auto get_set_sni_hostname() {
     return std::visit(
-        [&args...](auto&& endpoint) -> decltype(auto) {
-          co_return co_await endpoint.recv(std::forward<decltype(args)>(args)...);
+        [this](auto&& arg) {
+          return network_manager_.set_sni_hostname(arg.next_layer().native_handle(), config_.value().address);
+        },
+        *mqtt_client_);
+  }
+
+  auto get_async_handshake() {
+    return std::visit([this](auto&& arg) { return network_manager_.async_handshake(arg.next_layer()); }, *mqtt_client_);
+  }
+
+  // async_mqtt::v5::connect_packet
+
+  auto send_via_variant(async_mqtt::v5::connect_packet&& packet) {
+    return std::visit([&packet](auto&& endpoint) { return endpoint.send(std::move(packet), asio::use_awaitable); },
+                      *mqtt_client_);
+  }
+
+  auto send_via_variant(async_mqtt::v5::subscribe_packet&& packet) {
+    return std::visit([&packet](auto&& endpoint) { return endpoint.send(std::move(packet), asio::use_awaitable); },
+                      *mqtt_client_);
+  }
+
+  auto send_via_variant(async_mqtt::v5::publish_packet&& packet) {
+    return std::visit([&packet](auto&& endpoint) { return endpoint.send(std::move(packet), asio::use_awaitable); },
+                      *mqtt_client_);
+  }
+
+  auto recv_via_variant(async_mqtt::control_packet_type&& packet_type) {
+    return std::visit(
+        [&packet_type](auto&& endpoint) -> decltype(auto) {
+          return endpoint.recv(async_mqtt::filter::match, { packet_type }, asio::use_awaitable);
         },
         *mqtt_client_);
   }
@@ -104,7 +139,7 @@ public:
   auto get_send_nbirth() {
     return std::visit(
         [this](auto&& arg) -> asio::awaitable<void> {
-          co_await asio::co_spawn(arg.strand(), send_nbirth(), asio::use_awaitable);
+          return asio::co_spawn(arg.strand(), send_nbirth(), asio::use_awaitable);
         },
         *mqtt_client_);
   }
@@ -119,14 +154,11 @@ public:
 
   auto get_receive_and_send_message(auto&& signal) {
     return std::visit(
-        [this](auto&& arg, auto&& sig) -> decltype(auto) {
-          asio::co_spawn(arg.strand(), receive_and_send_message(sig), asio::detached);
+        [this, &signal](auto&& arg) -> decltype(auto) {
+          asio::co_spawn(arg.strand(), receive_and_send_message(signal), asio::detached);
         },
-        *mqtt_client_, *signal);
+        *mqtt_client_);
   }
-
-  // asio::co_spawn(get_strand(mqtt_client_), async_receive_routine(receiver, read_finished, signal_value),
-  //                asio::bind_cancellation_slot(cancel_signal_.slot(), boost::asio::detached));
 
   auto get_async_receive_routine(auto&& receiver, auto&& read_finished, auto&& signal_value) {
     return std::visit(
@@ -138,11 +170,8 @@ public:
   }
 
   auto get_connect_to_broker() {
-    return std::visit(
-        [this](auto&& arg) -> decltype(auto) {
-          co_return co_await asio::co_spawn(arg.strand(), connect_to_broker(), asio::use_awaitable);
-        },
-        *mqtt_client_);
+    return std::visit([this](auto&& arg) { return asio::co_spawn(arg.strand(), connect_to_broker(), asio::use_awaitable); },
+                      *mqtt_client_);
   }
 
   auto run() -> void {
@@ -216,7 +245,7 @@ private:
     }
 
     asio::ip::tcp::resolver::results_type resolved_ip =
-        co_await res.async_resolve(config_.value().address, port_to_string(config_.value().port), asio::use_awaitable);
+        co_await res.async_resolve(config_.value().address, impl::port_to_string(config_.value().port), asio::use_awaitable);
 
     co_return resolved_ip;
   }
@@ -227,17 +256,24 @@ private:
     networking_logger_.trace("Resolved the MQTT broker address. Connecting...");
 
     // co_await network_manager_.connect_socket(mqtt_client_->lowest_layer(), resolved_ip);
-    co_await network_manager_.connect_socket(get_lowest_layer(mqtt_client_), resolved_ip);
+    // co_await get_connect_socket(resolved_ip);
+    co_await std::visit(
+        [&resolved_ip](auto&& arg) { return asio::async_connect(arg.lowest_layer(), resolved_ip, asio::use_awaitable); },
+        *mqtt_client_);
+    // co_await network_manager_.connect_socket(get_lowest_layer(), resolved_ip);
 
     networking_logger_.trace("Setting SSL SNI");
 
-    network_manager_.set_sni_hostname(get_native_handle(mqtt_client_), config_.value().address, config_.value().ssl_active);
+    get_set_sni_hostname();
+    // network_manager_.set_sni_hostname(get_native_handle(), config_.value().address, config_.value().ssl_active);
 
     networking_logger_.trace("Starting SSL handshake");
 
-    co_await network_manager_.async_handshake(get_next_layer(mqtt_client_));
+    // co_await network_manager_.async_handshake(get_next_layer(mqtt_client_));
+    co_await get_async_handshake();
 
-    auto will_topic = topic_formatter({ namespace_element, config_.value().group_id, ndeath, config_.value().node_id });
+    auto will_topic =
+        impl::topic_formatter({ namespace_element, config_.value().group_id, ndeath, config_.value().node_id });
 
     // SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
     auto connect_packet =
@@ -252,7 +288,7 @@ private:
 
     networking_logger_.trace("Sending MQTT connection packet...");
 
-    auto send_error = co_await send_via_variant(mqtt_client_, connect_packet);
+    auto send_error = co_await send_via_variant(std::move(connect_packet));
 
     if (send_error) {
       networking_logger_.error("Error sending MQTT connection packet: {}", send_error.message());
@@ -261,8 +297,12 @@ private:
 
     networking_logger_.trace("MQTT connection packet sent. Waiting for CONNACK...");
 
-    auto connack_received = co_await recv_via_variant(mqtt_client_, async_mqtt::filter::match,
-                                                      { async_mqtt::control_packet_type::connack }, asio::use_awaitable);
+    auto connack_received = co_await recv_via_variant(
+        // async_mqtt::filter::match,
+        // {
+        async_mqtt::control_packet_type::connack
+        // }, asio::use_awaitable
+    );
 
     // Further processing based on connack_received
 
@@ -291,8 +331,7 @@ private:
         co_return;
       }
 
-      // co_await asio::co_spawn(get_strand(mqtt_client_), get_close(mqtt_client_), asio::use_awaitable);
-      co_await mqtt_client_close(mqtt_client_);
+      co_await mqtt_client_close();
       co_await asio::steady_timer{ io_ctx_, std::chrono::seconds{ 10 } }.async_wait(asio::use_awaitable);
     }
   }
@@ -320,32 +359,22 @@ private:
   auto subscribe_to_ncmd_topic() -> asio::awaitable<std::error_code> {
     incoming_logger_.trace("Starting NCMD listener...");
 
-    std::string ncmd_topic = topic_formatter({ namespace_element, config_.value().group_id, ncmd, config_.value().node_id });
-
-    auto p_id =
-
-        get_unique_packet_id(mqtt_client_);
-
-    // mqtt_client_->acquire_unique_packet_id();
-
-    incoming_logger_.trace("Preparing subscription packet for topic: {}", ncmd_topic);
-
-    auto subscribe_packet = async_mqtt::v5::subscribe_packet{
-      *p_id, { { async_mqtt::allocate_buffer(ncmd_topic), async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } }
-    };
+    std::string ncmd_topic =
+        impl::topic_formatter({ namespace_element, config_.value().group_id, ncmd, config_.value().node_id });
 
     incoming_logger_.trace("Sending subscription packet...");
 
-    // co_await mqtt_client_->send(subscribe_packet, asio::use_awaitable);
-    co_await send_via_variant(mqtt_client_, subscribe_packet);
+    co_await send_via_variant(async_mqtt::v5::subscribe_packet{
+        get_unique_packet_id().value(),
+        { { async_mqtt::allocate_buffer(ncmd_topic), async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } } });
 
     incoming_logger_.trace("Subscription packet sent. Waiting for SUBACK...");
 
-    // auto suback_received = co_await mqtt_client_->recv(async_mqtt::filter::match,
-    //                                                    { async_mqtt::control_packet_type::suback }, asio::use_awaitable);
+    //     auto suback_received = co_await recv_via_variant(mqtt_client_, async_mqtt::filter::match,
+    //                                                      { async_mqtt::control_packet_type::suback },
+    //                                                      asio::use_awaitable);
 
-    auto suback_received = co_await recv_via_variant(mqtt_client_, async_mqtt::filter::match,
-                                                     { async_mqtt::control_packet_type::suback }, asio::use_awaitable);
+    auto suback_received = co_await recv_via_variant(async_mqtt::control_packet_type::suback);
 
     incoming_logger_.trace("SUBACK received. Checking for errors...");
 
@@ -368,8 +397,10 @@ private:
     // auto publish_packet_received = co_await mqtt_client_->recv(
     // async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
 
-    auto publish_packet_received = co_await recv_via_variant(
-        mqtt_client_, async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
+    //  auto publish_packet_received = co_await recv_via_variant(
+    //      mqtt_client_, async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
+
+    auto publish_packet_received = co_await recv_via_variant(async_mqtt::control_packet_type::publish);
 
     auto publish_packet = publish_packet_received.template get_if<async_mqtt::v5::publish_packet>();
 
@@ -411,7 +442,7 @@ private:
         incoming_logger_.trace("Conditions met. Sending NBIRTH...");
         // co_await asio::co_spawn(mqtt_client_->strand(), send_nbirth(), asio::use_awaitable);
         // co_await asio::co_spawn(get_strand(mqtt_client_), send_nbirth(), asio::use_awaitable);
-        co_await get_send_nbirth(mqtt_client_);
+        co_await get_send_nbirth();
         // asio::co_spawn(get_strand(mqtt_client_), send_nbirth(), asio::use_awaitable);
       } else {
         incoming_logger_.trace("Metric received. Checking conditions...");
@@ -529,7 +560,7 @@ private:
 
   auto send_nbirth_and_start_signals() -> asio::awaitable<void> {
     // co_await asio::co_spawn(get_strand(mqtt_client_), send_nbirth(), asio::use_awaitable);
-    get_send_nbirth();
+    co_await get_send_nbirth();
 
     for (auto& signal : signals_) {
       // asio::co_spawn(get_strand(mqtt_client_), receive_and_send_message(signal), asio::detached);
@@ -544,7 +575,7 @@ private:
         [&](auto&& receiver) -> asio::awaitable<void> {
           using r_t = std::remove_cvref_t<decltype(receiver)>;
           std::string topic =
-              topic_formatter({ namespace_element, config_.value().group_id, ndata, config_.value().node_id });
+              impl::topic_formatter({ namespace_element, config_.value().group_id, ndata, config_.value().node_id });
           if constexpr (!std::same_as<std::monostate, r_t>) {
             while (true) {
               auto msg = co_await receiver->async_receive(asio::use_awaitable);
@@ -566,7 +597,7 @@ private:
                 metric->set_timestamp(impl::timestamp_milliseconds().count());
                 metric->set_datatype(impl::type_enum_convert(signal_data.information.type));
 
-                set_value_payload(metric, msg.value());
+                impl::set_value_payload(metric, msg.value());
 
                 outgoing_logger_.trace("Payload for signal '{}' prepared.", signal_data.information.name);
 
@@ -707,14 +738,8 @@ private:
     }
     networking_logger_.info("Attempting to send message to topic: {}", topic);
 
-    auto error_code =
-        // co_await mqtt_client_->send(async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
-        // async_mqtt::allocate_buffer(payload), qos },
-        // asio::use_awaitable);
-
-        send_via_variant(async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
-                                                         async_mqtt::allocate_buffer(payload), qos },
-                         asio::use_awaitable);
+    auto error_code = co_await send_via_variant(async_mqtt::v5::publish_packet{
+        packet_id, async_mqtt::allocate_buffer(topic), async_mqtt::allocate_buffer(payload), qos });
 
     if (error_code) {
       networking_logger_.error("Failed to send message to topic: {}", topic);

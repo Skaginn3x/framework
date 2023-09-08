@@ -8,9 +8,8 @@ namespace asio = boost::asio;
 
 class network_manager_ssl {
 public:
-  static auto connect_socket(auto&& socket, auto&& resolved_ip) -> asio::awaitable<void> {
-    co_await asio::async_connect(std::forward<decltype(socket)>(socket), std::forward<decltype(resolved_ip)>(resolved_ip),
-                                 asio::use_awaitable);
+  static auto connect_socket(auto&& socket, asio::ip::tcp::resolver::results_type resolved_ip) -> asio::awaitable<void> {
+    co_await asio::async_connect(std::forward<decltype(socket)>(socket), resolved_ip, asio::use_awaitable);
   }
 
   // ssl
