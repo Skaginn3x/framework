@@ -4,6 +4,7 @@
 #include <string>
 
 using org::eclipse::tahu::protobuf::Payload;
+using org::eclipse::tahu::protobuf::Payload_Metric;
 
 namespace tfc::mqtt::impl {
 
@@ -57,6 +58,46 @@ auto make_payload(uint64_t seq_) -> Payload {
   payload.set_seq(seq_);
 
   return payload;
+}
+
+
+auto set_value_payload(Payload_Metric* metric, std::any value) -> void {
+  if (value.type() == typeid(bool)) {
+    metric->set_boolean_value(std::any_cast<bool>(value));
+  } else if (value.type() == typeid(std::string)) {
+    metric->set_string_value(std::any_cast<std::string>(value));
+  } else if (value.type() == typeid(uint64_t)) {
+    metric->set_long_value(std::any_cast<uint64_t>(value));
+  } else if (value.type() == typeid(int64_t)) {
+    metric->set_long_value(std::any_cast<int64_t>(value));
+  } else if (value.type() == typeid(double)) {
+    metric->set_double_value(std::any_cast<double>(value));
+  } else if (value.type() == typeid(float)) {
+    metric->set_float_value(std::any_cast<float>(value));
+  } else if (value.type() == typeid(uint32_t)) {
+    metric->set_int_value(std::any_cast<uint32_t>(value));
+  } else {
+    throw std::runtime_error("Unexpected type in std::any.");
+  }
+}
+
+auto set_value_payload(Payload_Metric* metric, const bool value) -> void { metric->set_boolean_value(value); }
+
+auto set_value_payload(Payload_Metric* metric, const std::string value) -> void { metric->set_string_value(value); }
+
+auto set_value_payload(Payload_Metric* metric, const uint64_t value) -> void { metric->set_long_value(value); }
+
+auto set_value_payload(Payload_Metric* metric, const int64_t value) -> void { metric->set_long_value(value); }
+
+auto set_value_payload(Payload_Metric* metric, const double value) -> void { metric->set_double_value(value); }
+
+auto set_value_payload(Payload_Metric* metric, const float value) -> void { metric->set_float_value(value); }
+
+auto set_value_payload(Payload_Metric* metric, const uint32_t value) -> void { metric->set_int_value(value); }
+
+std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
+  return std::visit([](auto&& arg) { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
+                    port);
 }
 
 }  // namespace tfc::mqtt::impl

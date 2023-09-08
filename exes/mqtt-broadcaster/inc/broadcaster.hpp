@@ -157,7 +157,7 @@ public:
     properties_callback_ = ipc_client_.register_properties_change_callback(
         [this]([[maybe_unused]] sdbusplus::message_t& msg) { add_new_signals(); });
     // asio::co_spawn(get_strand(mqtt_client_), initialize(), asio::detached);
-    get_initialize(mqtt_client_);
+    get_initialize();
     io_ctx_.run();
   }
 
@@ -206,39 +206,7 @@ private:
     }
   }
 
-  auto set_value_payload(Payload_Metric* metric, std::any value) -> void {
-    if (value.type() == typeid(bool)) {
-      metric->set_boolean_value(std::any_cast<bool>(value));
-    } else if (value.type() == typeid(std::string)) {
-      metric->set_string_value(std::any_cast<std::string>(value));
-    } else if (value.type() == typeid(uint64_t)) {
-      metric->set_long_value(std::any_cast<uint64_t>(value));
-    } else if (value.type() == typeid(int64_t)) {
-      metric->set_long_value(std::any_cast<int64_t>(value));
-    } else if (value.type() == typeid(double)) {
-      metric->set_double_value(std::any_cast<double>(value));
-    } else if (value.type() == typeid(float)) {
-      metric->set_float_value(std::any_cast<float>(value));
-    } else if (value.type() == typeid(uint32_t)) {
-      metric->set_int_value(std::any_cast<uint32_t>(value));
-    } else {
-      throw std::runtime_error("Unexpected type in std::any.");
-    }
-  }
 
-  auto set_value_payload(Payload_Metric* metric, const bool value) -> void { metric->set_boolean_value(value); }
-
-  auto set_value_payload(Payload_Metric* metric, const std::string value) -> void { metric->set_string_value(value); }
-
-  auto set_value_payload(Payload_Metric* metric, const uint64_t value) -> void { metric->set_long_value(value); }
-
-  auto set_value_payload(Payload_Metric* metric, const int64_t value) -> void { metric->set_long_value(value); }
-
-  auto set_value_payload(Payload_Metric* metric, const double value) -> void { metric->set_double_value(value); }
-
-  auto set_value_payload(Payload_Metric* metric, const float value) -> void { metric->set_float_value(value); }
-
-  auto set_value_payload(Payload_Metric* metric, const uint32_t value) -> void { metric->set_int_value(value); }
 
   auto resolve() -> asio::awaitable<asio::ip::tcp::resolver::results_type> {
     networking_logger_.trace("Resolving the MQTT broker address...");
@@ -263,10 +231,7 @@ private:
     co_return resolved_ip;
   }
 
-  std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
-    return std::visit([](auto&& arg) { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
-                      port);
-  }
+
 
   // This function is used to connect to the MQTT broker and perform the handshake
   // If the connection is successful it will return true, otherwise it will return false
@@ -568,7 +533,7 @@ private:
       // this function is necessary because it is not possible to co_await inside the signals handler
       // asio::co_spawn(mqtt_client_->strand(), send_nbirth_and_start_signals(), asio::detached);
       // asio::co_spawn(get_strand(mqtt_client_), send_nbirth_and_start_signals(), asio::detached);
-      get_send_nbirth_and_start_signals(mqtt_client_);
+      get_send_nbirth_and_start_signals();
 
       outgoing_logger_.trace("Sent NBIRTH and started signals.");
     });
@@ -576,11 +541,11 @@ private:
 
   auto send_nbirth_and_start_signals() -> asio::awaitable<void> {
     // co_await asio::co_spawn(get_strand(mqtt_client_), send_nbirth(), asio::use_awaitable);
-    get_send_nbirth(mqtt_client_);
+    get_send_nbirth();
 
     for (auto& signal : signals_) {
       // asio::co_spawn(get_strand(mqtt_client_), receive_and_send_message(signal), asio::detached);
-      get_receive_and_send_message(mqtt_client_, signal);
+      get_receive_and_send_message(signal);
     }
   }
 
@@ -672,7 +637,7 @@ private:
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<std::monostate, receiver_t>) {
               if (signal_data.current_value.has_value()) {
-                set_value_payload(variable_metric, signal_data.current_value.value());
+                impl::set_value_payload(variable_metric, signal_data.current_value.value());
               } else {
                 outgoing_logger_.trace("Waiting for initial value for : {}", signal_data.information.name);
                 co_await set_initial_value(receiver, variable_metric);
@@ -717,14 +682,14 @@ private:
     // asio::co_spawn(get_strand(mqtt_client_), async_receive_routine(receiver, read_finished, signal_value),
     //                asio::bind_cancellation_slot(cancel_signal_.slot(), boost::asio::detached));
 
-    get_async_receive_routine(mqtt_client_, receiver, read_finished, signal_value);
+    get_async_receive_routine(receiver, read_finished, signal_value);
 
     while (!read_finished) {
       co_await asio::steady_timer{ io_ctx_, std::chrono::milliseconds{ 1 } }.async_wait(asio::use_awaitable);
     }
 
     if (signal_value != std::nullopt) {
-      set_value_payload(variable_metric, signal_value.value());
+      impl::set_value_payload(variable_metric, signal_value.value());
     } else {
       variable_metric->set_is_null(true);
     }
@@ -750,7 +715,7 @@ private:
     uint16_t packet_id = 0;
     if (qos != async_mqtt::qos::at_most_once) {
       // packet_id = mqtt_client_->acquire_unique_packet_id().value();
-      packet_id = get_unique_packet_id(mqtt_client_).value();
+      packet_id = get_unique_packet_id().value();
     }
     networking_logger_.info("Attempting to send message to topic: {}", topic);
 
@@ -759,7 +724,7 @@ private:
         // async_mqtt::allocate_buffer(payload), qos },
         // asio::use_awaitable);
 
-        send_via_variant(mqtt_client_,
+        send_via_variant(
                          async_mqtt::v5::publish_packet{ packet_id, async_mqtt::allocate_buffer(topic),
                                                          async_mqtt::allocate_buffer(payload), qos },
                          asio::use_awaitable);
@@ -767,7 +732,7 @@ private:
     if (error_code) {
       networking_logger_.error("Failed to send message to topic: {}", topic);
       networking_logger_.info("Attempting to reconnect to broker");
-      co_await get_connect_to_broker(mqtt_client_);
+      co_await get_connect_to_broker();
       // asio::co_spawn(get_strand(mqtt_client_), connect_to_broker(), asio::use_awaitable);
       networking_logger_.info("Reconnected to broker. Attempting to resend the message to topic: {}", topic);
       co_await send_message(topic, payload, qos);
