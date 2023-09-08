@@ -93,9 +93,7 @@ struct species {
     }
     return impl(code);
   }
-  constexpr auto operator==(species const& rhs) const noexcept {
-    return outside_spec == rhs.outside_spec && code == rhs.code;
-  }
+  constexpr auto operator==(species const& rhs) const noexcept -> bool = default;
 
 private:
   static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
