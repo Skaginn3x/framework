@@ -72,15 +72,15 @@ auto main(int argc, char** argv) -> int {
   std::string signal{};
   std::string slot{};
 
-  std::vector<std::string> connections;
+  std::vector<std::string> connect;
 
   description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
       "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
-      "connect,c", po::value<std::vector<std::string>>(&connections)->multitoken(), "Listen to these slots");
+      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
   tfc::base::init(argc, argv, description);
 
   // Must provide an argument
-  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connections.empty()) {
+  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
     std::stringstream out;
     description.print(out);
     fmt::print("Usage: tfcctl [options] \n{}", out.str());
@@ -97,7 +97,7 @@ auto main(int argc, char** argv) -> int {
 
   std::vector<tfc::ipc::details::any_slot_cb> connect_slots;
 
-  auto constexpr connect{ [](auto&& receiver_variant, std::string_view signal_name, auto&& in_logger) {
+  auto constexpr slot_connect{ [](auto&& receiver_variant, std::string_view signal_name, auto&& in_logger) {
     std::visit(
         [signal_name, &in_logger]<typename receiver_t>(receiver_t&& receiver) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
@@ -111,9 +111,9 @@ auto main(int argc, char** argv) -> int {
         receiver_variant);
   } };
 
-  for (auto& signal_connect : connections) {
+  for (auto& signal_connect : connect) {
     // For listening to connections
-    connect_slots.emplace_back([&ctx, &logger, connect](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
+    connect_slots.emplace_back([&ctx, &logger, slot_connect](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
       std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
       auto const type{ ipc::details::string_to_type(sig) };
       if (type == ipc::details::type_e::unknown) {
@@ -122,7 +122,7 @@ auto main(int argc, char** argv) -> int {
       auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name, [sig, &logger](auto const& val) {
         logger.info("{}: {}", sig, val);  //
       }) };
-      connect(ipc, sig, logger);
+      slot_connect(ipc, sig, logger);
       return ipc;
     }(signal_connect));
   }
