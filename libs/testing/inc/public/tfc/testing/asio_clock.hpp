@@ -12,6 +12,7 @@ struct clock {
   using time_point = std::chrono::time_point<clock>;
   static auto now() noexcept -> time_point;
   static void set_ticks(time_point nticks);
+
 private:
   static auto ticker() noexcept -> time_point&;
 };

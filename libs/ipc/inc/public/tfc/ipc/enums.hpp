@@ -67,5 +67,4 @@ static_assert(type_to_string(type_e::_double_t) == "double");
 static_assert(type_to_string(type_e::_string) == "string");
 static_assert(type_to_string(type_e::_json) == "json");
 
-
 }  // namespace tfc::ipc::details
