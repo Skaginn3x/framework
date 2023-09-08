@@ -60,7 +60,6 @@ auto make_payload(uint64_t seq_) -> Payload {
   return payload;
 }
 
-
 auto set_value_payload(Payload_Metric* metric, std::any value) -> void {
   if (value.type() == typeid(bool)) {
     metric->set_boolean_value(std::any_cast<bool>(value));
@@ -81,19 +80,33 @@ auto set_value_payload(Payload_Metric* metric, std::any value) -> void {
   }
 }
 
-auto set_value_payload(Payload_Metric* metric, const bool value) -> void { metric->set_boolean_value(value); }
+auto set_value_payload(Payload_Metric* metric, const bool value) -> void {
+  metric->set_boolean_value(value);
+}
 
-auto set_value_payload(Payload_Metric* metric, const std::string value) -> void { metric->set_string_value(value); }
+auto set_value_payload(Payload_Metric* metric, const std::string value) -> void {
+  metric->set_string_value(value);
+}
 
-auto set_value_payload(Payload_Metric* metric, const uint64_t value) -> void { metric->set_long_value(value); }
+auto set_value_payload(Payload_Metric* metric, const uint64_t value) -> void {
+  metric->set_long_value(value);
+}
 
-auto set_value_payload(Payload_Metric* metric, const int64_t value) -> void { metric->set_long_value(value); }
+auto set_value_payload(Payload_Metric* metric, const int64_t value) -> void {
+  metric->set_long_value(value);
+}
 
-auto set_value_payload(Payload_Metric* metric, const double value) -> void { metric->set_double_value(value); }
+auto set_value_payload(Payload_Metric* metric, const double value) -> void {
+  metric->set_double_value(value);
+}
 
-auto set_value_payload(Payload_Metric* metric, const float value) -> void { metric->set_float_value(value); }
+auto set_value_payload(Payload_Metric* metric, const float value) -> void {
+  metric->set_float_value(value);
+}
 
-auto set_value_payload(Payload_Metric* metric, const uint32_t value) -> void { metric->set_int_value(value); }
+auto set_value_payload(Payload_Metric* metric, const uint32_t value) -> void {
+  metric->set_int_value(value);
+}
 
 std::string port_to_string(const std::variant<mqtt::port_e, uint16_t>& port) {
   return std::visit([](auto&& arg) { return std::to_string(static_cast<uint16_t>(std::forward<decltype(arg)>(arg))); },
