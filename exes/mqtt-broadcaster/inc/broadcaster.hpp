@@ -71,8 +71,9 @@ public:
 
   template <typename packet_t>
   auto send_via_variant(packet_t&& packet) {
-    return std::visit([&packet](auto&& endpoint) { return endpoint.send(std::move(packet), asio::use_awaitable); },
-                      *mqtt_client_);
+    return std::visit(
+        [&packet](auto&& endpoint) { return endpoint.send(std::forward<decltype(packet)>(packet), asio::use_awaitable); },
+        *mqtt_client_);
   }
 
   auto recv_via_variant(async_mqtt::control_packet_type&& packet_type) {
