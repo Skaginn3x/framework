@@ -97,14 +97,14 @@ auto main(int argc, char** argv) -> int {
 
   std::vector<tfc::ipc::details::any_slot_cb> connect_slots;
 
-  auto constexpr connect{ [](auto&& receiver_variant, std::string_view signal_name, auto&& logger) {
+  auto constexpr connect{ [](auto&& receiver_variant, std::string_view signal_name, auto&& in_logger) {
     std::visit(
-        [signal_name, &logger]<typename receiver_t>(receiver_t&& receiver) {
+        [signal_name, &in_logger]<typename receiver_t>(receiver_t&& receiver) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
-            logger.trace("Connecting to signal {}", signal_name);
+            in_logger.trace("Connecting to signal {}", signal_name);
             auto error = receiver->connect(signal_name);
             if (error) {
-              logger.error("Failed to connect: {}", error.message());
+              in_logger.error("Failed to connect: {}", error.message());
             }
           }
         },
