@@ -102,14 +102,15 @@ auto main(int, char**) -> int {
 
     auto sender = tfc::ipc::details::uint_signal_ptr::element_type::create(ctx, "name").value();
     bool receiver_called{ false };
-    auto receiver = tfc::ipc::details::uint_slot_cb_ptr::element_type::create(ctx, "unused", [&ctx, &receiver_called, &uint64_to_time_point](auto val) {
-      auto now{ std::chrono::high_resolution_clock::now() };
-      auto past{ uint64_to_time_point(val) };
-      auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past);
-      fmt::print("Round time took: {}\n", duration_ns);
-      receiver_called = true;
-      ctx.stop();
-    });
+    auto receiver = tfc::ipc::details::uint_slot_cb_ptr::element_type::create(
+        ctx, "unused", [&ctx, &receiver_called, &uint64_to_time_point](auto val) {
+          auto now{ std::chrono::high_resolution_clock::now() };
+          auto past{ uint64_to_time_point(val) };
+          auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past);
+          fmt::print("Round time took: {}\n", duration_ns);
+          receiver_called = true;
+          ctx.stop();
+        });
     receiver->connect(sender->name_w_type());
     asio::steady_timer timer{ ctx };
     timer.expires_after(std::chrono::milliseconds(1));
@@ -125,10 +126,11 @@ auto main(int, char**) -> int {
   "code_example"_test = []() {
     auto ctx{ asio::io_context() };
     auto sender{ tfc::ipc::details::string_signal_ptr::element_type::create(ctx, "name").value() };
-    auto receiver{ tfc::ipc::details::string_slot_cb_ptr::element_type::create(ctx, "unused", [&ctx](std::string const& value) {
-      fmt::print("received: {}\n", value);
-      ctx.stop();
-    }) };
+    auto receiver{ tfc::ipc::details::string_slot_cb_ptr::element_type::create(ctx, "unused",
+                                                                               [&ctx](std::string const& value) {
+                                                                                 fmt::print("received: {}\n", value);
+                                                                                 ctx.stop();
+                                                                               }) };
     receiver->connect(sender->name_w_type());
     asio::steady_timer timer{ ctx };
     timer.expires_after(std::chrono::milliseconds(100));

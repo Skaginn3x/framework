@@ -19,8 +19,8 @@ void gpio::pin_direction_change(pin_index_t idx,
     logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")", glz::write_json(new_value),
                   glz::write_json(old_value));
     if (new_value == gpiod::line::direction::OUTPUT) {
-      pins_.at(idx).emplace<ipc_input_t>( ctx_, manager_client_, fmt::format("in.{}", idx),
-                                                    std::bind_front(&gpio::ipc_event, this, idx) );
+      pins_.at(idx).emplace<ipc_input_t>(ctx_, manager_client_, fmt::format("in.{}", idx),
+                                         std::bind_front(&gpio::ipc_event, this, idx));
       if (!std::holds_alternative<pin::out>(config_->at(idx).in_or_out)) {
         config_.make_change()->at(idx).in_or_out = pin::out{};
       }
@@ -28,7 +28,7 @@ void gpio::pin_direction_change(pin_index_t idx,
       pin_out_settings.force.observe(std::bind_front(&gpio::pin_force_change, this, idx));
       pin_out_settings.drive.observe(std::bind_front(&gpio::pin_drive_change, this, idx));
     } else if (new_value == gpiod::line::direction::INPUT) {
-      pins_.at(idx).emplace<ipc_output_t>( ctx_, manager_client_, fmt::format("out.{}", idx) );
+      pins_.at(idx).emplace<ipc_output_t>(ctx_, manager_client_, fmt::format("out.{}", idx));
       if (!std::holds_alternative<pin::in>(config_->at(idx).in_or_out)) {
         config_.make_change()->at(idx).in_or_out = pin::in{};
       } else {
