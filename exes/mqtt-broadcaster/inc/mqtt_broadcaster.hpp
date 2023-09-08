@@ -439,9 +439,7 @@ private:
     for (auto& sig : scada_signals_) {
       std::visit(
           [&value, &signal_name]<typename signal_t>(signal_t& signal) {
-            if constexpr (std::is_same_v<std::remove_cvref_t<signal_t>, std::monostate>) {
-              return;
-            } else {
+            if constexpr (!std::is_same_v<std::remove_cvref_t<signal_t>, std::monostate>) {
               if (signal_name.ends_with(signal.name())) {
                 using value_t = typename std::remove_cvref_t<signal_t>::value_t;
 
