@@ -104,7 +104,7 @@ auto main(int argc, char** argv) -> int {
             in_logger.trace("Connecting to signal {}", signal_name);
             auto error = receiver->connect(signal_name);
             if (error) {
-              in_logger.error("Failed to connect: {}", error.message());
+              in_logger.warn("Failed to connect: {}", error.message());
             }
           }
         },
