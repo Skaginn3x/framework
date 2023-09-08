@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 
 // Common enums, ipc/glaze_meta.hpp provides string conversions for the below enums
 
@@ -36,6 +37,10 @@ enum struct type_e : std::uint8_t {
 static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
                                                                   "double",  "string", "json" };
 
+inline auto constexpr type_to_string(type_e type) -> std::string_view {
+  return type_e_iterable[std::to_underlying(type)];
+}
+
 inline auto constexpr string_to_type(std::string_view name) -> type_e {
   for (std::size_t idx = type_e_iterable.size() - 1; idx > 0; idx--) {
     if (name.contains(type_e_iterable[idx])) {
@@ -53,5 +58,14 @@ static_assert(string_to_type("uint64_t") == type_e::_uint64_t);
 static_assert(string_to_type("double") == type_e::_double_t);
 static_assert(string_to_type("string") == type_e::_string);
 static_assert(string_to_type("json") == type_e::_json);
+
+static_assert(type_to_string(type_e::unknown) == "unknown");
+static_assert(type_to_string(type_e::_bool) == "bool");
+static_assert(type_to_string(type_e::_int64_t) == "int64_t");
+static_assert(type_to_string(type_e::_uint64_t) == "uint64_t");
+static_assert(type_to_string(type_e::_double_t) == "double");
+static_assert(type_to_string(type_e::_string) == "string");
+static_assert(type_to_string(type_e::_json) == "json");
+
 
 }  // namespace tfc::ipc::details

@@ -439,13 +439,17 @@ private:
     for (auto& sig : scada_signals_) {
       std::visit(
           [&value, &signal_name]<typename signal_t>(signal_t& signal) {
-            if (signal_name.ends_with(signal.name())) {
-              using value_t = typename std::remove_cvref_t<signal_t>::value_t;
+            if constexpr (std::is_same_v<std::remove_cvref_t<signal_t>, std::monostate>) {
+              return;
+            } else {
+              if (signal_name.ends_with(signal.name())) {
+                using value_t = typename std::remove_cvref_t<signal_t>::value_t;
 
-              if constexpr (std::is_same_v<value_t, int64_t>) {
-                signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
-              } else {
-                signal.send(std::get<value_t>(value));
+                if constexpr (std::is_same_v<value_t, int64_t>) {
+                  signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
+                } else {
+                  signal.send(std::get<value_t>(value));
+                }
               }
             }
           },
@@ -463,31 +467,8 @@ private:
       signals_.reserve(signals.size());
       for (auto signal : signals) {
         // slot must include type name
-        std::string slot_name;
-        switch (signal.type) {
-          case details::type_e::_bool:
-            slot_name = fmt::format("bool_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-          case details::type_e::unknown:
-            slot_name = fmt::format("unknown_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-          case details::type_e::_int64_t:
-            slot_name = fmt::format("int64_t_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-          case details::type_e::_uint64_t:
-            slot_name = fmt::format("uint64_t_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-          case details::type_e::_double_t:
-            slot_name = fmt::format("double_t_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-          case details::type_e::_string:
-            slot_name = fmt::format("string_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-          case details::type_e::_json:
-            slot_name = fmt::format("json_slot_mqtt_broadcaster_{}", signal.name);
-            break;
-        }
-
+        std::string slot_name{ fmt::format("{}_slot_mqtt_broadcaster_{}", ipc::details::type_to_string(signal.type),
+                                           signal.name) };
         auto ipc = tfc::ipc::details::make_any_slot::make(signal.type, io_ctx_, slot_name);
 
         std::visit(

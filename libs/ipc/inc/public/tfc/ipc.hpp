@@ -113,10 +113,12 @@ public:
 
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
 
-  template <typename CompletionToken>
-  auto async_send(value_t const& value, CompletionToken&& token) -> auto {
-    return signal_->async_send(value, std::forward<decltype(token)>(token));
+  template <typename completion_token_t>
+  auto async_send(value_t const& value, completion_token_t&& token) -> auto {
+    return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
+
+  auto name() const noexcept -> std::string_view { return signal_->name(); }
 
 private:
   static constexpr std::string_view self_name{ signal_tag };
