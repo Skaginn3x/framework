@@ -143,17 +143,6 @@ private:
     asio::ip::tcp::socket resolve_sock{ io_ctx_ };
     asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
 
-    switch (config_.value().ssl_active) {
-      case tfc::mqtt::ssl::yes: {
-        // tls_ctx_.set_default_verify_paths();
-        // tls_ctx_.set_verify_mode(async_mqtt::tls::verify_peer);
-        break;
-      }
-      case tfc::mqtt::ssl::no: {
-        break;
-      }
-    }
-
     asio::ip::tcp::resolver::results_type resolved_ip =
         co_await res.async_resolve(config_.value().address, impl::port_to_string(config_.value().port), asio::use_awaitable);
 
@@ -206,17 +195,7 @@ private:
 
     networking_logger_.trace("MQTT connection packet sent. Waiting for CONNACK...");
 
-    auto connack_received = co_await recv_via_variant(
-        // async_mqtt::filter::match,
-        // {
-        async_mqtt::control_packet_type::connack
-        // }, asio::use_awaitable
-    );
-
-    // Further processing based on connack_received
-
-    // auto connack_received = co_await mqtt_client_->recv(async_mqtt::filter::match, {
-    // async_mqtt::control_packet_type::connack }, asio::use_awaitable);
+    auto connack_received = co_await recv_via_variant(async_mqtt::control_packet_type::connack);
 
     auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
 
@@ -304,12 +283,6 @@ private:
 
   auto process_ncmd_packet() -> asio::awaitable<std::error_code> {
     incoming_logger_.trace("Waiting for NCMD packet...");
-
-    // auto publish_packet_received = co_await mqtt_client_->recv(
-    // async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
-
-    //  auto publish_packet_received = co_await recv_via_variant(
-    //      mqtt_client_, async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
 
     auto publish_packet_received = co_await recv_via_variant(async_mqtt::control_packet_type::publish);
 
