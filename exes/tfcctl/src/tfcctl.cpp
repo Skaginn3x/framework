@@ -72,15 +72,15 @@ auto main(int argc, char** argv) -> int {
   std::string signal{};
   std::string slot{};
 
-  std::vector<std::string> connect;
+  std::vector<std::string> connections;
 
   description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
       "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
-      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
+      "connect,c", po::value<std::vector<std::string>>(&connections)->multitoken(), "Listen to these slots");
   tfc::base::init(argc, argv, description);
 
   // Must provide an argument
-  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
+  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connections.empty()) {
     std::stringstream out;
     description.print(out);
     fmt::print("Usage: tfcctl [options] \n{}", out.str());
@@ -96,30 +96,33 @@ auto main(int argc, char** argv) -> int {
   }
 
   std::vector<tfc::ipc::details::any_slot_cb> connect_slots;
-  for (auto& signal_connect : connect) {
+
+  auto constexpr connect{ [](auto&& receiver_variant, std::string_view signal_name, auto&& logger) {
+    std::visit(
+        [signal_name, &logger]<typename receiver_t>(receiver_t&& receiver) {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
+            logger.trace("Connecting to signal {}", signal_name);
+            auto error = receiver->connect(signal_name);
+            if (error) {
+              logger.error("Failed to connect: {}", error.message());
+            }
+          }
+        },
+        receiver_variant);
+  } };
+
+  for (auto& signal_connect : connections) {
     // For listening to connections
-    // todo fix
-    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
+    connect_slots.emplace_back([&ctx, &logger, connect](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
       std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
-      auto type{ ipc::details::string_to_type(sig) };
+      auto const type{ ipc::details::string_to_type(sig) };
       if (type == ipc::details::type_e::unknown) {
         throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
       }
       auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name, [sig, &logger](auto const& val) {
         logger.info("{}: {}", sig, val);  //
       }) };
-      std::visit(
-          [sig, &logger](auto&& receiver) {
-            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-            if constexpr (!std::same_as<std::monostate, receiver_t>) {
-              logger.trace("Connecting to signal {}", sig);
-              auto error = receiver->connect(sig);
-              if (error) {
-                logger.error("Failed to connect: {}", error.message());
-              }
-            }
-          },
-          ipc);
+      connect(ipc, sig, logger);
       return ipc;
     }(signal_connect));
   }
