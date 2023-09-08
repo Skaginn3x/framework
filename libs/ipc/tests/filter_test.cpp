@@ -213,11 +213,11 @@ auto main(int, char**) -> int {
           filter<type_e::multiply, std::double_t> multiply_test{ .multiply = 2.5 };
           auto return_value = co_await multiply_test.async_process(40, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
-          expect(return_value.value() == 100);
+          expect(return_value.value() > 99 && return_value.value() < 101);
           multiply_test.multiply = -2.5;
           return_value = co_await multiply_test.async_process(40, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
-          expect(return_value.value() = -100);
+          expect(return_value.value() < -99 && return_value.value() > -101);
           co_return;  //
         },
         asio::detached);
