@@ -89,7 +89,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
-  console.log('store:', store!.toJS());
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);

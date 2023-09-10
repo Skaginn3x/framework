@@ -1,7 +1,6 @@
 /* eslint-disable no-continue */
 import React, { useEffect, useState } from 'react';
 import {
-  AlertVariant,
   Title,
   Nav,
   NavGroup,
@@ -17,7 +16,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import Hamburger from 'hamburger-react';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
-import { removeOrg } from 'src/Components/Form/WidgetFunctions';
+import { fetchDataFromDBus, removeOrg, updateFormData } from 'src/Components/Form/WidgetFunctions';
 import {
   VariantData,
   VariantSchema,
@@ -79,30 +78,11 @@ export default function Configurator() {
     if (names.length > 0) {
       console.log('names > 0 ');
       names.forEach((name: string) => {
-        const dbus = window.cockpit.dbus(name);
-        console.log('dbus', dbus);
-        const OBJproxy = dbus.proxy(name, '/com/skaginn3x/etc/tfc/config');
-        console.log('OBJ', OBJproxy);
-        OBJproxy.wait().then(() => {
-          const { data } = OBJproxy;
-          let parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
-          const parsedSchema = JSON.parse(data.config[1].replace('\\"', '"'));
-          console.log('parsedData: ', parsedData);
-          console.log('parsedSchema: ', parsedSchema);
-          // TODO fix data coming from TFC to have config parent object like schema
-          // if parseddata does not have key 'config'
-          if (!Object.keys(parsedData).includes('config')) {
-            parsedData = { config: parsedData };
-          }
-          // REMOVE after TODO is complete
-
-          // eslint-disable-next-line arrow-body-style
-          setSchemas((prevState: any) => {
-            return {
-              ...prevState,
-              [name]: parsedSchema,
-            };
-          });
+        fetchDataFromDBus(name).then(({ parsedData, parsedSchema }) => {
+          setSchemas((prevState: any) => ({
+            ...prevState,
+            [name]: parsedSchema,
+          }));
           setFormData((prevState: any) => ({
             ...prevState,
             [name]: parsedData,
@@ -142,51 +122,6 @@ export default function Configurator() {
   }
 
   /**
-   * Update form data and dbus property config
-   * @param name string
-   * @param newData Object
-   * @returns void
-   */
-  const updateFormData = (name: string, newData: any) => {
-    if (!newData) return;
-
-    // Unwrap config object if it exists (for nested schemas)
-    if (newData.config) {
-      // eslint-disable-next-line no-param-reassign
-      newData = newData.config;
-    }
-
-    // eslint-disable-next-line no-param-reassign
-    handleNullValue(newData);
-    setFormData((prevState: any) => ({
-      ...prevState,
-      [name]: newData,
-    }));
-
-    // set dbus property config to data
-    console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
-    const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-    const propProxy = newdbus.proxy(name, '/com/skaginn3x/etc/tfc/config');
-
-    propProxy.wait().then(() => {
-      const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-      newdbus.call('/com/skaginn3x/etc/tfc/config', 'org.freedesktop.DBus.Properties', 'Set', [
-        name, // The interface name
-        'config', // The property name
-        stringdata, // The new value
-      ]).then(() => {
-        addAlert('Property updated successfully', AlertVariant.success);
-      }).catch((error: any) => {
-        addAlert('Failed to update property', AlertVariant.danger);
-        console.error('Failed to update property:', error);
-      });
-    }).catch((error: any) => {
-      addAlert('Failed to get DBUS proxy', AlertVariant.danger);
-      console.error('Failed to get DBUS proxy:', error);
-    });
-  };
-
-  /**
    * Get title from dbus name
    * @param name  string
    * @returns string
@@ -214,6 +149,11 @@ export default function Configurator() {
     setIsDrawerExpanded(false);
   };
 
+  function handleSubmit(data:any) {
+    handleNullValue(data);
+    updateFormData(activeItem, data, setFormData, addAlert);
+  }
+
   useEffect(() => {
     setForm(
       <div style={{ minWidth: '350px', width: '40vw', maxWidth: '500px' }}>
@@ -223,7 +163,7 @@ export default function Configurator() {
         <FormGenerator
           inputSchema={schemas[activeItem]}
           key={activeItem}
-          onSubmit={(data: any) => updateFormData(activeItem, data)}
+          onSubmit={(data: any) => handleSubmit(data)}
           values={formData[activeItem]}
         />
         <div style={{ marginBottom: '2rem' }} />

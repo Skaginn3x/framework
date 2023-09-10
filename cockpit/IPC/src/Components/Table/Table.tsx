@@ -672,7 +672,7 @@ export default function Table({
         isOpen={filterModalOpen}
         onClose={() => setFilterModalOpen(false)}
       >
-        <FilterModal signal={selectedSignal} slots={slots} />
+        <FilterModal slot={selectedSlot} />
       </Modal>
 
     </>
