@@ -27,6 +27,7 @@ import './Table.css';
 import SlotModal from './SlotModal';
 import ToolBar from './Toolbar';
 import FilterModal from './FilterModal';
+import { removeOrg } from '../Form/WidgetFunctions';
 
 function formatDate(dateStr: string, withTime = false) {
   const date = new Date(dateStr);
@@ -229,75 +230,78 @@ export default function Table({
     };
   }, []);
 
+  function focusOnSlot(globalIndex: number, slotIdx: number) {
+    setSelectedIndexes([globalIndex, slotIdx]);
+    slotRefs[globalIndex - startIndex][slotIdx].current?.focus();
+  }
+
+  function focusOnSignal(globalIndex: number) {
+    setSelectedIndexes([globalIndex, -1]);
+    signalRefs[globalIndex - startIndex].current?.focus();
+  }
+
+  function handleArrowDown(slotIndex: number, globalSignalIndex: number) {
+    const nextSlotIndex = slotIndex + 1;
+    const signalSlots = connections[filteredSignals[globalSignalIndex].name];
+
+    if (signalSlots && nextSlotIndex < signalSlots.length) {
+      focusOnSlot(globalSignalIndex, nextSlotIndex);
+    } else {
+      const nextGlobalSignalIndex = globalSignalIndex + 1;
+
+      if (nextGlobalSignalIndex < filteredSignals.length) {
+        setSelectedIndexes([nextGlobalSignalIndex, -1]);
+
+        if (nextGlobalSignalIndex < endIndex) {
+          focusOnSignal(nextGlobalSignalIndex);
+        } else {
+          setPage(page + 1);
+        }
+      }
+    }
+  }
+  const getPreviousSignalSlots = (globalIndex: number) => connections[filteredSignals[globalIndex].name];
+
+  function focusOnPreviousItem(globalSignalIndex: number, start_index: number) {
+    const prevGlobalSignalIndex = globalSignalIndex - 1;
+
+    if (prevGlobalSignalIndex >= 0) {
+      const prevSignalSlots = getPreviousSignalSlots(prevGlobalSignalIndex);
+      const prevSlotIndex = prevSignalSlots ? prevSignalSlots.length - 1 : -1;
+
+      setSelectedIndexes([prevGlobalSignalIndex, prevSlotIndex]);
+
+      if (prevSlotIndex === -1) {
+        if (prevGlobalSignalIndex >= start_index) {
+          focusOnSignal(prevGlobalSignalIndex);
+        } else {
+          setPage(page - 1);
+        }
+      } else if (prevGlobalSignalIndex >= start_index) {
+        focusOnSlot(prevGlobalSignalIndex, prevSlotIndex);
+      } else {
+        setPage(page - 1);
+      }
+    }
+  }
+
+  function handleArrowUp(slotIndex: number, globalSignalIndex: number) {
+    if (slotIndex > 0) {
+      focusOnSlot(globalSignalIndex, slotIndex - 1);
+    } else if (slotIndex === 0) {
+      focusOnSignal(globalSignalIndex);
+    } else {
+      focusOnPreviousItem(globalSignalIndex, startIndex);
+    }
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, globalSignalIndex: number, slotIndex: number) => {
-    const focusOnSlot = (globalIndex: number, slotIdx: number) => {
-      setSelectedIndexes([globalIndex, slotIdx]);
-      slotRefs[globalIndex - startIndex][slotIdx].current?.focus();
-    };
-
-    const focusOnSignal = (globalIndex: number) => {
-      setSelectedIndexes([globalIndex, -1]);
-      signalRefs[globalIndex - startIndex].current?.focus();
-    };
-
-    const getPreviousSignalSlots = (globalIndex: number) => connections[filteredSignals[globalIndex].name];
-
-    function handleArrowDown() {
-      const nextSlotIndex = slotIndex + 1;
-      const signalSlots = connections[filteredSignals[globalSignalIndex].name];
-
-      if (signalSlots && nextSlotIndex < signalSlots.length) {
-        focusOnSlot(globalSignalIndex, nextSlotIndex);
-      } else {
-        const nextGlobalSignalIndex = globalSignalIndex + 1;
-
-        if (nextGlobalSignalIndex < filteredSignals.length) {
-          setSelectedIndexes([nextGlobalSignalIndex, -1]);
-
-          if (nextGlobalSignalIndex < endIndex) {
-            focusOnSignal(nextGlobalSignalIndex);
-          } else {
-            setPage(page + 1);
-          }
-        }
-      }
-    }
-
-    function handleArrowUp() {
-      if (slotIndex > 0) {
-        focusOnSlot(globalSignalIndex, slotIndex - 1);
-      } else if (slotIndex === 0) {
-        focusOnSignal(globalSignalIndex);
-      } else {
-        const prevGlobalSignalIndex = globalSignalIndex - 1;
-
-        if (prevGlobalSignalIndex >= 0) {
-          const prevSignalSlots = getPreviousSignalSlots(prevGlobalSignalIndex);
-          const prevSlotIndex = prevSignalSlots ? prevSignalSlots.length - 1 : -1;
-
-          setSelectedIndexes([prevGlobalSignalIndex, prevSlotIndex]);
-
-          if (prevSlotIndex === -1) {
-            if (prevGlobalSignalIndex >= startIndex) {
-              focusOnSignal(prevGlobalSignalIndex);
-            } else {
-              setPage(page - 1);
-            }
-          } else if (prevGlobalSignalIndex >= startIndex) {
-            focusOnSlot(prevGlobalSignalIndex, prevSlotIndex);
-          } else {
-            setPage(page - 1);
-          }
-        }
-      }
-    }
-
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      handleArrowDown();
+      handleArrowDown(slotIndex, globalSignalIndex);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      handleArrowUp();
+      handleArrowUp(slotIndex, globalSignalIndex);
     }
   };
 
@@ -409,7 +413,7 @@ export default function Table({
                       entryDelay={1000}
                     >
                       <div>
-                        {signal.name.split('.').slice(3).join('.') || signal.name}
+                        {removeOrg(signal.name) || signal.name}
                       </div>
                     </Tooltip>
                   </Td>
