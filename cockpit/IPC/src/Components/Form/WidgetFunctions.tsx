@@ -1,8 +1,14 @@
+/* eslint-disable import/prefer-default-export */
 function determineDefaultValue(nextKey: any): any {
   return typeof nextKey === 'number' ? [] : {};
 }
 
-// eslint-disable-next-line import/prefer-default-export
+/**
+   * Uses StoreKeys to navigate store and returns appropriate data.
+   * @param obj Store
+   * @param keys StoreKeys (as List)
+   * @returns CurentStore (as JSON)
+   */
 export function getNestedValue(obj: any, keys: Array<any>): any {
   let currentValue = obj;
 

@@ -76,6 +76,7 @@ export default function FormGenerator(
  */
   function parseJson(json: JsonType): JsonType {
   // Unwrap single-item 'type' arrays for the root
+    console.log('joson: ', json);
     if (Array.isArray(json.type) && json.type.length === 1) {
       // eslint-disable-next-line prefer-destructuring
       json.type = json.type[0];

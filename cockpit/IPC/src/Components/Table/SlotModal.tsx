@@ -26,7 +26,7 @@ function formatDate(dateStr: string) {
   return `${formattedTime} ${formattedDate}`;
 }
 
-export default function ModalContent({
+export default function SlotModal({
   slots, selectedSlots, setSelectedSlots, addButtonRef, signal,
 }: ModalType) {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);

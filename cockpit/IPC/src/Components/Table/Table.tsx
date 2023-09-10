@@ -20,11 +20,13 @@ import {
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import PlusIcon from '@patternfly/react-icons/dist/esm/icons/plus-icon';
 import MinusIcon from '@patternfly/react-icons/dist/esm/icons/minus-icon';
+import { PencilAltIcon } from '@patternfly/react-icons';
 import { SignalType, SlotType, ConnectionType } from '../../Types';
 import { useAlertContext } from '../Alert/AlertContext';
 import './Table.css';
-import ModalContent from './ModalContent';
+import SlotModal from './SlotModal';
 import ToolBar from './Toolbar';
+import FilterModal from './FilterModal';
 
 function formatDate(dateStr: string, withTime = false) {
   const date = new Date(dateStr);
@@ -61,10 +63,11 @@ export default function Table({
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = React.useState(false);
   const [modalSelectedSlots, setModalSelectedSlots] = React.useState<Set<SlotType>>(new Set());
+  const [filterModalOpen, setFilterModalOpen] = React.useState(false);
   const [selectedSignal, setSelectedSignal] = React.useState<SignalType | undefined>(undefined);
   const [selectedSlot, setSelectedSlot] = React.useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage, setPerPage] = useState(20);
   const searchBoxRef = useRef<HTMLInputElement | null>(null);
 
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
@@ -162,6 +165,11 @@ export default function Table({
     setIsModalOpen(true);
   };
 
+  const handlePencilClick = (signal: SignalType) => {
+    setSelectedSignal(signal || undefined);
+    setFilterModalOpen(true);
+  };
+
   const AddButtonRef = React.createRef<HTMLButtonElement>();
   const removeButtonRef = React.createRef<HTMLButtonElement>();
   const cancelButtonRef = React.createRef<HTMLButtonElement>();
@@ -234,7 +242,7 @@ export default function Table({
 
     const getPreviousSignalSlots = (globalIndex: number) => connections[filteredSignals[globalIndex].name];
 
-    const handleArrowDown = () => {
+    function handleArrowDown() {
       const nextSlotIndex = slotIndex + 1;
       const signalSlots = connections[filteredSignals[globalSignalIndex].name];
 
@@ -253,9 +261,9 @@ export default function Table({
           }
         }
       }
-    };
+    }
 
-    const handleArrowUp = () => {
+    function handleArrowUp() {
       if (slotIndex > 0) {
         focusOnSlot(globalSignalIndex, slotIndex - 1);
       } else if (slotIndex === 0) {
@@ -282,7 +290,7 @@ export default function Table({
           }
         }
       }
-    };
+    }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -363,14 +371,13 @@ export default function Table({
       <TableComposable aria-label="Selectable table">
         <Thead>
           <Tr>
-            <Th className="selectionCell" />
-            <Th width={35} colSpan={1}>{columnNames.name}</Th>
+            <Th width={35} colSpan={2}>{columnNames.name}</Th>
             <Th width={10}>{columnNames.type}</Th>
             <Th width={10}>{columnNames.created_by}</Th>
             <Th width={10}>{columnNames.created_at}</Th>
             <Th width={10}>{columnNames.last_registered}</Th>
             <Th width={20}>{columnNames.description}</Th>
-            <Th className="selectionCell" />
+            <Th className="selectionCell topLevelCell" />
           </Tr>
         </Thead>
         <Tbody>
@@ -441,13 +448,30 @@ export default function Table({
                   </Td>
                   <Td
                     key={signal.name}
-                    onClick={() => handlePlusClick(signal)}
                     dataLabel="Add slots to signal"
-                    className="selectionCell selectionHover"
+                    className="selectionCell"
                     modifier="truncate"
                     style={{ padding: '0.5rem', verticalAlign: 'middle' }}
                   >
-                    <PlusIcon style={{ margin: '0' }} />
+                    <div style={{
+                      display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
+                    }}
+                    >
+                      <PlusIcon
+                        style={{
+                          margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                        }}
+                        onClick={() => handlePlusClick(signal)}
+                        className="selectionHover"
+                      />
+                      <PencilAltIcon
+                        style={{
+                          margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                        }}
+                        onClick={() => handlePencilClick(signal)}
+                        className="selectionHover"
+                      />
+                    </div>
                   </Td>
                 </Tr>
                 {connections[signal.name] && connections[signal.name].map((slotName: string, slotIndex: number) => (
@@ -472,22 +496,33 @@ export default function Table({
                   >
 
                     <Td
-                      key={`Selection${slotIndex}`}
-                      onClick={() => handleMinusClick(slotName)}
+                      key={`Selection${slotName}`}
                       dataLabel="Remove slot from signal"
                       className="smallSelectionCell"
                       style={{ padding: '0.5rem' }}
                     >
-                      <MinusIcon style={{ margin: '0' }} />
+                      <div style={{
+                        display: 'flex', flexDirection: 'row', alignContent: 'center', justifyContent: 'center',
+                      }}
+                      >
+                        <MinusIcon
+                          style={{
+                            margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                          }}
+                          className="selectionHoverSignal"
+                          onClick={() => handleMinusClick(slotName)}
+                        />
+                      </div>
                     </Td>
 
                     <Td
-                      key={`${signal.name}-${slotName}-${slotIndex}`}
+                      key={`${signal.name}-${slotName}`}
                       dataLabel={columnNames.name}
                       modifier="truncate"
-                      style={{ paddingLeft: '1rem', verticalAlign: 'middle' }}
+                      style={{
+                        paddingLeft: '1rem', verticalAlign: 'middle', position: 'relative', left: '-10rem',
+                      }}
                     >
-                      {/* {slotName} */}
                       <Tooltip
                         content={slotName}
                         enableFlip
@@ -504,7 +539,7 @@ export default function Table({
                     {slots.filter((slot) => slot.name === slotName).map((slot) => (
                       <>
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-type`}
+                          key={`${signal.name}-${slotName}-type`}
                           dataLabel={columnNames.type}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -513,7 +548,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-created_by`}
+                          key={`${signal.name}-${slotName}-created_by`}
                           dataLabel={columnNames.created_by}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -522,7 +557,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-created_at`}
+                          key={`${signal.name}-${slotName}-created_at`}
                           dataLabel={columnNames.created_at}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -541,7 +576,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-last_registered`}
+                          key={`${signal.name}-${slotName}-last_registered`}
                           dataLabel={columnNames.last_registered}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -560,7 +595,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-description`}
+                          key={`${signal.name}-${slotName}--description`}
                           dataLabel={columnNames.description}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -601,7 +636,7 @@ export default function Table({
           </Button>,
         ]}
       >
-        <ModalContent
+        <SlotModal
           slots={slots}
           selectedSlots={modalSelectedSlots}
           setSelectedSlots={setModalSelectedSlots}
@@ -625,6 +660,15 @@ export default function Table({
         ]}
       >
         Are you sure you want to remove the selected slots from the signal?
+      </Modal>
+
+      <Modal
+        variant={ModalVariant.small}
+        title="Edit signal filters"
+        isOpen={filterModalOpen}
+        onClose={() => setFilterModalOpen(false)}
+      >
+        <FilterModal signal={selectedSignal} slots={slots} />
       </Modal>
 
     </>

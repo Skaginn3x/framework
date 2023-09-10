@@ -125,7 +125,7 @@ export default function ToolBar(
       <reactCore.MenuContent>
         <reactCore.MenuList>
           {uniqueTypes.map((type) => (
-            <reactCore.MenuItem itemId={type}>{type}</reactCore.MenuItem>
+            <reactCore.MenuItem itemId={type} key={type}>{type}</reactCore.MenuItem>
           ))}
         </reactCore.MenuList>
       </reactCore.MenuContent>
@@ -137,7 +137,7 @@ export default function ToolBar(
       <reactCore.Popper
         trigger={typeToggle}
         popper={typeMenu}
-        appendTo={typeContainerRef.current || undefined}
+        appendTo={typeContainerRef.current ?? undefined}
         isVisible={isTypeMenuOpen}
       />
     </div>
@@ -214,7 +214,7 @@ export default function ToolBar(
       <reactCore.MenuContent>
         <reactCore.MenuList>
           {attributes.map((attribute) => (
-            <reactCore.MenuItem itemId={attribute}>{attribute}</reactCore.MenuItem>
+            <reactCore.MenuItem itemId={attribute} key={attribute}>{attribute}</reactCore.MenuItem>
           ))}
         </reactCore.MenuList>
       </reactCore.MenuContent>
@@ -226,7 +226,7 @@ export default function ToolBar(
       <reactCore.Popper
         trigger={attributeToggle}
         popper={attributeMenu}
-        appendTo={attributeContainerRef.current || undefined}
+        appendTo={attributeContainerRef.current ?? undefined}
         isVisible={isAttributeMenuOpen}
       />
     </div>
@@ -325,7 +325,12 @@ export default function ToolBar(
       <reactCore.MenuContent>
         <reactCore.MenuList>
           {getProcesses(items).map((name) => (
-            <reactCore.MenuItem hasCheck isSelected={processSelections.includes(name)} itemId={name}>
+            <reactCore.MenuItem
+              hasCheck
+              key={name}
+              isSelected={processSelections.includes(name)}
+              itemId={name}
+            >
               {name}
             </reactCore.MenuItem>
           ))}

@@ -19,7 +19,7 @@ export default function ListDBUS() {
         proxy.call('ListNames').then((names: any[]) => {
           // if name includes skaginn3x, get interfaces
           console.log('names: ', names[0]);
-          const skaginn3xNames = names[0].filter((name: string) => name.includes('skaginn3x'));
+          const skaginn3xNames = names[0].filter((name: string) => name.includes('config'));
           const skaginnproxies: any[] = [];
           skaginn3xNames.forEach((name: string) => {
             const subProxy = dbus.proxy(name);
@@ -47,6 +47,7 @@ export default function ListDBUS() {
 
   return (
     <>
+      <Title headingLevel="h1" size="2xl">DBUS Names</Title>
       {dbusInterfaces.map((dbusInterface) => (
         <div key={`DBUS ${dbusInterface.iface}`}>
           <Title headingLevel="h2" size="xl">{dbusInterface.iface || 'Unknown name'}</Title>

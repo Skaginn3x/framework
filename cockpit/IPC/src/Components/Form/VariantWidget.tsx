@@ -54,6 +54,8 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     return null;
   }
 
+  console.log('schema ', schema.toJS());
+
   /**
    *  Find selected object based on data in store.
    * @param oneOf Schema
@@ -87,10 +89,10 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
+  console.log('store:', store!.toJS());
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
-
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
         storeKeys,
@@ -101,13 +103,14 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         data: { value: { internal_null_value_do_not_use: null } },
       });
     } else {
+      console.log('storeelse!');
       onChange({
         storeKeys,
         scopes: ['value'],
         type: 'set',
         schema,
         required,
-        data: { },
+        data: { value: undefined },
       });
     }
     setSelectedTitle(event.target.value);
