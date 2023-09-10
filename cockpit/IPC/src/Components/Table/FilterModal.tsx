@@ -3,6 +3,8 @@ import { AlertVariant, Spinner, Title } from '@patternfly/react-core';
 import { SignalType, SlotType } from '../../Types';
 import FormGenerator from '../Form/Form';
 import { useAlertContext } from '../Alert/AlertContext';
+import { loadExternalScript } from '../Interface/ScriptLoader';
+import { removeOrg } from '../Form/WidgetFunctions';
 
 interface ModalType {
   slots: SlotType[];
@@ -26,36 +28,14 @@ export default function FilterModal({
 
   useEffect(() => {
     if (!signal) { return; }
-    const externalScript = '../base1/cockpit.js';
-    let script = document.querySelector(`script[src="${externalScript}"]`) as HTMLScriptElement;
-
-    const handleScriptLoad = () => {
-      const dbus = window.cockpit.dbus('org.freedesktop.DBus');
-      const proxy = dbus.proxy();
-      proxy.wait().then(() => {
-        proxy.call('ListNames').then((Allnames: any[]) => {
-          // Find correct filter dbus
-          setDbusFilterName(
-            Allnames[0].filter((name: string) => name.includes(signal.name)
-            && name.includes('_filters_'))[0],
-          );
-        });
-      });
-    };
-
-    if (!script) {
-      console.log('3');
-      script = document.createElement('script');
-      script.src = externalScript;
-      script.async = true;
-      script.addEventListener('load', handleScriptLoad);
-      script.addEventListener('error', (e) => { console.error('Error loading script', e); });
-      document.body.appendChild(script);
-    } else {
-      handleScriptLoad();
-      script.addEventListener('error', (e) => { console.error('Error loading script', e); });
-    }
-  }, []);
+    loadExternalScript((allNames) => {
+      // Your specific logic to filter and set the dbusFilterName
+      const filteredName = allNames.filter(
+        (name: string) => name.includes(signal.name) && name.includes('_filters_'),
+      )[0];
+      setDbusFilterName(filteredName);
+    });
+  }, [signal]);
 
   // Get data and schema for each name and store in states
   useEffect(() => {
@@ -82,20 +62,6 @@ export default function FilterModal({
       });
     }
   }, [dbusFilterName]);
-
-  /**
-   * Remove org from dbus name
-   * @param name  string
-   * @returns string
-   */
-  function removeOrg(name: string) {
-    // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
-    // return etc.tfc.operation_mode.def.state_machine
-    if (name.split('.').length > 4) {
-      return name.split('.').slice(3).join('.');
-    }
-    return name;
-  }
 
   /**
    * Update form data and dbus property config

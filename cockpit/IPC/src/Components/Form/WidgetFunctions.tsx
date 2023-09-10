@@ -24,3 +24,17 @@ export function getNestedValue(obj: any, keys: Array<any>): any {
 
   return currentValue;
 }
+
+/**
+   * Remove org from dbus name
+   * @param name  string
+   * @returns string
+   */
+export function removeOrg(name: string) {
+  // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
+  // return etc.tfc.operation_mode.def.state_machine
+  if (name.split('.').length > 4) {
+    return name.split('.').slice(3).join('.');
+  }
+  return name;
+}

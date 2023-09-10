@@ -16,6 +16,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import Hamburger from 'hamburger-react';
+import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
+import { removeOrg } from 'src/Components/Form/WidgetFunctions';
 import {
   VariantData,
   VariantSchema,
@@ -61,38 +63,14 @@ export default function Configurator() {
 
   // Load cockpit.js and get dbus names
   useEffect(() => {
-    const externalScript = '../base1/cockpit.js';
-    let script = document.querySelector(`script[src="${externalScript}"]`) as HTMLScriptElement;
-
-    const handleScriptLoad = () => {
-      const dbus = window.cockpit.dbus('org.freedesktop.DBus');
-      const proxy = dbus.proxy();
-      proxy.wait().then(() => {
-        proxy.call('ListNames').then((Allnames: any[]) => {
-          // if name includes config, get interfaces (discard ipc_ruler and _filters_)
-          console.log('NAMES:', Allnames[0].filter((name: string) => name.includes('config')
-          && !name.includes('ipc_ruler')
-          && !name.includes('_filters_')));
-          setNames(
-            Allnames[0].filter((name: string) => name.includes('config')
-            && !name.includes('ipc_ruler')
-            && !name.includes('_filters_')),
-          );
-        });
-      });
-    };
-
-    if (!script) {
-      script = document.createElement('script');
-      script.src = externalScript;
-      script.async = true;
-      script.addEventListener('load', handleScriptLoad);
-      script.addEventListener('error', (e) => { console.error('Error loading script', e); });
-      document.body.appendChild(script);
-    } else {
-      script.addEventListener('load', handleScriptLoad);
-      script.addEventListener('error', (e) => { console.error('Error loading script', e); });
-    }
+    loadExternalScript((allNames) => {
+      const filteredNames = allNames.filter(
+        (name: string) => name.includes('config')
+        && !name.includes('ipc_ruler')
+        && !name.includes('_filters_'),
+      );
+      setNames(filteredNames);
+    });
   }, []);
 
   // Get data and schema for each name and store in states
@@ -218,20 +196,6 @@ export default function Configurator() {
     // return operation_mode.def.state_machine if there are more than 5 dots
     if (name.split('.').length > 5) {
       return name.split('.').slice(5).join('.');
-    }
-    return name;
-  }
-
-  /**
-   * Remove org from dbus name
-   * @param name  string
-   * @returns string
-   */
-  function removeOrg(name: string) {
-    // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
-    // return etc.tfc.operation_mode.def.state_machine
-    if (name.split('.').length > 4) {
-      return name.split('.').slice(3).join('.');
     }
     return name;
   }

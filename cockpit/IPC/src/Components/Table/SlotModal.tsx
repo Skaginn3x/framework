@@ -135,43 +135,43 @@ export default function SlotModal({
   const endIndex = page * perPage;
   const displayedSlots = filteredSlots.slice(startIndex, endIndex);
 
+  const focusOnRow = (index: number) => {
+    setFocusedIndex(index);
+    rowRefs[index].current?.focus();
+  };
+
+  function handleArrowDown(rowIndex: number) {
+    const nextRowIndex = rowIndex + 1;
+    if (nextRowIndex < filteredSlots.length) {
+      if (nextRowIndex < perPage) {
+        focusOnRow(nextRowIndex);
+      } else {
+        setPage(page + 1);
+        setFocusedIndex(0);
+      }
+    }
+  }
+
+  function handleArrowUp(rowIndex: number) {
+    const prevRowIndex = rowIndex - 1;
+    if (prevRowIndex >= -1) {
+      if (prevRowIndex >= 0) {
+        focusOnRow(prevRowIndex);
+      } else {
+        if (page === 1) { return; }
+        setPage(page - 1);
+        setFocusedIndex(perPage - 1);
+      }
+    }
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, rowIndex: number) => {
-    const focusOnRow = (index: number) => {
-      setFocusedIndex(index);
-      rowRefs[index].current?.focus();
-    };
-
-    const handleArrowDown = () => {
-      const nextRowIndex = rowIndex + 1;
-      if (nextRowIndex < filteredSlots.length) {
-        if (nextRowIndex < perPage) {
-          focusOnRow(nextRowIndex);
-        } else {
-          setPage(page + 1);
-          setFocusedIndex(0);
-        }
-      }
-    };
-
-    const handleArrowUp = () => {
-      const prevRowIndex = rowIndex - 1;
-      if (prevRowIndex >= -1) {
-        if (prevRowIndex >= 0) {
-          focusOnRow(prevRowIndex);
-        } else {
-          if (page === 1) { return; }
-          setPage(page - 1);
-          setFocusedIndex(perPage - 1);
-        }
-      }
-    };
-
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      handleArrowDown();
+      handleArrowDown(rowIndex);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      handleArrowUp();
+      handleArrowUp(rowIndex);
     } else if (event.key === 'Enter') {
       const slot = displayedSlots[rowIndex];
       const isSelecting = !selectedSlots.has(slot);

@@ -1,48 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Title } from '@patternfly/react-core';
+import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 
 declare global {
   interface Window { cockpit: any; }
 }
 
+const connectToDBusNames = (names: string[], dbus: any) => {
+  const proxies: any[] = [];
+  names.forEach((name) => {
+    const proxy = dbus.proxy(name);
+    proxies.push(proxy);
+  });
+  return proxies;
+};
+
 export default function ListDBUS() {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
 
   useEffect(() => {
-    const externalScript = '../base1/cockpit.js';
-    let script = document.querySelector(`script[src="${externalScript}"]`) as HTMLScriptElement;
-
-    const handleScriptLoad = () => {
+    const callback = (allNames: string[]) => {
       const dbus = window.cockpit.dbus('org.freedesktop.DBus');
-      const proxy = dbus.proxy();
-      proxy.wait().then(() => {
-        proxy.call('ListNames').then((names: any[]) => {
-          // if name includes skaginn3x, get interfaces
-          console.log('names: ', names[0]);
-          const skaginn3xNames = names[0].filter((name: string) => name.includes('config'));
-          const skaginnproxies: any[] = [];
-          skaginn3xNames.forEach((name: string) => {
-            const subProxy = dbus.proxy(name);
-            // store proxy in state
-            skaginnproxies.push(subProxy);
-          });
-          setDbusInterfaces(skaginnproxies);
-          console.log(skaginnproxies);
-        });
-      });
+      const filteredNames = allNames.filter((name: string) => name.includes('config'));
+      const proxies = connectToDBusNames(filteredNames, dbus);
+      setDbusInterfaces(proxies);
     };
 
-    if (!script) {
-      script = document.createElement('script');
-      script.src = externalScript;
-      script.async = true;
-      script.addEventListener('load', handleScriptLoad);
-      script.addEventListener('error', (e) => { console.error('Error loading script', e); });
-      document.body.appendChild(script);
-    } else {
-      script.addEventListener('load', handleScriptLoad);
-      script.addEventListener('error', (e) => { console.error('Error loading script', e); });
-    }
+    loadExternalScript(callback);
   }, []);
 
   return (
