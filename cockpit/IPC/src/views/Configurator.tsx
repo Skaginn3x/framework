@@ -75,7 +75,8 @@ export default function Configurator() {
           && !name.includes('_filters_')));
           setNames(
             Allnames[0].filter((name: string) => name.includes('config')
-            && !name.includes('ipc_ruler')),
+            && !name.includes('ipc_ruler')
+            && !name.includes('_filters_')),
           );
         });
       });
