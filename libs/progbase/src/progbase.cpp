@@ -119,9 +119,7 @@ auto get_config_directory() -> std::filesystem::path {
 }
 auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path {
   auto config_dir{ get_config_directory() };
-  std::string filename_cp{ filename };
-  std::ranges::replace(filename_cp, '.', '/');
-  std::filesystem::path filename_path{ filename_cp };
+  std::filesystem::path filename_path{ filename };
   if (!extension.empty()) {
     filename_path.replace_extension(extension);
   }
