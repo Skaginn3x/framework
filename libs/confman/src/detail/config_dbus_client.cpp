@@ -14,8 +14,8 @@ namespace tfc::confman::detail {
 
 // clang-format off
 // example get from cli
-// busctl --verbose --user get-property com.skaginn3x.etc.tfc.confman_test.def.bar /com/skaginn3x/etc/tfc/confman_test/def/bar com.skaginn3x.etc.tfc.confman_test.def.bar config
-// busctl --user introspect com.skaginn3x.etc.tfc.confman_test.def.bar /com/skaginn3x/etc/tfc/confman_test/def/bar
+// busctl --verbose --system get-property com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config com.skaginn3x.config.operation_mode.def.state_machine config
+// busctl --system introspect com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config
 // clang-format on
 
 config_dbus_client::config_dbus_client(boost::asio::io_context&) {}
@@ -26,9 +26,9 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                                        schema_call_t&& schema_call,
                                        change_call_t&& change_call)
     : interface_path_{ tfc::dbus::make_dbus_path(
-          fmt::format("{}_config_", base::get_config_directory().string().substr(1))) },
+          fmt::format("{}config", base::get_config_directory().string().substr(1))) },
       interface_name_{ tfc::dbus::make_dbus_name(
-          fmt::format("_config_.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), key)) },
+          fmt::format("config.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), key)) },
       value_call_{ std::forward<value_call_t>(value_call) }, schema_call_{ std::forward<schema_call_t>(schema_call) },
       change_call_{ std::forward<change_call_t>(change_call) },
       dbus_connection_{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
