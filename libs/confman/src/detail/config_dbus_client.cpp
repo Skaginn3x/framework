@@ -25,8 +25,7 @@ config_dbus_client::config_dbus_client(boost::asio::io_context& ctx,
                                        value_call_t&& value_call,
                                        schema_call_t&& schema_call,
                                        change_call_t&& change_call)
-    : interface_path_{ tfc::dbus::make_dbus_path(
-          fmt::format("{}config", base::get_config_directory().string().substr(1))) },
+    : interface_path_{ tfc::dbus::make_dbus_path(fmt::format("{}config", base::get_config_directory().string().substr(1))) },
       interface_name_{ tfc::dbus::make_dbus_name(
           fmt::format("config.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), key)) },
       value_call_{ std::forward<value_call_t>(value_call) }, schema_call_{ std::forward<schema_call_t>(schema_call) },
