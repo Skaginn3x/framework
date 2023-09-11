@@ -12,28 +12,32 @@ namespace tfc::mqtt::impl {
 /// More information can be found (page 76) in the spec under section 6.4.16 data types:
 /// https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf
 auto type_enum_convert(tfc::ipc::details::type_e type) -> uint32_t {
+  using enum tfc::ipc::details::type_e;
   switch (type) {
-    case tfc::ipc::details::type_e::unknown:
+    case unknown:
       return 0;
-    case tfc::ipc::details::type_e::_bool:
+    case _bool:
       return 11;
-    case tfc::ipc::details::type_e::_int64_t:
+    case _int64_t:
       return 4;
-    case tfc::ipc::details::type_e::_uint64_t:
+    case _uint64_t:
       return 8;
-    case tfc::ipc::details::type_e::_double_t:
+    case _double_t:
       return 10;
-    case tfc::ipc::details::type_e::_string:
-    case tfc::ipc::details::type_e::_json:
+    case _string:
+    case _json:
       return 12;
   }
   return 0;
 }
 
 /// Spark Plug B disallows the use of some special characters in the signal name.
-// TODO: Add all of the chars and make this complete.
-static const std::array forbidden_chars = { '.' };
 auto format_signal_name(std::string signal_name_to_format) -> std::string {
+  static const std::array forbidden_chars = { '+', '#', '-', '/' };
+  for (const auto& forbidden_char : forbidden_chars) {
+    std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), forbidden_char, '_');
+  }
+
   std::replace(signal_name_to_format.begin(), signal_name_to_format.end(), '.', '/');
   return signal_name_to_format;
 }
@@ -60,7 +64,7 @@ auto make_payload(uint64_t seq_) -> Payload {
   return payload;
 }
 
-auto set_value_payload(Payload_Metric* metric, std::any value) -> void {
+auto set_value_payload(Payload_Metric* metric, std::any value, tfc::logger::logger& logger) -> void {
   if (value.type() == typeid(bool)) {
     metric->set_boolean_value(std::any_cast<bool>(value));
   } else if (value.type() == typeid(std::string)) {
@@ -76,7 +80,7 @@ auto set_value_payload(Payload_Metric* metric, std::any value) -> void {
   } else if (value.type() == typeid(uint32_t)) {
     metric->set_int_value(std::any_cast<uint32_t>(value));
   } else {
-    throw std::runtime_error("Unexpected type in std::any.");
+    logger.error("Unknown type: {}", value.type().name());
   }
 }
 

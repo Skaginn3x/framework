@@ -90,9 +90,6 @@ public:
   }
 
   auto run() -> void {
-    properties_callback_ = ipc_client_.register_properties_change_callback(
-        [this]([[maybe_unused]] sdbusplus::message_t& msg) { add_new_signals(); });
-
     std::visit(
         [this]<typename client_t>(client_t&& arg) {
           asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), initialize(), asio::detached);
@@ -107,7 +104,15 @@ private:
     create_scada_signals();
     co_await connect_to_broker();
     add_new_signals();
-    co_await ncmd_listener();
+
+    std::visit(
+        [this]<typename client_t>(client_t&& arg) {
+          asio::co_spawn(std::forward<decltype(arg)>(arg).strand(), ncmd_listener(), asio::detached);
+        },
+        *mqtt_client_);
+
+    properties_callback_ = ipc_client_.register_properties_change_callback(
+        [this]([[maybe_unused]] sdbusplus::message_t& msg) { add_new_signals(); });
   }
 
   auto create_scada_signals() -> void {
@@ -187,8 +192,9 @@ private:
         },
         *mqtt_client_);
 
-    auto will_topic =
-        impl::topic_formatter({ namespace_element, config_.value().group_id, ndeath, config_.value().node_id });
+    std::string topic_storage;
+    std::string_view will_topic = impl::topic_formatter(
+        { namespace_element, config_.value().group_id, ndeath, config_.value().node_id }, topic_storage);
 
     // SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
     auto connect_packet =
@@ -270,8 +276,9 @@ private:
   auto subscribe_to_ncmd_topic() -> asio::awaitable<std::error_code> {
     incoming_logger_.trace("Starting NCMD listener...");
 
-    std::string ncmd_topic =
-        impl::topic_formatter({ namespace_element, config_.value().group_id, ncmd, config_.value().node_id });
+    std::string topic_storage;
+    std::string_view ncmd_topic =
+        impl::topic_formatter({ namespace_element, config_.value().group_id, ncmd, config_.value().node_id }, topic_storage);
 
     incoming_logger_.trace("Sending subscription packet...");
 
@@ -486,8 +493,9 @@ private:
     co_await std::visit(
         [&]<typename recv_t>(recv_t&& receiver) -> asio::awaitable<void> {
           using r_t = std::remove_cvref_t<decltype(receiver)>;
-          std::string topic =
-              impl::topic_formatter({ namespace_element, config_.value().group_id, ndata, config_.value().node_id });
+          std::string topic_storage;
+          std::string_view topic = impl::topic_formatter(
+              { namespace_element, config_.value().group_id, ndata, config_.value().node_id }, topic_storage);
           if constexpr (!std::same_as<std::monostate, r_t>) {
             while (true) {
               auto msg = co_await receiver->async_receive(asio::use_awaitable);
@@ -512,7 +520,7 @@ private:
         signal_data.receiver);
   }
 
-  auto process_signal_message(auto& msg, impl::signal_data signal_data, std::string topic) -> asio::awaitable<void> {
+  auto process_signal_message(auto& msg, impl::signal_data signal_data, std::string_view topic) -> asio::awaitable<void> {
     outgoing_logger_.trace("Received a new message for signal: {}", signal_data.information.name);
 
     signal_data.current_value = msg.value();
@@ -546,8 +554,9 @@ private:
   auto send_nbirth() -> asio::awaitable<void> {
     outgoing_logger_.info("Starting to send nbirth messages");
 
-    std::string topic =
-        impl::topic_formatter({ namespace_element, config_.value().group_id, nbirth, config_.value().node_id });
+    std::string topic_storage;
+    std::string_view topic = impl::topic_formatter(
+        { namespace_element, config_.value().group_id, nbirth, config_.value().node_id }, topic_storage);
 
     Payload payload;
     payload.set_timestamp(impl::timestamp_milliseconds().count());
@@ -577,7 +586,7 @@ private:
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<std::monostate, receiver_t>) {
               if (signal_data.current_value.has_value()) {
-                impl::set_value_payload(variable_metric, signal_data.current_value.value());
+                impl::set_value_payload(variable_metric, signal_data.current_value.value(), outgoing_logger_);
               } else {
                 outgoing_logger_.trace("Waiting for initial value for : {}", signal_data.information.name);
                 co_await set_initial_value(receiver, variable_metric);
@@ -612,7 +621,7 @@ private:
     asio::steady_timer timer(co_await asio::this_coro::executor);
     timer.expires_after(std::chrono::milliseconds(20));
 
-    timer.async_wait([&](boost::system::error_code error_code) {
+    timer.async_wait([this, &read_finished](boost::system::error_code error_code) {
       if (!error_code) {
         cancel_signal_.emit(asio::cancellation_type::all);
         read_finished = true;
@@ -632,7 +641,7 @@ private:
     }
 
     if (signal_value != std::nullopt) {
-      impl::set_value_payload(variable_metric, signal_value.value());
+      impl::set_value_payload(variable_metric, signal_value.value(), outgoing_logger_);
     } else {
       variable_metric->set_is_null(true);
     }
@@ -654,7 +663,7 @@ private:
     cancel_signal_.emit(asio::cancellation_type::total);
   }
 
-  auto send_message(std::string topic, std::string payload, async_mqtt::qos qos) -> asio::awaitable<void> {
+  auto send_message(std::string_view topic, std::string payload, async_mqtt::qos qos) -> asio::awaitable<void> {
     uint16_t packet_id = 0;
     if (qos != async_mqtt::qos::at_most_once) {
       packet_id = get_unique_packet_id().value();

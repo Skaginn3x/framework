@@ -11,16 +11,18 @@ struct signal_data {
   std::optional<std::any> current_value;
 };
 
-// TODO: Make this use std::string_view
-auto topic_formatter(const std::vector<std::string_view>& topic_vector) -> std::string {
+auto topic_formatter(const std::vector<std::string_view>& topic_vector, std::string& topic_storage) -> std::string_view {
   if (topic_vector.empty()) {
-    throw std::runtime_error("Topic can not be empty");
+    return std::string_view();
   }
-  std::string topic;
+
+  topic_storage.clear();  // Clear any existing data
   for (const auto& sub_topic : topic_vector) {
-    topic += std::string(sub_topic) + "/";
+    topic_storage += std::string(sub_topic) + "/";
   }
-  topic.pop_back();
-  return topic;
+  topic_storage.pop_back();  // Remove the last '/'
+
+  return std::string_view(topic_storage);
 }
+
 }  // namespace tfc::mqtt::impl

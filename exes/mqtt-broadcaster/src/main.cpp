@@ -16,12 +16,8 @@ auto main(int argc, char* argv[]) -> int {
 
   asio::io_context io_ctx{};
 
-  tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client,
-                         // async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt >,
-                         // std::variant<std::monostate, async_mqtt::endpoint<async_mqtt::role::client,
-                         // async_mqtt::protocol::mqtts>, async_mqtt::endpoint<async_mqtt::role::client,
-                         // async_mqtt::protocol::mqtt>>,
-                         tfc::confman::config<tfc::mqtt::config>, tfc::mqtt::impl::network_manager_ssl>
+  tfc::mqtt::broadcaster<tfc::ipc_ruler::ipc_manager_client, tfc::confman::config<tfc::mqtt::config>,
+                         tfc::mqtt::impl::network_manager_ssl>
       application(io_ctx);
 
   application.run();
