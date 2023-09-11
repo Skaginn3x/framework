@@ -48,7 +48,7 @@ struct color {
 struct supplier {
   std::string name{};
   std::string contact_info{};
-  std::string country{}; // todo should this be an enum
+  std::string country{};  // todo should this be an enum
 };
 }  // namespace details
 
@@ -59,7 +59,7 @@ struct species {
   bool outside_spec{ false };  // if struct is used for outside the specification, represented with `!` as first character
   tfc::stx::basic_fixed_string<char, 3> code{};
 
-  static constexpr auto from_int(std::uint16_t input) -> species {
+  static constexpr auto from_int(std::uint16_t input) -> std::optional<species> {
     species res{};
     if (input >= offset) {
       res.outside_spec = true;
@@ -70,6 +70,10 @@ struct species {
       --cnt;
       res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
+    }
+    if (input != 0) {
+      // remainder is left so the input was too big
+      return std::nullopt;
     }
     return res;
   }
@@ -98,8 +102,8 @@ struct species {
 
   static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
   // Todo remake labelled database, this offset is the result of a database labelling error, as in the - 1
-  // todo this can overlap !!! 
-  static constexpr std::uint32_t offset{ (alphabet.size() - 1) * (alphabet.size() - 1) * (alphabet.size() - 1) };
+  // todo this can overlap !!!
+  static constexpr std::uint16_t offset{ (alphabet.size() - 1) * (alphabet.size() - 1) * (alphabet.size() - 1) };
 };
 inline constexpr auto atlantic_cod{ species{ .code{ "COD" } } };
 inline constexpr auto atlantic_herring{ species{ .code{ "HER" } } };
@@ -128,15 +132,15 @@ inline constexpr auto gigolo{ species{ .outside_spec = true, .code{ "GIG" } } };
 inline constexpr auto garbage{ species{ .outside_spec = true, .code{ "GAR" } } };
 
 namespace test {
-// notice that the outside spec is incomplete, so choose carefully when adding to it
-static_assert(species::from_int(std::numeric_limits<std::uint16_t>::max()) == species{ .outside_spec = true, .code{ "LVH" }});
+// notice that if you pass into from_int an integer outside the scope of the parser a nullopt is returned
+static_assert(species::from_int(std::numeric_limits<std::uint16_t>::max()) == std::nullopt);
 
 // 25 is Z and 27 is the alphabet size
-static_assert(species{.outside_spec=false, .code{"ZZZ"}}.to_int() == (25*27+25)*27+25); // 18925
+static_assert(species{ .outside_spec = false, .code{ "ZZZ" } }.to_int() == (25 * 27 + 25) * 27 + 25);  // 18925
 // THIS below should be true but is not because of the issue mentioned in lower part of struct
 // static_assert(species::from_int(species::offset-1) == species{.outside_spec=false, .code{"ZZZ"}});
 // This will result in overlapping if you are not careful
-static_assert(species::from_int(species::offset-1) == species{.outside_spec=false, .code{"YCZ"}});
+static_assert(species::from_int(species::offset - 1) == species{ .outside_spec = false, .code{ "YCZ" } });
 
 static_assert(atlantic_cod.to_int() == 1839);
 static_assert(atlantic_cod == species::from_int(atlantic_cod.to_int()));

@@ -229,20 +229,20 @@ struct any_filter_decl<bool> {
 template <>
 struct any_filter_decl<std::int64_t> {
   using value_t = std::int64_t;
-  using type =
-      std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
+  using type = std::
+      variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::uint64_t> {
   using value_t = std::uint64_t;
-  using type =
-      std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
+  using type = std::
+      variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::double_t> {
   using value_t = std::double_t;
-  using type =
-      std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
+  using type = std::
+      variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::string> {

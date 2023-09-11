@@ -13,7 +13,7 @@ auto main(int, char**) -> int {
 
   "test"_test = []() {
     static constexpr auto foo = fao::species::from_int(fao::atlantic_cod.to_int());
-    fmt::print("foo is: {}\n", foo.code.view());
+    fmt::print("foo is: {}\n", foo->code.view());
   };
 
   return 0;
