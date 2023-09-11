@@ -96,7 +96,6 @@ struct species {
   }
   constexpr auto operator==(species const& rhs) const noexcept -> bool = default;
 
-private:
   static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
   // Todo remake labelled database, this offset is the result of a database labelling error, as in the - 1
   // todo this can overlap !!! 
@@ -129,6 +128,16 @@ inline constexpr auto gigolo{ species{ .outside_spec = true, .code{ "GIG" } } };
 inline constexpr auto garbage{ species{ .outside_spec = true, .code{ "GAR" } } };
 
 namespace test {
+// notice that the outside spec is incomplete, so choose carefully when adding to it
+static_assert(species::from_int(std::numeric_limits<std::uint16_t>::max()) == species{ .outside_spec = true, .code{ "LVH" }});
+
+// 25 is Z and 27 is the alphabet size
+static_assert(species{.outside_spec=false, .code{"ZZZ"}}.to_int() == (25*27+25)*27+25); // 18925
+// THIS below should be true but is not because of the issue mentioned in lower part of struct
+// static_assert(species::from_int(species::offset-1) == species{.outside_spec=false, .code{"ZZZ"}});
+// This will result in overlapping if you are not careful
+static_assert(species::from_int(species::offset-1) == species{.outside_spec=false, .code{"YCZ"}});
+
 static_assert(atlantic_cod.to_int() == 1839);
 static_assert(atlantic_cod == species::from_int(atlantic_cod.to_int()));
 static_assert(red_gurnard.to_int() == 4931);
