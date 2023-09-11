@@ -48,7 +48,7 @@ struct color {
 struct supplier {
   std::string name{};
   std::string contact_info{};
-  std::string origin{};
+  std::string country{}; // todo should this be an enum
 };
 }  // namespace details
 
@@ -98,8 +98,8 @@ struct species {
 
 private:
   static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
-  // This offset is kind of ridiculous, as in the - 1
-  // todo this can overlap !!!
+  // Todo remake labelled database, this offset is the result of a database labelling error, as in the - 1
+  // todo this can overlap !!! 
   static constexpr std::uint32_t offset{ (alphabet.size() - 1) * (alphabet.size() - 1) * (alphabet.size() - 1) };
 };
 inline constexpr auto atlantic_cod{ species{ .code{ "COD" } } };
@@ -242,9 +242,9 @@ struct meta<tfc::ipc::item::details::supplier> {
   using type = tfc::ipc::item::details::supplier;
   static constexpr auto name{ "item_supplier" };
   // clang-format off
-  static constexpr auto value{ glz::object("name", &type::name, "Company name"
-                                           "contact_info", &type::contact_info, "Company contact information"
-                                           "origin", &type::origin, "Company country"
+  static constexpr auto value{ glz::object("name", &type::name, "Supplier name"
+                                           "contact_info", &type::contact_info, "Supplier contact information"
+                                           "origin", &type::country, "Supplier country"
                                            ) };
   // clang-format on
 };
@@ -282,7 +282,7 @@ struct meta<tfc::ipc::item::item> {
                                            "volume", &type::volume, "Volume of item",
 //                                           "temperature", &type::temperature, "Temperature in celsius",
                                            "angle", &type::angle, "Angle of item in its place",
-                                           "color", &type::color, "Color of item",
+                                           "color", &type::color, "RGB color value",
                                            "quality", &type::quality, "Quality/grade of item",
                                            "entry", &type::entry, "Entry time of item entering the scope of tfc",
                                            "production_date", &type::production_date, "Production date of item",

@@ -19,7 +19,7 @@ namespace tfc::ipc::filter {
 
 namespace asio = boost::asio;
 
-enum struct type_e : std::uint8_t {
+enum struct filter_e : std::uint8_t {
   unknown = 0,
   invert,
   timer,
@@ -40,41 +40,39 @@ enum struct type_e : std::uint8_t {
   tfc_item,  // according to item json schema see ipc/item.hpp, TODO: implement
 };
 
-template <type_e type, typename value_t, typename...>
+template <filter_e type, typename value_t, typename...>
 struct filter;
 
 /// \brief behaviour flip the state of boolean
 template <>
-struct filter<type_e::invert, bool> {
-  using value_t = bool;
-  static constexpr bool invert{ true };
-  static constexpr type_e type{ type_e::invert };
+struct filter<filter_e::invert, bool> {
+  static constexpr bool inverting{ true };
+  static constexpr filter_e type{ filter_e::invert };
 
-  auto async_process(value_t&& value, auto&& completion_token) const {
+  auto async_process(bool&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
+    return asio::async_compose<decltype(completion_token), void(std::expected<bool, std::error_code>)>(
         [copy = value](auto& self) { self.complete(!copy); }, completion_token, exe);
   }
 
   struct glaze {
-    using type = filter<type_e::invert, value_t>;
+    using type = filter<filter_e::invert, bool>;
     static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
     static constexpr auto value{ glz::object(
         "invert",
-        &type::invert,
-        tfc::json::schema{ .description = "Invert outputting value", .read_only = true, .constant = true }) };
+        &type::inverting,
+        tfc::json::schema{ .description = "Invert output value", .read_only = true, .constant = true }) };
   };
 };
 
 /// \brief behaviour time on delay and or time off delay
 /// \note IMPORTANT: delay changes take effect on next event
-template <typename clock_type>  // default std::chrono::steady_clock
-struct filter<type_e::timer, bool, clock_type> {
-  using value_t = bool;
+template <typename clock_type>  // example std::chrono::steady_clock
+struct filter<filter_e::timer, bool, clock_type> {
   std::chrono::milliseconds time_on{ 0 };
   std::chrono::milliseconds time_off{ 0 };
-  static constexpr type_e type{ type_e::timer };
+  static constexpr filter_e type{ filter_e::timer };
 
   filter() = default;
   // if the filter is moved everything is moved
@@ -92,13 +90,14 @@ struct filter<type_e::timer, bool, clock_type> {
   }
 
   // async_process is const to not require making change to config object while processing the filter state
-  auto async_process(value_t&& value, auto&& completion_token) const {
+  auto async_process(bool&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
     auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
+    return asio::async_compose<decltype(completion_token), void(std::expected<bool, std::error_code>)>(
         [this, copy = value, first_call = true](auto& self, std::error_code code = {}) mutable {
           if (code) {
-            // Callee will handle the error code
+            // Base case for a timer that was not able to complete(cancelled).
+            // IE a state change occurred while waiting or class deconstructed.
             self.complete(std::unexpected(code));
             return;
           }
@@ -117,12 +116,8 @@ struct filter<type_e::timer, bool, clock_type> {
           }
           auto executor = asio::get_associated_executor(self);
           timer_ = asio::basic_waitable_timer<clock_type>{ executor };
-          if (copy) {
-            timer_->expires_after(time_on);
-          } else {
-            timer_->expires_after(time_off);
-          }
-          // moving self makes this callback be called once again when expiry is reached
+          timer_->expires_after(copy ? time_on : time_off);
+          // moving self makes this callback be called once again when expiry is reached or timer is cancelled
           timer_->async_wait(std::move(self));
         },
         completion_token, exe);
@@ -134,7 +129,7 @@ private:
 
 public:
   struct glaze {
-    using type = filter<type_e::timer, value_t, clock_type>;
+    using type = filter<filter_e::timer, bool, clock_type>;
     static constexpr std::string_view name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
@@ -147,9 +142,9 @@ public:
 
 template <typename value_t>
   requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
-struct filter<type_e::offset, value_t> {
+struct filter<filter_e::offset, value_t> {
   value_t offset{};
-  static constexpr type_e type{ type_e::offset };
+  static constexpr filter_e type{ filter_e::offset };
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -162,7 +157,7 @@ struct filter<type_e::offset, value_t> {
   }
 
   struct glaze {
-    using type = filter<type_e::offset, value_t>;
+    using type = filter<filter_e::offset, value_t>;
     static constexpr std::string_view name{ "tfc::ipc::filter::offset" };
     static constexpr auto value{ glz::object("offset", &type::offset, "Adds a constant value to each sensor value.") };
   };
@@ -170,9 +165,9 @@ struct filter<type_e::offset, value_t> {
 
 template <typename value_t>
   requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
-struct filter<type_e::multiply, value_t> {
+struct filter<filter_e::multiply, value_t> {
   value_t multiply{};
-  static constexpr type_e type{ type_e::multiply };
+  static constexpr filter_e type{ filter_e::multiply };
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -185,16 +180,16 @@ struct filter<type_e::multiply, value_t> {
   }
 
   struct glaze {
-    using type = filter<type_e::multiply, value_t>;
+    using type = filter<filter_e::multiply, value_t>;
     static constexpr std::string_view name{ "tfc::ipc::filter::multiply" };
     static constexpr auto value{ glz::object("multiply", &type::multiply, "Multiplies each value by a constant value.") };
   };
 };
 
 template <typename value_t>
-struct filter<type_e::filter_out, value_t> {
+struct filter<filter_e::filter_out, value_t> {
   value_t filter_out{};
-  static constexpr type_e type{ type_e::filter_out };
+  static constexpr filter_e type{ filter_e::filter_out };
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     auto executor{ asio::get_associated_executor(completion_token) };
@@ -215,7 +210,7 @@ struct filter<type_e::filter_out, value_t> {
   }
 
   struct glaze {
-    using type = filter<type_e::filter_out, value_t>;
+    using type = filter<filter_e::filter_out, value_t>;
     static constexpr std::string_view name{ "tfc::ipc::filter::filter_out" };
     static constexpr auto value{
       glz::object("filter_out", &type::filter_out, "Filter out specific values to drop and forget")
@@ -229,30 +224,30 @@ struct any_filter_decl;
 template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
-  using type = std::variant<filter<type_e::invert, value_t>, filter<type_e::timer, value_t, std::chrono::steady_clock>>;
+  using type = std::variant<filter<filter_e::invert, value_t>, filter<filter_e::timer, value_t, std::chrono::steady_clock>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
   using value_t = std::int64_t;
   using type =
-      std::variant<filter<type_e::filter_out, value_t>, filter<type_e::offset, value_t>, filter<type_e::multiply, value_t>>;
+      std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::uint64_t> {
   using value_t = std::uint64_t;
   using type =
-      std::variant<filter<type_e::filter_out, value_t>, filter<type_e::offset, value_t>, filter<type_e::multiply, value_t>>;
+      std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::double_t> {
   using value_t = std::double_t;
   using type =
-      std::variant<filter<type_e::filter_out, value_t>, filter<type_e::offset, value_t>, filter<type_e::multiply, value_t>>;
+      std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::string> {
   using value_t = std::string;
-  using type = std::variant<filter<type_e::filter_out, value_t>>;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
 // json?
 template <typename value_t>
@@ -298,7 +293,7 @@ public:
             last_value_ = std::move(return_val.value());
             std::invoke(callback_, last_value_.value());
           } else {
-            // todo log. I have now forgotten the original value/s
+            // I have now forgotten the original value/s
           }
         });
   }
@@ -314,9 +309,9 @@ private:
 }  // namespace tfc::ipc::filter
 
 template <>
-struct glz::meta<tfc::ipc::filter::type_e> {
-  using enum tfc::ipc::filter::type_e;
-  static std::string_view constexpr name{ "ipc::filter::type" };
+struct glz::meta<tfc::ipc::filter::filter_e> {
+  using enum tfc::ipc::filter::filter_e;
+  static std::string_view constexpr name{ "ipc::filter::filter_e" };
   // clang-format off
   static auto constexpr value{ glz::enumerate("unknown", unknown,
                                               "invert", invert, "Invert outputting value",

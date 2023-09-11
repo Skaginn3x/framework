@@ -23,7 +23,7 @@ auto main(int, char**) -> int {
   using ut::operator|;
 
   using tfc::ipc::filter::filter;
-  using tfc::ipc::filter::type_e;
+  using tfc::ipc::filter::filter_e;
 
   "happy path filter edge timer"_test = [](bool test_value) {
     asio::io_context ctx{};
@@ -31,7 +31,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         [&finished, test_value]() -> asio::awaitable<void> {
-          filter<type_e::timer, bool, tfc::testing::clock> const timer_test{};
+          filter<filter_e::timer, bool, tfc::testing::clock> const timer_test{};
           auto return_value = co_await timer_test.async_process(bool{ test_value }, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() == test_value);
@@ -47,7 +47,7 @@ auto main(int, char**) -> int {
   "filter edge delayed"_test = [](bool test_value) {
     bool finished{ false };
     asio::io_context ctx{};
-    filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
+    filter<filter_e::timer, bool, tfc::testing::clock> timer_test{};
     timer_test.time_on = std::chrono::milliseconds{ 1 };
     timer_test.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
@@ -72,7 +72,7 @@ auto main(int, char**) -> int {
   "edge back to previous state within the delayed time"_test = []() {
     bool finished{ false };
     asio::io_context ctx{};
-    filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
+    filter<filter_e::timer, bool, tfc::testing::clock> timer_test{};
     timer_test.time_on = std::chrono::milliseconds{ 1 };
     timer_test.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
@@ -101,8 +101,8 @@ auto main(int, char**) -> int {
   "move filter during processing happy path filter edge timer"_test = [](bool test_value) {
     bool finished{ false };
     asio::io_context ctx{};
-    auto const start_process{ [&finished, &ctx, test_value]() -> filter<type_e::timer, bool, tfc::testing::clock> {
-      filter<type_e::timer, bool, tfc::testing::clock> timer_test{};
+    auto const start_process{ [&finished, &ctx, test_value]() -> filter<filter_e::timer, bool, tfc::testing::clock> {
+      filter<filter_e::timer, bool, tfc::testing::clock> timer_test{};
       timer_test.time_on = std::chrono::milliseconds{ 1 };
       timer_test.time_off = std::chrono::milliseconds{ 1 };
       asio::co_spawn(
@@ -131,7 +131,7 @@ auto main(int, char**) -> int {
   "confman integrated timer filter"_test = [](bool test_value) {
     bool finished{ false };
     asio::io_context ctx{};
-    tfc::confman::stub_config<filter<type_e::timer, bool, tfc::testing::clock>> config{ ctx, "my_key" };
+    tfc::confman::stub_config<filter<filter_e::timer, bool, tfc::testing::clock>> config{ ctx, "my_key" };
     config.make_change()->time_on = std::chrono::milliseconds{ 10 };
     config.make_change()->time_off = std::chrono::milliseconds{ 10 };
     asio::co_spawn(
@@ -173,7 +173,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         []() -> asio::awaitable<void> {
-          filter<type_e::invert, bool> const invert_test{};
+          filter<filter_e::invert, bool> const invert_test{};
           auto return_value = co_await invert_test.async_process(true, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(!return_value.value());
@@ -191,7 +191,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         []() -> asio::awaitable<void> {
-          filter<type_e::offset, std::int64_t> offset_test{ .offset = 2 };
+          filter<filter_e::offset, std::int64_t> offset_test{ .offset = 2 };
           auto return_value = co_await offset_test.async_process(40, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() == 42);
@@ -210,7 +210,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         []() -> asio::awaitable<void> {
-          filter<type_e::multiply, std::double_t> multiply_test{ .multiply = 2.5 };
+          filter<filter_e::multiply, std::double_t> multiply_test{ .multiply = 2.5 };
           auto return_value = co_await multiply_test.async_process(40, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() > 99 && return_value.value() < 101);
