@@ -1,9 +1,9 @@
 #pragma once
 
+#include <algorithm>
+#include <regex>
 #include <string>
 #include <string_view>
-#include <regex>
-#include <algorithm>
 
 #include <tfc/configure_options.hpp>
 #include <tfc/stx/string_view_join.hpp>
