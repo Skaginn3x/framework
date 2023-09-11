@@ -46,10 +46,11 @@ static auto constexpr const_dbus_path{ stx::string_view_join_v<detail::dbus_path
 /// \brief make dbus name like org.freedesktop.<service_name>
 /// \param input_name name postfix
 /// \note the prefix is cmake configure option, refer to libs/configure_options for more info
-/// Will replace illegal characters with legal ones, slashes to dots and .<number> to _<number>
+/// Will replace illegal characters with legal ones, '/' to '.', '-' to '_', and .<number> to _<number>
 auto constexpr make_dbus_name(std::string_view input_name) -> std::string {
   auto temporary{ detail::make<detail::dbus_name_prefix>(input_name) };
   std::ranges::replace(temporary, '/', '.');
+  std::ranges::replace(temporary, '-', '_');
   static constexpr std::string_view change_dots_preceding_number_to{ "(\\.)+(?=\\d)" };
   return std::regex_replace(temporary, std::regex{ change_dots_preceding_number_to.data() }, "_");
 }
