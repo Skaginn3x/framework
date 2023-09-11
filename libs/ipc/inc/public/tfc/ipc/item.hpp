@@ -50,6 +50,9 @@ struct supplier {
   std::string contact_info{};
   std::string country{};  // todo should this be an enum
 };
+struct destination {
+  // todo decide what destination can be
+};
 }  // namespace details
 
 // Food and Agriculture Organization of the United Nations
@@ -193,12 +196,12 @@ struct item {
   // attributes
   std::optional<details::color> color{ std::nullopt };
   std::optional<details::quality_e> quality{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> entry{ std::nullopt };  // when did item enter system
+  std::optional<std::chrono::system_clock::time_point> entry_timestamp{ std::nullopt };
   std::optional<std::chrono::system_clock::time_point> production_date{ std::nullopt };
   std::optional<std::chrono::system_clock::time_point> expiration_date{ std::nullopt };
   std::optional<std::string> description{ std::nullopt };
   std::optional<details::supplier> supplier{ std::nullopt };
-  std::optional<std::string> destination{ std::nullopt };
+  std::optional<details::destination> destination{ std::nullopt };
 
   // item may contain other items
   std::optional<std::vector<item>> items{ std::nullopt };
@@ -297,12 +300,12 @@ struct meta<tfc::ipc::item::item> {
                                            "angle", &type::angle, "Angle of item in its place",
                                            "color", &type::color, "RGB color value",
                                            "quality", &type::quality, "Quality/grade of item",
-                                           "entry", &type::entry, "Entry time of item entering the scope of tfc",
+                                           "entry_timestamp", &type::entry_timestamp, "First entry timestamp of item appearing in system",
                                            "production_date", &type::production_date, "Production date of item",
                                            "expiration_date", &type::expiration_date, "Expiration date of item",
                                            "description", &type::description, "Description of item, some kind of metadata",
                                            "supplier", &type::supplier, "Supplier information of item",
-                                           "destination", &type::destination, "Routing destination of item",
+//                                           "destination", &type::destination, "Routing destination of item",
                                            "items", &type::items, "List of owning items, like tub of 100 fishes"
                                            ) };
   // clang-format on
