@@ -247,8 +247,8 @@ struct meta<tfc::ipc::item::details::color> {
   using type = tfc::ipc::item::details::color;
   static constexpr auto name{ "item_color" };
   // clang-format off
-  static constexpr auto value{ glz::object("red", &type::red, "Red value 0-255"
-                                           "green", &type::green, "Green value 0-255"
+  static constexpr auto value{ glz::object("red", &type::red, "Red value 0-255",
+                                           "green", &type::green, "Green value 0-255",
                                            "blue", &type::blue, "Blue value 0-255"
                                           ) };
   // clang-format on
@@ -258,8 +258,8 @@ struct meta<tfc::ipc::item::details::supplier> {
   using type = tfc::ipc::item::details::supplier;
   static constexpr auto name{ "item_supplier" };
   // clang-format off
-  static constexpr auto value{ glz::object("name", &type::name, "Supplier name"
-                                           "contact_info", &type::contact_info, "Supplier contact information"
+  static constexpr auto value{ glz::object("name", &type::name, "Supplier name",
+                                           "contact_info", &type::contact_info, "Supplier contact information",
                                            "origin", &type::country, "Supplier country"
                                            ) };
   // clang-format on
@@ -269,7 +269,7 @@ struct meta<tfc::ipc::item::fao::species> {
   using type = tfc::ipc::item::fao::species;
   static constexpr auto name{ "fao_species" };
   // clang-format off
-  static constexpr auto value{ glz::object("code", &type::code, "3 letter food and agriculture organization code"
+  static constexpr auto value{ glz::object("code", &type::code, "3 letter food and agriculture organization code",
                                            "outside_spec", &type::outside_spec, "Code is not according to FAO"
                                            ) };
   // clang-format on
