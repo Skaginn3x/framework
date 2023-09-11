@@ -52,10 +52,11 @@ auto main(int argc, char** argv) -> int {
 
   std::string const key{ "bar" };
 
-  auto interface_path{ std::filesystem::path{ tfc::dbus::make_dbus_path("config") } /
-                       tfc::base::make_config_file_name(key, "").string().substr(1) };
-  auto interface_name{ interface_path.string().substr(1) };
-  std::replace(interface_name.begin(), interface_name.end(), '/', '.');
+  // duplicate from config_dbus_client.cpp
+  std::filesystem::path interface_path{ tfc::dbus::make_dbus_path(
+      fmt::format("{}config", tfc::base::get_config_directory().string().substr(1))) };
+  auto interface_name{ tfc::dbus::make_dbus_name(
+      fmt::format("config.{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), key)) };
 
   using tfc::confman::detail::config_property;
   using tfc::confman::detail::dbus::property_name;
