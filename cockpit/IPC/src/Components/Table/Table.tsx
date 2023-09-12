@@ -166,8 +166,8 @@ export default function Table({
     setIsModalOpen(true);
   };
 
-  const handlePencilClick = (signal: SignalType) => {
-    setSelectedSignal(signal || undefined);
+  const handlePencilClick = (slot: SlotType) => {
+    setSelectedSlot(slot.name || undefined);
     setFilterModalOpen(true);
   };
 
@@ -468,13 +468,13 @@ export default function Table({
                         onClick={() => handlePlusClick(signal)}
                         className="selectionHover"
                       />
-                      <PencilAltIcon
+                      {/* <PencilAltIcon
                         style={{
                           margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
                         }}
                         onClick={() => handlePencilClick(signal)}
                         className="selectionHover"
-                      />
+                      /> */}
                     </div>
                   </Td>
                 </Tr>
@@ -603,9 +603,24 @@ export default function Table({
                           dataLabel={columnNames.description}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
-                          colSpan={2}
+                          // colSpan={2}
                         >
                           {slot.description}
+                        </Td>
+                        <Td
+                          key={`${signal.name}-${slotName}--button`}
+                          dataLabel="icons"
+                          modifier="truncate"
+                          style={{ verticalAlign: 'middle' }}
+                          // colSpan={2}
+                        >
+                          <PencilAltIcon
+                            style={{
+                              margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                            }}
+                            onClick={() => handlePencilClick(slot)}
+                            className="selectionHover"
+                          />
                         </Td>
                       </>
                     ))}

@@ -1,4 +1,5 @@
 import { AlertVariant } from '@patternfly/react-core';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 
 /* eslint-disable import/prefer-default-export */
 function determineDefaultValue(nextKey: any): any {
@@ -65,11 +66,11 @@ export const updateFormData = (name: string | undefined, newData: any, setFormDa
   // set dbus property config to data
   console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
   const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-  const propProxy = newdbus.proxy(name);
+  const propProxy = newdbus.proxy(name, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`);
 
   propProxy.wait().then(() => {
     const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-    newdbus.call(`/${name.replaceAll('.', '/')}`, 'org.freedesktop.DBus.Properties', 'Set', [
+    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`, 'org.freedesktop.DBus.Properties', 'Set', [
       name, // The interface name
       'config', // The property name
       stringdata, // The new value
@@ -87,7 +88,7 @@ export const updateFormData = (name: string | undefined, newData: any, setFormDa
 
 export async function fetchDataFromDBus(name: string) {
   const dbus = window.cockpit.dbus(name);
-  const OBJproxy = dbus.proxy(name);
+  const OBJproxy = dbus.proxy(name, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`);
   await OBJproxy.wait();
 
   const { data } = OBJproxy;
