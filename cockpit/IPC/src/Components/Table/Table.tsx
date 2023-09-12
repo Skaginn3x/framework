@@ -395,7 +395,7 @@ export default function Table({
                   tabIndex={0}
                   onFocus={() => setSelectedIndexes([startIndex + index, -1])}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (!e.shiftKey && e.key === 'Enter') {
                       handlePlusClick(signal);
                     }
                     handleKeyDown(e, startIndex + index, -1);
@@ -468,17 +468,10 @@ export default function Table({
                         onClick={() => handlePlusClick(signal)}
                         className="selectionHover"
                       />
-                      {/* <PencilAltIcon
-                        style={{
-                          margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
-                        }}
-                        onClick={() => handlePencilClick(signal)}
-                        className="selectionHover"
-                      /> */}
                     </div>
                   </Td>
                 </Tr>
-                {connections[signal.name] && connections[signal.name].map((slotName: string, slotIndex: number) => (
+                {connections[signal.name]?.map((slotName: string, slotIndex: number) => (
                   <Tr
                     key={`${signal.name}-${slotName}`}
                     className="smallRow"
@@ -486,10 +479,13 @@ export default function Table({
                     tabIndex={0}
                     onFocus={() => setSelectedIndexes([startIndex + index, slotIndex])}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.shiftKey && e.key === 'Enter') {
+                        e.stopPropagation();
+                        handlePencilClick(slots.filter((slot) => slot.name === slotName)[0]);
+                      } else if (!e.shiftKey && e.key === 'Enter') {
                         e.stopPropagation();
                         handleMinusClick(slotName);
-                      } else {
+                      } else if (!e.shiftKey) {
                         handleKeyDown(e, startIndex + index, slotIndex);
                       }
                     }}
@@ -503,10 +499,10 @@ export default function Table({
                       key={`Selection${slotName}`}
                       dataLabel="Remove slot from signal"
                       className="smallSelectionCell"
-                      style={{ padding: '0.5rem' }}
+                      style={{ verticalAlign: 'middle', padding: '0.5rem', height: '100%' }}
                     >
                       <div style={{
-                        display: 'flex', flexDirection: 'row', alignContent: 'center', justifyContent: 'center',
+                        display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
                       }}
                       >
                         <MinusIcon
@@ -603,7 +599,6 @@ export default function Table({
                           dataLabel={columnNames.description}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
-                          // colSpan={2}
                         >
                           {slot.description}
                         </Td>
@@ -611,16 +606,20 @@ export default function Table({
                           key={`${signal.name}-${slotName}--button`}
                           dataLabel="icons"
                           modifier="truncate"
-                          style={{ verticalAlign: 'middle' }}
-                          // colSpan={2}
+                          style={{ padding: '0.5rem', verticalAlign: 'middle' }}
                         >
-                          <PencilAltIcon
-                            style={{
-                              margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
-                            }}
-                            onClick={() => handlePencilClick(slot)}
-                            className="selectionHover"
-                          />
+                          <div style={{
+                            display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
+                          }}
+                          >
+                            <PencilAltIcon
+                              style={{
+                                margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                              }}
+                              onClick={() => handlePencilClick(slot)}
+                              className="selectionHoverSignal"
+                            />
+                          </div>
                         </Td>
                       </>
                     ))}
