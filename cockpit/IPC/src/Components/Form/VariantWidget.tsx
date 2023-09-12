@@ -102,7 +102,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         data: { value: { internal_null_value_do_not_use: null } },
       });
     } else {
-      console.log('storeelse!');
       onChange({
         storeKeys,
         scopes: ['value'],
