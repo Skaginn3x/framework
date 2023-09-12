@@ -62,6 +62,9 @@ export default function Configurator() {
       proxy.wait().then(() => {
         proxy.call('ListNames').then((Allnames: any[]) => {
           // if name includes config, get interfaces (discard ipc_ruler and _filters_)
+          console.log('NAMES:', Allnames[0].filter((name: string) => name.includes('config')
+          && !name.includes('ipc_ruler')
+          && !name.includes('_filters_')));
           setNames(
             Allnames[0].filter((name: string) => name.includes('config')
             && !name.includes('ipc_ruler')
@@ -86,15 +89,20 @@ export default function Configurator() {
 
   // Get data and schema for each name and store in states
   useEffect(() => {
+    console.log('names: ', names);
     if (names.length > 0) {
+      console.log('names > 0 ');
       names.forEach((name: string) => {
         const dbus = window.cockpit.dbus(name);
-        const OBJproxy = dbus.proxy(name);
+        console.log('dbus', dbus);
+        const OBJproxy = dbus.proxy(name, '/com/skaginn3x/etc/tfc/config');
+        console.log('OBJ', OBJproxy);
         OBJproxy.wait().then(() => {
           const { data } = OBJproxy;
           let parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
           const parsedSchema = JSON.parse(data.config[1].replace('\\"', '"'));
-
+          console.log('parsedData: ', parsedData);
+          console.log('parsedSchema: ', parsedSchema);
           // TODO fix data coming from TFC to have config parent object like schema
           // if parseddata does not have key 'config'
           if (!Object.keys(parsedData).includes('config')) {
@@ -155,11 +163,11 @@ export default function Configurator() {
     // set dbus property config to data
     console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
     const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-    const propProxy = newdbus.proxy(name);
+    const propProxy = newdbus.proxy(name, '/com/skaginn3x/etc/tfc/config');
 
     propProxy.wait().then(() => {
       const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-      newdbus.call(`/${name.replaceAll('.', '/')}`, 'org.freedesktop.DBus.Properties', 'Set', [
+      newdbus.call('/com/skaginn3x/etc/tfc/config', 'org.freedesktop.DBus.Properties', 'Set', [
         name, // The interface name
         'config', // The property name
         stringdata, // The new value
