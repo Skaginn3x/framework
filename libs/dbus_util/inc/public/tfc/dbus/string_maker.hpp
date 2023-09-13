@@ -5,8 +5,8 @@
 #include <string>
 #include <string_view>
 
-#include <tfc/dbus/exception.hpp>
 #include <tfc/configure_options.hpp>
+#include <tfc/dbus/exception.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::dbus {

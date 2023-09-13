@@ -91,8 +91,8 @@ auto main(int, char**) -> int {
           co_return;
         },
         asio::detached);
-    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // async_process
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });    // co_spawn
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });    // async_process
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
     test.ctx.run_for(std::chrono::milliseconds{ 50 });  // try polling for this given time
   };
@@ -145,8 +145,8 @@ auto main(int, char**) -> int {
           co_return;
         },
         asio::detached);
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // async process (async_compose)
+    ctx.run_one_for(std::chrono::seconds{ 1 });        // co_spawn
+    ctx.run_one_for(std::chrono::seconds{ 1 });        // async process (async_compose)
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
     ctx.run_one_for(std::chrono::milliseconds{ 30 });  // poll timer once more, but nothing happens
     // down to business, 1 millisecond has elapsed since the timer was made with 10 millisec wait let's change the value
