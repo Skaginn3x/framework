@@ -15,87 +15,86 @@
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 
+using tfc::ipc::filter::filter;
+using tfc::ipc::filter::filter_e;
+
+using ut::operator""_test;
+using ut::expect;
+using ut::operator>>;
+using ut::fatal;
+using ut::operator|;
+
+struct timer_test {
+  asio::io_context ctx{};
+  bool finished{ false };
+  filter<filter_e::timer, bool, tfc::testing::clock> filter{};
+  void spawn(auto&& callback) const {}
+  ~timer_test() { ut::expect(finished); }
+};
+
 auto main(int, char**) -> int {
-  using ut::operator""_test;
-  using ut::expect;
-  using ut::operator>>;
-  using ut::fatal;
-  using ut::operator|;
-
-  using tfc::ipc::filter::filter;
-  using tfc::ipc::filter::filter_e;
-
   "happy path filter edge timer"_test = [](bool test_value) {
-    asio::io_context ctx{};
-    bool finished{ false };
+    timer_test test{};
     asio::co_spawn(
-        ctx,
-        [&finished, test_value]() -> asio::awaitable<void> {
-          filter<filter_e::timer, bool, tfc::testing::clock> const timer_test{};
-          auto return_value = co_await timer_test.async_process(bool{ test_value }, asio::use_awaitable);
+        test.ctx,
+        [&test, test_value]() -> asio::awaitable<void> {
+          auto return_value = co_await test.filter.async_process(bool{ test_value }, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() == test_value);
-          finished = true;
+          test.finished = true;
           co_return;  //
         },
         asio::detached);
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
-    expect(finished);
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // timer event 1
   } | std::vector{ true, false };
 
   "filter edge delayed"_test = [](bool test_value) {
-    bool finished{ false };
-    asio::io_context ctx{};
-    filter<filter_e::timer, bool, tfc::testing::clock> timer_test{};
-    timer_test.time_on = std::chrono::milliseconds{ 1 };
-    timer_test.time_off = std::chrono::milliseconds{ 1 };
+    timer_test test{};
+    test.filter.time_on = std::chrono::milliseconds{ 1 };
+    test.filter.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
-        ctx,
-        [&finished, &timer_test, test_value, &ctx]() -> asio::awaitable<void> {
-          timer_test.async_process(bool{ test_value },
-                                   asio::bind_executor(ctx.get_executor(), [&finished, test_value](auto&& return_value) {
-                                     expect(return_value.has_value() >> fatal);
-                                     expect(return_value.value() == test_value);
-                                     finished = true;
-                                   }));
+        test.ctx,
+        [&test, test_value]() -> asio::awaitable<void> {
+          test.filter.async_process(bool{ test_value },
+                                    asio::bind_executor(test.ctx.get_executor(), [&test, test_value](auto&& return_value) {
+                                      expect(return_value.has_value() >> fatal);
+                                      expect(return_value.value() == test_value);
+                                      test.finished = true;
+                                    }));
           co_return;
         },
         asio::detached);
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // async process (async_compose)
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // async process (async_compose)
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
-    expect(finished);
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
   } | std::vector{ true, false };
 
   "edge back to previous state within the delayed time"_test = []() {
-    bool finished{ false };
-    asio::io_context ctx{};
-    filter<filter_e::timer, bool, tfc::testing::clock> timer_test{};
-    timer_test.time_on = std::chrono::milliseconds{ 1 };
-    timer_test.time_off = std::chrono::milliseconds{ 1 };
+    timer_test test{};
+    test.filter.time_on = std::chrono::milliseconds{ 1 };
+    test.filter.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
-        ctx,
-        [&finished, &timer_test, test_value = true]() -> asio::awaitable<void> {
-          timer_test.async_process(bool{ test_value }, [](auto&& return_value) {
+        test.ctx,
+        [&test, test_value = true]() -> asio::awaitable<void> {
+          test.filter.async_process(bool{ test_value }, [](auto&& return_value) {
             expect(!return_value.has_value() >> fatal);
             // the following async process call should cancel the timer so the error here is cancelled
             expect(return_value.error() == std::errc::operation_canceled);
           });
-          timer_test.async_process(!test_value, [](auto&&) {
+          test.filter.async_process(!test_value, [](auto&&) {
             // this callback should never be called since we are back to the previous state
             expect(false >> fatal);
           });
-          finished = true;
+          test.finished = true;
           co_return;
         },
         asio::detached);
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
-    ctx.run_one_for(std::chrono::seconds{ 1 });  // async_process
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // co_spawn
+    test.ctx.run_one_for(std::chrono::seconds{ 1 });  // async_process
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 1 });
-    ctx.run_for(std::chrono::milliseconds{ 50 });  // try polling for this given time
-    expect(finished);
+    test.ctx.run_for(std::chrono::milliseconds{ 50 });  // try polling for this given time
   };
 
   "move filter during processing happy path filter edge timer"_test = [](bool test_value) {
