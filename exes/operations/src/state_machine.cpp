@@ -191,6 +191,8 @@ void state_machine::enter_cleaning() {
 void state_machine::leave_cleaning() {
   cleaning_.send(false);
 }
+// State transition callbacks
+// will be used when needed
 void state_machine::enter_emergency() {}
 void state_machine::leave_emergency() {}
 void state_machine::enter_fault() {}
