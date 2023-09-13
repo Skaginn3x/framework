@@ -64,7 +64,11 @@ public:
   void enter_maintenance();
   void leave_maintenance();
 
-  auto on_new_mode(std::invocable<new_mode, old_mode> auto&& callback) { on_new_state_ = callback; }
+  auto on_new_mode(auto&& callback)
+    requires std::invocable<std::remove_cvref_t<decltype(callback)>, new_mode, old_mode>
+  {
+    on_new_state_ = callback;
+  }
   void transition(mode_e new_mode, mode_e old_mode) const;
 
 private:
