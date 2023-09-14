@@ -27,7 +27,7 @@ using ut::operator|;
 struct timer_test {
   asio::io_context ctx{};
   bool finished{ false };
-  filter<filter_e::timer, bool, tfc::testing::clock> filter{};
+  filter<filter_e::timer, bool, tfc::testing::clock> timer{};
   void spawn(auto&& callback) const {}
   ~timer_test() { ut::expect(finished); }
 };
@@ -38,7 +38,7 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         test.ctx,
         [&test, test_value]() -> asio::awaitable<void> {
-          auto return_value = co_await test.filter.async_process(bool{ test_value }, asio::use_awaitable);
+          auto return_value = co_await test.timer.async_process(bool{ test_value }, asio::use_awaitable);
           expect(return_value.has_value() >> fatal);
           expect(return_value.value() == test_value);
           test.finished = true;
@@ -51,12 +51,12 @@ auto main(int, char**) -> int {
 
   "filter edge delayed"_test = [](bool test_value) {
     timer_test test{};
-    test.filter.time_on = std::chrono::milliseconds{ 1 };
-    test.filter.time_off = std::chrono::milliseconds{ 1 };
+    test.timer.time_on = std::chrono::milliseconds{ 1 };
+    test.timer.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
         test.ctx,
         [&test, test_value]() -> asio::awaitable<void> {
-          test.filter.async_process(bool{ test_value },
+          test.timer.async_process(bool{ test_value },
                                     asio::bind_executor(test.ctx.get_executor(), [&test, test_value](auto&& return_value) {
                                       expect(return_value.has_value() >> fatal);
                                       expect(return_value.value() == test_value);
@@ -73,17 +73,17 @@ auto main(int, char**) -> int {
 
   "edge back to previous state within the delayed time"_test = []() {
     timer_test test{};
-    test.filter.time_on = std::chrono::milliseconds{ 1 };
-    test.filter.time_off = std::chrono::milliseconds{ 1 };
+    test.timer.time_on = std::chrono::milliseconds{ 1 };
+    test.timer.time_off = std::chrono::milliseconds{ 1 };
     asio::co_spawn(
         test.ctx,
         [&test, test_value = true]() -> asio::awaitable<void> {
-          test.filter.async_process(bool{ test_value }, [](auto&& return_value) {
+          test.timer.async_process(bool{ test_value }, [](auto&& return_value) {
             expect(!return_value.has_value() >> fatal);
             // the following async process call should cancel the timer so the error here is cancelled
             expect(return_value.error() == std::errc::operation_canceled);
           });
-          test.filter.async_process(!test_value, [](auto&&) {
+          test.timer.async_process(!test_value, [](auto&&) {
             // this callback should never be called since we are back to the previous state
             expect(false >> fatal);
           });
