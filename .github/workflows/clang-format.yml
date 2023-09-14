@@ -33,4 +33,5 @@ jobs:
           inplace: True
       - uses: EndBug/add-and-commit@v9
         with:
+          default_author: user_info
           message: 'Committing clang-format changes'
