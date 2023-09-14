@@ -10,24 +10,24 @@ The implemented functionality inject their interfaces
 into the slots established dbus connection.
 
 ### Interface names
-the following interface names are used for the functionality.
+The following interface names are used for the functionality.
 
 - filters `<slot_name>/filters`
 - tinker  `<slot_name>/tinker`
 - value `<slot_name>/value`
 
 ## Specification of the tinker interface
-property called `forced` of the type bool,
+A property called `forced` of the type bool,
 this property indicates weather the slots value is forced or not.
 
-a method called `force` accepting a value of the type of the slot,
+A method called `force` accepting a value of the type of the slot,
 this method forces the value of the slot.
 
-a method called `release` accepting no arguments.
+A method called `release` accepting no arguments.
 
 ## Specification of the value interface
-property called `post_filter_value` of the type of the slot.
-and a property called `raw_value` of the type of the slot,
+A property called `filtered_value` of the type of the slot.
+A property called `raw_value` of the type of the slot,
 raw value contains the value before the filters are applied.
 
 ### Monitoring value changes
