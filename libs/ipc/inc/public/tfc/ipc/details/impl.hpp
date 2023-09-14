@@ -330,7 +330,8 @@ public:
 private:
   slot_callback(asio::io_context& ctx, std::string_view name, auto&& callback)
     requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
-      : slot_{ ctx, name }, filters_{ ctx, name, std::forward<decltype(callback)>(callback) } {}
+      : slot_{ ctx, name },
+        filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) } {}
   void async_new_state(std::expected<value_t, std::error_code> value) {
     if (!value) {
       return;
