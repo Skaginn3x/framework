@@ -24,6 +24,8 @@ A method called `force` accepting a value of the type of the slot,
 this method forces the value of the slot.
 
 A method called `release` accepting no arguments.
+Which releases the force on the slot having
+it return to its normal state.
 
 ## Specification of the value interface
 A property called `filtered_value` of the type of the slot.
