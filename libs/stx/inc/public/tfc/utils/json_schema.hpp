@@ -125,7 +125,7 @@ struct schematic {
   std::optional<schema> items{};                                                // array
   std::optional<std::variant<bool, schema>> additionalProperties{};             // map
   std::optional<std::map<std::string_view, schematic, std::less<>>> defs{};
-  std::optional<std::vector<std::string_view>> enumeration{};                   // enum
+  std::optional<std::vector<std::string_view>> enumeration{};  // enum
   std::optional<std::vector<schematic>> oneOf{};
   schema attributes{};
 };

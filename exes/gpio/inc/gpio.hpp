@@ -75,11 +75,11 @@ struct glz::meta<pin::out::force_e> {
   using enum pin::out::force_e;
   //  clang-format off
   static constexpr auto value{ glz::enumerate("as_is",
-                                              as_is,    // "Do not make any changes",
+                                              as_is,  // "Do not make any changes",
                                               "on",
-                                              on,       // "Force to ON then go back to as_is",
+                                              on,  // "Force to ON then go back to as_is",
                                               "off",
-                                              off,      // "Force to OFF then go back to as_is",
+                                              off,  // "Force to OFF then go back to as_is",
                                               "save_on",
                                               save_on,  // "Force indefinitely to ON",
                                               "save_off",
@@ -107,13 +107,13 @@ struct glz::meta<gpiod::line::edge> {
   using enum gpiod::line::edge;
   //  clang-format off
   static constexpr auto value{ glz::enumerate("none",
-                                              NONE,     // "Pin edge detection is disabled.",
+                                              NONE,  // "Pin edge detection is disabled.",
                                               "rising",
-                                              RISING,   // "Pin detects rising edge events.",
+                                              RISING,  // "Pin detects rising edge events.",
                                               "falling",
                                               FALLING,  // "Line detect falling edge events.",
                                               "both",
-                                              BOTH      //, "Line detects both rising and falling edge events."
+                                              BOTH  //, "Line detects both rising and falling edge events."
                                               ) };
   // clang-format on
   static constexpr std::string_view name{ "Pin edge detection" };
@@ -123,13 +123,13 @@ struct glz::meta<gpiod::line::bias> {
   using enum gpiod::line::bias;
   //  clang-format off
   static constexpr auto value{ glz::enumerate("as_is",
-                                              AS_IS,     // "Don't change the bias setting when applying line config.",
+                                              AS_IS,  // "Don't change the bias setting when applying line config.",
                                               "unknown",
-                                              UNKNOWN,   // "The internal bias state is unknown.",
+                                              UNKNOWN,  // "The internal bias state is unknown.",
                                               "disabled",
                                               DISABLED,  // "The internal bias is disabled.",
                                               "pull_up",
-                                              PULL_UP,   // "The internal pull-up bias is enabled.",
+                                              PULL_UP,  // "The internal pull-up bias is enabled.",
                                               "pull_down",
                                               PULL_DOWN  //, "The internal pull-down bias is enabled."
                                               ) };
@@ -141,7 +141,7 @@ struct glz::meta<gpiod::line::drive> {
   using enum gpiod::line::drive;
   //  clang-format off
   static constexpr auto value{ glz::enumerate("push_pull",
-                                              PUSH_PULL,   // "Drive setting is push-pull.",
+                                              PUSH_PULL,  // "Drive setting is push-pull.",
                                               "open_drain",
                                               OPEN_DRAIN,  // "Pin output is open-drain.",
                                               "open_source",
