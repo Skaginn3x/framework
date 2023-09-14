@@ -57,11 +57,11 @@ auto main(int, char**) -> int {
         test.ctx,
         [&test, test_value]() -> asio::awaitable<void> {
           test.timer.async_process(bool{ test_value },
-                                    asio::bind_executor(test.ctx.get_executor(), [&test, test_value](auto&& return_value) {
-                                      expect(return_value.has_value() >> fatal);
-                                      expect(return_value.value() == test_value);
-                                      test.finished = true;
-                                    }));
+                                   asio::bind_executor(test.ctx.get_executor(), [&test, test_value](auto&& return_value) {
+                                     expect(return_value.has_value() >> fatal);
+                                     expect(return_value.value() == test_value);
+                                     test.finished = true;
+                                   }));
           co_return;
         },
         asio::detached);
