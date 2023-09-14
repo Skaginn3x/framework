@@ -78,10 +78,12 @@ auto main() -> int {
     ut::expect(foo.has_value());
     ut::expect(foo.value() == "Hello"sv);
   };
-  "fixed_string_from_json_short"_test = [] {
-    auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Hell\"");
-    ut::expect(foo.has_value());
-    ut::expect(foo.value() == "Hell\0"sv) << foo.value().view(); // fixed string will always contain fixed number of characters hence the zero
-  };
+  "fixed_string_from_json_short"_test =
+      [] {
+        auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Hell\"");
+        ut::expect(foo.has_value());
+        ut::expect(foo.value() == "Hell\0"sv)
+            << foo.value().view();  // fixed string will always contain fixed number of characters hence the zero
+      };
   return EXIT_SUCCESS;
 }
