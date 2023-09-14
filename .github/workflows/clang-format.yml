@@ -34,5 +34,3 @@ jobs:
       - uses: EndBug/add-and-commit@v9
         with:
           message: 'Committing clang-format changes'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
