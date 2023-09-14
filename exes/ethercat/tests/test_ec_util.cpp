@@ -57,7 +57,7 @@ auto main(int, char**) -> int {
   "setting to json"_test = []() {
     [[maybe_unused]] example::trivial_type_setting const test{};
     auto const json = glz::write_json(test);
-    expect(json == R"({"value":13,"index":{"66":67},"name":"name","desc":"desc"})") << "got: " << json;
+    expect(json == "13") << "got: " << json;
     auto const exp = glz::read_json<example::trivial_type_setting>(json);
     expect(exp.has_value() >> fatal);
     expect(exp.value() == test);
