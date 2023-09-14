@@ -47,30 +47,38 @@ static auto constexpr const_dbus_path{ stx::string_view_join_v<detail::dbus_path
 /// \brief make dbus name like org.freedesktop.<service_name>
 /// \param input_name name postfix
 /// \note the prefix is cmake configure option, refer to libs/configure_options for more info
-/// Will replace illegal characters with legal ones, '/' to '.', '-' to '_', and .<number> to _<number>
+/// \throws exception::invalid_name if input contains `-` or `//`
 auto constexpr make_dbus_name(std::string_view input_name) -> std::string {
-  auto temporary{ detail::make<detail::dbus_name_prefix>(input_name) };
-  std::ranges::replace(temporary, '/', '.');
-  if (temporary.contains('-')) {
+  auto return_value{ detail::make<detail::dbus_name_prefix>(input_name) };
+  if (return_value.contains('-')) {
     throw exception::invalid_name{ "{} contains illegal dbus character '-'", input_name };
+  }
+  if (return_value.contains("..")) {
+    throw exception::invalid_name{ "{} contains illegal dbus characters '..'", input_name };
+  }
+  if (return_value.contains("/")) {
+    throw exception::invalid_name{ "{} contains illegal dbus characters '/'", input_name };
   }
   std::smatch match_results{};
   static constexpr std::string_view match_dots_preceding_number{ "(\\.)+(?=\\d)" };
-  if (std::regex_match(temporary, match_results, std::regex{ match_dots_preceding_number.data() })) {
-    throw exception::invalid_name{ "{} contains illegal dbus character '-'", input_name };
+  if (std::regex_match(return_value, match_results, std::regex{ match_dots_preceding_number.data() })) {
+    throw exception::invalid_name{ "{} contains illegal dbus characters {}", input_name, match_results[0].str() };
   }
-  return temporary;
+  return return_value;
 }
 
 /// \brief make dbus path like /org/freedesktop/<service_name>
 /// \param input_name name postfix
 /// \note the prefix is cmake configure option, refer to libs/configure_options for more info
-/// Will replace illegal characters with legal ones, '-' to '_' and '.' to '/'
-/// Will NOT replace two slashes // with /. Two slashes is illegal
+/// \throws exception::invalid_name if input contains `-` or `//`
 auto constexpr make_dbus_path(std::string_view input_name) -> std::string {
   auto return_value{ detail::make<detail::dbus_path_prefix>(input_name) };
-  std::ranges::replace(return_value, '-', '_');
-  std::ranges::replace(return_value, '.', '/');
+  if (return_value.contains('-')) {
+    throw exception::invalid_name{ "{} contains illegal dbus character '-'", input_name };
+  }
+  if (return_value.contains("//")) {
+    throw exception::invalid_name{ "{} contains illegal dbus characters \"//\"", input_name };
+  }
   return return_value;
 }
 

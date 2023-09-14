@@ -258,7 +258,7 @@ template <typename value_t, typename callback_t>
 class filters {
 public:
   filters(asio::io_context& ctx, std::string_view name, callback_t&& callback)
-      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}/_filters_", name) }, callback_{ callback } {}
+      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}._filters_", name) }, callback_{ callback } {}
 
   /// \brief changes internal last_value state when filters have been processed
   void operator()(value_t&& value) {
