@@ -6,9 +6,8 @@ class el2xxx : public base {
 public:
   explicit el2xxx(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index) : base(slave_index) {
     for (size_t i = 0; i < size; i++) {
-      bool_receivers_.emplace_back(
-          std::make_unique<tfc::ipc::bool_slot>(ctx, client, fmt::format("{}.{}.out.{}", name, slave_index, i),
-                                                std::bind_front(&el2xxx::set_output, this, i)));
+      bool_receivers_.emplace_back(std::make_unique<tfc::ipc::bool_slot>(
+          ctx, client, fmt::format("{}.{}.out.{}", name, slave_index, i), std::bind_front(&el2xxx::set_output, this, i)));
     }
   }
 
