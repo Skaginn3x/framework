@@ -3,6 +3,7 @@
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 
+#include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/json_schema.hpp>
 #include <tfc/utils/units_common.hpp>
@@ -41,6 +42,8 @@ static_assert(dimension_name<si::dim_torque>() == "torque");
 static_assert(dimension_name<si::dim_luminance>() == "luminance");
 }  // namespace compile_test
 
+using std::string_view_literals::operator""sv;
+
 auto main() -> int {
   "chrono"_test = [] {
     using test_t = std::chrono::duration<uint16_t, std::deci>;
@@ -60,6 +63,25 @@ auto main() -> int {
     }
     ut::expect(glz::read_json<target_velocity_t>(json).has_value());
   };
-
+  "fixed_string_to_json"_test = [] {
+    tfc::stx::basic_fixed_string foo{ "HelloWorld" };
+    auto foo_json{ glz::write_json(foo) };
+    ut::expect(foo_json == "\"HelloWorld\""sv) << glz::write_json(foo);
+  };
+  "fixed_string_from_json"_test = [] {
+    auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Hello\"");
+    ut::expect(foo.has_value());
+    ut::expect(foo.value() == "Hello"sv);
+  };
+  "fixed_string_from_json_too_long_caps_value"_test = [] {
+    auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Helloooo\"");
+    ut::expect(foo.has_value());
+    ut::expect(foo.value() == "Hello"sv);
+  };
+  "fixed_string_from_json_short"_test = [] {
+    auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Hell\"");
+    ut::expect(foo.has_value());
+    ut::expect(foo.value() == "Hell\0"sv) << foo.value().view(); // fixed string will always contain fixed number of characters hence the zero
+  };
   return EXIT_SUCCESS;
 }
