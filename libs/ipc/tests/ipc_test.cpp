@@ -3,6 +3,7 @@
 
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/packet.hpp>
+#include <tfc/progbase.hpp>
 
 #include <fmt/chrono.h>
 #include <fmt/core.h>
@@ -11,7 +12,9 @@
 
 namespace asio = boost::asio;
 
-auto main(int, char**) -> int {
+auto main(int argc, char** argv) -> int {
+  tfc::base::init(argc, argv);
+
   using boost::ut::operator""_test;
   using boost::ut::expect;
   using boost::ut::bdd::given;
