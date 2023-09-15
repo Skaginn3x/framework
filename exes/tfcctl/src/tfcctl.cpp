@@ -16,36 +16,6 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
 
-template <typename return_t>
-inline auto create_ipc_signal(asio::io_context& ctx, auto& client, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return ipc::bool_signal(ctx, client, name);
-  }
-  if (name.contains("int")) {
-    return ipc::int_signal(ctx, client, name);
-  }
-  if (name.contains("uint")) {
-    return ipc::uint_signal(ctx, client, name);
-  }
-  if (name.contains("double")) {
-    return ipc::double_signal(ctx, client, name);
-  }
-  if (name.contains("string")) {
-    return ipc::string_signal(ctx, client, name);
-  }
-  if (name.contains("json")) {
-    return ipc::json_signal(ctx, client, name);
-  }
-  throw std::runtime_error{ fmt::format("invalid_type: {}", name) };
-}
-using any_signal = std::variant<std::monostate,
-                                ipc::bool_signal,
-                                ipc::int_signal,
-                                ipc::uint_signal,
-                                ipc::double_signal,
-                                ipc::string_signal,
-                                ipc::json_signal>;
-
 inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::string_view signal_name)
     -> asio::awaitable<void> {
   auto executor = co_await asio::this_coro::executor;
@@ -53,7 +23,11 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
 
   auto client{ tfc::ipc::make_manager_client(ctx) };
 
-  auto sender{ create_ipc_signal<any_signal>(ctx, client, signal_name) };
+  auto type{ ipc::details::string_to_type(signal_name) };
+  if (type == ipc::details::type_e::unknown) {
+    throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", signal_name) };
+  }
+  auto sender{ ipc::make_any_signal::make(type, ctx, client, signal_name) };
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
@@ -121,25 +95,33 @@ auto main(int argc, char** argv) -> int {
     asio::co_spawn(ctx, stdin_coro(ctx, logger, signal), asio::detached);
   }
 
-  std::vector<tfc::ipc::details::any_recv_cb> connect_slots;
+  std::vector<tfc::ipc::details::any_slot_cb> connect_slots;
+
+  auto constexpr slot_connect{ [](auto&& receiver_variant, std::string_view signal_name, auto&& in_logger) {
+    std::visit(
+        [signal_name, &in_logger]<typename receiver_t>(receiver_t&& receiver) {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
+            in_logger.trace("Connecting to signal {}", signal_name);
+            auto error = receiver->connect(signal_name);
+            if (error) {
+              in_logger.warn("Failed to connect: {}", error.message());
+            }
+          }
+        },
+        receiver_variant);
+  } };
+
   for (auto& signal_connect : connect) {
     // For listening to connections
-    connect_slots.emplace_back([&ctx, &logger](std::string_view sig) -> tfc::ipc::details::any_recv_cb {
-      std::string slot_name = fmt::format("tfcctl_slot_{}", sig);
-      auto ipc{ tfc::ipc::details::create_ipc_recv_cb<tfc::ipc::details::any_recv_cb>(ctx, slot_name) };
-      std::visit(
-          [&](auto&& receiver) {
-            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-            if constexpr (!std::same_as<std::monostate, receiver_t>) {
-              logger.log<tfc::logger::lvl_e::trace>("Connecting to signal {}", sig);
-              auto error = receiver->init(
-                  sig, [&, sig](auto const& val) { logger.log<tfc::logger::lvl_e::info>("{}: {}", sig, val); });
-              if (error) {
-                logger.log<tfc::logger::lvl_e::error>("Failed to connect: {}", error.message());
-              }
-            }
-          },
-          ipc);
+    connect_slots.emplace_back([&ctx, &logger, slot_connect](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
+      std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
+      auto const type{ ipc::details::string_to_type(sig) };
+      if (type == ipc::details::type_e::unknown) {
+        throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
+      }
+      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name,
+                                                     [sig, &logger](auto const& val) { logger.info("{}: {}", sig, val); }) };
+      slot_connect(ipc, sig, logger);
       return ipc;
     }(signal_connect));
   }

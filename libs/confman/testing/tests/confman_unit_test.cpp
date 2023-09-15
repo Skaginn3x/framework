@@ -43,8 +43,7 @@ auto main(int argc, char** argv) -> int {
     config_test const test{};
     auto presumed_err{ std::make_error_code(std::errc::bad_message) };
     ON_CALL(test.mock_file_storage, set_changed()).WillByDefault(testing::Return(presumed_err));
-    // confman client call as well as return of confman set_changed
-    EXPECT_CALL(test.mock_file_storage, set_changed()).Times(2);
+    EXPECT_CALL(test.mock_file_storage, set_changed()).Times(1);
     auto returned_err{ test.config.set_changed() };
     ut::expect(returned_err == presumed_err);
   };

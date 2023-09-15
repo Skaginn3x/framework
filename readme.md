@@ -26,7 +26,7 @@ These components will be referred to multiple times, so you might need to look u
 The communication layer uses simple predefined message format.
 The following message format are currently supported: 
 ```C++
-enum struct type_e : std::uint8_t {
+enum struct filter_e : std::uint8_t {
   _bool = 1,
   _int64_t = 2,
   _uint64_t = 3,

@@ -8,7 +8,7 @@
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "e029fecb5e282b6c2f1114d46217b6c6b202a0eb",
+      "baseline": "1f7314c2a856e38073974b168ae4601b75a3bc92",
       "packages": [
         "azmq",
         "libcap",
@@ -21,5 +21,8 @@
   ],
   "overlay-triplets": [
     "./vcpkg-overlays/triplets"
+  ],
+  "overlay-ports": [
+    "./vcpkg-overlays/ports"
   ]
 }

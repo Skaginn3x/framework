@@ -170,7 +170,7 @@ struct config {
                   //                                              (requires num and denum to be set properly)"
                   )
     };
-    static constexpr auto name{ "lxm32m" };
+    static constexpr std::string_view name{ "lxm32m" };
   };
 };
 

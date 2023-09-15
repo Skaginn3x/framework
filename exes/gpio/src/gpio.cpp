@@ -3,7 +3,7 @@
 namespace tfc {
 
 gpio::gpio(asio::io_context& ctx, std::filesystem::path const& char_device)
-    : ctx_{ ctx }, chip_{ char_device }, config_{ ctx, "gpio-map", config_t::storage_t{ chip_.get_info().num_lines() } },
+    : ctx_{ ctx }, chip_{ char_device }, config_{ ctx, "lines", config_t::storage_t{ chip_.get_info().num_lines() } },
       manager_client_(ctx_), pins_{ config_->size() }, logger_{ "gpio" }, chip_asio_{ ctx, chip_.fd() } {
   for (std::size_t idx{ 0 }; auto const& pin_config : config_.value()) {
     pin_config.direction.observe(std::bind_front(&gpio::pin_direction_change, this, idx));
@@ -19,8 +19,8 @@ void gpio::pin_direction_change(pin_index_t idx,
     logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")", glz::write_json(new_value),
                   glz::write_json(old_value));
     if (new_value == gpiod::line::direction::OUTPUT) {
-      pins_.at(idx) = std::make_shared<ipc_input_t>(ctx_, manager_client_, fmt::format("in.{}", idx),
-                                                    std::bind_front(&gpio::ipc_event, this, idx));
+      pins_.at(idx).emplace<ipc_input_t>(ctx_, manager_client_, fmt::format("in.{}", idx),
+                                         std::bind_front(&gpio::ipc_event, this, idx));
       if (!std::holds_alternative<pin::out>(config_->at(idx).in_or_out)) {
         config_.make_change()->at(idx).in_or_out = pin::out{};
       }
@@ -28,7 +28,7 @@ void gpio::pin_direction_change(pin_index_t idx,
       pin_out_settings.force.observe(std::bind_front(&gpio::pin_force_change, this, idx));
       pin_out_settings.drive.observe(std::bind_front(&gpio::pin_drive_change, this, idx));
     } else if (new_value == gpiod::line::direction::INPUT) {
-      pins_.at(idx) = ipc_output_t::element_type::create(ctx_, fmt::format("out.{}", idx)).value();
+      pins_.at(idx).emplace<ipc_output_t>(ctx_, manager_client_, fmt::format("out.{}", idx));
       if (!std::holds_alternative<pin::in>(config_->at(idx).in_or_out)) {
         config_.make_change()->at(idx).in_or_out = pin::in{};
       } else {
@@ -113,7 +113,7 @@ void gpio::pin_drive_change(pin_index_t idx,
 void gpio::pin_event(pin_index_t idx, bool state) noexcept {
   if (auto* output{ std::get_if<ipc_output_t>(&pins_.at(idx)) }) {
     logger_.trace(R"(Got event on pin: "{}" with state: "{}" but could not send it)", idx, state);
-    (*output)->send(state);
+    output->send(state);
   } else {
     logger_.warn(R"(Got event on pin: "{}" with state: "{}" but could not send it)", idx, state);
   }

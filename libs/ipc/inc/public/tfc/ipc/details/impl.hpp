@@ -17,6 +17,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>
@@ -301,22 +302,22 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
-      -> std::shared_ptr<slot_callback<type_desc>> {
-    return std::shared_ptr<slot_callback<type_desc>>(new slot_callback(ctx, name));
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, auto&& callback)
+      -> std::shared_ptr<slot_callback<type_desc>>
+    requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
+  {
+    return std::shared_ptr<slot_callback<type_desc>>(
+        new slot_callback<type_desc>{ ctx, name, std::forward<decltype(callback)>(callback) });
   }
 
-  auto init(
-      std::string_view signal_name,
-      std::function<void(value_t const&)> callback = [](value_t const&) {}) -> std::error_code {
+  auto connect(std::string_view signal_name) -> std::error_code {
     if (auto error = slot_.connect(signal_name)) {
       return error;
     }
-    cb_ = callback;
     register_read();
     return {};
   }
-  [[nodiscard]] auto get() const noexcept -> std::optional<value_t> const& { return last_value_; }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
 
   /**
    * @brief disconnect from signal
@@ -327,19 +328,22 @@ public:
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
-  slot_callback(asio::io_context& ctx, std::string_view name) : slot_(ctx, name) {}
+  slot_callback(asio::io_context& ctx, std::string_view name, auto&& callback)
+    requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
+      : slot_{ ctx, name },
+        filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) } {}
   void async_new_state(std::expected<value_t, std::error_code> value) {
     if (!value) {
       return;
     }
     // Don't retransmit transmitted things.
     // clang-format off
+    auto const& last_value{ filters_.value() };
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-    if (!last_value_.has_value() || value.value() != last_value_) {
+    if (!last_value.has_value() || value.value() != last_value) {
     PRAGMA_CLANG_WARNING_POP
       // clang-format on
-      last_value_ = value.value();
-      cb_(last_value_.value());
+      filters_(std::move(value.value()));
     }
     register_read();
   }
@@ -352,8 +356,7 @@ private:
     });
   }
   slot<type_desc> slot_;
-  std::function<void(value_t const&)> cb_{ [](value_t const&) {} };
-  std::optional<value_t> last_value_{};
+  filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
 };
 
 using type_bool = type_description<bool, type_e::_bool>;
@@ -363,138 +366,78 @@ using type_double = type_description<std::double_t, type_e::_double_t>;
 using type_string = type_description<std::string, type_e::_string>;
 using type_json = type_description<std::string, type_e::_json>;
 
-using bool_send = signal<type_bool>;
-using int_send = signal<type_int>;
-using uint_send = signal<type_uint>;
-using double_send = signal<type_double>;
-using string_send = signal<type_string>;
-using json_send = signal<type_json>;
+template <typename return_t, template <typename description_t> typename ipc_base_t>
+struct make_any_ptr;
 
-using bool_send_ptr = std::shared_ptr<signal<type_bool>>;
-using int_send_ptr = std::shared_ptr<signal<type_int>>;
-using uint_send_ptr = std::shared_ptr<signal<type_uint>>;
-using double_send_ptr = std::shared_ptr<signal<type_double>>;
-using string_send_ptr = std::shared_ptr<signal<type_string>>;
-using json_send_ptr = std::shared_ptr<signal<type_json>>;
+using bool_signal_ptr = std::shared_ptr<signal<type_bool>>;
+using int_signal_ptr = std::shared_ptr<signal<type_int>>;
+using uint_signal_ptr = std::shared_ptr<signal<type_uint>>;
+using double_signal_ptr = std::shared_ptr<signal<type_double>>;
+using string_signal_ptr = std::shared_ptr<signal<type_string>>;
+using json_signal_ptr = std::shared_ptr<signal<type_json>>;
+using any_signal = std::variant<std::monostate,     //
+                                bool_signal_ptr,    //
+                                int_signal_ptr,     //
+                                uint_signal_ptr,    //
+                                double_signal_ptr,  //
+                                string_signal_ptr,  //
+                                json_signal_ptr>;
+/// \brief any_signal foo = make_any_signal(type_e::bool, ctx, "name");
+using make_any_signal = make_any_ptr<any_signal, signal>;
 
-using bool_recv = slot<type_bool>;
-using int_recv = slot<type_int>;
-using uint_recv = slot<type_uint>;
-using double_recv = slot<type_double>;
-using string_recv = slot<type_string>;
-using json_recv = slot<type_json>;
+using bool_slot_ptr = std::shared_ptr<slot<type_bool>>;
+using int_slot_ptr = std::shared_ptr<slot<type_int>>;
+using uint_slot_ptr = std::shared_ptr<slot<type_uint>>;
+using double_slot_ptr = std::shared_ptr<slot<type_double>>;
+using string_slot_ptr = std::shared_ptr<slot<type_string>>;
+using json_slot_ptr = std::shared_ptr<slot<type_json>>;
+using any_slot = std::variant<std::monostate,   //
+                              bool_slot_ptr,    //
+                              int_slot_ptr,     //
+                              uint_slot_ptr,    //
+                              double_slot_ptr,  //
+                              string_slot_ptr,  //
+                              json_slot_ptr>;
+/// \brief any_slot foo = make_any_slot(type_e::bool, ctx, "name");
+using make_any_slot = make_any_ptr<any_slot, slot>;
 
-using bool_recv_ptr = std::shared_ptr<slot<type_bool>>;
-using int_recv_ptr = std::shared_ptr<slot<type_int>>;
-using uint_recv_ptr = std::shared_ptr<slot<type_uint>>;
-using double_recv_ptr = std::shared_ptr<slot<type_double>>;
-using string_recv_ptr = std::shared_ptr<slot<type_string>>;
-using json_recv_ptr = std::shared_ptr<slot<type_json>>;
+using bool_slot_cb_ptr = std::shared_ptr<slot_callback<type_bool>>;
+using int_slot_cb_ptr = std::shared_ptr<slot_callback<type_int>>;
+using uint_slot_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
+using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
+using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
+using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
+using any_slot_cb = std::variant<std::monostate,      //
+                                 bool_slot_cb_ptr,    //
+                                 int_slot_cb_ptr,     //
+                                 uint_slot_cb_ptr,    //
+                                 double_slot_cb_ptr,  //
+                                 string_slot_cb_ptr,  //
+                                 json_slot_cb_ptr>;
+/// \brief any_slot_cb foo = make_any_slot_cb(type_e::bool, ctx, "name", [](bool new_state){});
+using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 
-using bool_recv_cb = slot_callback<type_bool>;
-using int_recv_cb = slot_callback<type_int>;
-using uint_recv_cb = slot_callback<type_uint>;
-using double_recv_cb = slot_callback<type_double>;
-using string_recv_cb = slot_callback<type_string>;
-using json_recv_cb = slot_callback<type_json>;
-
-using bool_recv_cb_ptr = std::shared_ptr<slot_callback<type_bool>>;
-using int_recv_cb_ptr = std::shared_ptr<slot_callback<type_int>>;
-using uint_recv_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
-using double_recv_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
-using string_recv_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
-using json_recv_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
-
-using any_send = std::
-    variant<std::monostate, bool_send_ptr, int_send_ptr, uint_send_ptr, double_send_ptr, string_send_ptr, json_send_ptr>;
-using any_recv_cb = std::variant<std::monostate,
-                                 bool_recv_cb_ptr,
-                                 int_recv_cb_ptr,
-                                 uint_recv_cb_ptr,
-                                 double_recv_cb_ptr,
-                                 string_recv_cb_ptr,
-                                 json_recv_cb_ptr>;
-
-using any_recv = std::
-    variant<std::monostate, bool_recv_ptr, int_recv_ptr, uint_recv_ptr, double_recv_ptr, string_recv_ptr, json_recv_ptr>;
-
-inline constexpr std::string_view invalid_type{
-  "\nInvalid name {}, it must include one qualified type name.\n"  // should inject slot or signal as {}
-  "Any of the following: \n"
-  "bool\n"
-  "int\n"
-  "uint\n"
-  "double\n"
-  "string\n"
-  "json\n"
+template <typename return_t, template <typename description_t> typename ipc_base_t>
+struct make_any_ptr {
+  static auto make(type_e type, auto&&... args) -> return_t {
+    switch (type) {
+      case type_e::_bool:
+        return ipc_base_t<type_bool>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_int64_t:
+        return ipc_base_t<type_int>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_uint64_t:
+        return ipc_base_t<type_uint>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_double_t:
+        return ipc_base_t<type_double>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_string:
+        return ipc_base_t<type_string>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_json:
+        return ipc_base_t<type_json>::create(std::forward<decltype(args)>(args)...);
+      case type_e::unknown:
+        return std::monostate{};
+    }
+    return {};
+  }
 };
 
-template <typename return_t>
-inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return bool_recv_cb::create(ctx, name);
-  }
-  if (name.contains("int")) {
-    return int_recv_cb::create(ctx, name);
-  }
-  if (name.contains("uint")) {
-    return uint_recv_cb::create(ctx, name);
-  }
-  if (name.contains("double")) {
-    return double_recv_cb::create(ctx, name);
-  }
-  if (name.contains("string")) {
-    return string_recv_cb::create(ctx, name);
-  }
-  if (name.contains("json")) {
-    return json_recv_cb::create(ctx, name);
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
-}
-
-template <typename return_t>
-inline auto create_ipc_recv(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return bool_recv::create(ctx, name);
-  }
-  if (name.contains("int")) {
-    return int_recv::create(ctx, name);
-  }
-  if (name.contains("uint")) {
-    return uint_recv::create(ctx, name);
-  }
-  if (name.contains("double")) {
-    return double_recv::create(ctx, name);
-  }
-  if (name.contains("string")) {
-    return string_recv::create(ctx, name);
-  }
-  if (name.contains("json")) {
-    return json_recv::create(ctx, name);
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
-}
-
-template <typename return_t>
-inline auto create_ipc_send(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return bool_send::create(ctx, name).value();
-  }
-  if (name.contains("int")) {
-    return int_send::create(ctx, name).value();
-  }
-  if (name.contains("uint")) {
-    return uint_send::create(ctx, name).value();
-  }
-  if (name.contains("double")) {
-    return double_send::create(ctx, name).value();
-  }
-  if (name.contains("string")) {
-    return string_send::create(ctx, name).value();
-  }
-  if (name.contains("json")) {
-    return json_send::create(ctx, name).value();
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
-}
 }  // namespace tfc::ipc::details
