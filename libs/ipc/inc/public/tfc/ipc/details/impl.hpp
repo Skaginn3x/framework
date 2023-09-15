@@ -429,13 +429,7 @@ inline constexpr std::string_view invalid_type{
   "json\n"
 };
 
-using any_type_desc = std::variant<std::monostate,
-                                   type_bool,
-                                   type_int,
-                                   type_uint,
-                                   type_double,
-                                   type_string,
-                                   type_json>;
+using any_type_desc = std::variant<std::monostate, type_bool, type_int, type_uint, type_double, type_string, type_json>;
 
 inline auto get_type_description_from_string(std::string_view name) -> any_type_desc {
   if (name.contains("bool")) {
@@ -462,14 +456,16 @@ inline auto get_type_description_from_string(std::string_view name) -> any_type_
 template <template <typename> typename slot_t, typename return_t>
 inline auto create_ipc_base(asio::io_context& ctx, std::string_view name) -> return_t {
   auto t_desc = get_type_description_from_string(name);
-  return std::visit([&](auto& t_desc){
-    using t_type = std::remove_cvref_t<decltype(t_desc)>;
-    if (!std::same_as<std::monostate, t_type>){
-      return slot_t<t_type>::create(ctx, name);
-    } else {
-      throw std::runtime_error{ fmt::format(invalid_type, name) };
-    }
-  }, t_desc);
+  return std::visit(
+      [&](auto& t_desc) {
+        using t_type = std::remove_cvref_t<decltype(t_desc)>;
+        if (!std::same_as<std::monostate, t_type>) {
+          return slot_t<t_type>::create(ctx, name);
+        } else {
+          throw std::runtime_error{ fmt::format(invalid_type, name) };
+        }
+      },
+      t_desc);
 }
 template <typename return_t>
 inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name) -> return_t {
