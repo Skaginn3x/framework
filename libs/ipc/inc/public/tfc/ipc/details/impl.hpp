@@ -429,72 +429,60 @@ inline constexpr std::string_view invalid_type{
   "json\n"
 };
 
-template <typename return_t>
-inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name) -> return_t {
+using any_type_desc = std::variant<std::monostate,
+                                   type_bool,
+                                   type_int,
+                                   type_uint,
+                                   type_double,
+                                   type_string,
+                                   type_json>;
+
+inline auto get_type_description_from_string(std::string_view name) -> any_type_desc {
   if (name.contains("bool")) {
-    return bool_recv_cb::create(ctx, name);
-  }
-  if (name.contains("int")) {
-    return int_recv_cb::create(ctx, name);
+    return type_bool{};
   }
   if (name.contains("uint")) {
-    return uint_recv_cb::create(ctx, name);
+    return type_uint{};
+  }
+  if (name.contains("int")) {
+    return type_int{};
   }
   if (name.contains("double")) {
-    return double_recv_cb::create(ctx, name);
+    return type_double{};
   }
   if (name.contains("string")) {
-    return string_recv_cb::create(ctx, name);
+    return type_string{};
   }
   if (name.contains("json")) {
-    return json_recv_cb::create(ctx, name);
+    return type_json{};
   }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
+  return std::monostate{};
+}
+
+template <template <typename> typename slot_t, typename return_t>
+inline auto create_ipc_base(asio::io_context& ctx, std::string_view name) -> return_t {
+  auto t_desc = get_type_description_from_string(name);
+  return std::visit([&](auto& t_desc){
+    using t_type = std::remove_cvref_t<decltype(t_desc)>;
+    if (!std::same_as<std::monostate, t_type>){
+      return slot_t<t_type>::create(ctx, name);
+    } else {
+      throw std::runtime_error{ fmt::format(invalid_type, name) };
+    }
+  }, t_desc);
+}
+template <typename return_t>
+inline auto create_ipc_recv_cb(asio::io_context& ctx, std::string_view name) -> return_t {
+  return create_ipc_base<slot_callback, return_t>(ctx, name);
 }
 
 template <typename return_t>
 inline auto create_ipc_recv(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return bool_recv::create(ctx, name);
-  }
-  if (name.contains("int")) {
-    return int_recv::create(ctx, name);
-  }
-  if (name.contains("uint")) {
-    return uint_recv::create(ctx, name);
-  }
-  if (name.contains("double")) {
-    return double_recv::create(ctx, name);
-  }
-  if (name.contains("string")) {
-    return string_recv::create(ctx, name);
-  }
-  if (name.contains("json")) {
-    return json_recv::create(ctx, name);
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
+  return create_ipc_base<slot, return_t>(ctx, name);
 }
 
 template <typename return_t>
 inline auto create_ipc_send(asio::io_context& ctx, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return bool_send::create(ctx, name).value();
-  }
-  if (name.contains("int")) {
-    return int_send::create(ctx, name).value();
-  }
-  if (name.contains("uint")) {
-    return uint_send::create(ctx, name).value();
-  }
-  if (name.contains("double")) {
-    return double_send::create(ctx, name).value();
-  }
-  if (name.contains("string")) {
-    return string_send::create(ctx, name).value();
-  }
-  if (name.contains("json")) {
-    return json_send::create(ctx, name).value();
-  }
-  throw std::runtime_error{ fmt::format(invalid_type, name) };
+  return create_ipc_base<signal, return_t>(ctx, name);
 }
 }  // namespace tfc::ipc::details
