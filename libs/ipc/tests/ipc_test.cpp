@@ -162,6 +162,7 @@ auto main(int, char**) -> int {
         { tfc::ipc::details::get_type_description_from_string("string"), tfc::ipc::details::type_e::_string },
         { tfc::ipc::details::get_type_description_from_string("json"), tfc::ipc::details::type_e::_json },
         { tfc::ipc::details::get_type_description_from_string("uint"), tfc::ipc::details::type_e::_uint64_t },
+        { tfc::ipc::details::get_type_description_from_string("here_uint64_t.test"), tfc::ipc::details::type_e::_uint64_t },
         { tfc::ipc::details::get_type_description_from_string("int"), tfc::ipc::details::type_e::_int64_t },
         { tfc::ipc::details::get_type_description_from_string("double"), tfc::ipc::details::type_e::_double_t },
         { tfc::ipc::details::get_type_description_from_string("bool"), tfc::ipc::details::type_e::_bool }

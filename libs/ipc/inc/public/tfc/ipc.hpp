@@ -136,6 +136,26 @@ using uint_signal = signal<details::type_uint, ipc_ruler::ipc_manager_client>;
 using double_signal = signal<details::type_double, ipc_ruler::ipc_manager_client>;
 using string_signal = signal<details::type_string, ipc_ruler::ipc_manager_client>;
 using json_signal = signal<details::type_json, ipc_ruler::ipc_manager_client>;
-using any_signal = std::variant<bool_signal, int_signal, uint_signal, double_signal, string_signal, json_signal>;
+using any_signal =
+    std::variant<std::monostate, bool_signal, int_signal, uint_signal, double_signal, string_signal, json_signal>;
+
+template <template <typename, typename> typename slot_t, typename return_t>
+inline auto create_ipc_base(asio::io_context& ctx, auto& client, std::string_view name) -> return_t {
+  auto t_desc = details::get_type_description_from_string(name);
+  return std::visit(
+      [&](auto& t_desc) -> return_t {
+        using t_type = std::remove_cvref_t<decltype(t_desc)>;
+        if constexpr (!std::same_as<std::monostate, t_type>) {
+          return slot_t<t_type, typename std::remove_cvref_t<decltype(client)>>(ctx, client, name);
+        }
+        throw std::runtime_error{ fmt::format(details::invalid_type, name) };
+      },
+      t_desc);
+}
+
+template <typename return_t>
+inline auto create_ipc_send(asio::io_context& ctx, auto& client, std::string_view name) -> return_t {
+  return create_ipc_base<signal, return_t>(ctx, client, name);
+}
 
 }  // namespace tfc::ipc

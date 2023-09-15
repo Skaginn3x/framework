@@ -16,36 +16,6 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
 
-template <typename return_t>
-inline auto create_ipc_signal(asio::io_context& ctx, auto& client, std::string_view name) -> return_t {
-  if (name.contains("bool")) {
-    return ipc::bool_signal(ctx, client, name);
-  }
-  if (name.contains("int")) {
-    return ipc::int_signal(ctx, client, name);
-  }
-  if (name.contains("uint")) {
-    return ipc::uint_signal(ctx, client, name);
-  }
-  if (name.contains("double")) {
-    return ipc::double_signal(ctx, client, name);
-  }
-  if (name.contains("string")) {
-    return ipc::string_signal(ctx, client, name);
-  }
-  if (name.contains("json")) {
-    return ipc::json_signal(ctx, client, name);
-  }
-  throw std::runtime_error{ fmt::format("invalid_type: {}", name) };
-}
-using any_signal = std::variant<std::monostate,
-                                ipc::bool_signal,
-                                ipc::int_signal,
-                                ipc::uint_signal,
-                                ipc::double_signal,
-                                ipc::string_signal,
-                                ipc::json_signal>;
-
 inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::string_view signal_name)
     -> asio::awaitable<void> {
   auto executor = co_await asio::this_coro::executor;
@@ -53,7 +23,7 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
 
   auto client{ tfc::ipc::make_manager_client(ctx) };
 
-  auto sender{ create_ipc_signal<any_signal>(ctx, client, signal_name) };
+  auto sender{ tfc::ipc::create_ipc_send<tfc::ipc::any_signal>(ctx, client, signal_name) };
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
