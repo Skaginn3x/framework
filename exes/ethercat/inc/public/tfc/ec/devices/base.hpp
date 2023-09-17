@@ -6,12 +6,9 @@
 #include <new>
 #include <ranges>
 #include <span>
-
-#include <boost/asio/io_context.hpp>
+#include <utility>
 
 #include <tfc/logger.hpp>
-
-#include <tfc/ec/devices/util.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::devices {
