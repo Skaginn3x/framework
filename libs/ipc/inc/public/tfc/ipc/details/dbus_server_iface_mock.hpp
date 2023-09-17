@@ -11,7 +11,7 @@
 #include <unordered_map>
 
 #include <tfc/utils/asio_fwd.hpp>
-
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_iface_structs.hpp>
 #include <tfc/ipc/enums.hpp>
 

@@ -7,12 +7,12 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <boost/asio/io_context.hpp>
 
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc_fwd.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
+#include <tfc/utils/asio_fwd.hpp>
 
 namespace tfc::ec::devices::beckhoff {
 
@@ -31,11 +31,11 @@ public:
 
   void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final;
 
-private:
   auto set_output(size_t position, bool value) -> void { output_states_.set(position, value); }
 
+private:
   std::bitset<size> output_states_;
-  std::vector<std::unique_ptr<ipc::slot<ipc::details::type_bool, manager_client_type>>> bool_receivers_;
+  std::vector<std::shared_ptr<ipc::slot<ipc::details::type_bool, manager_client_type>>> bool_receivers_;
 };
 
 template <typename manager_client_type>
