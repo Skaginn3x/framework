@@ -61,8 +61,8 @@ auto constexpr make_dbus_name(std::string_view input_name) -> std::string {
   }
   std::smatch match_results{};
   static constexpr std::string_view match_dots_preceding_number{ "(\\.)+(?=\\d)" };
-  if (std::regex_match(return_value, match_results, std::regex{ match_dots_preceding_number.data() })) {
-    throw exception::invalid_name{ "{} contains illegal dbus characters {}", input_name, match_results[0].str() };
+  if (std::regex_search(return_value, match_results, std::regex{ match_dots_preceding_number.data() })) {
+    throw exception::invalid_name{ "{} contains dots preceding number", input_name };
   }
   return return_value;
 }
