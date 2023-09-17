@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <utility>
+#include <string_view>
+#include <array>
 
-// Common enums, ipc/glaze_meta.hpp provides string conversions for the below enums
+// Common enums, ipc/glaze_meta.hpp provides glaze specific conversions
 
 namespace tfc::ipc::details {
 

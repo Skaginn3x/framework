@@ -18,11 +18,45 @@
 #include <tfc/dbus/match_rules.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/ipc/details/dbus_iface_structs.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
+
+template <>
+struct glz::meta<tfc::ipc_ruler::signal> {
+  using signal = tfc::ipc_ruler::signal;
+  // clang-format off
+  static constexpr auto value{ glz::object(
+      "name", &signal::name,
+      "type", &signal::type,
+      "created_by", &signal::created_by,
+      "created_at", &signal::created_at,
+      "last_registered", &signal::last_registered,
+      "description", &signal::description) };
+  // clang-format on
+  static constexpr auto name{ "signal" };
+};
+
+template<>
+struct glz::meta<tfc::ipc_ruler::slot> {
+  using slot = tfc::ipc_ruler::slot;
+  // clang-format off
+  static constexpr auto value{ glz::object(
+      "name", &slot::name,
+      "type", &slot::type,
+      "created_by", &slot::created_by,
+      "created_at", &slot::created_at,
+      "last_registered", &slot::last_registered,
+      "last_modified", &slot::last_modified,
+      "modified_by", &slot::modified_by,
+      "connected_to", &slot::connected_to,
+      "description", &slot::description) };
+  // clang-format on
+  static constexpr auto name{ "slot" };
+};
 
 namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
@@ -46,65 +80,6 @@ static constexpr auto const_ipc_ruler_object_path = dbus::const_dbus_path<dbus_n
 static constexpr auto const_ipc_ruler_interface_name = dbus::const_dbus_name<dbus_manager_name>;
 
 using dbus_error = tfc::dbus::exception::runtime;
-
-struct signal {
-  std::string name;
-  type_e type;
-  std::string created_by;
-  std::chrono::time_point<std::chrono::system_clock> created_at;
-  std::chrono::time_point<std::chrono::system_clock> last_registered;
-  std::string description;
-
-  struct glaze {
-    static constexpr auto value{ glz::object("name",
-                                             &tfc::ipc_ruler::signal::name,
-                                             "type",
-                                             &tfc::ipc_ruler::signal::type,
-                                             "created_by",
-                                             &tfc::ipc_ruler::signal::created_by,
-                                             "created_at",
-                                             &tfc::ipc_ruler::signal::created_at,
-                                             "last_registered",
-                                             &tfc::ipc_ruler::signal::last_registered,
-                                             "description",
-                                             &tfc::ipc_ruler::signal::description) };
-    static constexpr auto name{ "signal" };
-  };
-};
-
-struct slot {
-  std::string name;
-  type_e type;
-  std::string created_by;
-  std::chrono::time_point<std::chrono::system_clock> created_at;
-  std::chrono::time_point<std::chrono::system_clock> last_registered;
-  std::chrono::time_point<std::chrono::system_clock> last_modified;
-  std::string modified_by;
-  std::string connected_to;
-  std::string description;
-
-  struct glaze {
-    static constexpr auto value{ glz::object("name",
-                                             &tfc::ipc_ruler::slot::name,
-                                             "type",
-                                             &tfc::ipc_ruler::slot::type,
-                                             "created_by",
-                                             &tfc::ipc_ruler::slot::created_by,
-                                             "created_at",
-                                             &tfc::ipc_ruler::slot::created_at,
-                                             "last_registered",
-                                             &tfc::ipc_ruler::slot::last_registered,
-                                             "last_modified",
-                                             &tfc::ipc_ruler::slot::last_modified,
-                                             "modified_by",
-                                             &tfc::ipc_ruler::slot::modified_by,
-                                             "connected_to",
-                                             &tfc::ipc_ruler::slot::connected_to,
-                                             "description",
-                                             &tfc::ipc_ruler::slot::description) };
-    static constexpr auto name{ "slot" };
-  };
-};
 
 /**
  * A class exposing methods for managing signals and slots
@@ -476,14 +451,14 @@ public:
    * @note The match object is kept alive by the unique pointer, if the unique pointer is destroyed the match object will be
    * destroyed.
    */
-  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> match_change_callback)
+  auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> const& match_change_callback)
       -> std::unique_ptr<sdbusplus::bus::match::match> {
     return make_match(sdbusplus::bus::match::rules::propertiesChanged(ipc_ruler_object_path_, ipc_ruler_interface_name_),
                       match_change_callback);
   }
 
 private:
-  auto make_match(const std::string& match_rule, std::function<void(sdbusplus::message_t&)> callback)
+  auto make_match(const std::string& match_rule, std::function<void(sdbusplus::message_t&)> const& callback)
       -> std::unique_ptr<sdbusplus::bus::match::match> {
     return std::make_unique<sdbusplus::bus::match::match>(*connection_, match_rule, callback);
   }
