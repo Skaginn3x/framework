@@ -25,7 +25,6 @@ target_link_libraries(ec
     tfc::confman
     tfc::soem_interface
     mp-units::si
-  PRIVATE
     fmt::fmt
 )
 
