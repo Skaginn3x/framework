@@ -4,13 +4,17 @@
 #include <optional>
 #include <string_view>
 
-#include <tfc/utils/asio_fwd.hpp>
-
 namespace boost {
 namespace program_options {
 class options_description;
 class variables_map;
 }  // namespace program_options
+namespace asio {
+class any_io_executor;
+template <typename return_t, typename executor_t>
+class awaitable;
+class io_context;
+}  // namespace asio
 }  // namespace boost
 
 namespace tfc::logger {
