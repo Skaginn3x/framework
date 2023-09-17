@@ -75,7 +75,11 @@ public:
 
   auto operator=(slot const&) -> slot& = delete;
 
-  [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
+  [[nodiscard]] auto value() const noexcept { return slot_->value(); }
+
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
+
+  [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->name_w_type(); }
 
 private:
   static constexpr std::string_view self_name{ slot_tag };
@@ -118,7 +122,9 @@ public:
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
-  auto name() const noexcept -> std::string_view { return signal_->name(); }
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return signal_->name(); }
+
+  [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->name_w_type(); }
 
 private:
   static constexpr std::string_view self_name{ signal_tag };
