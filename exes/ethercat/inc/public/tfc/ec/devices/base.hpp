@@ -8,6 +8,8 @@
 #include <span>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/logger.hpp>
 
