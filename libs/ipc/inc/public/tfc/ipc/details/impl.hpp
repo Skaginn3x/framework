@@ -23,6 +23,7 @@
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
+#include <tfc/ipc/details/type_description.hpp>
 
 namespace tfc::ipc::details {
 
@@ -31,20 +32,6 @@ namespace asio = boost::asio;
 enum struct ipc_errors_e {
   message_to_small = 1,
   inconsistent_size = 2,
-};
-
-namespace concepts {
-template <typename given_t, typename... supposed_t>
-concept is_any_of = (std::same_as<given_t, supposed_t> || ...);
-template <typename given_t>
-concept is_supported_type = is_any_of<given_t, bool, std::int64_t, std::uint64_t, std::double_t, std::string>;
-}  // namespace concepts
-
-template <concepts::is_supported_type value_type, type_e type_enum>
-struct type_description {
-  using value_t = value_type;
-  static constexpr auto value_e = type_enum;
-  static constexpr std::string_view type_name{ type_e_iterable[std::to_underlying(type_enum)] };
 };
 
 /**@brief
@@ -359,64 +346,6 @@ private:
   filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
 };
 
-using type_bool = type_description<bool, type_e::_bool>;
-using type_int = type_description<std::int64_t, type_e::_int64_t>;
-using type_uint = type_description<std::uint64_t, type_e::_uint64_t>;
-using type_double = type_description<std::double_t, type_e::_double_t>;
-using type_string = type_description<std::string, type_e::_string>;
-using type_json = type_description<std::string, type_e::_json>;
-
-template <typename return_t, template <typename description_t> typename ipc_base_t>
-struct make_any_ptr;
-
-using bool_signal_ptr = std::shared_ptr<signal<type_bool>>;
-using int_signal_ptr = std::shared_ptr<signal<type_int>>;
-using uint_signal_ptr = std::shared_ptr<signal<type_uint>>;
-using double_signal_ptr = std::shared_ptr<signal<type_double>>;
-using string_signal_ptr = std::shared_ptr<signal<type_string>>;
-using json_signal_ptr = std::shared_ptr<signal<type_json>>;
-using any_signal = std::variant<std::monostate,     //
-                                bool_signal_ptr,    //
-                                int_signal_ptr,     //
-                                uint_signal_ptr,    //
-                                double_signal_ptr,  //
-                                string_signal_ptr,  //
-                                json_signal_ptr>;
-/// \brief any_signal foo = make_any_signal(type_e::bool, ctx, "name");
-using make_any_signal = make_any_ptr<any_signal, signal>;
-
-using bool_slot_ptr = std::shared_ptr<slot<type_bool>>;
-using int_slot_ptr = std::shared_ptr<slot<type_int>>;
-using uint_slot_ptr = std::shared_ptr<slot<type_uint>>;
-using double_slot_ptr = std::shared_ptr<slot<type_double>>;
-using string_slot_ptr = std::shared_ptr<slot<type_string>>;
-using json_slot_ptr = std::shared_ptr<slot<type_json>>;
-using any_slot = std::variant<std::monostate,   //
-                              bool_slot_ptr,    //
-                              int_slot_ptr,     //
-                              uint_slot_ptr,    //
-                              double_slot_ptr,  //
-                              string_slot_ptr,  //
-                              json_slot_ptr>;
-/// \brief any_slot foo = make_any_slot(type_e::bool, ctx, "name");
-using make_any_slot = make_any_ptr<any_slot, slot>;
-
-using bool_slot_cb_ptr = std::shared_ptr<slot_callback<type_bool>>;
-using int_slot_cb_ptr = std::shared_ptr<slot_callback<type_int>>;
-using uint_slot_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
-using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
-using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
-using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
-using any_slot_cb = std::variant<std::monostate,      //
-                                 bool_slot_cb_ptr,    //
-                                 int_slot_cb_ptr,     //
-                                 uint_slot_cb_ptr,    //
-                                 double_slot_cb_ptr,  //
-                                 string_slot_cb_ptr,  //
-                                 json_slot_cb_ptr>;
-/// \brief any_slot_cb foo = make_any_slot_cb(type_e::bool, ctx, "name", [](bool new_state){});
-using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
-
 template <typename return_t, template <typename description_t> typename ipc_base_t>
 struct make_any_ptr {
   static auto make(type_e type, auto&&... args) -> return_t {
@@ -439,5 +368,53 @@ struct make_any_ptr {
     return {};
   }
 };
+
+using bool_signal_ptr = std::shared_ptr<signal<type_bool>>;
+using int_signal_ptr = std::shared_ptr<signal<type_int>>;
+using uint_signal_ptr = std::shared_ptr<signal<type_uint>>;
+using double_signal_ptr = std::shared_ptr<signal<type_double>>;
+using string_signal_ptr = std::shared_ptr<signal<type_string>>;
+using json_signal_ptr = std::shared_ptr<signal<type_json>>;
+using any_signal = std::variant<std::monostate,     //
+                                bool_signal_ptr,    //
+                                int_signal_ptr,     //
+                                uint_signal_ptr,    //
+                                double_signal_ptr,  //
+                                string_signal_ptr,  //
+                                json_signal_ptr>;
+/// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, "name");
+using make_any_signal = make_any_ptr<any_signal, signal>;
+
+using bool_slot_ptr = std::shared_ptr<slot<type_bool>>;
+using int_slot_ptr = std::shared_ptr<slot<type_int>>;
+using uint_slot_ptr = std::shared_ptr<slot<type_uint>>;
+using double_slot_ptr = std::shared_ptr<slot<type_double>>;
+using string_slot_ptr = std::shared_ptr<slot<type_string>>;
+using json_slot_ptr = std::shared_ptr<slot<type_json>>;
+using any_slot = std::variant<std::monostate,   //
+                              bool_slot_ptr,    //
+                              int_slot_ptr,     //
+                              uint_slot_ptr,    //
+                              double_slot_ptr,  //
+                              string_slot_ptr,  //
+                              json_slot_ptr>;
+/// \brief any_slot foo = make_any_slot::make(type_e::bool, ctx, "name");
+using make_any_slot = make_any_ptr<any_slot, slot>;
+
+using bool_slot_cb_ptr = std::shared_ptr<slot_callback<type_bool>>;
+using int_slot_cb_ptr = std::shared_ptr<slot_callback<type_int>>;
+using uint_slot_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
+using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
+using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
+using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
+using any_slot_cb = std::variant<std::monostate,      //
+                                 bool_slot_cb_ptr,    //
+                                 int_slot_cb_ptr,     //
+                                 uint_slot_cb_ptr,    //
+                                 double_slot_cb_ptr,  //
+                                 string_slot_cb_ptr,  //
+                                 json_slot_cb_ptr>;
+/// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
+using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 
 }  // namespace tfc::ipc::details
