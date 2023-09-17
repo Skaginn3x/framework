@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <utility>
-#include <string_view>
 #include <array>
+#include <cstdint>
+#include <string_view>
+#include <utility>
 
 // Common enums, ipc/glaze_meta.hpp provides glaze specific conversions
 

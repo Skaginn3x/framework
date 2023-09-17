@@ -18,12 +18,12 @@
 #include <boost/system/error_code.hpp>
 
 #include <tfc/ipc/details/filter.hpp>
+#include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
-#include <tfc/ipc/details/type_description.hpp>
 
 namespace tfc::ipc::details {
 

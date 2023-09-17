@@ -39,7 +39,8 @@ void ipc_manager_client_mock::register_signal(std::string_view name,
     callback(dbus_message);
   }
 }
-auto ipc_manager_client_mock::register_properties_change_callback(std::function<void(sdbusplus::message_t&)> const& property_callback) -> std::unique_ptr<sdbusplus::bus::match::match> {
+auto ipc_manager_client_mock::register_properties_change_callback(
+    std::function<void(sdbusplus::message_t&)> const& property_callback) -> std::unique_ptr<sdbusplus::bus::match::match> {
   callbacks_.emplace_back(property_callback);
   return nullptr;
 }

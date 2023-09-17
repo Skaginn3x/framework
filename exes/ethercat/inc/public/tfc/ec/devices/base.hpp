@@ -8,8 +8,8 @@
 #include <span>
 #include <utility>
 
-#include <tfc/logger.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/logger.hpp>
 
 namespace tfc::ec::devices {
 template <typename setting_t>

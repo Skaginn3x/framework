@@ -40,7 +40,7 @@ struct glz::meta<tfc::ipc_ruler::signal> {
   static constexpr auto name{ "signal" };
 };
 
-template<>
+template <>
 struct glz::meta<tfc::ipc_ruler::slot> {
   using slot = tfc::ipc_ruler::slot;
   // clang-format off

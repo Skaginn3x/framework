@@ -8,4 +8,4 @@ class slot;
 template <typename type_desc, typename manager_client_type>
 class signal;
 
-}
+}  // namespace tfc::ipc

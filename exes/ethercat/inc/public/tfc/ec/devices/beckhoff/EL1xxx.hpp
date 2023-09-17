@@ -24,9 +24,7 @@ public:
 
   void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final;
 
-  auto transmitters() const noexcept -> auto const& {
-    return transmitters_;
-  }
+  auto transmitters() const noexcept -> auto const& { return transmitters_; }
 
 private:
   std::array<bool, size> last_values_;

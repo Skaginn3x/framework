@@ -10,7 +10,6 @@ namespace tfc::ec::devices::beckhoff {
 // Example, let's say we have a recipe for a system with 2 input devices and 2 output devices
 // Let's say we change vendor and the name would change, however, the recipe would still be valid
 
-
 // el1xxx
 
 template <typename manager_client_type, size_t size, uint32_t pc>

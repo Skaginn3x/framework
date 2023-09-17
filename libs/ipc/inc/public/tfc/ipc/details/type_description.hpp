@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <concepts>
+#include <cstdint>
 #include <string>
 
 #include <tfc/ipc/enums.hpp>
@@ -29,4 +29,4 @@ using type_double = type_description<double, type_e::_double_t>;
 using type_string = type_description<std::string, type_e::_string>;
 using type_json = type_description<std::string, type_e::_json>;
 
-}
+}  // namespace tfc::ipc::details
