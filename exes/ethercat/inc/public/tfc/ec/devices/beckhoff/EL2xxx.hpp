@@ -6,8 +6,6 @@
 #include <span>
 #include <vector>
 
-#include <fmt/format.h>
-
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc_fwd.hpp>

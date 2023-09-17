@@ -1,3 +1,5 @@
+#include <fmt/format.h>
+
 #include <tfc/ec/devices/beckhoff/EL1xxx.hpp>
 #include <tfc/ec/devices/beckhoff/EL2xxx.hpp>
 #include <tfc/ipc.hpp>
