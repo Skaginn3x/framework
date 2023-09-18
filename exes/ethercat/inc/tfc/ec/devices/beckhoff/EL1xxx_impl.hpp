@@ -1,0 +1,42 @@
+#pragma once
+
+#include <fmt/format.h>
+
+#include <tfc/ec/devices/beckhoff/EL1xxx.hpp>
+#include <tfc/ipc.hpp>
+
+namespace tfc::ec::devices::beckhoff {
+
+// TODO discuss! I would like to remove the name of the device from the ipc channel name
+// Reason being it makes it harder to use the same input/output declaration with recipes of system
+// Example, let's say we have a recipe for a system with 2 input devices and 2 output devices
+// Let's say we change vendor and the name would change, however, the recipe would still be valid
+
+// el1xxx
+
+template <typename manager_client_type, size_t size, uint32_t pc>
+el100x<manager_client_type, size, pc>::el100x(asio::io_context& ctx, manager_client_type& client, const uint16_t slave_index)
+    : base(slave_index) {
+  for (size_t i = 0; i < size; i++) {
+    transmitters_.emplace_back(
+        std::make_unique<signal_t>(ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i), "Digital input"));
+  }
+}
+
+template <typename manager_client_type, size_t size, uint32_t pc>
+void el100x<manager_client_type, size, pc>::process_data(std::span<std::byte> input, std::span<std::byte>) noexcept {
+  static_assert(size <= 8);
+  std::bitset<size> const in_bits(static_cast<uint8_t>(input[0]));
+  for (size_t i = 0; i < size; i++) {
+    bool const value = in_bits.test(i);
+    if (value != last_values_[i]) {
+      transmitters_[i]->async_send(value, [this](std::error_code error, size_t) {
+        if (error) {
+          logger_.error("Ethercat EL110x, error transmitting : {}", error.message());
+        }
+      });
+    }
+    last_values_[i] = value;
+  }
+}
+}  // namespace tfc::ec::devices::beckhoff

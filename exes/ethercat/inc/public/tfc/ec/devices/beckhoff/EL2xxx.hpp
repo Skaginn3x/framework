@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include <cstdint>
+#include <cstddef>
 #include <memory>
 #include <span>
 #include <vector>

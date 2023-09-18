@@ -15,7 +15,7 @@ target_include_directories(ec
     $<INSTALL_INTERFACE:include>
     ${BEXT_SML_INCLUDE_DIRS}
   PRIVATE
-    inc/
+    ${CMAKE_CURRENT_LIST_DIR}/inc
 )
 
 target_link_libraries(ec
