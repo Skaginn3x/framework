@@ -24,6 +24,7 @@
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc::details {
 
@@ -289,9 +290,8 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, auto&& callback)
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
       -> std::shared_ptr<slot_callback<type_desc>>
-    requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
   {
     return std::shared_ptr<slot_callback<type_desc>>(
         new slot_callback<type_desc>{ ctx, name, std::forward<decltype(callback)>(callback) });
@@ -315,8 +315,7 @@ public:
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
-  slot_callback(asio::io_context& ctx, std::string_view name, auto&& callback)
-    requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
+  slot_callback(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
       : slot_{ ctx, name },
         filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) } {}
   void async_new_state(std::expected<value_t, std::error_code> value) {

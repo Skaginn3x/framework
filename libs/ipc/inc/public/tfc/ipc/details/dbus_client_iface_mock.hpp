@@ -15,6 +15,7 @@
 #include <tfc/ipc/details/dbus_structs.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/utils/asio_fwd.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc_ruler {
 
@@ -32,7 +33,7 @@ struct ipc_manager_client_mock {
   void register_slot(std::string_view name,
                      std::string_view description,
                      ipc::details::type_e type,
-                     std::invocable<const std::error_code&> auto&& handler) {
+                     tfc::stx::invocable<const std::error_code&> auto&& handler) {
     register_slot(name, description, type);
     handler(std::error_code());
   }
@@ -41,14 +42,14 @@ struct ipc_manager_client_mock {
   auto register_signal(std::string_view name,
                        std::string_view description,
                        ipc::details::type_e type,
-                       std::invocable<const std::error_code&> auto&& handler) -> void {
+                       tfc::stx::invocable<const std::error_code&> auto&& handler) -> void {
     register_signal(name, description, type);
     handler(std::error_code());
   }
 
   auto connect(const std::string& slot_name,
                const std::string& signal_name,
-               std::invocable<const std::error_code&> auto&& handler) -> void {
+               tfc::stx::invocable<const std::error_code&> auto&& handler) -> void {
     for (auto& slot : slots_) {
       if (slot.name == slot_name) {
         slot.connected_to = signal_name;
@@ -64,9 +65,9 @@ struct ipc_manager_client_mock {
     throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
   }
 
-  auto slots(std::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(slots_); }
+  auto slots(tfc::stx::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(slots_); }
 
-  auto signals(std::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
+  auto signals(tfc::stx::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
 
   auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> const&)
       -> std::unique_ptr<sdbusplus::bus::match::match>;
