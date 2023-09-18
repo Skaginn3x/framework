@@ -1,5 +1,5 @@
-#include <tfc/dbus/string_maker.hpp>
 #include <tfc/dbus/exception.hpp>
+#include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::dbus {
 
@@ -33,4 +33,4 @@ auto make_dbus_path(std::string_view input_name) -> std::string {
   return return_value;
 }
 
-}
+}  // namespace tfc::dbus

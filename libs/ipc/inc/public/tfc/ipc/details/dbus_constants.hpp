@@ -24,4 +24,4 @@ static constexpr auto ipc_ruler_object_path = dbus::const_dbus_path<dbus_name>;
 // Interface name
 static constexpr auto ipc_ruler_interface_name = dbus::const_dbus_name<dbus_manager_name>;
 
-}
+}  // namespace tfc::ipc_ruler::consts

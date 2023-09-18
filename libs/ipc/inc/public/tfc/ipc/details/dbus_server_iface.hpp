@@ -9,10 +9,10 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
+#include <glaze/json.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/asio/property.hpp>
-#include <glaze/json.hpp>
 
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/match_rules.hpp>
