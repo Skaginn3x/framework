@@ -9,7 +9,7 @@ template <typename func, typename... args>
 concept nothrow_invocable = requires { std::is_nothrow_invocable_v<func, args...>; };
 
 template <typename func, typename... args>
-concept invocable = requires { std::is_invocable_v<std::remove_cvref_t<func>, args...>; };
+concept invocable = std::invocable<std::remove_cvref_t<func>, args...>;
 
 template <typename enum_t>
 concept is_enum = requires { std::is_enum_v<enum_t>; };
