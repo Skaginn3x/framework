@@ -23,7 +23,7 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
 
   auto client{ tfc::ipc::make_manager_client(ctx) };
 
-  auto type{ ipc::details::string_to_type(signal_name) };
+  auto type{ ipc::details::enum_cast(signal_name) };
   if (type == ipc::details::type_e::unknown) {
     throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", signal_name) };
   }
@@ -115,7 +115,7 @@ auto main(int argc, char** argv) -> int {
     // For listening to connections
     connect_slots.emplace_back([&ctx, &logger, slot_connect](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
       std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
-      auto const type{ ipc::details::string_to_type(sig) };
+      auto const type{ ipc::details::enum_cast(sig) };
       if (type == ipc::details::type_e::unknown) {
         throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
       }

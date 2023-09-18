@@ -39,11 +39,11 @@ enum struct type_e : std::uint8_t {
 static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
                                                                   "double",  "string", "json" };
 
-auto constexpr type_to_string(type_e type) -> std::string_view {
+auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];
 }
 
-auto constexpr string_to_type(std::string_view name) -> type_e {
+auto constexpr enum_cast(std::string_view name) -> type_e {
   for (std::size_t idx = type_e_iterable.size() - 1; idx > 0; idx--) {
     if (name.contains(type_e_iterable[idx])) {
       return static_cast<type_e>(idx);
@@ -52,21 +52,21 @@ auto constexpr string_to_type(std::string_view name) -> type_e {
   return type_e::unknown;
 }
 
-static_assert(string_to_type("blabb") == type_e::unknown);
-static_assert(string_to_type("unknown") == type_e::unknown);
-static_assert(string_to_type("bool") == type_e::_bool);
-static_assert(string_to_type("int64_t") == type_e::_int64_t);
-static_assert(string_to_type("uint64_t") == type_e::_uint64_t);
-static_assert(string_to_type("double") == type_e::_double_t);
-static_assert(string_to_type("string") == type_e::_string);
-static_assert(string_to_type("json") == type_e::_json);
+static_assert(enum_cast("blabb") == type_e::unknown);
+static_assert(enum_cast("unknown") == type_e::unknown);
+static_assert(enum_cast("bool") == type_e::_bool);
+static_assert(enum_cast("int64_t") == type_e::_int64_t);
+static_assert(enum_cast("uint64_t") == type_e::_uint64_t);
+static_assert(enum_cast("double") == type_e::_double_t);
+static_assert(enum_cast("string") == type_e::_string);
+static_assert(enum_cast("json") == type_e::_json);
 
-static_assert(type_to_string(type_e::unknown) == "unknown");
-static_assert(type_to_string(type_e::_bool) == "bool");
-static_assert(type_to_string(type_e::_int64_t) == "int64_t");
-static_assert(type_to_string(type_e::_uint64_t) == "uint64_t");
-static_assert(type_to_string(type_e::_double_t) == "double");
-static_assert(type_to_string(type_e::_string) == "string");
-static_assert(type_to_string(type_e::_json) == "json");
+static_assert(enum_name(type_e::unknown) == "unknown");
+static_assert(enum_name(type_e::_bool) == "bool");
+static_assert(enum_name(type_e::_int64_t) == "int64_t");
+static_assert(enum_name(type_e::_uint64_t) == "uint64_t");
+static_assert(enum_name(type_e::_double_t) == "double");
+static_assert(enum_name(type_e::_string) == "string");
+static_assert(enum_name(type_e::_json) == "json");
 
 }  // namespace tfc::ipc::details

@@ -1,9 +1,10 @@
-#include <tfc/ipc/details/dbus_server_iface.hpp>
-#include <tfc/progbase.hpp>
-
-#include <glaze/glaze.hpp>
-
 #include <iostream>
+#include <system_error>
+
+#include <boost/asio/io_context.hpp>
+
+#include <tfc/ipc/details/dbus_client_iface.hpp>
+#include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
 
@@ -13,14 +14,14 @@ auto main(int argc, char** argv) -> int {
   boost::asio::io_context ctx;
   tfc::ipc_ruler::ipc_manager_client client(ctx);
 
-  client.register_signal("signal", "", tfc::ipc::details::type_e::_bool, [](const boost::system::error_code& ec) {
+  client.register_signal("signal", "", tfc::ipc::details::type_e::_bool, [](const std::error_code& ec) {
     if (ec) {
-      std::cerr << "Error occured" << ec.what() << std::endl;
+      std::cerr << "Error occurred" << ec.message() << '\n';
     }
   });
-  client.register_slot("slot", "", tfc::ipc::details::type_e::_bool, [](const boost::system::error_code& ec) {
+  client.register_slot("slot", "", tfc::ipc::details::type_e::_bool, [](const std::error_code& ec) {
     if (ec) {
-      std::cerr << "Error occured" << ec.what() << std::endl;
+      std::cerr << "Error occurred" << ec.message() << '\n';
     }
   });
 

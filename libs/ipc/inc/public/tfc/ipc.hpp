@@ -2,8 +2,9 @@
 
 #include <system_error>
 
-#include <tfc/ipc/details/dbus_server_iface.hpp>
-#include <tfc/ipc/details/dbus_server_iface_mock.hpp>
+#include <fmt/format.h>
+
+#include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/impl.hpp>
 
 namespace tfc::ipc {
@@ -82,7 +83,6 @@ public:
   [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->name_w_type(); }
 
 private:
-  static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   manager_client_type& client_;
 };
@@ -127,7 +127,6 @@ public:
   [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->name_w_type(); }
 
 private:
-  static constexpr std::string_view self_name{ signal_tag };
   manager_client_type& client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
 };

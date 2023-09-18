@@ -1,5 +1,5 @@
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/ipc/details/dbus_server_iface.hpp>
-#include <tfc/ipc/details/dbus_server_iface_mock.hpp>
 
 #include <boost/asio/io_context.hpp>
 #include <sdbusplus/message.hpp>

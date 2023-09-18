@@ -1,6 +1,6 @@
 #include <tfc/ec/devices/beckhoff/EL1xxx_impl.hpp>
 #include <tfc/ec/devices/beckhoff/EL2xxx_impl.hpp>
-#include <tfc/ipc/details/dbus_server_iface.hpp>
+#include <tfc/ipc/details/dbus_client_iface.hpp>
 
 namespace tfc::ec::devices::beckhoff {
 

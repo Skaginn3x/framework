@@ -12,6 +12,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <glaze/core/common.hpp>
 
+#include <tfc/stx/glaze_meta.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/utils/pragmas.hpp>
 

@@ -19,7 +19,7 @@ template <concepts::is_supported_type value_type, type_e type_enum>
 struct type_description {
   using value_t = value_type;
   static constexpr auto value_e = type_enum;
-  static constexpr std::string_view type_name{ type_to_string(type_enum) };
+  static constexpr std::string_view type_name{ enum_name(type_enum) };
 };
 
 using type_bool = type_description<bool, type_e::_bool>;
