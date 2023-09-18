@@ -24,6 +24,4 @@ void el2xxx<manager_client_type, size, pc, name>::process_data(std::span<std::by
   }
 }
 
-// symbol export for ipc_manager_client
-
 }  // namespace tfc::ec::devices::beckhoff
