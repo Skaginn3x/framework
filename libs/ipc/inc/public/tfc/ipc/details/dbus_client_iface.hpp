@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <map>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_constants.hpp>
@@ -83,7 +84,6 @@ public:
 
   /**
    * Send a request over dbus to disconnect a slot from its signal
-   * @tparam message_handler Type of the callback handler, this should be auto detected
    * @param slot_name the name of the slot to be disconnected
    * @param handler a method that receives an error in case there is one
    */
