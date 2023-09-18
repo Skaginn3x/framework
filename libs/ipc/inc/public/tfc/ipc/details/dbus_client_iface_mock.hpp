@@ -24,7 +24,7 @@ namespace asio = boost::asio;
 struct ipc_manager_client_mock {
   ipc_manager_client_mock() = default;
 
-  ipc_manager_client_mock(asio::io_context&);
+  explicit ipc_manager_client_mock(asio::io_context&);
 
   void register_connection_change_callback(std::string_view slot_name,
                                            const std::function<void(std::string_view const)>& connection_change_callback);

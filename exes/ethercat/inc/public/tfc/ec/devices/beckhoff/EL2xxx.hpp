@@ -28,7 +28,7 @@ public:
   static constexpr auto product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
-  void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final;
+  void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept override;
 
   auto set_output(size_t position, bool value) -> void { output_states_.set(position, value); }
 

@@ -22,7 +22,7 @@ public:
   static constexpr uint32_t product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
-  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final;
+  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept override;
 
   auto transmitters() const noexcept -> auto const& { return transmitters_; }
 
