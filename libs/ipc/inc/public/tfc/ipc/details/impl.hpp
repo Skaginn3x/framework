@@ -22,9 +22,9 @@
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/stx/concepts.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
-#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc::details {
 
@@ -290,9 +290,10 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
-      -> std::shared_ptr<slot_callback<type_desc>>
-  {
+  [[nodiscard]] static auto create(asio::io_context& ctx,
+                                   std::string_view name,
+                                   tfc::stx::invocable<value_t> auto&& callback)
+      -> std::shared_ptr<slot_callback<type_desc>> {
     return std::shared_ptr<slot_callback<type_desc>>(
         new slot_callback<type_desc>{ ctx, name, std::forward<decltype(callback)>(callback) });
   }
