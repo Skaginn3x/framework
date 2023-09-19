@@ -14,17 +14,17 @@ namespace tfc::ec::devices::beckhoff {
 
 // el1xxx
 
-template <typename manager_client_type, size_t size, uint32_t pc>
-el100x<manager_client_type, size, pc>::el100x(asio::io_context& ctx, manager_client_type& client, const uint16_t slave_index)
+template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
+el100x<manager_client_type, size, pc, signal_t>::el100x(asio::io_context& ctx, manager_client_type& client, const uint16_t slave_index)
     : base(slave_index) {
   for (size_t i = 0; i < size; i++) {
     transmitters_.emplace_back(
-        std::make_unique<signal_t>(ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i), "Digital input"));
+        std::make_unique<bool_signal_t>(ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i), "Digital input"));
   }
 }
 
-template <typename manager_client_type, size_t size, uint32_t pc>
-void el100x<manager_client_type, size, pc>::process_data(std::span<std::byte> input, std::span<std::byte>) noexcept {
+template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
+void el100x<manager_client_type, size, pc, signal_t>::process_data(std::span<std::byte> input, std::span<std::byte>) noexcept {
   static_assert(size <= 8);
   std::bitset<size> const in_bits(static_cast<uint8_t>(input[0]));
   for (size_t i = 0; i < size; i++) {

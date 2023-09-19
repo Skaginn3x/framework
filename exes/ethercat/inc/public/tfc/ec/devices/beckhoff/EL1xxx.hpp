@@ -14,7 +14,7 @@ namespace tfc::ec::devices::beckhoff {
 
 namespace asio = boost::asio;
 
-template <typename manager_client_type, size_t size, uint32_t pc>
+template <typename manager_client_type, size_t size, uint32_t pc, template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
 class el100x final : public base {
 public:
   el100x(asio::io_context& ctx, manager_client_type& client, uint16_t const slave_index);
@@ -27,13 +27,13 @@ public:
   auto transmitters() const noexcept -> auto const& { return transmitters_; }
 
 private:
-  std::array<bool, size> last_values_;
-  using signal_t = ipc::signal<ipc::details::type_bool, manager_client_type>;
-  std::vector<std::shared_ptr<signal_t>> transmitters_;
+  std::array<bool, size> last_values_{};
+  using bool_signal_t = signal_t<ipc::details::type_bool, manager_client_type>;
+  std::vector<std::shared_ptr<bool_signal_t>> transmitters_;
 };
 
-template <typename manager_client_type>
-using el1002 = el100x<manager_client_type, 2, 0x3ea3052>;
-template <typename manager_client_type>
-using el1008 = el100x<manager_client_type, 8, 0x3f03052>;
+template <typename manager_client_type, template <typename, typename> typename signal_t = ipc::signal>
+using el1002 = el100x<manager_client_type, 2, 0x3ea3052, signal_t>;
+template <typename manager_client_type, template <typename, typename> typename signal_t = ipc::signal>
+using el1008 = el100x<manager_client_type, 8, 0x3f03052, signal_t>;
 }  // namespace tfc::ec::devices::beckhoff

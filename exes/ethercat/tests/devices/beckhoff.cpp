@@ -6,6 +6,7 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/mocks/ipc.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -28,43 +29,28 @@ auto main(int argc, const char* argv[]) -> int {
   ut::detail::cfg::parse(argc, argv);
   tfc::base::init(argc, argv);  // todo should we make relaxed_init
 
+  ::testing::GTEST_FLAG(throw_on_failure) = true;
+  ::testing::InitGoogleMock();
+
   [[maybe_unused]] ut::suite<"EL1xxx"> el1xxx_suite = [] {  // NOLINT
     "2 output"_test = [] {
-      test_vars<beckhoff::el1002<ipc_manager_client_mock>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
+      test_vars<beckhoff::el1002<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
       std::array<std::byte, 1> buffer{ std::byte{ 0b11 } };
-
-      using slot_t = slot<type_bool, ipc_manager_client_mock>;
-      slot_t const slot_1{ vars.ctx, vars.connect_interface, "out1", [](bool const&) {} };
-      vars.connect_interface.connect(slot_1.full_name(), vars.device.transmitters().at(0)->full_name(), [](auto const& err) {
-        expect(!err);  //
-      });
-      vars.ctx.run_for(std::chrono::milliseconds{ 30 });  // register cycle, a couple of events
-
-      slot_t const slot_2{ vars.ctx, vars.connect_interface, "out2", [](bool const&) {} };
-      vars.connect_interface.connect(slot_2.full_name(), vars.device.transmitters().at(1)->full_name(), [](auto const& err) {
-        expect(!err);  //
-      });
-      vars.ctx.run_for(std::chrono::milliseconds{ 30 });  // register cycle, a couple of events
-
+      auto const& transmitters{ vars.device.transmitters() };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(true, testing::_)).Times(1);
+      vars.device.process_data(buffer, {});
+      buffer = { std::byte{ 0b00 } };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(1);
       vars.device.process_data(buffer, {});
 
-      vars.ctx.run_one_for(std::chrono::seconds{ 1 });  // initial values for two slots
-      vars.ctx.run_one_for(std::chrono::seconds{ 1 });
-      vars.ctx.run_one_for(std::chrono::seconds{ 1 });  // async_send for
-      vars.ctx.run_one_for(std::chrono::seconds{ 1 });
-
-      expect(slot_1.value() == true);
-      expect(slot_2.value() == true);
-
-      // the above lines could be replaced with:
-      // EXPECT_CALL(vars.device.transmitters().at(0), async_send(true, _));
-      // EXPECT_CALL(vars.device.transmitters().at(1), async_send(true, _));
-      // vars.device.process_data(buffer, {});
-      // I think we should do that, but it requires manipulating private and make gmock of signal class.
-      // Would make it unnecessary to run the ctx for a while, and would make the test more deterministic.
-      // todo thoughts???
+      // Only calls when value changes
+      buffer = { std::byte{ 0b01 } };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(0);
+      vars.device.process_data(buffer, {});
     };
-
   };
 
   [[maybe_unused]] ut::suite<"EL2xxx"> el2xxx_suite = [] {  // NOLINT

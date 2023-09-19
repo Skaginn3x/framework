@@ -1,7 +1,7 @@
 
 
 add_executable(test_beckhoff beckhoff.cpp)
-target_link_libraries(test_beckhoff tfc::base tfc::ec)
+target_link_libraries(test_beckhoff tfc::base tfc::ec tfc::mock_ipc)
 
 # Get access to private headers
 get_property(tfc_ec_dirs TARGET tfc::ec PROPERTY INCLUDE_DIRECTORIES)
