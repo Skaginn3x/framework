@@ -31,11 +31,10 @@ struct mock_signal {
     }
   }
 
+  // clang-format off
   MOCK_METHOD((std::error_code), send, (value_t const&), ());  // NOLINT
-  MOCK_METHOD((std::error_code),
-              async_send_cb,
-              (value_t const&, std::function<void(std::error_code, std::size_t)>),
-              ());  // NOLINT
+  MOCK_METHOD((std::error_code), async_send_cb, (value_t const&, std::function<void(std::error_code, std::size_t)>), ());  // NOLINT
+  // clang-format on
 };
 
 }  // namespace tfc::ipc
