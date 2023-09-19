@@ -1,8 +1,8 @@
 #pragma once
-#include <system_error>
-#include <string_view>
-#include <type_traits>
 #include <functional>
+#include <string_view>
+#include <system_error>
+#include <type_traits>
 
 #include <gmock/gmock.h>
 #include <boost/asio/io_context.hpp>
@@ -24,15 +24,18 @@ struct mock_signal {
       async_send_cb(value, std::forward<completion_token_t>(token));
       return;
     } else {
-      []<bool flag = false>(){
-          static_assert(flag, "todo implement for other types");
-      }();
+      []<bool flag = false>() {
+        static_assert(flag, "todo implement for other types");
+      }
+      ();
     }
   }
 
-  MOCK_METHOD((std::error_code), send, (value_t const&), ());                             // NOLINT
-  MOCK_METHOD((std::error_code), async_send_cb, (value_t const&, std::function<void(std::error_code, std::size_t)>), ());                             // NOLINT
+  MOCK_METHOD((std::error_code), send, (value_t const&), ());  // NOLINT
+  MOCK_METHOD((std::error_code),
+              async_send_cb,
+              (value_t const&, std::function<void(std::error_code, std::size_t)>),
+              ());  // NOLINT
 };
 
 }  // namespace tfc::ipc
-
