@@ -14,7 +14,10 @@ namespace tfc::ec::devices::beckhoff {
 
 namespace asio = boost::asio;
 
-template <typename manager_client_type, size_t size, uint32_t pc, template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
+template <typename manager_client_type,
+          size_t size,
+          uint32_t pc,
+          template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
 class el100x final : public base {
 public:
   el100x(asio::io_context& ctx, manager_client_type& client, uint16_t const slave_index);

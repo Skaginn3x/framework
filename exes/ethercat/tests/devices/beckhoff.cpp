@@ -5,8 +5,8 @@
 #include <tfc/ec/devices/beckhoff/EL2xxx_impl.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/mocks/ipc.hpp>
+#include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -34,7 +34,9 @@ auto main(int argc, const char* argv[]) -> int {
 
   [[maybe_unused]] ut::suite<"EL1xxx"> el1xxx_suite = [] {  // NOLINT
     "2 output"_test = [] {
-      test_vars<beckhoff::el1002<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
+      test_vars<beckhoff::el1002<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{
+        .device = { vars.ctx, vars.connect_interface, 42 }
+      };
       std::array<std::byte, 1> buffer{ std::byte{ 0b11 } };
       auto const& transmitters{ vars.device.transmitters() };
       EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
