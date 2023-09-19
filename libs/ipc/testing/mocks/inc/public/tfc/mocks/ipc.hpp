@@ -1,8 +1,8 @@
 #pragma once
-#include <functional>
-#include <string_view>
 #include <system_error>
+#include <string_view>
 #include <type_traits>
+#include <functional>
 
 #include <gmock/gmock.h>
 #include <boost/asio/io_context.hpp>
@@ -15,8 +15,7 @@ template <typename type_desc, typename manager_client_type>
 struct mock_signal {
   using value_t = typename type_desc::value_t;
 
-  mock_signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description = "") {
-  }
+  mock_signal(asio::io_context&, manager_client_type&, std::string_view, std::string_view = "") {}
 
   // todo can this be done differently?
   template <typename completion_token_t>
@@ -25,18 +24,15 @@ struct mock_signal {
       async_send_cb(value, std::forward<completion_token_t>(token));
       return;
     } else {
-      []<bool flag = false>() {
-        static_assert(flag, "todo implement for other types");
-      }
-      ();
+      []<bool flag = false>(){
+          static_assert(flag, "todo implement for other types");
+      }();
     }
   }
 
-  MOCK_METHOD((std::error_code), send, (value_t const&), ());  // NOLINT
-  MOCK_METHOD((std::error_code),
-              async_send_cb,
-              (value_t const&, std::function<void(std::error_code, std::size_t)>),
-              ());  // NOLINT
+  MOCK_METHOD((std::error_code), send, (value_t const&), ());                             // NOLINT
+  MOCK_METHOD((std::error_code), async_send_cb, (value_t const&, std::function<void(std::error_code, std::size_t)>), ());                             // NOLINT
 };
 
 }  // namespace tfc::ipc
+
