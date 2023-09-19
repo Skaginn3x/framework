@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.21)
 
 add_library(ipc
   src/ipc.cpp
+  src/dbus_server_iface_mock.cpp # todo make ipc_test target
+  src/dbus_client_iface.cpp
 )
 add_library(tfc::ipc ALIAS ipc)
 
@@ -36,7 +38,7 @@ target_link_libraries(ipc
 add_library_to_docs(tfc::ipc)
 
 if (BUILD_TESTING)
-  add_subdirectory(tests)
+  add_subdirectory(testing)
 endif ()
 
 include(tfc_install)

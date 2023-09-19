@@ -2,9 +2,11 @@
 
 #include <system_error>
 
-#include <tfc/ipc/details/dbus_server_iface.hpp>
-#include <tfc/ipc/details/dbus_server_iface_mock.hpp>
+#include <fmt/format.h>
+
+#include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/impl.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
 
@@ -54,8 +56,7 @@ public:
        manager_client_type& client,
        std::string_view name,
        std::string_view description,
-       auto&& callback)
-    requires std::invocable<std::remove_cvref_t<decltype(callback)>, value_t>
+       tfc::stx::invocable<value_t> auto&& callback)
       : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
         client_(client) {
     client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
@@ -75,10 +76,13 @@ public:
 
   auto operator=(slot const&) -> slot& = delete;
 
-  [[nodiscard]] auto value() const noexcept { return slot_->get(); }  // todo: value() or get()
+  [[nodiscard]] auto value() const noexcept { return slot_->value(); }
+
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
+
+  [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->name_w_type(); }
 
 private:
-  static constexpr std::string_view self_name{ slot_tag };
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   manager_client_type& client_;
 };
@@ -118,10 +122,11 @@ public:
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
-  auto name() const noexcept -> std::string_view { return signal_->name(); }
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return signal_->name(); }
+
+  [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->name_w_type(); }
 
 private:
-  static constexpr std::string_view self_name{ signal_tag };
   manager_client_type& client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
 };

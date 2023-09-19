@@ -21,6 +21,7 @@
 #include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
+#include <sdbusplus/bus/match.hpp>
 #include <tfc/dbus/string_maker.hpp>
 
 #include "config.hpp"
@@ -465,7 +466,7 @@ private:
       signals_.reserve(signals.size());
       for (auto signal : signals) {
         // slot must include type name
-        std::string slot_name{ fmt::format("{}_slot_mqtt_broadcaster_{}", ipc::details::type_to_string(signal.type),
+        std::string slot_name{ fmt::format("{}_slot_mqtt_broadcaster_{}", ipc::details::enum_name(signal.type),
                                            signal.name) };
         auto ipc = tfc::ipc::details::make_any_slot::make(signal.type, io_ctx_, slot_name);
 

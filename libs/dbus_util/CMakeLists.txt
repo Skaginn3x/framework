@@ -1,7 +1,7 @@
 project(dbus_util)
 cmake_minimum_required(VERSION 3.21)
 
-add_library(dbus_util src/dbus_util.cpp src/compile_tests.cpp src/exception.cpp)
+add_library(dbus_util src/dbus_util.cpp src/compile_tests.cpp src/exception.cpp src/string_maker.cpp)
 add_library(tfc::dbus_util ALIAS dbus_util)
 target_include_directories(dbus_util
   PUBLIC

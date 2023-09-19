@@ -21,5 +21,3 @@ add_test(NAME item_test COMMAND item_test)
 add_executable(filter_test filter_test.cpp)
 target_link_libraries(filter_test PRIVATE Boost::ut tfc::ipc tfc::base tfc::testing tfc::stub_confman)
 add_test(NAME filter_test COMMAND filter_test)
-
-add_subdirectory(examples)

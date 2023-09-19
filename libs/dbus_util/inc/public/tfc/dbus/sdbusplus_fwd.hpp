@@ -13,3 +13,7 @@ struct match;
 namespace sdbusplus::message {
 class message;
 }  // namespace sdbusplus::message
+
+namespace sdbusplus {
+using message_t = message::message;
+}  // namespace sdbusplus

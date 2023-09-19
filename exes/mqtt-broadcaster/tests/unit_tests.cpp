@@ -1,6 +1,7 @@
 #include <boost/program_options.hpp>
 #include <boost/ut.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 
 #include "mock_client.hpp"
 #include "mqtt_broadcaster.hpp"
@@ -319,7 +320,7 @@ public:
         ipc);
 
     const tfc::ipc_ruler::signal test_signal{ full_signal_name,
-                                              tfc::ipc_ruler::type_e::_bool,
+                                              tfc::ipc::details::type_e::_bool,
                                               "test",
                                               std::chrono::system_clock::now(),
                                               std::chrono::system_clock::now(),
@@ -360,7 +361,7 @@ public:
         ipc);
 
     const tfc::ipc_ruler::signal test_signal{ signal_value,
-                                              tfc::ipc_ruler::type_e::_bool,
+                                              tfc::ipc::details::type_e::_bool,
                                               "test",
                                               std::chrono::system_clock::now(),
                                               std::chrono::system_clock::now(),

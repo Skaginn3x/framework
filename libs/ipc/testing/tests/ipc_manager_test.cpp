@@ -1,8 +1,11 @@
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
-#include <glaze/glaze.hpp>
+
 #include <tfc/confman/file_storage.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/details/dbus_client_iface.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
+#include <tfc/ipc/details/dbus_server_iface.hpp>
 #include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
@@ -44,9 +47,9 @@ struct test_instance {
     ctx, std::make_unique<manager_t>(signals, slots)
   };
   tfc::ipc_ruler::ipc_manager_client ipc_manager_client{ ctx };
+  bool ran{};
 
   int test_value = 0;
-
   auto increment([[maybe_unused]] sdbusplus::message_t& msg) -> void { test_value++; }
 };
 
@@ -76,81 +79,91 @@ auto main(int argc, char** argv) -> int {
     ut::expect(ipc_manager->get_all_signals().empty());
   };
 
-  "ipc_manager check over dbus"_test = []() {
+  "get signals empty"_test = [] {
     test_instance instance{};
     // Check if the correct empty list is reported for signals
-    bool ran = false;
-    instance.ipc_manager_client.signals([&](auto signals) {
+    instance.ipc_manager_client.signals([&instance](auto signals) {
       ut::expect(signals.empty());
-      ran = true;
+      instance.ran = true;
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
+    ut::expect(instance.ran);
+  };
 
+  "get slots empty"_test = [] {
+    test_instance instance{};
     // Check if the correct empty list is reported for slots
-    instance.ipc_manager_client.slots([&](auto slots) {
+    instance.ipc_manager_client.slots([&instance](auto slots) {
       ut::expect(slots.empty());
-      ran = true;
+      instance.ran = true;
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
+    ut::expect(instance.ran);
+  };
 
-    // add a signal
-    ran = false;
+  "register signal"_test = [] {
+    test_instance instance{};
     instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_string,
-                                                [&](const std::error_code& err) {
+                                                [&instance](const std::error_code& err) {
                                                   ut::expect(!err) << err.message();
-                                                  ran = true;
+                                                  instance.ran = true;
                                                 });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
+    ut::expect(instance.ran);
 
     // check that the signal appears
-    ran = false;
-    instance.ipc_manager_client.signals([&](auto signals) {
+    instance.ran = false;
+    instance.ipc_manager_client.signals([&instance](auto signals) {
       ut::expect(!signals.empty());
       ut::expect(signals.size() == 1);
       if (signals.size() == 1) {
         ut::expect(signals[0].name == "test_signal");
       }
-      ran = true;
+      instance.ran = true;
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
+    ut::expect(instance.ran);
+  };
 
-    // Register a slot
-    ran = false;
+  "register slot"_test = [] {
+    test_instance instance{};
     instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string,
-                                              [&](const std::error_code& err) {
-                                                ut::expect(!err);
-                                                ran = true;
+                                              [&instance](const std::error_code& err) {
+                                                ut::expect(!err) << err.message();
+                                                instance.ran = true;
                                               });
+    instance.ctx.run_for(std::chrono::milliseconds(5));
+    ut::expect(instance.ran);
 
     // Check that the slot appears
-    instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
-    ran = false;
-    instance.ipc_manager_client.slots([&](auto slots) {
+    instance.ran = false;
+    instance.ipc_manager_client.slots([&instance](auto slots) {
       ut::expect(!slots.empty());
       ut::expect(slots.size() == 1);
       if (slots.size() == 1) {
         ut::expect(slots[0].name == "test_slot");
       }
-      ran = true;
+      instance.ran = true;
     });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
+    ut::expect(instance.ran);
+  };
 
+  "connection change subscription"_test = []() {
+    test_instance instance{};
+
+    instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_string, [](const auto&) {});
+    instance.ctx.run_for(std::chrono::milliseconds(5));
+    instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string, [](const auto&) {});
+    instance.ctx.run_for(std::chrono::milliseconds(5));
     // Register a method for connection change callback
-    ran = false;
-    instance.ipc_manager_client.register_connection_change_callback("test_slot", [&](std::string_view signal_name) {
+    instance.ipc_manager_client.register_connection_change_callback("test_slot", [&instance](std::string_view signal_name) {
       ut::expect(signal_name == "test_signal");
-      ran = true;
+      instance.ran = true;
     });
-    ut::expect(!ran);
     instance.ipc_manager_client.connect("test_slot", "test_signal", [](const std::error_code& err) { ut::expect(!err); });
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    ut::expect(ran);
+    ut::expect(instance.ran);
   };
   "Check that re-registering a communication channel only changes last_registered "_test = []() {
     test_instance instance{};

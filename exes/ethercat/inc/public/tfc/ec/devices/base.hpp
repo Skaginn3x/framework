@@ -6,13 +6,12 @@
 #include <new>
 #include <ranges>
 #include <span>
+#include <utility>
 
-#include <boost/asio/io_context.hpp>
+#include <fmt/format.h>
 
-#include <tfc/logger.hpp>
-
-#include <tfc/ec/devices/util.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/logger.hpp>
 
 namespace tfc::ec::devices {
 template <typename setting_t>

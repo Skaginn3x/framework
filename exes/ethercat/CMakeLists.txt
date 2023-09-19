@@ -6,7 +6,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(soem CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)
 
-add_library(ec src/ec.cpp src/base.cpp)
+add_library(ec src/ec.cpp src/base.cpp src/devices/beckhoff.cpp)
 add_library(tfc::ec ALIAS ec)
 
 target_include_directories(ec
@@ -15,7 +15,7 @@ target_include_directories(ec
     $<INSTALL_INTERFACE:include>
     ${BEXT_SML_INCLUDE_DIRS}
   PRIVATE
-    inc/
+    ${CMAKE_CURRENT_LIST_DIR}/inc
 )
 
 target_link_libraries(ec
@@ -24,8 +24,8 @@ target_link_libraries(ec
     tfc::ipc
     tfc::confman
     tfc::soem_interface
+    tfc::stx
     mp-units::si
-  PRIVATE
     fmt::fmt
 )
 
