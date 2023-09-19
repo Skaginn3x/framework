@@ -7,13 +7,6 @@
 
 namespace tfc::ec::devices::beckhoff {
 
-// TODO discuss! I would like to remove the name of the device from the ipc channel name
-// Reason being it makes it harder to use the same input/output declaration with recipes of system
-// Example, let's say we have a recipe for a system with 2 input devices and 2 output devices
-// Let's say we change vendor and the name would change, however, the recipe would still be valid
-
-// el1xxx
-
 template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
 el100x<manager_client_type, size, pc, signal_t>::el100x(asio::io_context& ctx,
                                                         manager_client_type& client,
