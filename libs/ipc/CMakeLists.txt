@@ -38,7 +38,7 @@ target_link_libraries(ipc
 add_library_to_docs(tfc::ipc)
 
 if (BUILD_TESTING)
-  add_subdirectory(tests)
+  add_subdirectory(testing)
 endif ()
 
 include(tfc_install)
