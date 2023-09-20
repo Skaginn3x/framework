@@ -3,11 +3,10 @@
 
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
+#include "tfc/ipc/details/filter_impl.hpp"
 #include <tfc/stubs/confman.hpp>
 #include <tfc/testing/asio_clock.hpp>
 
-#include <fmt/chrono.h>
-#include <fmt/core.h>
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>

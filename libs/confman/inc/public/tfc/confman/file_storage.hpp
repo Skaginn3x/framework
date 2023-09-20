@@ -6,6 +6,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <glaze/core/opts.hpp>
+#include <fstream> // todo add to core/write.hpp, std::ofstream is used
 #include <glaze/core/write.hpp>
 #include <glaze/json/write.hpp>
 #include <glaze/json/read.hpp>

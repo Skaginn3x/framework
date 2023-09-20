@@ -1,20 +1,13 @@
 #pragma once
-#include <concepts>
-#include <expected>
+#include <memory>
 #include <vector>
+#include <optional>
+#include <variant>
+#include <string_view>
+#include <string>
+#include <functional>
 
-#include <fmt/core.h>
-#include <boost/asio/async_result.hpp>
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/compose.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/steady_timer.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#include <glaze/core/common.hpp>
-
-#include <tfc/confman.hpp>
-#include <tfc/stx/glaze_meta.hpp>
-#include <tfc/utils/pragmas.hpp>
+#include <tfc/confman_fwd.hpp>
 
 namespace tfc::ipc::filter {
 
@@ -43,181 +36,6 @@ enum struct filter_e : std::uint8_t {
 
 template <filter_e type, typename value_t, typename...>
 struct filter;
-
-/// \brief behaviour flip the state of boolean
-template <>
-struct filter<filter_e::invert, bool> {
-  static constexpr bool inverting{ true };
-  static constexpr filter_e type{ filter_e::invert };
-
-  auto async_process(bool&& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is non-existent?
-    auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<bool, std::error_code>)>(
-        [copy = value](auto& self) { self.complete(!copy); }, completion_token, exe);
-  }
-
-  struct glaze {
-    using type = filter<filter_e::invert, bool>;
-    static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object(
-        "invert",
-        &type::inverting,
-        tfc::json::schema{ .description = "Invert output value", .read_only = true, .constant = true }) };
-  };
-};
-
-/// \brief behaviour time on delay and or time off delay
-/// \note IMPORTANT: delay changes take effect on next event
-template <typename clock_type>  // example std::chrono::steady_clock
-struct filter<filter_e::timer, bool, clock_type> {
-  std::chrono::milliseconds time_on{ 0 };
-  std::chrono::milliseconds time_off{ 0 };
-  static constexpr filter_e type{ filter_e::timer };
-
-  filter() = default;
-  // if the filter is moved everything is moved
-  filter(filter&&) noexcept = default;
-  auto operator=(filter&&) noexcept -> filter& = default;
-  // if the filter is copied the data will be copied, the copied object will hold on to its timer `other`
-  filter(filter const& other) {
-    this->time_on = other.time_on;
-    this->time_off = other.time_off;
-  }
-  auto operator=(filter const& other) -> filter& {
-    this->time_on = other.time_on;
-    this->time_off = other.time_off;
-    return *this;
-  }
-
-  // async_process is const to not require making change to config object while processing the filter state
-  auto async_process(bool&& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is non-existent?
-    auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<bool, std::error_code>)>(
-        [this, copy = value, first_call = true](auto& self, std::error_code code = {}) mutable {
-          if (code) {
-            // Base case for a timer that was not able to complete(cancelled).
-            // IE a state change occurred while waiting or class deconstructed.
-            self.complete(std::unexpected(code));
-            return;
-          }
-          // second call meaning success, call owner and return
-          if (!first_call) {
-            timer_ = std::nullopt;
-            self.complete(copy);
-            return;
-          }
-          first_call = false;
-          if (timer_) {
-            // already waiting need to cancel and return
-            timer_->cancel();  // this will make a recall to this very same lambda with error code
-            timer_ = std::nullopt;
-            return;
-          }
-          auto executor = asio::get_associated_executor(self);
-          timer_ = asio::basic_waitable_timer<clock_type>{ executor };
-          timer_->expires_after(copy ? time_on : time_off);
-          // moving self makes this callback be called once again when expiry is reached or timer is cancelled
-          timer_->async_wait(std::move(self));
-        },
-        completion_token, exe);
-  }
-
-private:
-  // mutable is required since async_process is const
-  mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
-
-public:
-  struct glaze {
-    using type = filter<filter_e::timer, bool, clock_type>;
-    static constexpr std::string_view name{ "tfc::ipc::filter::timer" };
-    // clang-format off
-    static constexpr auto value{ glz::object(
-      "time_on", &type::time_on, "Rising edge settling delay, applied on next event, NOT current one if already processing",
-      "time_off", &type::time_off, "Falling edge settling delay, applied on next event, NOT current one if already processing"
-    ) };
-    // clang-format on
-  };
-};
-
-template <typename value_t>
-  requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
-struct filter<filter_e::offset, value_t> {
-  value_t offset{};
-  static constexpr filter_e type{ filter_e::offset };
-
-  auto async_process(value_t&& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is non-existent?
-    auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, copy = value](auto& self) {
-          self.complete(copy + offset);  //
-        },
-        completion_token, exe);
-  }
-
-  struct glaze {
-    using type = filter<filter_e::offset, value_t>;
-    static constexpr std::string_view name{ "tfc::ipc::filter::offset" };
-    static constexpr auto value{ glz::object("offset", &type::offset, "Adds a constant value to each sensor value.") };
-  };
-};
-
-template <typename value_t>
-  requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
-struct filter<filter_e::multiply, value_t> {
-  value_t multiply{};
-  static constexpr filter_e type{ filter_e::multiply };
-
-  auto async_process(value_t&& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is non-existent?
-    auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, copy = value](auto& self) {
-          self.complete(copy * multiply);  //
-        },
-        completion_token, exe);
-  }
-
-  struct glaze {
-    using type = filter<filter_e::multiply, value_t>;
-    static constexpr std::string_view name{ "tfc::ipc::filter::multiply" };
-    static constexpr auto value{ glz::object("multiply", &type::multiply, "Multiplies each value by a constant value.") };
-  };
-};
-
-template <typename value_t>
-struct filter<filter_e::filter_out, value_t> {
-  value_t filter_out{};
-  static constexpr filter_e type{ filter_e::filter_out };
-
-  auto async_process(value_t&& value, auto&& completion_token) const {
-    auto executor{ asio::get_associated_executor(completion_token) };
-    return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
-        [this, moved_value = std::move(value)](auto& self) {
-          // Todo should this filter be available for double?
-          // clang-format off
-          PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-          if (moved_value == filter_out) {
-          PRAGMA_CLANG_WARNING_POP
-            // clang-format on
-            self.complete(std::unexpected(std::make_error_code(std::errc::bad_message)));
-          } else {
-            self.complete(moved_value);
-          }
-        },
-        completion_token, executor);
-  }
-
-  struct glaze {
-    using type = filter<filter_e::filter_out, value_t>;
-    static constexpr std::string_view name{ "tfc::ipc::filter::filter_out" };
-    static constexpr auto value{
-      glz::object("filter_out", &type::filter_out, "Filter out specific values to drop and forget")
-    };
-  };
-};
 
 namespace detail {
 template <typename value_t>
@@ -258,76 +76,28 @@ using any_filter_decl_t = any_filter_decl<value_t>::type;
 template <typename value_t, typename callback_t>
 class filters {
 public:
-  filters(asio::io_context& ctx, std::string_view name, callback_t&& callback)
-      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}._filters_", name) }, callback_{ callback } {}
+  filters(asio::io_context& ctx, std::string_view name, callback_t&& callback);
 
   /// \brief changes internal last_value state when filters have been processed
-  void operator()(value_t&& value) {
-    if (filters_->empty()) {
-      last_value_ = std::move(value);
-      std::invoke(callback_, last_value_.value());
-      return;
-    }
-    std::expected<value_t, std::error_code> return_value{ std::move(value) };
-    asio::co_spawn(
-        ctx_,
-        [this, return_val = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
-          for (auto const& filter : filters_.value()) {
-            // move the value into the filter and the filter will return the value modified or not
-            return_val = co_await std::visit(
-                [return_v = std::move(return_val)](auto&& arg) mutable -> auto {  // mutable to move return_value
-                  return arg.async_process(std::move(return_v.value()), asio::use_awaitable);  //
-                },
-                filter);
-            if (!return_val.has_value()) {
-              // The filter has erased the existence of inputted value, exit the coroutine and forget that this happened
-              co_return std::move(return_val);
-            }
-          }
-          co_return std::move(return_val);
-        },
-        [this](std::exception_ptr const& exception_ptr, std::expected<value_t, std::error_code>&& return_val) {
-          if (exception_ptr) {
-            std::rethrow_exception(exception_ptr);
-          }
-          if (return_val.has_value()) {
-            last_value_ = std::move(return_val.value());
-            std::invoke(callback_, last_value_.value());
-          } else {
-            // I have now forgotten the original value/s
-          }
-        });
-  }
-  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return last_value_; }
+  void operator()(value_t&& value);
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const&;
 
 private:
   asio::io_context& ctx_;
-  tfc::confman::config<std::vector<detail::any_filter_decl_t<value_t>>> filters_;
+  using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
+  using confman_t = confman::config<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>;
+  std::unique_ptr<confman_t, std::function<void(confman_t*)>> filters_;
   callback_t callback_;
   std::optional<value_t> last_value_{};
 };
 
-}  // namespace tfc::ipc::filter
+template <typename value_t>
+using callback_t = std::function<void (value_t &)>;
 
-template <>
-struct glz::meta<tfc::ipc::filter::filter_e> {
-  using enum tfc::ipc::filter::filter_e;
-  static std::string_view constexpr name{ "ipc::filter::filter_e" };
-  // clang-format off
-  static auto constexpr value{ glz::enumerate("unknown", unknown,
-                                              "invert", invert, "Invert outputting value",
-                                              "timer", timer, "Timer on/off delay of boolean",
-                                              "offset", offset, "Adds a constant value to each sensor value",
-                                              "multiply", multiply, "Multiplies each value by a constant value",
-                                              "filter_out", filter_out, "Filter out specific values to drop and forget",
-                                              "calibrate_linear", calibrate_linear,
-                                              "median", median,
-                                              "quantile", quantile,
-                                              "sliding_window_moving_average", sliding_window_moving_average,
-                                              "exponential_moving_average", exponential_moving_average,
-                                              "throttle", throttle,
-                                              "throttle_average", throttle_average,
-                                              "delta", delta,
-                                              "lambda", lambda) };
-  // clang-format on
-};
+extern template class filters<bool, callback_t<bool>>;
+extern template class filters<std::uint64_t, callback_t<std::uint64_t>>;
+extern template class filters<std::int64_t, callback_t<std::int64_t>>;
+extern template class filters<double, callback_t<double>>;
+extern template class filters<std::string, callback_t<std::string>>;
+
+}  // namespace tfc::ipc::filter

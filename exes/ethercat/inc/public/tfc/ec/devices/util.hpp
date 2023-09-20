@@ -5,6 +5,7 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/stx/glaze_meta.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>

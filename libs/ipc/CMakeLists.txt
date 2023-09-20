@@ -5,6 +5,7 @@ add_library(ipc
   src/ipc.cpp
   src/dbus_server_iface_mock.cpp # todo make ipc_test target
   src/dbus_client_iface.cpp
+  src/details/filter.cpp
 )
 add_library(tfc::ipc ALIAS ipc)
 
@@ -15,6 +16,8 @@ target_include_directories(ipc
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${AZMQ_INCLUDE_DIRS}>
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/inc
 )
 
 find_package(Boost REQUIRED)

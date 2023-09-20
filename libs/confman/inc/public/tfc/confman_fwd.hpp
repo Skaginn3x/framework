@@ -9,9 +9,7 @@ class config_dbus_client;
 template <typename storage_t>
 class file_storage;
 
-template <typename config_storage_t,
-          typename file_storage_t = file_storage<config_storage_t>,
-          typename config_dbus_client_t = detail::config_dbus_client>
+template <typename config_storage_t, typename file_storage_t, typename config_dbus_client_t>
 class config;
 
 }  // namespace tfc::confman

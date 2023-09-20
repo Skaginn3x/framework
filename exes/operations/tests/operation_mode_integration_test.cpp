@@ -6,6 +6,7 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/operation_mode.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/stx/glaze_meta.hpp>
 #include "app_operation_mode.hpp"
 #include "state_machine.hpp"
 
