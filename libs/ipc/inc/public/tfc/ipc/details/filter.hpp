@@ -1,11 +1,11 @@
 #pragma once
-#include <memory>
-#include <vector>
-#include <optional>
-#include <variant>
-#include <string_view>
-#include <string>
 #include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
 
 #include <tfc/confman_fwd.hpp>
 
@@ -92,7 +92,7 @@ private:
 };
 
 template <typename value_t>
-using callback_t = std::function<void (value_t &)>;
+using callback_t = std::function<void(value_t&)>;
 
 extern template class filters<bool, callback_t<bool>>;
 extern template class filters<std::uint64_t, callback_t<std::uint64_t>>;

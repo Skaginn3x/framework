@@ -2,6 +2,7 @@
 #include <concepts>
 #include <expected>
 
+#include <fmt/core.h>
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/compose.hpp>
@@ -9,12 +10,11 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <glaze/core/common.hpp>
-#include <fmt/core.h>
 
+#include <tfc/confman.hpp>
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/pragmas.hpp>
-#include <tfc/confman.hpp>
 
 namespace tfc::ipc::filter {
 

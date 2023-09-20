@@ -3,7 +3,7 @@
 namespace tfc::ipc::filter {
 
 template <typename value_t>
-using callback_t = std::function<void (value_t &)>;
+using callback_t = std::function<void(value_t&)>;
 
 template class filters<bool, callback_t<bool>>;
 template class filters<std::uint64_t, callback_t<std::uint64_t>>;
