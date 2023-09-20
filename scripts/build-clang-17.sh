@@ -2,7 +2,7 @@
 
 set -ex
 
-VERSION=16.0.0
+VERSION=17.0.1
 
 curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-$VERSION/llvm-project-$VERSION.src.tar.xz | tar xJf -
 

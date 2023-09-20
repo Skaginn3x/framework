@@ -84,13 +84,13 @@ auto ipc_manager_client::connections(std::function<void(std::map<std::string, st
   sdbusplus::asio::getProperty<std::string>(
       *connection_, ipc_ruler_service_name_, ipc_ruler_object_path_, ipc_ruler_interface_name_,
       consts::connections_property.data(),
-      [handler = std::move(handler)](const boost::system::error_code& error, const std::string& response) {
+      [handl = std::move(handler)](const boost::system::error_code& error, const std::string& response) {
         if (error) {
           return;
         }
         auto slots = glz::read_json<std::map<std::string, std::vector<std::string>>>(response);
         if (slots) {
-          handler(slots.value());
+          handl(slots.value());
         }
       });
 }

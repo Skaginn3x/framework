@@ -271,20 +271,20 @@ public:
     std::expected<value_t, std::error_code> return_value{ std::move(value) };
     asio::co_spawn(
         ctx_,
-        [this, return_value = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
+        [this, return_val = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
           for (auto const& filter : filters_.value()) {
             // move the value into the filter and the filter will return the value modified or not
-            return_value = co_await std::visit(
-                [return_value = std::move(return_value)](auto&& arg) mutable -> auto {  // mutable to move return_value
-                  return arg.async_process(std::move(return_value.value()), asio::use_awaitable);  //
+            return_val = co_await std::visit(
+                [return_v = std::move(return_val)](auto&& arg) mutable -> auto {  // mutable to move return_value
+                  return arg.async_process(std::move(return_v.value()), asio::use_awaitable);  //
                 },
                 filter);
-            if (!return_value.has_value()) {
+            if (!return_val.has_value()) {
               // The filter has erased the existence of inputted value, exit the coroutine and forget that this happened
-              co_return std::move(return_value);
+              co_return std::move(return_val);
             }
           }
-          co_return std::move(return_value);
+          co_return std::move(return_val);
         },
         [this](std::exception_ptr const& exception_ptr, std::expected<value_t, std::error_code>&& return_val) {
           if (exception_ptr) {
