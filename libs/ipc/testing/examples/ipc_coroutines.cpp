@@ -3,7 +3,7 @@
 #include <boost/asio/experimental/co_spawn.hpp>
 #include <boost/asio/experimental/use_coro.hpp>
 
-#include <tfc/ipc/details/impl.hpp>
+#include <tfc/ipc/details/core.hpp>
 #include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;

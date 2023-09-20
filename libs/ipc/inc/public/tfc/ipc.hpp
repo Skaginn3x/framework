@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 
 #include <tfc/ipc/details/dbus_client_iface.hpp>
-#include <tfc/ipc/details/impl.hpp>
+#include <tfc/ipc/details/core.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
