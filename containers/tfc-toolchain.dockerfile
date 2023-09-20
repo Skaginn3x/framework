@@ -14,7 +14,7 @@ RUN git clone https://github.com/microsoft/vcpkg /opt/vcpkg
 
 WORKDIR /home/tfc/
 
-RUN curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 16 all
+RUN curl https://apt.llvm.org/llvm.sh -o llvm.sh && chmod +x llvm.sh && ./llvm.sh 17 all
 
 RUN rm -rf /var/lib/apt/lists/*
 
