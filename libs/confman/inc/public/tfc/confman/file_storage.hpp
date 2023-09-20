@@ -5,8 +5,12 @@
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
-#include <glaze/glaze.hpp>
+#include <glaze/core/opts.hpp>
+#include <glaze/core/write.hpp>
+#include <glaze/json/write.hpp>
+#include <glaze/json/read.hpp>
 
+#include <tfc/stx/concepts.hpp>
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/logger.hpp>
 
@@ -75,7 +79,7 @@ public:
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   /// \brief Subscribe to changes from the filesystem
-  auto on_change(std::invocable auto&& callback) -> void { cb_ = callback; }
+  auto on_change(tfc::stx::invocable auto&& callback) -> void { cb_ = std::forward<decltype(callback)>(callback); }
 
   using change = detail::change<file_storage>;
 

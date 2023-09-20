@@ -15,8 +15,8 @@ struct change {
 
   change(change const&) noexcept = default;
   change(change&&) noexcept = default;
-  change& operator=(change const&) noexcept = default;
-  change& operator=(change&&) noexcept = default;
+  auto operator=(change const&) noexcept -> change& = default;
+  auto operator=(change&&) noexcept -> change& = default;
 
   /// \brief let owner know of the changes
   ~change() {

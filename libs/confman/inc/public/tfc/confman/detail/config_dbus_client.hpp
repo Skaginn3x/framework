@@ -6,10 +6,7 @@
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/stx/to_tuple.hpp>
-
-namespace boost::asio {
-class io_context;
-}
+#include <tfc/utils/asio_fwd.hpp>
 
 namespace tfc::confman::detail {
 
