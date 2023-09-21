@@ -14,7 +14,7 @@ interface DbusInterfaceHook {
 }
 
 const useDbusInterface = (busName: string, interfaceName: string, objectPath: string): DbusInterfaceHook => {
-  const [dbusObjectProxy, setDbusObjectProxy] = useState<any | null>(null);
+  const [dbusObjectProxy, setDbusObjectProxy] = useState<any>(null);
   const [valid, setValid] = useState<boolean>(false);
 
   const [slotList, setSlotList] = useState<SlotType[]>([]);

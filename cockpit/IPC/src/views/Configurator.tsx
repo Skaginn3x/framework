@@ -65,8 +65,8 @@ export default function Configurator() {
     loadExternalScript((allNames) => {
       const filteredNames = allNames.filter(
         (name: string) => name.includes('config')
-        && !name.includes('ipc_ruler')
-        && !name.includes('_filters_'),
+        && !name.includes('ipc_ruler'),
+        // && !name.includes('_filters_'),
       );
       setNames(filteredNames);
     });
@@ -93,31 +93,25 @@ export default function Configurator() {
   }, [names]);
 
   function handleNullValue(data: any): any {
-    // If the data is null or undefined, return as is
-    if (data === null || data === undefined) {
-      return data;
-    }
-
-    // If the data is an array, map through its items
     if (Array.isArray(data)) {
-      return data.map(handleNullValue);
+      return data.filter((item) => item != null && item !== undefined).map(handleNullValue);
     }
+    if (typeof data === 'object' && data !== null) {
+      const newObj: any = {};
+      // eslint-disable-next-line no-restricted-syntax, guard-for-in
+      for (const key in data) {
+        const childObj = handleNullValue(data[key]);
 
-    // If the data is an object, go through its keys
-    if (typeof data === 'object') {
-      const newData: any = {};
-      // eslint-disable-next-line no-restricted-syntax
-      for (const key of Object.keys(data)) {
-        if (key === 'internal_null_value_do_not_use') {
-          newData[key] = null;
-        } else {
-          newData[key] = handleNullValue(data[key]);
+        if (key === 'internal_null_value_do_not_use' && childObj === null) {
+          return null; // Set the entire object to null if this key is present and its value is null
+        }
+
+        if (childObj !== undefined) {
+          newObj[key] = childObj;
         }
       }
-      return newData;
+      return newObj;
     }
-
-    // If the data is a primitive value (number, string, etc.), return as is
     return data;
   }
 
@@ -150,7 +144,9 @@ export default function Configurator() {
   };
 
   function handleSubmit(data:any) {
-    handleNullValue(data);
+    // eslint-disable-next-line no-param-reassign
+    data = handleNullValue(data);
+    console.log('data: ', data);
     updateFormData(activeItem, data, setFormData, addAlert);
   }
 

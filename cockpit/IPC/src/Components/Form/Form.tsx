@@ -18,7 +18,7 @@ import { relTranslator } from '@ui-schema/ui-schema/Translate/relT';
 
 // import the widgets for your design-system.
 import { MuiWidgetBinding, widgets } from '@ui-schema/ds-material';
-import { injectPluginStack } from '@ui-schema/ui-schema';
+import { checkValueExists, injectPluginStack, validators } from '@ui-schema/ui-schema';
 import { GridContainer } from '@ui-schema/ds-material/GridContainer';
 import Immutable from 'immutable';
 import { Button } from '@patternfly/react-core';
@@ -48,6 +48,7 @@ export default function FormGenerator(
       Units: UnitWidget as React.FunctionComponent<ExtendedWidgetProps>,
       Variant: VariantWidget as React.FunctionComponent<ExtendedWidgetProps>,
     } as CustomWidgetBinding,
+    pluginSimpleStack: validators,
   };
 
   // Function to handle widget assignment
@@ -114,6 +115,7 @@ export default function FormGenerator(
 
   const onInternalChange = React.useCallback((actions: any) => {
     setStore(storeUpdater(actions));
+    console.log('validity:', store.getValidity());
   }, [setStore]);
 
   return (
@@ -124,7 +126,7 @@ export default function FormGenerator(
       <UIStoreProvider
         store={store}
         onChange={onInternalChange}
-        showValidity
+        showValidity={false}
       >
         <GridStack isRoot schema={schema} showValidity={false} />
       </UIStoreProvider>
@@ -133,6 +135,7 @@ export default function FormGenerator(
         style={{ marginTop: 24 }}
         onClick={() => {
           onSubmit(store.toJS().values);
+          console.log('sss: ', store.toJS());
         }}
       >
         Send!
