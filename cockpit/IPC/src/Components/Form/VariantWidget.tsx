@@ -54,8 +54,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     return null;
   }
 
-  console.log('schema ', schema.toJS());
-
   /**
    *  Find selected object based on data in store.
    * @param oneOf Schema

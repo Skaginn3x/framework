@@ -146,7 +146,6 @@ export default function Configurator() {
   function handleSubmit(data:any) {
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
-    console.log('data: ', data);
     updateFormData(activeItem, data, setFormData, addAlert);
   }
 

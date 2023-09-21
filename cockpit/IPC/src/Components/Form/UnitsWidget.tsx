@@ -37,7 +37,7 @@ export interface UnitWidgetBaseProps {
 }
 
 export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
-  storeKeys, schema, onChange, valid,
+  storeKeys, schema, onChange,
   style, onClick, onFocus, onBlur, onKeyUp, onKeyDown,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   inputProps = {}, InputProps = {}, inputRef: customInputRef,
@@ -48,8 +48,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   let initialDimension: string | undefined;
   let includesUnits = true;
-  // eslint-disable-next-line no-param-reassign, @typescript-eslint/no-unused-vars
-  valid = false;
 
   const storeValues = store ? store.toJS().values : {};
 
