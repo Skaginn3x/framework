@@ -13,3 +13,20 @@
    margin-top: -2px;
    line-height: 1rem;
 }
+
+/* If screen width is less than 420 set title class font size to 1.25rem*/
+.title {
+   font-size: 1.5rem !important;
+ }
+
+@media (max-width: 470px) {
+   .title {
+     font-size: 1.25rem !important;
+   }
+ }
+
+ @media (max-width: 390px) {
+   .title {
+     font-size: 1rem !important;
+   }
+ }

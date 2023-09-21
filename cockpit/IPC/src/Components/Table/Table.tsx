@@ -20,11 +20,14 @@ import {
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import PlusIcon from '@patternfly/react-icons/dist/esm/icons/plus-icon';
 import MinusIcon from '@patternfly/react-icons/dist/esm/icons/minus-icon';
+import { PencilAltIcon } from '@patternfly/react-icons';
 import { SignalType, SlotType, ConnectionType } from '../../Types';
 import { useAlertContext } from '../Alert/AlertContext';
 import './Table.css';
-import ModalContent from './ModalContent';
+import SlotModal from './SlotModal';
 import ToolBar from './Toolbar';
+import FilterModal from './FilterModal';
+import { removeOrg } from '../Form/WidgetFunctions';
 
 function formatDate(dateStr: string, withTime = false) {
   const date = new Date(dateStr);
@@ -61,10 +64,11 @@ export default function Table({
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = React.useState(false);
   const [modalSelectedSlots, setModalSelectedSlots] = React.useState<Set<SlotType>>(new Set());
+  const [filterModalOpen, setFilterModalOpen] = React.useState(false);
   const [selectedSignal, setSelectedSignal] = React.useState<SignalType | undefined>(undefined);
   const [selectedSlot, setSelectedSlot] = React.useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage, setPerPage] = useState(20);
   const searchBoxRef = useRef<HTMLInputElement | null>(null);
 
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
@@ -162,6 +166,11 @@ export default function Table({
     setIsModalOpen(true);
   };
 
+  const handlePencilClick = (slot: SlotType) => {
+    setSelectedSlot(slot.name || undefined);
+    setFilterModalOpen(true);
+  };
+
   const AddButtonRef = React.createRef<HTMLButtonElement>();
   const removeButtonRef = React.createRef<HTMLButtonElement>();
   const cancelButtonRef = React.createRef<HTMLButtonElement>();
@@ -221,75 +230,78 @@ export default function Table({
     };
   }, []);
 
+  function focusOnSlot(globalIndex: number, slotIdx: number) {
+    setSelectedIndexes([globalIndex, slotIdx]);
+    slotRefs[globalIndex - startIndex][slotIdx].current?.focus();
+  }
+
+  function focusOnSignal(globalIndex: number) {
+    setSelectedIndexes([globalIndex, -1]);
+    signalRefs[globalIndex - startIndex].current?.focus();
+  }
+
+  function handleArrowDown(slotIndex: number, globalSignalIndex: number) {
+    const nextSlotIndex = slotIndex + 1;
+    const signalSlots = connections[filteredSignals[globalSignalIndex].name];
+
+    if (signalSlots && nextSlotIndex < signalSlots.length) {
+      focusOnSlot(globalSignalIndex, nextSlotIndex);
+    } else {
+      const nextGlobalSignalIndex = globalSignalIndex + 1;
+
+      if (nextGlobalSignalIndex < filteredSignals.length) {
+        setSelectedIndexes([nextGlobalSignalIndex, -1]);
+
+        if (nextGlobalSignalIndex < endIndex) {
+          focusOnSignal(nextGlobalSignalIndex);
+        } else {
+          setPage(page + 1);
+        }
+      }
+    }
+  }
+  const getPreviousSignalSlots = (globalIndex: number) => connections[filteredSignals[globalIndex].name];
+
+  function focusOnPreviousItem(globalSignalIndex: number, start_index: number) {
+    const prevGlobalSignalIndex = globalSignalIndex - 1;
+
+    if (prevGlobalSignalIndex >= 0) {
+      const prevSignalSlots = getPreviousSignalSlots(prevGlobalSignalIndex);
+      const prevSlotIndex = prevSignalSlots ? prevSignalSlots.length - 1 : -1;
+
+      setSelectedIndexes([prevGlobalSignalIndex, prevSlotIndex]);
+
+      if (prevSlotIndex === -1) {
+        if (prevGlobalSignalIndex >= start_index) {
+          focusOnSignal(prevGlobalSignalIndex);
+        } else {
+          setPage(page - 1);
+        }
+      } else if (prevGlobalSignalIndex >= start_index) {
+        focusOnSlot(prevGlobalSignalIndex, prevSlotIndex);
+      } else {
+        setPage(page - 1);
+      }
+    }
+  }
+
+  function handleArrowUp(slotIndex: number, globalSignalIndex: number) {
+    if (slotIndex > 0) {
+      focusOnSlot(globalSignalIndex, slotIndex - 1);
+    } else if (slotIndex === 0) {
+      focusOnSignal(globalSignalIndex);
+    } else {
+      focusOnPreviousItem(globalSignalIndex, startIndex);
+    }
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, globalSignalIndex: number, slotIndex: number) => {
-    const focusOnSlot = (globalIndex: number, slotIdx: number) => {
-      setSelectedIndexes([globalIndex, slotIdx]);
-      slotRefs[globalIndex - startIndex][slotIdx].current?.focus();
-    };
-
-    const focusOnSignal = (globalIndex: number) => {
-      setSelectedIndexes([globalIndex, -1]);
-      signalRefs[globalIndex - startIndex].current?.focus();
-    };
-
-    const getPreviousSignalSlots = (globalIndex: number) => connections[filteredSignals[globalIndex].name];
-
-    const handleArrowDown = () => {
-      const nextSlotIndex = slotIndex + 1;
-      const signalSlots = connections[filteredSignals[globalSignalIndex].name];
-
-      if (signalSlots && nextSlotIndex < signalSlots.length) {
-        focusOnSlot(globalSignalIndex, nextSlotIndex);
-      } else {
-        const nextGlobalSignalIndex = globalSignalIndex + 1;
-
-        if (nextGlobalSignalIndex < filteredSignals.length) {
-          setSelectedIndexes([nextGlobalSignalIndex, -1]);
-
-          if (nextGlobalSignalIndex < endIndex) {
-            focusOnSignal(nextGlobalSignalIndex);
-          } else {
-            setPage(page + 1);
-          }
-        }
-      }
-    };
-
-    const handleArrowUp = () => {
-      if (slotIndex > 0) {
-        focusOnSlot(globalSignalIndex, slotIndex - 1);
-      } else if (slotIndex === 0) {
-        focusOnSignal(globalSignalIndex);
-      } else {
-        const prevGlobalSignalIndex = globalSignalIndex - 1;
-
-        if (prevGlobalSignalIndex >= 0) {
-          const prevSignalSlots = getPreviousSignalSlots(prevGlobalSignalIndex);
-          const prevSlotIndex = prevSignalSlots ? prevSignalSlots.length - 1 : -1;
-
-          setSelectedIndexes([prevGlobalSignalIndex, prevSlotIndex]);
-
-          if (prevSlotIndex === -1) {
-            if (prevGlobalSignalIndex >= startIndex) {
-              focusOnSignal(prevGlobalSignalIndex);
-            } else {
-              setPage(page - 1);
-            }
-          } else if (prevGlobalSignalIndex >= startIndex) {
-            focusOnSlot(prevGlobalSignalIndex, prevSlotIndex);
-          } else {
-            setPage(page - 1);
-          }
-        }
-      }
-    };
-
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      handleArrowDown();
+      handleArrowDown(slotIndex, globalSignalIndex);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      handleArrowUp();
+      handleArrowUp(slotIndex, globalSignalIndex);
     }
   };
 
@@ -363,14 +375,13 @@ export default function Table({
       <TableComposable aria-label="Selectable table">
         <Thead>
           <Tr>
-            <Th className="selectionCell" />
-            <Th width={35} colSpan={1}>{columnNames.name}</Th>
+            <Th width={35} colSpan={2}>{columnNames.name}</Th>
             <Th width={10}>{columnNames.type}</Th>
             <Th width={10}>{columnNames.created_by}</Th>
             <Th width={10}>{columnNames.created_at}</Th>
             <Th width={10}>{columnNames.last_registered}</Th>
             <Th width={20}>{columnNames.description}</Th>
-            <Th className="selectionCell" />
+            <Th className="selectionCell topLevelCell" />
           </Tr>
         </Thead>
         <Tbody>
@@ -384,7 +395,7 @@ export default function Table({
                   tabIndex={0}
                   onFocus={() => setSelectedIndexes([startIndex + index, -1])}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (!e.shiftKey && e.key === 'Enter') {
                       handlePlusClick(signal);
                     }
                     handleKeyDown(e, startIndex + index, -1);
@@ -402,7 +413,7 @@ export default function Table({
                       entryDelay={1000}
                     >
                       <div>
-                        {signal.name.split('.').slice(3).join('.') || signal.name}
+                        {removeOrg(signal.name) || signal.name}
                       </div>
                     </Tooltip>
                   </Td>
@@ -441,16 +452,26 @@ export default function Table({
                   </Td>
                   <Td
                     key={signal.name}
-                    onClick={() => handlePlusClick(signal)}
                     dataLabel="Add slots to signal"
-                    className="selectionCell selectionHover"
+                    className="selectionCell"
                     modifier="truncate"
                     style={{ padding: '0.5rem', verticalAlign: 'middle' }}
                   >
-                    <PlusIcon style={{ margin: '0' }} />
+                    <div style={{
+                      display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
+                    }}
+                    >
+                      <PlusIcon
+                        style={{
+                          margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                        }}
+                        onClick={() => handlePlusClick(signal)}
+                        className="selectionHover"
+                      />
+                    </div>
                   </Td>
                 </Tr>
-                {connections[signal.name] && connections[signal.name].map((slotName: string, slotIndex: number) => (
+                {connections[signal.name]?.map((slotName: string, slotIndex: number) => (
                   <Tr
                     key={`${signal.name}-${slotName}`}
                     className="smallRow"
@@ -458,10 +479,13 @@ export default function Table({
                     tabIndex={0}
                     onFocus={() => setSelectedIndexes([startIndex + index, slotIndex])}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.shiftKey && e.key === 'Enter') {
+                        e.stopPropagation();
+                        handlePencilClick(slots.filter((slot) => slot.name === slotName)[0]);
+                      } else if (!e.shiftKey && e.key === 'Enter') {
                         e.stopPropagation();
                         handleMinusClick(slotName);
-                      } else {
+                      } else if (!e.shiftKey) {
                         handleKeyDown(e, startIndex + index, slotIndex);
                       }
                     }}
@@ -472,22 +496,33 @@ export default function Table({
                   >
 
                     <Td
-                      key={`Selection${slotIndex}`}
-                      onClick={() => handleMinusClick(slotName)}
+                      key={`Selection${slotName}`}
                       dataLabel="Remove slot from signal"
                       className="smallSelectionCell"
-                      style={{ padding: '0.5rem' }}
+                      style={{ verticalAlign: 'middle', padding: '0.5rem', height: '100%' }}
                     >
-                      <MinusIcon style={{ margin: '0' }} />
+                      <div style={{
+                        display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
+                      }}
+                      >
+                        <MinusIcon
+                          style={{
+                            margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                          }}
+                          className="selectionHoverSignal"
+                          onClick={() => handleMinusClick(slotName)}
+                        />
+                      </div>
                     </Td>
 
                     <Td
-                      key={`${signal.name}-${slotName}-${slotIndex}`}
+                      key={`${signal.name}-${slotName}`}
                       dataLabel={columnNames.name}
                       modifier="truncate"
-                      style={{ paddingLeft: '1rem', verticalAlign: 'middle' }}
+                      style={{
+                        paddingLeft: '1rem', verticalAlign: 'middle', position: 'relative', left: '-10rem',
+                      }}
                     >
-                      {/* {slotName} */}
                       <Tooltip
                         content={slotName}
                         enableFlip
@@ -504,7 +539,7 @@ export default function Table({
                     {slots.filter((slot) => slot.name === slotName).map((slot) => (
                       <>
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-type`}
+                          key={`${signal.name}-${slotName}-type`}
                           dataLabel={columnNames.type}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -513,7 +548,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-created_by`}
+                          key={`${signal.name}-${slotName}-created_by`}
                           dataLabel={columnNames.created_by}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -522,7 +557,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-created_at`}
+                          key={`${signal.name}-${slotName}-created_at`}
                           dataLabel={columnNames.created_at}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -541,7 +576,7 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-last_registered`}
+                          key={`${signal.name}-${slotName}-last_registered`}
                           dataLabel={columnNames.last_registered}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
@@ -560,13 +595,31 @@ export default function Table({
                         </Td>
 
                         <Td
-                          key={`${signal.name}-${slotName}-${slotIndex}-description`}
+                          key={`${signal.name}-${slotName}--description`}
                           dataLabel={columnNames.description}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
-                          colSpan={2}
                         >
                           {slot.description}
+                        </Td>
+                        <Td
+                          key={`${signal.name}-${slotName}--button`}
+                          dataLabel="icons"
+                          modifier="truncate"
+                          style={{ padding: '0.5rem', verticalAlign: 'middle' }}
+                        >
+                          <div style={{
+                            display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
+                          }}
+                          >
+                            <PencilAltIcon
+                              style={{
+                                margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
+                              }}
+                              onClick={() => handlePencilClick(slot)}
+                              className="selectionHoverSignal"
+                            />
+                          </div>
                         </Td>
                       </>
                     ))}
@@ -601,7 +654,7 @@ export default function Table({
           </Button>,
         ]}
       >
-        <ModalContent
+        <SlotModal
           slots={slots}
           selectedSlots={modalSelectedSlots}
           setSelectedSlots={setModalSelectedSlots}
@@ -625,6 +678,15 @@ export default function Table({
         ]}
       >
         Are you sure you want to remove the selected slots from the signal?
+      </Modal>
+
+      <Modal
+        variant={ModalVariant.small}
+        title="Edit signal filters"
+        isOpen={filterModalOpen}
+        onClose={() => setFilterModalOpen(false)}
+      >
+        <FilterModal slot={selectedSlot} />
       </Modal>
 
     </>

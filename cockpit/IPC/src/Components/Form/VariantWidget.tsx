@@ -90,7 +90,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
-
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
         storeKeys,
@@ -107,7 +106,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         type: 'set',
         schema,
         required,
-        data: { },
+        data: { value: undefined },
       });
     }
     setSelectedTitle(event.target.value);

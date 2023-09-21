@@ -77,7 +77,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
-    if (value !== null && newUnit && initialUnit) {
+    if (value !== null && value !== undefined && newUnit && initialUnit) {
       const floatValue = parseFloat(value);
       const valueInBaseUnit = math.unit(floatValue, unit).toNumber(initialUnit); // Convert current value to base unit (e.g. m)
       const newValueInNewUnit = math.round(math.unit(valueInBaseUnit, initialUnit).toNumber(newUnit), 3); // Convert value to new unit
@@ -137,7 +137,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       schema,
       required,
       data: {
-        value: null,
+        value: undefined,
       },
     });
   };

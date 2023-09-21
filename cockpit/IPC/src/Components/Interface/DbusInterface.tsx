@@ -14,7 +14,7 @@ interface DbusInterfaceHook {
 }
 
 const useDbusInterface = (busName: string, interfaceName: string, objectPath: string): DbusInterfaceHook => {
-  const [dbusObjectProxy, setDbusObjectProxy] = useState<any | null>(null);
+  const [dbusObjectProxy, setDbusObjectProxy] = useState<any>(null);
   const [valid, setValid] = useState<boolean>(false);
 
   const [slotList, setSlotList] = useState<SlotType[]>([]);
@@ -81,7 +81,7 @@ const useDbusInterface = (busName: string, interfaceName: string, objectPath: st
   }, []);
 
   async function updateData() {
-    if (dbusObjectProxy && dbusObjectProxy.valid) {
+    if (dbusObjectProxy?.valid) {
       console.info('dbus object proxy is valid, polling');
       setSlotList(await JSON.parse(dbusObjectProxy.data.Slots));
       setSignalList(await JSON.parse(dbusObjectProxy.data.Signals));
@@ -96,13 +96,13 @@ const useDbusInterface = (busName: string, interfaceName: string, objectPath: st
   };
 
   useEffect(() => {
-    if (dbusObjectProxy && dbusObjectProxy.valid) {
+    if (dbusObjectProxy?.valid) {
       // Handles changes to dbus properties
       dbusObjectProxy.addEventListener('changed', handleChanged);
     }
     // Cleanup
     return () => {
-      if (dbusObjectProxy && dbusObjectProxy.valid) {
+      if (dbusObjectProxy?.valid) {
         dbusObjectProxy.removeEventListener('changed', handleChanged);
       }
     };

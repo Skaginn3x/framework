@@ -1,9 +1,11 @@
 .normalRow {
+   outline: none;
    --pf-c-table--cell--PaddingTop: 0.7rem;
    --pf-c-table--cell--PaddingBottom: 0.7rem;
 }
 
 .smallRow {
+   outline: none;
    --pf-c-table--cell--PaddingTop: 0.1rem;
    --pf-c-table--cell--PaddingBottom: 0.1rem;
 }
@@ -19,9 +21,17 @@
    margin: 0px !important;
 }
 
-.selectionHover:hover,
-.smallSelectionCell:hover {
+.topLevelCell {
+   width: 0px !important;
+   padding: 0px !important;
+}
+
+.selectionHover:hover {
    background-color: #f0f0f0 !important;
+   cursor: pointer !important;
+}
+.selectionHoverSignal:hover {
+   background-color: #e4e4e4 !important;
    cursor: pointer !important;
 }
 
@@ -32,7 +42,7 @@
    max-width: 3rem !important;
    padding: 8px !important;
    width: 3rem !important;
-   height: 37px !important;
+   height: 100% !important;
    margin: 0px !important;
 }
 
@@ -43,6 +53,9 @@
 
 .pf-c-table td {
    font-size: 0.95rem;
+}
+.pf-c-table {
+   text-align: left;
 }
 
 .pf-c-table tr> :first-child {

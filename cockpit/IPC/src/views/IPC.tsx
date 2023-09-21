@@ -28,7 +28,6 @@ export default function IPC() {
   return (
     <>
       <Title headingLevel="h1" size="2xl">IPC - Time For Change</Title>
-      {dbusInterface.valid ? <p>Dbus is valid</p> : <p>Dbus is not valid</p>}
       <div className="TableDiv">
         <Table signals={signalList || []} slots={slotList || []} connections={connections || {}} DBUS={dbusInterface} />
       </div>
