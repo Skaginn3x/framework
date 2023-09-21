@@ -11,16 +11,18 @@ import Configurator from './views/Configurator';
 import IPC from './views/IPC';
 import NotFoundPage from './views/NotFoundPage';
 import ListDBUS from './views/ListDBUS';
+import IODebug from './views/IODebug';
 
 function RouterElem() {
   console.log('RouterElem');
   const location = useLocation();
   const query = new URLSearchParams(location.search);
-  const id = query.get('service')?.replace('.html', '') || 'default';
+  const id = query.get('service')?.replace('.html', '') ?? 'default';
   switch (id) {
     case 'connect': return <IPC />;
     case 'configure': return <Configurator />;
     case 'list': return <ListDBUS />;
+    case 'debug': return <IODebug />;
     default: return <NotFoundPage />;
   }
 }
