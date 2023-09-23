@@ -456,6 +456,47 @@ export function VariantSchema(): any {
     },
   };
 }
+
 export function VariantData(): any {
   return { a_int: 0, variant: { sec: 22 } };
+}
+
+export function getIOData(): any {
+  return [
+    {
+      iface: 'com.skaginn3x.config.etc.tfc.tfcctl1.def.tfcctl_slot_tfcctl.def.bool.bool.test',
+      type: 'bool',
+      value: true,
+    },
+    {
+      iface: 'com.skaginn3x.config.operation_mode.def.run_button',
+      type: 'bool',
+      value: true,
+    },
+    {
+      iface: 'com.skaginn3x.config.operation_mode.def.stop_button',
+      type: 'bool',
+      value: false,
+    },
+    {
+      iface: 'com.skaginn3x.config.operation_mode.def.starting_finished',
+      type: 'string',
+      value: 'Yes, finished',
+    },
+    {
+      iface: 'com.skaginn3x.config.operation_mode.def.stopping_finished.',
+      type: 'string',
+      value: 'Stopp Finish',
+    },
+    {
+      iface: 'com.skaginn3x.config.operation_mode.def.temperature.inside',
+      type: 'double',
+      value: -31.415926535,
+    },
+    {
+      iface: 'com.skaginn3x.config.operation_mode.def.temperature.outside.',
+      type: 'double',
+      value: 69.420,
+    },
+  ];
 }
