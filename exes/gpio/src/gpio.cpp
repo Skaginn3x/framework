@@ -6,38 +6,32 @@ gpio::gpio(asio::io_context& ctx, std::filesystem::path const& char_device)
     : ctx_{ ctx }, chip_{ char_device }, config_{ ctx, "lines", config_t::storage_t{ chip_.get_info().num_lines() } },
       manager_client_(ctx_), pins_{ config_->size() }, logger_{ "gpio" }, chip_asio_{ ctx, chip_.fd() } {
   for (std::size_t idx{ 0 }; auto const& pin_config : config_.value()) {
-    pin_config.direction.observe(std::bind_front(&gpio::pin_direction_change, this, idx));
+    pin_config.in_or_out.observe(std::bind_front(&gpio::pin_direction_change, this, idx));
     idx++;
   }
   chip_asio_.async_wait(boost::asio::posix::descriptor_base::wait_read, std::bind_front(&gpio::chip_ready_to_read, this));
 }
 
 void gpio::pin_direction_change(pin_index_t idx,
-                                gpiod::line::direction new_value,
-                                [[maybe_unused]] gpiod::line::direction old_value) noexcept {
+                                pin::type const& new_value,
+                                [[maybe_unused]] pin::type const& old_value) noexcept {
   try {
     logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")", glz::write_json(new_value),
                   glz::write_json(old_value));
-    if (new_value == gpiod::line::direction::OUTPUT) {
-      pins_.at(idx).emplace<ipc_input_t>(ctx_, manager_client_, fmt::format("in.{}", idx),
-                                         std::bind_front(&gpio::ipc_event, this, idx));
-      if (!std::holds_alternative<pin::out>(config_->at(idx).in_or_out)) {
-        config_.make_change()->at(idx).in_or_out = pin::out{};
-      }
-      auto const& pin_out_settings{ std::get<pin::out>(config_->at(idx).in_or_out) };
-      pin_out_settings.force.observe(std::bind_front(&gpio::pin_force_change, this, idx));
-      pin_out_settings.drive.observe(std::bind_front(&gpio::pin_drive_change, this, idx));
-    } else if (new_value == gpiod::line::direction::INPUT) {
-      pins_.at(idx).emplace<ipc_output_t>(ctx_, manager_client_, fmt::format("out.{}", idx));
-      if (!std::holds_alternative<pin::in>(config_->at(idx).in_or_out)) {
-        config_.make_change()->at(idx).in_or_out = pin::in{};
-      } else {
-        pin_edge_change(idx, std::get<pin::in>(config_->at(idx).in_or_out).edge.value(), {});
-      }
-      auto const& pin_in_settings{ std::get<pin::in>(config_->at(idx).in_or_out) };
-      pin_in_settings.edge.observe(std::bind_front(&gpio::pin_edge_change, this, idx));
-      pin_in_settings.bias.observe(std::bind_front(&gpio::pin_bias_change, this, idx));
-    }
+    std::visit(
+        [this, idx](auto& val) {
+          using visit_t = std::remove_cvref_t<decltype(val)>;
+          if constexpr (std::is_same_v<visit_t, pin::in>) {
+            pins_.at(idx).emplace<ipc_output_t>(ctx_, manager_client_, fmt::format("out.{}", idx));
+            val.edge.observe(std::bind_front(&gpio::pin_edge_change, this, idx));
+            val.bias.observe(std::bind_front(&gpio::pin_bias_change, this, idx));
+          } else if constexpr (std::is_same_v<visit_t, pin::out>) {
+            val.force.observe(std::bind_front(&gpio::pin_force_change, this, idx));
+            val.drive.observe(std::bind_front(&gpio::pin_drive_change, this, idx));
+          } else {
+          }
+        },
+        new_value);
   } catch (std::exception const& exception) {  // todo make this general for all observable callbacks
     fmt::print(stderr, "Got exception: \"{}\"", exception.what());
     tfc::base::terminate();
@@ -66,40 +60,40 @@ void gpio::pin_bias_change(pin_index_t idx,
   settings.set_bias(new_value);
   chip_.prepare_request().add_line_settings(idx, settings).do_request();
 }
-void gpio::pin_force_change(pin_index_t idx,
+void gpio::pin_force_change([[maybe_unused]] pin_index_t idx,
                             pin::out::force_e new_value,
                             [[maybe_unused]] pin::out::force_e old_value) noexcept {
   logger_.trace(R"(Got new force change with new value: "{}", old value: "{}")", glz::write_json(new_value),
                 glz::write_json(old_value));
-  auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(idx) };
-  switch (new_value) {
-    using enum pin::out::force_e;
-    case as_is:
-      break;
-    case on: {
-      auto change_pin{ config_.make_change()->at(idx) };
-      if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
-        out->force.set(as_is);
-      }
-      settings.set_output_value(gpiod::line::value::ACTIVE);
-      break;
-    }
-    case save_on:
-      settings.set_output_value(gpiod::line::value::ACTIVE);
-      break;
-    case off: {
-      auto change_pin{ config_.make_change()->at(idx) };
-      if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
-        out->force.set(as_is);
-      }
-      settings.set_output_value(gpiod::line::value::INACTIVE);
-      break;
-    }
-    case save_off:
-      settings.set_output_value(gpiod::line::value::INACTIVE);
-      break;
-  }
-  chip_.prepare_request().add_line_settings(idx, settings).do_request();
+//  auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(idx) };
+//  switch (new_value) {
+//    using enum pin::out::force_e;
+//    case as_is:
+//      break;
+//    case on: {
+//      auto change_pin{ config_.make_change()->at(idx) };
+//      if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
+//        out->force.set(as_is);
+//      }
+//      settings.set_output_value(gpiod::line::value::ACTIVE);
+//      break;
+//    }
+//    case save_on:
+//      settings.set_output_value(gpiod::line::value::ACTIVE);
+//      break;
+//    case off: {
+//      auto change_pin{ config_.make_change()->at(idx) };
+//      if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
+//        out->force.set(as_is);
+//      }
+//      settings.set_output_value(gpiod::line::value::INACTIVE);
+//      break;
+//    }
+//    case save_off:
+//      settings.set_output_value(gpiod::line::value::INACTIVE);
+//      break;
+//  }
+//  chip_.prepare_request().add_line_settings(idx, settings).do_request();
 }
 void gpio::pin_drive_change(pin_index_t idx,
                             gpiod::line::drive new_value,

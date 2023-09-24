@@ -19,11 +19,18 @@
 
 namespace asio = boost::asio;
 
-struct pin {
-  template <tfc::confman::observable_type conf_param_t>
-  using observable = tfc::confman::observable<conf_param_t>;
+template <tfc::confman::observable_type conf_param_t>
+using observable = tfc::confman::observable<conf_param_t>;
 
-  observable<gpiod::line::direction> direction{ gpiod::line::direction::AS_IS };
+struct as_is_t {
+  static constexpr std::string_view name{ "as_is" };
+  struct glaze {
+    static constexpr auto value{ as_is_t::name };
+    static constexpr auto name{ as_is_t::name };
+  };
+};
+
+struct pin {
   struct in {
     observable<gpiod::line::edge> edge{ gpiod::line::edge::NONE };
     observable<gpiod::line::bias> bias{ gpiod::line::bias::AS_IS };
@@ -40,14 +47,15 @@ struct pin {
     // todo not sure that raspberry pi has fet buffer, is this used
     observable<gpiod::line::drive> drive{ gpiod::line::drive::OPEN_SOURCE };
   };
-  std::variant<std::monostate, in, out> in_or_out{ std::monostate{} };
+  using type = std::variant<as_is_t, in, out>;
+  observable<std::variant<as_is_t, in, out>> in_or_out{ as_is_t{} };
 };
 
 template <>
 struct glz::meta<pin> {
   //  clang-format off
   static constexpr auto value{
-    glz::object("direction", &pin::direction, "Input or Output", "in_or_out", &pin::in_or_out, "Instance")
+    glz::object("in_or_out", &pin::in_or_out, "Instance")
   };
   // clang-format on
   static constexpr std::string_view name{ "Pin" };
@@ -164,7 +172,7 @@ public:
   gpio(asio::io_context& ctx, std::filesystem::path const& char_device);
 
 private:
-  void pin_direction_change(pin_index_t, gpiod::line::direction new_value, gpiod::line::direction old_value) noexcept;
+  void pin_direction_change(pin_index_t, pin::type const& new_value, pin::type const& old_value) noexcept;
   void pin_edge_change(pin_index_t, gpiod::line::edge new_value, gpiod::line::edge old_value) noexcept;
   void pin_bias_change(pin_index_t, gpiod::line::bias new_value, gpiod::line::bias old_value) noexcept;
   void pin_force_change(pin_index_t, pin::out::force_e new_value, pin::out::force_e old_value) noexcept;
