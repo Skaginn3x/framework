@@ -6,11 +6,11 @@ set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_C_FLAGS "")
-set(LINK_FLAGS "-fuse-ld=lld")
+set(LINK_FLAGS "")
 
 set(ENV{CC} gcc)
 set(ENV{CXX} g++)
 set(ENV{CFLAGS} "")
-set(ENV{LDFLAGS} -fuse-ld=lld)
+set(ENV{LDFLAGS} "")
 
 set(VCPKG_FIXUP_ELF_RPATH ON)
