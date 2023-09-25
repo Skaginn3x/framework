@@ -6,7 +6,8 @@
   ],
   "configurePresets": [
     {
-      "name": "dev-gcc-debug-dynamic",
+      "name": "ci-gcc-debug-dynamic",
+      "description": "Used for developing purposes",
       "generator": "Ninja",
       "cacheVariables": {
         "BUILD_SHARED_LIBS": "ON"
@@ -18,16 +19,8 @@
       ]
     },
     {
-      "name": "dev-aarch64-gcc-debug",
-      "generator": "Ninja",
-      "inherits": [
-        "cfg-vcpkg-aarch64",
-        "cfg-build-dir",
-        "cfg-debug"
-      ]
-    },
-    {
-      "name": "dev-clang-debug-dynamic",
+      "name": "ci-clang-debug-dynamic",
+      "description": "Used for developing purposes",
       "generator": "Ninja",
       "cacheVariables": {
         "BUILD_SHARED_LIBS": "ON"
@@ -111,6 +104,14 @@
   ],
   "buildPresets": [
     {
+      "name": "build-ci-clang-debug-dynamic",
+      "configurePreset": "ci-clang-debug-dynamic"
+    },
+    {
+      "name": "build-ci-gcc-debug-dynamic",
+      "configurePreset": "ci-gcc-debug-dynamic"
+    },
+    {
       "name": "build-ci-clang-debug",
       "configurePreset": "ci-clang-debug"
     },
@@ -157,6 +158,16 @@
       "hidden": true,
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "test-ci-clang-debug-dynamic",
+      "configurePreset": "ci-clang-debug-dynamic",
+      "inherits": ["test-common"]
+    },
+    {
+      "name": "test-ci-gcc-debug-dynamic",
+      "configurePreset": "ci-gcc-debug-dynamic",
+      "inherits": ["test-common"]
     },
     {
       "name": "test-ci-clang-debug",
