@@ -10,9 +10,9 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
+#include <tfc/stx/millisecond_clock.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>
-#include <tfc/stx/millisecond_clock.hpp>
 #include <tfc/utils/json_schema.hpp>
 
 namespace tfc::detail {
@@ -222,7 +222,7 @@ template <>
 struct to_json<std::chrono::time_point<tfc::stx::millisecond_system_clock, tfc::stx::millisecond_system_clock::duration>> {
   template <auto opts>
   static void op(auto& value, auto&&... args) noexcept {
-    std::string iso8601{fmt::format("{:%FT%T%z}", value)};
+    std::string iso8601{ fmt::format("{:%FT%T%z}", value) };
     write<json>::op<opts>(iso8601, args...);
   }
 };
