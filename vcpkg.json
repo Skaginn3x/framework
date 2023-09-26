@@ -30,6 +30,7 @@
     "magic-enum",
     "mp-units",
     "sdbusplus",
+    "pcg",
     "protobuf",
     "openssl"
   ]

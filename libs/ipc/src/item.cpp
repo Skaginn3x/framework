@@ -1,26 +1,23 @@
-#include <random>
 
 #include <fmt/format.h>
 #include <glaze/json.hpp>
+#include <pcg_random.hpp>
+#include <pcg_extras.hpp>
 
 #include <tfc/ipc/details/item_glaze_meta.hpp>
 #include <tfc/ipc/item.hpp>
-#include <tfc/progbase.hpp>
 
 namespace tfc::ipc::item {
 
-item make() {
-  // todo how about storing the random engine in shared memory?
-  static std::mt19937_64 random_engine{};  // NOSONAR
-  static bool first_call{ true };
-  if (first_call) {
-    first_call = false;
-    auto proc_id{ std::hash<std::string>{}(fmt::format("{}{}", tfc::base::get_exe_name(), tfc::base::get_proc_name())) };
-    random_engine.seed(proc_id);
-  }
-  uuids::basic_uuid_random_generator<std::mt19937_64> random_generator{ random_engine };
-
+auto make(pcg_extras::seed_seq_from<std::random_device>& seed_source) -> item {
+  pcg64 random_engine(seed_source); // result_type uint64_t
+  uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
   return { .item_id = random_generator(), .entry_timestamp = std::chrono::system_clock::now() };
+}
+
+auto make() -> item {
+  pcg_extras::seed_seq_from<std::random_device> seed_source;
+  return make(seed_source);
 }
 auto item::from_json(std::string_view json) -> std::expected<item, glz::parse_error> {
   return glz::read_json<item>(json);
