@@ -92,13 +92,11 @@ template <>
 struct glz::meta<gpiod::line::direction> {
   using enum gpiod::line::direction;
   // clang-format off
-  static constexpr auto value{ glz::enumerate("as_is",
-                                              AS_IS,  //"Request the pin, but don't change current direction.",
-                                              "input",
-                                              INPUT,  //"Direction is input - we're reading the state of a GPIO pin.",
-                                              "output",
-                                              OUTPUT  //, "Direction is output - we're driving the GPIO line."
-                                              ) };
+  static constexpr auto value{ glz::enumerate(
+    "as_is", AS_IS, "Request the pin, but don't change current direction.",
+    "input", INPUT, "Direction is input - we're reading the state of a GPIO pin.",
+    "output", OUTPUT, "Direction is output - we're driving the GPIO line."
+  ) };
   // clang-format on
   static constexpr std::string_view name{ "Pin direction" };
 };
@@ -118,7 +116,7 @@ struct glz::meta<gpiod::line::edge> {
 template <>
 struct glz::meta<gpiod::line::bias> {
   using enum gpiod::line::bias;
-  //  clang-format off
+  // clang-format off
   static constexpr auto value{ glz::enumerate(
       "as_is", AS_IS, "Don't change the bias setting when applying line config.",
       "unknown", UNKNOWN, "The internal bias state is unknown.",
@@ -132,7 +130,7 @@ struct glz::meta<gpiod::line::bias> {
 template <>
 struct glz::meta<gpiod::line::drive> {
   using enum gpiod::line::drive;
-  //  clang-format off
+  // clang-format off
   static constexpr auto value{ glz::enumerate(
       "push_pull", PUSH_PULL, "Drive setting is push-pull.",
       "open_drain", OPEN_DRAIN, "Pin output is open-drain.",
