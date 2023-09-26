@@ -103,8 +103,7 @@ public:
     ut::expect(first_time < second_time);
 
     const std::chrono::milliseconds current_time = application_.timestamp_milliseconds();
-    const std::chrono::milliseconds t_now =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    const std::chrono::milliseconds t_now = tfc::stx::millisecond_system_clock::now().time_since_epoch();
 
     ut::expect(current_time > std::chrono::milliseconds(0));
     ut::expect(current_time <= t_now);
@@ -322,8 +321,8 @@ public:
     const tfc::ipc_ruler::signal test_signal{ full_signal_name,
                                               tfc::ipc::details::type_e::_bool,
                                               "test",
-                                              std::chrono::system_clock::now(),
-                                              std::chrono::system_clock::now(),
+                                              tfc::stx::millisecond_system_clock::now(),
+                                              tfc::stx::millisecond_system_clock::now(),
                                               "test" };
 
     signal_data send_signal_info{ test_signal, std::move(ipc), std::nullopt };
@@ -363,8 +362,8 @@ public:
     const tfc::ipc_ruler::signal test_signal{ signal_value,
                                               tfc::ipc::details::type_e::_bool,
                                               "test",
-                                              std::chrono::system_clock::now(),
-                                              std::chrono::system_clock::now(),
+                                              tfc::stx::millisecond_system_clock::now(),
+                                              tfc::stx::millisecond_system_clock::now(),
                                               "test" };
 
     signal_data send_signal_info{ test_signal, std::move(ipc), std::nullopt };
