@@ -85,10 +85,23 @@ auto main() -> int {
         ut::expect(foo.value() == "Hell\0"sv)
             << foo.value().view();  // fixed string will always contain fixed number of characters hence the zero
       };
-  "time_point"_test = [] {
-    auto now{ std::chrono::steady_clock::now() };
+  "chrono clock"_test = [] {
+    auto now{ std::chrono::system_clock::now() };
+    // transposing steady clock in json does not really make any sense
+    static_assert(glz::name_v<std::chrono::steady_clock> == "glz::unknown");
     auto json{ glz::write_json(now) };
     ut::expect(glz::read_json<decltype(now)>(json).value() == now);
+  };
+  "millisecond clock"_test = [] {
+    auto now{ tfc::stx::millisecond_system_clock::now() };
+    auto json{ glz::write_json(now) };
+    ut::expect(glz::read_json<decltype(now)>(json).value() == now);
+
+    tfc::stx::millisecond_system_clock::time_point time_point{};
+    auto time_point_json{ glz::write_json(time_point) };
+    ut::expect(time_point_json == "hello world") << time_point_json;
+
+    fmt::print("{}", time_point_json);
   };
   return EXIT_SUCCESS;
 }
