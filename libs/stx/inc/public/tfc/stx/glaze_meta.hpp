@@ -57,11 +57,7 @@ struct glz::meta<std::chrono::system_clock> {
   static constexpr std::string_view name{ "std::chrono::system_clock" };
 };
 template <>
-struct glz::meta<std::chrono::steady_clock> {
-  static constexpr std::string_view name{ "std::chrono::steady_clock" };
-};
-template <typename clock_t, typename duration_t>
-struct glz::meta<std::chrono::time_point<clock_t, duration_t>> {
+struct glz::meta<std::chrono::time_point<std::chrono::system_clock, std::chrono::system_clock::duration>> {
   static constexpr std::string_view prefix{ "std::chrono::time_point<" };
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
