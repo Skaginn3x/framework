@@ -3,8 +3,8 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <optional>
 #include <expected>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -177,7 +177,7 @@ struct item;
 struct item {
   [[nodiscard]] static auto from_json(std::string_view json) -> std::expected<item, glz::parse_error>;
   [[nodiscard]] auto to_json() const -> std::string;
-  [[nodiscard]] auto id() const ->std::string;
+  [[nodiscard]] auto id() const -> std::string;
 
   // ids
   std::optional<uuids::uuid> item_id{ std::nullopt };
