@@ -8,6 +8,7 @@
 #include <units/quantity.h>
 #include <boost/asio.hpp>
 
+#include <tfc/progbase.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/stx/glaze_meta.hpp>
@@ -22,6 +23,7 @@ struct option_1 {
     static constexpr auto value{ glz::object("amper", &type::amper, "amper description") };
     static constexpr std::string_view name{ "option_1" };
   };
+  constexpr auto operator==(option_1 const& rhs) const noexcept -> bool = default;
 };
 
 struct option_2 {
@@ -32,6 +34,7 @@ struct option_2 {
     static constexpr auto value{ glz::object("a", &type::a, "A description", "sec", &type::sec, "sec description") };
     static constexpr std::string_view name{ "option_2" };
   };
+  constexpr auto operator==(option_2 const& rhs) const noexcept -> bool = default;
 };
 
 struct with_variant {
@@ -44,12 +47,18 @@ struct with_variant {
     };
     static constexpr std::string_view name{ "with_variant" };
   };
+  constexpr auto operator==(with_variant const& rhs) const noexcept -> bool = default;
 };
 
-int main() {
+int main(int argc, char** argv) {
+  tfc::base::init(argc, argv);
+
   asio::io_context ctx{};
 
-  tfc::confman::config<with_variant> const config{ ctx, "key" };
+  tfc::confman::config<tfc::confman::observable<std::vector<with_variant>>> const config{ ctx, "key" };
+  config->observe([](auto const& new_value, auto const& old_value) {
+    fmt::print("new value:\n{}\n\n\nold value:\n{}\n", glz::write_json(new_value), glz::write_json(old_value));
+  });
 
   fmt::print("Schema is: {}\n", config.schema());
   fmt::print("Config is: {}\n", config.string());

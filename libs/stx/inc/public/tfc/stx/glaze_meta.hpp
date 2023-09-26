@@ -5,7 +5,6 @@
 #include <string_view>
 #include <type_traits>
 
-#include <date/date.h>
 #include <fmt/chrono.h>
 #include <glaze/glaze.hpp>
 
@@ -53,6 +52,23 @@ struct glz::meta<std::chrono::duration<rep_t, period_t>> {
     tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
   };
 };
+template <>
+struct glz::meta<std::chrono::system_clock> {
+  static constexpr std::string_view name{ "std::chrono::system_clock" };
+};
+template <>
+struct glz::meta<std::chrono::steady_clock> {
+  static constexpr std::string_view name{ "std::chrono::steady_clock" };
+};
+template <typename clock_t, typename duration_t>
+struct glz::meta<std::chrono::time_point<clock_t, duration_t>> {
+  static constexpr std::string_view prefix{ "std::chrono::time_point<" };
+  static constexpr std::string_view postfix{ ">" };
+  static constexpr std::string_view separator{ "," };
+  static constexpr auto name{
+    tfc::stx::string_view_join_v<prefix, glz::name_v<clock_t, true>, separator, glz::name_v<duration_t, true>, postfix>
+  };
+};
 template <typename char_type, unsigned len>
 struct glz::meta<tfc::stx::basic_fixed_string<char_type, len>> {
   static constexpr std::string_view prefix{ "basic_fixed_string<" };
@@ -64,38 +80,6 @@ struct glz::meta<tfc::stx::basic_fixed_string<char_type, len>> {
 };
 
 namespace glz::detail {
-inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
-  std::istringstream in{ save };
-  date::sys_time<std::chrono::milliseconds> tp;
-  in >> date::parse("%FT%TZ", tp);
-  if (in.fail()) {
-    in.clear();
-    in.exceptions(std::ios::failbit);
-    in.str(save);
-    in >> date::parse("%FT%T%Ez", tp);
-  }
-  return tp;
-}
-template <>
-struct from_json<std::chrono::time_point<std::chrono::system_clock>> {
-  template <auto Opts>
-  static void op(auto& value, auto&&... args) {
-    std::string rep;
-    read<json>::op<Opts>(rep, args...);
-    value = parse8601(rep);
-  }
-};
-
-template <>
-struct to_json<std::chrono::time_point<std::chrono::system_clock>> {
-  template <auto Opts>
-  static void op(auto& value, auto&&... args) noexcept {
-    std::stringstream str_stream;
-    str_stream << date::format("%FT%T%Ez", value);
-    write<json>::op<Opts>(str_stream.str(), args...);
-  }
-};
-
 template <typename rep_t, typename period_t>
 struct from_json<std::chrono::duration<rep_t, period_t>> {
   template <auto opts>
@@ -108,9 +92,25 @@ struct from_json<std::chrono::duration<rep_t, period_t>> {
 template <typename rep_t, typename period_t>
 struct to_json<std::chrono::duration<rep_t, period_t>> {
   template <auto opts>
-  static void op(auto& value, auto&&... args) noexcept {
+  static void op(auto&& value, auto&&... args) noexcept {
     tfc::detail::duration_hack<rep_t, period_t> substitute{ .rep = value.count() };
     write<json>::op<opts>(substitute, args...);
+  }
+};
+template <typename clock_t, typename duration_t>
+struct from_json<std::chrono::time_point<clock_t, duration_t>> {
+  template <auto opts>
+  static void op(std::chrono::time_point<clock_t, duration_t>& value, auto&&... args) {
+    duration_t substitute{};
+    from_json<duration_t>::template op<opts>(substitute, std::forward<decltype(args)>(args)...);
+    value = std::chrono::time_point<clock_t, duration_t>{ substitute };
+  }
+};
+template <typename clock_t, typename duration_t>
+struct to_json<std::chrono::time_point<clock_t, duration_t>> {
+  template <auto opts>
+  static void op(auto&& value, auto&&... args) {
+    to_json<duration_t>::template op<opts>(value.time_since_epoch(), std::forward<decltype(args)>(args)...);
   }
 };
 
@@ -135,7 +135,7 @@ template <typename char_type, unsigned len>
 struct to_json<tfc::stx::basic_fixed_string<char_type, len>> {
   template <auto opts>
   static void op(auto& value, auto&&... args) noexcept {
-    write<json>::op<opts>(value.view(), args...);
+    write<json>::op<opts>(value.view(), std::forward<decltype(args)>(args)...);
   }
 };
 

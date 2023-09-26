@@ -4,16 +4,31 @@
 #include <boost/ut.hpp>
 
 auto main(int, char**) -> int {
-  using boost::ut::operator""_test;
-  using boost::ut::expect;
-  using boost::ut::operator>>;
-  using boost::ut::fatal;
+  namespace ut = boost::ut;
+
+  using ut::operator""_test;
+  using ut::expect;
+  using ut::operator>>;
+  using ut::fatal;
+
+  using tfc::ipc::item::item;
 
   namespace fao = tfc::ipc::item::fao;
 
-  "test"_test = []() {
+  "fao"_test = []() {
     static constexpr auto foo = fao::species::from_int(fao::atlantic_cod.to_int());
     fmt::print("foo is: {}\n", foo->code.view());
+  };
+
+  "make creates distinct id"_test = [] {
+    auto item = item::make();
+    auto item2 = item::make();
+    expect(item.item_id != item2.item_id);
+  };
+
+  "make creates timestamp"_test = [] {
+    auto item = item::make();
+    expect(item.entry_timestamp.has_value());
   };
 
   return 0;

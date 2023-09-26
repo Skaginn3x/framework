@@ -5,6 +5,7 @@ add_library(ipc
   src/ipc.cpp
   src/dbus_server_iface_mock.cpp # todo make ipc_test target
   src/dbus_client_iface.cpp
+  src/item.cpp
 )
 add_library(tfc::ipc ALIAS ipc)
 
@@ -21,6 +22,7 @@ find_package(Boost REQUIRED)
 find_package(ZeroMQ REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
+find_package(stduuid CONFIG REQUIRED)
 
 target_link_libraries(ipc
   PUBLIC
@@ -32,6 +34,7 @@ target_link_libraries(ipc
     Boost::boost
     fmt::fmt
     glaze::glaze
+    stduuid
     $<IF:$<BOOL:${ZeroMQ_LIBRARY}>,${ZeroMQ_LIBRARY},${ZeroMQ_STATIC_LIBRARY}>
 )
 
