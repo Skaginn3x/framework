@@ -17,7 +17,7 @@ template <typename type_desc, typename manager_client_type>
 struct mock_signal {
   using value_t = typename type_desc::value_t;
 
-  mock_signal(asio::io_context&, manager_client_type&, std::string_view, std::string_view = "") {}
+  mock_signal(asio::io_context const&, manager_client_type&, std::string_view, std::string_view = "") {}
 
   // todo can this be done differently?
   template <typename completion_token_t>
@@ -42,7 +42,7 @@ struct mock_signal {
 template <typename type_desc, typename manager_client_type>
 struct mock_slot {
   using value_t = typename type_desc::value_t;
-  mock_slot(asio::io_context&,
+  mock_slot(asio::io_context const&,
             manager_client_type&,
             std::string_view,
             std::string_view,
