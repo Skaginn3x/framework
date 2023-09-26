@@ -17,9 +17,9 @@ void ipc_manager_client_mock::register_slot(std::string_view name, std::string_v
   slots_.emplace_back(slot{ .name = std::string(name),
                             .type = type,
                             .created_by = "",
-                            .created_at = std::chrono::system_clock::now(),
-                            .last_registered = std::chrono::system_clock::now(),
-                            .last_modified = std::chrono::system_clock::now(),
+                            .created_at = tfc::stx::millisecond_system_clock::now(),
+                            .last_registered = tfc::stx::millisecond_system_clock::now(),
+                            .last_modified = tfc::stx::millisecond_system_clock::now(),
                             .modified_by = "",
                             .connected_to = "",
                             .description = std::string(description) });
@@ -30,8 +30,8 @@ void ipc_manager_client_mock::register_signal(std::string_view name,
   signals_.emplace_back(signal{ .name = std::string(name),
                                 .type = type,
                                 .created_by = "",
-                                .created_at = std::chrono::system_clock::now(),
-                                .last_registered = std::chrono::system_clock::now(),
+                                .created_at = tfc::stx::millisecond_system_clock::now(),
+                                .last_registered = tfc::stx::millisecond_system_clock::now(),
                                 .description = std::string(description) });
 
   sdbusplus::message_t dbus_message = sdbusplus::message_t{};
