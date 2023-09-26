@@ -23,22 +23,31 @@ button.Hovr {
     outline: inherit;
 }
 
-.pf-c-data-list__cell {
+.pf-v5-c-data-list__cell {
 	padding: 0rem !important;
 }
 
-.pf-c-data-list__item-action {
+.pf-v5-c-data-list__item-action {
     padding: 0.5rem !important;
 }
 
-.pf-c-data-list__item-content {
+.pf-v5-c-data-list__item-content {
 	padding-bottom: 0.6rem !important;
 	padding-top: 0.6rem !important;
 }
-.pf-c-data-list__item-row {
+.pf-v5-c-data-list__item-row {
     height: 3rem;
 }
 
-.pf-c-data-list__action {
+.pf-v5-c-data-list__action {
     align-self: center;
+}
+
+.pf-v5-c-menu__list {
+    padding: 0.3rem;
+}
+
+.pf-v5-c-data-list.pf-m-grid-md {
+    padding-left: 0rem;
+
 }

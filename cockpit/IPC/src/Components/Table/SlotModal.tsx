@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  TableComposable, Thead, Tr, Th, Tbody, Td,
+  Thead, Tr, Th, Tbody, Td, Table,
 } from '@patternfly/react-table';
 import {
   SearchInput,
@@ -15,6 +15,7 @@ interface ModalType {
   setSelectedSlots: React.Dispatch<React.SetStateAction<Set<SlotType>>>;
   addButtonRef: React.RefObject<HTMLButtonElement>;
   signal: SignalType | undefined;
+  isDark: boolean
 }
 
 function formatDate(dateStr: string) {
@@ -27,7 +28,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function SlotModal({
-  slots, selectedSlots, setSelectedSlots, addButtonRef, signal,
+  slots, selectedSlots, setSelectedSlots, addButtonRef, signal, isDark,
 }: ModalType) {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const [searchValue, setSearchValue] = React.useState('');
@@ -224,12 +225,18 @@ export default function SlotModal({
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        backgroundColor: isDark ? '#1b1d21' : '#FFF',
+      }}
+      >
         {toolbar}
       </div>
       {filteredSlots.length > 0
         ? (
-          <TableComposable variant="compact">
+          <Table variant="compact">
             <Thead>
               <Tr>
                 <Th />
@@ -257,6 +264,7 @@ export default function SlotModal({
                       onSelect: (_event, isSelecting) => handleSelect(slot, isSelecting),
                       isSelected: isSlotSelected(slot),
                     }}
+                    style={{ paddingLeft: '1rem !important' }}
                   />
                   <Td>
                     <Tooltip
@@ -280,7 +288,7 @@ export default function SlotModal({
                 </Tr>
               ))}
             </Tbody>
-          </TableComposable>
+          </Table>
         )
         : <div>No slots available</div>}
     </>

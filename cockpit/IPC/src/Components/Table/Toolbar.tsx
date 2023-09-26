@@ -3,6 +3,7 @@ import FilterIcon from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 
 import * as reactCore from '@patternfly/react-core';
 
+// import { PaginationTitles } from '@patternfly/react-core';
 import { SignalType, SlotType } from '../../Types';
 
 export default function ToolBar(
@@ -25,7 +26,7 @@ export default function ToolBar(
 ) {
   const toolbarPagination = (
     <reactCore.Pagination
-      titles={{ paginationTitle: 'Attribute search pagination' }}
+      // titles={{ paginationTitle: 'Attribute search pagination' }}
       perPageOptions={[
         { title: '10', value: 10 },
         { title: '20', value: 20 },
@@ -326,7 +327,7 @@ export default function ToolBar(
         <reactCore.MenuList>
           {getProcesses(items).map((name) => (
             <reactCore.MenuItem
-              hasCheck
+              hasCheckbox
               key={name}
               isSelected={processSelections.includes(name)}
               itemId={name}

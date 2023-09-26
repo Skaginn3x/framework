@@ -17,13 +17,17 @@ import {
   Drawer,
   DrawerContentBody,
   DrawerPanelContent,
+  MenuToggleElement,
+  DropdownList,
+  Switch,
 } from '@patternfly/react-core';
-import EllipsisVIcon from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
 import Circle from 'src/Components/Simple/Circle';
 import DynamicNavbar from 'src/Components/NavBar/DynamicNavBar';
 import Hamburger from 'hamburger-react';
+import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
+import { DarkModeType } from 'src/App';
 import { getIOData } from './demoData';
 
 declare global {
@@ -40,7 +44,8 @@ const connectToDBusNames = (names: string[], dbus: any) => {
   return proxies;
 };
 
-export default function IODebug() {
+// eslint-disable-next-line react/function-component-definition
+const IODebug:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
 
@@ -101,16 +106,17 @@ export default function IODebug() {
     loadExternalScript(callback);
   }, []);
 
-  const setDropdownAtIndex = (index: number, bool:boolean) => {
+  const onToggleClick = (index: number) => {
     const updatedInterfaces = [...dbusInterfaces];
-    updatedInterfaces[index].dropdown = bool;
+    updatedInterfaces[index].dropdown = !dbusInterfaces[index].dropdown;
     setDbusInterfaces(updatedInterfaces);
   };
-
-  const onFocus = (index:number) => {
-    setDropdownAtIndex(index, false);
-    const element = document.getElementById('toggle-initial-selection');
-    element?.focus();
+  const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined, index:number) => {
+    // eslint-disable-next-line no-console
+    console.log('selected', value);
+    const updatedInterfaces = [...dbusInterfaces];
+    updatedInterfaces[index].dropdown = false;
+    setDbusInterfaces(updatedInterfaces);
   };
 
   function handleBoolContent(data: any): JSX.Element {
@@ -188,6 +194,23 @@ export default function IODebug() {
               names={dbusInterfaces.map((iface) => iface.proxy.iface)}
               onItemSelect={(it: string) => toggleSelection(it)}
             />
+            <div style={{
+              width: '100%',
+              backgroundColor: '#212427',
+              display: 'flex',
+              alignContent: 'center',
+              justifyContent: 'center',
+              paddingBottom: '1rem',
+            }}
+            >
+              <Switch
+                onChange={(_, state) => setIsDark(state)}
+                isChecked={isDark}
+              />
+              <Title size="md" headingLevel="h5" color="#EEE" style={{ marginLeft: '1rem', color: '#EEE' }}>
+                Dark Mode
+              </Title>
+            </div>
           </DrawerPanelContent>
         }
         >
@@ -200,7 +223,7 @@ export default function IODebug() {
               transition: 'width 0.2s ease-in-out',
             }}
             >
-              <Title headingLevel="h1" size="2xl" style={{ marginBottom: '2rem' }}>
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
                 DBUS IO Debugging Tool
               </Title>
               <div style={{
@@ -215,6 +238,7 @@ export default function IODebug() {
                   toggled={isDrawerExpanded}
                   toggle={toggleDrawer}
                   size={30}
+                  color={isDark ? '#EEE' : undefined}
                 />
               </div>
               <div style={{
@@ -222,7 +246,7 @@ export default function IODebug() {
               }}
               >
                 <DataList aria-label="Checkbox and action data list example">
-                  {dbusInterfaces.map((dbusInterface: any, index: number) => {
+                  {dbusInterfaces.length > 0 && dbusInterfaces.map((dbusInterface: any, index: number) => {
                     if (!dbusInterface.hidden) {
                       return (
                         <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface}>
@@ -244,27 +268,24 @@ export default function IODebug() {
                               isPlainButtonAction
                             >
                               <Dropdown
-                                onSelect={() => onFocus(index)}
-                                onBlur={() => setDropdownAtIndex(index, false)}
+                                onSelect={(e, val) => onSelect(e, val, index)}
                                 key={`${dbusInterface.proxy.iface}-DD`}
-                                toggle={(
-                                  <button
-                                    type="button"
-                                    onClick={() => setDropdownAtIndex(index, !dbusInterface.dropdown)}
-                                    className="Hovr"
-                                  >
-                                    <EllipsisVIcon aria-hidden="true" />
-                                  </button>
-                            )}
-                                isOpen={dbusInterface.dropdown}
-                            // onChange={() => toggleDropdownAtIndex(index)}
-                                dropdownItems={[
-                                  <DropdownItem key="action" style={{ textDecoration: 'none' }}>Action</DropdownItem>,
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                  <CustomMenuToggle
+                                    toggleRef={toggleRef}
+                                    onClick={() => onToggleClick(index)}
+                                    isExpanded={dbusInterface.dropdown}
+                                  />
+                                )}
+                                isOpen={dbusInterface.dropdown ?? false}
+                              >
+                                <DropdownList>
+                                  <DropdownItem key="action" style={{ textDecoration: 'none' }}>Action</DropdownItem>
                                   <DropdownItem key="disabled action" style={{ textDecoration: 'none' }} isDisabled>
                                     Disabled Action
-                                  </DropdownItem>,
-                                ]}
-                              />
+                                  </DropdownItem>
+                                </DropdownList>
+                              </Dropdown>
                             </DataListAction>
                           </DataListItemRow>
                         </DataListItem>
@@ -281,4 +302,6 @@ export default function IODebug() {
       </Drawer>
     </div>
   );
-}
+};
+
+export default IODebug;

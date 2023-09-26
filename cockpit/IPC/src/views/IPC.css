@@ -1,4 +1,4 @@
-.pf-c-tree-view__node-toggle {
+.pf-v5-c-tree-view__node-toggle {
    display: flex;
    align-items: center;
    justify-content: flex-end;
@@ -6,7 +6,7 @@
    /* Adjust the padding as needed */
 }
 
-.pf-c-tree-view__node-toggle-icon {
+.pf-v5-c-tree-view__node-toggle-icon {
    margin-left: 0.5rem;
    /* Adjust the margin as needed */
 }

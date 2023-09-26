@@ -9,6 +9,7 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
+  Switch,
 } from '@patternfly/react-core';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -17,6 +18,7 @@ import './Configurator.css';
 import Hamburger from 'hamburger-react';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import { fetchDataFromDBus, removeOrg, updateFormData } from 'src/Components/Form/WidgetFunctions';
+import { DarkModeType } from 'src/App';
 import {
   VariantData,
   VariantSchema,
@@ -32,7 +34,8 @@ declare global {
 }
 
 // TODO: Remove demo data and schemas when done.
-export default function Configurator() {
+// eslint-disable-next-line react/function-component-definition
+const Configurator:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
   const { addAlert } = useAlertContext();
   const [names, setNames] = useState<string[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
@@ -135,8 +138,6 @@ export default function Configurator() {
   const onSelect = (selectedItem: {
     groupId: string | number;
     itemId: string | number;
-    to: string;
-    event: React.FormEvent<HTMLInputElement>;
   }) => {
     console.log(selectedItem.itemId);
     setActiveItem(selectedItem.itemId as string);
@@ -172,7 +173,7 @@ export default function Configurator() {
         minWidth: '15rem', backgroundColor: '#212427', height: '100%',
       }}
       >
-        <Nav onSelect={onSelect} aria-label="Grouped global">
+        <Nav onSelect={(e, item) => onSelect(item)} aria-label="Grouped global">
           {/* Remove this group to get rid of demo data */}
           <NavGroup title="Demo Schemas">
             {Object.keys(schemas).slice(0, 4).map((name: string) => (
@@ -204,6 +205,23 @@ export default function Configurator() {
           </NavGroup>
         </Nav>
       </div>
+      <div style={{
+        width: '100%',
+        backgroundColor: '#212427',
+        display: 'flex',
+        alignContent: 'center',
+        justifyContent: 'center',
+        paddingBottom: '1rem',
+      }}
+      >
+        <Switch
+          onChange={(_, state) => setIsDark(state)}
+          isChecked={isDark}
+        />
+        <Title size="md" headingLevel="h5" color="#EEE" style={{ marginLeft: '1rem', color: '#EEE' }}>
+          Dark Mode
+        </Title>
+      </div>
     </DrawerPanelContent>
   );
 
@@ -228,8 +246,7 @@ export default function Configurator() {
               <Title
                 headingLevel="h1"
                 size="2xl"
-                style={{ marginBottom: '1rem' }}
-                className="title"
+                style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
               >
                 Configurator - Time For Change
               </Title>
@@ -245,10 +262,11 @@ export default function Configurator() {
                   toggled={isDrawerExpanded}
                   toggle={toggleDrawer}
                   size={30}
+                  color={isDark ? '#EEE' : undefined}
                 />
               </div>
               <div style={{
-                width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: isDark ? '#EEE' : '#111',
               }}
               >
                 {form}
@@ -259,4 +277,6 @@ export default function Configurator() {
       </Drawer>
     </div>
   );
-}
+};
+
+export default Configurator;

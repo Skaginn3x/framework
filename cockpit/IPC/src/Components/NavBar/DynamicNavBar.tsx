@@ -64,7 +64,11 @@ const renderTree = (tree: any, parentFullName = '', parentRelevantName = '', act
   return rendered;
 };
 
-export const DynamicNavbar: React.FC<{ names: string[]; onItemSelect: (itemId:string) => void }> = ({ names, onItemSelect }) => {
+export const DynamicNavbar: React.FC<{
+  names: string[];
+  onItemSelect: (itemId:string) => void }> = ({
+  names, onItemSelect,
+}) => {
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const tree = createTree(names);
 
@@ -74,11 +78,11 @@ export const DynamicNavbar: React.FC<{ names: string[]; onItemSelect: (itemId:st
     }}
     >
       <Nav
-        onSelect={({ groupId }) => {
+        onSelect={(e, { groupId }) => {
           setActiveItem(groupId as string);
           onItemSelect(groupId as string);
         }}
-        onToggle={({ groupId }) => {
+        onToggle={(e, { groupId }) => {
           setActiveItem(groupId as string);
           onItemSelect(groupId as string);
         }}

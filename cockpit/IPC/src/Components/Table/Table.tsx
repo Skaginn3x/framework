@@ -6,16 +6,16 @@ import {
   EmptyStateIcon,
   Title,
   EmptyStateBody,
-  EmptyStatePrimary,
   Button,
   Bullseye,
   Modal,
   ModalVariant,
   AlertVariant,
   Tooltip,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import {
-  TableComposable, Thead, Tr, Th, Tbody, Td,
+  Thead, Tr, Th, Tbody, Td, Table,
 } from '@patternfly/react-table';
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import PlusIcon from '@patternfly/react-icons/dist/esm/icons/plus-icon';
@@ -55,9 +55,9 @@ const columnNames = {
  * @param slots The slots to display in the table
  * @returns
  */
-export default function Table({
-  signals, slots, connections, DBUS,
-}: { signals: SignalType[], slots: SlotType[], connections: ConnectionType, DBUS: any }) {
+export default function CustomTable({
+  signals, slots, connections, DBUS, isDark,
+}: { signals: SignalType[], slots: SlotType[], connections: ConnectionType, DBUS: any, isDark: boolean }) {
   const [searchValue, setSearchValue] = React.useState('');
   const [processSelections, setProcessSelections] = React.useState<string[]>([]);
   const [typeSelection, setTypeSelection] = React.useState('');
@@ -146,7 +146,7 @@ export default function Table({
         No results found
       </Title>
       <EmptyStateBody>No results match the filter criteria. Clear all filters and try again.</EmptyStateBody>
-      <EmptyStatePrimary>
+      <EmptyStateFooter>
         <Button
           variant="link"
           onClick={() => {
@@ -157,7 +157,7 @@ export default function Table({
         >
           Clear all filters
         </Button>
-      </EmptyStatePrimary>
+      </EmptyStateFooter>
     </EmptyState>
   );
 
@@ -369,10 +369,14 @@ export default function Table({
     filteredSignals,
   );
 
+  const selectionSignalColor = isDark ? '#555 ' : 'lightgrey';
+  const selectionSlotColor = isDark ? '#555 ' : '#CCC';
+  const nonSelectionSlotColor = isDark ? '#313131' : '#f6f6f6';
+
   return (
     <>
       {toolbar}
-      <TableComposable aria-label="Selectable table">
+      <Table aria-label="Selectable table">
         <Thead>
           <Tr>
             <Th width={35} colSpan={2}>{columnNames.name}</Th>
@@ -402,7 +406,7 @@ export default function Table({
                   }}
                   style={{
                     backgroundColor: selectedIndexes[0] === (startIndex + index) && selectedIndexes[1] === -1
-                      ? 'lightgray' : 'white',
+                      ? selectionSignalColor : 'transparent',
                   }}
                 >
                   <Td dataLabel={columnNames.name} modifier="truncate" style={{ verticalAlign: 'middle' }} colSpan={2}>
@@ -412,7 +416,7 @@ export default function Table({
                       distance={5}
                       entryDelay={1000}
                     >
-                      <div>
+                      <div style={{ width: 'min-content' }}>
                         {removeOrg(signal.name) || signal.name}
                       </div>
                     </Tooltip>
@@ -430,7 +434,7 @@ export default function Table({
                       distance={5}
                       entryDelay={1000}
                     >
-                      <div>
+                      <div style={{ width: 'min-content' }}>
                         {formatDate(signal.created_at)}
                       </div>
                     </Tooltip>
@@ -442,7 +446,7 @@ export default function Table({
                       distance={5}
                       entryDelay={1000}
                     >
-                      <div>
+                      <div style={{ width: 'min-content' }}>
                         {formatDate(signal.last_registered)}
                       </div>
                     </Tooltip>
@@ -466,7 +470,7 @@ export default function Table({
                           margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
                         }}
                         onClick={() => handlePlusClick(signal)}
-                        className="selectionHover"
+                        className={isDark ? 'darkSelectionHover' : 'selectionHover'}
                       />
                     </div>
                   </Td>
@@ -491,7 +495,7 @@ export default function Table({
                     }}
                     style={{
                       backgroundColor: selectedIndexes[0] === (startIndex + index) && selectedIndexes[1] === slotIndex
-                        ? 'lightgray' : '#f6f6f6',
+                        ? selectionSlotColor : nonSelectionSlotColor,
                     }}
                   >
 
@@ -509,7 +513,7 @@ export default function Table({
                           style={{
                             margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
                           }}
-                          className="selectionHoverSignal"
+                          className={isDark ? 'darkSelectionHoverSignal' : 'selectionHoverSignal'}
                           onClick={() => handleMinusClick(slotName)}
                         />
                       </div>
@@ -529,7 +533,7 @@ export default function Table({
                         distance={5}
                         entryDelay={1000}
                       >
-                        <div>
+                        <div style={{ width: 'min-content' }}>
                           {slotName.split('.').slice(3).join('.') || signal.name}
                         </div>
                       </Tooltip>
@@ -561,7 +565,11 @@ export default function Table({
                           dataLabel={columnNames.created_at}
                           modifier="truncate"
                           style={{ verticalAlign: 'middle' }}
-                          tooltip={<div>{formatDate(slot.created_at, true)}</div> as React.ReactNode}
+                          tooltip={
+                            <div style={{ width: 'min-content' }}>
+                              {formatDate(slot.created_at, true)}
+                            </div> as React.ReactNode
+                          }
                         >
                           <Tooltip
                             content={formatDate(slot.created_at, true)}
@@ -569,7 +577,7 @@ export default function Table({
                             distance={5}
                             entryDelay={1000}
                           >
-                            <div>
+                            <div style={{ width: 'min-content' }}>
                               {formatDate(slot.created_at)}
                             </div>
                           </Tooltip>
@@ -588,7 +596,7 @@ export default function Table({
                             distance={5}
                             entryDelay={1000}
                           >
-                            <div>
+                            <div style={{ width: 'min-content' }}>
                               {formatDate(slot.last_registered)}
                             </div>
                           </Tooltip>
@@ -617,7 +625,8 @@ export default function Table({
                                 margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
                               }}
                               onClick={() => handlePencilClick(slot)}
-                              className="selectionHoverSignal"
+                              className={isDark ? 'darkSelectionHoverSignal' : 'selectionHoverSignal'}
+
                             />
                           </div>
                         </Td>
@@ -635,16 +644,24 @@ export default function Table({
             </Tr>
           )}
         </Tbody>
-      </TableComposable>
+      </Table>
 
       <Modal
         variant={ModalVariant.medium}
         className="wideModal"
-        title={`Add slots to ${selectedSignal && selectedSignal.name.split('.').slice(3).join('.') !== ''
-          ? selectedSignal.name.split('.').slice(3).join('.') : 'signal'}`}
         isOpen={isModalOpen}
         onEscapePress={() => handleCancelAddSlots()}
         onClose={() => handleCancelAddSlots()}
+        width="90vw"
+        header={(
+          <Title headingLevel="h1" size="3xl" style={{ color: isDark ? '#EEE' : '#333' }}>
+            Add slots to
+            {' '}
+            {selectedSignal && selectedSignal.name.split('.').slice(3).join('.') !== ''
+              ? selectedSignal.name.split('.').slice(3).join('.') : 'signal'}
+          </Title>
+        )}
+        style={{ backgroundColor: isDark ? '#26292d' : '#FFF' }}
         actions={[
           <Button ref={AddButtonRef} key="confirm" variant="primary" onClick={() => handleAddSlots()}>
             Add
@@ -660,14 +677,20 @@ export default function Table({
           setSelectedSlots={setModalSelectedSlots}
           addButtonRef={AddButtonRef}
           signal={selectedSignal}
+          isDark={isDark}
         />
       </Modal>
 
       <Modal
         variant={ModalVariant.small}
-        title="Remove slots from signal?"
+        header={(
+          <Title headingLevel="h1" size="3xl" style={{ color: isDark ? '#EEE' : '#333' }}>
+            Remove slot from signal?
+          </Title>
+        )}
         isOpen={isRemoveModalOpen}
         onClose={() => setIsRemoveModalOpen(false)}
+        style={{ backgroundColor: isDark ? '#26292d' : '#EEE', color: isDark ? '#EEE' : '#333' }}
         actions={[
           <Button ref={removeButtonRef} key="confirm" variant="primary" onClick={() => handleRemoveSlots()}>
             Remove
@@ -682,9 +705,14 @@ export default function Table({
 
       <Modal
         variant={ModalVariant.small}
-        title="Edit signal filters"
+        header={(
+          <Title headingLevel="h1" size="3xl" style={{ color: isDark ? '#EEE' : '#333' }}>
+            Edit signal filters
+          </Title>
+        )}
         isOpen={filterModalOpen}
         onClose={() => setFilterModalOpen(false)}
+        style={{ backgroundColor: isDark ? '#26292d' : '#EEE', color: isDark ? '#EEE' : '#333' }}
       >
         <FilterModal slot={selectedSlot} />
       </Modal>
