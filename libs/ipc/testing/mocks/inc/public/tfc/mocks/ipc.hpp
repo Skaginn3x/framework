@@ -49,7 +49,7 @@ struct mock_slot {
             tfc::stx::invocable<value_t> auto&&) {
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(std::nullopt));
   }
-  mock_slot(asio::io_context&, manager_client_type&, std::string_view, tfc::stx::invocable<value_t> auto&&) {}
+  mock_slot(asio::io_context const&, manager_client_type&, std::string_view, tfc::stx::invocable<value_t> auto&&) {}
 
   MOCK_METHOD((std::optional<value_t> const&), value, (), (const));  // NOLINT
 };
