@@ -11,8 +11,7 @@ auto main(int, char**) -> int {
   using ut::operator>>;
   using ut::fatal;
 
-  using tfc::ipc::item::item;
-
+  namespace item = tfc::ipc::item;
   namespace fao = tfc::ipc::item::fao;
 
   "fao"_test = []() {
