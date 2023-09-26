@@ -1,3 +1,4 @@
+/* eslint-disable react/require-default-props */
 import React from 'react';
 import './App.css';
 
@@ -28,7 +29,7 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
   switch (id) {
     case 'connect': return <IPC isDark={isDark} setIsDark={setIsDark} />;
     case 'configure': return <Configurator isDark={isDark} setIsDark={setIsDark} />;
-    case 'list': return <ListDBUS />;
+    case 'list': return <ListDBUS isDark={isDark} setIsDark={setIsDark} />;
     case 'debug': return <IODebug isDark={isDark} setIsDark={setIsDark} />;
     default: return <NotFoundPage />;
   }
@@ -64,6 +65,7 @@ function App() {
               margin: '0px 0px 0px 0px',
               alignItems: 'center',
               overflowX: 'hidden',
+              height: '100vh',
               overflowY: 'scroll',
               backgroundColor: isDark ? '#1b1d21' : 'transparent',
             }}

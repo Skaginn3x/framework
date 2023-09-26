@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Title } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
+import { DarkModeType } from 'src/App';
 
 declare global {
   interface Window { cockpit: any; }
@@ -15,7 +16,8 @@ const connectToDBusNames = (names: string[], dbus: any) => {
   return proxies;
 };
 
-export default function ListDBUS() {
+// eslint-disable-next-line react/function-component-definition
+const ListDBUS:React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
 
   useEffect(() => {
@@ -30,13 +32,15 @@ export default function ListDBUS() {
   }, []);
 
   return (
-    <>
+    <div style={{ color: isDark ? '#EEE' : '#111' }}>
       <Title headingLevel="h1" size="2xl">DBUS Names</Title>
       {dbusInterfaces.map((dbusInterface) => (
         <div key={`DBUS ${dbusInterface.iface}`}>
           <Title headingLevel="h2" size="xl">{dbusInterface.iface || 'Unknown name'}</Title>
         </div>
       ))}
-    </>
+    </div>
   );
-}
+};
+
+export default ListDBUS;
