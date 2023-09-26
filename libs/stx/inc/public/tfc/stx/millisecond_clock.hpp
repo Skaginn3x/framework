@@ -8,7 +8,7 @@ struct millisecond_system_clock {
   using duration = std::chrono::milliseconds;
   using rep = duration::rep;
   using period = duration::period;
-  using time_point = std::chrono::time_point<millisecond_system_clock, duration>;
+  using time_point = std::chrono::time_point<std::chrono::system_clock, duration>;
 
   static_assert(millisecond_system_clock::duration::min() < millisecond_system_clock::duration::zero(),
                 "a clock's minimum duration cannot be less than its epoch");
