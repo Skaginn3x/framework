@@ -22,15 +22,8 @@ namespace asio = boost::asio;
 template <tfc::confman::observable_type conf_param_t>
 using observable = tfc::confman::observable<conf_param_t>;
 
-struct as_is_t {
-  static constexpr std::string_view name{ "as_is" };
-  struct glaze {
-    static constexpr auto value{ as_is_t::name };
-    static constexpr auto name{ as_is_t::name };
-  };
-};
-
 struct pin {
+  struct as_is_t : std::monostate {};
   struct in {
     observable<gpiod::line::edge> edge{ gpiod::line::edge::NONE };
     observable<gpiod::line::bias> bias{ gpiod::line::bias::AS_IS };
@@ -48,7 +41,7 @@ struct pin {
     observable<gpiod::line::drive> drive{ gpiod::line::drive::OPEN_SOURCE };
   };
   using type = std::variant<as_is_t, in, out>;
-  observable<std::variant<as_is_t, in, out>> in_or_out{ as_is_t{} };
+  std::variant<as_is_t, in, out> in_or_out{ as_is_t{} };
 };
 
 template <>
@@ -59,6 +52,10 @@ struct glz::meta<pin> {
   };
   // clang-format on
   static constexpr std::string_view name{ "Pin" };
+};
+template<>
+struct glz::meta<pin::as_is_t> {
+  static constexpr std::string_view name{ "as_is" };
 };
 template <>
 struct glz::meta<pin::in> {
