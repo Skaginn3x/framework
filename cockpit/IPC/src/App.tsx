@@ -14,7 +14,6 @@ import ListDBUS from './views/ListDBUS';
 import IODebug from './views/IODebug';
 
 function RouterElem() {
-  console.log('RouterElem');
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
