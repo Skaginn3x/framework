@@ -69,7 +69,7 @@ public:
        manager_client_type& client,
        std::string_view name,
        tfc::stx::invocable<value_t> auto&& callback)
-      : slot(ctx, client, name, "", callback) {}
+      : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
 
   slot(slot&) = delete;
 
