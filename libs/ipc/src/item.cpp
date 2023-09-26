@@ -1,8 +1,8 @@
 
 #include <fmt/format.h>
 #include <glaze/json.hpp>
-#include <pcg_random.hpp>
 #include <pcg_extras.hpp>
+#include <pcg_random.hpp>
 
 #include <tfc/ipc/details/item_glaze_meta.hpp>
 #include <tfc/ipc/item.hpp>
@@ -10,7 +10,7 @@
 namespace tfc::ipc::item {
 
 auto make(pcg_extras::seed_seq_from<std::random_device>& seed_source) -> item {
-  pcg64 random_engine(seed_source); // result_type uint64_t
+  pcg64 random_engine(seed_source);  // result_type uint64_t
   uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
   return { .item_id = random_generator(), .entry_timestamp = std::chrono::system_clock::now() };
 }
