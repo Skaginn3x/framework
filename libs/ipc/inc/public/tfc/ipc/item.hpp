@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <random>
 
 #include <stduuid/uuid.h>
 #include <units/generic/angle.h>
@@ -19,6 +20,11 @@
 
 namespace glz {
 struct parse_error;
+}
+
+namespace pcg_extras {
+template <typename>
+class seed_seq_from;
 }
 
 namespace tfc::ipc::item {
@@ -171,6 +177,7 @@ struct item;
 
 /// \brief creates a new item with a new id and timestamp
 [[nodiscard]] auto make() -> item;
+[[nodiscard]] auto make(pcg_extras::seed_seq_from<std::random_device>& seed_source) -> item;
 
 /// \struct item
 /// \brief given attributes of an item
