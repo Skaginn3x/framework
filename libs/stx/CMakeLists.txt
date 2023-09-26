@@ -16,7 +16,6 @@ find_package(stduuid CONFIG REQUIRED)
 
 target_link_libraries(stx
   INTERFACE
-    date::date
     glaze::glaze
     mp-units::si
     mp-units::core
