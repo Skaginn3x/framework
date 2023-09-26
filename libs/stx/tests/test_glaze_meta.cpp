@@ -66,7 +66,7 @@ auto main() -> int {
   "fixed_string_to_json"_test = [] {
     tfc::stx::basic_fixed_string foo{ "HelloWorld" };
     auto foo_json{ glz::write_json(foo) };
-    ut::expect(foo_json == "\"HelloWorld\""sv) << glz::write_json(foo);
+    ut::expect(foo_json == R"("HelloWorld")") << glz::write_json(foo);
   };
   "fixed_string_from_json"_test = [] {
     auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Hello\"");
@@ -85,5 +85,10 @@ auto main() -> int {
         ut::expect(foo.value() == "Hell\0"sv)
             << foo.value().view();  // fixed string will always contain fixed number of characters hence the zero
       };
+  "time_point"_test = [] {
+    auto now{ std::chrono::steady_clock::now() };
+    auto json{ glz::write_json(now) };
+    ut::expect(glz::read_json<decltype(now)>(json).value() == now);
+  };
   return EXIT_SUCCESS;
 }

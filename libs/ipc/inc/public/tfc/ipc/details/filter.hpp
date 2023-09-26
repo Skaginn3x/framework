@@ -47,7 +47,6 @@ struct filter;
 /// \brief behaviour flip the state of boolean
 template <>
 struct filter<filter_e::invert, bool> {
-  static constexpr bool inverting{ true };
   static constexpr filter_e type{ filter_e::invert };
 
   auto async_process(bool&& value, auto&& completion_token) const {
@@ -60,10 +59,7 @@ struct filter<filter_e::invert, bool> {
   struct glaze {
     using type = filter<filter_e::invert, bool>;
     static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object(
-        "invert",
-        &type::inverting,
-        tfc::json::schema{ .description = "Invert output value", .read_only = true, .constant = true }) };
+    static constexpr auto value{ &type::type };
   };
 };
 

@@ -65,7 +65,7 @@ public:
     client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
   }
 
-  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, auto&& callback)
+  slot(asio::io_context& ctx, manager_client_type& client, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
       : slot(ctx, client, name, "", callback) {}
 
   slot(slot&) = delete;

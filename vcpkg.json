@@ -17,11 +17,11 @@
     "boost-asio",
     "boost-program-options",
     "boost-stacktrace",
-    "date",
     "fmt",
     "glaze",
     "gtest",
     "spdlog",
+    "stduuid",
     "soem",
     {
       "name": "libgpiod",
