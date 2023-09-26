@@ -3,8 +3,8 @@
 #include <fmt/format.h>
 #include <glaze/json.hpp>
 
-#include <tfc/ipc/item.hpp>
 #include <tfc/ipc/details/item_glaze_meta.hpp>
+#include <tfc/ipc/item.hpp>
 #include <tfc/progbase.hpp>
 
 namespace tfc::ipc::item {
