@@ -180,6 +180,36 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
     write<json>::op<opts>(substitute, args...);
   }
 };
+inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
+  std::istringstream in{ save };
+  date::sys_time<std::chrono::milliseconds> tp;
+  in >> date::parse("%FT%TZ", tp);
+  if (in.fail()) {
+    in.clear();
+    in.exceptions(std::ios::failbit);
+    in.str(save);
+    in >> date::parse("%FT%T%Ez", tp);
+  }
+  return tp;
+}
+template <>
+struct from_json<tfc::stx::millisecond_system_clock::time_point> {
+  template <auto opts>
+  static void op([[maybe_unused]] auto& value, auto&&... args) {
+    std::string rep;
+    read<json>::op<opts>(rep, args...);
+    value = parse8601(rep);
+  }
+};
+
+template <>
+struct to_json<tfc::stx::millisecond_system_clock::time_point> {
+  template <auto opts>
+  static void op(auto& value, auto&&... args) noexcept {
+    std::string iso8601{ fmt::format("{:%FT%T%z}", value) };
+    write<json>::op<opts>(iso8601, args...);
+  }
+};
 template <typename clock_t, typename duration_t>
 struct from_json<std::chrono::time_point<clock_t, duration_t>> {
   template <auto opts>
@@ -194,36 +224,6 @@ struct to_json<std::chrono::time_point<clock_t, duration_t>> {
   template <auto opts>
   static void op(auto&& value, auto&&... args) {
     to_json<duration_t>::template op<opts>(value.time_since_epoch(), std::forward<decltype(args)>(args)...);
-  }
-};
-inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
-  std::istringstream in{ save };
-  date::sys_time<std::chrono::milliseconds> tp;
-  in >> date::parse("%FT%TZ", tp);
-  if (in.fail()) {
-    in.clear();
-    in.exceptions(std::ios::failbit);
-    in.str(save);
-    in >> date::parse("%FT%T%Ez", tp);
-  }
-  return tp;
-}
-template <>
-struct from_json<std::chrono::time_point<tfc::stx::millisecond_system_clock, tfc::stx::millisecond_system_clock::duration>> {
-  template <auto opts>
-  static void op([[maybe_unused]] auto& value, auto&&... args) {
-    std::string rep;
-    read<json>::op<opts>(rep, args...);
-    value = parse8601(rep);
-  }
-};
-
-template <>
-struct to_json<std::chrono::time_point<tfc::stx::millisecond_system_clock, tfc::stx::millisecond_system_clock::duration>> {
-  template <auto opts>
-  static void op(auto& value, auto&&... args) noexcept {
-    std::string iso8601{ fmt::format("{:%FT%T%z}", value) };
-    write<json>::op<opts>(iso8601, args...);
   }
 };
 

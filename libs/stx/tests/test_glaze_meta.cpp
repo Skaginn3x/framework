@@ -99,9 +99,7 @@ auto main() -> int {
 
     tfc::stx::millisecond_system_clock::time_point time_point{};
     auto time_point_json{ glz::write_json(time_point) };
-    ut::expect(time_point_json == "hello world") << time_point_json;
-
-    fmt::print("{}", time_point_json);
+    ut::expect(time_point_json == "\"1970-01-01T00:00:00.000+0000\"") << time_point_json;
   };
   return EXIT_SUCCESS;
 }
