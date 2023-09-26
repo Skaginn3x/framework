@@ -11,7 +11,7 @@ namespace tfc::ipc::item {
 
 item make() {
   // todo how about storing the random engine in shared memory?
-  static std::mt19937_64 random_engine{};
+  static std::mt19937_64 random_engine{};  // NOLINT
   static bool first_call{ true };
   if (first_call) {
     first_call = false;
