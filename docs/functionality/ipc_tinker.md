@@ -17,15 +17,14 @@ The following interface names are used for the functionality.
 - value `<slot_name>/value`
 
 ## Specification of the tinker interface
-A property called `forced` of the type bool,
-this property indicates weather the slots value is forced or not.
+A method called `set` accepting a value of the type of the slot,
+this method sends a value to the slot.
+Once a new value is posted on the signal
+the slot is connected to the value is updated.
 
-A method called `force` accepting a value of the type of the slot,
-this method forces the value of the slot.
-
-A method called `release` accepting no arguments.
-Which releases the force on the slot having
-it return to its normal state.
+If you wish to completely control the value
+you can disconnect the slot from the signal
+and then set a value to the slot.
 
 ## Specification of the value interface
 A property called `filtered_value` of the type of the slot.
@@ -37,10 +36,9 @@ Each of these properties transmit a properties changed event
 and can be subscribed to.
 
 ### Effect of forcing a value
-If the slot value is forced `post_filter_value` is set to the
-forced value but `raw_value` still tracks the value changes
+If the slot value is forced `filtered_value` is set to the
+just set value but `raw_value` still tracks the value
 on the signal the slot is connected to.
-
 
 ## The filter interface 
 This interface follows our convention of using json-schema for
