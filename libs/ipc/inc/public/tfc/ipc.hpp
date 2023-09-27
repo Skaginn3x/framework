@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/impl.hpp>
 #include <tfc/stx/concepts.hpp>
@@ -38,7 +39,7 @@ auto constexpr register_cb(std::string const& ipc_name) {
  * addition with implementing the ipc connection.
  * @tparam type_desc The type description for the slot.
  */
-template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client>
+template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client&>
 class slot {
 public:
   using value_t = typename details::slot_callback<type_desc>::value_t;
@@ -53,20 +54,31 @@ public:
    * @param callback Channel for value updates from the corresponding signal.
    */
   slot(asio::io_context& ctx,
-       manager_client_type& client,
+       manager_client_type client,
        std::string_view name,
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
+      requires std::is_lvalue_reference_v<manager_client_type>
       : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
         client_(client) {
-    client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
-      slot_->connect(signal_name);  //
-    });
-    client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
+//    static_assert(std::is_lvalue_reference_v<manager_client_type>,
+//                  "manager_client_type must be a lvalue reference if you want to use this constructor");
+    client_init(description);
   }
 
   slot(asio::io_context& ctx,
-       manager_client_type& client,
+       std::shared_ptr<sdbusplus::asio::connection> connection,
+       std::string_view name,
+       std::string_view description,
+       tfc::stx::invocable<value_t> auto&& callback)
+      requires (!std::is_lvalue_reference_v<manager_client_type>)
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback)) },
+        client_{ connection } {
+    client_init(description);
+  }
+
+  slot(asio::io_context& ctx,
+       manager_client_type client,
        std::string_view name,
        tfc::stx::invocable<value_t> auto&& callback)
       : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
@@ -86,8 +98,15 @@ public:
   [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->name_w_type(); }
 
 private:
+  void client_init(std::string_view description) {
+    client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
+      slot_->connect(signal_name);  //
+    });
+    client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
+  }
+
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
-  manager_client_type& client_;
+  manager_client_type client_;
 };
 
 /**
@@ -137,12 +156,12 @@ private:
 template <typename return_t, template <typename description_t, typename manager_client_t> typename ipc_base_t>
 struct make_any;
 
-using bool_slot = slot<details::type_bool, ipc_ruler::ipc_manager_client>;
-using int_slot = slot<details::type_int, ipc_ruler::ipc_manager_client>;
-using uint_slot = slot<details::type_uint, ipc_ruler::ipc_manager_client>;
-using double_slot = slot<details::type_double, ipc_ruler::ipc_manager_client>;
-using string_slot = slot<details::type_string, ipc_ruler::ipc_manager_client>;
-using json_slot = slot<details::type_json, ipc_ruler::ipc_manager_client>;
+using bool_slot = slot<details::type_bool>;
+using int_slot = slot<details::type_int>;
+using uint_slot = slot<details::type_uint>;
+using double_slot = slot<details::type_double>;
+using string_slot = slot<details::type_string>;
+using json_slot = slot<details::type_json>;
 using any_slot = std::variant<std::monostate,  //
                               bool_slot,       //
                               int_slot,        //

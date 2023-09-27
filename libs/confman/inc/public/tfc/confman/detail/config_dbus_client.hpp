@@ -13,6 +13,8 @@ class io_context;
 
 namespace tfc::confman::detail {
 
+namespace asio = boost::asio;
+
 struct config_property {
   // THIS SHOULD BE string_view, sdbusplus does not support it as std::string_view is not convertible to char const*
   std::string value{};
@@ -32,16 +34,23 @@ static constexpr std::string_view property_name{ "config" };
 
 class config_dbus_client {
 public:
+  using dbus_connection_t = std::shared_ptr<sdbusplus::asio::connection>;
+
   /// \brief Empty constructor
   /// \note Should only be used for testing !!!
-  explicit config_dbus_client(boost::asio::io_context& ctx);
+  explicit config_dbus_client(asio::io_context& ctx);
 
   using value_call_t = std::function<std::string()>;
   using schema_call_t = std::function<std::string()>;
   using change_call_t = std::function<std::error_code(std::string_view)>;
-  config_dbus_client(boost::asio::io_context& ctx, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
+  config_dbus_client(asio::io_context& ctx, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
+  config_dbus_client(dbus_connection_t conn, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
+
+  asio::io_context& io_context() const noexcept;
 
   void set(config_property&&) const;
+
+  void initialize();
 
 private:
   std::filesystem::path interface_path_{};
@@ -49,7 +58,7 @@ private:
   value_call_t value_call_{};
   schema_call_t schema_call_{};
   change_call_t change_call_{};
-  std::shared_ptr<sdbusplus::asio::connection> dbus_connection_{};
+  dbus_connection_t dbus_connection_{};
   std::unique_ptr<sdbusplus::asio::dbus_interface, std::function<void(sdbusplus::asio::dbus_interface*)>> dbus_interface_{};
 };
 

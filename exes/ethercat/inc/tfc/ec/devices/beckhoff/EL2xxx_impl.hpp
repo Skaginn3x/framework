@@ -11,7 +11,7 @@ template <typename manager_client_type, size_t size, uint32_t pc, tfc::stx::basi
 el2xxx<manager_client_type, size, pc, name>::el2xxx(asio::io_context& ctx, manager_client_type& client, uint16_t slave_index)
     : base(slave_index) {
   for (size_t i = 0; i < size; i++) {
-    bool_receivers_.emplace_back(std::make_unique<tfc::ipc::slot<ipc::details::type_bool, manager_client_type>>(
+    bool_receivers_.emplace_back(std::make_shared<tfc::ipc::slot<ipc::details::type_bool, manager_client_type&>>(
         ctx, client, fmt::format("{}.slave{}.out{}", name.view(), slave_index, i),
         std::bind_front(&el2xxx::set_output, this, i)));
   }
