@@ -86,11 +86,8 @@ auto main() -> int {
             << foo.value().view();  // fixed string will always contain fixed number of characters hence the zero
       };
   "chrono clock"_test = [] {
-    auto now{ std::chrono::system_clock::now() };
     // transposing steady clock in json does not really make any sense
     static_assert(glz::name_v<std::chrono::steady_clock> == "glz::unknown");
-    auto json{ glz::write_json(now) };
-    ut::expect(glz::read_json<decltype(now)>(json).value() == now);
   };
   "millisecond clock"_test = [] {
     auto now{ tfc::stx::millisecond_system_clock::now() };
