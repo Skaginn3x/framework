@@ -149,7 +149,7 @@ public:
   using send_or_recv_t = std::variant<std::monostate, ipc_input_t, ipc_output_t>;
   using pin_t = std::variant<pin::as_is_t, pin::in, pin::out>;
   using config_t = tfc::confman::config<std::vector<tfc::confman::observable<pin_t>>>;
-  using pin_index_t = std::uint32_t;
+  using pin_index_t = gpiod::line::offset;
 
   gpio(asio::io_context& ctx, std::filesystem::path const& char_device);
 
