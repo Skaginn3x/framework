@@ -19,6 +19,7 @@
 
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/details/type_description.hpp>
+#include <tfc/ipc/details/dbus_slot.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>

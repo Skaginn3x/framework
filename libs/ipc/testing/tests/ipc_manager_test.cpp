@@ -292,7 +292,7 @@ auto main(int argc, char** argv) -> int {
     bool ignore_first{ true };
 
     tfc::ipc_ruler::ipc_manager_client_mock mock_client;
-    const tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+    const tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> slot(
         isolated_ctx, mock_client, "bool_slot", "", [&](bool value) {
           if (ignore_first) {
             ignore_first = false;
@@ -303,7 +303,7 @@ auto main(int argc, char** argv) -> int {
             isolated_ctx.stop();
           }
         });
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mock_client,
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, mock_client,
                                                                                                 "bool_signal", "");
 
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
@@ -328,7 +328,7 @@ auto main(int argc, char** argv) -> int {
     bool ignore_first{ true };
     std::array<std::int64_t, 3> test_values{ 25, 1337, 42 };
 
-    const tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> slot(
+    const tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&> slot(
         isolated_ctx, mock_client, "bool_slot", "", [&](int64_t value) {
           if (ignore_first) {
             ignore_first = false;
@@ -339,7 +339,7 @@ auto main(int argc, char** argv) -> int {
             isolated_ctx.stop();
           }
         });
-    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock> sig(isolated_ctx, mock_client,
+    tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, mock_client,
                                                                                                "bool_signal", "");
 
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
@@ -394,7 +394,7 @@ auto main(int argc, char** argv) -> int {
 
     ut::expect(test_class_instance.value() == 0);
 
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> signal(
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> signal(
         isolated_ctx, mock_client, "test_signal", "description2");
 
     isolated_ctx.run_for(std::chrono::milliseconds(20));
