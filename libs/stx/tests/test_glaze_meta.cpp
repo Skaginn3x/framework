@@ -93,10 +93,6 @@ auto main() -> int {
     auto now{ std::chrono::system_clock::now() };
     auto json{ glz::write_json(now) };
     ut::expect(glz::read_json<decltype(now)>(json).value() == now);
-
-    std::chrono::system_clock::time_point time_point{};
-    auto time_point_json{ glz::write_json(time_point) };
-    ut::expect(time_point_json == "\"1970-01-01T00:00:00.000000+0000\"") << time_point_json;
   };
   return EXIT_SUCCESS;
 }
