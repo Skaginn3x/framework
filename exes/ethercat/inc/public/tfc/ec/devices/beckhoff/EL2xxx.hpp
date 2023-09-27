@@ -34,7 +34,7 @@ public:
 
 private:
   std::bitset<size> output_states_;
-  std::vector<std::shared_ptr<ipc::slot<ipc::details::type_bool, manager_client_type>>> bool_receivers_;
+  std::vector<std::shared_ptr<ipc::slot<ipc::details::type_bool, manager_client_type&>>> bool_receivers_;
 };
 
 template <typename manager_client_type>

@@ -20,7 +20,10 @@ namespace asio = boost::asio;
 class ipc_manager_client {
 public:
   explicit ipc_manager_client(asio::io_context& ctx);
-  // Todo copy constructors can be implemented but I don't see why we need them
+
+  /// \param connection non null pointer to a sdbusplus connection
+  explicit ipc_manager_client(std::shared_ptr<sdbusplus::asio::connection> connection);
+  // copy constructors should not be used
   ipc_manager_client(ipc_manager_client const&) = delete;
   auto operator=(ipc_manager_client const&) -> ipc_manager_client& = delete;
   ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept;
@@ -119,7 +122,7 @@ private:
   const std::string ipc_ruler_object_path_{ consts::ipc_ruler_object_path };
 
   std::string connection_match_rule_{};
-  std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> connection_;
+  std::shared_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> connection_match_;
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks_;
 };

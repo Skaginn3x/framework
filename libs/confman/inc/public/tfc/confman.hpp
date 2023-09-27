@@ -9,6 +9,7 @@
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/confman/file_storage.hpp>
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/json_schema.hpp>
 
@@ -34,16 +35,41 @@ public:
   config(asio::io_context& ctx, std::string_view key) : config{ ctx, key, config_storage_t{} } {}
 
   /// \brief construct config and deliver it to config manager
+  /// \param conn valid dbus connection
+  /// \param key identification of this config storage, requires to be unique
+  config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
+      : config{ conn, key, config_storage_t{} } {}
+
+  /// \brief construct config and deliver it to config manager
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   /// \param def default values of given storage type
   template <typename storage_type>
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(asio::io_context& ctx, std::string_view key, storage_type&& def)
-      : storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
-        client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
+      : client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
+        storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
+    client_.initialize();
+    storage_.on_change([]() {
+      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
+      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    });
+  }
+
+  /// \brief construct config and deliver it to config manager
+  /// \param conn valid dbus connection
+  /// \param key identification of this config storage, requires to be unique
+  /// \param def default values of given storage type
+  template <typename storage_type>
+    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
+  config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key, storage_type&& def)
+      : client_{ conn, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
+                 std::bind_front(&config::from_string, this) },
+        storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        logger_(fmt::format("config.{}", key)) {
+    client_.initialize();
     storage_.on_change([]() {
       // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
       //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
@@ -56,7 +82,7 @@ public:
   /// \param dbus_client rvalue reference to constructed dbus client
   /// \note This constructor is good for testing! Since you can disable underlying functions by the substitutions.
   config(asio::io_context&, std::string_view key, file_storage_t file_storage, config_dbus_client_t dbus_client)
-      : storage_{ file_storage }, client_{ dbus_client }, logger_{ fmt::format("config.{}", key) } {
+      : client_{ dbus_client }, storage_{ file_storage }, logger_{ fmt::format("config.{}", key) } {
     static_assert(std::is_lvalue_reference_v<file_storage_t>);
     static_assert(std::is_lvalue_reference_v<config_dbus_client_t>);
   }
@@ -117,8 +143,8 @@ protected:
   // todo const_cast is not nice, make different pattern
   [[nodiscard]] auto access() noexcept -> storage_t& { return const_cast<storage_t&>(storage_.value()); }
 
-  file_storage_t storage_{};
   config_dbus_client_t client_;
+  file_storage_t storage_{};
   tfc::logger::logger logger_;
 };
 

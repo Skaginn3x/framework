@@ -24,6 +24,10 @@ auto main(int argc, char** argv) -> int {
   using tfc::ipc::details::packet;
   using tfc::ipc::details::type_e;
 
+  asio::io_context bar{};
+  tfc::ipc_ruler::ipc_manager_client client{ bar };
+  std::unique_ptr<tfc::ipc::bool_slot> foo{ std::make_unique<tfc::ipc::bool_slot>(bar, client, "bar", "desc", [](bool){}) };
+
   "packet_serialization"_test = []() {
     constexpr auto deserialize_serialize{ [](auto&& pack) {
       using pack_t = std::remove_cvref_t<decltype(pack)>;
