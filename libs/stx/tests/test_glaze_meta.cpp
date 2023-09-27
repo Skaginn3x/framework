@@ -90,11 +90,11 @@ auto main() -> int {
     static_assert(glz::name_v<std::chrono::steady_clock> == "glz::unknown");
   };
   "millisecond clock"_test = [] {
-    auto now{ tfc::stx::millisecond_system_clock::now() };
+    auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
     auto json{ glz::write_json(now) };
     ut::expect(glz::read_json<decltype(now)>(json).value() == now);
 
-    tfc::stx::millisecond_system_clock::time_point time_point{};
+    std::chrono::system_clock::time_point time_point{};
     auto time_point_json{ glz::write_json(time_point) };
     ut::expect(time_point_json == "\"1970-01-01T00:00:00.000+0000\"") << time_point_json;
   };

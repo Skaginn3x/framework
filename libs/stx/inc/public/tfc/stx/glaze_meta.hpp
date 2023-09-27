@@ -10,7 +10,6 @@
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
-#include <tfc/stx/millisecond_clock.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>
 #include <tfc/utils/json_schema.hpp>
@@ -139,10 +138,6 @@ template <>
 struct glz::meta<std::chrono::system_clock> {
   static constexpr std::string_view name{ "std::chrono::system_clock" };
 };
-template <>
-struct glz::meta<tfc::stx::millisecond_system_clock> {
-  static constexpr std::string_view name{ "tfc::stx::millisecond_system_clock" };
-};
 template <typename clock_t, typename duration_t>
 struct glz::meta<std::chrono::time_point<clock_t, duration_t>> {
   static constexpr std::string_view prefix{ "std::chrono::time_point<" };
@@ -192,8 +187,8 @@ inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::mi
   }
   return tp;
 }
-template <>
-struct from_json<tfc::stx::millisecond_system_clock::time_point> {
+template <typename clock_t, typename duration_t>
+struct from_json<std::chrono::time_point<clock_t, duration_t>> {
   template <auto opts>
   static void op([[maybe_unused]] auto& value, auto&&... args) {
     std::string rep;
@@ -201,8 +196,8 @@ struct from_json<tfc::stx::millisecond_system_clock::time_point> {
     value = parse8601(rep);
   }
 };
-template <>
-struct to_json<tfc::stx::millisecond_system_clock::time_point> {
+template <typename clock_t, typename duration_t>
+struct to_json<std::chrono::time_point<clock_t, duration_t>> {
   template <auto opts>
   static void op(auto& value, auto&&... args) noexcept {
     std::string iso8601{ fmt::format("{:%FT%T%z}", value) };

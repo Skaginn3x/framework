@@ -17,9 +17,10 @@ PRAGMA_CLANG_WARNING_POP
 namespace tfc::ipc::item {
 
 auto make(pcg_extras::seed_seq_from<std::random_device>& seed_source) -> item {
+  auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
   pcg64 random_engine(seed_source);  // result_type uint64_t
   uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
-  return { .item_id = random_generator(), .entry_timestamp = item::clock::now() };
+  return { .item_id = random_generator(), .entry_timestamp = now };
 }
 
 auto make() -> item {
