@@ -175,9 +175,10 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
     write<json>::op<opts>(substitute, args...);
   }
 };
-inline auto parse8601(const std::string& save) -> date::sys_time<std::chrono::milliseconds> {
+template <typename duration_t>
+inline auto parse8601(const std::string& save) -> date::sys_time<duration_t> {
   std::istringstream in{ save };
-  date::sys_time<std::chrono::milliseconds> tp;
+  date::sys_time<duration_t> tp;
   in >> date::parse("%FT%TZ", tp);
   if (in.fail()) {
     in.clear();
@@ -193,7 +194,7 @@ struct from_json<std::chrono::time_point<clock_t, duration_t>> {
   static void op([[maybe_unused]] auto& value, auto&&... args) {
     std::string rep;
     read<json>::op<opts>(rep, args...);
-    value = parse8601(rep);
+    value = parse8601<duration_t>(rep);
   }
 };
 template <typename clock_t, typename duration_t>
