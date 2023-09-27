@@ -16,6 +16,7 @@
 #include <units/isq/si/mass.h>
 #include <units/isq/si/volume.h>
 
+#include <tfc/stx/millisecond_clock.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 
 namespace glz {
@@ -182,6 +183,9 @@ struct item;
 /// \struct item
 /// \brief given attributes of an item
 struct item {
+  using clock = tfc::stx::millisecond_system_clock;
+  using time_point = clock::time_point;
+
   [[nodiscard]] static auto from_json(std::string_view json) -> std::expected<item, glz::parse_error>;
   [[nodiscard]] auto to_json() const -> std::string;
   [[nodiscard]] auto id() const -> std::string;
@@ -213,9 +217,9 @@ struct item {
   // attributes
   std::optional<details::color> color{ std::nullopt };
   std::optional<details::quality_e> quality{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> entry_timestamp{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> production_date{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> expiration_date{ std::nullopt };
+  std::optional<time_point> entry_timestamp{ std::nullopt };
+  std::optional<time_point> production_date{ std::nullopt };
+  std::optional<time_point> expiration_date{ std::nullopt };
   std::optional<std::string> description{ std::nullopt };
   std::optional<details::supplier> supplier{ std::nullopt };
   std::optional<details::destination> destination{ std::nullopt };
