@@ -1,5 +1,6 @@
 #include <tfc/ipc/item.hpp>
 
+#include <glaze/glaze.hpp>
 #include <fmt/core.h>
 #include <boost/ut.hpp>
 
@@ -28,6 +29,12 @@ auto main(int, char**) -> int {
   "make creates timestamp"_test = [] {
     auto item = item::make();
     expect(item.entry_timestamp.has_value());
+  };
+
+  "json"_test = [] {
+    auto item = item::make();
+    auto remake = item::item::from_json(item.to_json()).value();
+    expect(remake == item);
   };
 
   return 0;
