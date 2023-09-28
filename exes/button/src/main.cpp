@@ -1,13 +1,9 @@
 #include <cstdlib>
 #include <iostream>
-#include <string>
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/sml.hpp>
-
-#include <fmt/chrono.h>
-#include <fmt/format.h>
 
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
@@ -60,7 +56,7 @@ struct my_deps {
   tfc::logger::logger& logger;
 };
 
-//actions
+// actions
 auto start_timeout = [](const auto&, auto& state_machine, auto& deps, const auto& subs) {
   // Create a timer from a shared_ptr
   auto deps_v = deps.value;
@@ -111,14 +107,14 @@ auto send_double_tap = [](my_deps& deps) { return send_signal(deps.ctx, deps.dou
 
 struct button_state {
   auto operator()() {
-    return sml::make_transition_table(*"start"_s + sml::event<high> / inital_time_set = "choose"_s,
-                                      "choose"_s + sml::event<low>[long_press] / send_long_press = "start"_s,
-                                      "choose"_s + sml::event<low>[short_press] / start_timeout = "wait"_s,
-                                      "choose"_s + sml::event<low>[too_long_press] = "start"_s,
-                                      "wait"_s + sml::event<high>[short_press] = "send_double"_s, // Wait for low also on double tap
-                                      "wait"_s + sml::event<high>[long_press] = "start"_s,
-                                      "wait"_s + sml::event<timeout> / send_touch = "start"_s,
-                                      "send_double"_s + sml::event<low> / send_double_tap = "start"_s);
+    return sml::make_transition_table(
+        *"start"_s + sml::event<high> / inital_time_set = "choose"_s,
+        "choose"_s + sml::event<low>[long_press] / send_long_press = "start"_s,
+        "choose"_s + sml::event<low>[short_press] / start_timeout = "wait"_s,
+        "choose"_s + sml::event<low>[too_long_press] = "start"_s,
+        "wait"_s + sml::event<high>[short_press] = "send_double"_s,  // Wait for low also on double tap
+        "wait"_s + sml::event<high>[long_press] = "start"_s, "wait"_s + sml::event<timeout> / send_touch = "start"_s,
+        "send_double"_s + sml::event<low> / send_double_tap = "start"_s);
   }
 };
 
