@@ -177,6 +177,9 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
 };
 template <typename duration_t>
 inline auto parse8601(const std::string& save) -> date::sys_time<duration_t> {
+  if (save.empty()) {
+    return {};
+  }
   std::istringstream in{ save };
   date::sys_time<duration_t> tp;
   in >> date::parse("%FT%TZ", tp);
