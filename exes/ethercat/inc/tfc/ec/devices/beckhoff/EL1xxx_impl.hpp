@@ -14,7 +14,8 @@ el100x<manager_client_type, size, pc, signal_t>::el100x(asio::io_context& ctx,
     : base(slave_index) {
   for (size_t i = 0; i < size; i++) {
     transmitters_.emplace_back(std::make_unique<bool_signal_t>(
-        ctx, client, fmt::format("EL100{}.{}.in.{}", size, slave_index, i), "Digital input"));
+        ctx, client, fmt::format("EL100{}.slave{}.in{}", size, slave_index, i), "Digital input"));
+    // todo description: skápur - tæki - íhlutur
   }
 }
 

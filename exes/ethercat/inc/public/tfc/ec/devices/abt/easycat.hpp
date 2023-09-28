@@ -11,7 +11,7 @@ template <typename manager_client_type>
 class easyecat final : public base {
 public:
   explicit easyecat(boost::asio::io_context& ctx_, manager_client_type& client, uint16_t const slave_index)
-      : base(slave_index) {
+      : base(slave_index), servo_{ ctx_, client, fmt::format("easyecat{}.servo", slave_index), "Servo", [](auto) {} } {
     for (size_t i = 0; i < 4; i++) {
       bool_transmitters_.emplace_back(ctx_, client, fmt::format("easyecat.{}.in.{}", slave_index, i), "Digital input");
       bool_receivers_[i] =
@@ -36,9 +36,9 @@ public:
     for (size_t i = 0; i < di_count; i++) {
       bool const value = in_bits.test(i);
       if (value != last_bool_value_[i]) {
-        bool_transmitters_[i].async_send(value, [](std::error_code error, size_t) {
+        bool_transmitters_[i].async_send(value, [this](std::error_code error, size_t) {
           if (error) {
-            printf("easyecat, error transmitting : %s\n", error.message().c_str());
+            this->logger_.info("bool error transmitting: {}", error.message().c_str());
           }
         });
       }
@@ -47,15 +47,20 @@ public:
     for (size_t i = 0; i < ai_count; i++) {
       uint8_t const value = static_cast<uint8_t>(input[i]);
       if (value != last_analog_value_[i]) {
-        analog_transmitters_[i].async_send(value, [](std::error_code error, size_t) {
+        analog_transmitters_[i].async_send(value, [this](std::error_code error, size_t) {
           if (error) {
-            printf("easyecat, error transmitting : %s\n", error.message().c_str());
+            this->logger_.info("analog error transmitting: {}", error.message().c_str());
           }
         });
       }
       last_analog_value_[i] = value;
     }
     output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0x0f);
+    if (auto const servo_value = servo_.value(); servo_value.has_value()) {
+      output[1] = static_cast<std::byte>(servo_value.value());
+    } else {
+      output[1] = static_cast<std::byte>(0);
+    }
   }
 
 private:
@@ -65,6 +70,7 @@ private:
   std::vector<tfc::ipc::bool_signal> bool_transmitters_;
   std::vector<tfc::ipc::uint_signal> analog_transmitters_;
   std::array<std::unique_ptr<tfc::ipc::bool_slot>, di_count> bool_receivers_;
+  tfc::ipc::uint_slot servo_;
 };
 
 }  // namespace tfc::ec::devices::abt

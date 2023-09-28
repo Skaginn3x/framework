@@ -32,6 +32,10 @@ if (BUILD_DOCS)
   add_subdirectory(docs)
 endif()
 
+if (BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
+
 add_subdirectory(cockpit)
 
 # Clang format all files
