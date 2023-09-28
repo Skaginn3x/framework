@@ -19,34 +19,10 @@ using std::chrono::milliseconds;
 using std::chrono_literals::operator""ms;
 using std::chrono::system_clock;
 
-struct lv {
-  bool val;
-  std::chrono::time_point<system_clock, std::chrono::nanoseconds> tp;
-};
-
 // Events
 struct high {};
 struct low {};
 struct timeout {};
-
-std::chrono::time_point<system_clock, std::chrono::nanoseconds> initial_time;
-
-// guards
-auto inital_time_set = []() { initial_time = system_clock::now(); };
-auto long_press = []() {
-  auto delta = system_clock::now() - initial_time;
-  return delta > 1000ms && delta < 2500ms;
-};
-
-auto short_press = []() {
-  auto delta = system_clock::now() - initial_time;
-  return delta < 1000ms;
-};
-
-auto too_long_press = []() {
-  auto delta = system_clock::now() - initial_time;
-  return delta >= 2500ms;
-};
 
 struct my_deps {
   tfc::ipc::bool_signal& long_signal;
@@ -54,6 +30,24 @@ struct my_deps {
   tfc::ipc::bool_signal& touch_signal;
   asio::io_context& ctx;
   tfc::logger::logger& logger;
+  std::chrono::time_point<system_clock, std::chrono::nanoseconds> initial_time;
+};
+
+// guards
+auto inital_time_set = [](my_deps& deps) { deps.initial_time = system_clock::now(); };
+auto long_press = [](my_deps& deps) {
+  auto delta = system_clock::now() - deps.initial_time;
+  return delta > 1000ms && delta < 2500ms;
+};
+
+auto short_press = [](my_deps& deps) {
+  auto delta = system_clock::now() - deps.initial_time;
+  return delta < 1000ms;
+};
+
+auto too_long_press = [](my_deps& deps) {
+  auto delta = system_clock::now() - deps.initial_time;
+  return delta >= 2500ms;
 };
 
 // actions
@@ -65,7 +59,7 @@ auto start_timeout = [](const auto&, auto& state_machine, auto& deps, const auto
   timer->expires_after(left);
   // Copy the timer into the callback to make another shared_ptr
   // reference
-  timer->async_wait([&, timer = timer](const std::error_code& err) {
+  timer->async_wait([&, timer_copy = timer](const std::error_code& err) {
     if (err) {
       return;
     }
@@ -87,8 +81,8 @@ auto send_signal = [](asio::io_context& ctx, tfc::ipc::bool_signal& signal, tfc:
 
   // Copy the timer into the callback to make another shared_ptr
   // reference
-  timer->async_wait([&, timer = timer](const std::error_code& err) {
-    if (err) {
+  timer->async_wait([&, timer_copy = timer](const std::error_code& timer_err) {
+    if (timer_err) {
       return;
     }
     signal.async_send(false, [&](const std::error_code& err, size_t) {
@@ -135,7 +129,8 @@ auto main(int argc, char** argv) -> int {
                        .double_signal = double_tap_signal,
                        .touch_signal = touch_signal,
                        .ctx = ctx,
-                       .logger = logger };
+                       .logger = logger,
+                       .initial_time = system_clock::now() };
   sml::sm<button_state> sm(deps);
 
   tfc::ipc::bool_slot slot{ ctx, client, "input", "Button input", [&](bool value) {
