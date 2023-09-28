@@ -17,7 +17,7 @@ using sml::operator""_e;
 
 using std::chrono::milliseconds;
 using std::chrono_literals::operator""ms;
-using std::chrono::system_clock;
+using std::chrono::steady_clock;
 
 // Events
 struct high {};
@@ -28,29 +28,29 @@ struct my_deps {
   my_deps(asio::io_context& ctx_para, tfc::logger::logger& logger_para, tfc::ipc_ruler::ipc_manager_client& client)
       : ctx{ ctx_para }, logger{ logger_para }, double_signal{ ctx, client, "double_tap", "Button double tap" },
         long_signal{ ctx, client, "long_press", "Button long press" }, touch_signal{ ctx, client, "touch", "Button touch" },
-        initial_time(system_clock::now()) {}
+        initial_time(steady_clock::now()) {}
   asio::io_context& ctx;
   tfc::logger::logger& logger;
   tfc::ipc::bool_signal double_signal;
   tfc::ipc::bool_signal long_signal;
   tfc::ipc::bool_signal touch_signal;
-  std::chrono::time_point<system_clock, std::chrono::nanoseconds> initial_time;
+  std::chrono::time_point<steady_clock, std::chrono::nanoseconds> initial_time;
 };
 
 // guards
-constexpr auto initial_time_set = [](my_deps& deps) { deps.initial_time = system_clock::now(); };
+constexpr auto initial_time_set = [](my_deps& deps) { deps.initial_time = steady_clock::now(); };
 constexpr auto long_press = [](my_deps& deps) {
-  auto delta = system_clock::now() - deps.initial_time;
+  auto delta = steady_clock::now() - deps.initial_time;
   return delta > 1000ms && delta < 2500ms;
 };
 
 constexpr auto short_press = [](my_deps& deps) {
-  auto delta = system_clock::now() - deps.initial_time;
+  auto delta = steady_clock::now() - deps.initial_time;
   return delta < 1000ms;
 };
 
 constexpr auto too_long_press = [](my_deps& deps) {
-  auto delta = system_clock::now() - deps.initial_time;
+  auto delta = steady_clock::now() - deps.initial_time;
   return delta >= 2500ms;
 };
 
@@ -58,7 +58,7 @@ constexpr auto too_long_press = [](my_deps& deps) {
 constexpr auto start_timeout = [](const auto&, auto& state_machine, auto& deps, const auto& subs) {
   // Create a timer from a shared_ptr
   auto deps_v = deps.value;
-  auto timer = std::make_shared<asio::system_timer>(deps_v.ctx);
+  auto timer = std::make_shared<asio::steady_timer>(deps_v.ctx);
   auto left = 500ms;
   timer->expires_after(left);
   // Copy the timer into the callback to make another shared_ptr
@@ -80,7 +80,7 @@ constexpr auto send_signal = [](asio::io_context& ctx, tfc::ipc::bool_signal& si
   });
 
   // Create a timer from a shared_ptr
-  auto timer = std::make_shared<asio::system_timer>(ctx);
+  auto timer = std::make_shared<asio::steady_timer>(ctx);
   timer->expires_after(100ms);
 
   // Copy the timer into the callback to make another shared_ptr
