@@ -3,7 +3,6 @@ import FilterIcon from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 
 import * as reactCore from '@patternfly/react-core';
 
-// import { PaginationTitles } from '@patternfly/react-core';
 import { SignalType, SlotType } from '../../Types';
 
 export default function ToolBar(

@@ -90,9 +90,6 @@ const IODebug:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
 
   useEffect(() => {
     const callback = (allNames: string[]) => {
-      // const dbus = window.cockpit.dbus('org.freedesktop.DBus');
-      // const filteredNames = allNames.filter((name: string) => name.includes('config')); // && name.includes('_slot_')
-      // const proxies = connectToDBusNames(filteredNames, dbus);
       console.log(allNames);
       const proxies = getIOData();
       const interfaces = proxies.map((proxy: any) => ({
@@ -219,7 +216,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
               minWidth: '300px',
               flex: 1,
               height: '100%',
-              width: isDrawerExpanded ? 'calc(100vw - 28rem)' : '100vw',
+              width: isDrawerExpanded ? 'calc(100% - 28rem)' : '100%',
               transition: 'width 0.2s ease-in-out',
             }}
             >
@@ -228,7 +225,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
               </Title>
               <div style={{
                 position: 'fixed',
-                right: isDrawerExpanded ? '29rem' : '0.5rem',
+                right: isDrawerExpanded ? '29.5rem' : '1.5rem',
                 transition: 'right 0.2s ease-in-out',
                 top: '0rem',
                 zIndex: '10000',

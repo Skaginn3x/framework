@@ -64,6 +64,7 @@
 
 .pf-v5-c-table__td {
    font-size: 0.95rem;
+   padding: 0.2rem 0.5rem !important;
 }
 .pf-v5-c-table {
    text-align: left;
@@ -76,10 +77,6 @@
 
 .wideModal {
    --pf-c-modal-box--Width: 90% !important;
-}
-
-.pf-v5-c-table__td {
-	padding: 0.2rem 0.5rem !important;
 }
 
 .pf-v5-c-table__td.pf-v5-c-table__check > label{

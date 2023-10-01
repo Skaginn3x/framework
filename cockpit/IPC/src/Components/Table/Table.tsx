@@ -379,7 +379,7 @@ export default function CustomTable({
       <Table aria-label="Selectable table">
         <Thead>
           <Tr>
-            <Th width={35} colSpan={2}>{columnNames.name}</Th>
+            <Th width={35}>{columnNames.name}</Th>
             <Th width={10}>{columnNames.type}</Th>
             <Th width={10}>{columnNames.created_by}</Th>
             <Th width={10}>{columnNames.created_at}</Th>
@@ -409,7 +409,7 @@ export default function CustomTable({
                       ? selectionSignalColor : 'transparent',
                   }}
                 >
-                  <Td dataLabel={columnNames.name} modifier="truncate" style={{ verticalAlign: 'middle' }} colSpan={2}>
+                  <Td dataLabel={columnNames.name} modifier="truncate" style={{ verticalAlign: 'middle' }}>
                     <Tooltip
                       content={signal.name}
                       enableFlip
@@ -498,17 +498,13 @@ export default function CustomTable({
                         ? selectionSlotColor : nonSelectionSlotColor,
                     }}
                   >
-
                     <Td
-                      key={`Selection${slotName}`}
-                      dataLabel="Remove slot from signal"
-                      className="smallSelectionCell"
-                      style={{ verticalAlign: 'middle', padding: '0.5rem', height: '100%' }}
+                      key={`${signal.name}-${slotName}`}
+                      dataLabel={columnNames.name}
+                      modifier="truncate"
+                      style={{ verticalAlign: 'middle' }}
                     >
-                      <div style={{
-                        display: 'flex', flexDirection: 'row', alignContent: 'space-between', justifyContent: 'center',
-                      }}
-                      >
+                      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                         <MinusIcon
                           style={{
                             margin: '0', width: '32px', height: '32px', padding: '0.3rem', borderRadius: '0.2rem',
@@ -516,28 +512,17 @@ export default function CustomTable({
                           className={isDark ? 'darkSelectionHoverSignal' : 'selectionHoverSignal'}
                           onClick={() => handleMinusClick(slotName)}
                         />
+                        <Tooltip
+                          content={slotName}
+                          enableFlip
+                          distance={5}
+                          entryDelay={1000}
+                        >
+                          <div style={{ width: 'min-content', marginLeft: '1rem' }}>
+                            {slotName.split('.').slice(3).join('.') || signal.name}
+                          </div>
+                        </Tooltip>
                       </div>
-                    </Td>
-
-                    <Td
-                      key={`${signal.name}-${slotName}`}
-                      dataLabel={columnNames.name}
-                      modifier="truncate"
-                      style={{
-                        paddingLeft: '1rem', verticalAlign: 'middle', position: 'relative', left: '-10rem',
-                      }}
-                    >
-                      <Tooltip
-                        content={slotName}
-                        enableFlip
-                        distance={5}
-                        entryDelay={1000}
-                      >
-                        <div style={{ width: 'min-content' }}>
-                          {slotName.split('.').slice(3).join('.') || signal.name}
-                        </div>
-                      </Tooltip>
-
                     </Td>
 
                     {slots.filter((slot) => slot.name === slotName).map((slot) => (
