@@ -1,23 +1,25 @@
+#include <gmock/gmock.h>
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 #include <sdbusplus/asio/property.hpp>
 
 #include <tfc/confman/remote_change.hpp>
 #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/mocks/ipc.hpp>
 #include <tfc/operation_mode.hpp>
 #include <tfc/progbase.hpp>
-#include "app_operation_mode.hpp"
-#include "state_machine.hpp"
+
+#include "details/app_operation_mode_impl.hpp"
+#include "details/state_machine_owner_impl.hpp"
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 
 using boost::ut::operator""_test;
-using boost::ut::operator/;
 
 struct operation_mode_test {
   asio::io_context ctx{};
-  tfc::app_operation_mode app{ ctx };
+  tfc::app_operation_mode<tfc::ipc::mock_signal, tfc::ipc::mock_slot> app{ ctx };
   tfc::operation::interface lib {
     ctx
   };
@@ -30,8 +32,7 @@ struct operation_mode_test {
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  // todo depends on ipc-ruler running need to make a stub for tests
-  ut::skip / "set mode"_test = [] {
+  "set mode"_test = [] {
     using tfc::operation::mode_e;
 
     operation_mode_test test{};
@@ -49,6 +50,13 @@ auto main(int argc, char** argv) -> int {
     test.lib.set(mode_e::starting);
     test.ctx.run_for(std::chrono::milliseconds(100));
     ut::expect(called);
+  };
+
+  "get mode"_test = [] {
+    operation_mode_test test{};
+    test.ctx.run_for(std::chrono::milliseconds(100));
+    auto const mode{ test.lib.get() };
+    ut::expect(mode == tfc::operation::mode_e::stopped) << "got: " << enum_name(mode);
   };
 
   return EXIT_SUCCESS;

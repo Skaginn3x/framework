@@ -9,6 +9,7 @@
 
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
+#include <sdbusplus/asio/property.hpp>
 #include <sdbusplus/bus/match.hpp>
 #include <sdbusplus/message.hpp>
 
@@ -40,10 +41,20 @@ interface::interface(asio::io_context& ctx, std::string_view log_key)
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
-      logger_{ log_key } {}
+      logger_{ log_key } {
+  sdbusplus::asio::getProperty<mode_e>(*dbus_connection_, std::string{ dbus::name }, std::string{ dbus::path },
+                                       std::string{ dbus::name }, std::string{ dbus::property::mode },
+                                       [this](auto err, mode_e const& mode) {
+                                         if (err) {
+                                           logger_.warn("Error from get mode: {}", err.message());
+                                           return;
+                                         }
+                                         current_mode_ = mode;
+                                       });
+}
 
 interface::interface(interface&& to_be_erased) noexcept
-    : dbus_connection_(std::move(to_be_erased.dbus_connection_)),
+    : current_mode_{ to_be_erased.current_mode_ }, dbus_connection_(std::move(to_be_erased.dbus_connection_)),
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
@@ -53,6 +64,7 @@ interface::interface(interface&& to_be_erased) noexcept
 }
 
 auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
+  current_mode_ = to_be_erased.current_mode_;
   dbus_connection_ = std::move(to_be_erased.dbus_connection_);
   // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
   // it could throw if we are out of memory but then we are already screwed and the process will terminate.
@@ -64,12 +76,15 @@ auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
 
 void interface::set(tfc::operation::mode_e new_mode) const {
   // todo add handler to set function call, for callee
-  dbus_connection_->async_method_call([](std::error_code) {}, dbus::name.data(), dbus::path.data(), dbus::name.data(),
-                                      dbus::method::set_mode.data(), new_mode);
+  dbus_connection_->async_method_call(
+      [this](std::error_code err) { logger_.warn("Error from set mode: {}", err.message()); }, dbus::name.data(),
+      dbus::path.data(), dbus::name.data(), dbus::method::set_mode.data(), new_mode);
 }
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {
   auto update_msg = msg.unpack<update_message>();
+
+  current_mode_ = update_msg.new_mode;
 
   static constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
     return [trans](callback_item const& itm) { return itm.transition == trans; };

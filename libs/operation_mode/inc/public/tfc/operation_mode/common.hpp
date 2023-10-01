@@ -1,9 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
-
-#include <magic_enum.hpp>
 
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
@@ -24,9 +23,8 @@ enum struct mode_e : std::uint8_t {
   maintenance = 8,
 };
 
-[[nodiscard]] inline constexpr auto mode_e_str(mode_e enum_value) {
-  return magic_enum::enum_name(enum_value);
-}
+[[nodiscard]] auto enum_name(mode_e enum_value) -> std::string_view;
+[[nodiscard]] auto enum_cast(std::string_view enum_name) -> std::optional<mode_e>;
 
 namespace dbus {
 static constexpr std::string_view service_name{ "OperationMode" };
@@ -38,6 +36,9 @@ static constexpr std::string_view set_mode{ "SetMode" };
 namespace signal {
 static constexpr std::string_view update{ "Update" };
 }  // namespace signal
+namespace property {
+static constexpr std::string_view mode{ "Mode" };
+}
 }  // namespace dbus
 
 struct update_message {

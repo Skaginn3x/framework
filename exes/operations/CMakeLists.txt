@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.21)
 add_executable(operations
   src/main.cpp
   src/app_operation_mode.cpp
-  src/state_machine.cpp
+  src/state_machine_owner.cpp
 )
 
 find_path(BEXT_SML_INCLUDE_DIRS "boost/sml.hpp")
