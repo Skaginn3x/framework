@@ -163,7 +163,7 @@ using any_signal = std::variant<std::monostate,  //
                                 double_signal,   //
                                 string_signal,   //
                                 json_signal>;
-/// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description"));
+/// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, signal>;
 
 template <typename return_t, template <typename description_t, typename manager_client_t> typename ipc_base_t>
