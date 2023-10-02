@@ -49,7 +49,7 @@ public:
 
   auto register_signal(const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, enum_name(type));
-    auto timestamp_now = std::chrono::system_clock::now();
+    auto timestamp_now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
     auto str_name = std::string(name);
     auto change_signals = signals_.make_change();
     if (signals_->find(str_name) != signals_->end()) {
@@ -69,8 +69,8 @@ public:
 
   auto register_slot(const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, enum_name(type));
-    auto timestamp_now = std::chrono::system_clock::now();
-    auto timestamp_never = std::chrono::time_point<std::chrono::system_clock>{};
+    auto timestamp_now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    auto timestamp_never = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{};
 
     auto str_name = std::string(name);
     auto change_slots = slots_.make_change();

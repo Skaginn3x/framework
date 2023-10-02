@@ -318,12 +318,12 @@ public:
           }
         },
         ipc);
-
+    auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
     const tfc::ipc_ruler::signal test_signal{ full_signal_name,
                                               tfc::ipc::details::type_e::_bool,
                                               "test",
-                                              std::chrono::system_clock::now(),
-                                              std::chrono::system_clock::now(),
+                                              now,
+                                              now,
                                               "test" };
 
     signal_data send_signal_info{ test_signal, std::move(ipc), std::nullopt };
@@ -359,12 +359,12 @@ public:
           }
         },
         ipc);
-
+    auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
     const tfc::ipc_ruler::signal test_signal{ signal_value,
                                               tfc::ipc::details::type_e::_bool,
                                               "test",
-                                              std::chrono::system_clock::now(),
-                                              std::chrono::system_clock::now(),
+                                              now,
+                                              now,
                                               "test" };
 
     signal_data send_signal_info{ test_signal, std::move(ipc), std::nullopt };

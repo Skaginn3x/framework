@@ -90,7 +90,7 @@ auto main() -> int {
     static_assert(glz::name_v<std::chrono::steady_clock> == "glz::unknown");
   };
   "millisecond clock"_test = [] {
-    auto now{ std::chrono::system_clock::now() };
+    auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
     auto json{ glz::write_json(now) };
     ut::expect(glz::read_json<decltype(now)>(json).value() == now);
   };

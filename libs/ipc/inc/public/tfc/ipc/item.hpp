@@ -182,7 +182,7 @@ struct item;
 /// \struct item
 /// \brief given attributes of an item
 struct item {
-  using time_point = std::chrono::system_clock::time_point;
+  using time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
 
   [[nodiscard]] static auto from_json(std::string_view json) -> std::expected<item, glz::parse_error>;
   [[nodiscard]] auto to_json() const -> std::string;

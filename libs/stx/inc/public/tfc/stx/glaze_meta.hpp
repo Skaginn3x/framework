@@ -176,6 +176,7 @@ struct to_json<std::chrono::duration<rep_t, period_t>> {
   }
 };
 template <typename duration_t>
+requires (!std::is_same_v<duration_t, std::chrono::microseconds> && !std::is_same_v<duration_t, std::chrono::nanoseconds>)
 inline auto parse8601(const std::string& save) -> date::sys_time<duration_t> {
   std::istringstream in{ save };
   date::sys_time<duration_t> tp;
