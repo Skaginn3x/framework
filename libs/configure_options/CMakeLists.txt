@@ -24,6 +24,6 @@ install(
   FILES
     generated/dbus-tfc.conf
   DESTINATION
-    ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d/tfc.conf
+    /${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d/tfc.conf
   CONFIGURATIONS Release
 )
