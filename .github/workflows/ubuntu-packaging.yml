@@ -78,6 +78,7 @@ jobs:
           path: build/pack-*/*.tar.gz
 
       - name: Cloudsmith upload
+        if: github.event_name == 'release' && github.event.action == 'created'
         id: push
         uses: cloudsmith-io/action@master
         with:
