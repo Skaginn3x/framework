@@ -23,23 +23,24 @@ struct simple_config {
   units::aliases::isq::si::electric_current::dA<uint16_t> amper{};
   struct glaze {
     using type = simple_config;
-    static constexpr auto value{ glz::object("a",
-                                             &type::a,
-                                             "A description",
-                                             "b",
-                                             &type::b,
-                                             "c",
-                                             &type::c,
-                                             "C description",
-                                             "d",
-                                             &type::d,
-                                             "D description",
-                                             "sec",
-                                             &type::sec,
-                                             "Sec description",
-                                             "amper",
-                                             &type::amper,
-                                             "Amper description") };
+    static constexpr auto value{ glz::object(
+        "a",
+        &type::a,
+        tfc::json::schema{ .description = "A description", .minimum = 100, .maximum = 300 },
+        "b",
+        &type::b,
+        "c",
+        &type::c,
+        "C description",
+        "d",
+        &type::d,
+        "D description",
+        "sec",
+        &type::sec,
+        tfc::json::schema{ .description = "Sec description", .minimum = 1000, .maximum = 30000 },
+        "amper",
+        &type::amper,
+        "Amper description") };
     static constexpr auto name{ "simple_config" };
   };
 };

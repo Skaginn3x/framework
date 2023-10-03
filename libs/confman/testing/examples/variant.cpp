@@ -12,6 +12,7 @@
 #include <tfc/confman/observable.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
+#include <tfc/utils/json_schema.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace asio = boost::asio;
@@ -31,7 +32,12 @@ struct option_2 {
   tfc::confman::observable<std::chrono::nanoseconds> sec{};
   struct glaze {
     using type = option_2;
-    static constexpr auto value{ glz::object("a", &type::a, "A description", "sec", &type::sec, "sec description") };
+    static constexpr auto value{ glz::object("a",
+                                             &type::a,
+                                             "A description",
+                                             "sec",
+                                             &type::sec,
+                                             tfc::json::schema{ .description = "sec desc", .minimum = 30, .maximum = 40 }) };
     static constexpr std::string_view name{ "option_2" };
   };
   constexpr auto operator==(option_2 const& rhs) const noexcept -> bool = default;
