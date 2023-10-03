@@ -47,7 +47,7 @@ install(
   FILES
     systemd/ethercat.service
   DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}/systemd/system/
+    /usr/lib/systemd/system/
   CONFIGURATIONS Release
 )
 
