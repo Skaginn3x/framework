@@ -14,12 +14,13 @@ void ipc_manager_client_mock::register_connection_change_callback(
   slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
 }
 void ipc_manager_client_mock::register_slot(std::string_view name, std::string_view description, ipc::details::type_e type) {
+  auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
   slots_.emplace_back(slot{ .name = std::string(name),
                             .type = type,
                             .created_by = "",
-                            .created_at = std::chrono::system_clock::now(),
-                            .last_registered = std::chrono::system_clock::now(),
-                            .last_modified = std::chrono::system_clock::now(),
+                            .created_at = now,
+                            .last_registered = now,
+                            .last_modified = now,
                             .modified_by = "",
                             .connected_to = "",
                             .description = std::string(description) });
@@ -27,11 +28,12 @@ void ipc_manager_client_mock::register_slot(std::string_view name, std::string_v
 void ipc_manager_client_mock::register_signal(std::string_view name,
                                               std::string_view description,
                                               ipc::details::type_e type) {
+  auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
   signals_.emplace_back(signal{ .name = std::string(name),
                                 .type = type,
                                 .created_by = "",
-                                .created_at = std::chrono::system_clock::now(),
-                                .last_registered = std::chrono::system_clock::now(),
+                                .created_at = now,
+                                .last_registered = now,
                                 .description = std::string(description) });
 
   sdbusplus::message_t dbus_message = sdbusplus::message_t{};

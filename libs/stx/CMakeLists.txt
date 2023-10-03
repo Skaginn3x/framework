@@ -10,16 +10,16 @@ target_include_directories(stx
     $<INSTALL_INTERFACE:include>
 )
 
-find_package(date CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
+find_package(stduuid CONFIG REQUIRED)
 
 target_link_libraries(stx
   INTERFACE
-    date::date
     glaze::glaze
     mp-units::si
     mp-units::core
+    stduuid
 )
 
 include(tfc_install)

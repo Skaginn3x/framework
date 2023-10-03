@@ -22,6 +22,7 @@
     "glaze",
     "gtest",
     "spdlog",
+    "stduuid",
     "soem",
     {
       "name": "libgpiod",
@@ -30,6 +31,7 @@
     "magic-enum",
     "mp-units",
     "sdbusplus",
+    "pcg",
     "protobuf",
     "openssl"
   ]

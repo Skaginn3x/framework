@@ -3,19 +3,29 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
+#include <stduuid/uuid.h>
 #include <units/generic/angle.h>
 #include <units/isq/si/area.h>
 #include <units/isq/si/length.h>
 #include <units/isq/si/mass.h>
 #include <units/isq/si/volume.h>
-#include <glaze/core/common.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
-#include <tfc/utils/units_glaze_meta.hpp>
+
+namespace glz {
+struct parse_error;
+}
+
+namespace pcg_extras {
+template <typename>
+class seed_seq_from;
+}
 
 namespace tfc::ipc::item {
 
@@ -44,14 +54,17 @@ struct color {
   std::uint8_t red{ 0 };
   std::uint8_t green{ 0 };
   std::uint8_t blue{ 0 };
+  [[nodiscard]] auto operator==(color const&) const noexcept -> bool = default;
 };
 struct supplier {
   std::string name{};
   std::string contact_info{};
   std::string country{};  // todo should this be an enum
+  [[nodiscard]] auto operator==(supplier const&) const noexcept -> bool = default;
 };
 struct destination {
   // todo decide what destination can be
+  [[nodiscard]] auto operator==(destination const&) const noexcept -> bool = default;
 };
 }  // namespace details
 
@@ -160,18 +173,24 @@ static_assert(gigolo == species::from_int(gigolo.to_int()));
 
 namespace si = units::isq::si;
 
+struct item;
+
+/// \brief creates a new item with a new id and timestamp
+[[nodiscard]] auto make() -> item;
+[[nodiscard]] auto make(pcg_extras::seed_seq_from<std::random_device>& seed_source) -> item;
+
 /// \struct item
 /// \brief given attributes of an item
 struct item {
-  static constexpr auto make() {
-    // todo generate uuid
-    // todo generate entry time point
-    return item{};
-  }
+  using time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
+
+  [[nodiscard]] static auto from_json(std::string_view json) -> std::expected<item, glz::parse_error>;
+  [[nodiscard]] auto to_json() const -> std::string;
+  [[nodiscard]] auto id() const -> std::string;
 
   // ids
-  std::optional<std::string> item_id{ std::nullopt };
-  std::optional<std::string> batch_id{ std::nullopt };
+  std::optional<uuids::uuid> item_id{ std::nullopt };
+  std::optional<uuids::uuid> batch_id{ std::nullopt };
   std::optional<std::string> barcode{ std::nullopt };
   std::optional<std::string> qr_code{ std::nullopt };
 
@@ -196,119 +215,17 @@ struct item {
   // attributes
   std::optional<details::color> color{ std::nullopt };
   std::optional<details::quality_e> quality{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> entry_timestamp{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> production_date{ std::nullopt };
-  std::optional<std::chrono::system_clock::time_point> expiration_date{ std::nullopt };
+  std::optional<time_point> entry_timestamp{ std::nullopt };
+  std::optional<time_point> production_date{ std::nullopt };
+  std::optional<time_point> expiration_date{ std::nullopt };
   std::optional<std::string> description{ std::nullopt };
   std::optional<details::supplier> supplier{ std::nullopt };
   std::optional<details::destination> destination{ std::nullopt };
 
   // item may contain other items
   std::optional<std::vector<item>> items{ std::nullopt };
+
+  [[nodiscard]] auto operator==(item const& rhs) const noexcept -> bool = default;
 };
 
 }  // namespace tfc::ipc::item
-
-namespace glz {
-
-template <>
-struct meta<tfc::ipc::item::details::category_e> {
-  using enum tfc::ipc::item::details::category_e;
-  static constexpr auto name{ "item_category" };
-  // clang-format off
-  static constexpr auto value{ glz::enumerate("unknown", unknown,
-                                              "box", box,
-                                              "tub", tub,
-                                              "bag", bag,
-                                              "pallet", pallet,
-                                              "fish", fish,
-                                              "meat", meat,
-                                              "poultry", poultry,
-                                              "ice", ice
-                                              ) };
-  // clang-format on
-};
-template <>
-struct meta<tfc::ipc::item::details::quality_e> {
-  using enum tfc::ipc::item::details::quality_e;
-  static constexpr auto name{ "item_quality" };
-  // clang-format off
-  static constexpr auto value{ glz::enumerate("unknown", unknown,
-                                              "inferior", inferior,
-                                              "weak", weak,
-                                              "ordinary", ordinary,
-                                              "exceptional", exceptional,
-                                              "superior", superior
-                                              ) };
-  // clang-format on
-};
-template <>
-struct meta<tfc::ipc::item::details::color> {
-  using type = tfc::ipc::item::details::color;
-  static constexpr auto name{ "item_color" };
-  // clang-format off
-  static constexpr auto value{ glz::object("red", &type::red, "Red value 0-255",
-                                           "green", &type::green, "Green value 0-255",
-                                           "blue", &type::blue, "Blue value 0-255"
-                                          ) };
-  // clang-format on
-};
-template <>
-struct meta<tfc::ipc::item::details::supplier> {
-  using type = tfc::ipc::item::details::supplier;
-  static constexpr auto name{ "item_supplier" };
-  // clang-format off
-  static constexpr auto value{ glz::object("name", &type::name, "Supplier name",
-                                           "contact_info", &type::contact_info, "Supplier contact information",
-                                           "origin", &type::country, "Supplier country"
-                                           ) };
-  // clang-format on
-};
-template <>
-struct meta<tfc::ipc::item::fao::species> {
-  using type = tfc::ipc::item::fao::species;
-  static constexpr auto name{ "fao_species" };
-  // clang-format off
-  static constexpr auto value{ glz::object("code", &type::code, "3 letter food and agriculture organization code",
-                                           "outside_spec", &type::outside_spec, "Code is not according to FAO"
-                                           ) };
-  // clang-format on
-};
-
-template <>
-struct meta<tfc::ipc::item::item> {
-  using type = tfc::ipc::item::item;
-  static constexpr auto name{ "ipc_item" };
-  // clang-format off
-  static constexpr auto value{ glz::object("id", &type::item_id, "Unique id of this item",
-                                           "batch_id", &type::batch_id, "Unique id of this batch",
-                                           "barcode", &type::barcode, "Unique barcode of this item",
-                                           "qr_code", &type::qr_code, "Unique QR code of this item",
-                                           "category", &type::category, "Item category",
-                                           "fao_species", &type::fao_species, "Food and agriculture organization species code",
-                                           "sub_type", &type::sub_type, "More specific type related information",
-                                           "item_weight", &type::item_weight, "Weight of item",
-                                           "target_weight", &type::target_weight, "Presumed weight of item",
-                                           "min_weight", &type::min_weight, "Minimum acceptable weight of item",
-                                           "max_weight", &type::max_weight, "Maximum acceptable weight of item",
-                                           "length", &type::length, "Length of item",
-                                           "width", &type::width, "Width of item",
-                                           "height", &type::height, "Height of item",
-                                           "area", &type::area, "Area of item",
-                                           "volume", &type::volume, "Volume of item",
-//                                           "temperature", &type::temperature, "Temperature in celsius",
-                                           "angle", &type::angle, "Angle of item in its place",
-                                           "color", &type::color, "RGB color value",
-                                           "quality", &type::quality, "Quality/grade of item",
-                                           "entry_timestamp", &type::entry_timestamp, "First entry timestamp of item appearing in system",
-                                           "production_date", &type::production_date, "Production date of item",
-                                           "expiration_date", &type::expiration_date, "Expiration date of item",
-                                           "description", &type::description, "Description of item, some kind of metadata",
-                                           "supplier", &type::supplier, "Supplier information of item",
-//                                           "destination", &type::destination, "Routing destination of item",
-                                           "items", &type::items, "List of owning items, like tub of 100 fishes"
-                                           ) };
-  // clang-format on
-};
-
-}  // namespace glz

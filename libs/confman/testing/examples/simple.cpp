@@ -8,6 +8,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
@@ -43,7 +44,9 @@ struct simple_config {
   };
 };
 
-int main() {
+int main(int argc, char** argv) {
+  tfc::base::init(argc, argv);
+
   asio::io_context ctx{};
 
   tfc::confman::config<simple_config> const config{ ctx, "key" };
