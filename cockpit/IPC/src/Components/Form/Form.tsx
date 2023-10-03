@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-continue */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -21,10 +23,11 @@ import { MuiWidgetBinding, widgets } from '@ui-schema/ds-material';
 import { injectPluginStack, validators } from '@ui-schema/ui-schema';
 import { GridContainer } from '@ui-schema/ds-material/GridContainer';
 import Immutable from 'immutable';
-import { Button } from '@patternfly/react-core';
+import { AlertVariant, Button } from '@patternfly/react-core';
 import { UnitWidget } from 'src/Components/Form/UnitsWidget';
 import { WidgetProps as BaseWidgetProps } from '@ui-schema/ui-schema/Widget';
 import { VariantWidget } from './VariantWidget';
+import { useAlertContext } from '../Alert/AlertContext';
 
 const GridStack = injectPluginStack(GridContainer);
 
@@ -110,9 +113,27 @@ export default function FormGenerator(
     return json;
   }
 
+  function checkValidity(data: any) {
+    if (typeof data !== 'object' || data === null) {
+      return true;
+    }
+
+    if (Object.keys(data).includes('__valid') && data.__valid === false) {
+      return false;
+    }
+
+    for (const key in data) {
+      if (!checkValidity(data[key])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   const [schema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
   const [store, setStore] = React.useState(createStore(createOrderedMap(values)));
-
+  const { addAlert } = useAlertContext();
   const onInternalChange = React.useCallback((actions: any) => {
     setStore(storeUpdater(actions));
   }, [setStore]);
@@ -133,8 +154,12 @@ export default function FormGenerator(
       <Button
         style={{ marginTop: 24 }}
         onClick={() => {
-          onSubmit(store.toJS().values);
-          console.log('sss: ', store.toJS());
+          console.log('VALID: ', checkValidity(store.toJS().validity));
+          if (checkValidity(store.toJS().validity)) {
+            onSubmit(store.toJS());
+          } else {
+            addAlert('Could not validate configuration', AlertVariant.danger);
+          }
         }}
       >
         Send!

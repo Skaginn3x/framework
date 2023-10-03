@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-const */
 /* eslint-disable no-continue */
 /* eslint-disable react/require-default-props */
@@ -48,13 +49,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   let initialDimension: string | undefined;
   let includesUnits = true;
-
   const storeValues = store ? store.toJS().values : {};
-
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   initialDimension = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].dimension : undefined;
-  const initialUnit = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].unit : 'NoUnit';
+  const initialUnit = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].unit : undefined;
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
+  const { minimum, maximum } = schema.toJS();
   if (!initialDimension) {
     includesUnits = false;
   }
@@ -74,15 +74,25 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   const [unit, setUnit] = React.useState(initialUnit);
   const [value, setValue] = React.useState<string>(storeValue !== undefined ? storeValue : '');
+  const [errText, setErrText] = React.useState('');
+  const [dynamicMin, setDynamicMin] = React.useState<number>(minimum);
+  const [dynamicMax, setDynamicMax] = React.useState<number>(maximum);
+  // eslint-disable-next-line no-param-reassign, @typescript-eslint/no-unused-vars
 
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
     if (value !== null && value !== undefined && newUnit && initialUnit) {
       const floatValue = parseFloat(value);
       const valueInBaseUnit = math.unit(floatValue, unit).toNumber(initialUnit); // Convert current value to base unit (e.g. m)
-      const newValueInNewUnit = math.round(math.unit(valueInBaseUnit, initialUnit).toNumber(newUnit), 3); // Convert value to new unit
+      const newValueInNewUnit = math.round(math.unit(valueInBaseUnit, initialUnit).toNumber(newUnit), 6); // Convert value to new unit
       setValue(newValueInNewUnit.toString());
       setUnit(newUnit);
+      const newDynamicMin = math.round(math.unit(minimum, initialUnit).toNumber(newUnit), 6);
+      const newDynamicMax = math.round(math.unit(maximum, initialUnit).toNumber(newUnit), 6);
+      setDynamicMin(newDynamicMin);
+      setDynamicMax(newDynamicMax);
+      console.log('DMIN', newDynamicMin);
+      console.log('DMAX', newDynamicMax);
 
       onChange({
         storeKeys,
@@ -176,8 +186,22 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   function isWarning() {
     if (required && (value === undefined || value === '')) {
+      if (errText !== 'Required') setErrText('Required');
       return true;
     }
+    if ((dynamicMin === 0 && minimum !== 0) || (dynamicMax === 0 && maximum !== 0)) {
+      if (errText !== `Insufficient accuracy with unit: ${unit}`) setErrText(`Insufficient accuracy with unit: ${unit}`);
+      return true;
+    }
+    if (dynamicMin && (parseFloat(value) < dynamicMin)) {
+      if (errText !== `Minimum value: ${dynamicMin}${unit || ''}`) setErrText(`Minimum value: ${dynamicMin}${unit || ''}`);
+      return true;
+    }
+    if (dynamicMax && (parseFloat(value) > dynamicMax)) {
+      if (errText !== `Maxiumum value: ${dynamicMax}${unit || ''}`) setErrText(`Maxiumum value: ${dynamicMax}${unit || ''}`);
+      return true;
+    }
+
     return false;
   }
 
@@ -240,7 +264,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         )
         : null}
 
-      {isWarning() ? <h2 className="RequiredText">Required</h2>
+      {isWarning() ? <h2 className="RequiredText">{errText}</h2>
         : null}
     </>
   );
