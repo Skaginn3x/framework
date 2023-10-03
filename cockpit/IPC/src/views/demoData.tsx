@@ -161,7 +161,7 @@ export function ATVDemoSchema(): any {
         minimum: 0,
         maximum: 65535,
         'x-tfc': {
-          unit: 'ds', dimension: 'time', ratio: { numerator: 1, denominator: 10 }, required: true,
+          unit: 'ds', dimension: 'time', ratio: { numerator: 1, denominator: 10 },
         },
       },
       'tfc::ec::setting::COS': {
@@ -267,6 +267,7 @@ export function ATVDemoSchema(): any {
           nominal_motor_speed: { $ref: '#/$defs/tfc::ec::setting::NSP' },
           nominal_motor_voltage: { $ref: '#/$defs/tfc::ec::setting::UNS' },
         },
+        required: ['acceleration'],
         additionalProperties: false,
       },
     },
