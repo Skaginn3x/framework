@@ -19,8 +19,6 @@ include(tfc_install)
 tfc_install_lib(configure_options)
 
 
-## Place dbus config in /etc
-set(CMAKE_INSTALL_PREFIX, "/")
 include(GNUInstallDirs)
 install(
   FILES
