@@ -13,16 +13,17 @@ target_include_directories(configure_options
     $<INSTALL_INTERFACE:include>
 )
 
-configure_file(${CMAKE_CURRENT_LIST_DIR}/dbus-tfc.conf.in ${CMAKE_CURRENT_LIST_DIR}/generated/dbus-tfc.conf)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/dbus-tfc.conf.in ${CMAKE_CURRENT_LIST_DIR}/generated/tfc.conf)
 
 include(tfc_install)
 tfc_install_lib(configure_options)
 
+
 include(GNUInstallDirs)
 install(
   FILES
-    generated/dbus-tfc.conf
+    ${CMAKE_CURRENT_LIST_DIR}/generated/tfc.conf
   DESTINATION
-    ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d/tfc.conf
+    /${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d
   CONFIGURATIONS Release
 )

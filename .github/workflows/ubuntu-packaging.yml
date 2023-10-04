@@ -5,6 +5,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  release:
+    types: [ "created" ]
 
 env:
   CONFIGURATION_DIRECTORY: ${{ github.workspace }}
@@ -25,32 +27,19 @@ jobs:
         architecture: [ x86_64, aarch64 ]
     steps:
       - uses: actions/checkout@v3
-      - name: start dbus
-        run: |
-          dbus-daemon --system
-          apt-get update
-          apt-get upgrade -y
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '/opt/vcpkg'
-          vcpkgGitCommitId: '972ca20ed21036c8b80a69cbc7dafa2aad51a37d'
+          vcpkgGitCommitId: 'be2d7f886aad895e282b59088a2dfca5f6e1c88a'
           vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
-        if: matrix.architecture == 'x86_64'
         uses: lukka/run-cmake@v10.3
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          workflowPreset: 'packflow-gcc-${{matrix.build_type}}'
-
-      - name: Pack it aarch64
-        if: matrix.architecture == 'aarch64'
-        uses: lukka/run-cmake@v10.3
-        with:
-          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          workflowPreset: 'packflow-aarch64-gcc-${{matrix.build_type}}'
+          workflowPreset: 'packflow-${{ matrix.architecture }}-gcc-${{matrix.build_type}}'
 
       - name: Upload vcpkg log
         if: failure()
@@ -58,6 +47,7 @@ jobs:
         with:
           name: vcpkg-build-fail-logs
           path: /opt/vcpkg/**/*out.log
+
       - name: Upload vcpkg log
         if: failure()
         uses: actions/upload-artifact@v3
@@ -72,39 +62,34 @@ jobs:
           apt-get install -y ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
       - name: Upload debian package
-        if: matrix.architecture == 'x86_64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-gcc-${{matrix.build_type}}/*.deb
-      - name: Upload rpm package
-        if: matrix.architecture == 'x86_64'
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-gcc-${{matrix.build_type}}/*.rpm
-      - name: Upload tar package
-        if: matrix.architecture == 'x86_64'
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-gcc-${{matrix.build_type}}/*.tar.gz
+          path: build/pack-*/*.deb
 
-      - name: Upload debian package
-        if: matrix.architecture == 'aarch64'
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.deb
       - name: Upload rpm package
-        if: matrix.architecture == 'aarch64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.rpm
+          path: build/pack-*/*.rpm
+
       - name: Upload tar package
-        if: matrix.architecture == 'aarch64'
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-aarch64-gcc-${{matrix.build_type}}/*.tar.gz
+          path: build/pack-*/*.tar.gz
+
+      - name: Cloudsmith upload
+        if: github.event_name == 'release' && github.event.action == 'created'
+        id: push
+        uses: cloudsmith-io/action@master
+        with:
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          command: 'push'
+          format: 'deb'
+          owner: 'skaginn3x'             # Your Cloudsmith account name or org name (namespace)
+          repo: 'tfc-repo'         # Your Cloudsmith Repository name (slug)
+          distro: 'otherdeb'     # Your Distribution  (i.e Debian, Ubuntu)
+          release: 'any-version'         # Your Distribution Release (i.e xenial, buster)
+          republish: 'true'          # needed ONLY if version is not changing
+          file: 'build/*/*.deb'  # debian package filename

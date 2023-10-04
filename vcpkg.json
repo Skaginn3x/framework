@@ -1,6 +1,6 @@
 {
   "name": "tfc-framework",
-  "version": "0.1.0",
+  "version": "2023.10.1",
   "dependencies": [
     {
       "name": "vcpkg-cmake",
@@ -34,5 +34,11 @@
     "pcg",
     "protobuf",
     "openssl"
+  ],
+  "overrides": [
+    {
+      "name": "mp-units",
+      "version": "0.8.0"
+    }
   ]
 }

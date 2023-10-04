@@ -20,7 +20,7 @@ install(
   FILES
     systemd/ipc-ruler.service
   DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}/systemd/user/
+    /usr/lib/systemd/system/
   CONFIGURATIONS Release
 )
 

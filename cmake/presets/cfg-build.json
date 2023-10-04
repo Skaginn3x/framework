@@ -76,13 +76,6 @@
       "cacheVariables": {
         "ENABLE_STATIC_LINKING": "ON"
       }
-    },
-    {
-      "name": "cfg-install-to-usr",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_INSTALL_PREFIX": "/usr"
-      }
     }
   ]
 }

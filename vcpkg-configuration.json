@@ -2,7 +2,7 @@
   "default-registry": {
     "kind": "git",
     "repository": "https://github.com/microsoft/vcpkg",
-    "baseline": "972ca20ed21036c8b80a69cbc7dafa2aad51a37d"
+    "baseline": "be2d7f886aad895e282b59088a2dfca5f6e1c88a"
   },
   "registries": [
     {
@@ -10,10 +10,7 @@
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
       "baseline": "1f7314c2a856e38073974b168ae4601b75a3bc92",
       "packages": [
-        "azmq",
-        "libcap",
         "libsystemd",
-        "libxcrypt",
         "sdbusplus",
         "small-vectors"
       ]

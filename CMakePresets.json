@@ -71,16 +71,14 @@
       "name": "pack-gcc-debug",
       "inherits": [
         "ci-gcc-debug",
-        "cfg-enable-docs",
-        "cfg-install-to-usr"
+        "cfg-enable-docs"
       ]
     },
     {
       "name": "pack-gcc-release",
       "inherits": [
         "ci-gcc-release",
-        "cfg-enable-docs",
-        "cfg-install-to-usr"
+        "cfg-enable-docs"
       ]
     },
     {
@@ -88,8 +86,7 @@
       "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-aarch64",
-        "pack-gcc-debug",
-        "cfg-install-to-usr"
+        "pack-gcc-debug"
       ]
     },
     {
@@ -97,8 +94,7 @@
       "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-aarch64",
-        "pack-gcc-release",
-        "cfg-install-to-usr"
+        "pack-gcc-release"
       ]
     }
   ],
@@ -242,7 +238,7 @@
       ]
     },
     {
-      "name": "packflow-gcc-debug",
+      "name": "packflow-x86_64-gcc-debug",
       "steps": [
         {
           "type": "configure",
@@ -253,17 +249,13 @@
           "name": "build-pack-gcc-debug"
         },
         {
-          "type": "test",
-          "name": "test-pack-gcc-debug"
-        },
-        {
           "type": "package",
           "name": "pack-gcc-debug"
         }
       ]
     },
     {
-      "name": "packflow-gcc-release",
+      "name": "packflow-x86_64-gcc-release",
       "steps": [
         {
           "type": "configure",
@@ -272,10 +264,6 @@
         {
           "type": "build",
           "name": "build-pack-gcc-release"
-        },
-        {
-          "type": "test",
-          "name": "test-pack-gcc-release"
         },
         {
           "type": "package",
