@@ -17,7 +17,7 @@ auto main(int argc, char** argv) -> int {
   };
 
   mode.on_leave(tfc::operation::mode_e::stopped, [](tfc::operation::mode_e new_mode, tfc::operation::mode_e old_mode) {
-    fmt::print("Leaving {} and going to: {}", tfc::operation::mode_e_str(old_mode), tfc::operation::mode_e_str(new_mode));
+    fmt::print("Leaving {} and going to: {}", enum_name(old_mode), enum_name(new_mode));
   });
 
   ctx.run();

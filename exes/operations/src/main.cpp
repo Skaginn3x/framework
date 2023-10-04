@@ -9,7 +9,7 @@ auto main(int argc, char** argv) -> int {
 
   asio::io_context ctx{};
 
-  [[maybe_unused]] auto const app{ tfc::app_operation_mode(ctx) };
+  [[maybe_unused]] auto const app{ tfc::app_operation_mode<>(ctx) };
 
   asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
 

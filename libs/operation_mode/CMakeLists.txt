@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 
 add_library(operation_mode
   src/operation_mode.cpp
+  src/common.cpp
 )
 add_library(tfc::operation_mode ALIAS operation_mode)
 

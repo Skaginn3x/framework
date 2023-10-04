@@ -12,7 +12,7 @@ template <typename func, typename... args>
 concept invocable = std::invocable<std::remove_cvref_t<func>, args...>;
 
 template <typename enum_t>
-concept is_enum = requires { std::is_enum_v<enum_t>; };
+concept is_enum = requires { requires std::is_enum_v<enum_t>; };
 
 // from
 // https://stackoverflow.com/questions/16337610/how-to-know-if-a-type-is-a-specialization-of-stdvector
