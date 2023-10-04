@@ -46,13 +46,16 @@ public:
   config_dbus_client(asio::io_context& ctx, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
   config_dbus_client(dbus_connection_t conn, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
 
-  asio::io_context& io_context() const noexcept;
+  [[nodiscard]] auto io_context() const noexcept -> asio::io_context& {
+    return ctx_;
+  }
 
   void set(config_property&&) const;
 
   void initialize();
 
 private:
+  asio::io_context& ctx_;
   std::filesystem::path interface_path_{};
   std::string interface_name_{};
   value_call_t value_call_{};

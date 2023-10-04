@@ -39,9 +39,9 @@ struct storage {
 
 }  // namespace detail
 
-template <template <typename description_t, typename manager_client_t = ipc_ruler::ipc_manager_client> typename signal_t =
+template <template <typename description_t, typename manager_client_t = ipc_ruler::ipc_manager_client&> typename signal_t =
               ipc::signal,
-          template <typename description_t, typename manager_client_t = ipc_ruler::ipc_manager_client> typename slot_t =
+          template <typename description_t, typename manager_client_t = ipc_ruler::ipc_manager_client&> typename slot_t =
               ipc::slot,
           template <typename, typename...> typename sml_t = boost::sml::sm>
 class state_machine_owner {
