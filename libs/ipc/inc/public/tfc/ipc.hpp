@@ -61,8 +61,6 @@ public:
       requires std::is_lvalue_reference_v<manager_client_type>
       : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
         client_(client) {
-//    static_assert(std::is_lvalue_reference_v<manager_client_type>,
-//                  "manager_client_type must be a lvalue reference if you want to use this constructor");
     client_init(description);
   }
 
