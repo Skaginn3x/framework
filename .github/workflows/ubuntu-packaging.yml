@@ -5,6 +5,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  release:
+    types: [ "created" ]
 
 env:
   CONFIGURATION_DIRECTORY: ${{ github.workspace }}
