@@ -1,9 +1,10 @@
 if (NOT ENABLE_STATIC_LINKING)
   # get glibc version from host
   execute_process(
-      COMMAND bash -c "ldd --version | awk '/ldd/{print $NF;exit}'"
+      COMMAND bash -c "ldd --version | head -n 1 | cut -d ' ' -f 4"
       OUTPUT_VARIABLE LIBC_VERSION
       RESULT_VARIABLE LDD_RESULT
+      OUTPUT_STRIP_TRAILING_WHITESPACE
   )
 endif ()
 
