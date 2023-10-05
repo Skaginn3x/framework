@@ -16,13 +16,6 @@ target_link_libraries(ipc-ruler
 )
 
 include(GNUInstallDirs)
-install(
-  FILES
-    systemd/ipc-ruler.service
-  DESTINATION
-    /usr/lib/systemd/system/
-  CONFIGURATIONS Release
-)
 
 install(
   TARGETS
@@ -39,3 +32,6 @@ install(
     ${CMAKE_INSTALL_BINDIR}/debug/
   CONFIGURATIONS Debug
 )
+
+include("${CMAKE_SOURCE_DIR}/libs/systemctl/CMakeLists.txt")
+tfc_systemd_service_file(ipc-ruler "TFC Inter-process communication ruler")

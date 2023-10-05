@@ -36,3 +36,6 @@ endif ()
 
 include(tfc_install)
 tfc_install_lib(operation_mode)
+
+include("${CMAKE_SOURCE_DIR}/libs/systemctl/CMakeLists.txt")
+tfc_systemd_service_file(operation_mode "TFC Operation Mode")
