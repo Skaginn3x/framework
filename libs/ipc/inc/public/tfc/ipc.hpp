@@ -6,8 +6,8 @@
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
-#include <tfc/ipc/details/impl.hpp>
 #include <tfc/ipc/details/dbus_slot.hpp>
+#include <tfc/ipc/details/impl.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -59,10 +59,15 @@ public:
        std::string_view name,
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
-      requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback)) },
-        dbus_slot_{ client.connection() },
-        client_{ client } {
+    requires std::is_lvalue_reference_v<manager_client_type>
+      : slot_{ details::slot_callback<type_desc>::create(
+            ctx,
+            name,
+            [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
+              callb(new_value);
+              dbus_slot_.emit_value(new_value);
+            }) },
+        dbus_slot_{ client.connection(), [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ client } {
     client_init(description);
   }
 
@@ -71,10 +76,15 @@ public:
        std::string_view name,
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
-      requires (!std::is_lvalue_reference_v<manager_client_type>)
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback)) },
-        dbus_slot_{ connection },
-        client_{ connection } {
+    requires(!std::is_lvalue_reference_v<manager_client_type>)
+      : slot_{ details::slot_callback<type_desc>::create(
+            ctx,
+            name,
+            [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
+              callb(new_value);
+              dbus_slot_.emit_value(new_value);
+            }) },
+        dbus_slot_{ connection, [this]  -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
     client_init(description);
   }
 
@@ -92,7 +102,7 @@ public:
 
   auto operator=(slot const&) -> slot& = delete;
 
-  [[nodiscard]] auto value() const noexcept { return slot_->value(); }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return slot_->value(); }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
 
@@ -109,7 +119,7 @@ private:
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
-  details::dbus_slot dbus_slot_;
+  details::dbus_slot<value_t> dbus_slot_;
   manager_client_type client_;
 };
 
