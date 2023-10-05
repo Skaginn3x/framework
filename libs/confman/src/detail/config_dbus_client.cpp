@@ -29,8 +29,8 @@ config_dbus_client::config_dbus_client(dbus_connection_t conn,
       interface_path_{ tfc::dbus::make_dbus_path(fmt::format("{}config", base::get_config_directory().string().substr(1))) },
       interface_name_{ tfc::dbus::make_dbus_name(
           fmt::format("config.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), key)) },
-      value_call_{ std::forward<value_call_t>(value_call) }, schema_call_{ std::forward<schema_call_t>(schema_call) },
-      change_call_{ std::forward<change_call_t>(change_call) }, dbus_connection_{ std::move(conn) }, dbus_interface_{
+      value_call_{ std::move(value_call) }, schema_call_{ std::move(schema_call) }, change_call_{ std::move(change_call) },
+      dbus_connection_{ std::move(conn) }, dbus_interface_{
         std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
       } {}
 config_dbus_client::config_dbus_client(asio::io_context& ctx,
