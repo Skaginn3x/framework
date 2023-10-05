@@ -65,15 +65,15 @@ struct append_single<struct_t, void> {
   }
 };
 
-template <typename struct_t, typename enable_t>
+template <typename struct_t>
 struct read_single;
 
 template <concepts::dbus_reflectable struct_t>
-struct read_single<struct_t, void> {
+struct read_single<struct_t> {
   static void op(auto* interface, auto* sd_bus_msg, auto& return_value) {
     using return_value_tuple_t = decltype(struct_t::dbus_reflection(struct_t{}));
     return_value_tuple_t return_value_tuple;
-    read_single<return_value_tuple_t, void>::op(interface, sd_bus_msg, return_value_tuple);
+    read_single<return_value_tuple_t>::op(interface, sd_bus_msg, return_value_tuple);
     return_value = std::make_from_tuple<struct_t>(return_value_tuple);
   }
 };
