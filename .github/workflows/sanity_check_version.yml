@@ -1,0 +1,19 @@
+name: sanity_check_version
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  check:
+    name: 'Check version strings'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+
+      - name: Check
+        run: |
+          python scripts/sanity_check_version.py
