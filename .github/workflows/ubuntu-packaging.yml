@@ -96,9 +96,9 @@ jobs:
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ steps.find-location.outputs.tar-location }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ TAR_LOCATION }}
+          upload_url: ${{ steps.find-location.outputs.tar-location }}
           asset_path: ./build/pack-gcc-${{matrix.build_type}}/*.tar.gz
           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
           asset_content_type: application/x-tar
