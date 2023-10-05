@@ -54,6 +54,9 @@ jobs:
         with:
           name: vcpkg-build-fail-logs
           path: /opt/vcpkg/**/*err.log
+      - env:
+          MESSAGE: ${{ github.event.client_payload.message }}
+        run: echo $MESSAGE
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
@@ -79,8 +82,21 @@ jobs:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.tar.gz
 
-      - name: Cloudsmith upload
+      - name: Upload Release tar file
         if: github.event_name == 'release' && github.event.action == 'created'
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./my-artifact.zip
+          asset_name: my-artifact.zip
+          asset_content_type: application/tar
+
+      # Upload non debug packages to cloudsmith
+      - name: Cloudsmith upload
+        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
         id: push
         uses: cloudsmith-io/action@master
         with:
