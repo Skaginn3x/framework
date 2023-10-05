@@ -60,5 +60,5 @@ install(
   CONFIGURATIONS Debug
 )
 
-include("${CMAKE_SOURCE_DIR}/libs/systemctl/CMakeLists.txt")
+include(tfc_systemd)
 tfc_systemd_service_file(ethercat "TFC Ethercat master")

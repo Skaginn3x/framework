@@ -12,7 +12,6 @@ add_subdirectory(ipc)
 add_subdirectory(soem_interface)
 add_subdirectory(operation_mode)
 add_subdirectory(mqtt-sparkplug)
-add_subdirectory(systemctl)
 
 add_library(tfc INTERFACE)
 add_library(tfc::tfc ALIAS tfc)
