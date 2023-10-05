@@ -24,15 +24,15 @@ jobs:
         triplet: [x64-linux-gcc, x64-linux-clang, arm64-linux, x64-linux-gcc-dynamic, x64-linux-clang-dynamic]
     steps:
       - uses: actions/checkout@v3
-      - name: Update vcpkg
-        run: |
-          cd /opt/vcpkg
-          git pull
-      - name: Test install
-        run: |
-          cd vcpkg-test
-          /opt/vcpkg/bootstrap-vcpkg.sh
-          /opt/vcpkg/vcpkg --triplet ${{ matrix.triplet }} install
+
+      - uses: lukka/get-cmake@latest
+      - name: Vcpkg install test
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
+          vcpkgDirectory: '/opt/vcpkg'
+          vcpkgGitCommitId: 'be2d7f886aad895e282b59088a2dfca5f6e1c88a'
+          vcpkgJsonGlob: 'vcpkg-test/vcpkg.json'
 
       - name: Upload vcpkg log
         if: failure()
