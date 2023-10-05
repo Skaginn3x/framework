@@ -85,13 +85,17 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.tar.gz
+      - name: tree build dir
+        shell: bash
+        run: |
+          ls build/*
       - id: find-location
         name: Find location
         shell: bash
         run: |
           echo "tar-location=$(ls build/*/*.tar.gz)" >> "$GITHUB_OUTPUT"
-          echo "deb-location=$(ls build/*/*.deb)" > "$GITHUB_OUTPUT"
-          echo "rpm-location=$(ls build/*/*.rpm)" > "$GITHUB_OUTPUT"
+          echo "deb-location=$(ls build/*/*.deb)" >> "$GITHUB_OUTPUT"
+          echo "rpm-location=$(ls build/*/*.rpm)" >> "$GITHUB_OUTPUT"
           cat $GITHUB_OUTPUT
 
       - name: Upload Release tar file
