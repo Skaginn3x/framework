@@ -2,14 +2,6 @@
   "name": "tfc-framework",
   "version": "2023.10.1",
   "dependencies": [
-    {
-      "name": "vcpkg-cmake",
-      "host": true
-    },
-    {
-      "name": "vcpkg-cmake-config",
-      "host": true
-    },
     "async-mqtt",
     "azmq",
     "bext-sml",
@@ -21,23 +13,40 @@
     "fmt",
     "glaze",
     "gtest",
-    "spdlog",
-    "stduuid",
-    "soem",
     {
       "name": "libgpiod",
-      "features": ["cxx-bindings"]
+      "features": [
+        "cxx-bindings"
+      ]
     },
     "magic-enum",
     "mp-units",
-    {
-      "name": "sdbusplus",
-      "features": ["asio-only"]
-    },
+    "openssl",
     "pcg",
     "protobuf",
-    "openssl"
+    {
+      "name": "sdbusplus",
+      "features": [
+        "asio-only"
+      ]
+    },
+    "soem",
+    "spdlog",
+    "stduuid",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
   ],
+  "features": {
+    "build-exes": {
+      "description": "Build binaries and install them to sysroot"
+    }
+  },
   "overrides": [
     {
       "name": "mp-units",
