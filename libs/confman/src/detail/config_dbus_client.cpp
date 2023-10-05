@@ -49,14 +49,14 @@ config_dbus_client::config_dbus_client(asio::io_context& ctx,
 
 void config_dbus_client::set(config_property&& prop) const {
   if (dbus_interface_) {
-    dbus_interface_->set_property(std::string{ dbus::property_name.data(), dbus::property_name.size() }, prop);
+    dbus_interface_->set_property(std::string{ dbus::property_name }, prop);
   }
 }
 
 void config_dbus_client::initialize() {
   if (dbus_interface_) {
     dbus_interface_->register_property_rw<tfc::confman::detail::config_property>(
-        std::string{ dbus::property_name.data(), dbus::property_name.size() }, sdbusplus::vtable::property_::emits_change,
+        std::string{ dbus::property_name }, sdbusplus::vtable::property_::emits_change,
         [this]([[maybe_unused]] config_property const& req, [[maybe_unused]] config_property& old) -> int {  // setter
           if (req == old) {
             return 1;
