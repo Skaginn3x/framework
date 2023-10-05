@@ -170,9 +170,9 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
   }, [activeItem]);
 
   const panelContent = (
-    <DrawerPanelContent>
+    <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
       <div style={{
-        minWidth: '15rem', backgroundColor: '#212427',
+        minWidth: '15rem', backgroundColor: '#212427', height: '-webkit-fill-available',
       }}
       >
         <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">

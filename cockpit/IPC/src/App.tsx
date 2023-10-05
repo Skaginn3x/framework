@@ -37,13 +37,30 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
 function App() {
   console.log('App Loaded!');
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-  console.log(prefersDarkMode);
-  const [isDark, setIsDark] = React.useState<boolean>(prefersDarkMode);
+
+  /**
+   * Decides wether or not to use dark mode
+   * @param val Cockpit shell:style string
+   * @returns boolean
+   */
+  function changeDarkMode(val:string | null) {
+    if (val === 'auto') {
+      return prefersDarkMode;
+    } if (val === 'light') {
+      return false;
+    }
+    return true;
+  }
+
+  const cockpitDark = localStorage.getItem('shell:style');
+  const [isDark, setIsDark] = React.useState<boolean>(changeDarkMode(cockpitDark));
+
   if (isDark) {
     document.getElementsByTagName('html')[0].classList.add('pf-v5-theme-dark');
   } else {
     document.getElementsByTagName('html')[0].classList.remove('pf-v5-theme-dark');
   }
+
   const theme = React.useMemo(
     () => createTheme({
       palette: {
@@ -53,16 +70,12 @@ function App() {
     [isDark],
   );
 
+  /**
+   * Listens to cockpit changing local storage shell:style to
+   */
   window.addEventListener('storage', (event) => {
     if (event.key === 'shell:style') {
-      console.info('Theme changed:', event.newValue);
-      if (event.newValue === 'auto') {
-        setIsDark(prefersDarkMode);
-      } else if (event.newValue === 'light') {
-        setIsDark(false);
-      } else {
-        setIsDark(true);
-      }
+      setIsDark(changeDarkMode(event.newValue));
     }
   });
 
@@ -77,9 +90,7 @@ function App() {
               flexDirection: 'column',
               margin: '0px 0px 0px 0px',
               alignItems: 'center',
-              overflowX: 'hidden',
-              height: '100vh',
-              overflowY: 'scroll',
+              minHeight: '100vh',
               backgroundColor: isDark ? '#1b1d21' : 'transparent',
             }}
             >

@@ -421,13 +421,13 @@ export default function CustomTable({
                       </div>
                     </Tooltip>
                   </Td>
-                  <Td dataLabel={columnNames.type} modifier="truncate" style={{ verticalAlign: 'middle' }}>
+                  <Td dataLabel={columnNames.type} modifier="truncate" style={{ verticalAlign: 'middle', paddingLeft: '1rem !important' }}>
                     {signal.type}
                   </Td>
                   <Td dataLabel={columnNames.created_by} modifier="truncate" style={{ verticalAlign: 'middle' }}>
                     {signal.created_by}
                   </Td>
-                  <Td dataLabel={columnNames.created_at} modifier="truncate" style={{ verticalAlign: 'middle' }}>
+                  <Td dataLabel={columnNames.created_at} modifier="truncate" style={{ verticalAlign: 'middle', paddingLeft: '0.5rem' }}>
                     <Tooltip
                       content={formatDate(signal.created_at, true)}
                       enableFlip
@@ -439,7 +439,8 @@ export default function CustomTable({
                       </div>
                     </Tooltip>
                   </Td>
-                  <Td dataLabel={columnNames.last_registered} modifier="truncate" style={{ verticalAlign: 'middle' }}>
+                  {/* eslint-disable-next-line max-len */}
+                  <Td dataLabel={columnNames.last_registered} modifier="truncate" style={{ verticalAlign: 'middle', paddingLeft: '0.7rem' }}>
                     <Tooltip
                       content={formatDate(signal.last_registered, true)}
                       enableFlip
@@ -531,7 +532,7 @@ export default function CustomTable({
                           key={`${signal.name}-${slotName}-type`}
                           dataLabel={columnNames.type}
                           modifier="truncate"
-                          style={{ verticalAlign: 'middle' }}
+                          style={{ verticalAlign: 'middle', paddingLeft: '1rem !important' }}
                         >
                           {slot.type}
                         </Td>
@@ -540,7 +541,7 @@ export default function CustomTable({
                           key={`${signal.name}-${slotName}-created_by`}
                           dataLabel={columnNames.created_by}
                           modifier="truncate"
-                          style={{ verticalAlign: 'middle' }}
+                          style={{ verticalAlign: 'middle', paddingLeft: '0.5rem !important' }}
                         >
                           {slot.created_by}
                         </Td>
@@ -549,7 +550,7 @@ export default function CustomTable({
                           key={`${signal.name}-${slotName}-created_at`}
                           dataLabel={columnNames.created_at}
                           modifier="truncate"
-                          style={{ verticalAlign: 'middle' }}
+                          style={{ verticalAlign: 'middle', paddingLeft: '0.7rem !important' }}
                           tooltip={
                             <div style={{ width: 'min-content' }}>
                               {formatDate(slot.created_at, true)}

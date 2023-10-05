@@ -59,12 +59,13 @@
 .pf-v5-c-table .pf-m-truncate,
 .pf-v5-c-table thead {
    --pf-c-table--cell--MinWidth: 2rem;
-   padding-left: '1rem !important'
+   padding-left: 1rem !important
 }
 
 .pf-v5-c-table__td {
-   font-size: 0.95rem;
+   font-size: 0.95rem !important;
    padding: 0.2rem 0.5rem !important;
+   
 }
 .pf-v5-c-table {
    text-align: left;
