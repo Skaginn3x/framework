@@ -33,6 +33,9 @@ public:
   asio::io_context& io_context() const noexcept { return conn_->get_io_context(); }
   std::shared_ptr<sdbusplus::asio::connection> connection() const noexcept { return conn_; }
   void initialize(std::string_view slot_name) {
+    if (!conn_) {
+      return;
+    }
     interface_ = std::make_unique<sdbusplus::asio::dbus_interface>(
         conn_, std::string{ dbus::tags::path },
         tfc::dbus::make_dbus_name(fmt::format("{}.{}", slot_name, dbus::tags::value)));
