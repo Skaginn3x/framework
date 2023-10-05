@@ -7,6 +7,7 @@
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/impl.hpp>
+#include <tfc/ipc/details/dbus_slot.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -59,8 +60,9 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
       requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
-        client_(client) {
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback)) },
+        dbus_slot_{ client.connection() },
+        client_{ client } {
     client_init(description);
   }
 
@@ -71,6 +73,7 @@ public:
        tfc::stx::invocable<value_t> auto&& callback)
       requires (!std::is_lvalue_reference_v<manager_client_type>)
       : slot_{ details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback)) },
+        dbus_slot_{ connection },
         client_{ connection } {
     client_init(description);
   }
@@ -101,9 +104,12 @@ private:
       slot_->connect(signal_name);  //
     });
     client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
+
+    dbus_slot_.initialize(full_name());
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
+  details::dbus_slot dbus_slot_;
   manager_client_type client_;
 };
 
