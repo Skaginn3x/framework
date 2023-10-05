@@ -41,5 +41,6 @@ if __name__ == "__main__":
 
     if cmake_version != vcpkg_version:
         print("cmake_version and vcpkg_version dont match!")
+        exit(-1)
 
     exit(0)
