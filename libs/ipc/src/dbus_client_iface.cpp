@@ -16,15 +16,13 @@ namespace tfc::ipc_ruler {
 ipc_manager_client::ipc_manager_client(asio::io_context& ctx)
     : ipc_manager_client(std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())) {}
 
-ipc_manager_client::ipc_manager_client(std::shared_ptr<sdbusplus::asio::connection> connection):
-      connection_match_rule_{ tfc::dbus::match::rules::make_match_rule<consts::ipc_ruler_service_name,
+ipc_manager_client::ipc_manager_client(std::shared_ptr<sdbusplus::asio::connection> connection)
+    : connection_match_rule_{ tfc::dbus::match::rules::make_match_rule<consts::ipc_ruler_service_name,
                                                                        consts::ipc_ruler_interface_name,
                                                                        consts::ipc_ruler_object_path,
                                                                        tfc::dbus::match::rules::type::signal>() },
       connection_{ std::move(connection) },
-      connection_match_{ make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this)) }
-{
-}
+      connection_match_{ make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this)) } {}
 
 ipc_manager_client::ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept {
   connection_ = std::move(to_be_erased.connection_);
