@@ -17,6 +17,11 @@ source_suffix = {
     '.md': 'markdown',
 }
 
+html_static_path = ['_static']
+
+html_css_files = [
+    'css/rtd_dark.css',
+]
 
 html_theme = 'sphinx_rtd_theme'
 #html_static_path = ['_static']
