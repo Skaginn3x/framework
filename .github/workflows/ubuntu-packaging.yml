@@ -28,6 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Get release
+        if: github.event_name == 'release' && github.event.action == 'created'
+        id: get_release
+        uses: bruceadams/get-release@v1.3.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
         with:
@@ -54,9 +61,6 @@ jobs:
         with:
           name: vcpkg-build-fail-logs
           path: /opt/vcpkg/**/*err.log
-      - env:
-          MESSAGE: ${{ github.event.client_payload.message }}
-        run: echo $MESSAGE
 
       - name: Test install
         if: matrix.architecture == 'x86_64'
@@ -89,10 +93,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./my-artifact.zip
-          asset_name: my-artifact.zip
-          asset_content_type: application/tar
+          upload_url: ${{ steps.get_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./build/pack-*/*.tar.gz
+          asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
+          asset_content_type: application/x-tar
 
       # Upload non debug packages to cloudsmith
       - name: Cloudsmith upload
