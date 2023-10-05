@@ -18,7 +18,7 @@ namespace tfc::confman::detail {
 // busctl --system introspect com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config
 // clang-format on
 
-config_dbus_client::config_dbus_client(boost::asio::io_context& ctx): ctx_{ ctx } {}
+config_dbus_client::config_dbus_client(boost::asio::io_context& ctx) : ctx_{ ctx } {}
 
 config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        std::string_view key,
@@ -32,8 +32,7 @@ config_dbus_client::config_dbus_client(dbus_connection_t conn,
       value_call_{ std::forward<value_call_t>(value_call) }, schema_call_{ std::forward<schema_call_t>(schema_call) },
       change_call_{ std::forward<change_call_t>(change_call) }, dbus_connection_{ std::move(conn) }, dbus_interface_{
         std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
-      } {
-}
+      } {}
 config_dbus_client::config_dbus_client(asio::io_context& ctx,
                                        std::string_view key,
                                        value_call_t&& value_call,

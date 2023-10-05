@@ -19,7 +19,7 @@ namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };
 static constexpr std::string_view slot{ "Slot" };
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<slot> };
-}
+}  // namespace dbus::tags
 
 template <typename slot_value_t>
 class dbus_slot {
@@ -34,7 +34,8 @@ public:
   std::shared_ptr<sdbusplus::asio::connection> connection() const noexcept { return conn_; }
   void initialize(std::string_view slot_name) {
     interface_ = std::make_unique<sdbusplus::asio::dbus_interface>(
-        conn_, std::string{ dbus::tags::path }, tfc::dbus::make_dbus_name(fmt::format("{}.{}", slot_name, dbus::tags::value)));
+        conn_, std::string{ dbus::tags::path },
+        tfc::dbus::make_dbus_name(fmt::format("{}.{}", slot_name, dbus::tags::value)));
     interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
                                              [this]([[maybe_unused]] value_t& old_value) {
                                                if (auto current_value = value_getter_(); current_value.has_value()) {
