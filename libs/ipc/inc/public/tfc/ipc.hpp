@@ -67,7 +67,8 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ client.connection(), [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ client } {
+        dbus_slot_{ client.connection(), [this] -> std::optional<value_t> const& { return this->value(); } },
+        client_{ client } {
     client_init(description);
   }
 
@@ -84,7 +85,7 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ connection, [this]  -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
+        dbus_slot_{ connection, [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
     client_init(description);
   }
 
