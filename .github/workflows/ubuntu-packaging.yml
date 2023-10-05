@@ -105,8 +105,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.find-location.outputs.tar-location }}
-          asset_path: ./build/pack-gcc-${{matrix.build_type}}/*.tar.gz
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ${{ steps.find-location.outputs.tar-location }}
           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
           asset_content_type: application/x-tar
 
