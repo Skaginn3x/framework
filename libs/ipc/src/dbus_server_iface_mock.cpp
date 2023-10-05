@@ -6,7 +6,10 @@
 
 namespace tfc::ipc_ruler {
 
-ipc_manager_client_mock::ipc_manager_client_mock(asio::io_context&) {}
+ipc_manager_client_mock::ipc_manager_client_mock(std::shared_ptr<sdbusplus::asio::connection> conn)
+    : conn_{ std::move(conn) } {}
+ipc_manager_client_mock::ipc_manager_client_mock(asio::io_context& ctx)
+    : ipc_manager_client_mock{ std::make_shared<sdbusplus::asio::connection>(ctx) } {}
 
 void ipc_manager_client_mock::register_connection_change_callback(
     std::string_view slot_name,

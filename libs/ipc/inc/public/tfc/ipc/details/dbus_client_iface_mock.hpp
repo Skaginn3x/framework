@@ -25,6 +25,9 @@ struct ipc_manager_client_mock {
   ipc_manager_client_mock() = default;
 
   explicit ipc_manager_client_mock(asio::io_context&);
+  explicit ipc_manager_client_mock(std::shared_ptr<sdbusplus::asio::connection>);
+
+  auto connection() const noexcept -> std::shared_ptr<sdbusplus::asio::connection> { return conn_; }
 
   void register_connection_change_callback(std::string_view slot_name,
                                            const std::function<void(std::string_view const)>& connection_change_callback);
@@ -76,6 +79,7 @@ struct ipc_manager_client_mock {
   std::vector<signal> signals_;
   std::vector<std::function<void(sdbusplus::message_t&)>> callbacks_ = {};
   std::unordered_map<std::string, std::function<void(std::string_view const)>> slot_callbacks;
+  std::shared_ptr<sdbusplus::asio::connection> conn_{};
 };
 
 }  // namespace tfc::ipc_ruler
