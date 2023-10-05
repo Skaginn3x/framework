@@ -85,6 +85,10 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.tar.gz
+      - name: Find tar locaion
+        shell: bash
+        run: |
+          TAR_LOCATION=$(ls build/pack-*/*.tar.gz)
 
       - name: Upload Release tar file
         if: github.event_name == 'release' && github.event.action == 'created'
@@ -93,8 +97,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./build/pack-*/*.tar.gz
+          upload_url: ${{ TAR_LOCATION }}
+          asset_path: ./build/pack-gcc-${{matrix.build_type}}/*.tar.gz
           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
           asset_content_type: application/x-tar
 
