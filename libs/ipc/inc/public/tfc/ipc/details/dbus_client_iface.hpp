@@ -29,6 +29,10 @@ public:
   ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept;
   auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client&;
 
+  auto connection() const noexcept -> std::shared_ptr<sdbusplus::asio::connection> {
+    return connection_;
+  }
+
   /**
    * Register a signal with the ipc_manager service running on dbus
    * @param name the name of the signal to be registered

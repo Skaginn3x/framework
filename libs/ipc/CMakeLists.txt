@@ -6,7 +6,6 @@ add_library(ipc
   src/dbus_server_iface_mock.cpp # todo make ipc_test target
   src/dbus_client_iface.cpp
   src/item.cpp
-  src/dbus_slot.cpp
 )
 add_library(tfc::ipc ALIAS ipc)
 
