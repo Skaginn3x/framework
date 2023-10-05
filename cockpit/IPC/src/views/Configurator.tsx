@@ -9,7 +9,6 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
-  Switch,
 } from '@patternfly/react-core';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -27,7 +26,7 @@ declare global {
 }
 
 // eslint-disable-next-line react/function-component-definition
-const Configurator:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
+const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
   const { addAlert } = useAlertContext();
   const [names, setNames] = useState<string[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
@@ -53,9 +52,7 @@ const Configurator:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
 
   // Get data and schema for each name and store in states
   useEffect(() => {
-    console.log('names: ', names);
     if (names.length > 0) {
-      console.log('names > 0 ');
       names.forEach((name: string) => {
         fetchDataFromDBus(name).then(({ parsedData, parsedSchema }) => {
           setSchemas((prevState: any) => ({
@@ -221,26 +218,6 @@ const Configurator:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
               ))}
           </NavGroup>
         </Nav>
-      </div>
-      <div style={{
-        width: '100%',
-        backgroundColor: '#212427',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        paddingBottom: '1rem',
-        height: '-webkit-fill-available',
-      }}
-      >
-        <div style={{ display: 'flex' }}>
-          <Switch
-            onChange={(_, state) => setIsDark(state)}
-            isChecked={isDark}
-          />
-          <Title size="md" headingLevel="h5" color="#EEE" style={{ marginLeft: '1rem', color: '#EEE' }}>
-            Dark Mode
-          </Title>
-        </div>
       </div>
     </DrawerPanelContent>
   );

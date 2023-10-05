@@ -637,6 +637,7 @@ export default function CustomTable({
         isOpen={isModalOpen}
         onEscapePress={() => handleCancelAddSlots()}
         onClose={() => handleCancelAddSlots()}
+        aria-label="Add Slots Modal"
         width="90vw"
         header={(
           <Title headingLevel="h1" size="3xl" style={{ color: isDark ? '#EEE' : '#333' }}>
@@ -675,6 +676,7 @@ export default function CustomTable({
         )}
         isOpen={isRemoveModalOpen}
         onClose={() => setIsRemoveModalOpen(false)}
+        aria-label="Remove Slots Modal"
         style={{ backgroundColor: isDark ? '#26292d' : '#EEE', color: isDark ? '#EEE' : '#333' }}
         actions={[
           <Button ref={removeButtonRef} key="confirm" variant="primary" onClick={() => handleRemoveSlots()}>
@@ -697,6 +699,7 @@ export default function CustomTable({
         )}
         isOpen={filterModalOpen}
         onClose={() => setFilterModalOpen(false)}
+        aria-label="Edit Signals Modal"
         style={{ backgroundColor: isDark ? '#26292d' : '#EEE', color: isDark ? '#EEE' : '#333' }}
       >
         <FilterModal slot={selectedSlot} />

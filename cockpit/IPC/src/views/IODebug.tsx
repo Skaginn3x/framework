@@ -19,7 +19,6 @@ import {
   DrawerPanelContent,
   MenuToggleElement,
   DropdownList,
-  Switch,
 } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
@@ -45,10 +44,13 @@ const connectToDBusNames = (names: string[], dbus: any) => {
 };
 
 // eslint-disable-next-line react/function-component-definition
-const IODebug:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
+const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
 
+  /**
+  * Simulates data based on the type of each dbusInterface.
+  */
   const simulateData = () => {
     if (dbusInterfaces.length === 0) { return; }
     const simulatedData = dbusInterfaces.map((dbusInterface) => {
@@ -191,23 +193,6 @@ const IODebug:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
               names={dbusInterfaces.map((iface) => iface.proxy.iface)}
               onItemSelect={(it: string) => toggleSelection(it)}
             />
-            <div style={{
-              width: '100%',
-              backgroundColor: '#212427',
-              display: 'flex',
-              alignContent: 'center',
-              justifyContent: 'center',
-              paddingBottom: '1rem',
-            }}
-            >
-              <Switch
-                onChange={(_, state) => setIsDark(state)}
-                isChecked={isDark}
-              />
-              <Title size="md" headingLevel="h5" color="#EEE" style={{ marginLeft: '1rem', color: '#EEE' }}>
-                Dark Mode
-              </Title>
-            </div>
           </DrawerPanelContent>
         }
         >

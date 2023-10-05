@@ -18,19 +18,18 @@ import IODebug from './views/IODebug';
 
 export type DarkModeType = {
   isDark: boolean;
-  setIsDark: React.Dispatch<React.SetStateAction<boolean>>
 };
 
 // eslint-disable-next-line react/function-component-definition
-const RouterElem:React.FC<DarkModeType> = ({ isDark, setIsDark }) => {
+const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   switch (id) {
-    case 'connect': return <IPC isDark={isDark} setIsDark={setIsDark} />;
-    case 'configure': return <Configurator isDark={isDark} setIsDark={setIsDark} />;
-    case 'list': return <ListDBUS isDark={isDark} setIsDark={setIsDark} />;
-    case 'debug': return <IODebug isDark={isDark} setIsDark={setIsDark} />;
+    case 'connect': return <IPC isDark={isDark} />;
+    case 'configure': return <Configurator isDark={isDark} />;
+    case 'list': return <ListDBUS isDark={isDark} />;
+    case 'debug': return <IODebug isDark={isDark} />;
     default: return <NotFoundPage />;
   }
 };
@@ -53,6 +52,20 @@ function App() {
     }),
     [isDark],
   );
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'shell:style') {
+      console.info('Theme changed:', event.newValue);
+      if (event.newValue === 'auto') {
+        setIsDark(prefersDarkMode);
+      } else if (event.newValue === 'light') {
+        setIsDark(false);
+      } else {
+        setIsDark(true);
+      }
+    }
+  });
+
   return (
     <ThemeProvider theme={theme}>
       <AlertProvider>
@@ -71,7 +84,7 @@ function App() {
             }}
             >
               <Routes>
-                <Route path="/index.html" element={<RouterElem isDark={isDark} setIsDark={setIsDark} />} />
+                <Route path="/index.html" element={<RouterElem isDark={isDark} />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </div>
