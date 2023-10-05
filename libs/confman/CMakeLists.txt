@@ -5,7 +5,8 @@ find_package(glaze CONFIG REQUIRED)
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS )
-find_package(unofficial-sdbusplus CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 
 add_library(confman
   src/confman.cpp
@@ -31,7 +32,7 @@ target_link_libraries(confman
     tfc::dbus_util
     tfc::logger
   PRIVATE
-    unofficial::sdbusplus
+    PkgConfig::SDBUSPLUS
 )
 add_library_to_docs(tfc::confman)
 

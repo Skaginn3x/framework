@@ -4,17 +4,8 @@
     "repository": "https://github.com/microsoft/vcpkg",
     "baseline": "be2d7f886aad895e282b59088a2dfca5f6e1c88a"
   },
-  "registries": [
-    {
-      "kind": "git",
-      "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "1f7314c2a856e38073974b168ae4601b75a3bc92",
-      "packages": [
-        "libsystemd",
-        "sdbusplus",
-        "small-vectors"
-      ]
-    }
+  "overlay-ports" : [
+    "./ports"
   ],
   "overlay-triplets": [
     "./vcpkg-overlays/triplets"

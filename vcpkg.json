@@ -30,7 +30,10 @@
     },
     "magic-enum",
     "mp-units",
-    "sdbusplus",
+    {
+      "name": "sdbusplus",
+      "features": ["asio-only"]
+    },
     "pcg",
     "protobuf",
     "openssl"
