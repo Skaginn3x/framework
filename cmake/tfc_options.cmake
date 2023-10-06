@@ -19,6 +19,9 @@ add_feature_info("BUILD_EXES" BUILD_EXES "Indicates whether executables should b
 option(BUILD_EXAMPLES "Indicates whether examples of tfc should be built." ON)
 add_feature_info("BUILD_EXAMPLES" BUILD_EXAMPLES "Indicates whether examples of tfc should be built")
 
+option(BUILD_FRONTEND "Indicates whether frontend in Cockpit project should be built." ON)
+add_feature_info("BUILD_FRONTEND" BUILD_FRONTEND "Indicates whether frontend in Cockpit project should be built.")
+
 option(ENABLE_CODE_COVERAGE_INSTRUMENTATION "Enable code instrumentation" OFF)
 add_feature_info("ENABLE_CODE_COVERAGE_INSTRUMENTATION" ENABLE_CODE_COVERAGE_INSTRUMENTATION
     "Enable code instrumentation to allow generating code coverage after running tests")

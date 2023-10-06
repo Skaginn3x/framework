@@ -36,7 +36,9 @@ if (BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
-add_subdirectory(cockpit)
+if (BUILD_FRONTEND)
+  add_subdirectory(cockpit)
+endif ()
 
 # Clang format all files
 
