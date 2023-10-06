@@ -304,7 +304,7 @@ auto main(int argc, char** argv) -> int {
           }
         });
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, mock_client,
-                                                                                                "bool_signal", "");
+                                                                                                 "bool_signal", "");
 
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
                         [&](const std::error_code& err) { ut::expect(!err); });
@@ -340,7 +340,7 @@ auto main(int argc, char** argv) -> int {
           }
         });
     tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, mock_client,
-                                                                                               "bool_signal", "");
+                                                                                                "bool_signal", "");
 
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
                         [](const std::error_code& err) { ut::expect(!err); });

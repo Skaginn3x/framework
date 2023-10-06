@@ -58,7 +58,7 @@ public:
        std::string_view name,
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
-      requires std::is_lvalue_reference_v<manager_client_type>
+    requires std::is_lvalue_reference_v<manager_client_type>
       : slot_(details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback))),
         client_(client) {
     client_init(description);
@@ -69,7 +69,7 @@ public:
        std::string_view name,
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
-      requires (!std::is_lvalue_reference_v<manager_client_type>)
+    requires(!std::is_lvalue_reference_v<manager_client_type>)
       : slot_{ details::slot_callback<type_desc>::create(ctx, name, std::forward<decltype(callback)>(callback)) },
         client_{ connection } {
     client_init(description);

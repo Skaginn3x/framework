@@ -46,9 +46,7 @@ public:
   config_dbus_client(asio::io_context& ctx, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
   config_dbus_client(dbus_connection_t conn, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
 
-  [[nodiscard]] auto io_context() const noexcept -> asio::io_context& {
-    return ctx_;
-  }
+  [[nodiscard]] auto io_context() const noexcept -> asio::io_context& { return ctx_; }
 
   void set(config_property&&) const;
 
