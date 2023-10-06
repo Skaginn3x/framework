@@ -14,7 +14,8 @@ target_include_directories(operation_mode
 )
 
 find_package(Boost REQUIRED)
-find_package(unofficial-sdbusplus CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(operation_mode
   PUBLIC
@@ -24,7 +25,7 @@ target_link_libraries(operation_mode
     tfc::dbus_util
     magic_enum::magic_enum
   PRIVATE
-    unofficial::sdbusplus
+    PkgConfig::SDBUSPLUS
     Boost::boost
 )
 

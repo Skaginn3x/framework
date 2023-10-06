@@ -9,12 +9,13 @@ target_include_directories(dbus_util
     $<INSTALL_INTERFACE:include>
 )
 
-find_package(unofficial-sdbusplus CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 find_package(magic_enum CONFIG REQUIRED)
 
 target_link_libraries(dbus_util
   PUBLIC
-    unofficial::sdbusplus
+    PkgConfig::SDBUSPLUS
     magic_enum::magic_enum
     tfc::stx
     tfc::configure_options

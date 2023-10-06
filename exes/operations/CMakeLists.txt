@@ -15,7 +15,8 @@ target_include_directories(operations
 )
 
 find_package(Boost REQUIRED)
-find_package(unofficial-sdbusplus CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 target_link_libraries(operations
   PUBLIC
     tfc::base
@@ -25,7 +26,7 @@ target_link_libraries(operations
     tfc::operation_mode
     tfc::confman
     Boost::boost
-    unofficial::sdbusplus
+    PkgConfig::SDBUSPLUS
 )
 
 add_subdirectory(tests)
