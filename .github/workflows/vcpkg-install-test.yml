@@ -28,6 +28,8 @@ jobs:
       - uses: lukka/get-cmake@latest
       - name: Install tfc-framework with vcpkg
         uses: lukka/run-vcpkg@v11
+        env:
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
         with:
           runVcpkgInstall: true
           vcpkgDirectory: '/opt/vcpkg'
