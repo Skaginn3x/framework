@@ -162,5 +162,25 @@ Please note the output of installing vcpkg:
 
 Everything will be built on CMake and using features from 3.23+ version.
 
+# Install with vcpkg
+
+Add to your `vcpkg-configuration.json` file the following section:
+
+```json
+{
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://github.com/skaginn3x/framework",
+      "baseline": "7631f756bf5bcc010469b513ee242d932f72835a",
+      "packages": [
+        "sdbusplus",
+        "tfc-framework"
+      ]
+    }
+  ]
+}
+```
+
 # Copyright
 Copyright 2023 Skaginn 3X ehf
