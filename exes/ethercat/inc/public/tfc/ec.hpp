@@ -7,6 +7,8 @@
 #include <vector>
 
 #include <fmt/chrono.h>
+#include <tfc/config/ethercat.hpp>
+#include <tfc/confman.hpp>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
@@ -31,8 +33,7 @@ public:
   // are to be addressed when our code is
   // interacting with groups.
 
-  explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
-      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
+  explicit context_t(boost::asio::io_context& ctx) : ctx_(ctx), client_(ctx_) {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -57,7 +58,7 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    if (!ecx::init(&context_, iface_)) {
+    if (!ecx::init(&context_, config_.value().interface)) {
       // TODO: swith for error_code
       throw std::runtime_error("Failed to init, no socket connection");
     }
@@ -125,7 +126,7 @@ public:
     return lowest == EC_STATE_PRE_OP || lowest == (EC_STATE_ACK | EC_STATE_PRE_OP);
   }
 
-  [[nodiscard]] auto iface() -> std::string_view { return iface_; }
+  [[nodiscard]] auto iface() -> std::string_view { return config_.value().interface; }
 
   [[nodiscard]] auto slave_count() const -> size_t { return static_cast<size_t>(slave_count_); }
 
@@ -339,8 +340,10 @@ private:
   [[nodiscard]] auto group_list_as_span() -> std::span<ec_group> { return { context_.grouplist, 1 }; }
 
   boost::asio::io_context& ctx_;
-  std::string iface_;
-  tfc::logger::logger logger_;
+
+  tfc::confman::config<tfc::ethercat::config::ethercat> config_{ ctx_, "ethercat" };
+  tfc::logger::logger logger_{ fmt::format("Ethercat Context iface: ({})", config_.value().interface) };
+
   ecx_contextt context_{};
   std::vector<std::unique_ptr<devices::base>> slaves_;
 
