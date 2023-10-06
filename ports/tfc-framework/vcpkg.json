@@ -46,11 +46,5 @@
     "build-exes": {
       "description": "Build binaries and install them to sysroot"
     }
-  },
-  "overrides": [
-    {
-      "name": "mp-units",
-      "version": "0.8.0"
-    }
-  ]
+  }
 }

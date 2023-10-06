@@ -10,5 +10,11 @@
       "host": true
     },
     "tfc-framework"
+  ],
+  "overrides": [
+    {
+      "name": "mp-units",
+      "version": "0.8.0"
+    }
   ]
 }

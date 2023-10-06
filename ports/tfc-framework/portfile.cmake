@@ -2,7 +2,7 @@ vcpkg_from_github(
   OUT_SOURCE_PATH SOURCE_PATH
   REPO skaginn3x/framework
   REF ${VERSION}
-  SHA512 20478778c26e086b28b48d97839f28d949ea1cc80df1c30918d00e9de7d86bd434058a6ff098eca76dec88c56426a001daa2782f3e188b7162472b09fc1a0f64
+  SHA512 13fb1f4a1317b066d63bc741def0d715cbdc314fe0d674a08fe626d0f96a0e75eb8a9b831cb9150d576ad80da34459b44fc31c680a62f1b8e9c84ef3a196fb05
 )
 
 if ("build-exes" IN_LIST FEATURES)
@@ -14,6 +14,7 @@ endif()
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+      -DCMAKE_PROJECT_VERSION=${VERSION} # todo I don't like this
       -DBUILD_EXES=${BUILD_EXES}
       -DBUILD_TESTING=OFF
       -DBUILD_DOCS=OFF
