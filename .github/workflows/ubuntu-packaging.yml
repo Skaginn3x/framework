@@ -68,17 +68,49 @@ jobs:
           apt-get update
           apt-get install -y ./build/pack-gcc-${{matrix.build_type}}/*.deb
 
+      - id: find-location
+        name: Find location
+        shell: bash
+        run: |
+          echo "tar-location=$(ls build/*/*.tar.gz)" >> "$GITHUB_OUTPUT"
+          echo "deb-location=$(ls build/*/*.deb)" >> "$GITHUB_OUTPUT"
+          echo "rpm-location=$(ls build/*/*.rpm)" >> "$GITHUB_OUTPUT"
+
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.deb
 
+      - name: Upload Release deb file
+        if: github.event_name == 'release' && github.event.action == 'created'
+        id: upload-release-asset-deb
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ${{ steps.find-location.outputs.deb-location }}
+          asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.deb
+          asset_content_type: application/x-tar
+
       - name: Upload rpm package
         uses: actions/upload-artifact@v3
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.rpm
+
+      - name: Upload Release rpm file
+        if: github.event_name == 'release' && github.event.action == 'created'
+        id: upload-release-asset-rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ${{ steps.find-location.outputs.rpm-location }}
+          asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.rpm
+          asset_content_type: application/x-cpio
 
       - name: Upload tar package
         uses: actions/upload-artifact@v3
@@ -88,7 +120,7 @@ jobs:
 
       - name: Upload Release tar file
         if: github.event_name == 'release' && github.event.action == 'created'
-        id: upload-release-asset
+        id: upload-release-asset-tar
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
