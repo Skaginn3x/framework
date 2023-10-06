@@ -33,9 +33,10 @@ inline auto blink(boost::asio::io_context& ctx, milliseconds const& period, tfc:
 }
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
+
   tfc::ipc_ruler::ipc_manager_client client{ ctx };
 
   for (const auto& blink_duration :

@@ -5,9 +5,9 @@
 namespace asio = boost::asio;
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
 
   [[maybe_unused]] auto const app{ tfc::app_operation_mode<>(ctx) };
 

@@ -7,9 +7,9 @@
 namespace asio = boost::asio;
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
 
   tfc::confman::stub_config<std::string>{ ctx, "some_key" };
 

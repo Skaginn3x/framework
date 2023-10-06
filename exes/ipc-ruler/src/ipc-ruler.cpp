@@ -3,9 +3,9 @@
 #include <tfc/ipc/details/dbus_server_iface.hpp>
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   boost::asio::io_context ctx;
+
+  tfc::base::init(argc, argv, ctx);
 
   using signal_storage = tfc::confman::file_storage<std::map<std::string, tfc::ipc_ruler::signal>>;
   using slot_storage = tfc::confman::file_storage<std::map<std::string, tfc::ipc_ruler::slot>>;

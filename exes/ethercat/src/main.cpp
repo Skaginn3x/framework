@@ -18,9 +18,10 @@ auto main(int argc, char* argv[]) -> int {
   auto prog_desc{ tfc::base::default_description() };
   std::string iface;
   prog_desc.add_options()("iface,i", boost::program_options::value<std::string>(&iface)->required(), "Adapter name");
-  tfc::base::init(argc, argv, prog_desc);
-
   boost::asio::io_context io_ctx;
+
+  tfc::base::init(argc, argv, ctx, prog_desc);
+
   tfc::ec::context_t ctx(io_ctx, iface);
 
   ctx.async_start();

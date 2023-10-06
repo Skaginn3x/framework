@@ -64,6 +64,7 @@ public:
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
+  // todo this will fail
 
   "ipc_manager correctness check"_test = []() {
     signal_storage_t signals{};

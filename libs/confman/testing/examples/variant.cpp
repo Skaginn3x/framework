@@ -57,9 +57,9 @@ struct with_variant {
 };
 
 int main(int argc, char** argv) {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
 
   tfc::confman::config<tfc::confman::observable<std::vector<with_variant>>> const config{ ctx, "key" };
   config->observe([](auto const& new_value, auto const& old_value) {

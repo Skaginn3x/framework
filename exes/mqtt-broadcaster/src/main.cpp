@@ -8,11 +8,9 @@
 namespace asio = boost::asio;
 
 auto main(int argc, char* argv[]) -> int {
-  auto program_description{ tfc::base::default_description() };
-
-  tfc::base::init(argc, argv, program_description);
-
   asio::io_context io_ctx{};
+
+  tfc::base::init(argc, argv, io_ctx);
 
   tfc::mqtt_broadcaster<tfc::ipc_ruler::ipc_manager_client,
                         async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>,

@@ -86,9 +86,9 @@ struct app {
 };
 
 int main(int argc, char** argv) {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
 
   [[maybe_unused]] app my_app{ .ctx = ctx };
 

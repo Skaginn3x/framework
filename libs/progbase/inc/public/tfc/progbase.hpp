@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <optional>
 #include <string_view>
+#include <memory>
 
 namespace boost {
 namespace program_options {
@@ -17,6 +18,10 @@ class io_context;
 }  // namespace asio
 }  // namespace boost
 
+namespace sdbusplus::asio {
+class connection;
+}
+
 namespace tfc::logger {
 enum struct lvl_e : int;
 }
@@ -28,8 +33,11 @@ namespace tfc::base {
 [[nodiscard]] auto default_description() -> boost::program_options::options_description;
 
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
+/// \param ctx is used to populate dbus connection
 /// \example example_base.cpp
-void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);
+void init(int argc, char const* const* argv, boost::asio::io_context& ctx, boost::program_options::options_description const& desc);
+void init(int argc, char const* const* argv, boost::asio::io_context&);
+/// \brief Initialize without creating dbus connection, useful for testing
 void init(int argc, char const* const* argv);
 
 /// \return stripped executable name
@@ -66,5 +74,8 @@ void init(int argc, char const* const* argv);
 
 /// \brief stop context for predefined exit signals
 auto exit_signals(boost::asio::io_context&) -> boost::asio::awaitable<void, boost::asio::any_io_executor>;
+
+/// \brief get singleton dbus connection
+auto dbus_connection() -> std::shared_ptr<sdbusplus::asio::connection>;
 
 }  // namespace tfc::base

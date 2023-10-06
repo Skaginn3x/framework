@@ -118,9 +118,10 @@ struct button_state {
 };
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
+
   tfc::ipc_ruler::ipc_manager_client client{ ctx };
 
   tfc::logger::logger logger("button");

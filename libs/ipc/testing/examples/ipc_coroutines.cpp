@@ -60,9 +60,9 @@ asio::experimental::coro<void, int> testme(asio::io_context& ctx) {
 }  // namespace
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
 
   tfc::ipc::details::slot<tfc::ipc::details::type_bool> slot{ ctx, "my_name" };
 

@@ -39,9 +39,10 @@ public:
 };
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
+
   std::string const file_name{ "/tmp/test.me" };
 
   "file path"_test = [&] {

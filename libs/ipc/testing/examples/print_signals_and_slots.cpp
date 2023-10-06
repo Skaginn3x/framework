@@ -8,9 +8,10 @@
 #include <tfc/progbase.hpp>
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   boost::asio::io_context ctx;
+
+  tfc::base::init(argc, argv, ctx);
+
   tfc::ipc_ruler::ipc_manager_client man_c(ctx);
 
   man_c.slots([](auto const& slot_vector) {

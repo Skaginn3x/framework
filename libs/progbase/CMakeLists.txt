@@ -17,12 +17,15 @@ target_include_directories(base
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(fmt CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 
 target_link_libraries(base
   PRIVATE
     Boost::boost
     Boost::program_options
     fmt::fmt
+    PkgConfig::SDBUSPLUS
     tfc::stx
 )
 

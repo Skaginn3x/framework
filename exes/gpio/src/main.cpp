@@ -16,9 +16,10 @@ auto main(int argc, char** argv) -> int {
   std::string device{};
   desc.add_options()("device,d", bpo::value<std::string>(&device)->default_value("/dev/gpiochip0"),
                      "GPIO character device.");
-  tfc::base::init(argc, argv, desc);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx, desc);
+
 
   [[maybe_unused]] auto instance{ tfc::gpio{ ctx, device } };
 

@@ -9,15 +9,16 @@
 #include <boost/program_options.hpp>
 #include <boost/stacktrace.hpp>
 #include <magic_enum.hpp>
+#include <sdbusplus/asio/connection.hpp>
 
 namespace bpo = boost::program_options;
 namespace asio = boost::asio;
 
 namespace tfc::base {
-class options {
+class singleton {
 public:
-  options(options const&) = delete;
-  void operator=(options const&) = delete;
+  singleton(singleton const&) = delete;
+  void operator=(singleton const&) = delete;
 
   void init(int argc, char const* const* argv, bpo::options_description const& desc) {
     vm_ = {};
@@ -43,11 +44,15 @@ public:
     }
   }
 
-  static auto instance() -> options& {
+  void populate_dbus_connection(asio::io_context& ctx) {
+    dbus_connection_ = std::make_shared<sdbusplus::asio::connection>(ctx);
+  }
+
+  static auto instance() -> singleton& {
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
     // clang-format on
-    static options options_v;
+    static singleton options_v;
     PRAGMA_CLANG_WARNING_POP
     return options_v;
   }
@@ -58,15 +63,17 @@ public:
   [[nodiscard]] auto get_stdout() const noexcept -> bool { return stdout_; }
   [[nodiscard]] auto get_noeffect() const noexcept -> bool { return noeffect_; }
   [[nodiscard]] auto get_log_lvl() const noexcept -> tfc::logger::lvl_e { return log_level_; }
+  [[nodiscard]] auto dbus_connection() const noexcept -> std::shared_ptr<sdbusplus::asio::connection> { return dbus_connection_; }
 
 private:
-  options() = default;
+  singleton() = default;
   bool noeffect_{ false };
   bool stdout_{ false };
   std::string id_{};
   std::string exe_name_{};
   bpo::variables_map vm_{};
   tfc::logger::lvl_e log_level_{};
+  std::shared_ptr<sdbusplus::asio::connection> dbus_connection_{};
 };
 
 auto default_description() -> boost::program_options::options_description {
@@ -91,24 +98,29 @@ auto default_description() -> boost::program_options::options_description {
   return description;
 }
 
-void init(int argc, char const* const* argv, bpo::options_description const& desc) {
-  options::instance().init(argc, argv, desc);
+void init(int argc, char const* const* argv, asio::io_context& ctx, bpo::options_description const& desc) {
+  auto& inst{ singleton::instance() };
+  inst.init(argc, argv, desc);
+  inst.populate_dbus_connection(ctx);
+}
+void init(int argc, char const* const* argv, asio::io_context& ctx) {
+  init(argc, argv, ctx, default_description());
 }
 void init(int argc, char const* const* argv) {
-  options::instance().init(argc, argv, default_description());
+  singleton::instance().init(argc, argv, default_description());
 }
 
 auto get_exe_name() noexcept -> std::string_view {
-  return options::instance().get_exe_name();
+  return singleton::instance().get_exe_name();
 }
 auto get_proc_name() noexcept -> std::string_view {
-  return options::instance().get_id();
+  return singleton::instance().get_id();
 }
 auto get_log_lvl() noexcept -> tfc::logger::lvl_e {
-  return options::instance().get_log_lvl();
+  return singleton::instance().get_log_lvl();
 }
 auto get_map() noexcept -> boost::program_options::variables_map const& {
-  return options::instance().get_map();
+  return singleton::instance().get_map();
 }
 
 auto get_config_directory() -> std::filesystem::path {
@@ -127,10 +139,10 @@ auto make_config_file_name(std::string_view filename, std::string_view extension
 }
 
 auto is_stdout_enabled() noexcept -> bool {
-  return options::instance().get_stdout();
+  return singleton::instance().get_stdout();
 }
 auto is_noeffect_enabled() noexcept -> bool {
-  return options::instance().get_noeffect();
+  return singleton::instance().get_noeffect();
 }
 
 void terminate() {
@@ -145,6 +157,10 @@ auto exit_signals(asio::io_context& ctx) -> asio::awaitable<void> {
   co_await signal_set.async_wait(asio::use_awaitable);
   fmt::print("\nShutting down gracefully.\nMay you have a pleasant remainder of your day.\n");
   ctx.stop();
+}
+
+auto dbus_connection() -> std::shared_ptr<sdbusplus::asio::connection> {
+  return singleton::instance().dbus_connection();
 }
 
 }  // namespace tfc::base

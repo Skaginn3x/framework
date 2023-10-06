@@ -46,9 +46,9 @@ struct simple_config {
 };
 
 int main(int argc, char** argv) {
-  tfc::base::init(argc, argv);
-
   asio::io_context ctx{};
+
+  tfc::base::init(argc, argv, ctx);
 
   tfc::confman::config<simple_config> const config{ ctx, "key" };
   config->c.observe(

@@ -77,7 +77,9 @@ auto main(int argc, char** argv) -> int {
   description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
       "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
       "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
-  tfc::base::init(argc, argv, description);
+  asio::io_context ctx;
+
+  tfc::base::init(argc, argv, ctx, description);
 
   // Must provide an argument
   if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
@@ -87,8 +89,6 @@ auto main(int argc, char** argv) -> int {
     std::exit(0);
   }
   tfc::logger::logger logger{ "tfc control" };
-
-  asio::io_context ctx;
 
   // For sending a signal
   if (!signal.empty()) {

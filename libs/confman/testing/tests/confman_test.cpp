@@ -46,9 +46,9 @@ public:
 };
 
 auto main(int argc, char** argv) -> int {
-  tfc::base::init(argc, argv);
-
   boost::asio::io_context ignore{};
+
+  tfc::base::init(argc, argv, ignore);
 
   std::string const key{ "bar" };
 
