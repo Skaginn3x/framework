@@ -25,19 +25,18 @@
 
 namespace tfc::ethercat::config {
 
-    namespace asio = boost::asio;
+namespace asio = boost::asio;
 
-    struct ethercat {
-        std::string interface{};
+struct ethercat {
+  std::string interface {};
 
-        struct glaze {
-            // clang-format off
+  struct glaze {
+    // clang-format off
             static constexpr auto value{glz::object(
                     "interface", &ethercat::interface
             )};
-            // clang-format on
-            static constexpr std::string_view name{"ethercat"};
-        };
-
-    };
-}
+    // clang-format on
+    static constexpr std::string_view name{ "ethercat" };
+  };
+};
+}  // namespace tfc::ethercat::config

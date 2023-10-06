@@ -28,32 +28,30 @@
 //   return 0;
 // }
 
-
-
+#include <ifaddrs.h>  // for getifaddrs, freeifaddrs
+#include <cstring>    // for strdup, free
 #include <iostream>
 #include <set>
-#include <cstring> // for strdup, free
-#include <ifaddrs.h> // for getifaddrs, freeifaddrs
 
 int main() {
-    struct ifaddrs *ifaddr;
-    struct ifaddrs *ifa;
+  struct ifaddrs* ifaddr;
+  struct ifaddrs* ifa;
 
-    std::set<std::string> interface_names;
+  std::set<std::string> interface_names;
 
-    if (getifaddrs(&ifaddr) == -1) {
-        perror("getifaddrs");
-        return -1;
+  if (getifaddrs(&ifaddr) == -1) {
+    perror("getifaddrs");
+    return -1;
+  }
+
+  for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr == nullptr) {
+      continue;
     }
+    interface_names.insert(ifa->ifa_name);
+  }
 
-    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr == nullptr) {
-            continue;
-        }
-        interface_names.insert(ifa->ifa_name);
-    }
-
-    for (const auto &name: interface_names) {
-        std::cout << name.data() << std::endl;
-    }
+  for (const auto& name : interface_names) {
+    std::cout << name.data() << std::endl;
+  }
 }
