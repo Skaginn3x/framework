@@ -15,6 +15,7 @@ $ /opt/vcpkg/vcpkg x-add-version --all --vcpkg-root=$(pwd) --overwrite-version
 ```bash
 $ cd test
 $ rm .vcpkg-root # if exists
+$ rm ../.vcpkg-root # if exists
 $ /opt/vcpkg/vcpkg --triplet x64-linux-clang install # select your desired triplet
 ```
 
