@@ -172,7 +172,7 @@ Add to your `vcpkg-configuration.json` file the following section:
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/framework",
-      "baseline": "7631f756bf5bcc010469b513ee242d932f72835a",
+      "baseline": "a53998faa40313c8845c6b2adc780ff4f9c62a88",
       "packages": [
         "sdbusplus",
         "tfc-framework"
