@@ -61,4 +61,4 @@ install(
 )
 
 include(tfc_systemd)
-tfc_systemd_service_file(ethercat "TFC Ethercat master")
+tfc_systemd_service_file(ethercat "TFC Ethercat master" "root")

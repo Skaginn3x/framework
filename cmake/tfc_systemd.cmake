@@ -1,15 +1,19 @@
-function(tfc_systemd_service_file EXE_TARGET DESCRIPTION)
+function(tfc_systemd_service_file EXE_TARGET DESCRIPTION SERVICE_USER)
 
-set(EXE_NAME ${EXE_TARGET})
-set(INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+  if (NOT SERVICE_USER)
+    set(SERVICE_USER "")
+  endif ()
 
-configure_file("${CMAKE_SOURCE_DIR}/cmake/systemd/tfc@.service" "${CMAKE_BINARY_DIR}/systemd/tfc@${EXE_TARGET}.service")
+  set(EXE_NAME ${EXE_TARGET})
+  set(INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+  set(USER ${SERVICE_USER})
 
-install(
-  FILES "${CMAKE_BINARY_DIR}/systemd/tfc@${EXE_TARGET}.service"
-  DESTINATION /usr/lib/systemd/system/
-  CONFIGURATIONS Release
-)
+  configure_file("${CMAKE_SOURCE_DIR}/cmake/systemd/tfc@.service" "${CMAKE_BINARY_DIR}/systemd/${EXE_TARGET}@.service")
+
+  install(
+    FILES "${CMAKE_BINARY_DIR}/systemd/${EXE_TARGET}@.service"
+    DESTINATION /usr/lib/systemd/system/
+    CONFIGURATIONS Release
+  )
 
 endfunction()
-
