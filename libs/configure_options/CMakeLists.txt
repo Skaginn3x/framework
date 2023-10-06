@@ -18,12 +18,14 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/dbus-tfc.conf.in ${CMAKE_CURRENT_LIST_D
 include(tfc_install)
 tfc_install_lib(configure_options)
 
-
-include(GNUInstallDirs)
-install(
-  FILES
-    ${CMAKE_CURRENT_LIST_DIR}/generated/tfc.conf
-  DESTINATION
-    /${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d
-  CONFIGURATIONS Release
-)
+if (${CMAKE_INSTALL_PREFIX} MATCHES "^\/usr")
+  message(WARNING "Installing dbus config")
+  include(GNUInstallDirs)
+  install(
+    FILES
+      ${CMAKE_CURRENT_LIST_DIR}/generated/tfc.conf
+    DESTINATION
+      /${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d
+    CONFIGURATIONS Release
+  )
+endif()
