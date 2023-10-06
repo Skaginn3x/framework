@@ -1,12 +1,13 @@
 [Unit]
-Description=TFC Inter-process communication ruler
+Description=@DESCRIPTION@
 Requires=dbus.socket
 After=dbus.socket
 
 [Service]
-ExecStart=/usr/bin/ipc-ruler
+ExecStart=@CMAKE_INSTALL_PREFIX@/@INSTALL_DIR@/@EXE_NAME@ --id %i --stdout --log-level info
 StandardOutput=journal
 StandardError=journal
+User=@USER@
 
 [Install]
 WantedBy=multi-user.target
