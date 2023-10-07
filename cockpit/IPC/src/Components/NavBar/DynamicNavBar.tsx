@@ -7,7 +7,9 @@ import {
   NavExpandable,
 } from '@patternfly/react-core';
 import './DynamicNavBar.css';
+import { removeOrg } from '../Form/WidgetFunctions';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const createTree = (names: string[]) => {
   const tree: any = {};
 
@@ -25,6 +27,7 @@ const createTree = (names: string[]) => {
   return tree;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const renderTree = (tree: any, parentFullName = '', parentRelevantName = '', activeItem:string | null = '') => {
   const rendered: any[] = [];
 
@@ -70,27 +73,56 @@ export const DynamicNavbar: React.FC<{
   names, onItemSelect,
 }) => {
   const [activeItem, setActiveItem] = useState<string | null>(null);
-  const tree = createTree(names);
-
+  // const tree = createTree(names);
+  console.log('names', names);
   return (
     <div style={{
-      minWidth: '15rem', backgroundColor: '#212427', height: '100%',
+      minWidth: '15rem', backgroundColor: '#212427', height: '-webkit-fill-available',
     }}
     >
-      <Nav
-        onSelect={(e, { groupId }) => {
-          setActiveItem(groupId as string);
-          onItemSelect(groupId as string);
-        }}
-        onToggle={(e, { groupId }) => {
-          setActiveItem(groupId as string);
-          onItemSelect(groupId as string);
-        }}
-      >
-        <NavList>
-          {renderTree(tree, '', '', activeItem)}
-        </NavList>
-      </Nav>
+      {names.length > 0
+        ? (
+          <Nav
+            onSelect={(e, { groupId }) => {
+              setActiveItem(groupId as string);
+              onItemSelect(groupId as string);
+            }}
+            onToggle={(e, { groupId }) => {
+              setActiveItem(groupId as string);
+              onItemSelect(groupId as string);
+            }}
+          >
+            <NavList>
+              {/* {renderTree(tree, '', '', activeItem)} */}
+              {names.length > 0 && names.map((name:string) => {
+                if (true) {
+                  return (
+                    <NavItem
+                      preventDefault
+                      id={name}
+                      key={name}
+                      groupId={name}
+                      className={name === activeItem ? 'Selected' : ''}
+                    >
+                      {removeOrg(name)}
+                    </NavItem>
+                  );
+                }
+                return null;
+              })}
+              {/* <NavItem
+                preventDefault
+                id="test"
+                key="test2"
+                groupId="test3"
+                className={activeItem === 'test3' ? 'Selected' : ''}
+              >
+                helo
+              </NavItem> */}
+
+            </NavList>
+          </Nav>
+        ) : null }
     </div>
   );
 };

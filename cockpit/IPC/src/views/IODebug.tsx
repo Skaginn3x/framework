@@ -27,7 +27,7 @@ import DynamicNavbar from 'src/Components/NavBar/DynamicNavBar';
 import Hamburger from 'hamburger-react';
 import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
 import { DarkModeType } from 'src/App';
-import { getIOData } from './demoData';
+// import { getIOData } from './demoData';
 
 declare global {
   interface Window { cockpit: any; }
@@ -43,64 +43,79 @@ const connectToDBusNames = (names: string[], dbus: any) => {
   return proxies;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const parseXMLInterfaces = (xml: string): string[] => {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, 'text/xml');
+  const interfaceElements = xmlDoc.querySelectorAll('interface[name^="com.skaginn3x."]');
+  const interfaceNames: string[] = [];
+
+  interfaceElements.forEach((element) => {
+    const name = element.getAttribute('name');
+    if (name) {
+      interfaceNames.push(name);
+    }
+  });
+
+  return interfaceNames;
+};
+
 // eslint-disable-next-line react/function-component-definition
 const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
+  const [processes, setProcesses] = useState<string[]>();
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
 
-  /**
-  * Simulates data based on the type of each dbusInterface.
-  */
-  const simulateData = () => {
-    if (dbusInterfaces.length === 0) { return; }
-    const simulatedData = dbusInterfaces.map((dbusInterface) => {
-      // Generate random data based on the type.
-      let newValue;
-      switch (dbusInterface.proxy.type) {
-        case 'bool':
-          newValue = Math.random() > 0.5;
-          break;
-        case 'string':
-          newValue = Math.random() > 0.5 ? 'Yes, finished' : 'Stopp Finish';
-          break;
-        case 'double':
-          newValue = (Math.random() * 100).toFixed(2);
-          break;
-        default:
-          newValue = dbusInterface.proxy.value; // Default to current value if no simulation rule exists.
-      }
-
-      return {
-        ...dbusInterface,
-        proxy: {
-          ...dbusInterface.proxy,
-          value: newValue,
-        },
-      };
-    });
-    setDbusInterfaces(simulatedData);
-  };
-
   useEffect(() => {
-    const interval = setInterval(() => {
-      simulateData();
-    }, 500);
+    if (!processes) return;
 
-    // Clear the interval when the component is unmounted or when dbusInterfaces changes.
-    return () => clearInterval(interval);
-  }, [dbusInterfaces]);
+    const fetchAndConnectInterfaces = async () => {
+      const interfaces: any[] = [];
+
+      // eslint-disable-next-line no-restricted-syntax
+      for (const process of processes) {
+        const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+        console.log('DBUS', processDBUS);
+        const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', '/com/skaginn3x/Slot');
+        // Awaiting should be ok in this loop, as it waits for each process
+        console.log('PROXY', processProxy);
+        // eslint-disable-next-line no-await-in-loop
+
+        try {
+          // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
+          await processProxy.call('Introspect').then((data:any) => {
+            console.log(data);
+            const interfaceNames = parseXMLInterfaces(data);
+            console.log('ifnames', interfaceNames);
+            // eslint-disable-next-line no-restricted-syntax
+            for (const interfaceName of interfaceNames) {
+              const proxy = processDBUS.proxy(interfaceName); // Assuming all interfaces are at root
+              interfaces.push({
+                proxy,
+                process,
+                interfaceName,
+                dropdown: false,
+                forcestate: null,
+                hidden: false,
+              });
+            }
+          });
+        } catch (e) {
+          console.log(e);
+        }
+      }
+      console.log('ifaces', interfaces);
+      setDbusInterfaces(interfaces);
+    };
+
+    fetchAndConnectInterfaces();
+  }, [processes]);
 
   useEffect(() => {
     const callback = (allNames: string[]) => {
-      console.log(allNames);
-      const proxies = getIOData();
-      const interfaces = proxies.map((proxy: any) => ({
-        proxy,
-        dropdown: false,
-        forcestate: null,
-        hidden: false,
-      }));
-      setDbusInterfaces(interfaces);
+      console.log('all', allNames);
+      console.log('cherry ', allNames.filter((name:string) => name.includes('com.skaginn3x.')));
+      setProcesses(allNames.filter((name:string) => name.includes('com.skaginn3x.')));
     };
     loadExternalScript(callback);
   }, []);
@@ -139,7 +154,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   function toggleSelection(selected:string) {
     const updatedData = dbusInterfaces.map((dbusInterface) => ({
       ...dbusInterface,
-      hidden: selected && !dbusInterface.proxy.iface.includes(selected),
+      hidden: selected && dbusInterface.process !== selected,
     }));
     console.log('updated: ', updatedData);
     console.log('selected: ', selected);
@@ -188,9 +203,9 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
       <Drawer isExpanded={isDrawerExpanded} position="right">
         <DrawerContent panelContent={
           // eslint-disable-next-line react/jsx-wrap-multilines
-          <DrawerPanelContent>
+          <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
             <DynamicNavbar
-              names={dbusInterfaces.map((iface) => iface.proxy.iface)}
+              names={processes ?? []}
               onItemSelect={(it: string) => toggleSelection(it)}
             />
           </DrawerPanelContent>
@@ -231,7 +246,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
                   {dbusInterfaces.length > 0 && dbusInterfaces.map((dbusInterface: any, index: number) => {
                     if (!dbusInterface.hidden) {
                       return (
-                        <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface}>
+                        <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface + dbusInterface.process}>
                           <DataListItemRow size={10}>
                             <DataListItemCells
                               dataListCells={[
@@ -251,7 +266,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
                             >
                               <Dropdown
                                 onSelect={(e, val) => onSelect(e, val, index)}
-                                key={`${dbusInterface.proxy.iface}-DD`}
+                                key={`${dbusInterface.proxy.iface}${dbusInterface.process}`}
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                                   <CustomMenuToggle
                                     toggleRef={toggleRef}
