@@ -40,7 +40,7 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
     message.signal_send();
   });
 
-  dbus_->request_name(operation::dbus::name.data());
+  dbus_->request_name(tfc::dbus::make_dbus_process_name().c_str());
 
   dbus_interface_->initialize();
 

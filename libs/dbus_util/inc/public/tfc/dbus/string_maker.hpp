@@ -55,4 +55,6 @@ auto make_dbus_name(std::string_view input_name) -> std::string;
 /// \throws exception::invalid_name if input contains `-` or `//`
 auto make_dbus_path(std::string_view input_name) -> std::string;
 
+auto make_dbus_process_name() -> std::string;
+
 }  // namespace tfc::dbus

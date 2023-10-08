@@ -19,6 +19,8 @@ target_link_libraries(dbus_util
     magic_enum::magic_enum
     tfc::stx
     tfc::configure_options
+  PRIVATE
+    tfc::base
 )
 
 add_library_to_docs(tfc::dbus_util)

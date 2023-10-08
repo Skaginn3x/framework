@@ -1,5 +1,8 @@
+#include <fmt/format.h>
+
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/progbase.hpp>
 
 namespace tfc::dbus {
 
@@ -31,6 +34,11 @@ auto make_dbus_path(std::string_view input_name) -> std::string {
     throw exception::invalid_name{ "{} contains illegal dbus characters \"//\"", input_name };
   }
   return return_value;
+}
+
+auto make_dbus_process_name() -> std::string {
+  auto postfix{ fmt::format("tfc.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name()) };
+  return make_dbus_name(postfix);
 }
 
 }  // namespace tfc::dbus
