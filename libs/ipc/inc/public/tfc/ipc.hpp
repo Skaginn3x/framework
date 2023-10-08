@@ -67,7 +67,7 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ client.connection(), [this] -> std::optional<value_t> const& { return this->value(); } },
+        dbus_slot_{ client.connection(), full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
         client_{ client } {
     client_init(description);
   }
@@ -85,7 +85,7 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ connection, [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
+        dbus_slot_{ connection, full_name(), [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
     client_init(description);
   }
 
@@ -111,12 +111,12 @@ public:
 
 private:
   void client_init(std::string_view description) {
-    client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
+    client_.register_connection_change_callback(full_name(), [this](std::string_view signal_name) {
       slot_->connect(signal_name);  //
     });
-    client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
+    client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
 
-    dbus_slot_.initialize(full_name());
+    dbus_slot_.initialize();
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
