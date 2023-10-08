@@ -10,9 +10,11 @@ namespace tfc::operation {
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_context& ctx)
-    : ctx_{ ctx }, states_{ std::make_shared<state_machine_t>(detail::state_machine<state_machine_owner>{ *this },
-                                                              tfc::logger::sml_logger{}) } {}
+state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_context& ctx,
+                                                                  std::shared_ptr<sdbusplus::asio::connection> conn)
+    : ctx_{ ctx }, dbus_{ std::move(conn) },
+      states_{ std::make_shared<state_machine_t>(detail::state_machine<state_machine_owner>{ *this },
+                                                 tfc::logger::sml_logger{}) } {}
 
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>

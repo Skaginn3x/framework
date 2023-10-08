@@ -13,6 +13,7 @@
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 #include <tfc/utils/pragmas.hpp>
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 
 namespace tfc::operation {
 
@@ -46,7 +47,7 @@ template <template <typename description_t, typename manager_client_t = ipc_rule
           template <typename, typename...> typename sml_t = boost::sml::sm>
 class state_machine_owner {
 public:
-  explicit state_machine_owner(asio::io_context&);
+  explicit state_machine_owner(asio::io_context&, std::shared_ptr<sdbusplus::asio::connection>);
 
   auto set_mode(tfc::operation::mode_e new_mode) -> std::error_code;
 
@@ -94,12 +95,13 @@ public:
 private:
   std::function<void(new_mode, old_mode)> on_new_state_{};
   asio::io_context& ctx_;
+  std::shared_ptr<sdbusplus::asio::connection> dbus_;
 
   using bool_signal_t = signal_t<ipc::details::type_bool>;
   using bool_slot_t = slot_t<ipc::details::type_bool>;
   using string_signal_t = signal_t<ipc::details::type_string>;
   using uint_signal_t = signal_t<ipc::details::type_uint>;
-  ipc_ruler::ipc_manager_client mclient_{ ctx_ };
+  ipc_ruler::ipc_manager_client mclient_{ dbus_ };
   bool_signal_t stopped_{ ctx_, mclient_, "stopped" };
   bool_signal_t starting_{ ctx_, mclient_, "starting" };
   bool_signal_t running_{ ctx_, mclient_, "running" };
