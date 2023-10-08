@@ -35,6 +35,7 @@ static constexpr std::string_view property_name{ "config" };
 class config_dbus_client {
 public:
   using dbus_connection_t = std::shared_ptr<sdbusplus::asio::connection>;
+  using interface_t = std::shared_ptr<sdbusplus::asio::dbus_interface>;
 
   /// \brief Empty constructor
   /// \note Should only be used for testing !!!
@@ -45,22 +46,20 @@ public:
   using change_call_t = std::function<std::error_code(std::string_view)>;
   config_dbus_client(asio::io_context& ctx, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
   config_dbus_client(dbus_connection_t conn, std::string_view key, value_call_t&&, schema_call_t&&, change_call_t&&);
-
-  [[nodiscard]] auto io_context() const noexcept -> asio::io_context& { return ctx_; }
+  config_dbus_client(interface_t intf, value_call_t&&, schema_call_t&&, change_call_t&&);
 
   void set(config_property&&) const;
 
   void initialize();
 
 private:
-  asio::io_context& ctx_;
   std::filesystem::path interface_path_{};
   std::string interface_name_{};
   value_call_t value_call_{};
   schema_call_t schema_call_{};
   change_call_t change_call_{};
   dbus_connection_t dbus_connection_{};
-  std::unique_ptr<sdbusplus::asio::dbus_interface, std::function<void(sdbusplus::asio::dbus_interface*)>> dbus_interface_{};
+  std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
 };
 
 }  // namespace tfc::confman::detail
