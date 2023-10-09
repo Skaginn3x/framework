@@ -139,9 +139,7 @@ private:
 
     client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
 
-    dbus_slot_.on_set([this](value_t&& set_value){
-      this->filters_.set(std::move(set_value));
-    });
+    dbus_slot_.on_set([this](value_t&& set_value) { this->filters_.set(std::move(set_value)); });
 
     dbus_slot_.initialize();
   }

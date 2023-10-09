@@ -33,7 +33,7 @@ struct config_property {
 namespace dbus {
 static constexpr std::string_view property_name{ "config" };
 static constexpr std::string_view config_path{ "Config" };
-}
+}  // namespace dbus
 
 class config_dbus_client {
 public:
@@ -61,7 +61,7 @@ public:
 
   void initialize();
 
-   auto get_io_context() const noexcept -> asio::io_context&;
+  auto get_io_context() const noexcept -> asio::io_context&;
 
 private:
   std::filesystem::path interface_path_{};

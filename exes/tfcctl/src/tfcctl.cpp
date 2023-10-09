@@ -103,7 +103,8 @@ auto main(int argc, char** argv) -> int {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
             in_logger.trace("Connecting to signal {}", signal_name);
             std::string sig{ signal_name };
-            auto error = receiver->connect(signal_name, [sig, &in_logger](auto const& val) { in_logger.info("{}: {}", sig, val); });
+            auto error =
+                receiver->connect(signal_name, [sig, &in_logger](auto const& val) { in_logger.info("{}: {}", sig, val); });
             if (error) {
               in_logger.warn("Failed to connect: {}", error.message());
             }

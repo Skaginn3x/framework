@@ -5,6 +5,7 @@
 #include <boost/sml.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/type_description.hpp>
@@ -13,7 +14,6 @@
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 #include <tfc/utils/pragmas.hpp>
-#include <tfc/dbus/sdbusplus_fwd.hpp>
 
 namespace tfc::operation {
 

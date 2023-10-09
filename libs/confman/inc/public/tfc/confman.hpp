@@ -2,14 +2,14 @@
 
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <type_traits>
-#include <memory>
 
-#include <glaze/glaze.hpp>
 #include <fmt/format.h>
+#include <glaze/glaze.hpp>
 
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/confman/detail/config_dbus_client.hpp>
