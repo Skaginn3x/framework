@@ -102,7 +102,8 @@ auto main(int argc, char** argv) -> int {
         [signal_name, &in_logger]<typename receiver_t>(receiver_t&& receiver) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
             in_logger.trace("Connecting to signal {}", signal_name);
-            auto error = receiver->connect(signal_name);
+            std::string sig{ signal_name };
+            auto error = receiver->connect(signal_name, [sig, &in_logger](auto const& val) { in_logger.info("{}: {}", sig, val); });
             if (error) {
               in_logger.warn("Failed to connect: {}", error.message());
             }
@@ -119,8 +120,7 @@ auto main(int argc, char** argv) -> int {
       if (type == ipc::details::type_e::unknown) {
         throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
       }
-      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name,
-                                                     [sig, &logger](auto const& val) { logger.info("{}: {}", sig, val); }) };
+      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name) };
       slot_connect(ipc, sig, logger);
       return ipc;
     }(signal_connect));
