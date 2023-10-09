@@ -19,7 +19,6 @@ include(tfc_install)
 tfc_install_lib(configure_options)
 
 if (${CMAKE_INSTALL_PREFIX} MATCHES "^\/usr")
-  message(WARNING "Installing dbus config")
   include(GNUInstallDirs)
   install(
     FILES
