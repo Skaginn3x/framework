@@ -26,6 +26,7 @@
     "protobuf",
     {
       "name": "sdbusplus",
+      "version>=": "2023-09-14",
       "features": [
         "asio-only"
       ]

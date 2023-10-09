@@ -87,4 +87,8 @@ void config_dbus_client::initialize() {
   }
 }
 
+auto config_dbus_client::get_io_context() const noexcept -> asio::io_context& {
+  return dbus_interface_->connection()->get_io_context();
+}
+
 }  // namespace tfc::confman::detail

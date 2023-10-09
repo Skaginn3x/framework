@@ -63,7 +63,7 @@ public:
     requires std::is_lvalue_reference_v<manager_client_type>
       : slot_{ details::slot_callback<type_desc>::create(ctx, name) },
         dbus_slot_{ client.connection(), full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
-        client_{ client }, filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name),
+        client_{ client }, filters_{ dbus_slot_.interface(),
                                      // store the callers callback in this lambda
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                                        callb(new_value);
@@ -87,7 +87,7 @@ public:
             }) },
         dbus_slot_{ connection, full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
         client_{ connection },
-        filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name),
+        filters_{ dbus_slot_.interface(),
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                     callb(new_value);
@@ -138,6 +138,10 @@ private:
         [this, callb = std::move(new_state_filter)](std::string_view signal_name) { slot_->connect(signal_name, callb); });
 
     client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
+
+    dbus_slot_.on_set([this](value_t&& set_value){
+      this->filters_.set(std::move(set_value));
+    });
 
     dbus_slot_.initialize();
   }

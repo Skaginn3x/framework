@@ -18,6 +18,7 @@ namespace asio = boost::asio;
 namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };
 static constexpr std::string_view slot{ "Slots" };
+static constexpr std::string_view tinker{ "Tinker" };
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<slot> };
 }  // namespace dbus::tags
 
@@ -30,9 +31,7 @@ public:
       : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
                                                                       std::string{ dbus::tags::path },
                                                                       tfc::dbus::make_dbus_name(slot_name)) },
-        value_getter_{ std::forward<decltype(value_getter)>(value_getter) } {
-
-  }
+        value_getter_{ std::forward<decltype(value_getter)>(value_getter) } {}
   void initialize() {
     interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
                                              [this]([[maybe_unused]] value_t& old_value) {
@@ -49,6 +48,12 @@ public:
     if (interface_) {
       interface_->set_property(std::string{ dbus::tags::value }, value);
     }
+  }
+
+  void on_set(tfc::stx::invocable<value_t&&> auto&& callback) {
+    interface_->register_method(
+        std::string{ dbus::tags::tinker },
+        [callb = std::forward<decltype(callback)>(callback)](value_t const& set_value) { callb(value_t{ set_value }); });
   }
 
 private:

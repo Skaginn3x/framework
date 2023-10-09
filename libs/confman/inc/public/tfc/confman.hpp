@@ -92,7 +92,7 @@ public:
   config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key, storage_type&& def)
       : client_{ interface, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
-        storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        storage_{ client_.get_io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
     init();
   }

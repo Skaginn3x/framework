@@ -61,6 +61,8 @@ public:
 
   void initialize();
 
+   auto get_io_context() const noexcept -> asio::io_context&;
+
 private:
   std::filesystem::path interface_path_{};
   std::string interface_name_{};

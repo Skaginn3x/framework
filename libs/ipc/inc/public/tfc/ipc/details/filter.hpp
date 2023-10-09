@@ -3,7 +3,6 @@
 #include <expected>
 #include <vector>
 
-#include <fmt/core.h>
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/compose.hpp>
@@ -15,6 +14,7 @@
 #include <tfc/confman.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/pragmas.hpp>
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 
 namespace tfc::ipc::filter {
 
@@ -257,8 +257,8 @@ class filters {
 public:
   using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
 
-  filters(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
-      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}._filters_", name) },
+  filters(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, tfc::stx::invocable<value_t> auto&& callback)
+      : ctx_{ interface->connection()->get_io_context() }, filters_{ interface, "filter" },
         callback_{ std::forward<decltype(callback)>(callback) } {}
 
   /// \brief changes internal last_value state when filters have been processed
@@ -298,6 +298,13 @@ public:
           }
         });
   }
+
+  /// \brief bypass filters and set value directly
+  void set(value_t&& value) {
+    last_value_ = std::move(value);
+    std::invoke(callback_, last_value_.value());
+  }
+
   [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return last_value_; }
 
 private:
