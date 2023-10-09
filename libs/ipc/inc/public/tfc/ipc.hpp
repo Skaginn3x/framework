@@ -7,8 +7,8 @@
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/dbus_slot.hpp>
-#include <tfc/ipc/details/impl.hpp>
 #include <tfc/ipc/details/filter.hpp>
+#include <tfc/ipc/details/impl.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -61,16 +61,14 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
-      : filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) },
-        slot_{ details::slot_callback<type_desc>::create(
-            ctx,
-            name,
-            [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
-              callb(new_value);
-              dbus_slot_.emit_value(new_value);
-            }) },
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) },
         dbus_slot_{ client.connection(), full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
-        client_{ client } {
+        client_{ client }, filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name),
+                                     // store the callers callback in this lambda
+                                     [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
+                                       callb(new_value);
+                                       dbus_slot_.emit_value(new_value);
+                                     } } {
     client_init(description);
   }
 
@@ -87,7 +85,14 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ connection, full_name(), [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
+        dbus_slot_{ connection, full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
+        client_{ connection },
+        filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name),
+                  // store the callers callback in this lambda
+                  [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
+                    callb(new_value);
+                    dbus_slot_.emit_value(new_value);
+                  } } {
     client_init(description);
   }
 
@@ -105,7 +110,7 @@ public:
 
   auto operator=(slot const&) -> slot& = delete;
 
-  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return slot_->value(); }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
 
@@ -113,18 +118,34 @@ public:
 
 private:
   void client_init(std::string_view description) {
-    client_.register_connection_change_callback(full_name(), [this](std::string_view signal_name) {
-      slot_->connect(signal_name);  //
-    });
+    auto new_state_filter = [this](value_t&& new_value) {
+      // Here we get unfiltered new value and test whether the value matches the current value
+      auto const& last_value = value();
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+      if (!last_value.has_value() || new_value != last_value.value()) {
+      PRAGMA_CLANG_WARNING_POP
+        // clang-format on
+        this->filters_(std::move(new_value));
+        return;
+      }
+    };
+
+    client_.register_connection_change_callback(
+        full_name(),
+        // the following lambda takes ownership of the new_state_filter callback
+        // meaning if connection is changed the callback would not be thrown away
+        [this, callb = std::move(new_state_filter)](std::string_view signal_name) { slot_->connect(signal_name, callb); });
+
     client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
 
     dbus_slot_.initialize();
   }
 
-  filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   details::dbus_slot<value_t> dbus_slot_;
   manager_client_type client_;
+  filter::filters<value_t, std::function<void(value_t const&)>> filters_;
 };
 
 /**

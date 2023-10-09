@@ -45,40 +45,6 @@ enum struct filter_e : std::uint8_t {
 template <filter_e type, typename value_t, typename...>
 struct filter;
 
-template <typename value_t>
-  requires(!std::same_as<std::string, value_t>)
-struct filter<filter_e::new_state, value_t> {
-  static constexpr filter_e type{ filter_e::new_state };
-
-  auto async_process(value_t&& value, auto&& completion_token) const {
-    // todo can we get a compile error if executor is non-existent?
-    auto exe = asio::get_associated_executor(completion_token);
-    return asio::async_compose<decltype(completion_token), void(std::expected<bool, std::error_code>)>(
-        [this, moved = std::move(value)](auto& self) {
-          // clang-format off
-          PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-          if (!last_value_.has_value() || moved != last_value_.value()) {
-          PRAGMA_CLANG_WARNING_POP
-            // clang-format on
-            last_value_.emplace(std::move(moved));
-            self.complete(last_value_.value());
-            return;
-          }
-          self.complete(std::unexpected{ std::make_error_code(std::errc::bad_message) });
-        },
-        completion_token, exe);
-  }
-
-  struct glaze {
-    using type = filter<filter_e::new_state, value_t>;
-    static constexpr std::string_view name{ "tfc::ipc::filter::new_state" };
-    static constexpr auto value{ &type::type };
-  };
-
-private:
-  mutable std::optional<value_t> last_value_{};
-};
-
 /// \brief behaviour flip the state of boolean
 template <>
 struct filter<filter_e::invert, bool> {
@@ -256,33 +222,25 @@ struct any_filter_decl;
 template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
-  using type = std::variant<filter<filter_e::new_state, value_t>,
-                            filter<filter_e::invert, value_t>,
-                            filter<filter_e::timer, value_t, std::chrono::steady_clock>>;
+  using type = std::variant<filter<filter_e::invert, value_t>, filter<filter_e::timer, value_t, std::chrono::steady_clock>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
   using value_t = std::int64_t;
-  using type = std::variant<filter<filter_e::new_state, value_t>,
-                            filter<filter_e::filter_out, value_t>,
-                            filter<filter_e::offset, value_t>,
-                            filter<filter_e::multiply, value_t>>;
+  using type = std::
+      variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::uint64_t> {
   using value_t = std::uint64_t;
-  using type = std::variant<filter<filter_e::new_state, value_t>,
-                            filter<filter_e::filter_out, value_t>,
-                            filter<filter_e::offset, value_t>,
-                            filter<filter_e::multiply, value_t>>;
+  using type = std::
+      variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::double_t> {
   using value_t = std::double_t;
-  using type = std::variant<filter<filter_e::new_state, value_t>,
-                            filter<filter_e::filter_out, value_t>,
-                            filter<filter_e::offset, value_t>,
-                            filter<filter_e::multiply, value_t>>;
+  using type = std::
+      variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>, filter<filter_e::multiply, value_t>>;
 };
 template <>
 struct any_filter_decl<std::string> {
@@ -294,20 +252,14 @@ template <typename value_t>
 using any_filter_decl_t = any_filter_decl<value_t>::type;
 }  // namespace detail
 
-template <typename value_t, typename callback_t>
+template <typename value_t, tfc::stx::invocable<value_t> callback_t>
 class filters {
 public:
   using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
 
-  filters(asio::io_context& ctx, std::string_view name, callback_t&& callback)
-    requires std::is_trivial_v<value_t>
-      : ctx_{ ctx },
-        filters_{ ctx, fmt::format("{}._filters_", name), config_t{ { filter<filter_e::new_state, value_t>{} } } },
-        callback_{ callback } {}
-
-  filters(asio::io_context& ctx, std::string_view name, callback_t&& callback)
-    requires std::same_as<std::string, value_t>
-      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}._filters_", name) }, callback_{ callback } {}
+  filters(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
+      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}._filters_", name) },
+        callback_{ std::forward<decltype(callback)>(callback) } {}
 
   /// \brief changes internal last_value state when filters have been processed
   void operator()(value_t&& value) {

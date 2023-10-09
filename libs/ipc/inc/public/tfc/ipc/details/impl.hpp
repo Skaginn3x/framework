@@ -290,19 +290,17 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  [[nodiscard]] static auto create(asio::io_context& ctx,
-                                   std::string_view name,
-                                   tfc::stx::invocable<value_t> auto&& callback)
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::shared_ptr<slot_callback<type_desc>> {
     return std::shared_ptr<slot_callback<type_desc>>(
-        new slot_callback<type_desc>{ ctx, name, std::forward<decltype(callback)>(callback) });
+        new slot_callback<type_desc>{ ctx, name });
   }
 
-  auto connect(std::string_view signal_name) -> std::error_code {
+  auto connect(std::string_view signal_name, tfc::stx::invocable<value_t> auto&& callback) -> std::error_code {
     if (auto error = slot_.connect(signal_name)) {
       return error;
     }
-    register_read();
+    register_read(std::forward<decltype(callback)>(callback));
     return {};
   }
 
@@ -315,20 +313,20 @@ public:
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
-  slot_callback(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
+  slot_callback(asio::io_context& ctx, std::string_view name)
       : slot_{ ctx, name } {}
-  void async_new_state(std::expected<value_t, std::error_code> value) {
+  void async_new_state(std::expected<value_t, std::error_code> value, tfc::stx::invocable<value_t> auto&& callback) {
     if (!value) {
       return;
     }
-    filters_(std::move(value.value()));
-    register_read();
+    callback(std::move(value.value()));
+    register_read(std::forward<decltype(callback)>(callback));
   }
-  void register_read() {
+  void register_read(tfc::stx::invocable<value_t> auto&& callback) {
     auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    slot_.async_receive([bind_reference](std::expected<value_t, std::error_code> value) {
+    slot_.async_receive([bind_reference, callb = std::forward<decltype(callback)>(callback)](std::expected<value_t, std::error_code> value) mutable {
       if (auto sptr = bind_reference.lock()) {
-        sptr->async_new_state(value);
+        sptr->async_new_state(value, std::forward<decltype(callb)>(callb));
       }
     });
   }
