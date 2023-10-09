@@ -18,7 +18,6 @@
 #include <boost/system/error_code.hpp>
 
 #include <tfc/ipc/details/dbus_slot.hpp>
-#include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
@@ -306,7 +305,6 @@ public:
     register_read();
     return {};
   }
-  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
 
   /**
    * @brief disconnect from signal
@@ -318,21 +316,12 @@ public:
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
-      : slot_{ ctx, name },
-        filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) } {}
+      : slot_{ ctx, name } {}
   void async_new_state(std::expected<value_t, std::error_code> value) {
     if (!value) {
       return;
     }
-    // Don't retransmit transmitted things.
-    // clang-format off
-    auto const& last_value{ filters_.value() };
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-    if (!last_value.has_value() || value.value() != last_value) {
-    PRAGMA_CLANG_WARNING_POP
-      // clang-format on
-      filters_(std::move(value.value()));
-    }
+    filters_(std::move(value.value()));
     register_read();
   }
   void register_read() {
@@ -344,7 +333,6 @@ private:
     });
   }
   slot<type_desc> slot_;
-  filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
 };
 
 template <typename return_t, template <typename description_t> typename ipc_base_t>

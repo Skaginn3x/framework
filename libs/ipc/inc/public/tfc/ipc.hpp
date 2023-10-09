@@ -8,6 +8,7 @@
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/dbus_slot.hpp>
 #include <tfc/ipc/details/impl.hpp>
+#include <tfc/ipc/details/filter.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -60,7 +61,8 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_{ details::slot_callback<type_desc>::create(
+      : filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) },
+        slot_{ details::slot_callback<type_desc>::create(
             ctx,
             name,
             [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
@@ -119,6 +121,7 @@ private:
     dbus_slot_.initialize();
   }
 
+  filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   details::dbus_slot<value_t> dbus_slot_;
   manager_client_type client_;
