@@ -258,7 +258,7 @@ public:
   using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
 
   filters(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, tfc::stx::invocable<value_t> auto&& callback)
-      : ctx_{ interface->connection()->get_io_context() }, filters_{ interface, "filter" },
+      : ctx_{ interface->connection()->get_io_context() }, filters_{ interface, "Filter" },
         callback_{ std::forward<decltype(callback)>(callback) } {}
 
   /// \brief changes internal last_value state when filters have been processed

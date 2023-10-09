@@ -83,7 +83,11 @@ void config_dbus_client::initialize() {
           return { .value = this->value_call_(), .schema = this->schema_call_() };
         });
 
-    dbus_interface_->initialize();
+    // If the provided interface is created by this class we initialize it here,
+    // otherwise we assume it is taken care of elsewhere
+    if (!interface_name_.empty()) {
+      dbus_interface_->initialize();
+    }
   }
 }
 
