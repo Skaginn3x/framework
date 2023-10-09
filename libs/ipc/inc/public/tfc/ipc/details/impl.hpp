@@ -325,7 +325,7 @@ private:
     slot_.async_receive([bind_reference, callb = std::forward<decltype(callback)>(callback)](
                             std::expected<value_t, std::error_code> value) mutable {
       if (auto sptr = bind_reference.lock()) {
-        sptr->async_new_state(value, std::forward<decltype(callback)>(callb));
+        sptr->async_new_state(value, std::forward(callb));
       }
     });
   }
