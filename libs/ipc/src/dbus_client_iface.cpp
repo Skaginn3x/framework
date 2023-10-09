@@ -14,7 +14,10 @@
 namespace tfc::ipc_ruler {
 
 ipc_manager_client::ipc_manager_client(asio::io_context& ctx)
-    : ipc_manager_client(std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())) {}
+    : ipc_manager_client(std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())) {
+  // If the owner of this client does not supply dbus connection we assume we are the sole owner of the connection
+  connection_->request_name(tfc::dbus::make_dbus_process_name().c_str());
+}
 
 ipc_manager_client::ipc_manager_client(std::shared_ptr<sdbusplus::asio::connection> connection)
     : connection_match_rule_{ tfc::dbus::match::rules::make_match_rule<consts::ipc_ruler_service_name,
