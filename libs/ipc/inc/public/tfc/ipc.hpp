@@ -170,7 +170,7 @@ private:
 
 template <typename return_t,
           typename manager_client_t,
-          template <typename description_t, typename manager_client_t>
+          template <typename, typename>
           typename ipc_base_t>
 struct make_any;
 
@@ -208,7 +208,7 @@ using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client, sign
 
 template <typename return_t,
           typename manager_client_t,
-          template <typename description_t, typename manager_client_t>
+          template <typename, typename>
           typename ipc_base_t>
 struct make_any {
   static auto make(details::type_e type, auto&&... args) -> return_t {
