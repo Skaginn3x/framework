@@ -168,10 +168,7 @@ private:
   std::shared_ptr<details::signal<type_desc>> signal_;
 };
 
-template <typename return_t,
-          typename manager_client_t,
-          template <typename, typename>
-          typename ipc_base_t>
+template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>
 struct make_any;
 
 using bool_slot = slot<details::type_bool>;
@@ -206,10 +203,7 @@ using any_signal = std::variant<std::monostate,  //
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client, signal>;
 
-template <typename return_t,
-          typename manager_client_t,
-          template <typename, typename>
-          typename ipc_base_t>
+template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>
 struct make_any {
   static auto make(details::type_e type, auto&&... args) -> return_t {
     switch (type) {
