@@ -1,10 +1,15 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
+#include <string>
 #include <string_view>
+#include <system_error>
 #include <type_traits>
+#include <memory>
 
 #include <glaze/glaze.hpp>
+#include <fmt/format.h>
 
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/confman/detail/config_dbus_client.hpp>
@@ -49,13 +54,9 @@ public:
   config(asio::io_context& ctx, std::string_view key, storage_type&& def)
       : client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
-        storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
-    client_.initialize();
-    storage_.on_change([]() {
-      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
-    });
+    init();
   }
 
   /// \brief construct config and deliver it to config manager
@@ -69,11 +70,7 @@ public:
                  std::bind_front(&config::from_string, this) },
         storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
-    client_.initialize();
-    storage_.on_change([]() {
-      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
-    });
+    init();
   }
 
   /// \brief Advanced constructor providing file storage interface and dbus client
@@ -136,6 +133,14 @@ public:
   }
 
 protected:
+  void init() {
+    client_.initialize();
+    storage_.on_change([]() {
+      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
+      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    });
+  }
+
   friend struct detail::change<config>;
 
   // todo if this could be named `value` it would be neat

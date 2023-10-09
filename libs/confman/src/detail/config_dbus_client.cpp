@@ -1,3 +1,5 @@
+#include <utility>
+
 #include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
@@ -18,10 +20,9 @@ namespace tfc::confman::detail {
 // busctl --system introspect com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config
 // clang-format on
 
-namespace dbus::tags {
-static constexpr std::string_view config{ "Config" };
-static constexpr std::string_view path{ tfc::dbus::const_dbus_path<config> };
-}  // namespace dbus::tags
+namespace dbus {
+static constexpr std::string_view path{ tfc::dbus::const_dbus_path<config_path> };
+}
 
 config_dbus_client::config_dbus_client(boost::asio::io_context& ctx) {}
 
@@ -30,9 +31,8 @@ config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        value_call_t&& value_call,
                                        schema_call_t&& schema_call,
                                        change_call_t&& change_call)
-    : interface_path_{ dbus::tags::path },
-      interface_name_{ tfc::dbus::make_dbus_name(
-          fmt::format("config.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), key)) },
+    : interface_path_{ dbus::path }, interface_name_{ tfc::dbus::make_dbus_name(
+                                         fmt::format("config.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), key)) },
       value_call_{ std::move(value_call) }, schema_call_{ std::move(schema_call) }, change_call_{ std::move(change_call) },
       dbus_connection_{ std::move(conn) }, dbus_interface_{
         std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
@@ -50,7 +50,12 @@ config_dbus_client::config_dbus_client(asio::io_context& ctx,
   dbus_connection_->request_name(interface_name_.c_str());
 }
 
-config_dbus_client::config_dbus_client(interface_t intf, value_call_t&&, schema_call_t&&, change_call_t&&) : dbus_interface_{ intf } {}
+config_dbus_client::config_dbus_client(interface_t intf,
+                                       std::string_view key,
+                                       value_call_t&&,
+                                       schema_call_t&&,
+                                       change_call_t&&)
+    : property_name_{ key }, dbus_interface_{ std::move(intf) } {}
 
 void config_dbus_client::set(config_property&& prop) const {
   if (dbus_interface_) {
@@ -61,7 +66,7 @@ void config_dbus_client::set(config_property&& prop) const {
 void config_dbus_client::initialize() {
   if (dbus_interface_) {
     dbus_interface_->register_property_rw<tfc::confman::detail::config_property>(
-        std::string{ dbus::property_name }, sdbusplus::vtable::property_::emits_change,
+        property_name_, sdbusplus::vtable::property_::emits_change,
         [this]([[maybe_unused]] config_property const& req, [[maybe_unused]] config_property& old) -> int {  // setter
           if (req == old) {
             return 1;
