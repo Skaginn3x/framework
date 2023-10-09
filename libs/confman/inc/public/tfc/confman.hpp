@@ -34,18 +34,26 @@ public:
   using type = config_storage_t;
   using storage_t = config_storage_t;
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   config(asio::io_context& ctx, std::string_view key) : config{ ctx, key, config_storage_t{} } {}
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
   /// \param conn valid dbus connection
   /// \param key identification of this config storage, requires to be unique
   config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
       : config{ conn, key, config_storage_t{} } {}
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
+  /// \param interface valid dbus interface
+  /// \param key identification of this config storage, requires to be unique
+  /// \note the config will be accessible via dbus property on the `interface` using the given `key`
+  /// Take care that via this construction the frontend won't detect the config and show it automatically
+  config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key)
+      : config{ interface, key, config_storage_t{} } {}
+
+  /// \brief construct config and expose it via dbus
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   /// \param def default values of given storage type
@@ -59,7 +67,7 @@ public:
     init();
   }
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
   /// \param conn valid dbus connection
   /// \param key identification of this config storage, requires to be unique
   /// \param def default values of given storage type
@@ -67,6 +75,22 @@ public:
     requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
   config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key, storage_type&& def)
       : client_{ conn, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
+                 std::bind_front(&config::from_string, this) },
+        storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        logger_(fmt::format("config.{}", key)) {
+    init();
+  }
+
+  /// \brief construct config and expose it via dbus
+  /// \param interface valid dbus interface
+  /// \param key identification of this config storage, requires to be unique
+  /// \param def default values of given storage type
+  /// \note the config will be accessible via dbus property on the `interface` using the given `key`
+  /// Take care that via this construction the frontend won't detect the config and show it automatically
+  template <typename storage_type>
+    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
+  config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key, storage_type&& def)
+      : client_{ interface, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
         storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
