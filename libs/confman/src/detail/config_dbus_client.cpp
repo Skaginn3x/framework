@@ -52,10 +52,12 @@ config_dbus_client::config_dbus_client(asio::io_context& ctx,
 
 config_dbus_client::config_dbus_client(interface_t intf,
                                        std::string_view key,
-                                       value_call_t&&,
-                                       schema_call_t&&,
-                                       change_call_t&&)
-    : property_name_{ key }, dbus_interface_{ std::move(intf) } {}
+                                       value_call_t&& value_call,
+                                       schema_call_t&& schema_call,
+                                       change_call_t&& change_call)
+
+    : property_name_{ key }, value_call_{ std::move(value_call) }, schema_call_{ std::move(schema_call) },
+      change_call_{ std::move(change_call) }, dbus_interface_{ std::move(intf) } {}
 
 void config_dbus_client::set(config_property&& prop) const {
   if (dbus_interface_) {
