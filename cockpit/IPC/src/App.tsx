@@ -46,7 +46,8 @@ function App() {
   function changeDarkMode(val:string | null) {
     if (val === 'auto') {
       return prefersDarkMode;
-    } if (val === 'light') {
+    }
+    if (val === 'light') {
       return false;
     }
     return true;

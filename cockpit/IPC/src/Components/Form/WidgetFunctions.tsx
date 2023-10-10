@@ -42,6 +42,15 @@ export function removeOrg(name: string) {
   return name;
 }
 
+export function removeSlotOrg(name: string) {
+  // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
+  // return etc.tfc.operation_mode.def.state_machine
+  if (name.split('.').length > 4) {
+    return name.split('.').slice(2).join('.');
+  }
+  return name;
+}
+
 /**
    * Update form data and dbus property config
    * @param name string

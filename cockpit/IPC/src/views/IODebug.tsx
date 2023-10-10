@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 /* eslint-disable react/jsx-no-undef */
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   DataList,
   DataListItem,
@@ -19,6 +19,7 @@ import {
   DrawerPanelContent,
   MenuToggleElement,
   DropdownList,
+  Spinner,
 } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
@@ -27,76 +28,83 @@ import DynamicNavbar from 'src/Components/NavBar/DynamicNavBar';
 import Hamburger from 'hamburger-react';
 import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
 import { DarkModeType } from 'src/App';
-// import { getIOData } from './demoData';
+import StringTinker from 'src/Components/Tinker/StringTinker';
+import BoolTinker from 'src/Components/Tinker/BoolTinker';
+import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
 
 declare global {
   interface Window { cockpit: any; }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const connectToDBusNames = (names: string[], dbus: any) => {
-  const proxies: any[] = [];
-  names.forEach((name) => {
-    const proxy = dbus.proxy(name);
-    proxies.push(proxy);
-  });
-  return proxies;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const parseXMLInterfaces = (xml: string): string[] => {
+const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] => {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, 'text/xml');
   const interfaceElements = xmlDoc.querySelectorAll('interface[name^="com.skaginn3x."]');
-  const interfaceNames: string[] = [];
-
+  const interfaces: { name: string, valueType: string }[] = [];
   interfaceElements.forEach((element) => {
     const name = element.getAttribute('name');
+    const valueType = element.querySelector('property[name="Value"]')?.getAttribute('type') || 'unknown';
+
     if (name) {
-      interfaceNames.push(name);
+      interfaces.push({ name, valueType });
     }
   });
 
-  return interfaceNames;
+  return interfaces;
 };
 
 // eslint-disable-next-line react/function-component-definition
 const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
-  const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
-
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(true);
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/comma-spacing
+  const eventHandlersRef = useRef<Map<string,(e:any) => void >>(new Map());
   useEffect(() => {
     if (!processes) return;
 
     const fetchAndConnectInterfaces = async () => {
       const interfaces: any[] = [];
 
+      const handleChanged = (name: string) => (event: any) => {
+        setDbusInterfaces((prevInterfaces) => {
+          const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
+          if (index === -1) return prevInterfaces;
+
+          const updatedInterfaces = [...prevInterfaces];
+          updatedInterfaces[index].proxy.data.Value = event.detail.Value;
+          return updatedInterfaces;
+        });
+      };
+
       // eslint-disable-next-line no-restricted-syntax
       for (const process of processes) {
         const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        console.log('DBUS', processDBUS);
-        const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', '/com/skaginn3x/Slot');
-        // Awaiting should be ok in this loop, as it waits for each process
-        console.log('PROXY', processProxy);
-        // eslint-disable-next-line no-await-in-loop
-
+        const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', '/com/skaginn3x/Slots');
         try {
           // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
           await processProxy.call('Introspect').then((data:any) => {
             console.log(data);
-            const interfaceNames = parseXMLInterfaces(data);
-            console.log('ifnames', interfaceNames);
+            const interfacesData = parseXMLInterfaces(data);
+            console.log('ifnames', interfacesData);
             // eslint-disable-next-line no-restricted-syntax
-            for (const interfaceName of interfaceNames) {
-              const proxy = processDBUS.proxy(interfaceName); // Assuming all interfaces are at root
-              interfaces.push({
-                proxy,
-                process,
-                interfaceName,
-                dropdown: false,
-                forcestate: null,
-                hidden: false,
+            for (const interfaceData of interfacesData) {
+              const proxy = processDBUS.proxy(interfaceData.name, '/com/skaginn3x/Slots'); // Assuming all interfaces are at root
+              proxy.wait().then(() => {
+                const handler = handleChanged(interfaceData.name);
+                console.log('adding event listeners');
+                proxy.addEventListener('changed', handler);
+                eventHandlersRef.current.set(interfaceData.name, handler);
+                interfaces.push({
+                  proxy,
+                  process,
+                  interfaceName: interfaceData.name,
+                  type: interfaceData.valueType,
+                  forcestate: null,
+                  hidden: false,
+                });
               });
             }
           });
@@ -113,18 +121,20 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
 
   useEffect(() => {
     const callback = (allNames: string[]) => {
-      console.log('all', allNames);
-      console.log('cherry ', allNames.filter((name:string) => name.includes('com.skaginn3x.')));
-      setProcesses(allNames.filter((name:string) => name.includes('com.skaginn3x.')));
+      console.log('Cherry Picked ', allNames.filter((name:string) => name.includes('com.skaginn3x.tfc.')));
+      setProcesses(allNames.filter((name:string) => name.includes('com.skaginn3x.tfc.')));
     };
     loadExternalScript(callback);
   }, []);
 
   const onToggleClick = (index: number) => {
-    const updatedInterfaces = [...dbusInterfaces];
-    updatedInterfaces[index].dropdown = !dbusInterfaces[index].dropdown;
-    setDbusInterfaces(updatedInterfaces);
+    if (activeDropdown === index) {
+      setActiveDropdown(null);
+    } else {
+      setActiveDropdown(index);
+    }
   };
+
   const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined, index:number) => {
     // eslint-disable-next-line no-console
     console.log('selected', value);
@@ -136,18 +146,18 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   function handleBoolContent(data: any): JSX.Element {
     return (
       <Tooltip
-        content={`Value is ${data.value ? 'true' : 'false'}`}
+        content={`Value is ${data.Value ? 'true' : 'false'}`}
         enableFlip
         distance={5}
         entryDelay={1000}
       >
-        <Circle size="1rem" color={data.value ? 'green' : 'red'} />
+        <Circle size="1rem" color={data.Value ? 'green' : 'red'} />
       </Tooltip>
     );
   }
   function handleStringContent(data: any): JSX.Element {
     return (
-      <p>{data.value}</p>
+      <p>{data.Value}</p>
     );
   }
 
@@ -156,20 +166,28 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
       ...dbusInterface,
       hidden: selected && dbusInterface.process !== selected,
     }));
-    console.log('updated: ', updatedData);
-    console.log('selected: ', selected);
     setDbusInterfaces(updatedData);
   }
 
-  function getSecondaryContent(data: any): JSX.Element {
+  function getSecondaryContent(data: any): React.ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
-        case 'bool':
-          return handleBoolContent(data);
-        case 'string':
-          return handleStringContent(data);
-        case 'double':
-          return handleStringContent(data);
+        case 'b':
+          return handleBoolContent(interfacedata.proxy.data);
+
+        case 's':
+          return handleStringContent(interfacedata.proxy.data);
+
+        case 'n': // INT16
+        case 'q': // UINT16
+        case 'i': // INT32
+        case 'u': // UINT32
+        case 'x': // INT64
+        case 't': // UNIT64
+        case 'd': // Double
+        case 'y': // Byte
+          return handleStringContent(interfacedata.proxy.data);
+
         default:
           return <>Type Error</>;
       }
@@ -177,11 +195,46 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
 
     return (
       <div style={{
-        width: '10rem',
         height: '100%',
-        marginLeft: 'auto',
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'end',
+      }}
+      >
+        {internals(data)}
+      </div>
+    );
+  }
+
+  function getTinkerInterface(data:any): React.ReactElement | null {
+    const internals = (interfacedata: any) => {
+      switch (interfacedata.type) {
+        case 'b':
+          return <BoolTinker data={interfacedata} />;
+
+        case 's':
+          return <StringTinker data={interfacedata} />;
+
+        case 'n': // INT16
+        case 'q': // UINT16
+        case 'i': // INT32
+        case 'u': // UINT32
+        case 'x': // INT64
+        case 't': // UNIT64
+        case 'd': // Double
+        case 'y': // Byte
+          return <StringTinker data={interfacedata} />;
+
+        default:
+          return <>Type Error</>;
+      }
+    };
+    return (
+      <div style={{
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'start',
       }}
       >
         {internals(data)}
@@ -193,6 +246,20 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
     setIsDrawerExpanded(!isDrawerExpanded);
   };
 
+  const dropdownRefs = useRef<any[]>([]); // Create a ref array to hold dropdown references
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRefs.current.some((ref) => ref?.contains(event.target))) {
+        return;
+      }
+      setActiveDropdown(null); // Close all dropdowns
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div style={{
       height: '100vh',
@@ -201,15 +268,14 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
     }}
     >
       <Drawer isExpanded={isDrawerExpanded} position="right">
-        <DrawerContent panelContent={
-          // eslint-disable-next-line react/jsx-wrap-multilines
+        <DrawerContent panelContent={(
           <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
             <DynamicNavbar
               names={processes ?? []}
               onItemSelect={(it: string) => toggleSelection(it)}
             />
           </DrawerPanelContent>
-        }
+        )}
         >
           <DrawerContentBody>
             <div style={{
@@ -243,18 +309,37 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
               }}
               >
                 <DataList aria-label="Checkbox and action data list example">
-                  {dbusInterfaces.length > 0 && dbusInterfaces.map((dbusInterface: any, index: number) => {
+                  {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
                     if (!dbusInterface.hidden) {
                       return (
                         <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface + dbusInterface.process}>
                           <DataListItemRow size={10}>
                             <DataListItemCells
                               dataListCells={[
-                                <DataListCell key="primary content" style={{ textAlign: 'right' }}>
-                                  <span id="check-action-item1">{dbusInterface.proxy.iface}</span>
+                                <DataListCell key="primary content" style={{ textAlign: 'left', maxWidth: '30rem' }}>
+                                  <p style={{ minWidth: '30rem' }}>{removeSlotOrg(dbusInterface.proxy.iface)}</p>
                                 </DataListCell>,
-                                <DataListCell key="secondary content 1" style={{ textAlign: 'right' }}>
-                                  {getSecondaryContent(dbusInterface.proxy)}
+                                <DataListCell
+                                  key="secondary content 1"
+                                  style={{
+                                    textAlign: 'right',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  {getSecondaryContent(dbusInterface)}
+                                </DataListCell>,
+                                <DataListCell
+                                  key="secondary content 2"
+                                  style={{
+                                    textAlign: 'right',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  {getTinkerInterface(dbusInterface)}
                                 </DataListCell>,
                               ]}
                             />
@@ -265,22 +350,26 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
                               isPlainButtonAction
                             >
                               <Dropdown
+                                className="DropdownItem"
                                 onSelect={(e, val) => onSelect(e, val, index)}
                                 key={`${dbusInterface.proxy.iface}${dbusInterface.process}`}
-                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                toggle={(toggleRef: React.Ref<MenuToggleElement>) => ( // NOSONAR
                                   <CustomMenuToggle
-                                    toggleRef={toggleRef}
+                                    toggleRef={(ref) => {
+                                      if (typeof toggleRef === 'function') {
+                                        toggleRef(ref);
+                                      }
+                                      dropdownRefs.current[index] = ref; // Store the ref for the dropdown
+                                    }}
                                     onClick={() => onToggleClick(index)}
                                     isExpanded={dbusInterface.dropdown}
                                   />
                                 )}
-                                isOpen={dbusInterface.dropdown ?? false}
+                                isOpen={activeDropdown === index}
                               >
                                 <DropdownList>
-                                  <DropdownItem key="action" style={{ textDecoration: 'none' }}>Action</DropdownItem>
-                                  <DropdownItem key="disabled action" style={{ textDecoration: 'none' }} isDisabled>
-                                    Disabled Action
-                                  </DropdownItem>
+                                  <DropdownItem key="tinker" style={{ textDecoration: 'none' }}> Tinker </DropdownItem>
+                                  <DropdownItem key="history" style={{ textDecoration: 'none' }} isDisabled> View History </DropdownItem>
                                 </DropdownList>
                               </Dropdown>
                             </DataListAction>
@@ -289,7 +378,8 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
                       );
                     }
                     return null;
-                  })}
+                  })
+                    : <Spinner />}
 
                 </DataList>
               </div>

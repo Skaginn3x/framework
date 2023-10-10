@@ -12,6 +12,12 @@
 	justify-content: center;
 }
 
+.DropdownItem {
+    right: -4rem;
+    left: unset !important;
+    top: 3rem !important ;
+}
+
 /* Buttons with className Hovr */
 button.Hovr {
     background: none;
@@ -50,4 +56,9 @@ button.Hovr {
 .pf-v5-c-data-list.pf-m-grid-md {
     padding-left: 0rem;
 
+}
+/* Making cells not grow */
+.pf-v5-c-data-list.pf-m-grid-md .pf-v5-c-data-list__cell+.pf-v5-c-data-list__cell {
+    flex: 0 1;
+    order: 0;
 }
