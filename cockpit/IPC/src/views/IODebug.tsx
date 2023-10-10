@@ -44,7 +44,7 @@ const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] 
   const interfaces: { name: string, valueType: string }[] = [];
   interfaceElements.forEach((element) => {
     const name = element.getAttribute('name');
-    const valueType = element.querySelector('property[name="Value"]')?.getAttribute('type') || 'unknown';
+    const valueType = element.querySelector('property[name="Value"]')?.getAttribute('type') ?? 'unknown';
 
     if (name) {
       interfaces.push({ name, valueType });

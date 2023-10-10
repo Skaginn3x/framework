@@ -11,7 +11,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import AlertProvider from './Components/Alert/AlertProvider';
 import Alerts from './Components/Alert/Alerts';
 import Configurator from './views/Configurator';
-import IPC from './views/IPC';
+import Connections from './views/Connections';
 import NotFoundPage from './views/NotFoundPage';
 import ListDBUS from './views/ListDBUS';
 import IODebug from './views/IODebug';
@@ -26,7 +26,7 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   const query = new URLSearchParams(location.search);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   switch (id) {
-    case 'connect': return <IPC isDark={isDark} />;
+    case 'connect': return <Connections isDark={isDark} />;
     case 'configure': return <Configurator isDark={isDark} />;
     case 'list': return <ListDBUS isDark={isDark} />;
     case 'debug': return <IODebug isDark={isDark} />;

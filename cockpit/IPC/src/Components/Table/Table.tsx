@@ -96,7 +96,7 @@ export default function CustomTable({
     );
   };
 
-  const filteredSignals = (signals || []).filter(onFilter);
+  const filteredSignals = (signals ?? []).filter(onFilter);
   const startIndex = (page - 1) * perPage;
   const endIndex = page * perPage;
   const displayedSignals = filteredSignals.slice(startIndex, endIndex);
@@ -162,12 +162,12 @@ export default function CustomTable({
   );
 
   const handlePlusClick = (signal: SignalType) => {
-    setSelectedSignal(signal || undefined);
+    setSelectedSignal(signal ?? undefined);
     setIsModalOpen(true);
   };
 
   const handlePencilClick = (slot: SlotType) => {
-    setSelectedSlot(slot.name || undefined);
+    setSelectedSlot(slot.name ?? undefined);
     setFilterModalOpen(true);
   };
 
@@ -390,7 +390,7 @@ export default function CustomTable({
         </Thead>
         <Tbody>
           {displayedSignals.length > 0
-            && displayedSignals.map((signal, index) => (
+            && displayedSignals.map((signal, index) => ( // NOSONAR
               <React.Fragment key={signal.name}>
                 <Tr
                   key={signal.name}
@@ -417,7 +417,7 @@ export default function CustomTable({
                       entryDelay={1000}
                     >
                       <div style={{ width: 'min-content' }}>
-                        {removeOrg(signal.name) || signal.name}
+                        {removeOrg(signal.name) ?? signal.name}
                       </div>
                     </Tooltip>
                   </Td>
@@ -520,7 +520,7 @@ export default function CustomTable({
                           entryDelay={1000}
                         >
                           <div style={{ width: 'min-content', marginLeft: '1rem' }}>
-                            {slotName.split('.').slice(3).join('.') || signal.name}
+                            {removeOrg(slotName)}
                           </div>
                         </Tooltip>
                       </div>

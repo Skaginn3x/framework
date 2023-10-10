@@ -4,10 +4,10 @@ import { DarkModeType } from 'src/App';
 import CustomTable from '../Components/Table/Table';
 import useDbusInterface from '../Components/Interface/DbusInterface';
 import { TFC_DBUS_ORGANIZATION, TFC_DBUS_DOMAIN } from '../variables';
-import './IPC.css';
+import './Connections.css';
 
 // eslint-disable-next-line react/function-component-definition
-const IPC:React.FC<DarkModeType> = ({ isDark }) => {
+const Connections:React.FC<DarkModeType> = ({ isDark }) => {
   const busName = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.ipc_ruler`;
   const interfaceName = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.manager`;
   const objectPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/ipc_ruler`;
@@ -44,4 +44,4 @@ const IPC:React.FC<DarkModeType> = ({ isDark }) => {
   );
 };
 
-export default IPC;
+export default Connections;
