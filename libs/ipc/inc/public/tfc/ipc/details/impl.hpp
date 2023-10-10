@@ -330,9 +330,7 @@ private:
       // clang-format on
       last_value_ = std::move(new_value.value());
       callback(last_value_.value());
-      return;
     }
-
     register_read(std::forward<decltype(callback)>(callback));
   }
   void register_read(tfc::stx::invocable<value_t> auto&& callback) {
