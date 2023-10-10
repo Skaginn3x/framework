@@ -50,14 +50,14 @@ config_dbus_client::config_dbus_client(asio::io_context& ctx,
   dbus_connection_->request_name(interface_name_.c_str());
 }
 
-config_dbus_client::config_dbus_client(interface_t intf,
+config_dbus_client::config_dbus_client(interface_t interface,
                                        std::string_view key,
                                        value_call_t&& value_call,
                                        schema_call_t&& schema_call,
                                        change_call_t&& change_call)
 
     : property_name_{ key }, value_call_{ std::move(value_call) }, schema_call_{ std::move(schema_call) },
-      change_call_{ std::move(change_call) }, dbus_interface_{ std::move(intf) } {}
+      change_call_{ std::move(change_call) }, dbus_interface_{ std::move(interface) } {}
 
 void config_dbus_client::set(config_property&& prop) const {
   if (dbus_interface_) {
