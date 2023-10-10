@@ -54,7 +54,7 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
     }
     data->unit = unit;
     data->dimension = dimension;
-    if constexpr (mp_units::Magnitude<decltype(ref_t)>){
+    if constexpr (mp_units::Magnitude<decltype(ref_t)>) {
       data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = ratio.num, .denominator = ratio.den };
     }
     to_json_schema<rep_t>::template op<opts>(schema, defs);
