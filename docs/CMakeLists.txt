@@ -1,6 +1,5 @@
 project(tfc-docs)
 find_package(Doxygen REQUIRED)
-find_package(Sphinx REQUIRED)
 
 # List all header files so that build fails if some are missing
 # List of all public headers in the project,
@@ -48,9 +47,35 @@ set_target_properties(Doxygen PROPERTIES
   EXCLUDE_FROM_ALL ON
 )
 
+
+# Let's create the read the docs html
+
+# Create a virtual environment for python using this method:
+set(VENV_PATH "${CMAKE_CURRENT_BINARY_DIR}/.venv")
+# https://discourse.cmake.org/t/possible-to-create-a-python-virtual-env-from-cmake-and-then-find-it-with-findpython3/1132
+find_package (Python3 REQUIRED COMPONENTS Interpreter)
+execute_process (COMMAND "${Python3_EXECUTABLE}" -m venv "${VENV_PATH}")
+
+# Here is the trick
+## update the environment with VIRTUAL_ENV variable (mimic the activate script)
+set (ENV{VIRTUAL_ENV} "${VENV_PATH}")
+## change the context of the search
+set (Python3_FIND_VIRTUALENV FIRST)
+## unset Python3_EXECUTABLE because it is also an input variable (see documentation, Artifacts Specification section)
+unset (Python3_EXECUTABLE)
+## Launch a new search
+find_package (Python3 COMPONENTS Interpreter Development)
+
+add_custom_command(
+  OUTPUT venv_setup
+  COMMAND ${VENV_PATH}/bin/pip install -r requirements.txt
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+)
+
 set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
 set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
+set(SPHINX_EXECUTABLE "${VENV_PATH}/bin/sphinx-build")
 
 # Only regenerate Sphinx when:
 # - Doxygen has rerun
@@ -63,7 +88,7 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
   -Dbreathe_projects.tfc=${DOXYGEN_OUTPUT_DIR}/xml
   ${SPHINX_SOURCE} ${SPHINX_BUILD}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  DEPENDS
+  DEPENDS venv_setup
   # Other docs files you want to track should go here (or in some variable)
   ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
   ${CMAKE_CURRENT_SOURCE_DIR}/design/cm.md
@@ -72,8 +97,8 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
   COMMENT "Generating documentation with Sphinx")
 
 # Nice named target so we can run the job easily
-add_custom_target(Sphinx ALL DEPENDS ${SPHINX_INDEX_FILE})
-set_target_properties(Doxygen PROPERTIES
+add_custom_target(ReadTheDocs ALL DEPENDS ${SPHINX_INDEX_FILE})
+set_target_properties(ReadTheDocs PROPERTIES
   EXCLUDE_FROM_ALL ON
 )
 
