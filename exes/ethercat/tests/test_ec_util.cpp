@@ -31,10 +31,7 @@ using namespace mp_units::si::unit_symbols;
 static_assert(sizeof(quantiy_test_t) == 4);
 using mp_test = setting<ecx::index_t{ 0x42, 0x42 }, "name", "desc", quantiy_test_t, 60 * W>;
 static_assert(std::is_same_v<mp_test::type::rep, uint32_t>);
-// static_assert(std::is_same_v<mp_test::type::dimension, dim_power>);
-// static_assert(std::is_same_v<mp_test::type::unit, watt>);
 static_assert(sizeof(mp_test) == 4);
-
 }  // namespace example
 
 auto main(int, char**) -> int {

@@ -19,7 +19,7 @@ using ut::operator>>;
 namespace compile_test {
 using tfc::unit::dimension_name;
 namespace si = mp_units::si;
-static_assert(dimension_name<si::metre>() == "length");
+static_assert(dimension_name<si::metre>() == "metre");
 static_assert(dimension_name<si::hertz>() == "hertz");
 static_assert(dimension_name<si::ampere>() == "ampere");
 static_assert(dimension_name<si::volt>() == "voltage");
