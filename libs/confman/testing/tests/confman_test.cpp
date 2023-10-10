@@ -171,18 +171,17 @@ auto main(int argc, char** argv) -> int {
     });
 
     uint32_t called{};
-    sdbusplus::asio::setProperty<config_property>(dbus, interface_name, interface_path.string(), interface_name,
-                                                  std::string{ property_name },
-                                                  config_property{ R"({"a":11,"b":12,"c":"a"})", "" },
-                                                  [&called, &conf]([[maybe_unused]] std::error_code err) {
-                                                    if (err) {
-                                                      fmt::print(stderr, "Set property error: '{}'", err.message());
-                                                    }
-                                                    called++;
-                                                    ut::expect(conf->a == 11);
-                                                    ut::expect(conf->b == 12);
-                                                    ut::expect(conf->c == "a");
-                                                  });
+    sdbusplus::asio::setProperty<config_property>(
+        dbus, interface_name, interface_path.string(), interface_name, std::string{ property_name },
+        config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&called, &conf]([[maybe_unused]] std::error_code err) {
+          if (err) {
+            fmt::print(stderr, "Set property error: '{}'", err.message());
+          }
+          called++;
+          ut::expect(conf->a == 11);
+          ut::expect(conf->b == 12);
+          ut::expect(conf->c == "a");
+        });
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);
