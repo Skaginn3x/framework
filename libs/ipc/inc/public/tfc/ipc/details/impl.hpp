@@ -345,8 +345,8 @@ private:
         }
       });
     } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
-      slot_.async_receive([bind_reference, callb = std::move(callback)](
-                              std::expected<value_t, std::error_code>&& value) mutable {  // NOSONAR
+      slot_.async_receive([bind_reference, callb = std::move(callback)](  // NOSONAR
+                              std::expected<value_t, std::error_code>&& value) mutable {
         if (auto sptr = bind_reference.lock()) {
           sptr->async_new_state(value, std::move(callb));
         }
