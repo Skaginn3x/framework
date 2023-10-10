@@ -39,7 +39,12 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
     message.signal_send();
   });
 
-  dbus_->request_name(tfc::dbus::make_dbus_process_name().c_str());
+  auto service_name{ tfc::dbus::make_dbus_process_name() };
+  if (service_name != tfc::operation::dbus::service_name) {
+    logger_.info("Service name '{}' is not default '{}'", service_name, tfc::operation::dbus::service_default);
+  }
+
+  dbus_->request_name(service_name.c_str());
 
   dbus_interface_->initialize();
 

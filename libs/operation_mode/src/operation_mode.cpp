@@ -36,13 +36,14 @@ MESSAGE "(ss)" {
                           tfc::dbus::match::rules::path<tfc::operation::dbus::path>>
 };
 
-interface::interface(asio::io_context& ctx, std::string_view log_key)
-    : dbus_connection_{ std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
+interface::interface(asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name)
+    : dbus_service_name_{ dbus_service_name },
+      dbus_connection_{ std::make_unique<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
       logger_{ log_key } {
-  sdbusplus::asio::getProperty<mode_e>(*dbus_connection_, std::string{ dbus::name }, std::string{ dbus::path },
+  sdbusplus::asio::getProperty<mode_e>(*dbus_connection_, dbus_service_name_, std::string{ dbus::path },
                                        std::string{ dbus::name }, std::string{ dbus::property::mode },
                                        [this](auto err, mode_e const& mode) {
                                          if (err) {
@@ -77,8 +78,8 @@ auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
 void interface::set(tfc::operation::mode_e new_mode) const {
   // todo add handler to set function call, for callee
   dbus_connection_->async_method_call(
-      [this](std::error_code err) { logger_.warn("Error from set mode: {}", err.message()); }, dbus::name.data(),
-      dbus::path.data(), dbus::name.data(), dbus::method::set_mode.data(), new_mode);
+      [this](std::error_code err) { logger_.warn("Error from set mode: {}", err.message()); }, dbus_service_name_,
+      std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::set_mode }, new_mode);
 }
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {
