@@ -24,7 +24,7 @@ namespace dbus {
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<config_path> };
 }
 
-config_dbus_client::config_dbus_client(boost::asio::io_context& ctx) {}
+config_dbus_client::config_dbus_client(boost::asio::io_context&) {}
 
 config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        std::string_view key,
