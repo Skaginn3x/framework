@@ -18,7 +18,6 @@
 #include <boost/system/error_code.hpp>
 
 #include <tfc/ipc/details/dbus_slot.hpp>
-#include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
@@ -291,60 +290,74 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  [[nodiscard]] static auto create(asio::io_context& ctx,
-                                   std::string_view name,
-                                   tfc::stx::invocable<value_t> auto&& callback)
+  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::shared_ptr<slot_callback<type_desc>> {
-    return std::shared_ptr<slot_callback<type_desc>>(
-        new slot_callback<type_desc>{ ctx, name, std::forward<decltype(callback)>(callback) });
+    return std::shared_ptr<slot_callback<type_desc>>(new slot_callback<type_desc>{ ctx, name });
   }
 
-  auto connect(std::string_view signal_name) -> std::error_code {
+  auto connect(std::string_view signal_name, tfc::stx::invocable<value_t> auto&& callback) -> std::error_code {
     if (auto error = slot_.connect(signal_name)) {
       return error;
     }
-    register_read();
+    register_read(std::forward<decltype(callback)>(callback));
     return {};
   }
-  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
 
   /**
    * @brief disconnect from signal
    */
   auto disconnect(std::string_view signal_name) { return slot_.disconnect(signal_name.data()); }
 
-  /// \return <type>.<name> for example: bool.my_name
+  [[nodiscard]] auto value() const -> std::optional<value_t> { return last_value_; }
+
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_.name(); }
+
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
-  slot_callback(asio::io_context& ctx, std::string_view name, tfc::stx::invocable<value_t> auto&& callback)
-      : slot_{ ctx, name },
-        filters_{ ctx, fmt::format("{}.{}", type_desc::type_name, name), std::forward<decltype(callback)>(callback) } {}
-  void async_new_state(std::expected<value_t, std::error_code> value) {
-    if (!value) {
+  slot_callback(asio::io_context& ctx, std::string_view name) : slot_{ ctx, name } {}
+  void async_new_state(std::expected<value_t, std::error_code> new_value, tfc::stx::invocable<value_t> auto&& callback) {
+    if (!new_value) {
       return;
     }
-    // Don't retransmit transmitted things.
+
+    // Here we get unfiltered new value and test whether the value matches the current value
+    auto const& last_value = value();
     // clang-format off
-    auto const& last_value{ filters_.value() };
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-    if (!last_value.has_value() || value.value() != last_value) {
+    if (!last_value.has_value() || new_value.value() != last_value.value()) {
     PRAGMA_CLANG_WARNING_POP
       // clang-format on
-      filters_(std::move(value.value()));
+      last_value_ = std::move(new_value.value());
+      callback(last_value_.value());
     }
-    register_read();
+    register_read(std::forward<decltype(callback)>(callback));
   }
-  void register_read() {
+  void register_read(tfc::stx::invocable<value_t> auto&& callback) {
     auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    slot_.async_receive([bind_reference](std::expected<value_t, std::error_code> value) {
-      if (auto sptr = bind_reference.lock()) {
-        sptr->async_new_state(value);
+
+    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
+      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code>&& value) mutable {
+        if (auto sptr = bind_reference.lock()) {
+          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
+        }
+      });
+    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
+      slot_.async_receive([bind_reference, callb = std::move(callback)](  // NOSONAR
+                              std::expected<value_t, std::error_code>&& value) mutable {
+        if (auto sptr = bind_reference.lock()) {
+          sptr->async_new_state(value, std::move(callb));
+        }
+      });
+    } else {
+      []<bool flag = false> {
+        static_assert(flag, "Invalid typeof callback");
       }
-    });
+      ();
+    }
   }
+  std::optional<value_t> last_value_{ std::nullopt };
   slot<type_desc> slot_;
-  filter::filters<value_t, std::function<void(value_t&)>> filters_;  // todo prefer some other type erasure mechanism
 };
 
 template <typename return_t, template <typename description_t> typename ipc_base_t>

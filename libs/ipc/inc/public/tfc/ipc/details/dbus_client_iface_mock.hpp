@@ -23,8 +23,6 @@ namespace tfc::ipc_ruler {
 namespace asio = boost::asio;
 
 struct ipc_manager_client_mock {
-  ipc_manager_client_mock() = default;
-
   explicit ipc_manager_client_mock(asio::io_context&);
   explicit ipc_manager_client_mock(std::shared_ptr<sdbusplus::asio::connection>);
 

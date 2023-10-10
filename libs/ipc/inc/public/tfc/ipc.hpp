@@ -7,6 +7,7 @@
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/dbus_slot.hpp>
+#include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/details/impl.hpp>
 #include <tfc/stx/concepts.hpp>
 
@@ -60,15 +61,14 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_{ details::slot_callback<type_desc>::create(
-            ctx,
-            name,
-            [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
-              callb(new_value);
-              dbus_slot_.emit_value(new_value);
-            }) },
-        dbus_slot_{ client.connection(), [this] -> std::optional<value_t> const& { return this->value(); } },
-        client_{ client } {
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) },
+        dbus_slot_{ client.connection(), full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
+        client_{ client }, filters_{ dbus_slot_.interface(),
+                                     // store the callers callback in this lambda
+                                     [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
+                                       callb(new_value);
+                                       dbus_slot_.emit_value(new_value);
+                                     } } {
     client_init(description);
   }
 
@@ -85,7 +85,14 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ connection, [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ connection } {
+        dbus_slot_{ connection, full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
+        client_{ connection },
+        filters_{ dbus_slot_.interface(),
+                  // store the callers callback in this lambda
+                  [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
+                    callb(new_value);
+                    dbus_slot_.emit_value(new_value);
+                  } } {
     client_init(description);
   }
 
@@ -103,7 +110,9 @@ public:
 
   auto operator=(slot const&) -> slot& = delete;
 
-  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return slot_->value(); }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
+
+  [[nodiscard]] auto unfiltered_value() const noexcept -> std::optional<value_t> const& { return slot_.value(); }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
 
@@ -111,17 +120,20 @@ public:
 
 private:
   void client_init(std::string_view description) {
-    client_.register_connection_change_callback(slot_->name_w_type(), [this](std::string_view signal_name) {
-      slot_->connect(signal_name);  //
-    });
-    client_.register_slot(slot_->name_w_type(), description, type_desc::value_e, details::register_cb(slot_->name_w_type()));
+    client_.register_connection_change_callback(
+        full_name(), [this](std::string_view signal_name) { slot_->connect(signal_name, filters_); });
 
-    dbus_slot_.initialize(full_name());
+    client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
+
+    dbus_slot_.on_set([this](value_t&& set_value) { this->filters_.set(std::move(set_value)); });
+
+    dbus_slot_.initialize();
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
   details::dbus_slot<value_t> dbus_slot_;
   manager_client_type client_;
+  filter::filters<value_t, std::function<void(value_t const&)>> filters_;
 };
 
 /**

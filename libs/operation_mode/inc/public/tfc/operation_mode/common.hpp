@@ -27,9 +27,12 @@ enum struct mode_e : std::uint8_t {
 [[nodiscard]] auto enum_cast(std::string_view enum_name) -> std::optional<mode_e>;
 
 namespace dbus {
-static constexpr std::string_view service_name{ "OperationMode" };
-static constexpr std::string_view name{ tfc::dbus::const_dbus_name<service_name> };
-static constexpr std::string_view path{ tfc::dbus::const_dbus_path<service_name> };
+// Please note that this needs to match the generated service name of the operation mode daemon
+static constexpr std::string_view service_default{ "tfc.Operations.def" };
+static constexpr std::string_view service_name{ tfc::dbus::const_dbus_name<service_default> };
+static constexpr std::string_view interface_name{ "OperationMode" };
+static constexpr std::string_view name{ tfc::dbus::const_dbus_name<interface_name> };
+static constexpr std::string_view path{ tfc::dbus::const_dbus_path<interface_name> };
 namespace method {
 static constexpr std::string_view set_mode{ "SetMode" };
 }

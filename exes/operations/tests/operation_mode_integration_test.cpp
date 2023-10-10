@@ -21,7 +21,7 @@ struct operation_mode_test {
   asio::io_context ctx{};
   tfc::app_operation_mode<tfc::ipc::mock_signal, tfc::ipc::mock_slot> app{ ctx };
   tfc::operation::interface lib {
-    ctx
+    ctx, "operation", tfc::dbus::make_dbus_process_name()
   };
   ~operation_mode_test() {
     std::error_code code;

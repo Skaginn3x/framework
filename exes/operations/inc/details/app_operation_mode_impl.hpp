@@ -16,10 +16,9 @@ template <template <typename, typename> typename signal_t, template <typename, t
 app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context& ctx)
     : dbus_{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
       dbus_object_server_{ std::make_unique<sdbusplus::asio::object_server>(dbus_) },
-      dbus_interface_{ dbus_object_server_->add_interface(
-          std::string{ operation::dbus::path.data(), operation::dbus::path.size() },
-          std::string{ operation::dbus::name.data(), operation::dbus::name.size() }) },
-      state_machine_{ std::make_unique<state_machine_owner_t>(ctx) }, logger_{ "app_operation_mode" } {
+      dbus_interface_{ dbus_object_server_->add_interface(std::string{ operation::dbus::path },
+                                                          std::string{ operation::dbus::name }) },
+      state_machine_{ std::make_unique<state_machine_owner_t>(ctx, dbus_) }, logger_{ "app_operation_mode" } {
   dbus_interface_->register_signal<operation::update_message>(
       std::string(operation::dbus::signal::update.data(), operation::dbus::signal::update.size()));
 
@@ -40,7 +39,12 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
     message.signal_send();
   });
 
-  dbus_->request_name(operation::dbus::name.data());
+  auto service_name{ tfc::dbus::make_dbus_process_name() };
+  if (service_name != tfc::operation::dbus::service_name) {
+    logger_.info("Service name '{}' is not default '{}'", service_name, tfc::operation::dbus::service_default);
+  }
+
+  dbus_->request_name(service_name.c_str());
 
   dbus_interface_->initialize();
 

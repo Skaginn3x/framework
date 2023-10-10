@@ -53,8 +53,7 @@ auto main(int argc, char** argv) -> int {
   std::string const key{ "bar" };
 
   // duplicate from config_dbus_client.cpp
-  std::filesystem::path interface_path{ tfc::dbus::make_dbus_path(
-      fmt::format("{}config", tfc::base::get_config_directory().string().substr(1))) };
+  std::filesystem::path interface_path{ tfc::confman::detail::dbus::path };
   auto interface_name{ tfc::dbus::make_dbus_name(
       fmt::format("config.{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), key)) };
 
@@ -172,18 +171,17 @@ auto main(int argc, char** argv) -> int {
     });
 
     uint32_t called{};
-    sdbusplus::asio::setProperty<config_property>(dbus, interface_name, interface_path.string(), interface_name,
-                                                  std::string{ property_name.data(), property_name.size() },
-                                                  config_property{ R"({"a":11,"b":12,"c":"a"})", "" },
-                                                  [&called, &conf]([[maybe_unused]] std::error_code err) {
-                                                    if (err) {
-                                                      fmt::print(stderr, "Set property error: '{}'", err.message());
-                                                    }
-                                                    called++;
-                                                    ut::expect(conf->a == 11);
-                                                    ut::expect(conf->b == 12);
-                                                    ut::expect(conf->c == "a");
-                                                  });
+    sdbusplus::asio::setProperty<config_property>(
+        dbus, interface_name, interface_path.string(), interface_name, std::string{ property_name },
+        config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&called, &conf]([[maybe_unused]] std::error_code err) {
+          if (err) {
+            fmt::print(stderr, "Set property error: '{}'", err.message());
+          }
+          called++;
+          ut::expect(conf->a == 11);
+          ut::expect(conf->b == 12);
+          ut::expect(conf->c == "a");
+        });
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);

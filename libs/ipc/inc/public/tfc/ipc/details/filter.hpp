@@ -3,7 +3,6 @@
 #include <expected>
 #include <vector>
 
-#include <fmt/core.h>
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/compose.hpp>
@@ -13,6 +12,7 @@
 #include <glaze/core/common.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/pragmas.hpp>
 
@@ -22,6 +22,7 @@ namespace asio = boost::asio;
 
 enum struct filter_e : std::uint8_t {
   unknown = 0,
+  new_state,
   invert,
   timer,
   offset,
@@ -251,20 +252,25 @@ template <typename value_t>
 using any_filter_decl_t = any_filter_decl<value_t>::type;
 }  // namespace detail
 
-template <typename value_t, typename callback_t>
+template <typename value_t, tfc::stx::invocable<value_t> callback_t>
 class filters {
 public:
-  filters(asio::io_context& ctx, std::string_view name, callback_t&& callback)
-      : ctx_{ ctx }, filters_{ ctx, fmt::format("{}._filters_", name) }, callback_{ callback } {}
+  using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
+
+  filters(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, tfc::stx::invocable<value_t> auto&& callback)
+      : ctx_{ interface->connection()->get_io_context() }, filters_{ interface, "Filter" },
+        callback_{ std::forward<decltype(callback)>(callback) } {}
 
   /// \brief changes internal last_value state when filters have been processed
-  void operator()(value_t&& value) {
+  void operator()(auto&& value)
+    requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
+  {
     if (filters_->empty()) {
-      last_value_ = std::move(value);
+      last_value_ = std::forward<decltype(value)>(value);
       std::invoke(callback_, last_value_.value());
       return;
     }
-    std::expected<value_t, std::error_code> return_value{ std::move(value) };
+    std::expected<value_t, std::error_code> return_value{ std::forward<decltype(value)>(value) };
     asio::co_spawn(
         ctx_,
         [this, return_val = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
@@ -294,11 +300,20 @@ public:
           }
         });
   }
+
+  /// \brief bypass filters and set value directly
+  void set(auto&& value)
+    requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
+  {
+    last_value_ = std::forward<decltype(value)>(value);
+    std::invoke(callback_, last_value_.value());
+  }
+
   [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return last_value_; }
 
 private:
   asio::io_context& ctx_;
-  tfc::confman::config<std::vector<detail::any_filter_decl_t<value_t>>> filters_;
+  tfc::confman::config<config_t> filters_;
   callback_t callback_;
   std::optional<value_t> last_value_{};
 };
@@ -311,6 +326,7 @@ struct glz::meta<tfc::ipc::filter::filter_e> {
   static std::string_view constexpr name{ "ipc::filter::filter_e" };
   // clang-format off
   static auto constexpr value{ glz::enumerate("unknown", unknown,
+                                              "new_state", new_state, "Call caller only on new state",
                                               "invert", invert, "Invert outputting value",
                                               "timer", timer, "Timer on/off delay of boolean",
                                               "offset", offset, "Adds a constant value to each sensor value",

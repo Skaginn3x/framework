@@ -1,9 +1,14 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
+#include <memory>
+#include <string>
 #include <string_view>
+#include <system_error>
 #include <type_traits>
 
+#include <fmt/format.h>
 #include <glaze/glaze.hpp>
 
 #include <tfc/confman/detail/change.hpp>
@@ -29,18 +34,26 @@ public:
   using type = config_storage_t;
   using storage_t = config_storage_t;
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   config(asio::io_context& ctx, std::string_view key) : config{ ctx, key, config_storage_t{} } {}
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
   /// \param conn valid dbus connection
   /// \param key identification of this config storage, requires to be unique
   config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
       : config{ conn, key, config_storage_t{} } {}
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
+  /// \param interface valid dbus interface
+  /// \param key identification of this config storage, requires to be unique
+  /// \note the config will be accessible via dbus property on the `interface` using the given `key`
+  /// Take care that via this construction the frontend won't detect the config and show it automatically
+  config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key)
+      : config{ interface, key, config_storage_t{} } {}
+
+  /// \brief construct config and expose it via dbus
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique
   /// \param def default values of given storage type
@@ -49,16 +62,12 @@ public:
   config(asio::io_context& ctx, std::string_view key, storage_type&& def)
       : client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
-        storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
-    client_.initialize();
-    storage_.on_change([]() {
-      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
-    });
+    init();
   }
 
-  /// \brief construct config and deliver it to config manager
+  /// \brief construct config and expose it via dbus
   /// \param conn valid dbus connection
   /// \param key identification of this config storage, requires to be unique
   /// \param def default values of given storage type
@@ -69,11 +78,23 @@ public:
                  std::bind_front(&config::from_string, this) },
         storage_{ client_.io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
-    client_.initialize();
-    storage_.on_change([]() {
-      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
-    });
+    init();
+  }
+
+  /// \brief construct config and expose it via dbus
+  /// \param interface valid dbus interface
+  /// \param key identification of this config storage, requires to be unique
+  /// \param def default values of given storage type
+  /// \note the config will be accessible via dbus property on the `interface` using the given `key`
+  /// Take care that via this construction the frontend won't detect the config and show it automatically
+  template <typename storage_type>
+    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
+  config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key, storage_type&& def)
+      : client_{ interface, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
+                 std::bind_front(&config::from_string, this) },
+        storage_{ client_.get_io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        logger_(fmt::format("config.{}", key)) {
+    init();
   }
 
   /// \brief Advanced constructor providing file storage interface and dbus client
@@ -136,6 +157,14 @@ public:
   }
 
 protected:
+  void init() {
+    client_.initialize();
+    storage_.on_change([]() {
+      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
+      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    });
+  }
+
   friend struct detail::change<config>;
 
   // todo if this could be named `value` it would be neat

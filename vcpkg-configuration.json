@@ -4,8 +4,15 @@
     "repository": "https://github.com/microsoft/vcpkg",
     "baseline": "be2d7f886aad895e282b59088a2dfca5f6e1c88a"
   },
-  "overlay-ports" : [
-    "./ports"
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://github.com/skaginn3x/vcpkg-registry",
+      "baseline": "158a95b4f5741535452360cf3af74e0982612737",
+      "packages": [
+        "sdbusplus"
+      ]
+    }
   ],
   "overlay-triplets": [
     "./vcpkg-overlays/triplets"
