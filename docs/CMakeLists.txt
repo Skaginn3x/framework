@@ -102,6 +102,28 @@ set_target_properties(ReadTheDocs PROPERTIES
   EXCLUDE_FROM_ALL ON
 )
 
+# Now let's create the slideshow
+
+set(REVEALJS_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/promo-slides)
+set(REVEALJS_BUILD ${CMAKE_CURRENT_BINARY_DIR}/promo-slides)
+set(REVEALJS_INDEX_FILE ${SPHINX_BUILD}/index.html)
+add_custom_command(OUTPUT ${REVEALJS_INDEX_FILE}
+    COMMAND
+    ${SPHINX_EXECUTABLE} -b html
+    ${REVEALJS_SOURCE} ${REVEALJS_BUILD}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS venv_setup
+    # Other docs files you want to track should go here (or in some variable)
+    ${REVEALJS_SOURCE}/index.rst
+    MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py
+    COMMENT "Generating slideshow with Sphinx and Revealjs")
+
+# Nice named target so we can run the job easily
+add_custom_target(Revealjs ALL DEPENDS ${REVEALJS_INDEX_FILE})
+set_target_properties(Revealjs PROPERTIES
+    EXCLUDE_FROM_ALL ON
+)
+
 # Add an install target to install the docs
 include(GNUInstallDirs)
 install(
