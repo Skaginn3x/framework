@@ -7,11 +7,11 @@ from urllib.parse import urljoin
 from sphinx_revealjs.themes import get_theme_path
 
 # -- Project information -----------------------------------------------------
-project = "sphinx-revealjs"
-copyright = "2018, Kazuya Takei"
-author = "Kazuya Takei"
+project = "Time for change"
+copyright = "2023, Skaginn 3X"
+author = "Skaginn 3X"
 version = ""
-release = "2018.10"
+release = "2023.10.1"
 
 # -- General configuration ---------------------------------------------------
 extensions = [

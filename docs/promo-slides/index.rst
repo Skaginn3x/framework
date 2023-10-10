@@ -1,14 +1,14 @@
 :orphan:
 :og:image: ./_images/ogp/index.png
-:og:image:alt: Title section for demo presentation
-:og:description: Demo presentation of sphnx-revealjs
+:og:image:alt: Time for change framework demo
+:og:description: Cover gist of TFC framework
 
 ===============================
-Introduction of sphinx-revealjs
+Time for change
 ===============================
 
-:Based version: 2.7.1
-:Demo updated: 2022-11-13
+:Based version: 2023.10.1
+:Demo updated: 2023-10-10
 
 Overview
 ========
@@ -16,18 +16,17 @@ Overview
 What is this?
 -------------
 
-Sphinx extension to build Reveal.js presentation
+Time for change is a C++ framework for building a real-time system.
 
 Features
 --------
 
 .. This is reST comment. At default, does not write.
 
-* Convert sections from reStructuredText directly
-* Support customize sections
-* Support using plugins
-* Support Sphinx extensions
-* Select theme from default themes
+* Configuration web interface.
+* IPC communication layer for real time data.
+* Configuration storage on file system, with callable subscription per parameter.
+* Operation mode controller and more.
 
 .. include:: _sections/standard-usage.rst
 .. include:: _sections/rst-to-revealjs.rst
