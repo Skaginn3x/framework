@@ -43,6 +43,13 @@ if (BUILD_TESTING)
 endif ()
 
 include(GNUInstallDirs)
+install(
+  FILES
+    systemd/ethercat.service
+  DESTINATION
+    /usr/lib/systemd/system/
+  CONFIGURATIONS Release
+)
 
 install(
   TARGETS
@@ -59,6 +66,3 @@ install(
     ${CMAKE_INSTALL_BINDIR}/debug/
   CONFIGURATIONS Debug
 )
-
-include(tfc_systemd)
-tfc_systemd_service_file(ethercat "TFC Ethercat master")
