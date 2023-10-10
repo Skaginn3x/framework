@@ -45,7 +45,7 @@ endif ()
 include(GNUInstallDirs)
 install(
   FILES
-    systemd/ethercat.service
+    systemd/ethercat@.service
   DESTINATION
     /usr/lib/systemd/system/
   CONFIGURATIONS Release
