@@ -22,7 +22,7 @@ using ut::expect;
 template <typename device_t>
 struct test_vars {
   asio::io_context ctx{};
-  ipc_manager_client_mock connect_interface{};
+  ipc_manager_client_mock connect_interface{ ctx };
   device_t device;
 };
 auto main(int argc, const char* argv[]) -> int {

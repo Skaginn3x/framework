@@ -291,7 +291,7 @@ auto main(int argc, char** argv) -> int {
     uint8_t invocation{};
     bool ignore_first{ true };
 
-    tfc::ipc_ruler::ipc_manager_client_mock mock_client;
+    tfc::ipc_ruler::ipc_manager_client_mock mock_client{ isolated_ctx };
     const tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> slot(
         isolated_ctx, mock_client, "bool_slot", "", [&](bool value) {
           if (ignore_first) {
@@ -322,7 +322,7 @@ auto main(int argc, char** argv) -> int {
   "Test ipc communication connection and disconnection with mocking int"_test = []() {
     asio::io_context isolated_ctx{};
 
-    tfc::ipc_ruler::ipc_manager_client_mock mock_client;
+    tfc::ipc_ruler::ipc_manager_client_mock mock_client{ isolated_ctx };
 
     uint8_t invocation{};
     bool ignore_first{ true };
@@ -388,7 +388,7 @@ auto main(int argc, char** argv) -> int {
     test_class test_class_instance;
 
     asio::io_context isolated_ctx{};
-    tfc::ipc_ruler::ipc_manager_client_mock mock_client;
+    tfc::ipc_ruler::ipc_manager_client_mock mock_client{ isolated_ctx };
 
     mock_client.register_properties_change_callback(std::bind_front(&test_class::increment, &test_class_instance));
 
