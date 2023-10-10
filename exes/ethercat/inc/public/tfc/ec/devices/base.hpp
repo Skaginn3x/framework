@@ -8,6 +8,7 @@
 #include <span>
 #include <utility>
 
+#include <mp-units/bits/quantity_concepts.h>
 #include <fmt/format.h>
 
 #include <tfc/ec/soem_interface.hpp>
@@ -34,9 +35,7 @@ concept chrono_setting_c = requires {
 
 template <typename setting_t>
 concept mp_units_quantity_setting_c = requires {
-  typename std::remove_cvref_t<setting_t>::type::rep;
-  typename std::remove_cvref_t<setting_t>::type::unit;
-  typename std::remove_cvref_t<setting_t>::type::dimension;
+  requires mp_units::Quantity<typename std::remove_cvref_t<setting_t>::type>;
   requires setting_c<setting_t>;
 };
 
@@ -95,7 +94,7 @@ public:
 
   template <mp_units_quantity_setting_c setting_t>
   auto sdo_write(setting_t&& in) const {
-    return base::sdo_write(in.index, in.value.number());
+    return base::sdo_write(in.index, in.value.numerical_value_);
   }
 
 protected:

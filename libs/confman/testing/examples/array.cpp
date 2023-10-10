@@ -1,6 +1,5 @@
 #include <fmt/core.h>
-#include <units/isq/si/electric_current.h>
-#include <units/quantity.h>
+#include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
@@ -12,7 +11,7 @@ namespace asio = boost::asio;
 
 struct object_in_array {
   int a{};
-  units::aliases::isq::si::electric_current::dA<uint16_t> amper{};
+  mp_units::quantity<mp_units::si::deci<mp_units::si::ampere>> amper{};
   struct glaze {
     using type = object_in_array;
     static constexpr auto value{
