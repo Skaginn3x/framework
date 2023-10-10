@@ -68,7 +68,7 @@ struct state_machine_mock {
 
 struct test_instance {
   asio::io_context ctx{};
-  std::shared_ptr<sdbusplus::asio::connection> dbus{};
+  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   tfc::operation::state_machine_owner<tfc::ipc::mock_signal, tfc::ipc::mock_slot, state_machine_mock> owner{ ctx, dbus };
 };
 
