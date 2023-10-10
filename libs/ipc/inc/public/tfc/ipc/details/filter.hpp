@@ -262,13 +262,15 @@ public:
         callback_{ std::forward<decltype(callback)>(callback) } {}
 
   /// \brief changes internal last_value state when filters have been processed
-  void operator()(value_t&& value) {
+  void operator()(auto&& value)
+    requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
+  {
     if (filters_->empty()) {
-      last_value_ = std::move(value);
+      last_value_ = std::forward<decltype(value)>(value);
       std::invoke(callback_, last_value_.value());
       return;
     }
-    std::expected<value_t, std::error_code> return_value{ std::move(value) };
+    std::expected<value_t, std::error_code> return_value{ std::forward<decltype(value)>(value) };
     asio::co_spawn(
         ctx_,
         [this, return_val = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
@@ -300,8 +302,10 @@ public:
   }
 
   /// \brief bypass filters and set value directly
-  void set(value_t&& value) {
-    last_value_ = std::move(value);
+  void set(auto&& value)
+    requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
+  {
+    last_value_ = std::forward<decltype(value)>(value);
     std::invoke(callback_, last_value_.value());
   }
 

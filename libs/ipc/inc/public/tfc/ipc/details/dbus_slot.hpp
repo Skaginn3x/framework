@@ -42,10 +42,9 @@ public:
                                                }
                                                return value_t{};
                                              });
-    interface_->register_property_r<std::string>(std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
-                                             []([[maybe_unused]] std::string& old_value) {
-                                               return tfc::json::write_json_schema<value_t>();
-                                             });
+    interface_->register_property_r<std::string>(
+        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
+        []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
 
     interface_->initialize();
   }

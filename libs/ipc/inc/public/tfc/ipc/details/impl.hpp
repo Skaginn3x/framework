@@ -308,27 +308,57 @@ public:
    */
   auto disconnect(std::string_view signal_name) { return slot_.disconnect(signal_name.data()); }
 
-  /// \return <type>.<name> for example: bool.my_name
+  [[nodiscard]] auto value() const -> std::optional<value_t> { return last_value_; }
+
+  [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_.name(); }
+
   [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_{ ctx, name } {}
-  void async_new_state(std::expected<value_t, std::error_code> value, tfc::stx::invocable<value_t> auto&& callback) {
-    if (!value) {
+  void async_new_state(std::expected<value_t, std::error_code> new_value, tfc::stx::invocable<value_t> auto&& callback) {
+    if (!new_value) {
       return;
     }
-    callback(std::move(value.value()));
+
+    // Here we get unfiltered new value and test whether the value matches the current value
+    auto const& last_value = value();
+    // clang-format off
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+    if (!last_value.has_value() || new_value.value() != last_value.value()) {
+    PRAGMA_CLANG_WARNING_POP
+      // clang-format on
+      last_value_ = std::move(new_value.value());
+      callback(last_value_.value());
+      return;
+    }
+
     register_read(std::forward<decltype(callback)>(callback));
   }
   void register_read(tfc::stx::invocable<value_t> auto&& callback) {
     auto bind_reference = std::enable_shared_from_this<slot_callback<type_desc>>::weak_from_this();
-    slot_.async_receive([bind_reference, callb = std::forward<decltype(callback)>(callback)](
-                            std::expected<value_t, std::error_code> value) mutable {
-      if (auto sptr = bind_reference.lock()) {
-        sptr->async_new_state(value, std::forward<decltype(callb)>(callb));  // NOSONAR
+
+    if constexpr (std::is_lvalue_reference_v<decltype(callback)>) {
+      slot_.async_receive([bind_reference, &callback](std::expected<value_t, std::error_code>&& value) mutable {
+        if (auto sptr = bind_reference.lock()) {
+          sptr->async_new_state(value, std::forward<decltype(callback)>(callback));
+        }
+      });
+    } else if constexpr (std::is_rvalue_reference_v<decltype(callback)>) {
+      slot_.async_receive(
+          [bind_reference, callb = std::move(callback)](std::expected<value_t, std::error_code>&& value) mutable {
+            if (auto sptr = bind_reference.lock()) {
+              sptr->async_new_state(value, std::move(callb));
+            }
+          });
+    } else {
+      []<bool flag = false> {
+        static_assert(flag, "Invalid typeof callback");
       }
-    });
+      ();
+    }
   }
+  std::optional<value_t> last_value_{ std::nullopt };
   slot<type_desc> slot_;
 };
 

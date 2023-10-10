@@ -118,24 +118,8 @@ public:
 
 private:
   void client_init(std::string_view description) {
-    auto new_state_filter = [this](value_t&& new_value) {
-      // Here we get unfiltered new value and test whether the value matches the current value
-      auto const& last_value = value();
-      // clang-format off
-      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-      if (!last_value.has_value() || new_value != last_value.value()) {
-      PRAGMA_CLANG_WARNING_POP
-        // clang-format on
-        this->filters_(std::move(new_value));
-        return;
-      }
-    };
-
     client_.register_connection_change_callback(
-        full_name(),
-        // the following lambda takes ownership of the new_state_filter callback
-        // meaning if connection is changed the callback would not be thrown away
-        [this, callb = std::move(new_state_filter)](std::string_view signal_name) { slot_->connect(signal_name, callb); });
+        full_name(), [this](std::string_view signal_name) { slot_->connect(signal_name, filters_); });
 
     client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
 
