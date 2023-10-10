@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-#include <stduuid/uuid.h>
 #include <mp-units/systems/angular/angular.h>
 #include <mp-units/systems/si/si.h>
+#include <stduuid/uuid.h>
 
 #include <tfc/stx/basic_fixed_string.hpp>
 
@@ -198,7 +198,7 @@ struct item {
   std::optional<std::string> sub_type{ std::nullopt };  // any specification of the given type
 
   // dimensions
-  //si::kilogram kg;
+  // si::kilogram kg;
   using milligram_64bit = mp_units::quantity<si::milli<si::gram>, uint64_t>;
   std::optional<milligram_64bit> item_weight{ std::nullopt };
   std::optional<milligram_64bit> target_weight{ std::nullopt };
@@ -214,7 +214,7 @@ struct item {
 
   using millilitre = mp_units::quantity<si::milli<si::litre>, uint64_t>;
   std::optional<millilitre> volume{ std::nullopt };
-  std::optional<mp_units::quantity<mp_units::si::degree_Celsius, double>> temperature { std::nullopt };
+  std::optional<mp_units::quantity<mp_units::si::degree_Celsius, double>> temperature{ std::nullopt };
   std::optional<mp_units::quantity<mp_units::angular::degree, double>> angle{ std::nullopt };
 
   // attributes

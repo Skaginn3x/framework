@@ -8,8 +8,8 @@
 #include <span>
 #include <utility>
 
-#include <mp-units/bits/quantity_concepts.h>
 #include <fmt/format.h>
+#include <mp-units/bits/quantity_concepts.h>
 
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/logger.hpp>
