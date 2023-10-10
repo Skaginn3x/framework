@@ -112,6 +112,8 @@ public:
 
   [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return filters_.value(); }
 
+  [[nodiscard]] auto unfiltered_value() const noexcept -> std::optional<value_t> const& { return slot_.value(); }
+
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
 
   [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->name_w_type(); }
