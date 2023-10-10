@@ -144,7 +144,7 @@
       "configurePreset": "pack-gcc-debug",
       "targets": [
         "Doxygen",
-        "Sphinx"
+        "ReadTheDocs"
       ]
     }
   ],
