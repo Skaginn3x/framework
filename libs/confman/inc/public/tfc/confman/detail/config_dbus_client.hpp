@@ -7,6 +7,7 @@
 #include <system_error>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/stx/to_tuple.hpp>
 
 namespace boost::asio {
@@ -33,6 +34,7 @@ struct config_property {
 namespace dbus {
 static constexpr std::string_view property_name{ "config" };
 static constexpr std::string_view config_path{ "Config" };
+static constexpr std::string_view path{ tfc::dbus::const_dbus_path<config_path> };
 }  // namespace dbus
 
 class config_dbus_client {

@@ -4,7 +4,6 @@
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
-#include <tfc/dbus/string_maker.hpp>
 #include <tfc/progbase.hpp>
 
 #include <fmt/format.h>
@@ -20,9 +19,6 @@ namespace tfc::confman::detail {
 // busctl --system introspect com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config
 // clang-format on
 
-namespace dbus {
-static constexpr std::string_view path{ tfc::dbus::const_dbus_path<config_path> };
-}
 
 config_dbus_client::config_dbus_client(boost::asio::io_context&) {}
 
