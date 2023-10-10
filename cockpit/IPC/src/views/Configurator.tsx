@@ -10,7 +10,6 @@ import {
   DrawerContent,
   DrawerContentBody,
 } from '@patternfly/react-core';
-
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
@@ -54,7 +53,12 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
   useEffect(() => {
     if (names.length > 0) {
       names.forEach((name: string) => {
-        fetchDataFromDBus(name).then(({ parsedData, parsedSchema }) => {
+        fetchDataFromDBus(
+          name, // process name
+          name, // interface name
+          'Config', // path
+          'config', // property
+        ).then(({ parsedData, parsedSchema }) => {
           setSchemas((prevState: any) => ({
             ...prevState,
             [name]: parsedSchema,
@@ -126,7 +130,15 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
   function handleSubmit(data:any) {
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
-    updateFormData(activeItem, data, setFormData, addAlert);
+    updateFormData(
+      activeItem, // Process name
+      activeItem, // Interface name
+      'Config', // Path
+      'config', // property
+      data, // Data
+      setFormData,
+      addAlert,
+    );
   }
 
   function getProcesses(): string[] {
@@ -161,7 +173,7 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
         <FormGenerator
           inputSchema={schemas[activeItem]}
           key={activeItem}
-          onSubmit={(data: any) => handleSubmit(data)}
+          onSubmit={(data: any) => handleSubmit(data.values.config)}
           values={formData[activeItem]}
         />
         <div style={{ marginBottom: '2rem' }} />

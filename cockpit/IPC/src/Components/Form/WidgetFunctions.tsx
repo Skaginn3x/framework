@@ -57,7 +57,16 @@ export function removeSlotOrg(name: string) {
    * @param newData Object
    * @returns void
    */
-export const updateFormData = (name: string | undefined, newData: any, setFormData: React.Dispatch<any>, addAlert: any) => {
+export const updateFormData = (
+  name: string | undefined,
+  iface: string,
+  path: string,
+  property: string,
+  newData: any,
+  setFormData:
+  React.Dispatch<any>,
+  addAlert: any,
+) => {
   if (!newData || !name) return;
 
   // Unwrap config object if it exists (for nested schemas)
@@ -75,13 +84,13 @@ export const updateFormData = (name: string | undefined, newData: any, setFormDa
   // set dbus property config to data
   console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
   const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-  const propProxy = newdbus.proxy(name, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`);
+  const propProxy = newdbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
 
   propProxy.wait().then(() => {
     const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`, 'org.freedesktop.DBus.Properties', 'Set', [
-      name, // The interface name
-      'config', // The property name
+    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`, 'org.freedesktop.DBus.Properties', 'Set', [
+      iface, // The interface name
+      property, // The property name
       stringdata, // The new value
     ]).then(() => {
       addAlert('Property updated successfully', AlertVariant.success);
@@ -95,16 +104,20 @@ export const updateFormData = (name: string | undefined, newData: any, setFormDa
   });
 };
 
-export async function fetchDataFromDBus(name: string) {
+export async function fetchDataFromDBus(name: string, iface: string, path: string, property: string) {
+  console.log('name = ', name);
+  console.log('iface = ', iface);
   const dbus = window.cockpit.dbus(name);
-  const OBJproxy = dbus.proxy(name, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`);
+  console.log('dbus = ', dbus);
+  const OBJproxy = dbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
   await OBJproxy.wait();
+  console.log('proxy = ', OBJproxy);
 
   const { data } = OBJproxy;
-  let parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
-  const parsedSchema = JSON.parse(data.config[1].replace('\\"', '"'));
+  let parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
+  const parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
 
-  if (!Object.keys(parsedData).includes('config')) {
+  if (!Object.keys(parsedData).includes(property)) {
     parsedData = { config: parsedData };
   }
 

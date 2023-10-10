@@ -113,9 +113,13 @@ export default function FormGenerator(
     return json;
   }
 
-  function checkValidity(data: any) {
+  function checkValidity(data: any, actualData: any) {
     if (typeof data !== 'object' || data === null) {
       return true;
+    }
+
+    if (Array.isArray(actualData)) {
+      return true; // Ignore validity check for arrays
     }
 
     if (Object.keys(data).includes('__valid') && data.__valid === false) {
@@ -123,7 +127,7 @@ export default function FormGenerator(
     }
 
     for (const key in data) {
-      if (!checkValidity(data[key])) {
+      if (!checkValidity(data[key], actualData[key])) {
         return false;
       }
     }
@@ -154,10 +158,11 @@ export default function FormGenerator(
       <Button
         style={{ marginTop: 24 }}
         onClick={() => {
-          console.log('VALID: ', checkValidity(store.toJS().validity));
-          if (checkValidity(store.toJS().validity)) {
+          console.log('VALID: ', checkValidity(store.toJS().validity, store.toJS().values));
+          if (checkValidity(store.toJS().validity, store.toJS().values)) {
             onSubmit(store.toJS());
           } else {
+            console.log('store', store.toJS());
             addAlert('Could not validate configuration', AlertVariant.danger);
           }
         }}
