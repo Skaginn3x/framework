@@ -10,6 +10,7 @@
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc/details/dbus_slot.hpp>
 #include <tfc/stx/concepts.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::ipc::details {
 
@@ -19,6 +20,7 @@ namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };
 static constexpr std::string_view slot{ "Slots" };
 static constexpr std::string_view tinker{ "Tinker" };
+static constexpr std::string_view type{ "Type" };
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<slot> };
 }  // namespace dbus::tags
 
@@ -40,6 +42,11 @@ public:
                                                }
                                                return value_t{};
                                              });
+    interface_->register_property_r<std::string>(std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
+                                             []([[maybe_unused]] std::string& old_value) {
+                                               return tfc::json::write_json_schema<value_t>();
+                                             });
+
     interface_->initialize();
   }
   auto interface() const noexcept -> std::shared_ptr<sdbusplus::asio::dbus_interface> { return interface_; }
