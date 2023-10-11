@@ -212,8 +212,7 @@ struct item {
 
   std::optional<mp_units::quantity<mp_units::square(si::milli<si::metre>), uint64_t>> area{ std::nullopt };
 
-  using millilitre = mp_units::quantity<si::milli<si::litre>, uint64_t>;
-  std::optional<millilitre> volume{ std::nullopt };
+  std::optional<mp_units::quantity<mp_units::cubic(si::milli<si::metre>), uint64_t>> volume{ std::nullopt };
   std::optional<mp_units::quantity<mp_units::si::degree_Celsius, double>> temperature{ std::nullopt };
   std::optional<mp_units::quantity<mp_units::angular::degree, double>> angle{ std::nullopt };
 
