@@ -30,7 +30,7 @@ struct unit_symbol {
     std::array<char, size> array{};
     auto out_it{ mp_units::unit_symbol_to(array.begin(), unit_t{}) };
     auto len = std::distance(array.begin(), out_it);
-    return std::make_pair( array, len );
+    return std::make_pair(array, len);
   }
   // Give the joined string static storage
   static constexpr auto arr = impl();
