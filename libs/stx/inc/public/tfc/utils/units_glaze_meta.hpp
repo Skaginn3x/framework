@@ -78,12 +78,12 @@ inline constexpr auto dimension_name() -> std::string_view {
     return "watt";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::gram)) {
     return "gram";
-  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::are)) {
-    return "are";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::litre)) {
-    return "are";
+    return "litre";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::angular::degree)) {
     return "degree";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::square(mp_units::si::milli<mp_units::si::metre>))) {
+    return "millimetre^2";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");

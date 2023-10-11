@@ -210,7 +210,7 @@ struct item {
   std::optional<millimetre_64bit> width{ std::nullopt };
   std::optional<millimetre_64bit> height{ std::nullopt };
 
-  std::optional<mp_units::quantity<si::milli<si::are>, uint64_t>> area{ std::nullopt };
+  std::optional<mp_units::quantity<mp_units::square(si::milli<si::metre>), uint64_t>> area{ std::nullopt };
 
   using millilitre = mp_units::quantity<si::milli<si::litre>, uint64_t>;
   std::optional<millilitre> volume{ std::nullopt };

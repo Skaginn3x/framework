@@ -24,6 +24,10 @@ static_assert(dimension_name<si::hertz>() == "hertz");
 static_assert(dimension_name<si::ampere>() == "ampere");
 static_assert(dimension_name<si::volt>() == "voltage");
 static_assert(dimension_name<si::watt>() == "watt");
+static_assert(dimension_name<si::gram>() == "gram");
+static_assert(dimension_name<si::litre>() == "litre");
+static_assert(dimension_name<mp_units::angular::degree>() == "degree");
+static_assert(dimension_name<mp_units::square(si::milli<si::metre>)>() == "millimetre^2");
 }  // namespace compile_test
 
 using std::string_view_literals::operator""sv;
