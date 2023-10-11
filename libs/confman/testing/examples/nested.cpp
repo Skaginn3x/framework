@@ -4,8 +4,7 @@
 
 #include <fmt/chrono.h>
 #include <fmt/core.h>
-#include <units/isq/si/electric_current.h>
-#include <units/quantity.h>
+#include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
@@ -16,7 +15,7 @@
 namespace asio = boost::asio;
 
 struct third_level {
-  units::aliases::isq::si::electric_current::dA<uint16_t> amper{};
+  mp_units::quantity<mp_units::si::ampere, uint16_t> amper{};
   struct glaze {
     using type = third_level;
     static constexpr auto value{ glz::object("amper", &type::amper, "amper description") };
@@ -45,7 +44,7 @@ struct second_level {
 
 struct first_level {
   int a{};
-  units::aliases::isq::si::electric_current::dA<uint16_t> amper{};
+  mp_units::quantity<mp_units::si::deci<mp_units::si::ampere>> amper{};
   second_level second_lvl{};
   struct glaze {
     using type = first_level;

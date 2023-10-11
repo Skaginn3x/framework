@@ -9,12 +9,9 @@
 #include <string>
 #include <vector>
 
+#include <mp-units/systems/angular/angular.h>
+#include <mp-units/systems/si/si.h>
 #include <stduuid/uuid.h>
-#include <units/generic/angle.h>
-#include <units/isq/si/area.h>
-#include <units/isq/si/length.h>
-#include <units/isq/si/mass.h>
-#include <units/isq/si/volume.h>
 
 #include <tfc/stx/basic_fixed_string.hpp>
 
@@ -171,7 +168,8 @@ static_assert(gigolo == species::from_int(gigolo.to_int()));
 
 }  // namespace fao
 
-namespace si = units::isq::si;
+namespace si = mp_units::si;
+namespace isq = mp_units::isq;
 
 struct item;
 
@@ -200,17 +198,23 @@ struct item {
   std::optional<std::string> sub_type{ std::nullopt };  // any specification of the given type
 
   // dimensions
-  std::optional<si::mass<si::milligram, std::uint64_t>> item_weight{ std::nullopt };
-  std::optional<si::mass<si::milligram, std::uint64_t>> target_weight{ std::nullopt };
-  std::optional<si::mass<si::milligram, std::uint64_t>> min_weight{ std::nullopt };
-  std::optional<si::mass<si::milligram, std::uint64_t>> max_weight{ std::nullopt };
-  std::optional<si::length<si::millimetre, std::uint64_t>> length{ std::nullopt };
-  std::optional<si::length<si::millimetre, std::uint64_t>> width{ std::nullopt };
-  std::optional<si::length<si::millimetre, std::uint64_t>> height{ std::nullopt };
-  std::optional<si::area<si::square_millimetre, std::uint64_t>> area{ std::nullopt };
-  std::optional<si::volume<si::cubic_millimetre, std::uint64_t>> volume{ std::nullopt };
-  // TODO temperature in celsius
-  std::optional<units::angle<units::degree, double>> angle{ std::nullopt };
+  // si::kilogram kg;
+  using milligram_64bit = mp_units::quantity<si::milli<si::gram>, uint64_t>;
+  std::optional<milligram_64bit> item_weight{ std::nullopt };
+  std::optional<milligram_64bit> target_weight{ std::nullopt };
+  std::optional<milligram_64bit> min_weight{ std::nullopt };
+  std::optional<milligram_64bit> max_weight{ std::nullopt };
+
+  using millimetre_64bit = mp_units::quantity<si::milli<si::metre>, uint64_t>;
+  std::optional<millimetre_64bit> length{ std::nullopt };
+  std::optional<millimetre_64bit> width{ std::nullopt };
+  std::optional<millimetre_64bit> height{ std::nullopt };
+
+  std::optional<mp_units::quantity<mp_units::square(si::milli<si::metre>), uint64_t>> area{ std::nullopt };
+
+  std::optional<mp_units::quantity<mp_units::cubic(si::milli<si::metre>), uint64_t>> volume{ std::nullopt };
+  std::optional<mp_units::quantity<mp_units::si::degree_Celsius, double>> temperature{ std::nullopt };
+  std::optional<mp_units::quantity<mp_units::angular::degree, double>> angle{ std::nullopt };
 
   // attributes
   std::optional<details::color> color{ std::nullopt };
