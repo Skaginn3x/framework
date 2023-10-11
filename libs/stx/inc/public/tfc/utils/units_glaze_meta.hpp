@@ -7,6 +7,7 @@
 #include <mp-units/bits/ratio.h>
 #include <mp-units/quantity.h>
 #include <mp-units/systems/angular/angular.h>
+#include <mp-units/unit.h>
 
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/utils/json_schema.hpp>
@@ -22,10 +23,29 @@ struct glz::meta<mp_units::ratio> {
   static constexpr auto name{ "units::ratio" };
 };
 
+template <typename unit_t>
+struct unit_symbol {
+  static constexpr std::size_t size{ 255 };
+  static constexpr auto impl() noexcept {
+    std::array<char, size> array{};
+    auto out_it{ mp_units::unit_symbol_to(array.begin(), unit_t{}) };
+    auto len = std::distance(array.begin(), out_it);
+    return std::make_pair( array, len );
+  }
+  // Give the joined string static storage
+  static constexpr auto arr = impl();
+  static_assert(arr.second < size);
+  // View as a std::string_view
+  static constexpr std::string_view value{ arr.first.data(), arr.second };
+};
+// Helper to get the value out
+template <typename unit_t>
+static constexpr auto unit_symbol_v = unit_symbol<unit_t>::value;
+
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   using type = mp_units::quantity<ref_t, rep_t>;
-  static constexpr std::string_view unit{ decltype(ref_t)::symbol.ascii() };
+  static constexpr std::string_view unit{ unit_symbol_v<decltype(ref_t)> };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_; } };
   static std::string_view constexpr prefix{ "units::quantity<" };
