@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { AlertVariant, Spinner, Title } from '@patternfly/react-core';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import FormGenerator from '../Form/Form';
 import { useAlertContext } from '../Alert/AlertContext';
 import { loadExternalScript } from '../Interface/ScriptLoader';
@@ -25,31 +26,27 @@ export default function FilterModal({
     if (!slot) { return; }
     loadExternalScript((allNames) => {
       // Your specific logic to filter and set the dbusFilterName
-      let filteredName = allNames.filter(
-        (name: string) => name.includes(`${slot}._filters_`),
+      const filteredName = allNames.filter(
+        (name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`),
       )[0];
 
-      // ============================= REMOVE THIS AFTER TESTING ==============================
-      // Replaces dashes with underscores, which is required as sdbus does not allow dashes.
-      if (!filteredName || filteredName.length === 0) {
-        // eslint-disable-next-line prefer-destructuring
-        filteredName = allNames.filter(
-          (name: string) => name.includes(`${slot.replaceAll('-', '_')}._filters_`),
-        )[0];
-      }
-      // ===================================== END REMOVE =====================================
-
       if (!filteredName || filteredName.length === 0) { // If not found, notify user
-        addAlert(`DBUS-Name-Error: No BUS interface with name "${slot}._filters_"`, AlertVariant.danger);
-        setError(['DBUS-Name-Error:', 'No BUS interface with name ', `"${slot}._filters_"`]);
+        addAlert(`DBUS-Name-Error: No BUS interface with name "${slot}"`, AlertVariant.danger);
+        setError(['DBUS-Name-Error:', 'No BUS interface with name ', `"${slot}`]);
       }
       setDbusFilterName(filteredName);
     });
   }, [slot]);
 
   useEffect(() => {
+    if (!slot) { return; }
     if (dbusFilterName) {
-      fetchDataFromDBus(dbusFilterName).then(({ parsedData, parsedSchema }) => {
+      fetchDataFromDBus(
+        dbusFilterName, // Process name
+        `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`, // Interface name
+        'Slots', // Path
+        'Filter', // Property
+      ).then(({ parsedData, parsedSchema }) => {
         setSchema(parsedSchema);
         setFormData(parsedData);
         setIsLoading(false);
@@ -71,14 +68,24 @@ export default function FilterModal({
             <FormGenerator
               inputSchema={schema}
               key={dbusFilterName}
-              onSubmit={(data: any) => updateFormData(dbusFilterName, data, setFormData, addAlert)}
+              onSubmit={(data: any) => {
+                updateFormData(
+                  dbusFilterName,
+                  `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`,
+                  'Slots',
+                  'Filter',
+                  data.values.config,
+                  setFormData,
+                  addAlert,
+                );
+              }}
               values={formData}
             />
           </>
         ) : null }
-      {error && isLoading
+      {(error && isLoading)
         ? error.map((err) => <Title headingLevel="h3" key={err} size="md">{err}</Title>)
-        : <Spinner /> }
+        : isLoading && <Spinner /> }
     </div>
   );
 }

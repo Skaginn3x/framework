@@ -6,18 +6,18 @@
    right: 1rem;
 }
 
-.pf-c-alert {
+.pf-v5-c-alert {
    --pf-c-alert--PaddingTop: 0.6rem;
    --pf-c-alert--PaddingRight: 0.5rem;
    --pf-c-alert--PaddingBottom: 0.5rem;
    --pf-c-alert--PaddingLeft: 0.5rem;
 }
 
-.pf-c-alert-group {
+.pf-v5-c-alert-group {
    --pf-c-alert-group__item--MarginTop: 0.3rem !important;
 }
 
-.pf-c-alert__title {
+.pf-v5-c-alert__title {
    font-size: 0.8rem;
    font-weight: normal;
 }

@@ -118,17 +118,19 @@ const useDbusInterface = (busName: string, interfaceName: string, objectPath: st
     };
   }, [valid]);
 
-  const retry = <T extends any>(func: () => Promise<T>, retries: number = 3): Promise<T | Error> => func().catch(async (e: Error) => {
-    if (retries > 0) {
-      console.log(`Retry after error: ${e}`);
-      await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      });
-      return retry(func, retries - 1);
-    }
-    tryToConnectToDbus();
-    throw e;
-  });
+  const retry = <T extends any>( // NOSONAR
+    func: () => Promise<T>,
+    retries: number = 3): Promise<T | Error> => func().catch(async (e: Error) => {
+      if (retries > 0) {
+        console.log(`Retry after error: ${e}`);
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        });
+        return retry(func, retries - 1);
+      }
+      tryToConnectToDbus();
+      throw e;
+    });
 
   const registerSignal = async (signalName: string, description: string, signalByte: number): Promise<void | Error> => retry(async () => {
     if (dbusObjectProxy) {

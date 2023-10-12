@@ -10,6 +10,10 @@
             "path": "index.html?service=configure"
         },
         "tfc3": {
+            "label": "TFC IO Debugging",
+            "path": "index.html?service=debug"
+        },
+        "tfc4": {
             "label": "TFC List DBUS",
             "path": "index.html?service=list"
         }

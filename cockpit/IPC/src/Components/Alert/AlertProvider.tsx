@@ -13,7 +13,7 @@ export default function AlertProvider({ children }: any) {
     }
   }, []);
 
-  const addAlert = (title: string, variant: 'success' | 'default' | 'danger' | 'warning' | 'info' | undefined) => {
+  const addAlert = (title: string, variant: 'success' | 'danger' | 'warning' | 'info' | 'custom') => {
     const key = new Date().getTime().toString();
     dispatch({ type: 'add', payload: { title, variant, key } });
     setTimeout(() => dispatch({ type: 'remove', key }), 5000);

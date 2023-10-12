@@ -1,0 +1,64 @@
+.Hovr:hover {
+    cursor: pointer;
+}
+
+.Hovr {
+    display: flex;
+	flex-direction: column;
+	width: 2rem;
+	height: 2rem;
+	margin: 0px;
+	align-items: center;
+	justify-content: center;
+}
+
+.DropdownItem {
+    right: -4rem;
+    left: unset !important;
+    top: 3rem !important ;
+}
+
+/* Buttons with className Hovr */
+button.Hovr {
+    background: none;
+    color: inherit;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    outline: inherit;
+}
+
+.pf-v5-c-data-list__cell {
+	padding: 0rem !important;
+}
+
+.pf-v5-c-data-list__item-action {
+    padding: 0.5rem !important;
+}
+
+.pf-v5-c-data-list__item-content {
+	padding-bottom: 0.6rem !important;
+	padding-top: 0.6rem !important;
+}
+.pf-v5-c-data-list__item-row {
+    height: 3rem;
+}
+
+.pf-v5-c-data-list__action {
+    align-self: center;
+}
+
+.pf-v5-c-menu__list {
+    padding: 0.3rem;
+}
+
+.pf-v5-c-data-list.pf-m-grid-md {
+    padding-left: 0rem;
+
+}
+/* Making cells not grow */
+.pf-v5-c-data-list.pf-m-grid-md .pf-v5-c-data-list__cell+.pf-v5-c-data-list__cell {
+    flex: 0 1;
+    order: 0;
+}

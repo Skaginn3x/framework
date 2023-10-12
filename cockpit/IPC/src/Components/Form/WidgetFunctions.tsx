@@ -43,12 +43,40 @@ export function removeOrg(name: string) {
 }
 
 /**
-   * Update form data and dbus property config
-   * @param name string
-   * @param newData Object
-   * @returns void
+   * Remove org from dbus slot interface
+   * @param name  string
+   * @returns string
    */
-export const updateFormData = (name: string | undefined, newData: any, setFormData: React.Dispatch<any>, addAlert: any) => {
+export function removeSlotOrg(name: string) {
+  // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
+  // return etc.tfc.operation_mode.def.state_machine
+  if (name.split('.').length > 4) {
+    return name.split('.').slice(2).join('.');
+  }
+  return name;
+}
+
+/**
+ * Update form data and dbus property for jsonschema
+ * @param name  Process Name
+ * @param iface Interface Name
+ * @param path  Dbus Path
+ * @param property Property Name
+ * @param newData  Data to be updated
+ * @param setFormData React Hook to set form data
+ * @param addAlert Alert context hook
+ * @returns Nothing
+ */
+export const updateFormData = (
+  name: string | undefined,
+  iface: string,
+  path: string,
+  property: string,
+  newData: any,
+  setFormData:
+  React.Dispatch<any>,
+  addAlert: any,
+) => {
   if (!newData || !name) return;
 
   // Unwrap config object if it exists (for nested schemas)
@@ -66,13 +94,13 @@ export const updateFormData = (name: string | undefined, newData: any, setFormDa
   // set dbus property config to data
   console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
   const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-  const propProxy = newdbus.proxy(name, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`);
+  const propProxy = newdbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
 
   propProxy.wait().then(() => {
     const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`, 'org.freedesktop.DBus.Properties', 'Set', [
-      name, // The interface name
-      'config', // The property name
+    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`, 'org.freedesktop.DBus.Properties', 'Set', [
+      iface, // The interface name
+      property, // The property name
       stringdata, // The new value
     ]).then(() => {
       addAlert('Property updated successfully', AlertVariant.success);
@@ -86,16 +114,35 @@ export const updateFormData = (name: string | undefined, newData: any, setFormDa
   });
 };
 
-export async function fetchDataFromDBus(name: string) {
+/**
+ * Fetches jsonschema and data from dbus
+ * @param name Process Name
+ * @param iface Interface Name
+ * @param path  DBUS Path
+ * @param property  DBUS Property Name
+ * @returns Data and Schema { parsedData: any, parsedSchema: any}
+ */
+export async function fetchDataFromDBus(name: string, iface: string, path: string, property: string) {
+  if (!name) return {};
+  if (!iface) return {};
+  if (!path) return {};
+  if (!property) return {};
   const dbus = window.cockpit.dbus(name);
-  const OBJproxy = dbus.proxy(name, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/etc/tfc/config`);
+  const OBJproxy = dbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
   await OBJproxy.wait();
+  let parsedData;
+  let parsedSchema;
 
   const { data } = OBJproxy;
-  let parsedData = JSON.parse(data.config[0].replace('\\"', '"'));
-  const parsedSchema = JSON.parse(data.config[1].replace('\\"', '"'));
+  try {
+    parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
+    parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
+  } catch (error) {
+    console.error('Error parsing data:', error);
+    return {};
+  }
 
-  if (!Object.keys(parsedData).includes('config')) {
+  if (!Object.keys(parsedData).includes(property)) {
     parsedData = { config: parsedData };
   }
 

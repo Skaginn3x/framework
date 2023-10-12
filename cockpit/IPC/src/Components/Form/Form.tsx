@@ -54,7 +54,11 @@ export default function FormGenerator(
     pluginSimpleStack: validators,
   };
 
-  // Function to handle widget assignment
+  /**
+   * Assigns a widget to each type of data in the schema
+   * @param key The key of the object
+   * @param json The schema
+   */
   function assignWidget(key: string, json: JsonType) {
     const type = Array.isArray(json[key].type) ? json[key].type : [json[key].type];
 
@@ -73,11 +77,11 @@ export default function FormGenerator(
   }
 
   /**
- *  Parses JSON to select the appropriate widget.
- *  Makes use of custom widgets Units and Variant
- * @param json Schema
- * @returns Parsed Schema with widgets added
- */
+   *  Parses JSON to select the appropriate widget.
+   *  Makes use of custom widgets Units and Variant
+   * @param json Schema
+   * @returns Parsed Schema with widgets added
+   */
   function parseJson(json: JsonType): JsonType {
   // Unwrap single-item 'type' arrays for the root
     if (Array.isArray(json.type) && json.type.length === 1) {
@@ -113,9 +117,19 @@ export default function FormGenerator(
     return json;
   }
 
-  function checkValidity(data: any) {
+  /**
+   * Checks the validity of the data
+   * @param data The JsonSchema validity object
+   * @param actualData The actual data
+   * @returns Boolean indicating validity
+   */
+  function checkValidity(data: any, actualData: any) {
     if (typeof data !== 'object' || data === null) {
       return true;
+    }
+
+    if (Array.isArray(actualData)) {
+      return true; // Ignore validity check for arrays
     }
 
     if (Object.keys(data).includes('__valid') && data.__valid === false) {
@@ -123,7 +137,7 @@ export default function FormGenerator(
     }
 
     for (const key in data) {
-      if (!checkValidity(data[key])) {
+      if (!checkValidity(data[key], actualData[key])) {
         return false;
       }
     }
@@ -154,8 +168,7 @@ export default function FormGenerator(
       <Button
         style={{ marginTop: 24 }}
         onClick={() => {
-          console.log('VALID: ', checkValidity(store.toJS().validity));
-          if (checkValidity(store.toJS().validity)) {
+          if (checkValidity(store.toJS().validity, store.toJS().values)) {
             onSubmit(store.toJS());
           } else {
             addAlert('Could not validate configuration', AlertVariant.danger);
