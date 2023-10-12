@@ -25,7 +25,7 @@ declare global {
 }
 
 // eslint-disable-next-line react/function-component-definition
-const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
+const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
   const { addAlert } = useAlertContext();
   const [names, setNames] = useState<string[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
@@ -42,7 +42,7 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript((allNames) => {
       const filteredNames = allNames.filter(
         (name: string) => name.includes('config')
-        && !name.includes('ipc_ruler'),
+          && !name.includes('ipc_ruler'),
         // && !name.includes('_filters_'),
       );
       setNames(filteredNames);
@@ -72,6 +72,12 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
     }
   }, [names]);
 
+  /**
+   * Finds all internal null values and sets them to actual null.
+   * This is need because UI-schema handles null weirdly
+   * @param data Configuration values
+   * @returns updated Configuration values
+   */
   function handleNullValue(data: any): any {
     if (Array.isArray(data)) {
       return data.filter((item) => item != null && item !== undefined).map(handleNullValue);
@@ -127,7 +133,11 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
-  function handleSubmit(data:any) {
+  /**
+   * Posts data to dbus
+   * @param data Configuration values
+   */
+  function handleSubmit(data: any) {
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
     updateFormData(
@@ -141,16 +151,19 @@ const Configurator:React.FC<DarkModeType> = ({ isDark }) => {
     );
   }
 
+  /**
+   * Reads schemas, and gets the processes from the keys
+   * Uses string splitting, which is not ideal, but no other option is available
+   * @returns string[] of processes
+   */
   function getProcesses(): string[] {
     // 1. Extract processes from schema keys
     const extractedProcesses = Object.keys(schemas).map((schema) => {
       const parts = schema.split('.');
       return parts.slice(3, 5).join('.');
     });
-
     // 2. & 3. Filter out unique and non-undefined values
     const uniqueProcesses = extractedProcesses.filter((value, index, self) => value && self.indexOf(value) === index);
-
     // 4. Sort the list alphabetically
     return uniqueProcesses.sort((a, b) => {
       if (a < b) {

@@ -1,7 +1,9 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 /* eslint-disable react/jsx-no-undef */
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  ReactElement, useEffect, useRef, useState,
+} from 'react';
 import {
   DataList,
   DataListItem,
@@ -31,16 +33,22 @@ import { DarkModeType } from 'src/App';
 import StringTinker from 'src/Components/Tinker/StringTinker';
 import BoolTinker from 'src/Components/Tinker/BoolTinker';
 import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
+import NumberTinker from 'src/Components/Tinker/NumberTinker';
 
 declare global {
   interface Window { cockpit: any; }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/**
+ * Parses DBUS XML strings to extract interfaces
+ * @param xml XML string
+ * @returns Array of interfaces with name and value type { name: string, valueType: string}
+ */
 const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] => {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, 'text/xml');
-  const interfaceElements = xmlDoc.querySelectorAll('interface[name^="com.skaginn3x."]');
+  const interfaceElements = xmlDoc.querySelectorAll(`interface[name^="${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}."]`);
   const interfaces: { name: string, valueType: string }[] = [];
   interfaceElements.forEach((element) => {
     const name = element.getAttribute('name');
@@ -62,6 +70,9 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e:any) => void >>(new Map());
+
+  const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
+
   useEffect(() => {
     if (!processes) return;
 
@@ -82,19 +93,16 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
       // eslint-disable-next-line no-restricted-syntax
       for (const process of processes) {
         const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', '/com/skaginn3x/Slots');
+        const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
         try {
           // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
           await processProxy.call('Introspect').then((data:any) => {
-            console.log(data);
             const interfacesData = parseXMLInterfaces(data);
-            console.log('ifnames', interfacesData);
             // eslint-disable-next-line no-restricted-syntax
             for (const interfaceData of interfacesData) {
-              const proxy = processDBUS.proxy(interfaceData.name, '/com/skaginn3x/Slots'); // Assuming all interfaces are at root
+              const proxy = processDBUS.proxy(interfaceData.name, path);
               proxy.wait().then(() => {
                 const handler = handleChanged(interfaceData.name);
-                console.log('adding event listeners');
                 proxy.addEventListener('changed', handler);
                 eventHandlersRef.current.set(interfaceData.name, handler);
                 interfaces.push({
@@ -112,7 +120,6 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
           console.log(e);
         }
       }
-      console.log('ifaces', interfaces);
       setDbusInterfaces(interfaces);
     };
 
@@ -121,12 +128,17 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
 
   useEffect(() => {
     const callback = (allNames: string[]) => {
-      console.log('Cherry Picked ', allNames.filter((name:string) => name.includes('com.skaginn3x.tfc.')));
-      setProcesses(allNames.filter((name:string) => name.includes('com.skaginn3x.tfc.')));
+      setProcesses(
+        allNames.filter((name:string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
+      );
     };
     loadExternalScript(callback);
   }, []);
 
+  /**
+   * Toggles the dropdown for the given index
+   * @param index Index of the dropdown
+   */
   const onToggleClick = (index: number) => {
     if (activeDropdown === index) {
       setActiveDropdown(null);
@@ -135,15 +147,12 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
-  const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined, index:number) => {
-    // eslint-disable-next-line no-console
-    console.log('selected', value);
-    const updatedInterfaces = [...dbusInterfaces];
-    updatedInterfaces[index].dropdown = false;
-    setDbusInterfaces(updatedInterfaces);
-  };
-
-  function handleBoolContent(data: any): JSX.Element {
+  /**
+   * Handles the content of the secondary column for booleans
+   * @param data The data to be displayed
+   * @returns ReactElement to be displayed
+   */
+  function handleBoolContent(data: any): ReactElement {
     return (
       <Tooltip
         content={`Value is ${data.Value ? 'true' : 'false'}`}
@@ -155,12 +164,22 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
       </Tooltip>
     );
   }
-  function handleStringContent(data: any): JSX.Element {
+
+  /**
+   * Handles the content of the secondary column for strings
+   * @param data The data to be displayed
+   * @returns ReactElement to be displayed
+   */
+  function handleStringContent(data: any): ReactElement {
     return (
-      <p>{data.Value}</p>
+      <p style={{ marginBottom: '0px' }}>{data.Value}</p>
     );
   }
 
+  /**
+   * Toggles the visibility of IO for the given process
+   * @param selected The selected process
+   */
   function toggleSelection(selected:string) {
     const updatedData = dbusInterfaces.map((dbusInterface) => ({
       ...dbusInterface,
@@ -169,7 +188,12 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
     setDbusInterfaces(updatedData);
   }
 
-  function getSecondaryContent(data: any): React.ReactElement | null {
+  /**
+   * Handles the content of the secondary column
+   * @param data Interface data
+   * @returns ReactElement to be displayed
+   */
+  function getSecondaryContent(data: any): ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
         case 'b':
@@ -206,6 +230,11 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
     );
   }
 
+  /**
+   * Handles the content of the third column to enable tinkering
+   * @param data Interface data
+   * @returns ReactElement to be displayed
+   */
   function getTinkerInterface(data:any): React.ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
@@ -223,7 +252,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
         case 't': // UNIT64
         case 'd': // Double
         case 'y': // Byte
-          return <StringTinker data={interfacedata} />;
+          return <NumberTinker data={interfacedata} />;
 
         default:
           return <>Type Error</>;
@@ -242,6 +271,9 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
     );
   }
 
+  /**
+   * Toggles the drawer
+   */
   const toggleDrawer = () => {
     setIsDrawerExpanded(!isDrawerExpanded);
   };
@@ -351,7 +383,6 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
                             >
                               <Dropdown
                                 className="DropdownItem"
-                                onSelect={(e, val) => onSelect(e, val, index)}
                                 key={`${dbusInterface.proxy.iface}${dbusInterface.process}`}
                                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => ( // NOSONAR
                                   <CustomMenuToggle

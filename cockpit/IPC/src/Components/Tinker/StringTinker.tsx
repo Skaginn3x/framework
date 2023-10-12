@@ -1,13 +1,14 @@
+/* eslint-disable react/function-component-definition */
 import React, { useState } from 'react';
-import { TextInput, ValidatedOptions } from '@patternfly/react-core';
+import { TextInput } from '@patternfly/react-core';
 
 interface StringTinkerIface {
   data: any;
 }
 
-// eslint-disable-next-line react/function-component-definition
 const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
-  const [inputValue, setInputValue] = useState(data.Value);
+  console.log('data:', data);
+  const [inputValue, setInputValue] = useState<string>(data.proxy.data.Value);
 
   const handleInputChange = (value: string) => {
     setInputValue(value);
@@ -23,11 +24,11 @@ const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
   return (
     <TextInput
       value={inputValue}
-      onChange={(e, val) => handleInputChange(val)}
+      onChange={(_, val) => handleInputChange(val)}
       onKeyDown={handleKeyDown}
-      validated={ValidatedOptions.error}
       type="text"
       aria-label="tinker text input"
+      key={`${data.iface}-${data.process}`}
     />
   );
 };
