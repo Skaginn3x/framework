@@ -135,8 +135,11 @@ export default function FormGenerator(
     if (Object.keys(data).includes('__valid') && data.__valid === false) {
       return false;
     }
-
+    // eslint-disable-next-line guard-for-in
     for (const key in data) {
+      if (!Object.keys(actualData).includes(key)) {
+        return data[key].__valid ? data[key].__valid : true;
+      }
       if (!checkValidity(data[key], actualData[key])) {
         return false;
       }
@@ -168,6 +171,7 @@ export default function FormGenerator(
       <Button
         style={{ marginTop: 24 }}
         onClick={() => {
+          console.log(store.toJS());
           if (checkValidity(store.toJS().validity, store.toJS().values)) {
             onSubmit(store.toJS());
           } else {

@@ -111,7 +111,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
                   interfaceName: interfaceData.name,
                   type: interfaceData.valueType,
                   forcestate: null,
-                  hidden: false,
+                  hidden: true,
                 });
               });
             }

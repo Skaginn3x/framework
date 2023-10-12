@@ -20,7 +20,9 @@ import {
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 
 import * as math from 'mathjs';
+import Qty from 'js-quantities';
 import { Units } from './units';
+
 import { getNestedValue } from './WidgetFunctions';
 import './UnitsWidget.css';
 
@@ -37,7 +39,7 @@ export interface UnitWidgetBaseProps {
   inputRef?: any
 }
 
-export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
+export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({ // NOSONAR
   storeKeys, schema, onChange,
   style, onClick, onFocus, onBlur, onKeyUp, onKeyDown,
   // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -48,16 +50,13 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const { store } = useUIStore();
 
   let initialDimension: string | undefined;
-  let includesUnits = true;
   const storeValues = store ? store.toJS().values : {};
-  const storeValue = getNestedValue(storeValues, storeKeys.toJS());
+  let storeValue = getNestedValue(storeValues, storeKeys.toJS());
   initialDimension = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].dimension : undefined;
+  const type = schema.get('type') as string | undefined;
   const initialUnit = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].unit : undefined;
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
   const { minimum, maximum } = schema.toJS();
-  if (!initialDimension) {
-    includesUnits = false;
-  }
   let inputRef = React.useRef();
   if (customInputRef) {
     inputRef = customInputRef;
@@ -72,28 +71,26 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   // Hz becomes s^-1, m/s becomes m*s^-1, etc. (https://mathjs.org/docs/datatypes/units.html)
   // We might want to override this to get Hz instead of s^-1, etc.
 
-  const [unit, setUnit] = React.useState(initialUnit);
-  const [value, setValue] = React.useState<string>(storeValue !== undefined ? storeValue : '');
+  if (typeof storeValue === 'object') {
+    storeValue = undefined;
+  }
+
+  const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
+  const [value, setValue] = React.useState<Qty | undefined>(
+    storeValue !== undefined
+      ? Qty(`${storeValue}${initialUnit ?? ''}`)
+      : undefined,
+  );
   const [errText, setErrText] = React.useState('');
-  const [dynamicMin, setDynamicMin] = React.useState<number>(minimum);
-  const [dynamicMax, setDynamicMax] = React.useState<number>(maximum);
+  const min = Qty(`${minimum}${initialUnit ?? ''}`);
+  const max = Qty(`${maximum}${initialUnit ?? ''}`);
   // eslint-disable-next-line no-param-reassign, @typescript-eslint/no-unused-vars
 
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
     if (value !== null && value !== undefined && newUnit && initialUnit) {
-      const floatValue = parseFloat(value);
-      const valueInBaseUnit = math.unit(floatValue, unit).toNumber(initialUnit); // Convert current value to base unit (e.g. m)
-      const newValueInNewUnit = math.round(math.unit(valueInBaseUnit, initialUnit).toNumber(newUnit), 6); // Convert value to new unit
-      setValue(newValueInNewUnit.toString());
+      setValue(value.to(newUnit).toPrec(initialUnit));
       setUnit(newUnit);
-      const newDynamicMin = math.round(math.unit(minimum, initialUnit).toNumber(newUnit), 6);
-      const newDynamicMax = math.round(math.unit(maximum, initialUnit).toNumber(newUnit), 6);
-      setDynamicMin(newDynamicMin);
-      setDynamicMax(newDynamicMax);
-      console.log('DMIN', newDynamicMin);
-      console.log('DMAX', newDynamicMax);
-
       onChange({
         storeKeys,
         scopes: ['value'],
@@ -102,7 +99,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         required,
         data: {
           value:
-            valueInBaseUnit,
+            value.to(initialUnit).toPrec(initialUnit).scalar,
         },
       });
     }
@@ -124,7 +121,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   function getStyle() {
     return {
       ...style,
-      width: includesUnits ? 'calc(80% - 0.5rem)' : '100%',
+      width: !value?.isUnitless() ? 'calc(80% - 0.5rem)' : '100%',
     };
   }
 
@@ -147,58 +144,64 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       schema,
       required,
       data: {
-        value: undefined,
+        value: { internal_null_value_do_not_use: null },
       },
     });
   };
 
   const handleUnitValue = (floatValue: math.MathNumericType) => {
-    const valueInBaseUnit2 = math.round(
-      math.unit(floatValue, unit).toNumber(initialUnit),
-      3,
-    ); // Convert value to base unit (e.g. m)
-    onChangeWithValue(valueInBaseUnit2);
+    if (floatValue === null || floatValue === undefined || typeof floatValue !== 'number') {
+      return;
+    }
+    let valueInBaseUnit = floatValue;
+    if (value && !value.isUnitless()) {
+      valueInBaseUnit = Qty(`${floatValue}${unit}`).to(initialUnit).toPrec(initialUnit).scalar;
+    }
+    setValue(Qty(`${floatValue}${unit}`));
+    onChangeWithValue(valueInBaseUnit);
   };
 
-  const handleNormalValue = (floatValue: number) => {
-    onChangeWithValue(floatValue);
-  };
+  const [addComma, setAddComma] = React.useState<boolean>(false);
 
-  const handleChange = (e: { target: { value: any; }; }) => {
+  const handleChange = (e: any) => {
     const val = e.target.value;
     const isLastCharDot = val.slice(-1) === '.';
     const isValidNumber = /^-?\d+(\.\d*)?$/.test(val);
-
-    if (isLastCharDot || isValidNumber || val === '') {
-      setValue(val); // Update value with the current value
-    } else {
+    console.log('handleChange', val, isValidNumber, isLastCharDot, value?.isUnitless());
+    if (!isValidNumber && val !== '') {
       return;
     }
-
+    if (type === 'integer' && e.nativeEvent.data === '.' && value?.isUnitless()) {
+      return; // Don't allow decimal points in integer fields (unless there is a unit)
+    }
+    if (isLastCharDot && isValidNumber && e.nativeEvent.data === '.') {
+      setAddComma(true);
+      return;
+    }
+    setAddComma(false);
     if (val === '') {
+      setValue(undefined);
       handleEmptyValue();
-    } else if (includesUnits) {
-      handleUnitValue(parseFloat(val));
     } else {
-      handleNormalValue(parseFloat(val));
+      handleUnitValue(parseFloat(val));
     }
   };
 
   function isWarning() {
-    if (required && (value === undefined || value === '')) {
+    if (required && (!value || value.toString() === '')) {
       if (errText !== 'Required') setErrText('Required');
       return true;
     }
-    if ((dynamicMin === 0 && minimum !== 0) || (dynamicMax === 0 && maximum !== 0)) {
-      if (errText !== `Insufficient accuracy with unit: ${unit}`) setErrText(`Insufficient accuracy with unit: ${unit}`);
+    if (!value || !min || !max) {
+      return false;
+    }
+
+    if (min.compareTo(value) === 1) {
+      if (errText !== `Minimum value: ${min.toString()}`) setErrText(`Minimum value: ${min.toString()}`);
       return true;
     }
-    if (dynamicMin && (parseFloat(value) < dynamicMin)) {
-      if (errText !== `Minimum value: ${dynamicMin}${unit || ''}`) setErrText(`Minimum value: ${dynamicMin}${unit || ''}`);
-      return true;
-    }
-    if (dynamicMax && (parseFloat(value) > dynamicMax)) {
-      if (errText !== `Maxiumum value: ${dynamicMax}${unit || ''}`) setErrText(`Maxiumum value: ${dynamicMax}${unit || ''}`);
+    if (max.compareTo(value) === -1) {
+      if (errText !== `Maxiumum value: ${max.toString()}`) setErrText(`Maxiumum value: ${max.toString()}`);
       return true;
     }
 
@@ -219,12 +222,13 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           error={isWarning()}
           minRows={1}
           maxRows={1}
+          autoComplete="off"
           inputRef={inputRef}
           fullWidth
           variant={schema.getIn(['view', 'variant']) as any}
           margin={schema.getIn(['view', 'margin']) as InputProps['margin']}
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
-          value={value}
+          value={`${value ? value.scalar.toString() : ''}${addComma ? '.' : ''}`}
           onClick={onClick}
           onFocus={onFocus}
           onBlur={onBlur}
@@ -242,7 +246,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         />
       </Tooltip>
 
-      {includesUnits
+      {(value && !value.isUnitless())
         ? (
           <FormControl style={{ width: '20%', marginLeft: '0.5rem' }}>
             <InputLabel id="unit-select-label">Unit</InputLabel>
