@@ -15,14 +15,17 @@
 #include "tfc/progbase.hpp"
 
 auto main(int argc, char* argv[]) -> int {
-  auto prog_desc{ tfc::base::default_description() };
-  std::string iface;
-  prog_desc.add_options()("iface,i", boost::program_options::value<std::string>(&iface)->required(), "Adapter name");
-  tfc::base::init(argc, argv, prog_desc);
+  tfc::base::init(argc, argv);
 
   boost::asio::io_context io_ctx;
-  tfc::ec::context_t ctx(io_ctx, iface);
+  tfc::ec::context_t ctx(io_ctx);
 
+  while (!ctx.init()){
+    // While there is no interface defined just wait.
+    // We need this program running to accept interface changes
+    // but we cannot do anything until something is working.
+    io_ctx.run_for(std::chrono::milliseconds (1500));
+  }
   ctx.async_start();
 
   io_ctx.run();

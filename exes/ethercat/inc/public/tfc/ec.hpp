@@ -9,6 +9,8 @@
 #include <fmt/chrono.h>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -17,6 +19,19 @@ using std::chrono::high_resolution_clock;
 using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::chrono::nanoseconds;
+
+struct ec_config {
+  std::chrono::microseconds cycle_time;
+  std::optional<std::string> iface;
+  std::optional<std::string> red_iface;
+  struct glaze {
+    using T = ec_config;
+    static constexpr auto value = glz::object("cycle_time", &T::cycle_time, "iface", &T::iface, "red_iface", &T::red_iface);
+    static constexpr std::string_view name {"ethercat"};
+  };
+
+  auto operator==(const ec_config&) const noexcept -> bool = default;
+};
 
 template <size_t pdo_buffer_size = 4096>
 class context_t {
@@ -31,8 +46,8 @@ public:
   // are to be addressed when our code is
   // interacting with groups.
 
-  explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
-      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
+  explicit context_t(boost::asio::io_context& ctx)
+      : ctx_(ctx), logger_("master"), client_(ctx_), config_(ctx_, "master") {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -57,15 +72,26 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    if (!ecx::init(&context_, iface_)) {
-      // TODO: swith for error_code
-      throw std::runtime_error("Failed to init, no socket connection");
-    }
+    config_->observe([this](auto&, auto&){
+      logger_.trace("Modifications to iface names require a process restart, cycle time not");
+    });
   }
 
   context_t(const context_t&) = delete;
 
   auto operator=(const context_t&) -> context_t& = delete;
+
+  bool init(){
+    if (!config_->value().iface.has_value()){
+      logger_.error("Iface has no value");
+      return false;
+    }
+    if (!ecx::init(&context_, config_->value().iface.value())) {
+      logger_.error("Failed to init, no socket connection");
+      return false;
+    }
+    return true;
+  }
 
   ~context_t() {
     // Use slave 0 -> virtual for all
@@ -124,8 +150,6 @@ public:
     auto lowest = ecx::statecheck(&context_, 0, EC_STATE_PRE_OP, milliseconds(100));
     return lowest == EC_STATE_PRE_OP || lowest == (EC_STATE_ACK | EC_STATE_PRE_OP);
   }
-
-  [[nodiscard]] auto iface() -> std::string_view { return iface_; }
 
   [[nodiscard]] auto slave_count() const -> size_t { return static_cast<size_t>(slave_count_); }
 
@@ -339,7 +363,8 @@ private:
   [[nodiscard]] auto group_list_as_span() -> std::span<ec_group> { return { context_.grouplist, 1 }; }
 
   boost::asio::io_context& ctx_;
-  std::string iface_;
+  std::optional<std::string> iface_;
+  std::optional<std::string> red_iface_;
   tfc::logger::logger logger_;
   ecx_contextt context_{};
   std::vector<std::unique_ptr<devices::base>> slaves_;
@@ -374,6 +399,7 @@ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> cycle_start_;
   size_t cycle_count_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
+  tfc::confman::config<tfc::confman::observable<ec_config>> config_;
 };
 
 // Template deduction guide
