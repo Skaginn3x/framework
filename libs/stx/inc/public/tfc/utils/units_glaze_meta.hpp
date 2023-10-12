@@ -1,40 +1,58 @@
 #pragma once
 
-#include <cstdint>
+#include <glaze/core/common.hpp>
+#include <glaze/core/meta.hpp>
 #include <string_view>
 
-#include <units/generic/angle.h>
-#include <units/isq/si/si.h>
-#include <units/magnitude.h>
-#include <units/quantity.h>
-#include <units/ratio.h>
-#include <glaze/glaze.hpp>
+#include <mp-units/bits/ratio.h>
+#include <mp-units/quantity.h>
+#include <mp-units/systems/angular/angular.h>
+#include <mp-units/unit.h>
 
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/utils/json_schema.hpp>
 
 namespace tfc::unit {
-template <typename dim_t>
+template <mp_units::Reference auto ref_t>
 inline constexpr auto dimension_name() -> std::string_view;
 }  // namespace tfc::unit
 
 template <>
-struct glz::meta<units::ratio> {
-  static constexpr auto value{ glz::object("numerator", &units::ratio::num, "denominator", &units::ratio::den) };
+struct glz::meta<mp_units::ratio> {
+  static constexpr auto value{ glz::object("numerator", &mp_units::ratio::num, "denominator", &mp_units::ratio::den) };
   static constexpr auto name{ "units::ratio" };
 };
 
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct glz::meta<units::quantity<dimension_t, unit_t, rep_t>> {
-  using type = units::quantity<dimension_t, unit_t, rep_t>;
-  static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
-  static constexpr auto dimension{ tfc::unit::dimension_name<dimension_t>() };
-  static auto constexpr value{ [](auto&& self) -> auto& { return self.number(); } };
+template <typename unit_t>
+struct unit_symbol {
+  static constexpr std::size_t size{ 255 };
+  static constexpr auto impl() noexcept {
+    std::array<char, size> array{};
+    auto out_it{ mp_units::unit_symbol_to(array.begin(), unit_t{}) };
+    auto len = std::distance(array.begin(), out_it);
+    return std::make_pair(array, len);
+  }
+  // Give the joined string static storage
+  static constexpr auto arr = impl();
+  static_assert(arr.second < size);
+  // View as a std::string_view
+  static constexpr std::string_view value{ arr.first.data(), arr.second };
+};
+// Helper to get the value out
+template <typename unit_t>
+static constexpr auto unit_symbol_v = unit_symbol<unit_t>::value;
+
+template <mp_units::Reference auto ref_t, typename rep_t>
+struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
+  using type = mp_units::quantity<ref_t, rep_t>;
+  static constexpr std::string_view unit{ unit_symbol_v<decltype(ref_t)> };
+  static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
+  static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_; } };
   static std::string_view constexpr prefix{ "units::quantity<" };
   static std::string_view constexpr postfix{ ">" };
   static std::string_view constexpr separator{ "," };
   static auto constexpr name{
-    tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
+    tfc::stx::string_view_join_v<prefix, dimension, separator, separator, unit, glz::name_v<rep_t>, postfix>
   };
 };
 
@@ -43,11 +61,11 @@ namespace tfc::json::detail {
 template <typename value_t>
 struct to_json_schema;
 
-template <typename dimension_t, typename unit_t, typename rep_t>
-struct to_json_schema<units::quantity<dimension_t, unit_t, rep_t>> {
-  static constexpr std::string_view unit{ unit_t::symbol.standard().data_ };
-  static constexpr units::ratio ratio{ units::as_ratio(unit_t::mag) };
-  static constexpr auto dimension{ tfc::unit::dimension_name<dimension_t>() };
+template <mp_units::Reference auto ref_t, typename rep_t>
+struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
+  static constexpr std::string_view unit{ decltype(ref_t)::symbol.ascii() };
+  static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
+  static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   template <auto opts>
   static void op(auto& schema, auto& defs) {
     auto& data = schema.attributes.tfc_metadata;
@@ -56,7 +74,9 @@ struct to_json_schema<units::quantity<dimension_t, unit_t, rep_t>> {
     }
     data->unit = unit;
     data->dimension = dimension;
-    data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = ratio.num, .denominator = ratio.den };
+    if constexpr (mp_units::Magnitude<decltype(ref_t)>) {
+      data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = ratio.num, .denominator = ratio.den };
+    }
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
@@ -64,63 +84,29 @@ struct to_json_schema<units::quantity<dimension_t, unit_t, rep_t>> {
 }  // namespace tfc::json::detail
 
 namespace tfc::unit {
-template <typename dim_t>
+template <mp_units::Reference auto ref_t>
 inline constexpr auto dimension_name() -> std::string_view {
-  using stripped_dim_t = std::remove_cvref_t<dim_t>;
-  namespace si = units::isq::si;
-  if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_length>) {
-    return "length";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_time>) {
-    return "time";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_area>) {
-    return "area";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_volume>) {
-    return "volume";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_speed>) {
-    return "speed";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_angular_velocity>) {
-    return "angular_velocity";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_acceleration>) {
-    return "acceleration";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_angular_acceleration>) {
-    return "angular_acceleration";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_capacitance>) {
-    return "capacitance";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_conductance>) {
-    return "conductance";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_energy>) {
-    return "energy";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_force>) {
-    return "force";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_frequency>) {
-    return "frequency";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_heat_capacity>) {
-    return "heat_capacity";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_mass>) {
-    return "mass";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_voltage>) {
+  if constexpr (mp_units::convertible(ref_t, mp_units::si::metre)) {
+    return "metre";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::hertz)) {
+    return "hertz";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::ampere)) {
+    return "ampere";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::volt)) {
     return "voltage";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_electric_current>) {
-    return "electric_current";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_inductance>) {
-    return "inductance";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_power>) {
-    return "power";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_resistance>) {
-    return "resistance";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_pressure>) {
-    return "pressure";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_torque>) {
-    return "torque";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, si::dim_luminance>) {
-    return "luminance";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, units::dim_angle<units::degree>>) {
-    return "angle degree";
-  } else if constexpr (std::is_convertible_v<stripped_dim_t, units::dim_angle<units::radian>>) {
-    return "angle radian";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::watt)) {
+    return "watt";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::gram)) {
+    return "gram";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::litre)) {
+    return "litre";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::angular::degree)) {
+    return "degree";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::square(mp_units::si::milli<mp_units::si::metre>))) {
+    return "millimetre^2";
   } else {
     []<bool flag = false>() {
-      static_assert(flag, "Missing dimension name, please add it to the list. Or use compile time regex.");
+      static_assert(flag, "Missing dimension name, please add it to the list.");
     }
     ();
   }

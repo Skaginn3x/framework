@@ -29,5 +29,26 @@ target_link_libraries(operations
     PkgConfig::SDBUSPLUS
 )
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
 
+include(GNUInstallDirs)
+install(
+  TARGETS
+    operations
+  DESTINATION
+    ${CMAKE_INSTALL_BINDIR}
+  CONFIGURATIONS Release
+)
+
+install(
+  TARGETS
+    operations
+  DESTINATION
+    ${CMAKE_INSTALL_BINDIR}/debug/
+  CONFIGURATIONS Debug
+)
+
+include(tfc_systemd)
+tfc_systemd_service_file(operations "TFC Operation Mode")

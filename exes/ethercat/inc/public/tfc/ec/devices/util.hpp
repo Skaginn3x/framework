@@ -35,7 +35,7 @@ struct setting {
   static auto constexpr index{ idx };
   static std::string_view constexpr name_v{ name };
   static std::string_view constexpr desc_v{ desc };
-  type value{ std::forward<decltype(value_t_construct_params)>(value_t_construct_params)... };
+  type value{ value_t_construct_params... };
 
   auto operator==(setting const&) const noexcept -> bool = default;
   auto operator<=>(setting const&) const noexcept -> bool = default;

@@ -2,8 +2,7 @@
 #include <cstdint>
 #include <string>
 
-#include <units/isq/si/electric_current.h>
-#include <units/quantity.h>
+#include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
@@ -20,7 +19,7 @@ struct simple_config {
   tfc::confman::observable<bool> c{};
   std::vector<int> d{};
   std::chrono::nanoseconds sec{};
-  units::aliases::isq::si::electric_current::dA<uint16_t> amper{};
+  mp_units::quantity<mp_units::si::deci<mp_units::si::ampere>> amper{};
   struct glaze {
     using type = simple_config;
     static constexpr auto value{ glz::object(

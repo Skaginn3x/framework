@@ -20,7 +20,10 @@
       ]
     },
     "magic-enum",
-    "mp-units",
+    {
+      "name": "mp-units",
+      "version>=": "2.0.0"
+    },
     "openssl",
     "pcg",
     "protobuf",
@@ -47,11 +50,5 @@
     "build-exes": {
       "description": "Build binaries and install them to sysroot"
     }
-  },
-  "overrides": [
-    {
-      "name": "mp-units",
-      "version": "0.8.0"
-    }
-  ]
+  }
 }
