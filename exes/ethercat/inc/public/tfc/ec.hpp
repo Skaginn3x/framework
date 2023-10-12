@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <fmt/chrono.h>
+#include <tfc/ipc/details/item_glaze_meta.hpp>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/confman.hpp>
@@ -24,9 +25,10 @@ struct ec_config {
   std::chrono::microseconds cycle_time;
   std::optional<std::string> iface;
   std::optional<std::string> red_iface;
+  std::optional<std::vector<tfc::ipc::item::item>> item;
   struct glaze {
     using T = ec_config;
-    static constexpr auto value = glz::object("cycle_time", &T::cycle_time, "iface", &T::iface, "red_iface", &T::red_iface);
+    static constexpr auto value = glz::object("cycle_time", &T::cycle_time, "iface", &T::iface, "red_iface", &T::red_iface, "item", &T::item);
     static constexpr std::string_view name {"ethercat"};
   };
 

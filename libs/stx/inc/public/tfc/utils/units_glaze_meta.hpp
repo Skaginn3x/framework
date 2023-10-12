@@ -63,7 +63,7 @@ struct to_json_schema;
 
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
-  static constexpr std::string_view unit{ decltype(ref_t)::symbol.ascii() };
+  static constexpr std::string_view unit{ "decltype(ref_t)::symbol.ascii()"};
   static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   template <auto opts>
