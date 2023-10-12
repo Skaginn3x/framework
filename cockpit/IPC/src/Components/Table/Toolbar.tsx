@@ -5,7 +5,7 @@ import * as reactCore from '@patternfly/react-core';
 
 import { SignalType, SlotType } from '../../Types';
 
-export default function ToolBar(
+export default function ToolBar( // NOSONAR
   setSearchValue: React.Dispatch<React.SetStateAction<string>>,
   searchValue: string,
   setTypeSelection: React.Dispatch<React.SetStateAction<string>>,
@@ -25,7 +25,6 @@ export default function ToolBar(
 ) {
   const toolbarPagination = (
     <reactCore.Pagination
-      // titles={{ paginationTitle: 'Attribute search pagination' }}
       perPageOptions={[
         { title: '10', value: 10 },
         { title: '20', value: 20 },
@@ -344,7 +343,7 @@ export default function ToolBar(
       <reactCore.Popper
         trigger={processToggle}
         popper={processMenu}
-        appendTo={processContainerRef.current || undefined}
+        appendTo={processContainerRef.current ?? undefined}
         isVisible={isProcessMenuOpen}
       />
     </div>

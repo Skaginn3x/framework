@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { AlertVariant, Spinner, Title } from '@patternfly/react-core';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import FormGenerator from '../Form/Form';
 import { useAlertContext } from '../Alert/AlertContext';
 import { loadExternalScript } from '../Interface/ScriptLoader';
@@ -26,7 +27,7 @@ export default function FilterModal({
     loadExternalScript((allNames) => {
       // Your specific logic to filter and set the dbusFilterName
       const filteredName = allNames.filter(
-        (name: string) => name.includes('com.skaginn3x.tfc.'),
+        (name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`),
       )[0];
 
       if (!filteredName || filteredName.length === 0) { // If not found, notify user
@@ -42,7 +43,7 @@ export default function FilterModal({
     if (dbusFilterName) {
       fetchDataFromDBus(
         dbusFilterName, // Process name
-        `com.skaginn3x.${slot}`, // Interface name
+        `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`, // Interface name
         'Slots', // Path
         'Filter', // Property
       ).then(({ parsedData, parsedSchema }) => {
@@ -68,7 +69,15 @@ export default function FilterModal({
               inputSchema={schema}
               key={dbusFilterName}
               onSubmit={(data: any) => {
-                updateFormData(dbusFilterName ?? '', `com.skaginn3x.${slot}`, 'Slots', 'Filter', data.values.config, setFormData, addAlert);
+                updateFormData(
+                  dbusFilterName,
+                  `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`,
+                  'Slots',
+                  'Filter',
+                  data.values.config,
+                  setFormData,
+                  addAlert,
+                );
               }}
               values={formData}
             />

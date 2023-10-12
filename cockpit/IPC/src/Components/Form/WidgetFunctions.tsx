@@ -42,6 +42,11 @@ export function removeOrg(name: string) {
   return name;
 }
 
+/**
+   * Remove org from dbus slot interface
+   * @param name  string
+   * @returns string
+   */
 export function removeSlotOrg(name: string) {
   // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
   // return etc.tfc.operation_mode.def.state_machine
@@ -52,11 +57,16 @@ export function removeSlotOrg(name: string) {
 }
 
 /**
-   * Update form data and dbus property config
-   * @param name string
-   * @param newData Object
-   * @returns void
-   */
+ * Update form data and dbus property for jsonschema
+ * @param name  Process Name
+ * @param iface Interface Name
+ * @param path  Dbus Path
+ * @param property Property Name
+ * @param newData  Data to be updated
+ * @param setFormData React Hook to set form data
+ * @param addAlert Alert context hook
+ * @returns Nothing
+ */
 export const updateFormData = (
   name: string | undefined,
   iface: string,
@@ -104,18 +114,33 @@ export const updateFormData = (
   });
 };
 
+/**
+ * Fetches jsonschema and data from dbus
+ * @param name Process Name
+ * @param iface Interface Name
+ * @param path  DBUS Path
+ * @param property  DBUS Property Name
+ * @returns Data and Schema { parsedData: any, parsedSchema: any}
+ */
 export async function fetchDataFromDBus(name: string, iface: string, path: string, property: string) {
-  console.log('name = ', name);
-  console.log('iface = ', iface);
+  if (!name) return {};
+  if (!iface) return {};
+  if (!path) return {};
+  if (!property) return {};
   const dbus = window.cockpit.dbus(name);
-  console.log('dbus = ', dbus);
   const OBJproxy = dbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
   await OBJproxy.wait();
-  console.log('proxy = ', OBJproxy);
+  let parsedData;
+  let parsedSchema;
 
   const { data } = OBJproxy;
-  let parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
-  const parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
+  try {
+    parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
+    parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
+  } catch (error) {
+    console.error('Error parsing data:', error);
+    return {};
+  }
 
   if (!Object.keys(parsedData).includes(property)) {
     parsedData = { config: parsedData };
