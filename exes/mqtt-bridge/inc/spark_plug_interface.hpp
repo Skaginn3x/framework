@@ -116,12 +116,12 @@ private:
 using spark_plug = spark_plug_interface<tfc::confman::config<config::spark_plug_b>, client_n>;
 using spark_plug_mock = spark_plug_interface<config::spark_plug_b_mock, client_mock>;
 
-}  // namespace tfc::mqtt
-
-template class tfc::mqtt::spark_plug_interface<
+extern template class tfc::mqtt::spark_plug_interface<
     tfc::mqtt::config::spark_plug_b_mock,
     tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
 
-template class tfc::mqtt::spark_plug_interface<
+extern template class tfc::mqtt::spark_plug_interface<
     tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
     tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>>;
+
+}  // namespace tfc::mqtt

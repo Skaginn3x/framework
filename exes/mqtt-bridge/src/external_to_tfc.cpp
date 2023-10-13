@@ -68,3 +68,18 @@ auto external_to_tfc<ipc_client_t, config_t, signal_v>::last_word(std::string co
   return "";
 }
 }  // namespace tfc::mqtt
+
+template class tfc::mqtt::external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
+                                          tfc::confman::config<tfc::mqtt::config::writeable_signals>,
+                                          tfc::ipc::any_signal>;
+
+template class tfc::mqtt::external_to_tfc<
+    tfc::ipc_ruler::ipc_manager_client_mock,
+    tfc::mqtt::config::writeable_signals_mock,
+    std::variant<std::monostate,
+                 tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock>>>;

@@ -340,3 +340,11 @@ auto spark_plug_interface<config_t, mqtt_client_t>::wait_for_payloads(
 }
 
 }  // namespace tfc::mqtt
+
+template class tfc::mqtt::spark_plug_interface<
+    tfc::mqtt::config::spark_plug_b_mock,
+    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
+
+template class tfc::mqtt::spark_plug_interface<
+    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
+    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>>;

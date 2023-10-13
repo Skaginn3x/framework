@@ -1,6 +1,6 @@
 add_executable(mqtt_bridge
-  src/client.cpp
   src/spark_plug_interface.cpp
+  src/client.cpp
   src/tfc_to_external.cpp
   src/external_to_tfc.cpp
   src/main.cpp

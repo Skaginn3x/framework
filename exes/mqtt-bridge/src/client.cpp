@@ -214,3 +214,7 @@ auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
 }
 
 }  // namespace tfc::mqtt
+
+template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
+
+template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;
