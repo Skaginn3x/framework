@@ -68,9 +68,7 @@ public:
   auto strand() -> asio::strand<asio::io_context::executor_type>& { return strand_; }
 
   auto recv(async_mqtt::control_packet_type packet_t) -> asio::awaitable<
-      package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet>>
-
-  {
+      package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet>> {
     if (packet_t == async_mqtt::control_packet_type::suback) {
       package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet> my_variant;
       my_variant.set<async_mqtt::v5::suback_packet>({ 0, { async_mqtt::suback_reason_code::granted_qos_0 } });
@@ -83,11 +81,10 @@ public:
                                                        { async_mqtt::pub::retain::no },
                                                        async_mqtt::properties{} });
       co_return my_variant;
-    } else if (packet_t == async_mqtt::control_packet_type::connack) {
-      package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet> my_variant;
-      my_variant.set<async_mqtt::v5::connack_packet>({ true, async_mqtt::connect_reason_code::success });
-      co_return my_variant;
     }
+    package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet> my_variant;
+    my_variant.set<async_mqtt::v5::connack_packet>({ true, async_mqtt::connect_reason_code::success });
+    co_return my_variant;
   }
 
   template <typename... args_t>
