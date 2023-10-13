@@ -47,11 +47,12 @@ struct mock_slot {
             std::string_view,
             std::string_view,
             tfc::stx::invocable<value_t> auto&&) {
-    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(std::nullopt));
+    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
   }
   mock_slot(asio::io_context const&, manager_client_type&, std::string_view, tfc::stx::invocable<value_t> auto&&) {}
 
   MOCK_METHOD((std::optional<value_t> const&), value, (), (const));  // NOLINT
+  std::optional<value_t> value_{ std::nullopt };
 };
 
 }  // namespace tfc::ipc
