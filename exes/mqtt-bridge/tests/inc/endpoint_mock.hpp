@@ -62,8 +62,7 @@ using boost::asio::experimental::awaitable_operators::operator||;
 
 class endpoint_client_mock {
 public:
-  explicit endpoint_client_mock(asio::io_context& ctx, structs::ssl_active_e)
-      : io_ctx_(ctx), strand_(asio::make_strand(ctx)) {}
+  explicit endpoint_client_mock(asio::io_context& ctx, structs::ssl_active_e) : strand_(asio::make_strand(ctx)) {}
 
   auto strand() -> asio::strand<asio::io_context::executor_type>& { return strand_; }
 
@@ -113,7 +112,6 @@ public:
   auto async_handshake() -> asio::awaitable<void> { co_return; }
 
 private:
-  asio::io_context& io_ctx_;
   asio::strand<asio::io_context::executor_type> strand_;
   async_mqtt::tls::context tls_ctx_{ async_mqtt::tls::context::tlsv12 };
   std::optional<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client_;
