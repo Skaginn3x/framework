@@ -23,29 +23,30 @@ struct glz::meta<mp_units::ratio> {
   static constexpr auto name{ "units::ratio" };
 };
 
-template <typename unit_t>
-struct unit_symbol {
-  static constexpr std::size_t size{ 255 };
+template <typename CharT, mp_units::Unit U, mp_units::unit_symbol_formatting fmt>
+struct const_unit_symbol {
+  static consteval auto unit_symbol_len() -> std::size_t { return unit_symbol(U{}, fmt).size(); }
   static constexpr auto impl() noexcept {
-    std::array<char, size> array{};
-    auto out_it{ mp_units::unit_symbol_to(array.begin(), unit_t{}) };
-    auto len = std::distance(array.begin(), out_it);
-    return std::make_pair(array, len);
+    std::array<CharT, unit_symbol_len() + 1> buffer{};
+    auto foo = unit_symbol(U{}, fmt);
+    std::ranges::copy(std::begin(foo), std::end(foo), std::begin(buffer));
+    return buffer;
   }
   // Give the joined string static storage
   static constexpr auto arr = impl();
-  static_assert(arr.second < size);
   // View as a std::string_view
-  static constexpr std::string_view value{ arr.first.data(), arr.second };
+  static constexpr std::basic_string_view<CharT> value{ arr.data(), arr.size() - 1 };
 };
-// Helper to get the value out
-template <typename unit_t>
-static constexpr auto unit_symbol_v = unit_symbol<unit_t>::value;
+
+template <typename CharT = char, mp_units::Unit U, mp_units::unit_symbol_formatting fmt = mp_units::unit_symbol_formatting{}>
+[[nodiscard]] constexpr std::basic_string_view<CharT> unit_symbol_view(U) {
+  return const_unit_symbol<CharT, U, fmt>::value;
+}
 
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   using type = mp_units::quantity<ref_t, rep_t>;
-  static constexpr std::string_view unit{ unit_symbol_v<decltype(ref_t)> };
+  static constexpr std::string_view unit{ unit_symbol_view(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_; } };
   static std::string_view constexpr prefix{ "units::quantity<" };
@@ -87,23 +88,27 @@ namespace tfc::unit {
 template <mp_units::Reference auto ref_t>
 inline constexpr auto dimension_name() -> std::string_view {
   if constexpr (mp_units::convertible(ref_t, mp_units::si::metre)) {
-    return "metre";
+    return "length";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::hertz)) {
-    return "hertz";
+    return "frequency";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::ampere)) {
-    return "ampere";
+    return "electric_current";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::volt)) {
     return "voltage";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::watt)) {
-    return "watt";
+    return "power";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::gram)) {
-    return "gram";
+    return "mass";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::litre)) {
-    return "litre";
+    return "volume";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::angular::degree)) {
-    return "degree";
-  } else if constexpr (mp_units::convertible(ref_t, mp_units::square(mp_units::si::milli<mp_units::si::metre>))) {
-    return "millimetre^2";
+    return "angular degree";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::square(mp_units::si::metre))) {
+    return "area";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::metre / mp_units::si::second)) {
+    return "speed";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::metre / mp_units::square(mp_units::si::second))) {
+    return "acceleration";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");
