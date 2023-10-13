@@ -46,7 +46,7 @@ auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::handle_i
     const std::string slot_name{ fmt::format("{}_slot_mqtt_broadcaster_{}", ipc::details::enum_name(signal.type),
                                              signal.name) };
 
-    auto ipc = ipc::details::make_any_slot::make(signal.type, io_ctx_, slot_name);
+    auto slot = ipc::details::make_any_slot::make(signal.type, io_ctx_, slot_name);
 
     std::visit(
         [this, &signal]<typename recv_t>(recv_t&& receiver) {
@@ -58,9 +58,9 @@ auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::handle_i
             }
           }
         },
-        ipc);
+        slot);
 
-    signals_.emplace_back(signal, std::move(ipc), std::nullopt);
+    signals_.emplace_back(signal, std::move(slot), std::nullopt);
 
     logger_.trace("Added signal_data for signal: {}", signal.name);
   }
