@@ -23,11 +23,10 @@ struct glz::meta<mp_units::ratio> {
   static constexpr auto name{ "units::ratio" };
 };
 
-template<typename CharT, mp_units::Unit U, mp_units::unit_symbol_formatting fmt>
+template <typename CharT, mp_units::Unit U, mp_units::unit_symbol_formatting fmt>
 struct const_unit_symbol {
   static consteval auto unit_symbol_len() -> std::size_t { return unit_symbol(U{}, fmt).size(); }
-  static constexpr auto impl() noexcept
-  {
+  static constexpr auto impl() noexcept {
     std::array<CharT, unit_symbol_len() + 1> buffer{};
     auto foo = unit_symbol(U{}, fmt);
     std::ranges::copy(std::begin(foo), std::end(foo), std::begin(buffer));
@@ -36,12 +35,11 @@ struct const_unit_symbol {
   // Give the joined string static storage
   static constexpr auto arr = impl();
   // View as a std::string_view
-  static constexpr std::basic_string_view<CharT> value{arr.data(), arr.size() - 1};
+  static constexpr std::basic_string_view<CharT> value{ arr.data(), arr.size() - 1 };
 };
 
-template<typename CharT = char, mp_units::Unit U, mp_units::unit_symbol_formatting fmt = mp_units::unit_symbol_formatting{}>
-[[nodiscard]] constexpr std::basic_string_view<CharT> unit_symbol_view(U)
-{
+template <typename CharT = char, mp_units::Unit U, mp_units::unit_symbol_formatting fmt = mp_units::unit_symbol_formatting{}>
+[[nodiscard]] constexpr std::basic_string_view<CharT> unit_symbol_view(U) {
   return const_unit_symbol<CharT, U, fmt>::value;
 }
 

@@ -46,17 +46,17 @@ auto main() -> int {
     ut::expect(json == "320") << "got: " << json;
     ut::expect(glz::read_json<test_t>(json).value() == foo);
   };
-   "mp"_test = [] {
-     using namespace mp_units::si::unit_symbols;
-     auto foo{42 * (km / h) };
-     std::string const json{ glz::write_json(foo) };
-     ut::expect(json == "42") << "got: " << json;
-     [[maybe_unused]] auto bar = glz::read_json<decltype(foo)>(json);
-     if (!bar.has_value()) {
-       fmt::print("{}\n", glz::format_error(bar.error(), json));
-     }
-     ut::expect(glz::read_json<decltype(foo)>(json).has_value());
-   };
+  "mp"_test = [] {
+    using namespace mp_units::si::unit_symbols;
+    auto foo{ 42 * (km / h) };
+    std::string const json{ glz::write_json(foo) };
+    ut::expect(json == "42") << "got: " << json;
+    [[maybe_unused]] auto bar = glz::read_json<decltype(foo)>(json);
+    if (!bar.has_value()) {
+      fmt::print("{}\n", glz::format_error(bar.error(), json));
+    }
+    ut::expect(glz::read_json<decltype(foo)>(json).has_value());
+  };
   "fixed_string_to_json"_test = [] {
     tfc::stx::basic_fixed_string foo{ "HelloWorld" };
     auto foo_json{ glz::write_json(foo) };
