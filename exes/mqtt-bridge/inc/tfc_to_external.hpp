@@ -12,6 +12,8 @@
 
 #include <client.hpp>
 #include <config/broker.hpp>
+#include <config/spark_plug_b.hpp>
+#include <config/spark_plug_b_mock.hpp>
 #include <endpoint.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
@@ -86,3 +88,12 @@ using tfc_to_ext_mock = tfc_to_external<config::spark_plug_b_mock,
                                         client<endpoint_client_mock, config::broker_mock>,
                                         tfc::ipc_ruler::ipc_manager_client_mock>;
 }  // namespace tfc::mqtt
+
+template class tfc::mqtt::tfc_to_external<tfc::mqtt::config::spark_plug_b_mock,
+                                          tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>,
+                                          tfc::ipc_ruler::ipc_manager_client_mock>;
+
+template class tfc::mqtt::tfc_to_external<
+    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
+    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>,
+    tfc::ipc_ruler::ipc_manager_client>;

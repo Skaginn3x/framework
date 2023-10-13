@@ -9,8 +9,10 @@
 #include <boost/asio.hpp>
 
 #include <config/writeable_signals.hpp>
+#include <config/writeable_signals_mock.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/logger.hpp>
 
 namespace tfc::mqtt {
@@ -43,3 +45,17 @@ using ext_to_tfc = external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
                                    tfc::ipc::any_signal>;
 
 }  // namespace tfc::mqtt
+template class tfc::mqtt::external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
+                                          tfc::confman::config<tfc::mqtt::config::writeable_signals>,
+                                          tfc::ipc::any_signal>;
+
+template class tfc::mqtt::external_to_tfc<
+    tfc::ipc_ruler::ipc_manager_client_mock,
+    tfc::mqtt::config::writeable_signals_mock,
+    std::variant<std::monostate,
+                 tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock>,
+                 tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock>>>;

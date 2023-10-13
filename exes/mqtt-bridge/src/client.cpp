@@ -11,8 +11,7 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <client.hpp>
-#include <endpoint.hpp>
-#include <endpoint_mock.hpp>
+
 #include <structs.hpp>
 
 namespace tfc::mqtt {
@@ -215,7 +214,3 @@ auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
 }
 
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
-
-template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;

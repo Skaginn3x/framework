@@ -9,10 +9,6 @@
 #include <fmt/format.h>
 #include <boost/asio.hpp>
 
-#include <client.hpp>
-#include <config/spark_plug_b.hpp>
-#include <config/spark_plug_b_mock.hpp>
-#include <endpoint.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 #include <tfc/ipc.hpp>
@@ -184,12 +180,3 @@ auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::listen_t
 }
 
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::tfc_to_external<tfc::mqtt::config::spark_plug_b_mock,
-                                          tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>,
-                                          tfc::ipc_ruler::ipc_manager_client_mock>;
-
-template class tfc::mqtt::tfc_to_external<
-    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>,
-    tfc::ipc_ruler::ipc_manager_client>;

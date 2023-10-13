@@ -13,11 +13,7 @@
 #include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
 
-#include <client.hpp>
-#include <config/broker.hpp>
-#include <config/spark_plug_b.hpp>
 #include <constants.hpp>
-#include <endpoint.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 #include <tfc/ipc.hpp>
@@ -344,11 +340,3 @@ auto spark_plug_interface<config_t, mqtt_client_t>::wait_for_payloads(
 }
 
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::spark_plug_interface<
-    tfc::mqtt::config::spark_plug_b_mock,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
-
-template class tfc::mqtt::spark_plug_interface<
-    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>>;

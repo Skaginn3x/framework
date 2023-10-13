@@ -71,3 +71,7 @@ using client_n = client<endpoint_client, tfc::confman::config<config::broker>>;
 using client_mock = client<endpoint_client_mock, config::broker_mock>;
 
 }  // namespace tfc::mqtt
+
+template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
+
+template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;
