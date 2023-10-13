@@ -19,15 +19,19 @@ using ut::operator>>;
 namespace compile_test {
 using tfc::unit::dimension_name;
 namespace si = mp_units::si;
-static_assert(dimension_name<si::metre>() == "metre");
-static_assert(dimension_name<si::hertz>() == "hertz");
-static_assert(dimension_name<si::ampere>() == "ampere");
+using namespace mp_units::si::unit_symbols;
+static_assert(dimension_name<si::metre>() == "length");
+static_assert(dimension_name<si::hertz>() == "frequency");
+static_assert(dimension_name<si::ampere>() == "electric_current");
 static_assert(dimension_name<si::volt>() == "voltage");
-static_assert(dimension_name<si::watt>() == "watt");
-static_assert(dimension_name<si::gram>() == "gram");
-static_assert(dimension_name<si::litre>() == "litre");
-static_assert(dimension_name<mp_units::angular::degree>() == "degree");
-static_assert(dimension_name<mp_units::square(si::milli<si::metre>)>() == "millimetre^2");
+static_assert(dimension_name<si::watt>() == "power");
+static_assert(dimension_name<si::gram>() == "mass");
+static_assert(dimension_name<si::litre>() == "volume");
+static_assert(dimension_name<mp_units::angular::degree>() == "angular degree");
+static_assert(dimension_name<mp_units::square(si::milli<si::metre>)>() == "area");
+static_assert(dimension_name<mp_units::square(si::centi<si::metre>)>() == "area");
+static_assert(dimension_name<km / h>() == "speed");
+static_assert(dimension_name<km / mp_units::square(h)>() == "acceleration");
 }  // namespace compile_test
 
 using std::string_view_literals::operator""sv;
@@ -42,17 +46,17 @@ auto main() -> int {
     ut::expect(json == "320") << "got: " << json;
     ut::expect(glz::read_json<test_t>(json).value() == foo);
   };
-  // "mp"_test = [] {
-  //   using target_velocity_t = mp_units::quantity<si::milli<si::metre> / si::second, int32_t>;
-  //   target_velocity_t foo{42 * m / s};
-  //   std::string const json{ glz::write_json(foo) };
-  //   ut::expect(json == "42") << "got: " << json;
-  //   [[maybe_unused]] auto bar = glz::read_json<target_velocity_t>(json);
-  //   if (!bar.has_value()) {
-  //     fmt::print("{}\n", glz::format_error(bar.error(), json));
-  //   }
-  //   ut::expect(glz::read_json<target_velocity_t>(json).has_value());
-  // };
+   "mp"_test = [] {
+     using namespace mp_units::si::unit_symbols;
+     auto foo{42 * (km / h) };
+     std::string const json{ glz::write_json(foo) };
+     ut::expect(json == "42") << "got: " << json;
+     [[maybe_unused]] auto bar = glz::read_json<decltype(foo)>(json);
+     if (!bar.has_value()) {
+       fmt::print("{}\n", glz::format_error(bar.error(), json));
+     }
+     ut::expect(glz::read_json<decltype(foo)>(json).has_value());
+   };
   "fixed_string_to_json"_test = [] {
     tfc::stx::basic_fixed_string foo{ "HelloWorld" };
     auto foo_json{ glz::write_json(foo) };
