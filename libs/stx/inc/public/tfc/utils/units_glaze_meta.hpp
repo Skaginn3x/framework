@@ -46,7 +46,10 @@ template <typename CharT = char, mp_units::Unit U, mp_units::unit_symbol_formatt
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   using type = mp_units::quantity<ref_t, rep_t>;
-  static constexpr std::string_view unit{ unit_symbol_view(ref_t) };
+  static constexpr std::string_view unit{
+    unit_symbol_view<char, decltype(ref_t), mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(
+        ref_t)
+  };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_; } };
   static std::string_view constexpr prefix{ "units::quantity<" };
