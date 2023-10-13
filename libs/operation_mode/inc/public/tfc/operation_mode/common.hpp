@@ -28,7 +28,7 @@ enum struct mode_e : std::uint8_t {
 
 namespace dbus {
 // Please note that this needs to match the generated service name of the operation mode daemon
-static constexpr std::string_view service_default{ "tfc.Operations.def" };
+static constexpr std::string_view service_default{ "tfc.operations.def" };
 static constexpr std::string_view service_name{ tfc::dbus::const_dbus_name<service_default> };
 static constexpr std::string_view interface_name{ "OperationMode" };
 static constexpr std::string_view name{ tfc::dbus::const_dbus_name<interface_name> };
