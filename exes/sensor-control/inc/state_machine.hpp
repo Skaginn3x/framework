@@ -8,6 +8,7 @@ namespace tfc::sensor::control {
 
 namespace events {
 struct sensor_active {};
+struct sensor_inactive {};
 struct new_info {};
 struct discharge {};
 struct complete {};
@@ -24,6 +25,11 @@ struct state_machine {
     using boost::sml::on_exit;
     using boost::sml::literals::operator""_s;
     using boost::sml::literals::operator""_e;
+
+    static constexpr auto using_discharge_delay = [](owner_t& owner){
+      return owner.using_discharge_timer();
+    };
+
 
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wused-but-marked-unused) // Todo fix sml.hpp
@@ -43,7 +49,13 @@ struct state_machine {
       , "discharging"_s + on_entry<_> / [this](){ owner_.enter_discharging(); }
       , "discharging"_s + on_exit<_> / [this](){ owner_.leave_discharging(); }
 
-      , "discharging"_s + event<events::complete> = "idle"_s
+      , "discharging"_s + event<events::complete> [using_discharge_delay] = "idle"_s
+
+      , "discharging"_s + event<events::sensor_inactive> [using_discharge_delay] = "discharge_delayed"_s
+      , "discharge_delayed"_s + on_entry<_> / [this](){ owner_.enter_discharge_delayed(); }
+      , "discharge_delayed"_s + on_exit<_> / [this](){ owner_.leave_discharge_delayed(); }
+
+      , "discharge_delayed"_s + event<events::complete> = "idle"_s
     );
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
