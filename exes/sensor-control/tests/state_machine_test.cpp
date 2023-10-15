@@ -14,6 +14,9 @@ struct the_owner {
   MOCK_METHOD((void), leave_awaiting_sensor, (), ());
   MOCK_METHOD((void), enter_discharging, (), ());
   MOCK_METHOD((void), leave_discharging, (), ());
+  MOCK_METHOD((void), enter_discharge_delayed, (), ());
+  MOCK_METHOD((void), leave_discharge_delayed, (), ());
+  MOCK_METHOD((bool), using_discharge_timer, (), (const noexcept));
 };
 
 namespace sml = boost::sml;
@@ -25,7 +28,8 @@ using tfc::sensor::control::state_machine;
 
 struct test_instance {
   testing::NiceMock<the_owner> owner{};
-  sml::sm<state_machine<the_owner>, sml::testing> sm{ state_machine<the_owner>{ owner } };
+  state_machine<the_owner> sm_owner{ owner };
+  sml::sm<state_machine<the_owner>, sml::testing> sm{ sm_owner };
 };
 
 auto main(int argc, char** argv) -> int {
@@ -74,6 +78,24 @@ auto main(int argc, char** argv) -> int {
     test_instance instance;
     instance.sm.set_current_states("discharging"_s);
     EXPECT_CALL(instance.owner, leave_discharging());
+    EXPECT_CALL(instance.owner, enter_idle());
+    instance.sm.process_event(events::complete{});
+    ut::expect(instance.sm.is("idle"_s));
+  };
+
+  "discharging -> delay discharging"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states("discharging"_s);
+    EXPECT_CALL(instance.owner, leave_discharging());
+    EXPECT_CALL(instance.owner, enter_discharge_delayed());
+    instance.sm.process_event(events::sensor_inactive{});
+    ut::expect(instance.sm.is("discharge_delayed"_s));
+  };
+
+  "delay discharging -> idle"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states("discharge_delayed"_s);
+    EXPECT_CALL(instance.owner, leave_discharge_delayed());
     EXPECT_CALL(instance.owner, enter_idle());
     instance.sm.process_event(events::complete{});
     ut::expect(instance.sm.is("idle"_s));

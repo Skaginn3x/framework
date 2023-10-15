@@ -162,6 +162,10 @@ auto main(int argc, char** argv) -> int {
     instance.ctrl.enter_awaiting_discharge();
   };
 
+  "enter discharge_delayed emits event complete if timer not configured"_test = [] {
+
+  };
+
 
   return EXIT_SUCCESS;
 }
