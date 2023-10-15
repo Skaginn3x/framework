@@ -3,6 +3,7 @@
 #include <functional>
 #include <optional>
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/sml.hpp>
 
 #include <tfc/ipc.hpp>
@@ -25,6 +26,17 @@ class sensor_control {
 public:
   explicit sensor_control(asio::io_context&);
 
+  struct config {
+    std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
+    struct glaze {
+      static constexpr std::string_view name{ "tfc::sensor_control" };
+      static constexpr auto value{ glz::object(
+          "discharge delay",
+          &config::discharge_timeout,
+          "Delay after falling edge of sensor to keep output of discharge active high.") };
+    };
+  };
+
   void enter_idle();
   void leave_idle();
   void enter_awaiting_discharge();
@@ -33,7 +45,8 @@ public:
   void leave_awaiting_sensor();
   void enter_discharging();
   void leave_discharging();
-
+  void enter_discharge_delayed();
+  void leave_discharge_delayed();
   // accessors for testing purposes
   [[nodiscard]] auto motor_signal() const noexcept -> auto const& { return motor_percentage_; }
   [[nodiscard]] auto discharge_signal() const noexcept -> auto const& { return request_discharge_; }
@@ -46,6 +59,9 @@ public:
   void on_discharge_request(std::string const& new_value);
   void on_may_discharge(bool new_value);
   void set_queued_item(ipc::item::item&&);
+
+  void discharge_timer_cb(std::error_code const&);
+  bool using_discharge_timer() const noexcept { return discharge_timer_.has_value(); }
 
 private:
   void stop_motor();
@@ -67,8 +83,7 @@ private:
                                   std::bind_front(&sensor_control::on_discharge_request, this) };
   bool_signal_t discharge_allowance_{ ctx_, ipc_client_, "discharge_allowance",
                                       "Let upstream know that it can discharge onto me" };
-  bool_signal_t discharge_active_{ ctx_, ipc_client_, "discharge_active",
-                                      "Discharging item to downstream" };
+  bool_signal_t discharge_active_{ ctx_, ipc_client_, "discharge_active", "Discharging item to downstream" };
   bool_slot_t may_discharge_{ ctx_, ipc_client_, "may_discharge", "Get acknowledgement of discharging my item",
                               std::bind_front(&sensor_control::on_may_discharge, this) };
   double_signal_t motor_percentage_{ ctx_, ipc_client_, "motor_percentage", "Motor freq output, stopped when inactive." };
@@ -80,6 +95,10 @@ private:
   std::shared_ptr<state_machine_t> sm_{
     std::make_shared<state_machine_t>(sensor::control::state_machine<sensor_control>{ *this }, tfc::logger::sml_logger{})
   };
+
+  std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
+
+  tfc::confman::config<config> config_{ ctx_, "sensor_control" };
 };
 
 extern template class sensor_control<>;

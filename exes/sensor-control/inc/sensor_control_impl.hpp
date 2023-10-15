@@ -9,16 +9,24 @@ namespace tfc {
 
 namespace events = sensor::control::events;
 
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx) : ctx_{ ctx } {}
 
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   stop_motor();
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {}
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
   auto itm = queued_item_ ? std::move(queued_item_.value()) : ipc::item::make();
   queued_item_ = std::nullopt;
@@ -31,9 +39,13 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
     sm_->process_event(events::discharge{});
   }
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_discharge() {}
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
   start_motor();
   discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
@@ -42,7 +54,9 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
     }
   });
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_sensor() {
   stop_motor();
   discharge_allowance_.async_send(false, [this](auto const& err, std::size_t) {
@@ -51,23 +65,58 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_sensor() {
     }
   });
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
   start_motor();
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_discharging() {}
 
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
-void sensor_control<signal_t, slot_t, sml_t>::on_sensor(bool new_value) {
-  if (new_value) {
-    sm_->process_event(events::sensor_active{});
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::enter_discharge_delayed() {
+  if (discharge_timer_) {
+    logger_.warn("You are screwed, this is not supposed to happen.");
   }
-  else {
+  if (config_->discharge_timeout) {
+    logger_.trace("Starting discharge delay timer for: {}", config_->discharge_timeout.value());
+    discharge_timer_.emplace(ctx_);
+    discharge_timer_->expires_after(config_->discharge_timeout.value());
+    discharge_timer_->async_wait(std::bind_front(&sensor_control::discharge_timer_cb, this));
+  } else {
+    logger_.info("Discharge delay not configured but called, will transition to idle immediately");
     sm_->process_event(events::complete{});
   }
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::leave_discharge_delayed() {
+  if (discharge_timer_) {
+    discharge_timer_->cancel();
+    discharge_timer_.reset();
+  }
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::on_sensor(bool new_value) {
+  if (new_value) {
+    sm_->process_event(events::sensor_active{});
+  } else {
+
+    sm_->process_event(events::complete{});
+  }
+}
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::on_discharge_request(std::string const& new_value) {
   if (auto const err{ glz::validate_json(new_value) }) {
     logger_.info("Discharge request json error: {}", glz::format_error(err, new_value));
@@ -82,22 +131,38 @@ void sensor_control<signal_t, slot_t, sml_t>::on_discharge_request(std::string c
     logger_.info("Discharge request item parse error: {}", glz::format_error(parsed_item.error(), new_value));
   }
 }
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(bool new_value) {
   if (new_value) {
     sm_->process_event(events::discharge{});
   }
 }
 
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::set_queued_item(ipc::item::item&& new_value) {
   if (queued_item_) {
     logger_.info("Overwriting queued item with id: {}", queued_item_->id());
   }
   queued_item_ = std::move(new_value);
 }
-
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::discharge_timer_cb(std::error_code const& err) {
+  if (err) {
+    logger_.info("Discharge timer error: {}\n The state machine will continue even though the timer error occurred", err.message());
+  }
+  discharge_timer_.reset();
+  sm_->process_event(events::complete{});
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::stop_motor() {
   motor_percentage_.async_send(0.0, [this](auto const& err, std::size_t) {
     if (err) {
@@ -106,7 +171,9 @@ void sensor_control<signal_t, slot_t, sml_t>::stop_motor() {
   });
 }
 
+// clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::start_motor() {
   // todo should run speed be configurable in this process?
   // or more generically in ethercat process
