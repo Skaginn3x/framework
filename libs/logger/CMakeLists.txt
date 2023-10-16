@@ -1,8 +1,11 @@
 project(logger)
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.28)
 
-add_library(logger
-  src/logger.cpp
+add_library(logger)
+target_sources(logger
+  PUBLIC
+  FILE_SET cxx_modules TYPE CXX_MODULES FILES
+  inc/public/tfc/logger.cxx
 )
 add_library(tfc::logger ALIAS logger)
 target_include_directories(logger
@@ -34,5 +37,5 @@ if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
 
-include(tfc_install)
-tfc_install_lib(logger)
+#include(tfc_install)
+#tfc_install_lib(logger)

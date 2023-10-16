@@ -17,11 +17,18 @@ class io_context;
 }  // namespace asio
 }  // namespace boost
 
-namespace tfc::logger {
-enum struct lvl_e : int;
-}
 
 namespace tfc::base {
+/*! Logging level*/
+enum struct lvl_e : int {
+  trace = 0,
+  debug = 1,
+  info = 2,
+  warn = 3,
+  error = 4,
+  critical = 5,
+  off = 6, /*! Log regardless of set logging level*/
+};
 
 /// \brief Description of command line arguments for the program
 /// \return Default description for tfc applications
@@ -41,7 +48,7 @@ void init(int argc, char const* const* argv);
 
 /// \brief default value is tfc::logger::lvl_e::info
 /// \return log level
-[[nodiscard]] auto get_log_lvl() noexcept -> tfc::logger::lvl_e;
+[[nodiscard]] auto get_log_lvl() noexcept -> tfc::base::lvl_e;
 
 /// \return boost variables map if needed to get custom parameters from description
 [[nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const&;

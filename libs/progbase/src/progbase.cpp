@@ -1,6 +1,5 @@
 #include <ranges>
 
-#include "tfc/logger.hpp"
 #include "tfc/progbase.hpp"
 #include "tfc/utils/pragmas.hpp"
 
@@ -35,7 +34,7 @@ public:
     noeffect_ = vm_["noeffect"].as<bool>();
 
     auto log_level = vm_["log-level"].as<std::string>();
-    auto enum_v = magic_enum::enum_cast<tfc::logger::lvl_e>(log_level);
+    auto enum_v = magic_enum::enum_cast<tfc::base::lvl_e>(log_level);
     if (enum_v.has_value()) {
       log_level_ = enum_v.value();
     } else {
@@ -57,7 +56,7 @@ public:
   [[nodiscard]] auto get_exe_name() const -> std::string_view { return exe_name_; }
   [[nodiscard]] auto get_stdout() const noexcept -> bool { return stdout_; }
   [[nodiscard]] auto get_noeffect() const noexcept -> bool { return noeffect_; }
-  [[nodiscard]] auto get_log_lvl() const noexcept -> tfc::logger::lvl_e { return log_level_; }
+  [[nodiscard]] auto get_log_lvl() const noexcept -> tfc::base::lvl_e { return log_level_; }
 
 private:
   options() = default;
@@ -66,7 +65,7 @@ private:
   std::string id_{};
   std::string exe_name_{};
   bpo::variables_map vm_{};
-  tfc::logger::lvl_e log_level_{};
+  tfc::base::lvl_e log_level_{};
 };
 
 auto default_description() -> boost::program_options::options_description {
@@ -76,7 +75,7 @@ auto default_description() -> boost::program_options::options_description {
   };
 
   // Dynamically fetch entries in log level
-  constexpr auto lvl_values{ magic_enum::enum_entries<tfc::logger::lvl_e>() };
+  constexpr auto lvl_values{ magic_enum::enum_entries<tfc::base::lvl_e>() };
   std::string help_text;
   std::for_each(lvl_values.begin(), lvl_values.end(), [&help_text](auto& pair) {
     help_text.append(" ");
@@ -104,7 +103,7 @@ auto get_exe_name() noexcept -> std::string_view {
 auto get_proc_name() noexcept -> std::string_view {
   return options::instance().get_id();
 }
-auto get_log_lvl() noexcept -> tfc::logger::lvl_e {
+auto get_log_lvl() noexcept -> tfc::base::lvl_e {
   return options::instance().get_log_lvl();
 }
 auto get_map() noexcept -> boost::program_options::variables_map const& {
