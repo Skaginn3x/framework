@@ -178,7 +178,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 void sensor_control<signal_t, slot_t, sml_t>::start_motor() {
   // todo should run speed be configurable in this process?
   // or more generically in ethercat process
-  motor_percentage_.async_send(100.0, [this](auto const& err, std::size_t) {
+  motor_percentage_.async_send(config_->run_speed.numerical_value_, [this](auto const& err, std::size_t) {
     if (err) {
       this->logger_.error("Failed to start motor: {}", err.message());
     }

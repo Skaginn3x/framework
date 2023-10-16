@@ -3,6 +3,8 @@
 #include <functional>
 #include <optional>
 
+#include <mp-units/quantity.h>
+#include <mp-units/unit.h>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/sml.hpp>
 
@@ -12,6 +14,7 @@
 #include <tfc/logger.hpp>
 #include <tfc/sml_logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 #include "state_machine.hpp"
 
@@ -28,12 +31,15 @@ public:
 
   struct config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
+    mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     struct glaze {
       static constexpr std::string_view name{ "tfc::sensor_control" };
+      // clang-format off
       static constexpr auto value{ glz::object(
-          "discharge delay",
-          &config::discharge_timeout,
-          "Delay after falling edge of sensor to keep output of discharge active high.") };
+        "discharge delay", &config::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
+        "run speed", &config::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 }
+      ) };
+      // clang-format on
     };
   };
 
@@ -96,7 +102,9 @@ private:
 
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
-  tfc::confman::config<config> config_{ ctx_, "sensor_control" };
+  tfc::confman::config<config> config_{
+    ctx_, "sensor_control", config{ .discharge_timeout = std::nullopt, .run_speed = 100.0 * mp_units::percent }
+  };
 };
 
 extern template class sensor_control<>;
