@@ -20,6 +20,7 @@ struct state_machine_mock {
   explicit state_machine_mock(auto&& ...) {}
 
   MOCK_METHOD(void, process_event_sensor_active, (), (const));
+  MOCK_METHOD(void, process_event_sensor_inactive, (), (const));
   MOCK_METHOD(void, process_event_info, (), (const));
   MOCK_METHOD(void, process_discharge, (), (const));
   MOCK_METHOD(void, process_complete, (), (const));
@@ -28,6 +29,9 @@ struct state_machine_mock {
   void process_event(event_t const&) {
     if constexpr (std::is_same_v<event_t, events::sensor_active>) {
       process_event_sensor_active();
+    }
+    else if constexpr (std::is_same_v<event_t, events::sensor_inactive>) {
+      process_event_sensor_inactive();
     }
     else if constexpr (std::is_same_v<event_t, events::new_info>) {
       process_event_info();
@@ -89,7 +93,7 @@ auto main(int argc, char** argv) -> int {
 
   "on_sensor false emit complete"_test = [] {
     test_instance instance{};
-    EXPECT_CALL(*instance.ctrl.state_machine(), process_complete()).Times(1);
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(1);
     instance.ctrl.on_sensor(false);
   };
 

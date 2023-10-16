@@ -61,7 +61,7 @@ public:
   void set_queued_item(ipc::item::item&&);
 
   void discharge_timer_cb(std::error_code const&);
-  [[nodiscard]] auto using_discharge_timer() const noexcept -> bool { return discharge_timer_.has_value(); }
+  [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return discharge_timer_.has_value(); }
 
 private:
   void stop_motor();
@@ -92,9 +92,7 @@ private:
   logger::logger logger_{ "sensor_control" };
 
   using state_machine_t = sml_t<sensor::control::state_machine<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>;
-  std::shared_ptr<state_machine_t> sm_{
-    std::make_shared<state_machine_t>(sensor::control::state_machine<sensor_control>{ *this }, tfc::logger::sml_logger{})
-  };
+  std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, tfc::logger::sml_logger{}) };
 
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
