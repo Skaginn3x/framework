@@ -143,6 +143,7 @@ void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(bool new_value) {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::set_queued_item(ipc::item::item&& new_value) {
+  // todo I think we need to handle two items in queue !!!!!
   if (queued_item_) {
     logger_.info("Overwriting queued item with id: {}", queued_item_->id());
   }
