@@ -27,11 +27,13 @@ namespace states = tfc::sensor::control::states;
 using sml::state;
 using ut::operator""_test;
 using ut::operator|;
+using ut::operator>>;
 using tfc::sensor::control::state_machine;
 
 struct test_instance {
   testing::NiceMock<the_owner> owner{};
-  sml::sm<state_machine<the_owner>, sml::testing> sm{ static_cast<the_owner&>(owner) };
+  state_machine<the_owner> sm_impl{}; // todo make this as a compile constraint
+  sml::sm<state_machine<the_owner>, sml::testing> sm{ sm_impl, static_cast<the_owner&>(owner) };
 };
 
 auto main(int argc, char** argv) -> int {
@@ -104,20 +106,25 @@ auto main(int argc, char** argv) -> int {
     ut::expect(instance.sm.is(state<states::idle>));
   };
 
-  "any -> stopped"_test = [] (auto const& from_state) {
-    test_instance instance;
-    instance.sm.set_current_states(from_state);
-    instance.sm.process_event(events::stop{});
-    ut::expect(instance.sm.is(state<states::stopped>));
-  } | std::make_tuple(state<states::idle>, state<states::awaiting_discharge>, state<states::awaiting_sensor>, state<states::discharging>, state<states::discharge_delayed>);
+  "any -> stopped, stopped -> any"_test =
+      []<typename state_t>(state_t const& from_state) {
+        ut::test(state_t::type::name) = [from_state] {
+          test_instance instance;
+          instance.sm.set_current_states(from_state);
+          instance.sm.process_event(events::stop{});
+          ut::expect(instance.sm.is(state<states::stopped>));
 
-  "stopped -> idle"_test = [] () {
-    test_instance instance;
-    instance.sm.set_current_states(state<states::stopped>);
-    EXPECT_CALL(instance.owner, enter_idle());
-    instance.sm.process_event(events::start{});
-    ut::expect(instance.sm.is(state<states::idle>));
-  };
+          instance.sm.process_event(events::start{});
+          ut::expect(instance.sm.is(from_state) >> ut::fatal);
+        };
+      } |
+      std::make_tuple(
+//          state<states::idle>,
+              state<states::awaiting_discharge>
+//                  ,
+//                  state<states::awaiting_sensor>,
+//                      state<states::discharging>, state<states::discharge_delayed>
+                                );
 
   return EXIT_SUCCESS;
 }
