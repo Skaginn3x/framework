@@ -110,8 +110,7 @@ void sensor_control<signal_t, slot_t, sml_t>::on_sensor(bool new_value) {
   if (new_value) {
     sm_->process_event(events::sensor_active{});
   } else {
-
-    sm_->process_event(events::complete{});
+    sm_->process_event(events::sensor_inactive{});
   }
 }
 // clang-format off
