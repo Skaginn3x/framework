@@ -1,9 +1,9 @@
-#include <boost/ut.hpp>
-#include <boost/asio/io_context.hpp>
 #include <gmock/gmock.h>
+#include <boost/asio/io_context.hpp>
+#include <boost/ut.hpp>
 
-#include <tfc/progbase.hpp>
 #include <tfc/mocks/ipc.hpp>
+#include <tfc/progbase.hpp>
 
 #include "sensor_control_impl.hpp"
 
@@ -17,7 +17,7 @@ namespace events = tfc::sensor::control::events;
 
 template <typename type, typename... type_policies>
 struct state_machine_mock {
-  explicit state_machine_mock(auto&& ...) {}
+  explicit state_machine_mock(auto&&...) {}
 
   MOCK_METHOD(void, process_event_sensor_active, (), (const));
   MOCK_METHOD(void, process_event_sensor_inactive, (), (const));
@@ -29,23 +29,19 @@ struct state_machine_mock {
   void process_event(event_t const&) {
     if constexpr (std::is_same_v<event_t, events::sensor_active>) {
       process_event_sensor_active();
-    }
-    else if constexpr (std::is_same_v<event_t, events::sensor_inactive>) {
+    } else if constexpr (std::is_same_v<event_t, events::sensor_inactive>) {
       process_event_sensor_inactive();
-    }
-    else if constexpr (std::is_same_v<event_t, events::new_info>) {
+    } else if constexpr (std::is_same_v<event_t, events::new_info>) {
       process_event_info();
-    }
-    else if constexpr (std::is_same_v<event_t, events::discharge>) {
+    } else if constexpr (std::is_same_v<event_t, events::discharge>) {
       process_discharge();
-    }
-    else if constexpr (std::is_same_v<event_t, events::complete>) {
+    } else if constexpr (std::is_same_v<event_t, events::complete>) {
       process_complete();
-    }
-    else {
+    } else {
       []<bool flag = false>() {
         static_assert(flag, "Unsupported event type");
-      }();
+      }
+      ();
     }
   }
 };
@@ -61,7 +57,7 @@ auto main(int argc, char** argv) -> int {
   ::testing::GTEST_FLAG(throw_on_failure) = true;
   ::testing::InitGoogleMock();
 
-  "on_idle stop motor"_test = []{
+  "on_idle stop motor"_test = [] {
     test_instance instance{};
     EXPECT_CALL(instance.ctrl.motor_signal(), async_send_cb(0.0, testing::_)).Times(1);
     instance.ctrl.enter_idle();
@@ -170,9 +166,5 @@ auto main(int argc, char** argv) -> int {
 
   };
 
-
   return EXIT_SUCCESS;
 }
-
-
-
