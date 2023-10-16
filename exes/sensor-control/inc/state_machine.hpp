@@ -32,8 +32,18 @@ struct stopped { static constexpr std::string_view name{ "stopped" }; };
 
 template <typename owner_t>
 struct state_machine {
-  auto last_state_idle() -> bool { return std::holds_alternative<states::idle>(last_state_); }
-  auto last_state_awaiting_discharge() -> bool { return std::holds_alternative<states::awaiting_discharge>(last_state_); }
+  state_machine() = default;
+  state_machine(state_machine const&) = delete;
+  state_machine(state_machine&&) = delete;
+  auto operator=(state_machine const&) -> state_machine& = delete;
+  auto operator=(state_machine&&) -> state_machine& = delete;
+
+  auto last_state_idle() -> bool {
+    return std::holds_alternative<states::idle>(last_state_);
+  }
+  auto last_state_awaiting_discharge() -> bool {
+    return std::holds_alternative<states::awaiting_discharge>(last_state_);
+  }
   auto last_state_awaiting_sensor() -> bool { return std::holds_alternative<states::awaiting_sensor>(last_state_); }
   auto last_state_discharging() -> bool { return std::holds_alternative<states::discharging>(last_state_); }
   auto last_state_discharge_delayed() -> bool { return std::holds_alternative<states::discharge_delayed>(last_state_); }
@@ -89,17 +99,28 @@ struct state_machine {
 
       , state<states::discharge_delayed> + event<events::complete> = state<states::idle>
 
-      , state<states::idle> + event<events::stop> / [this](){ last_state_ = states::idle{}; } = state<states::stopped>
-      , state<states::awaiting_discharge> + event<events::stop> / [this](){ last_state_ = states::awaiting_discharge{}; } = state<states::stopped>
-      , state<states::awaiting_sensor> + event<events::stop> / [this](){ last_state_ = states::awaiting_sensor{}; } = state<states::stopped>
-      , state<states::discharging> + event<events::stop> / [this](){ last_state_ = states::discharging{}; } = state<states::stopped>
-      , state<states::discharge_delayed> + event<events::stop> / [this](owner_t& owner){ last_state_ = states::discharge_delayed{}; owner.save_time_left(); } = state<states::stopped>
+      , state<states::idle> + event<events::stop> / [this](){
+          last_state_ = states::idle{};
+      } = state<states::stopped>
+      , state<states::awaiting_discharge> + event<events::stop> / [this](){
+          last_state_ = states::awaiting_discharge{};
+      } = state<states::stopped>
+      , state<states::awaiting_sensor> + event<events::stop> / [this](){
+          last_state_ = states::awaiting_sensor{};
+      } = state<states::stopped>
+      , state<states::discharging> + event<events::stop> / [this](){
+          last_state_ = states::discharging{};
+      } = state<states::stopped>
+      , state<states::discharge_delayed> + event<events::stop> / [this](owner_t& owner){
+          last_state_ = states::discharge_delayed{};
+          owner.save_time_left();
+      } = state<states::stopped>
 
-      , state<states::stopped> + event<events::start> [&state_machine::last_state_idle] = state<states::idle>
+//      , state<states::stopped> + event<events::start> [&state_machine::last_state_idle] = state<states::idle>
       , state<states::stopped> + event<events::start> [&state_machine::last_state_awaiting_discharge] = state<states::awaiting_discharge>
-      , state<states::stopped> + event<events::start> [&state_machine::last_state_awaiting_sensor] = state<states::awaiting_sensor>
-      , state<states::stopped> + event<events::start> [&state_machine::last_state_discharging] = state<states::discharging>
-      , state<states::stopped> + event<events::start> [&state_machine::last_state_discharge_delayed] = state<states::discharge_delayed>
+//      , state<states::stopped> + event<events::start> [&state_machine::last_state_awaiting_sensor] = state<states::awaiting_sensor>
+//      , state<states::stopped> + event<events::start> [&state_machine::last_state_discharging] = state<states::discharging>
+//      , state<states::stopped> + event<events::start> [&state_machine::last_state_discharge_delayed] = state<states::discharge_delayed>
     );
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
