@@ -40,6 +40,8 @@ struct state_machine {
     static constexpr auto using_discharge_delay = [](owner_t& owner) { return owner.using_discharge_delay(); };
     static constexpr auto not_using_discharge_delay = [](owner_t& owner) { return !owner.using_discharge_delay(); };
 
+    // TODO handle stop signals -> stopped or emergency !!!
+
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wused-but-marked-unused) // Todo fix sml.hpp
     auto table = boost::sml::make_transition_table(
