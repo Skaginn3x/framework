@@ -3,7 +3,7 @@
 #include <boost/ut.hpp>
 
 #include <tfc/progbase.hpp>
-#include "state_machine.hpp"
+#include "../inc/state_machine.hpp"
 
 struct the_owner {
   MOCK_METHOD((void), enter_idle, (), ());
@@ -28,8 +28,7 @@ using tfc::sensor::control::state_machine;
 
 struct test_instance {
   testing::NiceMock<the_owner> owner{};
-  state_machine<the_owner> sm_owner{ owner };
-  sml::sm<state_machine<the_owner>, sml::testing> sm{ sm_owner };
+  sml::sm<state_machine<the_owner>, sml::testing> sm{ state_machine<the_owner>{ owner } };
 };
 
 auto main(int argc, char** argv) -> int {
@@ -39,7 +38,7 @@ auto main(int argc, char** argv) -> int {
   ::testing::InitGoogleMock();
 
   "idle -> awaiting_release"_test = [] {
-    test_instance instance;
+    [[maybe_unused]] test_instance instance;
     instance.sm.set_current_states("idle"_s);
     EXPECT_CALL(instance.owner, leave_idle());
     EXPECT_CALL(instance.owner, enter_awaiting_discharge());

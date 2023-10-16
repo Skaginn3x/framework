@@ -10,8 +10,17 @@ target_link_libraries(sensor_ctrl_state_machine_test
   PRIVATE
     Boost::ut
     GTest::gmock
-    tfc::sensor_ctrl
+    tfc::base
+    tfc::stx
+#    tfc::sensor_ctrl
 )
+get_property(tfc_sensor_ctrl_dirs TARGET tfc::sensor_ctrl PROPERTY INCLUDE_DIRECTORIES)
+message(WARNING "tfc_sensor_ctrl_dirs: ${tfc_sensor_ctrl_dirs}")
+target_link_directories(sensor_ctrl_state_machine_test
+  PRIVATE
+    ${tfc_sensor_ctrl_dirs}
+)
+
 
 add_test(
   NAME

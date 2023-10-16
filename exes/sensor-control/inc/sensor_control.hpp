@@ -61,7 +61,7 @@ public:
   void set_queued_item(ipc::item::item&&);
 
   void discharge_timer_cb(std::error_code const&);
-  bool using_discharge_timer() const noexcept { return discharge_timer_.has_value(); }
+  [[nodiscard]] auto using_discharge_timer() const noexcept -> bool { return discharge_timer_.has_value(); }
 
 private:
   void stop_motor();
