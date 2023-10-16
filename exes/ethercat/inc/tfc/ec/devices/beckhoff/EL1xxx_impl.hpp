@@ -8,7 +8,7 @@
 namespace tfc::ec::devices::beckhoff {
 
 template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
-el100x<manager_client_type, size, pc, signal_t>::el100x(asio::io_context& ctx,
+el1xxx<manager_client_type, size, pc, signal_t>::el1xxx(asio::io_context& ctx,
                                                         manager_client_type& client,
                                                         const uint16_t slave_index)
     : base(slave_index) {
@@ -20,12 +20,12 @@ el100x<manager_client_type, size, pc, signal_t>::el100x(asio::io_context& ctx,
 }
 
 template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
-void el100x<manager_client_type, size, pc, signal_t>::process_data(std::span<std::byte> input,
+void el1xxx<manager_client_type, size, pc, signal_t>::process_data(std::span<std::byte> input,
                                                                    std::span<std::byte>) noexcept {
-  static_assert(size <= 8);
-  std::bitset<size> const in_bits(static_cast<uint8_t>(input[0]));
+  static_assert(size <= 16);
+  auto* input_bits = reinterpret_cast<uint16_t*>(input.data());
   for (size_t i = 0; i < size; i++) {
-    bool const value = in_bits.test(i);
+    bool const value = *input_bits & (1 << i);
     if (value != last_values_[i]) {
       transmitters_[i]->async_send(value, [this](std::error_code error, size_t) {
         if (error) {
