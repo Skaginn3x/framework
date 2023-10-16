@@ -4,6 +4,7 @@
 
 #include <tfc/mocks/ipc.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/stx/concepts.hpp>
 
 #include "sensor_control_impl.hpp"
 
@@ -17,7 +18,9 @@ namespace events = tfc::sensor::control::events;
 
 template <typename type, typename... type_policies>
 struct state_machine_mock {
-  explicit state_machine_mock(auto&&...) {}
+  template <typename... args_t>
+    requires(!tfc::stx::is_one_of<state_machine_mock, args_t...>)
+  explicit state_machine_mock(args_t&&...) {}
 
   MOCK_METHOD(void, process_event_sensor_active, (), (const));
   MOCK_METHOD(void, process_event_sensor_inactive, (), (const));
