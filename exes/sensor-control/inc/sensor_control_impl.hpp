@@ -153,7 +153,8 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::discharge_timer_cb(std::error_code const& err) {
   if (err) {
-    logger_.info("Discharge timer error: {}\n The state machine will continue even though the timer error occurred", err.message());
+    logger_.info("Discharge timer error: {}\n The state machine will continue even though the timer error occurred",
+                 err.message());
   }
   discharge_timer_.reset();
   sm_->process_event(events::complete{});

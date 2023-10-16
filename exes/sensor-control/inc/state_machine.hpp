@@ -14,7 +14,7 @@ struct discharge {};
 struct complete {};
 }  // namespace events
 
-template<typename owner_t>
+template <typename owner_t>
 struct state_machine {
   using self = state_machine;
 
