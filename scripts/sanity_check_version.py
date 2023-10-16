@@ -2,6 +2,7 @@
 # Run this script from the root level of your tfc project
 # not inside the scripts folder
 import json
+import re
 
 # Read and parse the json file
 def read_and_parse(filename: 'string'):
@@ -19,13 +20,17 @@ def cockpit_version_string():
 
 # Return the base cmake version
 def cmake_project_version():
-    json = read_and_parse('cmake/presets/cfg-build.json')['configurePresets']
-    version_preset = [x for x in json if x['name'] == 'cfg-project-version']
-    if len(version_preset) != 1:
-        print("Version preset not found in file!")
+    cmake_contents = ""
+    with open("CMakeLists.txt", "r") as f:
+        cmake_contents = f.read()
+
+    ## Use regex and try and find the version of the format "2023.10.2"
+    p = re.compile(r'[0-9]{4}\.[0-9]{1,2}.[0-9]*')
+    version_strings = p.findall(cmake_contents)
+    if len(version_strings) != 1:
+        print("Multiple possible versions found {version_strings}")
         exit(-1)
-    version_preset = version_preset[0]
-    return version_preset["cacheVariables"]["CMAKE_PROJECT_VERSION"]
+    return version_strings[0]
 
 if __name__ == "__main__":
     cockpit_version   = cockpit_version_string()
