@@ -25,7 +25,7 @@ def cmake_project_version():
         cmake_contents = f.read()
 
     ## Use regex and try and find the version of the format "2023.10.2"
-    p = re.compile(r'[0-9]{4}\.[0-9]{1,2}.[0-9]*')
+    p = re.compile(r'\d{4}\.\d{1,2}.\d*')
     version_strings = p.findall(cmake_contents)
     if len(version_strings) != 1:
         print("Multiple possible versions found {version_strings}")
