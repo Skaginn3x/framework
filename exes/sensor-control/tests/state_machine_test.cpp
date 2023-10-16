@@ -111,5 +111,13 @@ auto main(int argc, char** argv) -> int {
     ut::expect(instance.sm.is(state<states::stopped>));
   } | std::make_tuple(state<states::idle>, state<states::awaiting_discharge>, state<states::awaiting_sensor>, state<states::discharging>, state<states::discharge_delayed>);
 
+  "stopped -> idle"_test = [] () {
+    test_instance instance;
+    instance.sm.set_current_states(state<states::stopped>);
+    EXPECT_CALL(instance.owner, enter_idle());
+    instance.sm.process_event(events::start{});
+    ut::expect(instance.sm.is(state<states::idle>));
+  };
+
   return EXIT_SUCCESS;
 }
