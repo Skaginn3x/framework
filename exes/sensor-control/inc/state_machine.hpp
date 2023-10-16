@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string_view>
+#include <variant>
+
 #include <boost/sml.hpp>
 
 #include <tfc/utils/pragmas.hpp>
@@ -25,18 +28,22 @@ struct discharging { static constexpr std::string_view name{ "discharging" }; };
 struct discharge_delayed { static constexpr std::string_view name{ "discharge_delayed" }; };
 struct stopped { static constexpr std::string_view name{ "stopped" }; };
 // clang-format on
-}
+}  // namespace states
 
 template <typename owner_t>
 struct state_machine {
-  using self = state_machine;
+  auto last_state_idle() -> bool { return std::holds_alternative<states::idle>(last_state_); }
+  auto last_state_awaiting_discharge() -> bool { return std::holds_alternative<states::awaiting_discharge>(last_state_); }
+  auto last_state_awaiting_sensor() -> bool { return std::holds_alternative<states::awaiting_sensor>(last_state_); }
+  auto last_state_discharging() -> bool { return std::holds_alternative<states::discharging>(last_state_); }
+  auto last_state_discharge_delayed() -> bool { return std::holds_alternative<states::discharge_delayed>(last_state_); }
 
   auto operator()() {
     using boost::sml::_;
     using boost::sml::event;
-    using boost::sml::state;
     using boost::sml::on_entry;
     using boost::sml::on_exit;
+    using boost::sml::state;
     using boost::sml::literals::operator""_s;
     using boost::sml::literals::operator""_e;
 
@@ -53,7 +60,6 @@ struct state_machine {
 
     static constexpr auto using_discharge_delay = [](owner_t& owner) { return owner.using_discharge_delay(); };
     static constexpr auto not_using_discharge_delay = [](owner_t& owner) { return !owner.using_discharge_delay(); };
-    static constexpr auto save_time_left = [](owner_t& owner) { owner.save_time_left(); };
 
     // TODO handle stop signals -> stopped or emergency !!!
 
@@ -83,22 +89,29 @@ struct state_machine {
 
       , state<states::discharge_delayed> + event<events::complete> = state<states::idle>
 
-      , state<states::idle> + event<events::stop> = state<states::stopped>
-      , state<states::awaiting_discharge> + event<events::stop> = state<states::stopped>
-      , state<states::awaiting_sensor> + event<events::stop> = state<states::stopped>
-      , state<states::discharging> + event<events::stop> = state<states::stopped>
-      , state<states::discharge_delayed> + event<events::stop> / save_time_left  = state<states::stopped>
+      , state<states::idle> + event<events::stop> / [this](){ last_state_ = states::idle{}; } = state<states::stopped>
+      , state<states::awaiting_discharge> + event<events::stop> / [this](){ last_state_ = states::awaiting_discharge{}; } = state<states::stopped>
+      , state<states::awaiting_sensor> + event<events::stop> / [this](){ last_state_ = states::awaiting_sensor{}; } = state<states::stopped>
+      , state<states::discharging> + event<events::stop> / [this](){ last_state_ = states::discharging{}; } = state<states::stopped>
+      , state<states::discharge_delayed> + event<events::stop> / [this](owner_t& owner){ last_state_ = states::discharge_delayed{}; owner.save_time_left(); } = state<states::stopped>
 
-      , state<states::stopped> + event<events::start> = state<states::idle>
-      , state<states::stopped> + event<events::start> = state<states::awaiting_discharge>
-      , state<states::stopped> + event<events::start> = state<states::awaiting_sensor>
-      , state<states::stopped> + event<events::start> = state<states::discharging>
-      , state<states::stopped> + event<events::start> / save_time_left  = state<states::discharge_delayed>
+      , state<states::stopped> + event<events::start> [&state_machine::last_state_idle] = state<states::idle>
+      , state<states::stopped> + event<events::start> [&state_machine::last_state_awaiting_discharge] = state<states::awaiting_discharge>
+      , state<states::stopped> + event<events::start> [&state_machine::last_state_awaiting_sensor] = state<states::awaiting_sensor>
+      , state<states::stopped> + event<events::start> [&state_machine::last_state_discharging] = state<states::discharging>
+      , state<states::stopped> + event<events::start> [&state_machine::last_state_discharge_delayed] = state<states::discharge_delayed>
     );
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
     return table;
   }
+
+  std::variant<states::idle,
+               states::awaiting_discharge,
+               states::awaiting_sensor,
+               states::discharging,
+               states::discharge_delayed>
+      last_state_{ states::idle{} };
 };
 
 }  // namespace tfc::sensor::control
