@@ -69,7 +69,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(true);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
-  const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); //NOSONAR
+  const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
 
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
