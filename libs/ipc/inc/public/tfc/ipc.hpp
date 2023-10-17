@@ -176,10 +176,17 @@ public:
     dbus_signal_.initialize();
   }
 
-  auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
+  auto send(value_t const& value) -> std::error_code {
+    auto err{ signal_->send(value) };
+    if (!err) {
+      dbus_signal_.emit_value(value);
+    }
+    return err;
+  }
 
   template <typename completion_token_t>
   auto async_send(value_t const& value, completion_token_t&& token) -> auto {
+    dbus_signal_.emit_value(value); // Todo: we should wrap the token and embed this into the completion_token handle
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 

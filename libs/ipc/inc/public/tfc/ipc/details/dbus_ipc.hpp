@@ -69,7 +69,7 @@ public:
 
     interface_->initialize();
   }
-  auto interface() const noexcept -> std::shared_ptr<sdbusplus::asio::dbus_interface> { return interface_; }
+  [[nodiscard]] auto interface() const noexcept -> std::shared_ptr<sdbusplus::asio::dbus_interface> { return interface_; }
 
   void emit_value(value_t const& value) {
     if (interface_) {
