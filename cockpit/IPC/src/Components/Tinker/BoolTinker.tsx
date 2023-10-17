@@ -13,6 +13,7 @@ const BoolTinker: React.FC<BoolTinkerIface> = ({ data }) => {
 
   return (
     <Switch
+      aria-label={`tinker-{${data.iface}}-{${data.process}}}`}
       isChecked={data.proxy.data.Value}
       onChange={(e, val) => handleInputChange(val)}
       isDisabled={false}

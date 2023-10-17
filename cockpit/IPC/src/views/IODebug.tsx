@@ -63,15 +63,16 @@ const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] 
 };
 
 // eslint-disable-next-line react/function-component-definition
-const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
+const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(true);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
-  const eventHandlersRef = useRef<Map<string,(e:any) => void >>(new Map());
+  const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
 
-  const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
+  const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
+  const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
   useEffect(() => {
     if (!processes) return;
@@ -93,14 +94,41 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
       // eslint-disable-next-line no-restricted-syntax
       for (const process of processes) {
         const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
+        const slotProcessProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', slotPath);
         try {
           // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-          await processProxy.call('Introspect').then((data:any) => {
+          await slotProcessProxy.call('Introspect').then((data: any) => {
             const interfacesData = parseXMLInterfaces(data);
             // eslint-disable-next-line no-restricted-syntax
             for (const interfaceData of interfacesData) {
-              const proxy = processDBUS.proxy(interfaceData.name, path);
+              const proxy = processDBUS.proxy(interfaceData.name, slotPath);
+              proxy.wait().then(() => {
+                const handler = handleChanged(interfaceData.name);
+                proxy.addEventListener('changed', handler);
+                eventHandlersRef.current.set(interfaceData.name, handler);
+                interfaces.push({
+                  proxy,
+                  process,
+                  interfaceName: interfaceData.name,
+                  type: interfaceData.valueType,
+                  forcestate: null,
+                  hidden: false,
+                });
+              });
+            }
+          });
+        } catch (e) {
+          console.log(e);
+        }
+
+        const signalProcessProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', signalPath);
+        try {
+          // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
+          await signalProcessProxy.call('Introspect').then((data: any) => {
+            const interfacesData = parseXMLInterfaces(data);
+            // eslint-disable-next-line no-restricted-syntax
+            for (const interfaceData of interfacesData) {
+              const proxy = processDBUS.proxy(interfaceData.name, signalPath);
               proxy.wait().then(() => {
                 const handler = handleChanged(interfaceData.name);
                 proxy.addEventListener('changed', handler);
@@ -129,7 +157,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
   useEffect(() => {
     const callback = (allNames: string[]) => {
       setProcesses(
-        allNames.filter((name:string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
+        allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
       );
     };
     loadExternalScript(callback);
@@ -180,7 +208,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
    * Toggles the visibility of IO for the given process
    * @param selected The selected process
    */
-  function toggleSelection(selected:string) {
+  function toggleSelection(selected: string) {
     const updatedData = dbusInterfaces.map((dbusInterface) => ({
       ...dbusInterface,
       hidden: selected && dbusInterface.process !== selected,
@@ -235,7 +263,7 @@ const IODebug:React.FC<DarkModeType> = ({ isDark }) => {
    * @param data Interface data
    * @returns ReactElement to be displayed
    */
-  function getTinkerInterface(data:any): React.ReactElement | null {
+  function getTinkerInterface(data: any): React.ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
         case 'b':

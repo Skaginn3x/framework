@@ -86,7 +86,7 @@ auto main(int argc, char** argv) -> int {
     auto sender = tfc::ipc::details::uint_signal_ptr::element_type::create(ctx, "name").value();
     auto receiver = tfc::ipc::details::uint_slot_cb_ptr::element_type::create(ctx, "name");
 
-    receiver->connect(sender->name_w_type(), [](auto val) { std::cout << val << std::endl; });
+    receiver->connect(sender->full_name(), [](auto val) { std::cout << val << std::endl; });
     asio::steady_timer verification_timer{ ctx };
     verification_timer.expires_after(std::chrono::milliseconds{ 1 });
     verification_timer.async_wait([&ctx, &sender](auto) {
@@ -109,7 +109,7 @@ auto main(int argc, char** argv) -> int {
     auto sender = tfc::ipc::details::uint_signal_ptr::element_type::create(ctx, "name").value();
     bool receiver_called{ false };
     auto receiver = tfc::ipc::details::uint_slot_cb_ptr::element_type::create(ctx, "unused");
-    receiver->connect(sender->name_w_type(), [&ctx, &receiver_called, &uint64_to_time_point](auto val) {
+    receiver->connect(sender->full_name(), [&ctx, &receiver_called, &uint64_to_time_point](auto val) {
       auto now{ std::chrono::high_resolution_clock::now() };
       auto past{ uint64_to_time_point(val) };
       auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - past);
@@ -132,7 +132,7 @@ auto main(int argc, char** argv) -> int {
     auto ctx{ asio::io_context() };
     auto sender{ tfc::ipc::details::string_signal_ptr::element_type::create(ctx, "name").value() };
     auto receiver{ tfc::ipc::details::string_slot_cb_ptr::element_type::create(ctx, "unused") };
-    receiver->connect(sender->name_w_type(), [&ctx](std::string const& value) {
+    receiver->connect(sender->full_name(), [&ctx](std::string const& value) {
       fmt::print("received: {}\n", value);
       ctx.stop();
     });

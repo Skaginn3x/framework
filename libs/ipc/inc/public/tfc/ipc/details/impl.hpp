@@ -17,7 +17,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <tfc/ipc/details/dbus_slot.hpp>
+#include <tfc/ipc/details/dbus_ipc.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
@@ -44,12 +44,12 @@ class transmission_base {
 public:
   explicit transmission_base(std::string_view name) : name_(name) {}
 
-  [[nodiscard]] auto endpoint() const -> std::string { return utils::socket::zmq::ipc_endpoint_str(name_w_type()); }
+  [[nodiscard]] auto endpoint() const -> std::string { return utils::socket::zmq::ipc_endpoint_str(full_name()); }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return name_; }
 
   /// \return <type>.<name>
-  [[nodiscard]] auto name_w_type() const -> std::string {
+  [[nodiscard]] auto full_name() const -> std::string {
     return fmt::format("{}.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), type_desc::type_name, name_);
   }
 
@@ -132,6 +132,7 @@ public:
         },
         token, socket_);
   }
+  [[nodiscard]] auto value() const noexcept -> value_t const& { return last_value_; }
 
 private:
   signal(asio::io_context& ctx, std::string_view name)
@@ -312,7 +313,7 @@ public:
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_.name(); }
 
-  [[nodiscard]] auto name_w_type() const -> std::string { return slot_.name_w_type(); }
+  [[nodiscard]] auto full_name() const -> std::string { return slot_.full_name(); }
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_{ ctx, name } {}
