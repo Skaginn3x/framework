@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include <utility>
 
 #include <fmt/format.h>
@@ -8,7 +9,7 @@
 #include <sdbusplus/asio/object_server.hpp>
 
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/ipc/details/dbus_slot.hpp>
+#include <tfc/ipc/details/dbus_ipc.hpp>
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/json_schema.hpp>
 
@@ -25,11 +26,11 @@ static constexpr std::string_view path{ tfc::dbus::const_dbus_path<slot> };
 }  // namespace dbus::tags
 
 template <typename slot_value_t>
-class dbus_slot {
+class dbus_ipc {
 public:
   using value_t = slot_value_t;
 
-  explicit dbus_slot(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name, auto&& value_getter)
+  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name, auto&& value_getter)
       : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
                                                                       std::string{ dbus::tags::path },
                                                                       tfc::dbus::make_dbus_name(slot_name)) },
