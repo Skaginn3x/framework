@@ -454,13 +454,13 @@ public:
 
   explicit atv320(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index)
       : base(slave_index),
-        state_transmitter_(ctx, client, fmt::format("atv320.{}.state", slave_index), "Current CIA402 state"),
-        command_transmitter_(ctx, client, fmt::format("atv320.{}.command", slave_index), "Current CIA402 command"),
-        quick_stop_recv_(ctx,
-                         client,
-                         fmt::format("atv320.s{}.quick_stop", slave_index),
-                         "Quick Stop",
-                         [this](bool value) { quick_stop_ = value; }),
+        state_transmitter_(ctx, client, fmt::format("atv320.s{}.state", slave_index), "Current CIA402 state"),
+        command_transmitter_(ctx, client, fmt::format("atv320.s{}.command", slave_index), "Current CIA402 command"),
+        run_(ctx,
+             client,
+             fmt::format("atv320.s{}.run", slave_index),
+             "Turn on motor",
+             [this](bool value) { running_ = value; }),
         frequency_recv_(ctx,
                         client,
                         fmt::format("atv320.s{}.out.freq", slave_index),
@@ -474,11 +474,11 @@ public:
     });
     for (size_t i = 0; i < 6; i++) {
       di_transmitters_.emplace_back(
-          tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i), "Digital Input"));
+          tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
     }
     for (size_t i = 0; i < 2; i++) {
       ai_transmitters_.emplace_back(
-          tfc::ipc::int_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i), "Analog input"));
+          tfc::ipc::int_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Analog input"));
     }
   }
 
@@ -544,7 +544,7 @@ public:
     last_frequency_ = frequency;
     using tfc::ec::cia_402::commands_e;
     using tfc::ec::cia_402::states_e;
-    auto command = tfc::ec::cia_402::transition(state, quick_stop_);
+    auto command = tfc::ec::cia_402::transition(state, !running_);
 
     if (cia_402::to_string(command) != last_command_) {
       command_transmitter_.async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
@@ -553,7 +553,7 @@ public:
     }
 
     out->command_word = static_cast<uint16_t>(command);
-    out->frequency = quick_stop_ ? 0 : static_cast<uint16_t>(reference_frequency_);
+    out->frequency = running_ ? static_cast<uint16_t>(reference_frequency_) : 0;
   }
 
   auto async_send_callback(std::error_code const& error, size_t) -> void {
@@ -635,8 +635,8 @@ private:
   tfc::ipc::string_signal state_transmitter_;
   std::string last_command_;
   tfc::ipc::string_signal command_transmitter_;
-  bool quick_stop_ = false;  // Quick stop is reversed
-  tfc::ipc::bool_slot quick_stop_recv_;
+  bool running_{};
+  tfc::ipc::bool_slot run_;
   int16_t reference_frequency_ = 0;
   tfc::ipc::double_slot frequency_recv_;
   int16_t last_frequency_;
