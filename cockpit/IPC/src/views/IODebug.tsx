@@ -60,108 +60,60 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
+  const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, direction:string, process:string) => {
+    const handleChanged = (name: string) => (event: any) => {
+      setDbusInterfaces((prevInterfaces) => {
+        const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
+        if (index === -1) return prevInterfaces;
+
+        const updatedInterfaces = [...prevInterfaces];
+        updatedInterfaces[index].proxy.data.Value = event.detail.Value;
+        return updatedInterfaces;
+      });
+    };
+    const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
+    try {
+      // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
+      await processProxy.call('Introspect').then((data: any) => {
+        const interfacesData = parseXMLInterfaces(data);
+        // eslint-disable-next-line no-restricted-syntax
+        for (const interfaceData of interfacesData) {
+          const proxy = processDBUS.proxy(interfaceData.name, path);
+          proxy.wait().then(() => {
+            const handler = handleChanged(interfaceData.name);
+            proxy.addEventListener('changed', handler);
+            eventHandlersRef.current.set(interfaceData.name, handler);
+            interfaces.push({
+              proxy,
+              process,
+              interfaceName: interfaceData.name,
+              type: interfaceData.valueType,
+              direction,
+              hidden: true,
+            });
+          });
+        }
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   useEffect(() => {
     if (!processes) return;
 
     const fetchAndConnectInterfaces = async () => {
       const interfaces: any[] = [];
 
-      const handleChanged = (name: string) => (event: any) => {
-        setDbusInterfaces((prevInterfaces) => {
-          const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
-          if (index === -1) return prevInterfaces;
-
-          const updatedInterfaces = [...prevInterfaces];
-          updatedInterfaces[index].proxy.data.Value = event.detail.Value;
-          return updatedInterfaces;
-        });
-      };
-
       // eslint-disable-next-line no-restricted-syntax
       for (const process of processes) {
         const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        const slotProcessProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', slotPath);
-        try {
-          // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-          await slotProcessProxy.call('Introspect').then((data: any) => {
-            const interfacesData = parseXMLInterfaces(data);
-            // eslint-disable-next-line no-restricted-syntax
-            for (const interfaceData of interfacesData) {
-              const proxy = processDBUS.proxy(interfaceData.name, slotPath);
-
-              proxy.wait().then(() => {
-                const handler = handleChanged(interfaceData.name);
-                proxy.addEventListener('changed', handler);
-                eventHandlersRef.current.set(interfaceData.name, handler);
-                interfaces.push({
-                  proxy,
-                  process,
-                  interfaceName: interfaceData.name,
-                  type: interfaceData.valueType,
-                  forcestate: null,
-                  hidden: false,
-                });
-              });
-            }
-          });
-        } catch (e) {
-          console.log(e);
-        }
-
-        const signalProcessProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', signalPath);
-        try {
-          // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-          await signalProcessProxy.call('Introspect').then((data: any) => {
-            const interfacesData = parseXMLInterfaces(data);
-            // eslint-disable-next-line no-restricted-syntax
-            for (const interfaceData of interfacesData) {
-              const proxy = processDBUS.proxy(interfaceData.name, signalPath);
-              proxy.wait().then(() => {
-                const handler = handleChanged(interfaceData.name);
-                proxy.addEventListener('changed', handler);
-                eventHandlersRef.current.set(interfaceData.name, handler);
-                interfaces.push({
-                  proxy,
-                  process,
-                  interfaceName: interfaceData.name,
-                  type: interfaceData.valueType,
-                  direction: 'slot',
-                  hidden: true,
-                });
-              });
-            }
-          });
-        } catch (e) {
-          console.log(e);
-        }
-
-        const signalProcessProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', signalPath);
-        try {
-          // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-          await signalProcessProxy.call('Introspect').then((data: any) => {
-            const interfacesData = parseXMLInterfaces(data);
-            // eslint-disable-next-line no-restricted-syntax
-            for (const interfaceData of interfacesData) {
-              const proxy = processDBUS.proxy(interfaceData.name, signalPath);
-              proxy.wait().then(() => {
-                const handler = handleChanged(interfaceData.name);
-                proxy.addEventListener('changed', handler);
-                eventHandlersRef.current.set(interfaceData.name, handler);
-                interfaces.push({
-                  proxy,
-                  process,
-                  interfaceName: interfaceData.name,
-                  type: interfaceData.valueType,
-                  direction: 'signal',
-                  hidden: true,
-                });
-              });
-            }
-          });
-        } catch (e) {
-          console.log(e);
-        }
+        // eslint-disable-next-line no-await-in-loop
+        await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
+        // eslint-disable-next-line no-await-in-loop
+        await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
       }
+
       interfaces[0].hidden = false;
       const signalIndex = interfaces.findIndex((iface) => iface.direction === 'signal' && iface.iface === interfaces[0]);
       interfaces[signalIndex >= 0 ? signalIndex : 0].hidden = false;
