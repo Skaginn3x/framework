@@ -113,9 +113,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
         // eslint-disable-next-line no-await-in-loop
         await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
       }
-
+      if (interfaces.length === 0) return;
       interfaces[0].hidden = false;
-      const signalIndex = interfaces.findIndex((iface) => iface.direction === 'signal' && iface.iface === interfaces[0]);
+      const signalIndex = interfaces.findIndex((iface) => iface.direction === 'signal' && iface.process === interfaces[0].process);
       interfaces[signalIndex >= 0 ? signalIndex : 0].hidden = false;
 
       setDbusInterfaces(interfaces);
