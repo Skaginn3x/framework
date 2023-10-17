@@ -5,12 +5,12 @@
 #include <fmt/format.h>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
-#include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/dbus_ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/details/impl.hpp>
 #include <tfc/ipc/details/type_description.hpp>
+#include <tfc/ipc/enums.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -133,7 +133,7 @@ private:
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
-  details::dbus_ipc<value_t> dbus_slot_;
+  details::dbus_ipc<value_t, std::function<std::optional<value_t> const&()>, details::ipc_type_e::slot> dbus_slot_;
   manager_client_type client_;
   filter::filters<value_t, std::function<void(value_t const&)>> filters_;
 };
@@ -157,14 +157,11 @@ public:
    */
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
-      : dbus_slot_{ client.connection(), full_name(), [this] -> std::optional<value_t> const& { return this->value(); } }, client_{ client } {
-    auto exp{ details::signal<type_desc>::create(ctx, name) };
-    if (!exp.has_value()) {
-      throw std::runtime_error{ fmt::format("Unable to bind to socket, reason: {}", exp.error().message()) };
-    }
-    signal_ = std::move(exp.value());
+      : client_{ client }, signal_{ make_impl_signal(ctx, name) },
+        dbus_signal_{ client.connection(), full_name(), [this] -> value_t const& { return this->value(); } } {
     client_.register_signal(signal_->full_name(), description, type_desc::value_e,
                             details::register_cb(signal_->full_name()));
+    dbus_signal_.initialize();
   }
 
   auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
@@ -181,9 +178,17 @@ public:
   [[nodiscard]] auto value() const noexcept -> value_t const& { return signal_->value(); }
 
 private:
-  details::dbus_ipc<value_t> dbus_slot_;
+  static auto make_impl_signal(auto&& ctx, auto&& name) {
+    auto exp{ details::signal<type_desc>::create(ctx, name) };
+    if (!exp.has_value()) {
+      throw std::runtime_error{ fmt::format("Unable to bind to socket, reason: {}", exp.error().message()) };
+    }
+    return std::move(exp.value());
+  }
+
   manager_client_type& client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
+  details::dbus_ipc<value_t, std::function<value_t const&()>, details::ipc_type_e::signal> dbus_signal_;
 };
 
 template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>

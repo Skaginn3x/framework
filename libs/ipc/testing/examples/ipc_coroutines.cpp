@@ -70,7 +70,7 @@ auto main(int argc, char** argv) -> int {
 
   auto signal{ tfc::ipc::details::signal<tfc::ipc::details::type_bool>::create(ctx, "your_name") };
 
-  slot.connect(signal.value()->name_w_type());
+  slot.connect(signal.value()->full_name());
 
   asio::steady_timer timer{ ctx };
 

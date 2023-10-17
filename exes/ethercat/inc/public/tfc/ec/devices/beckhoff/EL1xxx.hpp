@@ -34,7 +34,7 @@ public:
 
 private:
   std::array<bool, size> last_values_{};
-  using bool_signal_t = signal_t<ipc::details::type_bool, manager_client_type>;
+  using bool_signal_t = signal_t<ipc::details::type_bool, manager_client_type&>;
   std::vector<std::shared_ptr<bool_signal_t>> transmitters_;
 };
 
