@@ -113,7 +113,9 @@ class default_device final : public base {
 public:
   ~default_device() final;
 
-  explicit default_device(uint16_t const slave_index) : base(slave_index) {}
+  explicit default_device(uint16_t const slave_index) : base(slave_index) {
+    logger_.warn("No device found for slave {}", slave_index);
+  }
 
   void process_data(std::span<std::byte>, std::span<std::byte>) noexcept final {}
 
