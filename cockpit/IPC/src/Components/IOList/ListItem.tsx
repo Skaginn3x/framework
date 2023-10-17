@@ -26,11 +26,12 @@ interface ListItemProps {
   activeDropdown: number | null,
   dropdownRefs: any,
   onToggleClick: any,
+  setModalOpen: any,
 }
 
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
-  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick,
+  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen,
 }) => {
   /**
   * Handles the content of the secondary column for booleans
@@ -143,6 +144,9 @@ const ListItem: React.FC<ListItemProps> = ({
       </div>
     );
   }
+  const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+    console.log(value);
+  };
 
   return (
     <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface + dbusInterface.process}>
@@ -198,12 +202,20 @@ const ListItem: React.FC<ListItemProps> = ({
               />
             )}
             isOpen={activeDropdown === index}
+            onSelect={onSelect}
           >
             <DropdownList>
               {dbusInterface.direction === 'slot'
                 ? <DropdownItem key="tinker" style={{ textDecoration: 'none' }}> Tinker </DropdownItem>
                 : null }
               <DropdownItem key="history" style={{ textDecoration: 'none' }} isDisabled> View History </DropdownItem>
+              <DropdownItem
+                key={`watch-${dbusInterface.interfaceName}-dd`}
+                style={{ textDecoration: 'none' }}
+                onMouseDown={() => setModalOpen(index)}
+              >
+                Watch
+              </DropdownItem>
             </DropdownList>
           </Dropdown>
         </DataListAction>

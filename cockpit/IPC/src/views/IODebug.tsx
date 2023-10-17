@@ -21,6 +21,7 @@ import ListItem from 'src/Components/IOList/ListItem';
 import Hamburger from 'hamburger-react';
 import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
+import DraggableModal from 'src/Components/DraggableModal/DraggableModal';
 
 declare global {
   interface Window { cockpit: any; }
@@ -54,6 +55,8 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [processes, setProcesses] = useState<string[]>();
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(true);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [history, setHistory] = useState<any>({});
+  const [openModals, setOpenModals] = useState<number[]>([]);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
 
@@ -68,6 +71,14 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
 
         const updatedInterfaces = [...prevInterfaces];
         updatedInterfaces[index].proxy.data.Value = event.detail.Value;
+        setHistory((prevHistory: any) => {
+          const newHistory = { ...prevHistory };
+          if (!newHistory[name]) {
+            newHistory[name] = [];
+          }
+          newHistory[name].push({ value: event.detail.Value, timestamp: Date.now() });
+          return newHistory;
+        });
         return updatedInterfaces;
       });
     };
@@ -174,9 +185,19 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
       setActiveDropdown(null); // Close all dropdowns
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  const openModal = (index: number) => {
+    console.log('OPENING: ', index);
+    setOpenModals((prevOpenModals) => [...prevOpenModals, index]);
+  };
+  const closeModal = (index: number) => {
+    console.log('CLOSING: ', index);
+    setOpenModals((prevOpenModals) => prevOpenModals.filter((i) => i !== index));
+  };
+  const isModalOpen = (index: number) => openModals.includes(index);
 
   return (
     <div style={{
@@ -241,6 +262,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                           activeDropdown={activeDropdown}
                           dropdownRefs={dropdownRefs}
                           onToggleClick={onToggleClick}
+                          setModalOpen={(i:number) => openModal(i)}
                         />
                       );
                     }
@@ -263,6 +285,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                           activeDropdown={activeDropdown}
                           dropdownRefs={dropdownRefs}
                           onToggleClick={onToggleClick}
+                          setModalOpen={(i:number) => openModal(i)}
                         />
                       );
                     }
@@ -272,6 +295,26 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                 </DataList>
               </div>
             </div>
+            {dbusInterfaces.map((dbusInterface:any, index:number) => (
+              <DraggableModal
+                key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
+                iface={dbusInterface}
+                isOpen={isModalOpen(index)}
+                onClose={() => closeModal(index)}
+              >
+                {history[dbusInterface.interfaceName]?.map((datapoint: any) => (
+                  <React.Fragment key={datapoint.timestamp}>
+                    <div style={{
+                      display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
+                    }}
+                    >
+                      <div style={{ color: '#EEE' }}>{new Date(datapoint.timestamp).toLocaleTimeString()}</div>
+                      <div style={{ color: '#EEE' }}>{datapoint.value.toString()}</div>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </DraggableModal>
+            ))}
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
