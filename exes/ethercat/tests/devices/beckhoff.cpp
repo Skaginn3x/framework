@@ -58,7 +58,7 @@ auto main(int argc, const char* argv[]) -> int {
     };
     "8 input"_test = [] {
       test_vars<beckhoff::el1008<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{
-          .device = { vars.ctx, vars.connect_interface, 42 }
+        .device = { vars.ctx, vars.connect_interface, 42 }
       };
       std::array<std::byte, 1> buffer{ std::byte{ 0b11111111 } };
       auto const& transmitters{ vars.device.transmitters() };
