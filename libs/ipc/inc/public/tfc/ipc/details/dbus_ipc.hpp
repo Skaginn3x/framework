@@ -4,7 +4,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <boost/asio/io_context.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
@@ -14,8 +13,6 @@
 #include <tfc/utils/json_schema.hpp>
 
 namespace tfc::ipc::details {
-
-namespace asio = boost::asio;
 
 namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };

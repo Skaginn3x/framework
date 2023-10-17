@@ -158,7 +158,19 @@ public:
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
       : client_{ client }, signal_{ make_impl_signal(ctx, name) },
-        dbus_signal_{ client.connection(), full_name(), [this] -> value_t const& { return this->value(); } } {
+        dbus_signal_{ client_.connection(), full_name(), [this] -> value_t const& { return this->value(); } } {
+    client_.register_signal(signal_->full_name(), description, type_desc::value_e,
+                            details::register_cb(signal_->full_name()));
+    dbus_signal_.initialize();
+  }
+
+  signal(asio::io_context& ctx,
+         std::shared_ptr<sdbusplus::asio::connection> connection,
+         std::string_view name,
+         std::string_view description = "")
+    requires(!std::is_lvalue_reference_v<manager_client_type>)
+      : client_{ connection }, signal_{ make_impl_signal(ctx, name) },
+        dbus_signal_{ client_.connection(), full_name(), [this] -> value_t const& { return this->value(); } } {
     client_.register_signal(signal_->full_name(), description, type_desc::value_e,
                             details::register_cb(signal_->full_name()));
     dbus_signal_.initialize();
@@ -186,7 +198,7 @@ private:
     return std::move(exp.value());
   }
 
-  manager_client_type& client_;
+  manager_client_type client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
   details::dbus_ipc<value_t, std::function<value_t const&()>, details::ipc_type_e::signal> dbus_signal_;
 };
