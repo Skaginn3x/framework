@@ -12,6 +12,7 @@ import {
   DrawerContentBody,
   DrawerPanelContent,
   Spinner,
+  Divider,
 } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
@@ -97,7 +98,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                   interfaceName: interfaceData.name,
                   type: interfaceData.valueType,
                   direction: 'slot',
-                  hidden: false,
+                  hidden: true,
                 });
               });
             }
@@ -124,7 +125,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                   interfaceName: interfaceData.name,
                   type: interfaceData.valueType,
                   direction: 'signal',
-                  hidden: false,
+                  hidden: true,
                 });
               });
             }
@@ -133,6 +134,10 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           console.log(e);
         }
       }
+      interfaces[0].hidden = false;
+      const signalIndex = interfaces.findIndex((iface) => iface.direction === 'signal' && iface.iface === interfaces[0]);
+      interfaces[signalIndex >= 0 ? signalIndex : 0].hidden = false;
+
       setDbusInterfaces(interfaces);
     };
 
@@ -219,7 +224,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
               transition: 'width 0.2s ease-in-out',
             }}
             >
-              <Title headingLevel="h1" size="2xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem', color: isDark ? '#EEE' : '#111' }}>
                 DBUS IO Debugging Tool
               </Title>
               <div style={{
@@ -241,22 +246,49 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                 width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
               }}
               >
+                <Divider />
+                <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
+                  Slots
+                </Title>
                 <DataList aria-label="Checkbox and action data list example">
                   {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
-                    if (!dbusInterface.hidden) {
-                      <ListItem
-                        dbusInterface={dbusInterface}
-                        index={index}
-                        direction={dbusInterface.direction}
-                        activeDropdown={activeDropdown}
-                        dropdownRefs={dropdownRefs}
-                        onToggleClick={onToggleClick}
-                      />;
+                    if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
+                      return (
+                        <ListItem
+                          dbusInterface={dbusInterface}
+                          index={index}
+                          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
+                          activeDropdown={activeDropdown}
+                          dropdownRefs={dropdownRefs}
+                          onToggleClick={onToggleClick}
+                        />
+                      );
                     }
                     return null;
                   })
                     : <Spinner />}
-
+                </DataList>
+                <Divider />
+                <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
+                  Signals
+                </Title>
+                <DataList aria-label="Checkbox and action data list example">
+                  {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+                    if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
+                      return (
+                        <ListItem
+                          dbusInterface={dbusInterface}
+                          index={index}
+                          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
+                          activeDropdown={activeDropdown}
+                          dropdownRefs={dropdownRefs}
+                          onToggleClick={onToggleClick}
+                        />
+                      );
+                    }
+                    return null;
+                  })
+                    : <Spinner />}
                 </DataList>
               </div>
             </div>

@@ -23,7 +23,6 @@ import NumberTinker from 'src/Components/Tinker/NumberTinker';
 interface ListItemProps {
   dbusInterface: any,
   index: number,
-  direction: string,
   activeDropdown: number | null,
   dropdownRefs: any,
   onToggleClick: any,
@@ -31,7 +30,7 @@ interface ListItemProps {
 
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
-  dbusInterface, index, direction, activeDropdown, dropdownRefs, onToggleClick,
+  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick,
 }) => {
   /**
   * Handles the content of the secondary column for booleans
@@ -173,7 +172,7 @@ const ListItem: React.FC<ListItemProps> = ({
                 alignItems: 'center',
               }}
             >
-              { direction === 'slot' ? getTinkerInterface(dbusInterface) : null }
+              { dbusInterface.direction === 'slot' ? getTinkerInterface(dbusInterface) : null }
             </DataListCell>,
           ]}
         />
@@ -201,7 +200,7 @@ const ListItem: React.FC<ListItemProps> = ({
             isOpen={activeDropdown === index}
           >
             <DropdownList>
-              {direction === 'slot'
+              {dbusInterface.direction === 'slot'
                 ? <DropdownItem key="tinker" style={{ textDecoration: 'none' }}> Tinker </DropdownItem>
                 : null }
               <DropdownItem key="history" style={{ textDecoration: 'none' }} isDisabled> View History </DropdownItem>
