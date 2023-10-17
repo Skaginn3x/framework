@@ -454,8 +454,8 @@ public:
 
   explicit atv320(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index)
       : base(slave_index),
-        state_transmitter_(ctx, client, fmt::format("atv320.{}.state", slave_index), "Current CIA402 state"),
-        command_transmitter_(ctx, client, fmt::format("atv320.{}.command", slave_index), "Current CIA402 command"),
+        state_transmitter_(ctx, client, fmt::format("atv320.s{}.state", slave_index), "Current CIA402 state"),
+        command_transmitter_(ctx, client, fmt::format("atv320.s{}.command", slave_index), "Current CIA402 command"),
         quick_stop_recv_(ctx,
                          client,
                          fmt::format("atv320.s{}.quick_stop", slave_index),
@@ -474,11 +474,11 @@ public:
     });
     for (size_t i = 0; i < 6; i++) {
       di_transmitters_.emplace_back(
-          tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i), "Digital Input"));
+          tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
     }
     for (size_t i = 0; i < 2; i++) {
       ai_transmitters_.emplace_back(
-          tfc::ipc::int_signal(ctx, client, fmt::format("atv320.{}.in.{}", slave_index, i), "Analog input"));
+          tfc::ipc::int_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Analog input"));
     }
   }
 
