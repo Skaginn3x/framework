@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-const */
 /* eslint-disable no-continue */
@@ -130,8 +131,11 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-shadow
-  const onChangeWithValue = (value: number | null) => {
+  /**
+   * Handles the change of the value in the UnitsWidget component.
+   * @param value - The value to be changed.
+  */
+  const onChangeWithValue = (value: number) => {
     onChange({
       storeKeys,
       scopes: ['value'],
@@ -141,6 +145,11 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       data: { value },
     });
   };
+
+  /**
+   * Handles null value in the UnitsWidget component.
+   * This is because UI-Schema does weird things to nulls.
+   */
   const handleEmptyValue = () => {
     onChange({
       storeKeys,
@@ -166,6 +175,11 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     onChangeWithValue(valueInBaseUnit);
   };
 
+  /**
+   * Handles the change of the value in the UnitsWidget component.
+   * @param e - The event object.
+   * @returns Nothing.
+  */
   const handleChange = (e: any) => {
     const val = e.target.value as string;
     // if there is already a decimal point, ignore any more
@@ -191,7 +205,11 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     handleUnitValue(parseFloat(val));
   };
 
-  function isWarning() {
+  /**
+   * Checks if the value is invalid.
+   * @returns true if the value is invalid, false otherwise.
+   */
+  function isWarning() { // NOSONAR
     if (required && (!value || value.toString() === '')) {
       if (errText !== 'Required') setErrText('Required');
       return true;
