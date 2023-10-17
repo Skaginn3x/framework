@@ -33,10 +33,10 @@ struct stopped { static constexpr std::string_view name{ "stopped" }; };
 template <typename owner_t>
 struct state_machine {
   state_machine() = default;
-  state_machine(state_machine const&) = delete;
-  state_machine(state_machine&&) = delete;
-  auto operator=(state_machine const&) -> state_machine& = delete;
-  auto operator=(state_machine&&) -> state_machine& = delete;
+//  state_machine(state_machine const&) = delete;
+//  state_machine(state_machine&&) = delete;
+//  auto operator=(state_machine const&) -> state_machine& = delete;
+//  auto operator=(state_machine&&) -> state_machine& = delete;
 
   auto last_state_idle() -> bool {
     return std::holds_alternative<states::idle>(last_state_);
