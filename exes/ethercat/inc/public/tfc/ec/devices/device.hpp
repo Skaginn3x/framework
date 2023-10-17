@@ -81,7 +81,8 @@ auto get_impl(boost::asio::io_context& ctx,
   if (result) {
     return result;
   }
-  fmt::print("No device found for slave: {}, vendor: {}, product_code: {} \n", slave_index, vendor_id, product_code);
+  tfc::logger::logger log("missing_implementation");
+  log.warn("No device found for slave: {}, vendor: {}, product_code: {} \n", slave_index, vendor_id, product_code);
   return std::make_unique<default_device>(slave_index);
 }
 

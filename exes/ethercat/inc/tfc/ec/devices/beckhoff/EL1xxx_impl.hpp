@@ -32,18 +32,23 @@ template <typename manager_client_type,
           typename signal_t>
 void el1xxx<manager_client_type, size, pc, name, signal_t>::process_data(std::span<std::byte> input,
                                                                          std::span<std::byte>) noexcept {
-  static_assert(size <= 16);
-  auto* input_bits = reinterpret_cast<uint16_t*>(input.data());
-  for (size_t i = 0; i < size; i++) {
-    auto const value = static_cast<bool>(*input_bits & (1 << i));
-    if (value != last_values_[i]) {
-      transmitters_[i]->async_send(value, [this](std::error_code error, size_t) {
-        if (error) {
-          logger_.error("Ethercat {}, error transmitting : {}", name.view(), error.message());
-        }
-      });
+  const size_t minimum_byte_count = (size / 9) + 1;
+  assert(input.size() == minimum_byte_count && "EL1XXX Size mismatch between process data and expected");
+
+  // Loop bytes
+  for (size_t byte = 0; byte < minimum_byte_count; byte++) {
+    for (size_t bits = 0; bits < 8 && size - ((byte * 8) + bits) > 0; bits++) {
+      auto const value = static_cast<bool>(static_cast<uint8_t>(input[byte]) & (1 << bits));
+      const size_t bit_index = byte*8+bits;
+      if (value != last_values_[bit_index]) {
+        transmitters_[bit_index]->async_send(value, [this](std::error_code error, size_t) {
+          if (error) {
+            logger_.error("Ethercat {}, error transmitting : {}", name.view(), error.message());
+          }
+        });
+      }
+      last_values_[bit_index] = value;
     }
-    last_values_[i] = value;
   }
 }
 }  // namespace tfc::ec::devices::beckhoff
