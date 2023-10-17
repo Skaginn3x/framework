@@ -76,6 +76,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   }
 
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
+  const [stringValue, setStringValue] = React.useState<string>(`${storeValue}`);
   const [value, setValue] = React.useState<Qty | undefined>(
     storeValue !== undefined
       ? Qty(`${storeValue}${initialUnit ?? ''}`)
@@ -84,12 +85,16 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const [errText, setErrText] = React.useState('');
   const min = Qty(`${minimum}${initialUnit ?? ''}`);
   const max = Qty(`${maximum}${initialUnit ?? ''}`);
-  // eslint-disable-next-line no-param-reassign, @typescript-eslint/no-unused-vars
 
+  /**
+   * Handles the change of the unit in the UnitsWidget component.
+   * @param event - The event object.
+   */
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
     if (value !== null && value !== undefined && newUnit && initialUnit) {
       setValue(value.to(newUnit).toPrec(initialUnit));
+      setStringValue(value.to(newUnit).toPrec(initialUnit).scalar.toString());
       setUnit(newUnit);
       onChange({
         storeKeys,
@@ -161,30 +166,29 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     onChangeWithValue(valueInBaseUnit);
   };
 
-  const [addComma, setAddComma] = React.useState<boolean>(false);
-
   const handleChange = (e: any) => {
-    const val = e.target.value;
-    const isLastCharDot = val.slice(-1) === '.';
-    const isValidNumber = /^-?\d+(\.\d*)?$/.test(val);
-    console.log('handleChange', val, isValidNumber, isLastCharDot, value?.isUnitless());
-    if (!isValidNumber && val !== '') {
+    const val = e.target.value as string;
+    // if there is already a decimal point, ignore any more
+    if (val && e.nativeEvent.data === '.' && val.slice(0, -1).indexOf('.') !== -1) {
       return;
     }
-    if (type === 'integer' && e.nativeEvent.data === '.' && value?.isUnitless()) {
-      return; // Don't allow decimal points in integer fields (unless there is a unit)
-    }
-    if (isLastCharDot && isValidNumber && e.nativeEvent.data === '.') {
-      setAddComma(true);
+    if (e.nativeEvent.data && !e.nativeEvent.data.match(/[0-9.]/)) {
+      // If anything other than a number or a decimal point is entered, ignore it.
       return;
     }
-    setAddComma(false);
+
+    setStringValue(val);
+
     if (val === '') {
-      setValue(undefined);
       handleEmptyValue();
-    } else {
-      handleUnitValue(parseFloat(val));
+      return;
     }
+    if (parseFloat(val) === undefined || Number.isNaN(parseFloat(val))) {
+      setErrText('Invalid number');
+      setValue(undefined);
+      return;
+    }
+    handleUnitValue(parseFloat(val));
   };
 
   function isWarning() {
@@ -192,6 +196,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       if (errText !== 'Required') setErrText('Required');
       return true;
     }
+
+    if (type === 'integer' && value?.isUnitless() && value?.scalar.toString().indexOf('.') !== -1) {
+      if (errText !== 'Must be an integer') setErrText('Must be an integer');
+      return true;
+    }
+
     if (!value || !min || !max) {
       return false;
     }
@@ -228,7 +238,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           variant={schema.getIn(['view', 'variant']) as any}
           margin={schema.getIn(['view', 'margin']) as InputProps['margin']}
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
-          value={`${value ? value.scalar.toString() : ''}${addComma ? '.' : ''}`}
+          value={stringValue ?? ''}
           onClick={onClick}
           onFocus={onFocus}
           onBlur={onBlur}
