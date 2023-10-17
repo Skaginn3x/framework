@@ -16,6 +16,7 @@ namespace tfc::ipc::details {
 
 namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };
+static constexpr std::string_view timestamp{ "TimePoint" };
 static constexpr std::string_view slot{ "Slots" };
 static constexpr std::string_view signal{ "Signals" };
 static constexpr std::string_view tinker{ "Tinker" };
@@ -30,6 +31,11 @@ template <typename slot_value_t, typename callback_t, ipc_type_e type>
 class dbus_ipc {
 public:
   using value_t = slot_value_t;
+
+  struct value_struct {
+    value_t value;
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> time_point;
+  };
 
   [[nodiscard]] constexpr auto path() const noexcept -> std::string_view {
     if constexpr (type == ipc_type_e::slot) {
