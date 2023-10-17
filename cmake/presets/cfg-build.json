@@ -2,16 +2,8 @@
   "version": 4,
   "configurePresets": [
     {
-      "name": "cfg-project-version",
-      "cacheVariables": {
-        "CMAKE_PROJECT_VERSION": "2023.10.1"
-      },
-      "hidden": true
-    },
-    {
       "name": "cfg-build-dir",
       "hidden": true,
-      "inherits": ["cfg-project-version"],
       "binaryDir": "${sourceDir}/build/${presetName}"
     },
     {

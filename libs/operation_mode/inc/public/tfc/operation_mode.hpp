@@ -28,7 +28,7 @@ concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>
 class interface {
 public:
   explicit interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
-  interface(boost::asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_default) {}
+  interface(boost::asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
   /// \brief construct an interface to operation mode controller
   /// \param ctx context to run in
   /// \param log_key key to use for logging

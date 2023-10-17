@@ -300,7 +300,7 @@ public:
   auto test_receive_and_send_message(asio::io_context& ctx) -> void {
     const std::string signal_name = "test_signal_bool";
 
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> send_signal(
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> send_signal(
         ctx, application_.ipc_client_, signal_name, signal_name);
 
     std::string full_signal_name = "mqtt-broadcaster-unit-tests.def.bool.test_signal_bool";
@@ -336,7 +336,7 @@ public:
   auto test_receive_and_send_message_with_load(asio::io_context& ctx) -> void {
     const std::string signal_name = "test_signal_bool";
 
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock> send_signal(
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> send_signal(
         ctx, application_.ipc_client_, signal_name, signal_name);
 
     std::string signal_value = "mqtt-broadcaster-unit-tests.def.bool.test_signal_bool";

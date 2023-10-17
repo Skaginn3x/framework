@@ -88,6 +88,34 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             // eslint-disable-next-line no-restricted-syntax
             for (const interfaceData of interfacesData) {
               const proxy = processDBUS.proxy(interfaceData.name, slotPath);
+
+              proxy.wait().then(() => {
+                const handler = handleChanged(interfaceData.name);
+                proxy.addEventListener('changed', handler);
+                eventHandlersRef.current.set(interfaceData.name, handler);
+                interfaces.push({
+                  proxy,
+                  process,
+                  interfaceName: interfaceData.name,
+                  type: interfaceData.valueType,
+                  forcestate: null,
+                  hidden: false,
+                });
+              });
+            }
+          });
+        } catch (e) {
+          console.log(e);
+        }
+
+        const signalProcessProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', signalPath);
+        try {
+          // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
+          await signalProcessProxy.call('Introspect').then((data: any) => {
+            const interfacesData = parseXMLInterfaces(data);
+            // eslint-disable-next-line no-restricted-syntax
+            for (const interfaceData of interfacesData) {
+              const proxy = processDBUS.proxy(interfaceData.name, signalPath);
               proxy.wait().then(() => {
                 const handler = handleChanged(interfaceData.name);
                 proxy.addEventListener('changed', handler);

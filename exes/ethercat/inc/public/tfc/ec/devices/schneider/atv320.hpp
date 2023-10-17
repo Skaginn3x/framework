@@ -458,15 +458,15 @@ public:
         command_transmitter_(ctx, client, fmt::format("atv320.{}.command", slave_index), "Current CIA402 command"),
         quick_stop_recv_(ctx,
                          client,
-                         fmt::format("atv320.{}.quick_stop", slave_index),
+                         fmt::format("atv320.s{}.quick_stop", slave_index),
                          "Quick Stop",
                          [this](bool value) { quick_stop_ = value; }),
         frequency_recv_(ctx,
                         client,
-                        fmt::format("atv320.{}.out.freq", slave_index),
+                        fmt::format("atv320.s{}.out.freq", slave_index),
                         "Output Frequency",
                         [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); }),
-        frequency_transmit_(ctx, client, fmt::format("atv320.{}.in.freq", slave_index), "Current Frequency"),
+        frequency_transmit_(ctx, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
         config_{ ctx, fmt::format("atv320_i{}", slave_index) } {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
