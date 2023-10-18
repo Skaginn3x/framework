@@ -2,10 +2,14 @@
 ## SpeedRatio
 A concept that
 maps a motors capable
-range from 1-100%
+range from -100 <-> 100,
+where the negative range
+is the reverse direction
+of the motor and the positive
+is the forward direction.
 
 ### Stopping
- (-1<=>1) is outside the motors
+ (-1<->1) is outside the motors
  range by definition and
  the motor shall be stopped
  if a speed is applied in that range.
