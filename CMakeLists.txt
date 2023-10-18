@@ -23,7 +23,7 @@ include(tfc_docs)
 include(tfc_cpack)
 
 if (BUILD_EXES)
-add_subdirectory(exes)
+  #add_subdirectory(exes)
 endif()
 
 add_subdirectory(libs)
@@ -33,7 +33,7 @@ if (BUILD_DOCS)
 endif()
 
 if (BUILD_EXAMPLES)
-  add_subdirectory(examples)
+  #add_subdirectory(examples)
 endif()
 
 if (BUILD_FRONTEND)

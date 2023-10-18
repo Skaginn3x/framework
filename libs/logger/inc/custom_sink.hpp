@@ -3,6 +3,8 @@
 // Copyright(c) 2019 ZVYAGIN.Alexander@gmail.com
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
+import tfc.progbase;
+
 #include <syslog.h>
 #include <bit>
 
@@ -12,7 +14,6 @@
 #include <boost/asio/local/datagram_protocol.hpp>
 
 #include "journald_encoding.hpp"
-#include "tfc/progbase.hpp"
 
 namespace spdlog {
 namespace sinks {

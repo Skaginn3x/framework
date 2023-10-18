@@ -1,18 +1,35 @@
-#include <ranges>
+module;
 
-#include "tfc/progbase.hpp"
-#include "tfc/utils/pragmas.hpp"
+#include <filesystem>
+#include <optional>
+#include <ranges>
+#include <string_view>
 
 #include <fmt/printf.h>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/stacktrace.hpp>
 #include <magic_enum.hpp>
+#include <tfc/utils/pragmas.hpp>
+
+export module tfc.progbase;
+
+namespace tfc::base {
 
 namespace bpo = boost::program_options;
 namespace asio = boost::asio;
 
-namespace tfc::base {
+/*! Logging level*/
+export enum struct lvl_e : int {
+  trace = 0,
+  debug = 1,
+  info = 2,
+  warn = 3,
+  error = 4,
+  critical = 5,
+  off = 6, /*! Log regardless of set logging level*/
+};
+
 class options {
 public:
   options(options const&) = delete;
@@ -65,10 +82,12 @@ private:
   std::string id_{};
   std::string exe_name_{};
   bpo::variables_map vm_{};
-  tfc::base::lvl_e log_level_{};
+  lvl_e log_level_{};
 };
 
-auto default_description() -> boost::program_options::options_description {
+/// \brief Description of command line arguments for the program
+/// \return Default description for tfc applications
+export [[nodiscard]] inline auto default_description() -> boost::program_options::options_description {
   bpo::options_description description{
     "Time For Change executable. \n"
     "Build: TODO <version>-<git hash>"
@@ -90,33 +109,50 @@ auto default_description() -> boost::program_options::options_description {
   return description;
 }
 
-void init(int argc, char const* const* argv, bpo::options_description const& desc) {
+/// \brief Function to call from main function to initialize singleton who populates the below getters.
+/// \example example_base.cpp
+export inline void init(int argc, char const* const* argv, boost::program_options::options_description const& desc) {
   options::instance().init(argc, argv, desc);
 }
-void init(int argc, char const* const* argv) {
+export inline void init(int argc, char const* const* argv) {
   options::instance().init(argc, argv, default_description());
 }
 
-auto get_exe_name() noexcept -> std::string_view {
+/// \return stripped executable name
+export [[nodiscard]] inline auto get_exe_name() noexcept -> std::string_view {
   return options::instance().get_exe_name();
 }
-auto get_proc_name() noexcept -> std::string_view {
+
+/// \brief default value is "def"
+/// \return stripped process identification name provided by the command line argument
+export [[nodiscard]] inline auto get_proc_name() noexcept -> std::string_view {
   return options::instance().get_id();
 }
-auto get_log_lvl() noexcept -> tfc::base::lvl_e {
+
+/// \brief default value is tfc::logger::lvl_e::info
+/// \return log level
+export [[nodiscard]] inline auto get_log_lvl() noexcept -> tfc::base::lvl_e {
   return options::instance().get_log_lvl();
 }
-auto get_map() noexcept -> boost::program_options::variables_map const& {
+
+/// \return boost variables map if needed to get custom parameters from description
+export [[nodiscard]] inline auto get_map() noexcept -> boost::program_options::variables_map const& {
   return options::instance().get_map();
 }
 
-auto get_config_directory() -> std::filesystem::path {
+/// \return Configuration directory path
+/// default return value is /etc/tfc/
+/// \note can be changed by providing environment variable CONFIGURATION_DIRECTORY
+/// Refer to https://www.freedesktop.org/software/systemd/man/systemd.exec.html#%24RUNTIME_DIRECTORY
+export [[nodiscard]] inline auto get_config_directory() -> std::filesystem::path {
   if (auto const* config_dir{ std::getenv("CONFIGURATION_DIRECTORY") }) {
     return std::filesystem::path{ config_dir };
   }
   return std::filesystem::path{ "/etc/tfc/" };
 }
-auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path {
+
+/// \return <config_directory><exe_name>/<proc_name>/<filename>.<file_extension>
+export [[nodiscard]] inline auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path {
   auto config_dir{ get_config_directory() };
   std::filesystem::path filename_path{ filename };
   if (!extension.empty()) {
@@ -125,20 +161,25 @@ auto make_config_file_name(std::string_view filename, std::string_view extension
   return config_dir / get_exe_name() / get_proc_name() / filename_path;
 }
 
-auto is_stdout_enabled() noexcept -> bool {
+/// \brief supposed to be used by logger library to indicate log to terminal is enabled
+export [[nodiscard]] inline auto is_stdout_enabled() noexcept -> bool {
   return options::instance().get_stdout();
 }
-auto is_noeffect_enabled() noexcept -> bool {
+
+/// \brief supposed to be used by IPC layer to indicate that signals/publishers should not do anything
+export [[nodiscard]] inline auto is_noeffect_enabled() noexcept -> bool {
   return options::instance().get_noeffect();
 }
 
-void terminate() {
+/// \brief print stacktrace to stderr and terminate program
+export [[noreturn]] inline void terminate() {
   boost::stacktrace::stacktrace const trace{};
   fmt::fprintf(stderr, "%s\n", to_string(trace).data());
   std::terminate();
 }
 
-auto exit_signals(asio::io_context& ctx) -> asio::awaitable<void> {
+/// \brief stop context for predefined exit signals
+export inline auto exit_signals(boost::asio::io_context& ctx) -> boost::asio::awaitable<void, boost::asio::any_io_executor> {
   auto executor = co_await asio::this_coro::executor;
   asio::signal_set signal_set{ executor, SIGINT, SIGTERM, SIGQUIT };
   co_await signal_set.async_wait(asio::use_awaitable);

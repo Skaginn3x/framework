@@ -5,16 +5,9 @@ add_library(logger)
 target_sources(logger
   PUBLIC
   FILE_SET cxx_modules TYPE CXX_MODULES FILES
-  inc/public/tfc/logger.cxx
+  inc/logger.cxx
 )
 add_library(tfc::logger ALIAS logger)
-target_include_directories(logger
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:include>
-  PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
-)
 
 find_package(Boost REQUIRED COMPONENTS )
 

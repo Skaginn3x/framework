@@ -1,19 +1,13 @@
 project(progbase)
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.28)
 
-add_library(base
-  src/progbase.cpp
+add_library(base)
+target_sources(base
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        inc/public/tfc/progbase.cxx
 )
 add_library(tfc::base ALIAS base)
-get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(base
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:include>
-  PRIVATE
-    inc
-    ${TFC_LOGGER_INCLUDE_DIRS}
-)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(fmt CONFIG REQUIRED)
@@ -32,5 +26,5 @@ if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
 
-include(tfc_install)
-tfc_install_lib(base)
+#include(tfc_install)
+#tfc_install_lib(base)
