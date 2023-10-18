@@ -24,7 +24,7 @@ purpose use cases.
 ## Activating a running motor
 If activating a running motor
 the motor shall run with the new
-parameters provided, fe. changing
+parameters provided, e.g. changing
 speeds. The new speed shall be used.
 
 This also applies if the motor
