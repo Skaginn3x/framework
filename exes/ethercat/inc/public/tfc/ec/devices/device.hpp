@@ -26,6 +26,7 @@ using devices_list = devices_type<
   beckhoff::el1002<manager_client_t>,
   beckhoff::el1008<manager_client_t>,
   beckhoff::el1809<manager_client_t>,
+  beckhoff::el2794<manager_client_t>,
   beckhoff::el2004<manager_client_t>,
   beckhoff::el2008<manager_client_t>,
   beckhoff::el2809<manager_client_t>,
