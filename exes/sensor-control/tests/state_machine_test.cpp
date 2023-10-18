@@ -16,6 +16,10 @@ struct the_owner {
   MOCK_METHOD((void), leave_discharging, (), ());
   MOCK_METHOD((void), enter_discharge_delayed, (), ());
   MOCK_METHOD((void), leave_discharge_delayed, (), ());
+  MOCK_METHOD((void), enter_stopped, (), ());
+  MOCK_METHOD((void), leave_stopped, (), ());
+  MOCK_METHOD((void), enter_running, (), ());
+  MOCK_METHOD((void), leave_running, (), ());
   MOCK_METHOD((bool), using_discharge_delay, (), (const noexcept));
   MOCK_METHOD((void), save_time_left, (), ());
 };
@@ -29,11 +33,11 @@ using ut::operator""_test;
 using ut::operator|;
 using ut::operator>>;
 using tfc::sensor::control::state_machine;
+using tfc::sensor::control::state_machine_operation_mode;
 
 struct test_instance {
   testing::NiceMock<the_owner> owner{};
-  state_machine<the_owner> sm_impl{}; // todo make this as a compile constraint
-  sml::sm<state_machine<the_owner>, sml::testing> sm{ sm_impl, static_cast<the_owner&>(owner) };
+  sml::sm<state_machine_operation_mode<the_owner>, sml::testing> sm{ static_cast<the_owner&>(owner) };
 };
 
 auto main(int argc, char** argv) -> int {
@@ -41,78 +45,87 @@ auto main(int argc, char** argv) -> int {
 
   ::testing::GTEST_FLAG(throw_on_failure) = true;
   ::testing::InitGoogleMock();
+  using boost::sml::operator""_s;
 
-  "idle -> awaiting_release"_test = [] {
+  "idle -> enter_awaiting_discharge"_test = [] {
     [[maybe_unused]] test_instance instance;
-    instance.sm.set_current_states(state<states::idle>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::idle>);
     EXPECT_CALL(instance.owner, leave_idle());
     EXPECT_CALL(instance.owner, enter_awaiting_discharge());
     instance.sm.process_event(events::sensor_active{});
-    ut::expect(instance.sm.is(state<states::awaiting_discharge>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_discharge>));
   };
 
-  "awaiting_sensor -> awaiting_release"_test = [] {
+  "awaiting_sensor -> enter_awaiting_discharge"_test = [] {
     test_instance instance;
-    instance.sm.set_current_states(state<states::awaiting_sensor>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>);
     EXPECT_CALL(instance.owner, leave_awaiting_sensor());
     EXPECT_CALL(instance.owner, enter_awaiting_discharge());
     instance.sm.process_event(events::sensor_active{});
-    ut::expect(instance.sm.is(state<states::awaiting_discharge>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_discharge>));
   };
 
   "idle -> awaiting_sensor"_test = [] {
     test_instance instance;
-    instance.sm.set_current_states(state<states::idle>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::idle>);
     EXPECT_CALL(instance.owner, leave_idle());
     EXPECT_CALL(instance.owner, enter_awaiting_sensor());
     instance.sm.process_event(events::new_info{});
-    ut::expect(instance.sm.is(state<states::awaiting_sensor>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>));
   };
 
   "awaiting_discharge -> discharging"_test = [] {
     test_instance instance;
-    instance.sm.set_current_states(state<states::awaiting_discharge>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_discharge>);
     EXPECT_CALL(instance.owner, leave_awaiting_discharge());
     EXPECT_CALL(instance.owner, enter_discharging());
     instance.sm.process_event(events::discharge{});
-    ut::expect(instance.sm.is(state<states::discharging>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::discharging>));
   };
 
   "discharging -> idle"_test = [] {
     test_instance instance;
-    instance.sm.set_current_states(state<states::discharging>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::discharging>);
     EXPECT_CALL(instance.owner, leave_discharging());
     EXPECT_CALL(instance.owner, enter_idle());
     instance.sm.process_event(events::sensor_inactive{});
-    ut::expect(instance.sm.is(state<states::idle>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::idle>));
   };
 
   "discharging -> delay discharging"_test = [] {
     test_instance instance;
-    instance.sm.set_current_states(state<states::discharging>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::discharging>);
     ON_CALL(instance.owner, using_discharge_delay()).WillByDefault(testing::Return(true));
     EXPECT_CALL(instance.owner, leave_discharging());
     EXPECT_CALL(instance.owner, enter_discharge_delayed());
     instance.sm.process_event(events::sensor_inactive{});
-    ut::expect(instance.sm.is(state<states::discharge_delayed>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::discharge_delayed>));
   };
 
   "delay discharging -> idle"_test = [] {
     test_instance instance;
-    instance.sm.set_current_states(state<states::discharge_delayed>);
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::discharge_delayed>);
     EXPECT_CALL(instance.owner, leave_discharge_delayed());
     EXPECT_CALL(instance.owner, enter_idle());
     instance.sm.process_event(events::complete{});
-    ut::expect(instance.sm.is(state<states::idle>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::idle>));
   };
 
   "any -> stopped, stopped -> any"_test =
       []<typename state_t>(state_t const& from_state) {
         ut::test(state_t::type::name) = [from_state] {
           test_instance instance;
-          instance.sm.set_current_states(from_state);
+          instance.sm.set_current_states(state<state_machine<the_owner>>);
+          instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(from_state);
           instance.sm.process_event(events::stop{});
-          ut::expect(instance.sm.is(state<states::stopped>));
+          ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::stopped>));
 
           instance.sm.process_event(events::start{});
           ut::expect(instance.sm.is(from_state) >> ut::fatal);
