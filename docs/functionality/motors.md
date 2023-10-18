@@ -16,7 +16,7 @@ is the forward direction.
 
 ### Rationalization
 We have a plethora of
-use cases where precise motor
+use cases where explicit motor
 speeds are not essential.
 We also utilize a large range
 of frequencies, rpm's and gear
@@ -73,7 +73,7 @@ encoder has even better precision.
 ## Interface idea
 ```cpp
 int main(){
-    motor_types m{};
+    motor_interface m{};
 
     /// Liquid transport
     m.pump(); // config speed
