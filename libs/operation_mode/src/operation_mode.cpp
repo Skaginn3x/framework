@@ -50,12 +50,12 @@ interface::interface(asio::io_context& ctx, std::string_view log_key, std::strin
                                            logger_.warn("Error from get mode: {}", err.message());
                                            return;
                                          }
-                                         current_mode_ = mode;
+                                         mode_update_impl(update_message{ mode, mode_e::unknown });
                                        });
 }
 
 interface::interface(interface&& to_be_erased) noexcept
-    : current_mode_{ to_be_erased.current_mode_ }, dbus_connection_(std::move(to_be_erased.dbus_connection_)),
+    : dbus_connection_(std::move(to_be_erased.dbus_connection_)),
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
@@ -65,7 +65,6 @@ interface::interface(interface&& to_be_erased) noexcept
 }
 
 auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
-  current_mode_ = to_be_erased.current_mode_;
   dbus_connection_ = std::move(to_be_erased.dbus_connection_);
   // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
   // it could throw if we are out of memory but then we are already screwed and the process will terminate.
@@ -83,10 +82,9 @@ void interface::set(tfc::operation::mode_e new_mode) const {
 }
 
 void interface::mode_update(sdbusplus::message::message& msg) noexcept {
-  auto update_msg = msg.unpack<update_message>();
-
-  current_mode_ = update_msg.new_mode;
-
+  mode_update_impl(msg.unpack<update_message>());
+}
+void interface::mode_update_impl(update_message&& update_msg) noexcept {
   static constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
     return [trans](callback_item const& itm) { return itm.transition == trans; };
   } };

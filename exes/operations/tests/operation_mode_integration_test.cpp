@@ -52,12 +52,5 @@ auto main(int argc, char** argv) -> int {
     ut::expect(called);
   };
 
-  "get mode"_test = [] {
-    operation_mode_test test{};
-    test.ctx.run_for(std::chrono::milliseconds(100));
-    auto const mode{ test.lib.get() };
-    ut::expect(mode == tfc::operation::mode_e::stopped) << "got: " << enum_name(mode);
-  };
-
   return EXIT_SUCCESS;
 }
