@@ -43,9 +43,6 @@ public:
   /// \note take care since this will affect the whole system
   void set(mode_e) const;
 
-  /// \brief get current operation mode
-  auto get() const noexcept -> mode_e { return current_mode_; }
-
   using uuid_t = std::uint64_t;
   using new_mode_e = mode_e;
   using old_mode_e = mode_e;
@@ -128,9 +125,9 @@ private:
     };
   }
 
-  void mode_update(sdbusplus::message::message&) noexcept;
+  void mode_update(sdbusplus::message::message) noexcept;
+  void mode_update_impl(update_message) noexcept;
 
-  mode_e current_mode_{ mode_e::unknown };
   uuid_t next_uuid_{};
   std::string dbus_service_name_{};
   std::vector<callback_item> callbacks_{};
