@@ -72,13 +72,12 @@ int main(){
     motor_types m{};
 
     /// Liquid transport
-    m.pump(50%);
+    m.pump(); // config speed
     m.pump(10 l / s);
     m.pump(10 l / min, 10 l, [](const std::error_code&){});
     m.pump(10 l / min, 10 minutes, [](const std::error_code&){});
 
     /// Linear transport
-    m.convey(50%);
     m.convey(10m/s);
     m.convey(10m/s, 10meters, [](const std::error_code&){});
     m.convey(10m/s, 10 minutes, [](const std::error_code&){});
@@ -88,12 +87,11 @@ int main(){
     // Absolute positioning
     // 0                               100
     // |               <=>             |
-    m.move(50%); // NOT SPEEDRATIO
     m.move(10m);
     m.move(10m, [](const std::error_code&){}););
+    m.move_home([](const std::error_code&){});
 
     /// Rotational transport
-    m.rotate(50%);
     m.rotate(1rpm);
     m.rotate(1rpm, 90°, [](const std::error_code&){});
     m.rotate(1rpm, 10 minutes, [](const std::error_code&){});
@@ -116,7 +114,6 @@ int main(){
     m.quick_stop(); // Stop the motor with quick stop
 
     /// Getting notified of a continously running motor
-    m.run(10l/min);
     m.notify(10l, ()[]{});
     m.notify(10m, ()[]{});
     m.notify(10 * 2*pi, ()[]{});
@@ -124,8 +121,6 @@ int main(){
 
     /// Special cases
     m.run(0%);  // Stop the motor
-    m.run(0m/s);  // Stop the motor
-    m.run(0 * 2*pi);  // Stop the motor
     m.run(); // Start the motor at configured speed
 
     // Calling convey, rotate or move
