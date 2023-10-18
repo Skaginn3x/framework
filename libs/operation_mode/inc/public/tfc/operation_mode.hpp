@@ -125,8 +125,8 @@ private:
     };
   }
 
-  void mode_update(sdbusplus::message::message&) noexcept;
-  void mode_update_impl(update_message&&) noexcept;
+  void mode_update(sdbusplus::message::message) noexcept;
+  void mode_update_impl(update_message) noexcept;
 
   uuid_t next_uuid_{};
   std::string dbus_service_name_{};

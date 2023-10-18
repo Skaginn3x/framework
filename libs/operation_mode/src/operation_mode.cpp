@@ -77,22 +77,27 @@ auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
 void interface::set(tfc::operation::mode_e new_mode) const {
   // todo add handler to set function call, for callee
   dbus_connection_->async_method_call(
-      [this](std::error_code err) { logger_.warn("Error from set mode: {}", err.message()); }, dbus_service_name_,
-      std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::set_mode }, new_mode);
+      [this](std::error_code err) {
+        if (err) {
+          logger_.warn("Error from set mode: {}", err.message());
+        }
+      },
+      dbus_service_name_, std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::set_mode },
+      new_mode);
 }
 
-void interface::mode_update(sdbusplus::message::message& msg) noexcept {
+void interface::mode_update(sdbusplus::message::message msg) noexcept {
   mode_update_impl(msg.unpack<update_message>());
 }
-void interface::mode_update_impl(update_message&& update_msg) noexcept {
-  static constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
+void interface::mode_update_impl(update_message const update_msg) noexcept {
+  constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
     return [trans](callback_item const& itm) { return itm.transition == trans; };
   } };
-  static constexpr auto make_mode_filter{ [](mode_e mode) noexcept {
+  constexpr auto make_mode_filter{ [](mode_e mode) noexcept {
     return [mode](callback_item const& itm) { return itm.mode == mode; };
   } };
 
-  static const auto invoke{ [this, update_msg](callback_item const& itm) noexcept {
+  const auto invoke{ [this, update_msg](callback_item const& itm) noexcept {
     if (itm.callback) {
       try {
         std::invoke(itm.callback, update_msg.new_mode, update_msg.old_mode);

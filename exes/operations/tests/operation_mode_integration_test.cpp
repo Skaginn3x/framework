@@ -1,4 +1,3 @@
-#include <gmock/gmock.h>
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 #include <sdbusplus/asio/property.hpp>
@@ -40,16 +39,40 @@ auto main(int argc, char** argv) -> int {
     tfc::confman::set_config(dbus, "state_machine",
                              tfc::operation::detail::storage{ .startup_time = std::chrono::milliseconds{ 3 } },
                              [](std::error_code) {});
-    bool called{};
-    test.lib.on_enter(mode_e::starting, [&called, &test](mode_e new_mode, mode_e old_mode) {
-      called = true;
+
+    size_t call_count = 0;
+    test.lib.on_enter(mode_e::starting, [&call_count](mode_e new_mode, mode_e old_mode) {
+      call_count += 1;
       ut::expect(new_mode == mode_e::starting);
       ut::expect(old_mode == mode_e::stopped);
-      test.ctx.stop();
+    });
+
+    test.lib.on_leave(mode_e::starting, [&call_count](mode_e new_mode, mode_e old_mode) {
+      call_count += 1;
+      ut::expect(new_mode == mode_e::running);
+      ut::expect(old_mode == mode_e::starting);
+    });
+
+    // Initial
+    test.lib.on_enter(mode_e::stopped, [&call_count](mode_e new_mode, mode_e old_mode) {
+      call_count += 1;
+      ut::expect(new_mode == mode_e::stopped);
+      ut::expect(old_mode == mode_e::unknown);
+    });
+    test.lib.on_leave(mode_e::unknown, [&call_count](mode_e new_mode, mode_e old_mode) {
+      call_count += 1;
+      ut::expect(new_mode == mode_e::stopped);
+      ut::expect(old_mode == mode_e::unknown);
+    });
+
+    test.lib.on_enter(mode_e::running, [&call_count](mode_e new_mode, mode_e old_mode) {
+      call_count += 1;
+      ut::expect(new_mode == mode_e::running);
+      ut::expect(old_mode == mode_e::starting);
     });
     test.lib.set(mode_e::starting);
     test.ctx.run_for(std::chrono::milliseconds(100));
-    ut::expect(called);
+    ut::expect(call_count == 5);
   };
 
   return EXIT_SUCCESS;
