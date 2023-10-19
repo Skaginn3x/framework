@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unknown-property */
 /* eslint-disable react/jsx-no-useless-fragment */
 /* eslint-disable react/jsx-no-undef */
 /* eslint-disable react/no-unstable-nested-components */
@@ -64,19 +65,22 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
   const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, direction:string, process:string) => {
-    const handleChanged = (name: string) => (event: any) => {
+    const handleChanged = (value: any, name:any) => {
       setDbusInterfaces((prevInterfaces) => {
         const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
         if (index === -1) return prevInterfaces;
 
         const updatedInterfaces = [...prevInterfaces];
-        updatedInterfaces[index].proxy.data.Value = event.detail.Value;
+        updatedInterfaces[index].proxy.data.Value = value;
         setHistory((prevHistory: any) => {
           const newHistory = { ...prevHistory };
           if (!newHistory[name]) {
             newHistory[name] = [];
           }
-          newHistory[name].push({ value: event.detail.Value, timestamp: Date.now() });
+          if (newHistory[name].length > 200) { // Limit history to 200 entries per interface
+            newHistory[name].shift();
+          }
+          newHistory[name].push({ value, timestamp: Date.now() });
           return newHistory;
         });
         return updatedInterfaces;
@@ -91,9 +95,19 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
         for (const interfaceData of interfacesData) {
           const proxy = processDBUS.proxy(interfaceData.name, path);
           proxy.wait().then(() => {
-            const handler = handleChanged(interfaceData.name);
-            proxy.addEventListener('changed', handler);
-            eventHandlersRef.current.set(interfaceData.name, handler);
+            const match = {
+              interface: 'org.freedesktop.DBus.Properties',
+              path,
+              member: 'PropertiesChanged', // Standard DBus signal for property changes
+              arg0: interfaceData.name,
+            };
+            const subscription:any = processDBUS.subscribe(match, (pathz: any, iface: any, signal: any, args: any) => {
+              // Check if the changed property is 'Value'
+              if (args && Object.keys(args[1]).includes('Value') && args[1].Value.v !== undefined) {
+                handleChanged(args[1].Value.v, interfaceData.name);
+              }
+            });
+            eventHandlersRef.current.set(interfaceData.name, subscription);
             interfaces.push({
               proxy,
               process,
@@ -190,11 +204,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   }, []);
 
   const openModal = (index: number) => {
-    console.log('OPENING: ', index);
     setOpenModals((prevOpenModals) => [...prevOpenModals, index]);
   };
   const closeModal = (index: number) => {
-    console.log('CLOSING: ', index);
     setOpenModals((prevOpenModals) => prevOpenModals.filter((i) => i !== index));
   };
   const isModalOpen = (index: number) => openModals.includes(index);
@@ -300,15 +312,21 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                 key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
                 iface={dbusInterface}
                 isOpen={isModalOpen(index)}
+                visibilityIndex={openModals.indexOf(index)}
                 onClose={() => closeModal(index)}
+                datapoints={history[dbusInterface.interfaceName] ?? []}
               >
                 {history[dbusInterface.interfaceName]?.map((datapoint: any) => (
                   <React.Fragment key={datapoint.timestamp}>
-                    <div style={{
-                      display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
-                    }}
+                    <div
+                      style={{
+                        display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
+                      }}
                     >
-                      <div style={{ color: '#EEE' }}>{new Date(datapoint.timestamp).toLocaleTimeString()}</div>
+                      <div style={{ color: '#EEE' }}>
+                        {/* eslint-disable-next-line max-len */ }
+                        {`${new Date(datapoint.timestamp).toLocaleTimeString('de-DE')}.${new Date(datapoint.timestamp).getMilliseconds()}`}
+                      </div>
                       <div style={{ color: '#EEE' }}>{datapoint.value.toString()}</div>
                     </div>
                   </React.Fragment>
