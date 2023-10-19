@@ -23,6 +23,8 @@ import Hamburger from 'hamburger-react';
 import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import DraggableModal from 'src/Components/DraggableModal/DraggableModal';
+import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
+import { AngleDownIcon } from '@patternfly/react-icons';
 
 declare global {
   interface Window { cockpit: any; }
@@ -55,12 +57,14 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
   const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(true);
+  const [isShowingEvents, setIsShowingEvents] = useState<boolean>(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [history, setHistory] = useState<any>({});
   const [openModals, setOpenModals] = useState<number[]>([]);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const [unsortedEvents, setUnsortedEvents] = useState<any[]>([]);
 
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
@@ -84,6 +88,16 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           newHistory[name].push({ value, timestamp: Date.now() });
           return newHistory;
         });
+
+        setUnsortedEvents((prevEvents: any) => {
+          const newEvents = [...prevEvents];
+          if (newEvents.length > 20) { // Limit history to 20 entries per interface
+            newEvents.shift();
+          }
+          newEvents.push({ interface: name, value, timestamp: Date.now() });
+          return newEvents;
+        });
+
         return updatedInterfaces;
       });
     };
@@ -215,6 +229,21 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   };
   const isModalOpen = (index: number) => openModals.includes(index);
 
+  // use effect to scroll to bottom of div on unsortedEvent change
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const element = scrollRef.current;
+      const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
+      console.log(element.scrollTop, element.clientHeight, element.scrollHeight);
+
+      if (isNearBottom) {
+        element.scrollTop = element.scrollHeight;
+      }
+    }
+  }, [unsortedEvents]);
+
   return (
     <div style={{
       height: '100vh',
@@ -338,6 +367,57 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                 ))}
               </DraggableModal>
             ))}
+            {isMobile
+                && (
+                <AngleDownIcon
+                  onClick={() => setIsShowingEvents(!isShowingEvents)}
+                  style={{
+                    position: 'fixed',
+                    bottom: 'calc(6.8rem + 5px)',
+                    left: '5px',
+                    transform: isShowingEvents ? 'translateY(0)' : 'translateY(6.8rem) rotate(180deg)',
+                  }}
+                  className="TransitionUp ArrowIcons"
+                />
+                )}
+            {isMobile
+            && (
+            <div
+              ref={scrollRef}
+              style={{
+                position: 'fixed',
+                bottom: '0px',
+                height: '6.8rem',
+                overflowY: 'scroll',
+                transform: isShowingEvents ? 'translateY(0)' : 'translateY(7rem)',
+                backgroundColor: '#111',
+                width: '100vw',
+              }}
+              className="TransitionUp"
+            >
+              {unsortedEvents.map((event:any) => (
+                <div
+                  key={event.timestamp}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    padding: '0px 0.2rem',
+                    width: '100vw',
+                    color: '#EEE',
+                  }}
+                >
+                  <p>
+                    {removeSlotOrg(event.interface)}
+                  </p>
+                  <p>
+                    {`${new Date(event.timestamp).toLocaleTimeString('de-DE')}.${new Date(event.timestamp).getMilliseconds()}`}
+                  </p>
+                  <p>{event.value.toString()}</p>
+                </div>
+              ))}
+            </div>
+            )}
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
