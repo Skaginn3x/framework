@@ -60,6 +60,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [openModals, setOpenModals] = useState<number[]>([]);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
@@ -180,6 +181,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
       hidden: selected && dbusInterface.process !== selected,
     }));
     setDbusInterfaces(updatedData);
+    if (isMobile) {
+      setIsDrawerExpanded(false);
+    }
   }
 
   /**
@@ -223,6 +227,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
             <DynamicNavbar
               names={processes ?? []}
+              onClose={() => toggleDrawer()}
               onItemSelect={(it: string) => toggleSelection(it)}
             />
           </DrawerPanelContent>
@@ -238,7 +243,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             }}
             >
               <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem', color: isDark ? '#EEE' : '#111' }}>
-                DBUS IO Debugging Tool
+                IO Debugging Tool
               </Title>
               <div style={{
                 position: 'fixed',
@@ -307,7 +312,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                 </DataList>
               </div>
             </div>
-            {dbusInterfaces.map((dbusInterface:any, index:number) => (
+            {!isMobile && dbusInterfaces.map((dbusInterface:any, index:number) => (
               <DraggableModal
                 key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
                 iface={dbusInterface}
