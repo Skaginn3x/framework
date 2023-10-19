@@ -21,8 +21,20 @@ struct schema_meta final {
       // clang-format on
     };
   };
+  struct unit_meta final {
+    std::string_view unit_ascii{};
+    std::string_view unit_unicode{};
+    struct glaze {
+      // clang-format off
+      static constexpr auto value{ glz::object(
+        "unit_ascii", &unit_meta::unit_ascii,
+        "unit_unicode", &unit_meta::unit_unicode
+      ) };
+      // clang-format on
+    };
+  };
   bool required{ true };
-  std::optional<std::string_view> unit{};
+  std::optional<unit_meta> unit{};
   std::optional<std::string_view> dimension{};
   std::optional<ratio_impl> ratio{};
   struct glaze {

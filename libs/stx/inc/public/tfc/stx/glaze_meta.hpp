@@ -251,7 +251,7 @@ struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
     if (!data.has_value()) {
       data = tfc::json::schema_meta{};
     }
-    data->unit = unit;
+    data->unit = schema_meta::unit_meta{ .unit_ascii = unit, .unit_unicode = unit };
     data->dimension = "time";
     data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = period_t::num, .denominator = period_t::den };
     to_json_schema<rep_t>::template op<opts>(schema, defs);
