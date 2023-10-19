@@ -125,7 +125,7 @@ auto main(int argc, char** argv) -> int {
           instance.sm.set_current_states(state<state_machine<the_owner>>);
           instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(from_state);
           instance.sm.process_event(events::stop{});
-          ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::stopped>));
+          ut::expect(instance.sm.is(state<states::stopped>));
 
           instance.sm.process_event(events::start{});
           ut::expect(instance.sm.is(from_state) >> ut::fatal);
