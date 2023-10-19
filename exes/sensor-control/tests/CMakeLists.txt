@@ -12,6 +12,7 @@ target_link_libraries(sensor_ctrl_state_machine_test
     GTest::gmock
     tfc::base
     tfc::stx
+    tfc::ipc
 #    tfc::sensor_ctrl
 )
 get_property(tfc_sensor_ctrl_dirs TARGET tfc::sensor_ctrl PROPERTY INCLUDE_DIRECTORIES)
