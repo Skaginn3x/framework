@@ -5,6 +5,7 @@
 
 #include <boost/sml.hpp>
 
+#include <tfc/ipc/item.hpp>
 #include <tfc/utils/pragmas.hpp>
 
 namespace tfc::sensor::control {
