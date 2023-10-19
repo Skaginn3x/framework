@@ -13,7 +13,8 @@
 namespace asio = boost::asio;
 
 int main(int argc, char** argv) {
-  tfc::base::init(argc, argv);
+  tfc::base::init(argc,
+                  argv);
 
   asio::io_context ctx{};
 
