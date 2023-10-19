@@ -26,7 +26,6 @@ struct awaiting_discharge { static constexpr std::string_view name{ "awaiting_di
 struct awaiting_sensor { static constexpr std::string_view name{ "awaiting_sensor" }; };
 struct discharging { static constexpr std::string_view name{ "discharging" }; };
 struct discharge_delayed { static constexpr std::string_view name{ "discharge_delayed" }; };
-struct stopped { static constexpr std::string_view name{ "stopped" }; };
 // clang-format on
 }  // namespace states
 

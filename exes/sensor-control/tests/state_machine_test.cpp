@@ -125,19 +125,14 @@ auto main(int argc, char** argv) -> int {
           instance.sm.set_current_states(state<state_machine<the_owner>>);
           instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(from_state);
           instance.sm.process_event(events::stop{});
-          ut::expect(instance.sm.is(state<states::stopped>));
+          ut::expect(instance.sm.is("stopped"_s));
 
           instance.sm.process_event(events::start{});
-          ut::expect(instance.sm.is(from_state) >> ut::fatal);
+          ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(from_state) >> ut::fatal);
         };
       } |
-      std::make_tuple(
-//          state<states::idle>,
-              state<states::awaiting_discharge>
-//                  ,
-//                  state<states::awaiting_sensor>,
-//                      state<states::discharging>, state<states::discharge_delayed>
-                                );
+      std::make_tuple(state<states::idle>, state<states::awaiting_discharge>, state<states::awaiting_sensor>,
+                      state<states::discharging>, state<states::discharge_delayed>);
 
   return EXIT_SUCCESS;
 }
