@@ -14,7 +14,7 @@
 
 namespace tfc::unit {
 template <mp_units::Reference auto ref_t>
-inline constexpr auto dimension_name() -> std::string_view;
+consteval auto dimension_name() -> std::string_view;
 }  // namespace tfc::unit
 
 template <>
@@ -67,9 +67,14 @@ struct to_json_schema;
 
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
-  static constexpr std::string_view unit{
+  static constexpr std::string_view unit_ascii{
     unit_symbol_view<char, decltype(ref_t), mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(
         ref_t)
+  };
+  static constexpr std::string_view unit_unicode{
+    unit_symbol_view<char,
+                     decltype(ref_t),
+                     mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::unicode }>(ref_t)
   };
   static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
@@ -79,7 +84,7 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
     if (!data.has_value()) {
       data = tfc::json::schema_meta{};
     }
-    data->unit = unit;
+    data->unit = schema_meta::unit_meta{ .unit_ascii = unit_ascii, .unit_unicode = unit_unicode };
     data->dimension = dimension;
     if constexpr (mp_units::Magnitude<decltype(ref_t)>) {
       data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = ratio.num, .denominator = ratio.den };
@@ -92,15 +97,56 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
 
 namespace tfc::unit {
 template <mp_units::Reference auto ref_t>
-inline constexpr auto dimension_name() -> std::string_view {
+// based of https://github.com/gentooboontoo/js-quantities/blob/master/src/quantities/kind.js#L5
+inline consteval auto dimension_name() -> std::string_view {
+  // todo: the following
+  // "elastance",
+  // "resistance",
+  // "inductance",
+  // "magnetism",
+  // "magnetism",
+  // "specific_volume",
+  // "snap",
+  // "jolt",
+  // "radiation",
+  // "viscosity",
+  // "volumetric_flow",
+  // "wavenumber",
+  // "unitless",
+  // "time",
+  // "temperature",
+  // "yank",
+  // "pressure",
+  // "force",
+  // "energy",
+  // "viscosity",
+  // "momentum",
+  // "angular_momentum",
+  // "density",
+  // "area_density",
+  // "radiation_exposure",
+  // "magnetism",
+  // "charge",
+  // "conductance",
+  // "capacitance",
+  // "activity",
+  // "molar_concentration",
+  // "substance",
+  // "illuminance",
+  // "luminous_power",
+  // "currency",
+  // "information_rate",
+  // "information",
+  // "angular_velocity",
+
   if constexpr (mp_units::convertible(ref_t, mp_units::si::metre)) {
     return "length";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::hertz)) {
     return "frequency";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::ampere)) {
-    return "electric_current";
+    return "current";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::volt)) {
-    return "voltage";
+    return "potential";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::watt)) {
     return "power";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::gram)) {
@@ -108,7 +154,7 @@ inline constexpr auto dimension_name() -> std::string_view {
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::litre)) {
     return "volume";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::angular::degree)) {
-    return "angular degree";
+    return "angle";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::square(mp_units::si::metre))) {
     return "area";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::metre / mp_units::si::second)) {
