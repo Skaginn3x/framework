@@ -64,14 +64,15 @@ struct state_machine {
       , state<states::idle> + on_exit<_> / leave_idle
       , state<states::idle> + event<events::sensor_active> = state<states::awaiting_discharge>
       , state<states::idle> + event<events::new_info> = state<states::awaiting_sensor>
+
       , state<states::awaiting_discharge> + on_entry<_> / enter_awaiting_discharge
       , state<states::awaiting_discharge> + on_exit<_> / leave_awaiting_discharge
+      , state<states::awaiting_discharge> + event<events::discharge> = state<states::discharging>
 
       , state<states::awaiting_sensor> + on_entry<_> / enter_awaiting_sensor
       , state<states::awaiting_sensor> + on_exit<_> / leave_awaiting_sensor
       , state<states::awaiting_sensor> + event<events::sensor_active> = state<states::awaiting_discharge>
 
-      , state<states::awaiting_discharge> + event<events::discharge> = state<states::discharging>
       , state<states::discharging> + on_entry<_> / enter_discharging
       , state<states::discharging> + on_exit<_> / leave_discharging
 

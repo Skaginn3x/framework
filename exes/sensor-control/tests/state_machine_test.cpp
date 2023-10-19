@@ -20,7 +20,7 @@ struct the_owner {
   MOCK_METHOD((void), leave_stopped, (), ());
   MOCK_METHOD((void), enter_running, (), ());
   MOCK_METHOD((void), leave_running, (), ());
-  MOCK_METHOD((bool), using_discharge_delay, (), (const noexcept));
+  MOCK_METHOD((bool), using_discharge_delay, (), (const noexcept));  // NOLINT
   MOCK_METHOD((void), save_time_left, (), ());
 };
 
