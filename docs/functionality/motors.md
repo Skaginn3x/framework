@@ -49,10 +49,10 @@ why.
 
 The run modes can be thought of
 as 
-- just run
-- just run for some time
-- just run for some amount
-- just go there
+- run
+- run for some time
+- run for some amount
+- go there
 
 These are then hidden behind different apis
 to facilitate different use cases.
