@@ -7,6 +7,7 @@
 #include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
 
+#include <tfc/progbase.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/stx/glaze_meta.hpp>
@@ -16,7 +17,9 @@
 
 namespace asio = boost::asio;
 
-int main() {
+int main(int argc, char** argv) {
+  tfc::base::init(argc, argv);
+
   asio::io_context ctx{};
 
   tfc::confman::config<tfc::confman::observable<tfc::ipc::item::item>> const config{ ctx, "key" };
