@@ -14,7 +14,7 @@
 
 namespace tfc::unit {
 template <mp_units::Reference auto ref_t>
-inline constexpr auto dimension_name() -> std::string_view;
+consteval auto dimension_name() -> std::string_view;
 }  // namespace tfc::unit
 
 template <>
@@ -98,7 +98,7 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
 namespace tfc::unit {
 template <mp_units::Reference auto ref_t>
 // based of https://github.com/gentooboontoo/js-quantities/blob/master/src/quantities/kind.js#L5
-inline constexpr auto dimension_name() -> std::string_view {
+inline consteval auto dimension_name() -> std::string_view {
   // todo: the following
   // "elastance",
   // "resistance",
