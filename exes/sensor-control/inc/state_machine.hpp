@@ -44,12 +44,8 @@ struct state_machine {
     using boost::sml::H;
 
     static constexpr auto enter_idle = [](owner_t& owner) { owner.enter_idle(); };
-    static constexpr auto leave_idle = [](owner_t& owner) {
-      owner.leave_idle();
-    };
-    static constexpr auto enter_awaiting_discharge = [](owner_t& owner) {
-      owner.enter_awaiting_discharge();
-    };
+    static constexpr auto leave_idle = [](owner_t& owner) { owner.leave_idle(); };
+    static constexpr auto enter_awaiting_discharge = [](owner_t& owner) { owner.enter_awaiting_discharge(); };
     static constexpr auto leave_awaiting_discharge = [](owner_t& owner) { owner.leave_awaiting_discharge(); };
     static constexpr auto enter_awaiting_sensor = [](owner_t& owner) { owner.enter_awaiting_sensor(); };
     static constexpr auto leave_awaiting_sensor = [](owner_t& owner) { owner.leave_awaiting_sensor(); };
@@ -60,8 +56,6 @@ struct state_machine {
 
     static constexpr auto using_discharge_delay = [](owner_t& owner) { return owner.using_discharge_delay(); };
     static constexpr auto not_using_discharge_delay = [](owner_t& owner) { return !owner.using_discharge_delay(); };
-
-    // TODO handle stop signals -> stopped or emergency !!!
 
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wused-but-marked-unused) // Todo fix sml.hpp
@@ -99,11 +93,11 @@ template <typename owner_t>
 struct state_machine_operation_mode {
   auto operator()() {
     using boost::sml::literals::operator""_s;
+    using boost::sml::_;
     using boost::sml::event;
-    using boost::sml::state;
     using boost::sml::on_entry;
     using boost::sml::on_exit;
-    using boost::sml::_;
+    using boost::sml::state;
 
     static constexpr auto enter_stopped = [](owner_t& owner) { owner.enter_stopped(); };
     static constexpr auto leave_stopped = [](owner_t& owner) { owner.leave_stopped(); };
@@ -126,7 +120,6 @@ struct state_machine_operation_mode {
         // clang-format on
     );
     PRAGMA_CLANG_WARNING_POP
-
   }
 };
 
