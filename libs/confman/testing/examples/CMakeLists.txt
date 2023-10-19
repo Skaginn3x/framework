@@ -12,3 +12,6 @@ target_link_libraries(confman_example_array PRIVATE tfc::confman mp-units::si fm
 
 add_executable(confman_example_variant variant.cpp)
 target_link_libraries(confman_example_variant PRIVATE tfc::confman mp-units::si fmt::fmt)
+
+add_executable(confman_example_item confman_example_item.cpp)
+target_link_libraries(confman_example_item PRIVATE tfc::confman tfc::ipc mp-units::si fmt::fmt)
