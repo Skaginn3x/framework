@@ -10,8 +10,6 @@
 
 #include <config/broker.hpp>
 #include <config/broker_mock.hpp>
-#include <endpoint.hpp>
-#include <endpoint_mock.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
@@ -29,6 +27,9 @@ using publish_packet = basic_publish_packet<2>;
 }  // namespace async_mqtt
 
 namespace tfc::mqtt {
+
+class endpoint_client;
+class endpoint_client_mock;
 
 namespace asio = boost::asio;
 
@@ -59,8 +60,8 @@ public:
 
 private:
   asio::io_context& io_ctx_;
-  std::string_view mqtt_will_topic_;
-  std::string_view mqtt_will_payload_;
+  std::string mqtt_will_topic_;
+  std::string mqtt_will_payload_;
   std::unique_ptr<client_t, std::function<void(client_t*)>> endpoint_client_;
   config_t config_{ io_ctx_, "client" };
   tfc::logger::logger logger_{ "client" };

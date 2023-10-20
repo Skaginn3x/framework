@@ -14,7 +14,6 @@
 #include <config/broker.hpp>
 #include <config/spark_plug_b.hpp>
 #include <config/spark_plug_b_mock.hpp>
-#include <endpoint.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 #include <tfc/confman.hpp>

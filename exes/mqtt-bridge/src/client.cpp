@@ -1,3 +1,5 @@
+#include "client.hpp"
+
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -10,9 +12,9 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
-#include <client.hpp>
-
-#include <structs.hpp>
+#include "endpoint.hpp"
+#include "endpoint_mock.hpp"
+#include "structs.hpp"
 
 namespace tfc::mqtt {
 
@@ -69,7 +71,7 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
                                       std::chrono::seconds(100).count(),
                                       async_mqtt::allocate_buffer(config_.value().client_id),
                                       async_mqtt::will(async_mqtt::allocate_buffer(mqtt_will_topic_),
-                                                       async_mqtt::buffer(mqtt_will_payload_),
+                                                       async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
                                                        { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
                                       async_mqtt::allocate_buffer(config_.value().username),
                                       async_mqtt::allocate_buffer(config_.value().password),

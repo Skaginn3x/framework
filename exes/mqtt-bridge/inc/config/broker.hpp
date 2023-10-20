@@ -6,7 +6,6 @@
 #include <utility>
 #include <variant>
 
-#include <boost/asio.hpp>
 #include <glaze/core/common.hpp>
 
 #include <structs.hpp>
@@ -30,8 +29,6 @@ struct glz::meta<tfc::mqtt::structs::ssl_active_e> {
 };
 
 namespace tfc::mqtt::config {
-
-namespace asio = boost::asio;
 
 struct broker {
   std::string address{};

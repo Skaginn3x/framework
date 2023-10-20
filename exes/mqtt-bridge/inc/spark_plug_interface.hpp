@@ -11,13 +11,10 @@
 #include <variant>
 #include <vector>
 
-#include <async_mqtt/all.hpp>
-
 #include <client.hpp>
 #include <config/broker.hpp>
 #include <config/spark_plug_b.hpp>
 #include <config/spark_plug_b_mock.hpp>
-#include <endpoint.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
@@ -33,7 +30,7 @@ using publish_packet = basic_publish_packet<2>;
 }  // namespace async_mqtt
 
 namespace org::eclipse::tahu::protobuf {
-enum DataType : int;
+enum DataType : int; // NOLINT
 
 class Payload;
 
