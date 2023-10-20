@@ -31,6 +31,7 @@ public:
   // Default initialize the motor as a printing motor
   explicit interface(asio::io_context& ctx, std::string_view name)
       : ctx_{ ctx }, impl_(), config_{ ctx_, name }, logger_{ name } {
+
     config_->observe([this](auto& new_v, auto& old_v) {
       // If there is the same motor type for the old and
       // the new it is the responsibility of the motor to
