@@ -8,13 +8,18 @@
 #include <string_view>
 #include <tuple>
 
-#include <async_mqtt/all.hpp>
+#include <async_mqtt/buffer.hpp>
+#include <async_mqtt/packet/v5_connect.hpp>
+#include <async_mqtt/packet/v5_publish.hpp>
+#include <async_mqtt/packet/will.hpp>
+#include <async_mqtt/packet/property.hpp>
+#include <async_mqtt/packet/qos.hpp>
+
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include "endpoint.hpp"
 #include "endpoint_mock.hpp"
-#include "structs.hpp"
 
 namespace tfc::mqtt {
 

@@ -6,7 +6,11 @@
 #include <utility>
 
 #include <openssl/ssl.h>
-#include <async_mqtt/all.hpp>
+#include <async_mqtt/packet/control_packet_type.hpp>
+#include <async_mqtt/protocol_version.hpp>
+#include <async_mqtt/endpoint.hpp>
+#include <async_mqtt/predefined_underlying_layer.hpp>
+
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/system.hpp>
