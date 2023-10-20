@@ -33,6 +33,7 @@ interface ListItemProps {
 const ListItem: React.FC<ListItemProps> = ({
   dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen,
 }) => {
+  const isMobile = window.innerWidth < 768;
   /**
   * Handles the content of the secondary column for booleans
   * @param data The data to be displayed
@@ -97,6 +98,7 @@ const ListItem: React.FC<ListItemProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'end',
+        padding: isMobile ? '10px' : '0px',
       }}
       >
         {internals(data)}
@@ -153,8 +155,8 @@ const ListItem: React.FC<ListItemProps> = ({
       <DataListItemRow size={10}>
         <DataListItemCells
           dataListCells={[
-            <DataListCell key="primary content" style={{ textAlign: 'left', maxWidth: '30rem' }}>
-              <p style={{ minWidth: '30rem' }}>{removeSlotOrg(dbusInterface.proxy.iface)}</p>
+            <DataListCell key="primary content" style={{ textAlign: 'left' }}>
+              <p className="PrimaryText">{removeSlotOrg(dbusInterface.proxy.iface)}</p>
             </DataListCell>,
             <DataListCell
               key="secondary content 1"
@@ -203,11 +205,9 @@ const ListItem: React.FC<ListItemProps> = ({
             )}
             isOpen={activeDropdown === index}
             onSelect={onSelect}
+            popperProps={{ enableFlip: true }}
           >
             <DropdownList>
-              {dbusInterface.direction === 'slot'
-                ? <DropdownItem key="tinker" style={{ textDecoration: 'none' }}> Tinker </DropdownItem>
-                : null }
               <DropdownItem key="history" style={{ textDecoration: 'none' }} isDisabled> View History </DropdownItem>
               <DropdownItem
                 key={`watch-${dbusInterface.interfaceName}-dd`}
