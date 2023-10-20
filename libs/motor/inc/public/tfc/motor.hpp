@@ -31,16 +31,24 @@ public:
   // Default initialize the motor as a printing motor
   explicit interface(asio::io_context& ctx, std::string_view name)
       : ctx_{ ctx }, impl_(), config_{ ctx_, name }, logger_{ name } {
-
+    std::visit(
+        [this](auto& conf) {
+          using conf_t = std::remove_cvref_t<decltype(conf)>;
+          if constexpr (!std::same_as<std::monostate, conf_t>) {
+            impl_.emplace<typename conf_t::impl>(ctx_, conf);
+          }
+        },
+        config_->value());
     config_->observe([this](auto& new_v, auto& old_v) {
       // If there is the same motor type for the old and
       // the new it is the responsibility of the motor to
       // handle that change
       std::visit(
           [this](auto& vst_new, auto& vst_old) {
-            if (!std::same_as<decltype(vst_new), decltype(vst_old)>) {
+            using conf_t = std::remove_cvref_t<decltype(vst_new)>;
+            if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<std::monostate, conf_t>) {
               logger_.info("Switching running motor config");
-              impl_.emplace<typename std::remove_cvref_t<decltype(vst_new)>::impl>(ctx_, vst_new);
+              impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
             }
           },
           new_v, old_v);
@@ -110,7 +118,7 @@ private:
   asio::io_context& ctx_;
 
   using implementations = std::variant<std::monostate, types::printing_motor, types::ethercat_motor>;
-  using config_t = std::variant<types::printing_motor::config_t, types::ethercat_motor::config_t>;
+  using config_t = std::variant<std::monostate, types::printing_motor::config_t, types::ethercat_motor::config_t>;
   implementations impl_;
   confman::config<confman::observable<config_t>> config_;
   logger::logger logger_;

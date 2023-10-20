@@ -2,6 +2,10 @@
 #include <tfc/motor/impl/impl.hpp>
 #include <tfc/progbase.hpp>
 
+#include <mp-units/ostream.h>
+#include <mp-units/format.h>
+#include <mp-units/
+
 using namespace mp_units::si::unit_symbols;
 using namespace tfc::motor::impl;
 
