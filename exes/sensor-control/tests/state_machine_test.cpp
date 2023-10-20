@@ -77,6 +77,16 @@ auto main(int argc, char** argv) -> int {
     ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>));
   };
 
+  "awaiting_sensor -> idle"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>);
+    EXPECT_CALL(instance.owner, leave_awaiting_sensor());
+    EXPECT_CALL(instance.owner, enter_idle());
+    instance.sm.process_event(events::await_sensor_timeout{});
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>));
+  };
+
   "awaiting_discharge -> discharging"_test = [] {
     test_instance instance;
     instance.sm.set_current_states(state<state_machine<the_owner>>);
