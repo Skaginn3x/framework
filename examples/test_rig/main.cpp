@@ -47,6 +47,7 @@ struct app {
                                     std::bind_front(&app::on_servo_manual, this) };
   asio::steady_timer run_servo_timer{ ctx };
   uint8_t servo_count{};
+  bool maintenance_mode{ false };
   void on_run(tfc::operation::mode_e, tfc::operation::mode_e old_mode) {
     logger.trace("on_run, came from: {}", enum_name(old_mode));
     run_servo_timer.expires_after(config->servo_cycle);
@@ -58,12 +59,12 @@ struct app {
   }
 
   void on_servo_manual(std::uint64_t new_value) {
-    if (operation_mode.get() == tfc::operation::mode_e::maintenance) {
+    if (maintenance_mode) {
       logger.trace("on_servo_manual: {}", new_value);
       servo.async_send(
           new_value, [this](auto err, auto) { this->logger.info("on_servo_manual: async_send failed: {}", err.message()); });
     } else {
-      logger.trace("Won't respond to input, mode is: {}", enum_name(operation_mode.get()));
+      logger.trace("Won't respond to input, mode is: {}", "foo");
     }
   }
 
@@ -80,6 +81,9 @@ struct app {
   }
 
   void init() {
+    operation_mode.on_enter(tfc::operation::mode_e::maintenance, [this](auto, auto) { maintenance_mode = true; });
+    operation_mode.on_leave(tfc::operation::mode_e::maintenance, [this](auto, auto) { maintenance_mode = false; });
+
     operation_mode.on_enter(tfc::operation::mode_e::running, std::bind_front(&app::on_run, this));
     operation_mode.on_leave(tfc::operation::mode_e::running, std::bind_front(&app::leave_run, this));
   }

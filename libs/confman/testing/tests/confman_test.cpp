@@ -220,7 +220,7 @@ auto main(int argc, char** argv) -> int {
     sdbusplus::bus::match_t const awaiter{ dbus, match,
                                            [&called]([[maybe_unused]] sdbusplus::message::message& msg) { called++; } };
 
-    conf.make_change()->a.set(42);
+    conf.make_change()->a = 42;
 
     ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);

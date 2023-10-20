@@ -65,7 +65,7 @@ auto main(int argc, char** argv) -> int {
       ut::expect(old_value == 1);
       a_called++;
     });
-    conf.make_change()->a.set(2);
+    conf.make_change()->a = 2;
 
     ut::expect(a_called == 1);
   };
@@ -87,7 +87,7 @@ auto main(int argc, char** argv) -> int {
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
     ut::expect(json["b"].get<std::string>() == "bar");
 
-    conf.make_change()->a.set(2);
+    conf.make_change()->a = 2;
     conf.make_change()->b = "test";
 
     buffer = {};

@@ -9,6 +9,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
@@ -61,7 +62,9 @@ struct first_level {
   };
 };
 
-int main() {
+int main(int argc, char** argv) {
+  tfc::base::init(argc, argv);
+
   asio::io_context ctx{};
 
   tfc::confman::config<first_level> const config{ ctx, "key" };

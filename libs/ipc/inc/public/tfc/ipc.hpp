@@ -227,7 +227,7 @@ using any_slot = std::variant<std::monostate,  //
                               string_slot,     //
                               json_slot>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
-using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client, slot>;
+using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client&, slot>;
 
 using bool_signal = signal<details::type_bool>;
 using int_signal = signal<details::type_int>;
@@ -247,6 +247,7 @@ using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, sig
 
 template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>
 struct make_any {
+  static_assert(std::is_lvalue_reference_v<manager_client_t>, "manager_client_t must be a reference");
   static auto make(details::type_e type, auto&&... args) -> return_t {
     switch (type) {
       using enum details::type_e;
