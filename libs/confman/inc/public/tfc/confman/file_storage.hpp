@@ -1,11 +1,22 @@
 #pragma once
 #include <sys/inotify.h>
 #include <filesystem>
+#include <iostream>
+
+#include <chrono>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <iostream>
+#include <set>
 
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <glaze/glaze.hpp>
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/logger.hpp>
@@ -114,7 +125,97 @@ protected:
       return std::make_error_code(std::errc::io_error);
       // todo implicitly convert glaze error_code to std::error_code
     }
+
+    old_file = current_file;
+    current_file = buffer;
+
     return {};
+  }
+
+  auto remove_json_ending(const std::string& input) -> std::string {
+    const std::string suffix = ".json";
+
+    if (input.size() >= suffix.size() && input.compare(input.size() - suffix.size(), suffix.size(), suffix) == 0) {
+      return input.substr(0, input.size() - suffix.size());
+    }
+    return input;
+  }
+
+  auto backup_old_file() -> std::error_code {
+    boost::uuids::uuid const uuid{ boost::uuids::random_generator()() };
+
+    std::string old_file_s = remove_json_ending(config_file_.string()) + "_" + std::to_string(hash_value(uuid)) + ".json";
+
+    auto glz_err{ glz::buffer_to_file(old_file, old_file_s) };
+    if (glz_err != glz::error_code::none) {
+      logger_.warn(R"(Error: "{}" writing to file: "{}")", glz::write_json(glz_err), old_file_s);
+      return std::make_error_code(std::errc::io_error);
+    }
+    return {};
+  }
+
+  auto get_environment_variable(std::string env_variable, int default_value) -> int {
+    const char* value = std::getenv(env_variable.c_str());
+
+    if (value != nullptr) {
+      try {
+        int const value_i = std::stoi(value);
+        if (value_i >= 0) {
+          std::cout << env_variable << value_i << std::endl;
+          return value_i;
+        }
+        logger_.error("Warning: Negative value encountered for {}. Using default", env_variable);
+      } catch (...) {
+        logger_.error("Invalid format for {}. Using default", env_variable);
+      }
+    } else {
+      logger_.info("{} is not set. Using default.", env_variable);
+    }
+
+    return default_value;
+  }
+
+  auto get_minimum_retention_days() -> std::chrono::days {
+    return std::chrono::days(get_environment_variable("TFC_CONFMAN_MIN_RETENTION_DAYS", 30));
+  }
+
+  auto get_minimum_retention_count() -> int { return get_environment_variable("TFC_CONFMAN_MIN_RETENTION_COUNT", 4); }
+
+  auto delete_old_files() -> void {
+    std::chrono::days retention_time = get_minimum_retention_days();
+
+    std::filesystem::file_time_type current_time = std::filesystem::file_time_type::clock::now();
+
+    for (const auto& entry : std::filesystem::directory_iterator(config_file_.parent_path())) {
+      std::filesystem::file_time_type ftime = std::filesystem::last_write_time(entry);
+      auto time_since_last_modified = current_time - ftime;
+      if (time_since_last_modified > retention_time) {
+        std::filesystem::remove(entry.path().string());
+      }
+    }
+  }
+
+  auto keep_newest_files() -> void {
+    int total_file_retention_count = get_minimum_retention_count() + 2;
+
+    int total_file_count = std::distance(std::filesystem::directory_iterator(config_file_.parent_path()),
+                                         std::filesystem::directory_iterator{});
+
+    if (total_file_count <= total_file_retention_count) {
+      return;
+    }
+
+    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+
+    for (const auto& entry : std::filesystem::directory_iterator(config_file_.parent_path())) {
+      file_times.insert({ entry.last_write_time(), entry.path() });
+    }
+
+    uint64_t count = 0;
+    for (auto it = file_times.begin(); it != file_times.end() && count <= (file_times.size() - total_file_retention_count);
+         ++it, ++count) {
+      std::filesystem::remove(it->second);
+    }
   }
 
   auto on_file_change(std::error_code const& err, std::size_t) -> void {
@@ -132,6 +233,10 @@ protected:
       std::invoke(cb_);
     }
 
+    backup_old_file();
+    delete_old_files();
+    keep_newest_files();
+
     file_watcher_.async_read_some(asio::null_buffers(), std::bind_front(&file_storage::on_file_change, this));
   }
 
@@ -141,6 +246,8 @@ protected:
   std::error_code error_{};
   asio::posix::stream_descriptor file_watcher_;
   std::function<void()> cb_{};
+  std::string current_file;
+  std::string old_file;
 };
 
 }  // namespace tfc::confman
