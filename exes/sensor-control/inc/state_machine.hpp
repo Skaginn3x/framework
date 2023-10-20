@@ -13,6 +13,7 @@ namespace tfc::sensor::control {
 namespace events {
 struct sensor_active {};
 struct sensor_inactive {};
+struct await_sensor_timeout {};
 struct new_info {};
 struct discharge {};
 struct complete {};
