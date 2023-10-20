@@ -30,7 +30,7 @@ using publish_packet = basic_publish_packet<2>;
 }  // namespace async_mqtt
 
 namespace org::eclipse::tahu::protobuf {
-enum DataType : int; // NOLINT
+enum DataType : int;  // NOLINT
 
 class Payload;
 
