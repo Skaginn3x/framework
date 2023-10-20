@@ -62,3 +62,40 @@ button.Hovr {
     flex: 0 1;
     order: 0;
 }
+
+.PrimaryText {
+    min-width: 30rem;
+}
+
+.TransitionUp {
+    transition: transform 0.3s ease-in-out;
+}
+.ArrowIcons {
+    width: 32px;
+    height: 32px;
+    padding: 0.4rem;
+    border-radius: 16px;
+    background-color: #111;
+    color: #EEE
+}
+
+@media (max-width: 768px) {
+    :root {
+        --pf-v5-global--spacer--sm: 0.2rem !important;
+    }
+    .pf-v5-c-data-list * {
+        --pf-v5-c-data-list__item--BorderBottomWidth: 0.2rem !important;
+        --pf-v5-global--spacer--md: 0.3rem !important 
+    }
+    .pf-v5-c-data-list__item-content {
+      display: flex !important;
+      flex-direction: row !important;
+    }
+    .PrimaryText {
+        min-width: 15rem;
+    }
+    .tinker-number-input {
+        width: 6rem;
+    }
+  }
+  

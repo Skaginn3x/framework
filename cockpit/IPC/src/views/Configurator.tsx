@@ -270,7 +270,7 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
                 size="2xl"
                 style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
               >
-                Configurator - Time For Change
+                Configurator
               </Title>
               <div style={{
                 position: 'fixed',

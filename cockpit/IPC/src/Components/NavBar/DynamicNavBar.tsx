@@ -6,12 +6,14 @@ import {
   NavItem,
 } from '@patternfly/react-core';
 import './DynamicNavBar.css';
+import { TimesIcon } from '@patternfly/react-icons';
 import { removeOrg } from '../Form/WidgetFunctions';
 
 export const DynamicNavbar: React.FC<{
   names: string[];
+  onClose: () => void;
   onItemSelect: (itemId:string) => void }> = ({
-  names, onItemSelect,
+  names, onItemSelect, onClose,
 }) => {
   const [activeItem, setActiveItem] = useState<string | null>(null);
   return (
@@ -31,6 +33,9 @@ export const DynamicNavbar: React.FC<{
               onItemSelect(groupId as string);
             }}
           >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <TimesIcon onClick={onClose} color="#EEE" style={{ padding: '0.3rem', width: '2rem', height: '2rem' }} />
+            </div>
             <NavList>
               {names.length > 0 && names.map((name:string) => (
                 <NavItem

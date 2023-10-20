@@ -79,7 +79,7 @@ void gpio::pin_force_change(pin_index_t idx,
     case on: {
       auto change_pin{ config_.make_change()->at(idx) };
       if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
-        out->force.set(as_is);
+        out->force = as_is;
       }
       settings.set_output_value(gpiod::line::value::ACTIVE);
       break;
@@ -90,7 +90,7 @@ void gpio::pin_force_change(pin_index_t idx,
     case off: {
       auto change_pin{ config_.make_change()->at(idx) };
       if (auto* out{ std::get_if<pin::out>(&change_pin.in_or_out) }) {
-        out->force.set(as_is);
+        out->force = as_is;
       }
       settings.set_output_value(gpiod::line::value::INACTIVE);
       break;

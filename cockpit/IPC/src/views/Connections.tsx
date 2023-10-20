@@ -29,7 +29,7 @@ const Connections:React.FC<DarkModeType> = ({ isDark }) => {
   return (
     <>
       <Title headingLevel="h1" size="2xl" style={{ color: isDark ? '#EEE' : '#111' }}>
-        IPC - Time For Change
+        Connections
       </Title>
       <div className="TableDiv">
         <CustomTable

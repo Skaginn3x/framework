@@ -6,9 +6,11 @@
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
-#include <tfc/ipc/details/dbus_slot.hpp>
+#include <tfc/ipc/details/dbus_ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/ipc/details/impl.hpp>
+#include <tfc/ipc/details/type_description.hpp>
+#include <tfc/ipc/enums.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -116,7 +118,7 @@ public:
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_->name(); }
 
-  [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->name_w_type(); }
+  [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->full_name(); }
 
 private:
   void client_init(std::string_view description) {
@@ -131,7 +133,7 @@ private:
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
-  details::dbus_slot<value_t> dbus_slot_;
+  details::dbus_ipc<value_t, std::function<std::optional<value_t> const&()>, details::ipc_type_e::slot> dbus_slot_;
   manager_client_type client_;
   filter::filters<value_t, std::function<void(value_t const&)>> filters_;
 };
@@ -141,7 +143,7 @@ private:
  * ipc-ruler service.
  * @tparam type_desc The type of the signal
  */
-template <typename type_desc, typename manager_client_type>
+template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client&>
 class signal {
 public:
   using value_t = typename details::signal<type_desc>::value_t;
@@ -153,31 +155,59 @@ public:
    * @param ctx Execution context
    * @param name Signals name
    */
-  signal(asio::io_context& ctx, manager_client_type& client, std::string_view name, std::string_view description = "")
-      : client_(client) {
-    auto exp{ details::signal<type_desc>::create(ctx, name) };
-    if (!exp.has_value()) {
-      throw std::runtime_error{ fmt::format("Unable to bind to socket, reason: {}", exp.error().message()) };
-    }
-    signal_ = std::move(exp.value());
-    client_.register_signal(signal_->name_w_type(), description, type_desc::value_e,
-                            details::register_cb(signal_->name_w_type()));
+  signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
+    requires std::is_lvalue_reference_v<manager_client_type>
+      : client_{ client }, signal_{ make_impl_signal(ctx, name) },
+        dbus_signal_{ client_.connection(), full_name(), [this] -> value_t const& { return this->value(); } } {
+    client_.register_signal(signal_->full_name(), description, type_desc::value_e,
+                            details::register_cb(signal_->full_name()));
+    dbus_signal_.initialize();
   }
 
-  auto send(value_t const& value) -> std::error_code { return signal_->send(value); }
+  signal(asio::io_context& ctx,
+         std::shared_ptr<sdbusplus::asio::connection> connection,
+         std::string_view name,
+         std::string_view description = "")
+    requires(!std::is_lvalue_reference_v<manager_client_type>)
+      : client_{ connection }, signal_{ make_impl_signal(ctx, name) },
+        dbus_signal_{ client_.connection(), full_name(), [this] -> value_t const& { return this->value(); } } {
+    client_.register_signal(signal_->full_name(), description, type_desc::value_e,
+                            details::register_cb(signal_->full_name()));
+    dbus_signal_.initialize();
+  }
+
+  auto send(value_t const& value) -> std::error_code {
+    auto err{ signal_->send(value) };
+    if (!err) {
+      dbus_signal_.emit_value(value);
+    }
+    return err;
+  }
 
   template <typename completion_token_t>
   auto async_send(value_t const& value, completion_token_t&& token) -> auto {
+    dbus_signal_.emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return signal_->name(); }
 
-  [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->name_w_type(); }
+  [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->full_name(); }
+
+  [[nodiscard]] auto value() const noexcept -> value_t const& { return signal_->value(); }
 
 private:
-  manager_client_type& client_;
+  static auto make_impl_signal(auto&& ctx, auto&& name) {
+    auto exp{ details::signal<type_desc>::create(ctx, name) };
+    if (!exp.has_value()) {
+      throw std::runtime_error{ fmt::format("Unable to bind to socket, reason: {}", exp.error().message()) };
+    }
+    return std::move(exp.value());
+  }
+
+  manager_client_type client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
+  details::dbus_ipc<value_t, std::function<value_t const&()>, details::ipc_type_e::signal> dbus_signal_;
 };
 
 template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>
@@ -199,12 +229,12 @@ using any_slot = std::variant<std::monostate,  //
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
 using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client, slot>;
 
-using bool_signal = signal<details::type_bool, ipc_ruler::ipc_manager_client>;
-using int_signal = signal<details::type_int, ipc_ruler::ipc_manager_client>;
-using uint_signal = signal<details::type_uint, ipc_ruler::ipc_manager_client>;
-using double_signal = signal<details::type_double, ipc_ruler::ipc_manager_client>;
-using string_signal = signal<details::type_string, ipc_ruler::ipc_manager_client>;
-using json_signal = signal<details::type_json, ipc_ruler::ipc_manager_client>;
+using bool_signal = signal<details::type_bool>;
+using int_signal = signal<details::type_int>;
+using uint_signal = signal<details::type_uint>;
+using double_signal = signal<details::type_double>;
+using string_signal = signal<details::type_string>;
+using json_signal = signal<details::type_json>;
 using any_signal = std::variant<std::monostate,  //
                                 bool_signal,     //
                                 int_signal,      //
@@ -213,7 +243,7 @@ using any_signal = std::variant<std::monostate,  //
                                 string_signal,   //
                                 json_signal>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
-using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client, signal>;
+using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, signal>;
 
 template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>
 struct make_any {

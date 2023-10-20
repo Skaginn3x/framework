@@ -33,7 +33,7 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
 
   state_machine_->on_new_mode([this](operation::new_mode new_mode, operation::old_mode old_mode) {
     mode_ = new_mode;
-    logger_.trace("sending update signal from state: '{}' to state: '{}'", enum_name(old_mode), enum_name(new_mode));
+    logger_.info("sending update signal from state: '{}' to state: '{}'", enum_name(old_mode), enum_name(new_mode));
     auto message{ dbus_interface_->new_signal(operation::dbus::signal::update.data()) };
     message.append(operation::update_message{ .new_mode = new_mode, .old_mode = old_mode });
     message.signal_send();
@@ -41,7 +41,7 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
 
   auto service_name{ tfc::dbus::make_dbus_process_name() };
   if (service_name != tfc::operation::dbus::service_name) {
-    logger_.info("Service name '{}' is not default '{}'", service_name, tfc::operation::dbus::service_default);
+    logger_.warn("Service name '{}' is not default '{}'", service_name, tfc::operation::dbus::service_default);
   }
 
   dbus_->request_name(service_name.c_str());

@@ -38,6 +38,9 @@ private:
 };
 
 template <typename manager_client_type>
+using el2794 = el2xxx<manager_client_type, 4, 0xaea3052, "EL2794">;
+
+template <typename manager_client_type>
 using el2004 = el2xxx<manager_client_type, 4, 0x7d43052, "EL2004">;
 
 template <typename manager_client_type>

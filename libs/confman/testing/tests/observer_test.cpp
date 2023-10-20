@@ -8,7 +8,7 @@ auto main(int, char**) -> int {
   "basic callback test"_test = []() {
     int some_value = 10;
     tfc::confman::observable<int> observed_value(10, [&](int new_value, int) { some_value = new_value; });
-    observed_value.set(25);
+    observed_value = 25;
     expect(some_value == 25);
   };
   "glaze conversion test"_test = []() {
@@ -20,7 +20,7 @@ auto main(int, char**) -> int {
     std::array<int, 3> array{ 1, 2, 3 };
     tfc::confman::observable<std::array<int, 3>> observed_array({ 1, 5, 8 },
                                                                 [&](auto new_array, auto) { array = new_array; });
-    observed_array.set({ 7, 8, 9 });
+    observed_array = { 7, 8, 9 };
     expect(array == std::array<int, 3>{ 7, 8, 9 });
   };
   "Callback on class"_test = []() {
@@ -31,7 +31,7 @@ auto main(int, char**) -> int {
     };
     test test_object;
     tfc::confman::observable<int> observable_value(1, [&](int new_value, int) { test_object.callback(new_value); });
-    observable_value.set(9);
+    observable_value = 9;
     expect(test_object.value == 9);
   };
 

@@ -62,6 +62,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
       validated={error ? 'error' : 'default'}
       type="number"
       aria-label="tinker text input"
+      className="tinker-number-input"
       key={`${InterfaceOBJ.iface}-${InterfaceOBJ.process}`}
     />
   );
