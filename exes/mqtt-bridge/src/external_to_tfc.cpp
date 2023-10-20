@@ -21,7 +21,7 @@ template <class ipc_client_t, class config_t, class signal_v>
 auto external_to_tfc<ipc_client_t, config_t, signal_v>::create_outward_signals() -> void {
   for (auto const& sig : config_.value().writeable_signals) {
     if (!sig.name.empty()) {
-      outward_signals_.emplace(sig.name, tfc::ipc::make_any<signal_v, ipc_client_t, tfc::ipc::signal>::make(
+      outward_signals_.emplace(sig.name, tfc::ipc::make_any<signal_v, ipc_client_t&, tfc::ipc::signal>::make(
                                              sig.type, io_ctx_, ipc_client_, sig.name, sig.description));
     }
   }
@@ -49,7 +49,7 @@ auto external_to_tfc<ipc_client_t, config_t, signal_v>::receive_new_value(
           }
         }
       },
-      outward_signals_[last_word(signal_name)]);
+      outward_signals_.at(last_word(signal_name)));
 }
 
 template <class ipc_client_t, class config_t, class signal_v>
@@ -67,19 +67,11 @@ auto external_to_tfc<ipc_client_t, config_t, signal_v>::last_word(std::string co
   }
   return "";
 }
+
+template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
+                               tfc::confman::config<config::writeable_signals>,
+                               tfc::ipc::any_signal>;
+
+template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client_mock, config::writeable_signals_mock, any_signal_imc_mock>;
+
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
-                                          tfc::confman::config<tfc::mqtt::config::writeable_signals>,
-                                          tfc::ipc::any_signal>;
-
-template class tfc::mqtt::external_to_tfc<
-    tfc::ipc_ruler::ipc_manager_client_mock,
-    tfc::mqtt::config::writeable_signals_mock,
-    std::variant<std::monostate,
-                 tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock>,
-                 tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock>,
-                 tfc::ipc::signal<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock>,
-                 tfc::ipc::signal<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock>,
-                 tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock>,
-                 tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock>>>;

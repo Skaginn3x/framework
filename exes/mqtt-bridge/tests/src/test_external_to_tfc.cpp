@@ -22,11 +22,7 @@ auto test_external_to_tfc::test() -> bool {
   using tfc::ipc_ruler::ipc_manager_client_mock;
   using namespace tfc::ipc::details;
 
-  tfc::mqtt::external_to_tfc<
-      ipc_manager_client_mock, tfc::mqtt::config::writeable_signals_mock,
-      std::variant<std::monostate, signal<type_bool, ipc_manager_client_mock>, signal<type_int, ipc_manager_client_mock>,
-                   signal<type_uint, ipc_manager_client_mock>, signal<type_double, ipc_manager_client_mock>,
-                   signal<type_string, ipc_manager_client_mock>, signal<type_json, ipc_manager_client_mock>>>
+  tfc::mqtt::external_to_tfc<ipc_manager_client_mock, tfc::mqtt::config::writeable_signals_mock, any_signal_imc_mock>
       ext_test{ isolated_ctx };
 
   const slot<type_bool, ipc_manager_client_mock&> recv_slot(isolated_ctx, ext_test.ipc_client_, "test_slot", "",
