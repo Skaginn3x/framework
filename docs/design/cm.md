@@ -117,6 +117,5 @@ and no routine checks shall be performed to remove old backups.
 
 ### Configuration naming rules
 Confman will name configuration files with the following naming scheme:
-`<configuration_name>_<timestamp>.json`. The timestamp shall be
-a unixtime stamp of second resolution. If there already exists
-a file with the same name, 1 shall be added to the timestamp.
+`<configuration_name>_<uuid>.json`. Where uuid is specified by
+[https://datatracker.ietf.org/doc/html/rfc4122](https://datatracker.ietf.org/doc/html/rfc4122)
