@@ -56,7 +56,7 @@ struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   static std::string_view constexpr postfix{ ">" };
   static std::string_view constexpr separator{ "," };
   static auto constexpr name{
-    tfc::stx::string_view_join_v<prefix, dimension, separator, separator, unit, glz::name_v<rep_t>, postfix>
+    tfc::stx::string_view_join_v<prefix, dimension, separator, unit, separator, glz::name_v<rep_t>, postfix>
   };
 };
 

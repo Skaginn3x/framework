@@ -238,6 +238,16 @@ namespace tfc::json::detail {
 template <typename value_t>
 struct to_json_schema;
 
+template <typename clock_t, typename duration_t>
+struct to_json_schema<std::chrono::time_point<clock_t, duration_t>> {
+  template <auto opts>
+  static void op(auto& schema, auto&) {
+    using enum tfc::json::defined_formats;
+    schema.attributes.format = datetime;
+    schema.type = { "string" };
+  }
+};
+
 template <typename rep_t, typename period_t>
 struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
   [[maybe_unused]] static constexpr std::string_view unit_symbol{ "s" };
