@@ -50,6 +50,28 @@ struct schema_meta final {
   };
 };
 
+enum struct defined_formats : std::uint8_t {
+  datetime,
+  date,
+  time,
+  duration,
+  email,
+  idn_email,
+  hostname,
+  idn_hostname,
+  ipv4,
+  ipv6,
+  uri,
+  uri_reference,
+  iri,
+  iri_reference,
+  uuid,
+  uri_template,
+  json_pointer,
+  relative_json_pointer,
+  regex
+};
+
 struct schema {
   std::string_view ref{};
   using schema_number = std::optional<std::variant<std::int64_t, std::uint64_t, double>>;
@@ -69,6 +91,8 @@ struct schema {
   std::optional<std::uint64_t> min_length{};
   std::optional<std::uint64_t> max_length{};
   std::optional<std::string_view> pattern{};
+  // https://www.learnjsonschema.com/2020-12/format-annotation/format/
+  std::optional<defined_formats> format{};
   // number only keywords
   schema_number minimum{};
   schema_number maximum{};
@@ -110,6 +134,7 @@ struct schema {
       "minLength", &T::min_length, //
       "maxLength", &T::max_length, //
       "pattern", &T::pattern,
+      "format", &T::format, //
       "minimum", &T::minimum, //
       "maximum", &T::maximum, //
       "exclusiveMinimum", &T::exclusive_minimum, //
@@ -168,6 +193,7 @@ struct glz::meta<tfc::json::detail::schematic> {
       "minLength", [](auto&& self) -> auto& { return self.attributes.min_length; }, //
       "maxLength", [](auto&& self) -> auto& { return self.attributes.max_length; }, //
       "pattern", [](auto&& self) -> auto& { return self.attributes.pattern; },
+      "format", [](auto&& self) -> auto& { return self.attributes.format; },
       "minimum", [](auto&& self) -> auto& { return self.attributes.minimum; }, //
       "maximum", [](auto&& self) -> auto& { return self.attributes.maximum; }, //
       "exclusiveMinimum", [](auto&& self) -> auto& { return self.attributes.exclusive_minimum; }, //
@@ -184,6 +210,34 @@ struct glz::meta<tfc::json::detail::schematic> {
       "uniqueItems", [](auto&& self) -> auto& { return self.attributes.unique_items; }, //
       "x-tfc", [](auto&& self) -> auto& { return self.attributes.tfc_metadata; }
   );
+  // clang-format on
+};
+
+template <>
+struct glz::meta<tfc::json::defined_formats> {
+  using enum tfc::json::defined_formats;
+  static constexpr std::string_view name = "defined_formats";
+  // clang-format off
+  static constexpr auto value = glz::enumerate(
+      "date-time", datetime,
+      "date", date,
+      "time", time,
+      "duration", duration,
+      "email", email,
+      "idn-email", idn_email,
+      "hostname", hostname,
+      "idn-hostname", idn_hostname,
+      "ipv4", ipv4,
+      "ipv6",ipv6,
+      "uri", uri,
+      "uri-reference", uri_reference,
+      "iri",iri,
+      "iri-reference", iri_reference,
+      "uuid", uuid,
+      "uri-template", uri_template,
+      "json-pointer", json_pointer,
+      "relative-json-pointer", relative_json_pointer,
+      "regex", regex);
   // clang-format on
 };
 
@@ -259,6 +313,7 @@ struct to_json_schema<T> {
       static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
       enumeration.attributes.constant = glz::tuplet::get<0>(item);
+      enumeration.attributes.title = glz::tuplet::get<0>(item);
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
         using additional_data_type = decltype(glz::tuplet::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
@@ -409,7 +464,7 @@ inline auto write_json_schema() noexcept {
   detail::schematic s{};
   s.defs.emplace();
   detail::to_json_schema<std::decay_t<T>>::template op<glz::opts{}>(s, *s.defs);
-  glz::write<glz::opts{ .write_type_info = false }>(std::move(s), buffer);
+  glz::write<glz::opts{ .prettify = true, .write_type_info = false }>(std::move(s), buffer);
   return buffer;
 }
 }  // namespace tfc::json

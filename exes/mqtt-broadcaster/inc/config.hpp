@@ -1,6 +1,8 @@
 #pragma once
 
 #include <tfc/confman.hpp>
+#include <tfc/ipc/enums.hpp>
+#include <tfc/ipc/glaze_meta.hpp>
 
 namespace tfc::mqtt {
 
