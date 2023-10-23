@@ -186,7 +186,7 @@ auto main(int argc, char** argv) -> int {
     instance.ctrl.enter_discharge_delayed();
   };
 
-  "discharge_delayed timer callback emits event complete"_test = []{
+  "discharge_delayed timer callback emits event complete"_test = [] {
     test_instance instance{};
     EXPECT_CALL(*instance.ctrl.state_machine(), process_complete()).Times(1);
     instance.ctrl.discharge_timer_cb({});
@@ -196,6 +196,19 @@ auto main(int argc, char** argv) -> int {
     test_instance instance{};
     EXPECT_CALL(instance.ctrl.discharge_allowance_signal(), async_send_cb(true, testing::_)).Times(1);
     instance.ctrl.enter_discharging_allow_input();
+  };
+
+  "enter_discharging poll if sensor is already inactive if so, emit event sensor_inactive"_test = [] {
+    test_instance instance{};
+    std::optional<bool> value{ false };
+    ON_CALL(instance.ctrl.sensor_slot(), value()).WillByDefault(testing::ReturnRef(value));
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(1);
+    instance.ctrl.enter_discharging();
+
+    value = true;
+    ON_CALL(instance.ctrl.sensor_slot(), value()).WillByDefault(testing::ReturnRef(value));
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(0);
+    instance.ctrl.enter_discharging();
   };
 
   return EXIT_SUCCESS;

@@ -70,6 +70,9 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
   start_motor();
+  if (!sensor_.value().value_or(false)) {
+    sm_->process_event(events::sensor_inactive{});
+  }
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
