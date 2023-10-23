@@ -28,6 +28,7 @@ struct state_machine_mock {
   MOCK_METHOD(void, process_event_info, (), (const));
   MOCK_METHOD(void, process_discharge, (), (const));
   MOCK_METHOD(void, process_complete, (), (const));
+  MOCK_METHOD(void, process_await_sensor_timeout, (), (const));
 
   template <typename event_t>
   void process_event(event_t const&) {
@@ -41,6 +42,8 @@ struct state_machine_mock {
       process_discharge();
     } else if constexpr (std::is_same_v<event_t, events::complete>) {
       process_complete();
+    } else if constexpr (std::is_same_v<event_t, events::await_sensor_timeout>) {
+      process_await_sensor_timeout();
     } else {
       []<bool flag = false>() {
         static_assert(flag, "Unsupported event type");
@@ -54,6 +57,7 @@ struct test_instance {
   test_instance() {
     auto change = ctrl.config().make_change();
     change->discharge_timeout = std::nullopt;
+    change->await_sensor_timeout = std::chrono::minutes{1};
     change->run_speed = 100.0 * mp_units::percent;
   }
   asio::io_context ctx{};
@@ -149,6 +153,23 @@ auto main(int argc, char** argv) -> int {
     test_instance instance{};
     EXPECT_CALL(instance.ctrl.discharge_allowance_signal(), async_send_cb(true, testing::_)).Times(1);
     instance.ctrl.enter_awaiting_sensor();
+  };
+
+  "integration test, awaiting_sensor timeout"_test = [] {
+    test_instance instance{};
+    instance.ctrl.config().make_change()->await_sensor_timeout = std::chrono::milliseconds{0};
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_await_sensor_timeout()).Times(1);
+    instance.ctrl.enter_awaiting_sensor();
+    instance.ctx.run_for(std::chrono::milliseconds{1});
+  };
+
+  "integration test, awaiting_sensor timeout cancelled"_test = [] {
+    test_instance instance{};
+    instance.ctrl.config().make_change()->await_sensor_timeout = std::chrono::milliseconds{0};
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_await_sensor_timeout()).Times(0);
+    instance.ctrl.enter_awaiting_sensor();
+    instance.ctrl.leave_awaiting_sensor(); // should cancel the timer
+    instance.ctx.run_for(std::chrono::milliseconds{1});
   };
 
   "leave_awaiting_sensor revokes discharge allowance"_test = [] {

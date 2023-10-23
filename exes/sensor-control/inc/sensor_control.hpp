@@ -31,6 +31,7 @@ public:
 
   struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
+    std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{1} };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     struct glaze {
       using type = sensor_control_config;
@@ -71,6 +72,7 @@ public:
   void on_may_discharge(bool new_value);
   void set_queued_item(ipc::item::item&&);
 
+  void await_sensor_timer_cb(std::error_code const&);
   void discharge_timer_cb(std::error_code const&);
   [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return discharge_timer_.has_value(); }
 
@@ -105,11 +107,14 @@ private:
   using state_machine_t = sml_t<sensor::control::state_machine<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>;
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, tfc::logger::sml_logger{}) };
 
+  asio::steady_timer await_sensor_timer_{ ctx_ };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
   tfc::confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
                                                        sensor_control_config{ .discharge_timeout = std::nullopt,
-                                                                              .run_speed = 100.0 * mp_units::percent } };
+                                                                              .await_sensor_timeout = std::chrono::minutes{1},
+                                                                              .run_speed = 100.0 * mp_units::percent
+                                                       } };
 };
 
 extern template class sensor_control<>;

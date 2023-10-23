@@ -53,6 +53,8 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
       this->logger_.error("Failed to set discharge active: {}", err.message());
     }
   });
+  await_sensor_timer_.expires_after(config_->await_sensor_timeout);
+  await_sensor_timer_.async_wait(std::bind_front(&sensor_control::await_sensor_timer_cb, this));
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
@@ -64,6 +66,7 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_sensor() {
       this->logger_.error("Failed to set discharge inactive: {}", err.message());
     }
   });
+  await_sensor_timer_.cancel();
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
@@ -173,6 +176,17 @@ void sensor_control<signal_t, slot_t, sml_t>::set_queued_item(ipc::item::item&& 
   }
   queued_item_ = std::move(new_value);
 }
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::await_sensor_timer_cb(const std::error_code& err) {
+  if (err) {
+    logger_.trace("Await sensor timer error: {}\n", err.message());
+    return;
+  }
+  sm_->process_event(events::await_sensor_timeout{});
+}
+
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
