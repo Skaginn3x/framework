@@ -42,7 +42,7 @@ static auto get_environment_variable(std::string const& env_variable, int defaul
 /// \example get_minimum_retention_days();
 /// If the environment variable "TFC_CONFMAN_MIN_RETENTION_DAYS" is set to "15", the function returns std::chrono::days(15).
 /// Otherwise, the function returns std::chrono::days(30).
-auto get_minimum_retention_days() -> std::chrono::days {
+static auto get_minimum_retention_days() -> std::chrono::days {
   return std::chrono::days(get_environment_variable("TFC_CONFMAN_MIN_RETENTION_DAYS", 30));
 }
 
@@ -51,14 +51,14 @@ auto get_minimum_retention_days() -> std::chrono::days {
 /// \example get_minimum_retention_count();
 /// If the environment variable "TFC_CONFMAN_MIN_RETENTION_COUNT" is set to "6", the function returns 6.
 /// Otherwise, the function returns 4.
-auto get_minimum_retention_count() -> int {
+static auto get_minimum_retention_count() -> int {
   return get_environment_variable("TFC_CONFMAN_MIN_RETENTION_COUNT", 4);
 }
 
 /// \brief Delete old files from the specified directory based on retention count and days. If the number
 /// of files exceed the retention count AND if the file's last modification date surpasses the retention time,
 /// \param directory path to directory containing files to possibly delete.
-auto delete_old_files(std::filesystem::path const& directory) -> void {
+static auto delete_old_files(std::filesystem::path const& directory) -> void {
   int const retention_count = get_minimum_retention_count();
   std::chrono::days const retention_time = get_minimum_retention_days();
 
@@ -107,7 +107,7 @@ static auto get_uuid() -> std::string {
 /// auto original_path = std::filesystem::path("/etc/configs/settings.conf");
 /// auto uuid_filename = generate_uuid_filename(original_path);
 /// // Possible result: "/etc/configs/settings_d53c5117-ddfd-4b31-9e3d-acf9ea627fee.json"
-auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesystem::path {
+static auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesystem::path {
   return std::filesystem::path{ config_file.replace_extension().string() + "_" + get_uuid() + ".json" };
 }
 
