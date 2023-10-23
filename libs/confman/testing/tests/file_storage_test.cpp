@@ -36,11 +36,9 @@ public:
     std::error_code ignore{};
     std::filesystem::remove(this->file(), ignore);
 
-    std::string const backup_prefix = "/tmp/test";
-
     // delete backup files
     for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(this->file().parent_path())) {
-      if (entry.path().string().find(backup_prefix) != std::string::npos) {
+      if (entry.path().string().find("/tmp/test") != std::string::npos) {
         std::filesystem::remove(entry.path());
       }
     }
@@ -160,7 +158,7 @@ auto main(int argc, char** argv) -> int {
       }
     }
 
-    ut::expect(backup_found == true) << "No backup file found for modified config";
+    ut::expect(backup_found) << "No backup file found for modified config";
 
     if (backup_found) {
       glz::json_t backup_json{};
