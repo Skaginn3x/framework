@@ -35,6 +35,7 @@ public:
   ~file_testable() {
     std::error_code ignore{};
     std::filesystem::remove(this->file(), ignore);
+    // todo: erase uuid files
   }
 };
 
@@ -132,6 +133,10 @@ auto main(int argc, char** argv) -> int {
 
     ctx.run_for(std::chrono::milliseconds(1));
     ut::expect(called == 1);
+  };
+
+  "old config in new file"_test = [] {
+    // todo: create some config, change the config, read config from uuid file, assert config is the same as originally
   };
 
   return EXIT_SUCCESS;
