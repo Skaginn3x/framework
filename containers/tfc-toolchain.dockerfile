@@ -21,6 +21,5 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
 RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
 
-#RUN addgroup tfc
-#RUN adduser -S tfc -G tfc
-#USER tfc
+RUN useradd -rm -d /home/tfc -s /bin/bash -g root -G sudo -u 1001 tfc
+USER tfc
