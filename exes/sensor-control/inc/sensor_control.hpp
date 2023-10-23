@@ -29,15 +29,16 @@ class sensor_control {
 public:
   explicit sensor_control(asio::io_context&);
 
-  struct config {
+  struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     struct glaze {
+      using type = sensor_control_config;
       static constexpr std::string_view name{ "tfc::sensor_control" };
       // clang-format off
       static constexpr auto value{ glz::object(
-        "discharge delay", &config::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
-        "run speed", &config::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 }
+        "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
+        "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 }
       ) };
       // clang-format on
     };
@@ -53,6 +54,8 @@ public:
   void leave_discharging();
   void enter_discharge_delayed();
   void leave_discharge_delayed();
+  void enter_discharging_allow_input() {}
+  void leave_discharging_allow_input() {}
   // accessors for testing purposes
   [[nodiscard]] auto motor_signal() const noexcept -> auto const& { return motor_percentage_; }
   [[nodiscard]] auto discharge_signal() const noexcept -> auto const& { return request_discharge_; }
@@ -60,6 +63,7 @@ public:
   [[nodiscard]] auto may_discharge_slot() const noexcept -> auto const& { return may_discharge_; }
   [[nodiscard]] auto state_machine() const noexcept -> auto const& { return sm_; }
   [[nodiscard]] auto queued_item() const noexcept -> auto const& { return queued_item_; }
+  [[nodiscard]] auto config() noexcept -> auto& { return config_; }
 
   void on_sensor(bool new_value);
   void on_discharge_request(std::string const& new_value);
@@ -102,9 +106,9 @@ private:
 
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
-  tfc::confman::config<config> config_{
-    ctx_, "sensor_control", config{ .discharge_timeout = std::nullopt, .run_speed = 100.0 * mp_units::percent }
-  };
+  tfc::confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
+                                                       sensor_control_config{ .discharge_timeout = std::nullopt,
+                                                                              .run_speed = 100.0 * mp_units::percent } };
 };
 
 extern template class sensor_control<>;

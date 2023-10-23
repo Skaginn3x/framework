@@ -50,6 +50,11 @@ struct state_machine_mock {
 };
 
 struct test_instance {
+  test_instance() {
+    auto change = ctrl.config().make_change();
+    change->discharge_timeout = std::nullopt;
+    change->run_speed = 100.0 * mp_units::percent;
+  }
   asio::io_context ctx{};
   tfc::sensor_control<tfc::ipc::mock_signal, tfc::ipc::mock_slot, state_machine_mock> ctrl{ ctx };
 };
@@ -166,8 +171,27 @@ auto main(int argc, char** argv) -> int {
   };
 
   "enter discharge_delayed emits event complete if timer not configured"_test = [] {
-
+    test_instance instance{};
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_complete()).Times(1);
+    instance.ctrl.enter_discharge_delayed();
   };
+
+  "enter discharge_delayed DOES NOT emit event complete if timer is configured"_test = [] {
+    test_instance instance{};
+    {
+      auto change{ instance.ctrl.config().make_change() };
+      change->discharge_timeout = std::chrono::milliseconds{ 1000 };
+    }
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_complete()).Times(0);
+    instance.ctrl.enter_discharge_delayed();
+  };
+
+  "discharge_delayed timer callback emits event complete"_test = []{
+    test_instance instance{};
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_complete()).Times(1);
+    instance.ctrl.discharge_timer_cb({});
+  };
+
 
   return EXIT_SUCCESS;
 }
