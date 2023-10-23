@@ -106,6 +106,24 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_discharge_delayed() {
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::enter_discharging_allow_input() {
+  discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
+    if (err) {
+      this->logger_.error("Failed to set discharge active: {}", err.message());
+    }
+  });
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::leave_discharging_allow_input() {
+  // next state will set discharge allowance to false
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::on_sensor(bool new_value) {
   if (new_value) {
     sm_->process_event(events::sensor_active{});
