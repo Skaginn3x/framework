@@ -28,6 +28,7 @@ struct awaiting_discharge { static constexpr std::string_view name{ "awaiting_di
 struct awaiting_sensor { static constexpr std::string_view name{ "awaiting_sensor" }; };
 struct discharging { static constexpr std::string_view name{ "discharging" }; };
 struct discharge_delayed { static constexpr std::string_view name{ "discharge_delayed" }; };
+struct discharging_allow_input{ static constexpr std::string_view name{ "discharging_allow_input" }; };
 // clang-format on
 }  // namespace states
 
@@ -55,6 +56,8 @@ struct state_machine {
     static constexpr auto leave_discharging = [](owner_t& owner) { owner.leave_discharging(); };
     static constexpr auto enter_discharge_delayed = [](owner_t& owner) { owner.enter_discharge_delayed(); };
     static constexpr auto leave_discharge_delayed = [](owner_t& owner) { owner.leave_discharge_delayed(); };
+    static constexpr auto enter_discharging_allow_input = [](owner_t& owner) { owner.enter_discharging_allow_input(); };
+    static constexpr auto leave_discharging_allow_input = [](owner_t& owner) { owner.leave_discharging_allow_input(); };
 
     static constexpr auto using_discharge_delay = [](owner_t& owner) { return owner.using_discharge_delay(); };
     static constexpr auto not_using_discharge_delay = [](owner_t& owner) { return !owner.using_discharge_delay(); };
@@ -74,17 +77,24 @@ struct state_machine {
       , state<states::awaiting_sensor> + on_entry<_> / enter_awaiting_sensor
       , state<states::awaiting_sensor> + on_exit<_> / leave_awaiting_sensor
       , state<states::awaiting_sensor> + event<events::sensor_active> = state<states::awaiting_discharge>
+      , state<states::awaiting_sensor> + event<events::await_sensor_timeout> = state<states::idle>
 
       , state<states::discharging> + on_entry<_> / enter_discharging
       , state<states::discharging> + on_exit<_> / leave_discharging
 
       , state<states::discharging> + event<events::sensor_inactive> [not_using_discharge_delay] = state<states::idle>
-
       , state<states::discharging> + event<events::sensor_inactive> [using_discharge_delay] = state<states::discharge_delayed>
+      , state<states::discharging> + event<events::new_info> = state<states::discharging_allow_input>
+
       , state<states::discharge_delayed> + on_entry<_> / enter_discharge_delayed
       , state<states::discharge_delayed> + on_exit<_> / leave_discharge_delayed
 
       , state<states::discharge_delayed> + event<events::complete> = state<states::idle>
+      , state<states::discharge_delayed> + event<events::new_info> = state<states::discharging_allow_input>
+
+      , state<states::discharging_allow_input> + on_entry<_> / enter_discharging_allow_input
+      , state<states::discharging_allow_input> + on_exit<_> / leave_discharging_allow_input
+      , state<states::discharging_allow_input> + event<events::sensor_inactive> = state<states::awaiting_sensor>
     );
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
