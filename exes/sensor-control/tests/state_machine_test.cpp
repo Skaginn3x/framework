@@ -136,8 +136,52 @@ auto main(int argc, char** argv) -> int {
           test_instance instance;
           instance.sm.set_current_states(state<state_machine<the_owner>>);
           instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(from_state);
+
+          // setup mock expects for all states
+          if constexpr (std::same_as<typename state_t::type, states::idle>) {
+            EXPECT_CALL(instance.owner, leave_idle());
+          } else if constexpr (std::same_as<typename state_t::type, states::awaiting_discharge>) {
+            EXPECT_CALL(instance.owner, leave_awaiting_discharge());
+          } else if constexpr (std::same_as<typename state_t::type, states::awaiting_sensor>) {
+            EXPECT_CALL(instance.owner, leave_awaiting_sensor());
+          } else if constexpr (std::same_as<typename state_t::type, states::discharging>) {
+            EXPECT_CALL(instance.owner, leave_discharging());
+          } else if constexpr (std::same_as<typename state_t::type, states::discharge_delayed>) {
+            EXPECT_CALL(instance.owner, leave_discharge_delayed());
+          } else if constexpr (std::same_as<typename state_t::type, states::discharging_allow_input>) {
+            EXPECT_CALL(instance.owner, leave_discharging_allow_input());
+          }
+          else {
+            []<bool flag = false>(){
+              static_assert(flag, "Missing test case for newly added state"); }();
+          }
+
           instance.sm.process_event(events::stop{});
           ut::expect(instance.sm.is("stopped"_s));
+
+          if constexpr (std::same_as<typename state_t::type, states::idle>) {
+            EXPECT_CALL(instance.owner, enter_idle());
+          }
+          else if constexpr (std::same_as<typename state_t::type, states::awaiting_discharge>) {
+            EXPECT_CALL(instance.owner, enter_awaiting_discharge());
+          }
+          else if constexpr (std::same_as<typename state_t::type, states::awaiting_sensor>) {
+            EXPECT_CALL(instance.owner, enter_awaiting_sensor());
+          }
+          else if constexpr (std::same_as<typename state_t::type, states::discharging>) {
+            EXPECT_CALL(instance.owner, enter_discharging());
+          }
+          else if constexpr (std::same_as<typename state_t::type, states::discharge_delayed>) {
+            EXPECT_CALL(instance.owner, enter_discharge_delayed());
+          }
+          else if constexpr (std::same_as<typename state_t::type, states::discharging_allow_input>) {
+            EXPECT_CALL(instance.owner, enter_discharging_allow_input());
+          } else {
+            []<bool flag = false>() {
+              static_assert(flag, "Missing test case for newly added state");
+            }
+            ();
+          }
 
           instance.sm.process_event(events::start{});
           ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(from_state) >> ut::fatal);
@@ -175,8 +219,6 @@ auto main(int argc, char** argv) -> int {
     instance.sm.process_event(events::sensor_inactive{});
     ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>));
   };
-
-
 
   return EXIT_SUCCESS;
 }
