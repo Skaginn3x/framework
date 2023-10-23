@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sys/inotify.h>
-#include <chrono>
 #include <filesystem>
 #include <string>
 
@@ -16,7 +15,8 @@
 namespace tfc::confman {
 
 auto write_to_file(const std::filesystem::path& file_path, std::string_view file_contents) -> std::error_code;
-auto write_and_delete_old_files(std::string_view file_content, std::filesystem::path const& file_path) -> std::error_code;
+auto write_and_apply_retention_policy(std::string_view file_content, std::filesystem::path const& file_path)
+    -> std::error_code;
 
 namespace asio = boost::asio;
 
@@ -90,15 +90,14 @@ public:
   /// When the helper struct is deconstructed the changes are written to the disc.
   /// \return change helper struct providing reference to this` value.
   auto make_change() noexcept -> change {
-    write_and_delete_old_files(to_json(), config_file_);
+    write_and_apply_retention_policy(to_json(), config_file_);
     return change{ *this };
   }
 
   /// \brief set_changed writes the current value to disc
   /// \return error_code if it was unable to write to disc.
   auto set_changed() const noexcept -> std::error_code {
-    std::string buffer{ to_json() };  // this can throw, meaning memory error
-    if (auto write_error{ write_to_file(config_file_, buffer) }; write_error) {
+    if (auto write_error{ write_to_file(config_file_, to_json()) }; write_error) {
       logger_.warn(R"(Error: "{}" writing to file: "{}")", write_error.message(), config_file_.string());
       return write_error;
     }
@@ -139,7 +138,7 @@ protected:
 
     logger_.trace("File change");
 
-    write_and_delete_old_files(to_json(), config_file_);
+    write_and_apply_retention_policy(to_json(), config_file_);
 
     // the following updates internal storage_ member
     read_file();
