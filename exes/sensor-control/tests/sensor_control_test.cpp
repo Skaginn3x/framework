@@ -11,6 +11,7 @@
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::operator""_test;
+using ut::operator|;
 using ut::operator>>;
 using ut::fatal;
 namespace item = tfc::ipc::item;
@@ -198,18 +199,22 @@ auto main(int argc, char** argv) -> int {
     instance.ctrl.enter_discharging_allow_input();
   };
 
-  "enter_discharging poll if sensor is already inactive if so, emit event sensor_inactive"_test = [] {
-    test_instance instance{};
-    std::optional<bool> value{ false };
-    ON_CALL(instance.ctrl.sensor_slot(), value()).WillByDefault(testing::ReturnRef(value));
-    EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(1);
-    instance.ctrl.enter_discharging();
+  using ctrl_t = std::remove_cvref_t<decltype(test_instance::ctrl)>;
 
-    value = true;
-    ON_CALL(instance.ctrl.sensor_slot(), value()).WillByDefault(testing::ReturnRef(value));
-    EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(0);
-    instance.ctrl.enter_discharging();
-  };
+  "enter_discharging&enter_discharging_allow_input poll if sensor is already inactive if so, emit event sensor_inactive"_test =
+      [](auto const& ctrl_function_pointer) {
+        test_instance instance{};
+        std::optional<bool> value{ false };
+        ON_CALL(instance.ctrl.sensor_slot(), value()).WillByDefault(testing::ReturnRef(value));
+        EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(1);
+        std::invoke(ctrl_function_pointer, instance.ctrl);
+
+        value = true;
+        ON_CALL(instance.ctrl.sensor_slot(), value()).WillByDefault(testing::ReturnRef(value));
+        EXPECT_CALL(*instance.ctrl.state_machine(), process_event_sensor_inactive()).Times(0);
+        std::invoke(ctrl_function_pointer, instance.ctrl);
+      } |
+      std::make_tuple(&ctrl_t::enter_discharging, &ctrl_t::enter_discharging_allow_input);
 
   return EXIT_SUCCESS;
 }
