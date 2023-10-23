@@ -98,8 +98,7 @@ public:
   /// \return error_code if it was unable to write to disc.
   auto set_changed() const noexcept -> std::error_code {
     std::string buffer{ to_json() };  // this can throw, meaning memory error
-    auto write_error{ write_to_file(config_file_, buffer) };
-    if (write_error) {
+    if (auto write_error{ write_to_file(config_file_, buffer) }; write_error) {
       logger_.warn(R"(Error: "{}" writing to file: "{}")", write_error.message(), config_file_.string());
       return write_error;
     }
@@ -122,8 +121,7 @@ protected:
 
   auto read_file() -> std::error_code {
     std::string buffer{};
-    auto glz_err{ glz::read_file_json(storage_, config_file_.string(), buffer) };
-    if (glz_err) {
+    if (auto glz_err{ glz::read_file_json(storage_, config_file_.string(), buffer) }; glz_err) {
       logger_.warn(R"(Error: "{}" reading from file: "{}")", glz::write_json(glz_err.ec), config_file_.string());
       return std::make_error_code(std::errc::io_error);
       // todo implicitly convert glaze error_code to std::error_code

@@ -35,7 +35,13 @@ public:
   ~file_testable() {
     std::error_code ignore{};
     std::filesystem::remove(this->file(), ignore);
-    // todo: erase uuid files
+
+    // delete backup files
+    for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(this->file().parent_path())) {
+      if (entry.path().string().find("/tmp/test") != std::string::npos) {
+        std::filesystem::remove(entry.path());
+      }
+    }
   }
 };
 
@@ -135,8 +141,33 @@ auto main(int argc, char** argv) -> int {
     ut::expect(called == 1);
   };
 
-  "old config in new file"_test = [] {
-    // todo: create some config, change the config, read config from uuid file, assert config is the same as originally
+  "backup on config change"_test = [&] {
+    file_testable<test_me> conf{ ctx, "/tmp/test_uuid", test_me{ .a = observable<int>{ 3 }, .b = "bar" } };
+    conf.make_change()->a = 2;
+    ctx.run_for(std::chrono::milliseconds(1));
+    auto files = std::filesystem::directory_iterator("/tmp");
+
+    bool backup_found = false;
+    std::string found_file;
+
+    for (const auto& file : files) {
+      if (file.path().string().find("/tmp/test_uuid_") != std::string::npos) {
+        backup_found = true;
+        found_file = file.path().string();
+        break;
+      }
+    }
+
+    ut::expect(backup_found == true) << "No backup file found for modified config";
+
+    if (backup_found) {
+      glz::json_t backup_json{};
+      std::string buffer{};
+      glz::read_file_json(backup_json, found_file, buffer);
+
+      ut::expect(backup_json["a"].get<double>() == 3);
+      ut::expect(backup_json["b"].get<std::string>() == "bar");
+    }
   };
 
   return EXIT_SUCCESS;
