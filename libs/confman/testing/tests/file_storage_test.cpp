@@ -36,9 +36,11 @@ public:
     std::error_code ignore{};
     std::filesystem::remove(this->file(), ignore);
 
+    std::string const backup_prefix = "/tmp/test";
+
     // delete backup files
     for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(this->file().parent_path())) {
-      if (entry.path().string().find("/tmp/test") != std::string::npos) {
+      if (entry.path().string().find(backup_prefix) != std::string::npos) {
         std::filesystem::remove(entry.path());
       }
     }
