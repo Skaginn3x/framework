@@ -126,12 +126,10 @@ auto write_and_delete_old_files(std::string_view file_content, std::filesystem::
   return {};
 }
 
-/// \brief Creates a backup of a file in the same directory as the file, appends a UUID to the file name.
-/// \param file_path file to back up
-/// \param file_contents contents of the file that should be backed up.
-/// \returns A std::error_code indicating success or failure. If backup creation fails, IO error is returned.
-/// \example backup_file("/etc/config", "configuration data");
-/// A backup file named "/etc/config_<UUID>.json" is created with contents being "configuration data".
+/// \brief writes file contents to a file
+/// \param file_path path of the file
+/// \param file_contents contents of the file
+/// \returns A std::error_code indicating success or failure. If write fails, IO error is returned.
 auto write_to_file(std::filesystem::path const& file_path, std::string_view file_contents) -> std::error_code {
   auto glz_err{ glz::buffer_to_file(file_contents, file_path) };
   if (glz_err != glz::error_code::none) {
