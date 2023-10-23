@@ -115,6 +115,9 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_discharging_allow_input() {
       this->logger_.error("Failed to set discharge active: {}", err.message());
     }
   });
+  if (!sensor_.value().value_or(false)) {
+    sm_->process_event(events::sensor_inactive{});
+  }
 }
 
 // clang-format off
