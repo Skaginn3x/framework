@@ -15,7 +15,12 @@
 
 namespace tfc::confman {
 
+// todo: only exposed function, write_and_delete_old_files(std::string_view, std::filesystem::path const&);
+
 auto retain_newest_files(std::filesystem::path const& parent_path, int retention_count) -> void;
+
+auto generate_uuid_filename(std::filesystem::path const& config_file) -> std::filesystem::path;
+// todo: rename to write_to_file(std::string_view file_contents, std::filesystem::path const& path);
 auto backup_file(std::filesystem::path& file_path, std::string const& file_contents) -> std::error_code;
 auto delete_old_files(std::filesystem::path const& parent_path, std::chrono::days const& retention_time) -> void;
 auto get_minimum_retention_days() -> std::chrono::days;
@@ -92,13 +97,23 @@ public:
   /// This helper struct will provide changeable access to this` underlying value.
   /// When the helper struct is deconstructed the changes are written to the disc.
   /// \return change helper struct providing reference to this` value.
-  auto make_change() noexcept -> change { return change{ *this }; }
+  auto make_change() noexcept -> change {
+    // todo: write_and_delete_old_files(to_json(), config_file_);
+    // auto write_and_delete_old_files = [](contents, file){
+    //   write_to_file(to_json(), generate_uuid_filename(config_file_));
+    //   delete_old_files(config_file_); // take into account minimum 30 days and minimum 4 files
+    // };
+    // todo: write_to_file(to_json(), generate_uuid_filename(config_file_));
+    // todo: delete_old_files(config_file_); // take into account minimum 30 days and minimum 4 files
+    return change{ *this };
+  }
 
   /// \brief set_changed writes the current value to disc
   /// \return error_code if it was unable to write to disc.
   auto set_changed() const noexcept -> std::error_code {
-    std::string buffer{};  // this can throw, meaning memory error
-    glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
+    std::string buffer{ to_json() };  // this can throw, meaning memory error
+    // todo: remove below and use write_to_file
+    // auto glz_err{ write_to_file(buffer, config_file_.string()) };
     auto glz_err{ glz::buffer_to_file(buffer, config_file_.string()) };
     if (glz_err != glz::error_code::none) {
       logger_.warn(R"(Error: "{}" writing to file: "{}")", glz::write_json(glz_err), config_file_.string());
@@ -106,6 +121,13 @@ public:
       // todo implicitly convert glaze error_code to std::error_code
     }
     return {};
+  }
+
+  /// \brief generate json form of storage
+  auto to_json() const noexcept -> std::string {
+    std::string buffer{};  // this can throw, meaning memory error
+    glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
+    return buffer;
   }
 
 protected:
@@ -139,6 +161,12 @@ protected:
     file_watcher_.read_some(asio::buffer(buf));  // discard the data since we only got one watcher per inotify fd
 
     logger_.trace("File change");
+
+    // todo: Here we have storage_ as previous value and can write to a new file
+    // todo: write_to_file(to_json(), generate_uuid_filename(config_file_));
+    // todo: delete_old_files(config_file_); // take into account minimum 30 days and minimum 4 files
+
+    // the following updates internal storage_ member
     read_file();
 
     if (cb_) {

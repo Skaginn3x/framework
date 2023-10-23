@@ -71,7 +71,7 @@ static auto get_uuid() -> std::string {
 /// \returns A std::error_code indicating success or failure. If backup creation fails, IO error is returned.
 /// \example backup_file("/etc/config", "configuration data");
 /// A backup file named "/etc/config_<UUID>.json" is created with contents being "configuration data".
-auto backup_file(std::filesystem::path& file_path, std::string const& file_contents) -> std::error_code {
+auto backup_file(std::filesystem::path& file_path, std::string_view file_contents) -> std::error_code {
   std::string const backup_file_name = file_path.replace_extension().string() + "_" + get_uuid() + ".json";
 
   auto glz_err{ glz::buffer_to_file(file_contents, backup_file_name) };
