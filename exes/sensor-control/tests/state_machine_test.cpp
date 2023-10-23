@@ -20,6 +20,8 @@ struct the_owner {
   MOCK_METHOD((void), leave_stopped, (), ());
   MOCK_METHOD((void), enter_running, (), ());
   MOCK_METHOD((void), leave_running, (), ());
+  MOCK_METHOD((void), enter_discharging_allow_input, (), ());
+  MOCK_METHOD((void), leave_discharging_allow_input, (), ());
   MOCK_METHOD((bool), using_discharge_delay, (), (const noexcept));  // NOLINT
   MOCK_METHOD((void), save_time_left, (), ());
 };
@@ -84,7 +86,7 @@ auto main(int argc, char** argv) -> int {
     EXPECT_CALL(instance.owner, leave_awaiting_sensor());
     EXPECT_CALL(instance.owner, enter_idle());
     instance.sm.process_event(events::await_sensor_timeout{});
-    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>));
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::idle>));
   };
 
   "awaiting_discharge -> discharging"_test = [] {
@@ -143,6 +145,38 @@ auto main(int argc, char** argv) -> int {
       } |
       std::make_tuple(state<states::idle>, state<states::awaiting_discharge>, state<states::awaiting_sensor>,
                       state<states::discharging>, state<states::discharge_delayed>);
+
+  "discharging -> discharge_allow_input"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::discharging>);
+    EXPECT_CALL(instance.owner, leave_discharging());
+    EXPECT_CALL(instance.owner, enter_discharging_allow_input());
+    instance.sm.process_event(events::new_info{});
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::discharging_allow_input>));
+  };
+
+  "discharge_delayed -> discharge_allow_input"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::discharge_delayed>);
+    EXPECT_CALL(instance.owner, leave_discharge_delayed());
+    EXPECT_CALL(instance.owner, enter_discharging_allow_input());
+    instance.sm.process_event(events::new_info{});
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::discharging_allow_input>));
+  };
+
+  "discharge_allow_input -> await_sensor"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states(state<state_machine<the_owner>>);
+    instance.sm.set_current_states<decltype(state<state_machine<the_owner>>)>(state<states::discharging_allow_input>);
+    EXPECT_CALL(instance.owner, leave_discharging_allow_input());
+    EXPECT_CALL(instance.owner, enter_awaiting_sensor());
+    instance.sm.process_event(events::sensor_inactive{});
+    ut::expect(instance.sm.is<decltype(state<state_machine<the_owner>>)>(state<states::awaiting_sensor>));
+  };
+
+
 
   return EXIT_SUCCESS;
 }
