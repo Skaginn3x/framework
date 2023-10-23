@@ -1,14 +1,11 @@
 #include <cstdint>
 #include <cstdlib>
-#include <filesystem>
 #include <iterator>
 #include <map>
 #include <set>
-#include <string>
 #include <system_error>
 
 #include <stduuid/uuid.h>
-#include <glaze/glaze.hpp>
 
 #include <tfc/utils/pragmas.hpp>
 
@@ -23,79 +20,6 @@ PRAGMA_CLANG_WARNING_POP
 #include <tfc/confman/file_storage.hpp>
 
 namespace tfc::confman {
-
-/// \brief Retains the newest files in a directory, deleting older ones.
-/// This function iterates through the files in a given directory and if the directory contains too many files
-/// it deletes the older ones.
-/// \tparam parent_path directory path
-/// \tparam retention_count number of files to retain
-/// \example retain_newest_files("/path/to/directory", 5);
-/// This ensures that only 5 backup files are retained in the "/path/to/directory", and older ones are deleted.
-auto retain_newest_files(std::filesystem::path const& parent_path, int retention_count) -> void {
-  // +2 for the file itself and the swap file
-  int total_file_retention_count = retention_count + 2;
-
-  if (int64_t total_file_count =
-          std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{});
-      total_file_count <= static_cast<int64_t>(total_file_retention_count)) {
-    return;
-  }
-
-  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
-
-  for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(parent_path)) {
-    file_times.try_emplace(entry.last_write_time(), entry.path());
-  }
-
-  uint64_t count = 0;
-  for (auto it = file_times.begin();
-       it != file_times.end() && count <= (file_times.size() - static_cast<uint64_t>(total_file_retention_count));
-       ++it, ++count) {
-    std::filesystem::remove(it->second);
-  }
-}
-
-/// \brief Generates a universally unique identifier (UUID), generated UUID is compliant with the RFC 4122.
-/// \returns std::string of generated UUID.
-/// \example auto id = get_uuid(); id = "d53c5117-ddfd-4b31-9e3d-acf9ea627fee"
-static auto get_uuid() -> std::string {
-  pcg_extras::seed_seq_from<std::random_device> seed_source;
-  pcg64 random_engine(seed_source);
-  uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
-  return uuids::to_string(random_generator());
-}
-
-/// \brief Creates a backup of a file in the same directory as the file, appends a UUID to the file name.
-/// \param file_path file to back up
-/// \param file_contents contents of the file that should be backed up.
-/// \returns A std::error_code indicating success or failure. If backup creation fails, IO error is returned.
-/// \example backup_file("/etc/config", "configuration data");
-/// A backup file named "/etc/config_<UUID>.json" is created with contents being "configuration data".
-auto backup_file(std::filesystem::path& file_path, std::string_view file_contents) -> std::error_code {
-  std::string const backup_file_name = file_path.replace_extension().string() + "_" + get_uuid() + ".json";
-
-  auto glz_err{ glz::buffer_to_file(file_contents, backup_file_name) };
-  if (glz_err != glz::error_code::none) {
-    return std::make_error_code(std::errc::io_error);
-  }
-  return {};
-}
-
-/// \brief Deletes files older than a specified retention time.
-/// \param parent_path directory containing files to check for deletion
-/// \param retention_time duration of time (in days) for which files should be retained. Older files will be deleted.
-/// \example delete_old_files("/etc/logs", std::chrono::days(30));
-/// All files inside the "/etc/logs" directory that were last modified more than 30 days ago will be deleted
-auto delete_old_files(std::filesystem::path const& parent_path, std::chrono::days const& retention_time) -> void {
-  std::filesystem::file_time_type const current_time = std::filesystem::file_time_type::clock::now();
-
-  for (const auto& entry : std::filesystem::directory_iterator(parent_path)) {
-    auto time_since_last_modified = current_time - std::filesystem::last_write_time(entry);
-    if (time_since_last_modified > retention_time) {
-      std::filesystem::remove(entry.path().string());
-    }
-  }
-}
 
 /// \brief Retrieves an integer value of an environment variable, if a non-negative value is present on the variable
 /// it is returned. Otherwise a default value is returned.
@@ -129,6 +53,91 @@ auto get_minimum_retention_days() -> std::chrono::days {
 /// Otherwise, the function returns 4.
 auto get_minimum_retention_count() -> int {
   return get_environment_variable("TFC_CONFMAN_MIN_RETENTION_COUNT", 4);
+}
+
+/// \brief Delete old files from the specified directory based on retention count and days. If the number
+/// of files exceed the retention count AND if the file's last modification date surpasses the retention time,
+/// \param directory path to directory containing files to possibly delete.
+auto delete_old_files(std::filesystem::path const& directory) -> void {
+  int const retention_count = get_minimum_retention_count();
+  std::chrono::days const retention_time = get_minimum_retention_days();
+
+  // +2 for the file itself and the swap file
+  int total_file_retention_count = retention_count + 2;
+
+  if (int64_t const total_file_count =
+          std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{});
+      total_file_count <= static_cast<int64_t>(total_file_retention_count)) {
+    return;
+  }
+
+  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+
+  for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory)) {
+    file_times.try_emplace(entry.last_write_time(), entry.path());
+  }
+
+  std::filesystem::file_time_type const current_time = std::filesystem::file_time_type::clock::now();
+
+  uint64_t count = 0;
+  for (auto it = file_times.begin();
+       it != file_times.end() && count <= (file_times.size() - static_cast<uint64_t>(total_file_retention_count));
+       ++it, ++count) {
+    auto time_since_last_modified = current_time - it->first;
+    if (time_since_last_modified > retention_time) {
+      std::filesystem::remove(it->second);
+    }
+  }
+}
+
+/// \brief Generates a universally unique identifier (UUID), generated UUID is compliant with the RFC 4122.
+/// \returns std::string of generated UUID.
+/// \example auto id = get_uuid(); id = "d53c5117-ddfd-4b31-9e3d-acf9ea627fee"
+static auto get_uuid() -> std::string {
+  pcg_extras::seed_seq_from<std::random_device> seed_source;
+  pcg64 random_engine(seed_source);
+  uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
+  return uuids::to_string(random_generator());
+}
+
+/// \brief Generate a unique filename using a UUID.
+/// \param config_file file path used for generating a unique filename.
+/// \return `std::filesystem::path` object containing the unique filename.
+/// \example
+/// auto original_path = std::filesystem::path("/etc/configs/settings.conf");
+/// auto uuid_filename = generate_uuid_filename(original_path);
+/// // Possible result: "/etc/configs/settings_d53c5117-ddfd-4b31-9e3d-acf9ea627fee.json"
+auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesystem::path {
+  return std::filesystem::path{ config_file.replace_extension().string() + "_" + get_uuid() + ".json" };
+}
+
+/// \brief Write content to a backup file and delete older files if they surpass retention criteria.
+/// \param file_content content to be written to the new file.
+/// \param file_path path to file
+/// \return `std::error_code` with result of write operation
+auto write_and_delete_old_files(std::string_view file_content, std::filesystem::path const& file_path) -> std::error_code {
+  auto write_error{ write_to_file(generate_uuid_filename(file_path), file_content) };
+
+  if (write_error) {
+    return write_error;
+  }
+
+  delete_old_files(file_path.parent_path());  // take into account minimum 30 days and minimum 4 files
+  return {};
+}
+
+/// \brief Creates a backup of a file in the same directory as the file, appends a UUID to the file name.
+/// \param file_path file to back up
+/// \param file_contents contents of the file that should be backed up.
+/// \returns A std::error_code indicating success or failure. If backup creation fails, IO error is returned.
+/// \example backup_file("/etc/config", "configuration data");
+/// A backup file named "/etc/config_<UUID>.json" is created with contents being "configuration data".
+auto write_to_file(std::filesystem::path const& file_path, std::string_view file_contents) -> std::error_code {
+  auto glz_err{ glz::buffer_to_file(file_contents, file_path) };
+  if (glz_err != glz::error_code::none) {
+    return std::make_error_code(std::errc::io_error);
+  }
+  return {};
 }
 
 }  // namespace tfc::confman

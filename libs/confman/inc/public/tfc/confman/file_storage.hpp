@@ -15,16 +15,8 @@
 
 namespace tfc::confman {
 
-// todo: only exposed function, write_and_delete_old_files(std::string_view, std::filesystem::path const&);
-
-auto retain_newest_files(std::filesystem::path const& parent_path, int retention_count) -> void;
-
-auto generate_uuid_filename(std::filesystem::path const& config_file) -> std::filesystem::path;
-// todo: rename to write_to_file(std::string_view file_contents, std::filesystem::path const& path);
-auto backup_file(std::filesystem::path& file_path, std::string const& file_contents) -> std::error_code;
-auto delete_old_files(std::filesystem::path const& parent_path, std::chrono::days const& retention_time) -> void;
-auto get_minimum_retention_days() -> std::chrono::days;
-auto get_minimum_retention_count() -> int;
+auto write_to_file(const std::filesystem::path& file_path, std::string_view file_contents) -> std::error_code;
+auto write_and_delete_old_files(std::string_view file_content, std::filesystem::path const& file_path) -> std::error_code;
 
 namespace asio = boost::asio;
 
@@ -98,13 +90,7 @@ public:
   /// When the helper struct is deconstructed the changes are written to the disc.
   /// \return change helper struct providing reference to this` value.
   auto make_change() noexcept -> change {
-    // todo: write_and_delete_old_files(to_json(), config_file_);
-    // auto write_and_delete_old_files = [](contents, file){
-    //   write_to_file(to_json(), generate_uuid_filename(config_file_));
-    //   delete_old_files(config_file_); // take into account minimum 30 days and minimum 4 files
-    // };
-    // todo: write_to_file(to_json(), generate_uuid_filename(config_file_));
-    // todo: delete_old_files(config_file_); // take into account minimum 30 days and minimum 4 files
+    write_and_delete_old_files(to_json(), config_file_);
     return change{ *this };
   }
 
@@ -112,13 +98,10 @@ public:
   /// \return error_code if it was unable to write to disc.
   auto set_changed() const noexcept -> std::error_code {
     std::string buffer{ to_json() };  // this can throw, meaning memory error
-    // todo: remove below and use write_to_file
-    // auto glz_err{ write_to_file(buffer, config_file_.string()) };
-    auto glz_err{ glz::buffer_to_file(buffer, config_file_.string()) };
-    if (glz_err != glz::error_code::none) {
-      logger_.warn(R"(Error: "{}" writing to file: "{}")", glz::write_json(glz_err), config_file_.string());
-      return std::make_error_code(std::errc::io_error);
-      // todo implicitly convert glaze error_code to std::error_code
+    auto write_error{ write_to_file(config_file_, buffer) };
+    if (write_error) {
+      logger_.warn(R"(Error: "{}" writing to file: "{}")", write_error.message(), config_file_.string());
+      return write_error;
     }
     return {};
   }
@@ -145,10 +128,6 @@ protected:
       return std::make_error_code(std::errc::io_error);
       // todo implicitly convert glaze error_code to std::error_code
     }
-
-    old_file = current_file;
-    current_file = buffer;
-
     return {};
   }
 
@@ -162,9 +141,7 @@ protected:
 
     logger_.trace("File change");
 
-    // todo: Here we have storage_ as previous value and can write to a new file
-    // todo: write_to_file(to_json(), generate_uuid_filename(config_file_));
-    // todo: delete_old_files(config_file_); // take into account minimum 30 days and minimum 4 files
+    write_and_delete_old_files(to_json(), config_file_);
 
     // the following updates internal storage_ member
     read_file();
@@ -172,13 +149,6 @@ protected:
     if (cb_) {
       std::invoke(cb_);
     }
-
-    if (auto b_err = backup_file(config_file_, old_file); b_err) {
-      logger_.error("Error backing up config file: {}", b_err.message());
-    }
-
-    delete_old_files(config_file_.parent_path(), get_minimum_retention_days());
-    retain_newest_files(config_file_.parent_path(), get_minimum_retention_count());
 
     file_watcher_.async_read_some(asio::null_buffers(), std::bind_front(&file_storage::on_file_change, this));
   }
@@ -189,8 +159,6 @@ protected:
   std::error_code error_{};
   asio::posix::stream_descriptor file_watcher_;
   std::function<void()> cb_{};
-  std::string current_file;
-  std::string old_file;
 };
 
 }  // namespace tfc::confman
