@@ -54,8 +54,8 @@ public:
   void leave_discharging();
   void enter_discharge_delayed();
   void leave_discharge_delayed();
-  void enter_discharging_allow_input() {}
-  void leave_discharging_allow_input() {}
+  void enter_discharging_allow_input();
+  void leave_discharging_allow_input();
   // accessors for testing purposes
   [[nodiscard]] auto motor_signal() const noexcept -> auto const& { return motor_percentage_; }
   [[nodiscard]] auto discharge_signal() const noexcept -> auto const& { return request_discharge_; }

@@ -192,6 +192,11 @@ auto main(int argc, char** argv) -> int {
     instance.ctrl.discharge_timer_cb({});
   };
 
+  "enter_discharging_allow_input allows upstream input"_test = [] {
+    test_instance instance{};
+    EXPECT_CALL(instance.ctrl.discharge_allowance_signal(), async_send_cb(true, testing::_)).Times(1);
+    instance.ctrl.enter_discharging_allow_input();
+  };
 
   return EXIT_SUCCESS;
 }
