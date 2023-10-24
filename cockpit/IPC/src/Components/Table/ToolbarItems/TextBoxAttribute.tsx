@@ -1,12 +1,13 @@
 /* eslint-disable react/function-component-definition */
 import React from 'react';
-import * as reactCore from '@patternfly/react-core';
+import { TextInput } from '@patternfly/react-core';
 
 interface TextboxAttributeProps {
   selectedItems: string[];
   setActiveItems: React.Dispatch<React.SetStateAction<string[]>>;
   attributeName: string;
   activeAttributeMenu: string;
+  innerRef: React.RefObject<HTMLInputElement> | null;
 }
 
 const TextboxAttribute: React.FC<TextboxAttributeProps> = ({
@@ -14,6 +15,7 @@ const TextboxAttribute: React.FC<TextboxAttributeProps> = ({
   setActiveItems,
   attributeName,
   activeAttributeMenu,
+  innerRef,
 }) => {
   const [inputValue, setInputValue] = React.useState<string>('');
 
@@ -33,11 +35,13 @@ const TextboxAttribute: React.FC<TextboxAttributeProps> = ({
   return (
     activeAttributeMenu === attributeName ? (
       <div>
-        <reactCore.TextInput
+        <TextInput
           value={inputValue}
+          aria-label="textbox-attribute"
           onChange={(_, val) => handleInputChange(val)}
           onKeyDown={handleKeyDown}
-          placeholder={`Add ${attributeName}...`}
+          ref={innerRef}
+          placeholder={`Search ${attributeName}...`}
         />
       </div>
     )
