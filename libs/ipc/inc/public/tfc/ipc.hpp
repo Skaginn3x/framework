@@ -199,7 +199,7 @@ public:
   auto send(value_t const& value) -> std::error_code {
     auto err{ signal_->send(value) };
     if (!err) {
-      dbus_signal_.emit_value(value);
+      dbus_signal_->emit_value(value);
     }
     return err;
   }
