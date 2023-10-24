@@ -58,7 +58,7 @@ add_test(
     confman_unit_test
 )
 
-add_executable(file_storage_test file_storage_test.cpp)
+add_executable(file_storage_test ../../src/file_storage.cpp file_storage_test.cpp)
 
 target_link_libraries(file_storage_test
   PRIVATE
@@ -73,4 +73,9 @@ add_test(
     file_storage_test
   COMMAND
     file_storage_test
+)
+
+target_include_directories(file_storage_test
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )

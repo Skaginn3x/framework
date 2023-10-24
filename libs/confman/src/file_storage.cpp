@@ -1,6 +1,8 @@
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <iterator>
 #include <map>
 #include <set>
@@ -24,7 +26,7 @@ namespace tfc::confman {
 
 /// \brief fetch value of "TFC_CONFMAN_MIN_RETENTION_DAYS", if value is not set a default of std::chrono::days(30) is
 /// returned \return `std::chrono::days` set in the environment variable
-static auto get_minimum_retention_days() -> std::chrono::days {
+auto get_minimum_retention_days() -> std::chrono::days {
   const char* value = std::getenv("TFC_CONFMAN_MIN_RETENTION_DAYS");
   try {
     // default to 30 if value is nullptr or invalid
@@ -39,7 +41,7 @@ static auto get_minimum_retention_days() -> std::chrono::days {
 
 /// \brief Fetches the value of the environment variable "TFC_CONFMAN_MIN_RETENTION_COUNT", default value is 4.
 /// \return minimum retention count set in the environment variable
-static auto get_minimum_retention_count() -> size_t {
+auto get_minimum_retention_count() -> size_t {
   const char* value = std::getenv("TFC_CONFMAN_MIN_RETENTION_COUNT");
   try {
     // Default to 4 if value is nullptr or invalid
@@ -54,7 +56,7 @@ static auto get_minimum_retention_count() -> size_t {
 
 /// \brief get total file count in a directory
 /// \param directory path to directory
-static auto get_total_file_count(std::filesystem::path const& directory) -> int64_t {
+static auto get_total_file_count(std::filesystem::path const& directory) -> size_t {
   return std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{});
 }
 
@@ -74,18 +76,16 @@ static auto get_sorted_file_list(std::filesystem::path const& directory)
 /// \param retention_count maximum number of files to retain
 /// \param retention_time maximum age of files to retain
 /// \note in order for a file to be removed, it both needs to be too old and too many files
-static void remove_files_exceeding_retention(
-    const std::map<std::filesystem::file_time_type, std::filesystem::path>& file_times,
-    uint64_t retention_count,
-    std::chrono::days retention_time) {
+void remove_files_exceeding_retention(const std::map<std::filesystem::file_time_type, std::filesystem::path>& file_times,
+                                      size_t retention_count,
+                                      std::chrono::days retention_time) {
   std::filesystem::file_time_type const current_time = std::filesystem::file_time_type::clock::now();
 
-  uint64_t count = 0;
-  for (auto it = file_times.begin(); it != file_times.end() && count <= (file_times.size() - retention_count);
-       ++it, ++count) {
-    auto time_since_last_modified = current_time - it->first;
-    if (time_since_last_modified > retention_time) {
-      std::filesystem::remove(it->second);
+  size_t count = 0;
+  for (auto const& [time, path] : file_times) {
+    count++;
+    if (count > retention_count && (current_time - time) > retention_time) {
+      std::filesystem::remove(path);
     }
   }
 }
@@ -95,14 +95,14 @@ static void remove_files_exceeding_retention(
 /// \param directory path to directory containing files to possibly delete.
 static auto apply_retention_policy(std::filesystem::path const& directory) -> void {
   // +2 for the file itself and the swap file
-  int const retention_count = get_minimum_retention_count() + 2;
+  size_t const retention_count = get_minimum_retention_count() + 2;
   std::chrono::days const retention_time = get_minimum_retention_days();
 
-  if (get_total_file_count(directory) <= static_cast<int64_t>(retention_count)) {
+  if (get_total_file_count(directory) <= retention_count) {
     return;
   }
 
-  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times = get_sorted_file_list(directory);
+  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times = get_sorted_file_list(directory);
 
   remove_files_exceeding_retention(file_times, retention_count, retention_time);
 }

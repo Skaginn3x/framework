@@ -6,6 +6,8 @@
 #include <tfc/confman/observable.hpp>
 #include <tfc/progbase.hpp>
 
+#include "inc/file_storage.hpp"
+
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::operator""_test;
@@ -44,6 +46,14 @@ public:
     }
   }
 };
+
+auto create_file(std::filesystem::path file_path) -> void {
+  if (!std::filesystem::exists(file_path)) {
+    std::ofstream ofs(file_path);
+    ofs << "some text\n";
+    ofs.close();
+  }
+}
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
@@ -165,9 +175,81 @@ auto main(int argc, char** argv) -> int {
       std::string buffer{};
       glz::read_file_json(backup_json, found_file, buffer);
 
-      ut::expect(backup_json["a"].get<double>() == 3);
+      ut::expect(backup_json["a"].get<double>() == 3) << backup_json["a"].get<double>();
       ut::expect(backup_json["b"].get<std::string>() == "bar");
     }
+  };
+
+  "testing retention policy without removal"_test = [&] {
+    std::filesystem::path const parent_path{ std::filesystem::temp_directory_path() / "retention" };
+
+    std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.txt" },
+                                                    std::filesystem::path{ parent_path / "new_file2.txt" } };
+
+    if (!std::filesystem::exists(parent_path)) {
+      std::filesystem::create_directories(parent_path);
+    }
+
+    for (const auto& path : paths) {
+      create_file(path);
+    }
+
+    ctx.run_for(std::chrono::milliseconds(1));
+
+    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+
+    for (const auto& path : paths) {
+      file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
+    }
+
+    tfc::confman::remove_files_exceeding_retention(file_times, 4, std::chrono::days(20));
+
+    ctx.run_for(std::chrono::milliseconds(1));
+
+    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 2);
+
+    std::filesystem::remove_all(parent_path);
+  };
+
+  "testing retention policy with removal"_test = [&] {
+    std::filesystem::path const parent_path{ std::filesystem::temp_directory_path() / "retention" };
+
+    std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.txt" },
+                                                    std::filesystem::path{ parent_path / "new_file2.txt" },
+                                                    std::filesystem::path{ parent_path / "new_file3.txt" },
+                                                    std::filesystem::path{ parent_path / "new_file4.txt" } };
+
+    if (!std::filesystem::exists(parent_path)) {
+      std::filesystem::create_directories(parent_path);
+    }
+
+    for (const auto& path : paths) {
+      create_file(path);
+    }
+
+    ctx.run_for(std::chrono::milliseconds(1));
+
+    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+
+    for (const auto& path : paths) {
+      file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
+    }
+
+    tfc::confman::remove_files_exceeding_retention(file_times, 2, std::chrono::days(20));
+
+    ctx.run_for(std::chrono::milliseconds(1));
+
+    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 2);
+
+    std::filesystem::remove_all(parent_path);
+  };
+
+  "write to file"_test = [&] {
+    std::filesystem::path const file_path{ std::filesystem::temp_directory_path() / "glaze file" };
+    std::string const file_content = R"(file content: {"username": "newnewnewnewnewnewnew"})";
+    tfc::confman::write_to_file(file_path, file_content);
+    ut::expect(std::filesystem::exists(file_path));
+    std::filesystem::remove(file_path);
   };
 
   return EXIT_SUCCESS;
