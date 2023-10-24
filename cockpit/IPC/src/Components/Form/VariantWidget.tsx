@@ -152,7 +152,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           maxRows={1}
           inputRef={inputRef}
           fullWidth
-          variant={schema.getIn(['view', 'variant']) as any}
+          variant={schema.getIn(['view', 'variant']) as 'filled' | 'standard' | 'outlined' | undefined}
           margin={schema.getIn(['view', 'margin']) as InputProps['margin']}
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
