@@ -27,13 +27,16 @@ struct test_vars {
 };
 auto main(int argc, const char* argv[]) -> int {
   ut::detail::cfg::parse(argc, argv);
-  tfc::base::init(argc, argv);  // todo should we make relaxed_init
+  std::vector<const char*> a;
+  const char* some_name = "some_name";
+  a.emplace_back(some_name);
+  tfc::base::init(1, a.data());  // todo should we make relaxed_init
 
   ::testing::GTEST_FLAG(throw_on_failure) = true;
   ::testing::InitGoogleMock();
 
   [[maybe_unused]] ut::suite<"EL1xxx"> el1xxx_suite = [] {  // NOLINT
-    "2 output"_test = [] {
+    "2 input"_test = [] {
       test_vars<beckhoff::el1002<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{
         .device = { vars.ctx, vars.connect_interface, 42 }
       };
@@ -51,6 +54,44 @@ auto main(int argc, const char* argv[]) -> int {
       buffer = { std::byte{ 0b01 } };
       EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(0);
+      vars.device.process_data(buffer, {});
+    };
+    "8 input"_test = [] {
+      test_vars<beckhoff::el1008<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{
+        .device = { vars.ctx, vars.connect_interface, 42 }
+      };
+      std::array<std::byte, 1> buffer{ std::byte{ 0b11111111 } };
+      auto const& transmitters{ vars.device.transmitters() };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(2), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(3), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(4), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(5), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(6), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(7), async_send_cb(true, testing::_)).Times(1);
+      vars.device.process_data(buffer, {});
+      buffer = { std::byte{ 0b00000000 } };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(2), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(3), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(4), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(5), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(6), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(7), async_send_cb(false, testing::_)).Times(1);
+      vars.device.process_data(buffer, {});
+
+      // Only calls when value changes
+      buffer = { std::byte{ 0b01010101 } };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(2), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(3), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(4), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(5), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(6), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(7), async_send_cb(false, testing::_)).Times(0);
       vars.device.process_data(buffer, {});
     };
   };
@@ -72,17 +113,17 @@ auto main(int argc, const char* argv[]) -> int {
       return buffer_bitset;
     } };
 
-    "4 inputs"_test = [](std::bitset<4> test_value) {
+    "4 outputs"_test = [](std::bitset<4> test_value) {
       test_vars<beckhoff::el2004<ipc_manager_client_mock>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
       auto bitset{ process_data(vars.device, test_value) };
       ut::expect(bitset == test_value);
     } | std::vector<std::bitset<4>>{ 0b1011, 0b1010, 0b1111, 0b0000 };
-    "8 inputs"_test = [](std::bitset<8> test_value) {
+    "8 outputs"_test = [](std::bitset<8> test_value) {
       test_vars<beckhoff::el2008<ipc_manager_client_mock>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
       auto bitset{ process_data(vars.device, test_value) };
       ut::expect(bitset == test_value);
     } | std::vector<std::bitset<8>>{ 0b10101010, 0b11110000, 0b11111111, 0b00000000 };
-    "16 inputs"_test = [](std::bitset<16> test_value) {
+    "16 outputs"_test = [](std::bitset<16> test_value) {
       test_vars<beckhoff::el2809<ipc_manager_client_mock>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
       auto bitset{ process_data(vars.device, test_value) };
       ut::expect(bitset == test_value);

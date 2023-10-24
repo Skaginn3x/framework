@@ -10,6 +10,14 @@
 #include <tfc/stx/concepts.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
+// Fwd declare this class to give it access to private members
+namespace glz::detail {
+
+template <typename value_t>
+struct from_json;
+
+}
+
 namespace tfc::confman {
 template <typename conf_param_t>
 concept observable_type = requires {
@@ -24,6 +32,7 @@ concept observable_type = requires {
 template <observable_type conf_param_t>
 class [[nodiscard]] observable {
 public:
+  friend struct glz::detail::from_json<observable<conf_param_t>>;
   using type = conf_param_t;
   using callback_t = std::function<void(type const& new_value, type const& former_value)>;
 
@@ -50,12 +59,20 @@ public:
   auto operator=(observable&& moveit) noexcept -> observable& = default;
   /// \brief set new value, if changed notify observer
   auto operator=(conf_param_t&& value) -> observable& {
-    set(std::move(value));
+    if (value != value_) {
+      auto copy = value_;
+      value_ = std::move(value);
+      notify(std::move(copy));
+    }
     return *this;
   }
   /// \brief set new value, if changed notify observer
   auto operator=(conf_param_t const& value) -> observable& {
-    set({ value });
+    if (value != value_) {
+      auto copy = value_;
+      value_ = value;
+      notify(std::move(copy));
+    }
     return *this;
   }
 
@@ -79,21 +96,20 @@ public:
     callback_ = std::forward<decltype(callback)>(callback);
   }
 
-  void set(conf_param_t&& new_value) {
-    if (new_value != value_) {
-      if (callback_) {
-        std::invoke(callback_, new_value, value_);
-      }
-      value_ = std::forward<decltype(new_value)>(new_value);
-    }
-  }
-
   /// \brief get the current value
   auto value() const noexcept -> conf_param_t const& { return value_; }
 
   auto operator->() const noexcept -> decltype(auto) { return std::addressof(value()); }
 
 private:
+  auto reference() noexcept -> conf_param_t& { return value_; }
+
+  void notify(conf_param_t const& old_value) {
+    if (callback_) {
+      std::invoke(callback_, value_, old_value);
+    }
+  }
+
   conf_param_t value_{};
   mutable std::function<void(conf_param_t const&, conf_param_t const&)> callback_{};
 
@@ -111,15 +127,15 @@ public:
 namespace glz::detail {
 
 template <typename value_t>
-struct from_json;
-
-template <typename value_t>
 struct from_json<tfc::confman::observable<value_t>> {
   template <auto opts>
-  inline static void op(auto& value, auto&&... args) noexcept {
-    value_t value_copy{};
-    from_json<value_t>::template op<opts>(value_copy, std::forward<decltype(args)>(args)...);
-    value.set(std::move(value_copy));  // invoke callback
+  inline static void op(tfc::confman::observable<value_t>& value, auto&&... args) noexcept {
+    // Catch reference to current value type to propagate notifications to sub observables
+    value_t value_copy = value.value();
+    from_json<value_t>::template op<opts>(value.reference(), std::forward<decltype(args)>(args)...);
+    if (value_copy != value.value()) {
+      value.notify(value_copy);  // invoke callback
+    }
   }
 };
 }  // namespace glz::detail

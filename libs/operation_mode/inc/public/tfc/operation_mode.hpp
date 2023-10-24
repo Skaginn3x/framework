@@ -28,7 +28,7 @@ concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>
 class interface {
 public:
   explicit interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
-  interface(boost::asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_default) {}
+  interface(boost::asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
   /// \brief construct an interface to operation mode controller
   /// \param ctx context to run in
   /// \param log_key key to use for logging
@@ -42,9 +42,6 @@ public:
   /// \brief set operation mode controller to new state
   /// \note take care since this will affect the whole system
   void set(mode_e) const;
-
-  /// \brief get current operation mode
-  auto get() const noexcept -> mode_e { return current_mode_; }
 
   using uuid_t = std::uint64_t;
   using new_mode_e = mode_e;
@@ -128,9 +125,9 @@ private:
     };
   }
 
-  void mode_update(sdbusplus::message::message&) noexcept;
+  void mode_update(sdbusplus::message::message) noexcept;
+  void mode_update_impl(update_message) noexcept;
 
-  mode_e current_mode_{ mode_e::unknown };
   uuid_t next_uuid_{};
   std::string dbus_service_name_{};
   std::vector<callback_item> callbacks_{};

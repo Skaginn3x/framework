@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <fmt/core.h>
+
 #include "abt/easycat.hpp"
 #include "beckhoff/EK1xxx.hpp"
 #include "beckhoff/EL1xxx.hpp"
@@ -23,6 +25,8 @@ using devices_list = devices_type<
   beckhoff::ek1100,
   beckhoff::el1002<manager_client_t>,
   beckhoff::el1008<manager_client_t>,
+  beckhoff::el1809<manager_client_t>,
+  beckhoff::el2794<manager_client_t>,
   beckhoff::el2004<manager_client_t>,
   beckhoff::el2008<manager_client_t>,
   beckhoff::el2809<manager_client_t>,
@@ -75,7 +79,12 @@ auto get_impl(boost::asio::io_context& ctx,
               devices_type<devices_t...>) -> std::unique_ptr<base> {
   std::unique_ptr<base> result{};
   (get_impl<manager_client_type, devices_t>(ctx, client, slave_index, vendor_id, product_code, result) || ...);
-  return result ? std::move(result) : std::make_unique<default_device>(slave_index);
+  if (result) {
+    return result;
+  }
+  tfc::logger::logger log("missing_implementation");
+  log.warn("No device found for slave: {}, vendor: {}, product_code: {} \n", slave_index, vendor_id, product_code);
+  return std::make_unique<default_device>(slave_index);
 }
 
 template <typename manager_client_type>

@@ -36,6 +36,17 @@ struct config_test {
                                                                                                 mock_dbus_client };
 };
 
+struct embeded_observer {
+  observable<std::string> some_string;
+
+  struct glaze {
+    using T = embeded_observer;
+    static constexpr auto value = glz::object("Some_string", &T::some_string);
+    static constexpr std::string_view name = "Embedded Observer";
+  };
+  auto operator==(const embeded_observer&) const noexcept -> bool = default;
+};
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
@@ -46,6 +57,23 @@ auto main(int argc, char** argv) -> int {
     EXPECT_CALL(test.mock_file_storage, set_changed()).Times(1);
     auto returned_err{ test.config.set_changed() };
     ut::expect(returned_err == presumed_err);
+  };
+
+  // Test the callback function of an embedded observer
+  "Embeded observer test"_test = [] {
+    observable<embeded_observer> my_obj;
+    size_t outer_call = 0;
+    size_t inner_call = 0;
+    my_obj.observe([&outer_call](auto&, auto&) { outer_call += 1; });
+
+    my_obj.value().some_string.observe([&inner_call](auto&, auto&) { inner_call += 1; });
+
+    std::string some_json = "{\"Some_string\":\"JBB\"}";
+    auto err = glz::read_json<observable<embeded_observer>>(my_obj, some_json);
+    ut::expect(!err.operator bool());
+
+    ut::expect(outer_call == 1) << outer_call << my_obj.value().some_string.value();
+    ut::expect(inner_call == 1) << inner_call << my_obj.value().some_string.value();
   };
 
   return static_cast<int>(boost::ut::cfg<>.run({ .report_errors = true }));

@@ -50,12 +50,12 @@ interface::interface(asio::io_context& ctx, std::string_view log_key, std::strin
                                            logger_.warn("Error from get mode: {}", err.message());
                                            return;
                                          }
-                                         current_mode_ = mode;
+                                         mode_update_impl(update_message{ mode, mode_e::unknown });
                                        });
 }
 
 interface::interface(interface&& to_be_erased) noexcept
-    : current_mode_{ to_be_erased.current_mode_ }, dbus_connection_(std::move(to_be_erased.dbus_connection_)),
+    : dbus_connection_(std::move(to_be_erased.dbus_connection_)),
       mode_updates_{ std::make_unique<sdbusplus::bus::match_t>(*dbus_connection_,
                                                                mode_update_match_rule.data(),
                                                                std::bind_front(&interface::mode_update, this)) },
@@ -65,7 +65,6 @@ interface::interface(interface&& to_be_erased) noexcept
 }
 
 auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
-  current_mode_ = to_be_erased.current_mode_;
   dbus_connection_ = std::move(to_be_erased.dbus_connection_);
   // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
   // it could throw if we are out of memory but then we are already screwed and the process will terminate.
@@ -78,23 +77,27 @@ auto interface::operator=(interface&& to_be_erased) noexcept -> interface& {
 void interface::set(tfc::operation::mode_e new_mode) const {
   // todo add handler to set function call, for callee
   dbus_connection_->async_method_call(
-      [this](std::error_code err) { logger_.warn("Error from set mode: {}", err.message()); }, dbus_service_name_,
-      std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::set_mode }, new_mode);
+      [this](std::error_code err) {
+        if (err) {
+          logger_.warn("Error from set mode: {}", err.message());
+        }
+      },
+      dbus_service_name_, std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::set_mode },
+      new_mode);
 }
 
-void interface::mode_update(sdbusplus::message::message& msg) noexcept {
-  auto update_msg = msg.unpack<update_message>();
-
-  current_mode_ = update_msg.new_mode;
-
-  static constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
+void interface::mode_update(sdbusplus::message::message msg) noexcept {
+  mode_update_impl(msg.unpack<update_message>());
+}
+void interface::mode_update_impl(update_message const update_msg) noexcept {
+  constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
     return [trans](callback_item const& itm) { return itm.transition == trans; };
   } };
-  static constexpr auto make_mode_filter{ [](mode_e mode) noexcept {
+  constexpr auto make_mode_filter{ [](mode_e mode) noexcept {
     return [mode](callback_item const& itm) { return itm.mode == mode; };
   } };
 
-  static const auto invoke{ [this, update_msg](callback_item const& itm) noexcept {
+  const auto invoke{ [this, update_msg](callback_item const& itm) noexcept {
     if (itm.callback) {
       try {
         std::invoke(itm.callback, update_msg.new_mode, update_msg.old_mode);

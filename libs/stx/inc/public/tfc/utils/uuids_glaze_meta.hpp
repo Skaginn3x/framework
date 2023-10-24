@@ -47,7 +47,9 @@ template <>
 struct to_json_schema<uuids::uuid> {
   template <auto opts>
   static void op(auto& schema, auto& defs) {
-    to_json_schema<std::string>::op(schema, defs);
+    using enum tfc::json::defined_formats;
+    schema.attributes.format = uuid;
+    to_json_schema<std::string>::op<opts>(schema, defs);
   }
 };
 

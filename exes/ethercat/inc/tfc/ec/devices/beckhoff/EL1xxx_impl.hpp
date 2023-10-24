@@ -7,33 +7,48 @@
 
 namespace tfc::ec::devices::beckhoff {
 
-template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
-el100x<manager_client_type, size, pc, signal_t>::el100x(asio::io_context& ctx,
-                                                        manager_client_type& client,
-                                                        const uint16_t slave_index)
+template <typename manager_client_type,
+          size_t size,
+          uint32_t pc,
+          tfc::stx::basic_fixed_string name,
+          template <typename, typename>
+          typename signal_t>
+el1xxx<manager_client_type, size, pc, name, signal_t>::el1xxx(asio::io_context& ctx,
+                                                              manager_client_type& client,
+                                                              const uint16_t slave_index)
     : base(slave_index) {
   for (size_t i = 0; i < size; i++) {
     transmitters_.emplace_back(std::make_unique<bool_signal_t>(
-        ctx, client, fmt::format("EL100{}.slave{}.in{}", size, slave_index, i), "Digital input"));
-    // todo description: skápur - tæki - íhlutur
+        ctx, client, fmt::format("{}.slave{}.in{}", name.view(), slave_index, i), "Digital input"));
+    /// todo description: skápur - tæki - íhlutur
   }
 }
 
-template <typename manager_client_type, size_t size, uint32_t pc, template <typename, typename> typename signal_t>
-void el100x<manager_client_type, size, pc, signal_t>::process_data(std::span<std::byte> input,
-                                                                   std::span<std::byte>) noexcept {
-  static_assert(size <= 8);
-  std::bitset<size> const in_bits(static_cast<uint8_t>(input[0]));
-  for (size_t i = 0; i < size; i++) {
-    bool const value = in_bits.test(i);
-    if (value != last_values_[i]) {
-      transmitters_[i]->async_send(value, [this](std::error_code error, size_t) {
-        if (error) {
-          logger_.error("Ethercat EL110x, error transmitting : {}", error.message());
-        }
-      });
+template <typename manager_client_type,
+          size_t size,
+          uint32_t pc,
+          tfc::stx::basic_fixed_string name,
+          template <typename, typename>
+          typename signal_t>
+void el1xxx<manager_client_type, size, pc, name, signal_t>::process_data(std::span<std::byte> input,
+                                                                         std::span<std::byte>) noexcept {
+  constexpr size_t minimum_byte_count = (size / 9) + 1;
+  assert(input.size() == minimum_byte_count && "EL1XXX Size mismatch between process data and expected");
+
+  // Loop bytes
+  for (size_t byte = 0; byte < minimum_byte_count; byte++) {
+    for (size_t bits = 0; bits < 8 && size - ((byte * 8) + bits) > 0; bits++) {
+      auto const value = static_cast<bool>(static_cast<uint8_t>(input[byte]) & (1 << bits));
+      const size_t bit_index = byte * 8 + bits;
+      if (value != last_values_[bit_index]) {
+        transmitters_[bit_index]->async_send(value, [this](std::error_code error, size_t) {
+          if (error) {
+            logger_.error("Ethercat {}, error transmitting : {}", name.view(), error.message());
+          }
+        });
+      }
+      last_values_[bit_index] = value;
     }
-    last_values_[i] = value;
   }
 }
 }  // namespace tfc::ec::devices::beckhoff
