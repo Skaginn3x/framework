@@ -30,7 +30,7 @@ auto get_minimum_retention_days() -> std::chrono::days {
   const char* value = std::getenv("TFC_CONFMAN_MIN_RETENTION_DAYS");
   try {
     // default to 30 if value is nullptr or invalid
-    size_t const value_i = (value) != nullptr ? std::stoul(value) : 30;
+    size_t const value_i = value != nullptr ? std::stoul(value) : 30;
     return std::chrono::days(value_i);
   } catch (std::invalid_argument const&) {
     return std::chrono::days(30);
@@ -45,7 +45,7 @@ auto get_minimum_retention_count() -> size_t {
   const char* value = std::getenv("TFC_CONFMAN_MIN_RETENTION_COUNT");
   try {
     // Default to 4 if value is nullptr or invalid
-    size_t const value_i = (value) != nullptr ? std::stoul(value) : 4;
+    size_t const value_i = value != nullptr ? std::stoul(value) : 4;
     return value_i;
   } catch (std::invalid_argument const&) {
     return 4;
