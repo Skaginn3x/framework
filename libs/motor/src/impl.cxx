@@ -1,9 +1,12 @@
-#pragma once
+module;
 
+#include <type_traits>
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
 #include <concepts>
 #include <variant>
+
+export module tfc.motor.impl;
 
 namespace tfc::motor::impl {
 
@@ -18,7 +21,7 @@ using namespace mp_units;
  * @param target_speed target velocity
  * @return Frequency to maintain `target_speed`
  */
-constexpr auto nominal_at_50Hz_to_frequency(QuantityOf<isq::velocity> auto reference_speed,
+export constexpr auto nominal_at_50Hz_to_frequency(QuantityOf<isq::velocity> auto reference_speed,
                                             QuantityOf<isq::velocity> auto target_speed) {
   return 50. * Hz * (target_speed / reference_speed);
 }

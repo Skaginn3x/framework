@@ -1,10 +1,11 @@
-#include <boost/ut.hpp>
-#include <tfc/motor/impl/impl.hpp>
-#include <tfc/progbase.hpp>
 
-#include <mp-units/ostream.h>
-#include <mp-units/format.h>
-#include <mp-units/
+import tfc.motor.impl;
+
+#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/isq/isq.h>
+
+#include <boost/ut.hpp>
+#include <tfc/progbase.hpp>
 
 using namespace mp_units::si::unit_symbols;
 using namespace tfc::motor::impl;

@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/isq_angle/isq_angle.h>
@@ -8,9 +8,10 @@
 #include <variant>
 
 #include <tfc/confman.hpp>
-#include <tfc/motor/ethercat_motor.hpp>
-#include <tfc/motor/impl/impl.hpp>
-#include <tfc/motor/printing_motor.hpp>
+#include "ethercat_motor.hpp"
+#include "virtual_motor.hpp"
+
+export module tfc.motor;
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -20,7 +21,7 @@
  * own implementation.
  */
 
-namespace tfc::motor {
+export namespace tfc::motor {
 
 namespace asio = boost::asio;
 using mp_units::QuantityOf;
@@ -53,7 +54,7 @@ public:
           },
           new_v, old_v);
     });
-  };
+  }
   interface(interface&) = delete;
   interface(interface&&) = delete;
 
@@ -117,8 +118,8 @@ public:
 private:
   asio::io_context& ctx_;
 
-  using implementations = std::variant<std::monostate, types::printing_motor, types::ethercat_motor>;
-  using config_t = std::variant<std::monostate, types::printing_motor::config_t, types::ethercat_motor::config_t>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::ethercat_motor>;
+  using config_t = std::variant<std::monostate, types::virtual_motor::config_t, types::ethercat_motor::config_t>;
   implementations impl_;
   confman::config<confman::observable<config_t>> config_;
   logger::logger logger_;

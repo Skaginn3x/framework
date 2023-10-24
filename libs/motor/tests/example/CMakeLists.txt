@@ -1,8 +1,7 @@
 
-add_executable(motor_example motor_example.cpp)
+add_executable(motor_example motor_example.cxx)
 
 target_link_libraries(motor_example
-  PRIVATE
     tfc::base
     tfc::logger
     tfc::motor

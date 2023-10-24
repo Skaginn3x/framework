@@ -1,16 +1,14 @@
 project(motor)
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.28)
 
-add_library(motor
-  src/motor.cpp
-)
+add_library(motor)
 add_library(tfc::motor ALIAS motor)
 
-target_include_directories(motor
+target_sources(motor
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
-    $<INSTALL_INTERFACE:include>
-)
+    FILE_SET CXX_MODULES FILES
+    src/motor.cxx
+    src/impl.cxx)
 
 find_package(magic_enum CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)
@@ -26,11 +24,11 @@ target_link_libraries(motor
     mp-units::mp-units
 )
 
-add_library_to_docs(tfc::motor)
+add_library_to_docs(motor)
 
 if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
 
-include(tfc_install)
-tfc_install_lib(motor)
+#include(tfc_install)
+#tfc_install_lib(motor)

@@ -8,7 +8,6 @@
     "bext-ut",
     "boost-asio",
     "boost-program-options",
-    "boost-stacktrace",
     "date",
     "fmt",
     "glaze",

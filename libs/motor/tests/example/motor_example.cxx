@@ -1,6 +1,7 @@
-
-#include <tfc/motor.hpp>
 #include <tfc/progbase.hpp>
+#include <mp-units/systems/si/unit_symbols.h>
+import tfc.motor;
+
 
 namespace motor = tfc::motor;
 using namespace mp_units::si::unit_symbols;  // NOLINT(*-build-using-namespace)
@@ -13,13 +14,13 @@ auto main(int argc, char** argv) -> int {
   };
 
   /// Liquid transport
-  my_motor.pump(10 * (l / s));
-  my_motor.pump(10 * (l / min), 10 * l, [](const std::error_code&) {});
-  my_motor.pump(10 * (l / min), 10 * min, [](const std::error_code&) {});
+  //my_motor.pump(10 * (l / s));
+  //my_motor.pump(10 * (l / min), 10 * l, [](const std::error_code&) {});
+  //my_motor.pump(10 * (l / min), 10 * min, [](const std::error_code&) {});
 
   // Configured speed
   my_motor.pump();
-  my_motor.pump(10 * l, [](const std::error_code&) {});
+  //my_motor.pump(10 * l, [](const std::error_code&) {});
   my_motor.pump(10 * min, [](const std::error_code&) {});
 
   /// Linear transport
@@ -61,7 +62,7 @@ auto main(int argc, char** argv) -> int {
 
   /// Getting notified of a continously running motor
   my_motor.notify(10 * min, [](std::error_code const&) {});
-  my_motor.notify(10 * l, [](std::error_code const&) {});
+  //my_motor.notify(10 * l, [](std::error_code const&) {});
   my_motor.notify(10 * m, [](std::error_code const&) {});
   // motor.notify(10 * rad, [](std::error_code const&) {});
 
