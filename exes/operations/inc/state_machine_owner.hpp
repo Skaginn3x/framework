@@ -14,6 +14,7 @@
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 #include <tfc/utils/pragmas.hpp>
+#include <tfc/dbus/sml_interface.hpp>
 
 namespace tfc::operation {
 
@@ -122,7 +123,9 @@ private:
   tfc::confman::config<detail::storage> config_{ ctx_, "state_machine",
                                                  detail::storage{ .startup_time = std::chrono::milliseconds{ 0 },
                                                                   .stopping_time = std::chrono::milliseconds{ 0 } } };
-  using state_machine_t = sml_t<detail::state_machine<state_machine_owner>, boost::sml::logger<tfc::logger::sml_logger>>;
+  std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
+  tfc::dbus::sml::interface sml_interface_{ dbus_interface_ };
+  using state_machine_t = sml_t<detail::state_machine<state_machine_owner>, boost::sml::logger<tfc::dbus::sml::interface>>;
   std::shared_ptr<state_machine_t> states_;
 };
 

@@ -3,12 +3,19 @@
 #include <functional>
 #include <memory>
 #include <sstream>
+#include <string>
 
 #include <boost/sml.hpp>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
+#include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::dbus::sml {
+
+namespace tags {
+static constexpr std::string_view sub_path{ "StateMachines" };
+static constexpr std::string_view path{ const_dbus_path<sub_path> };
+}
 
 struct interface_impl {
   explicit interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface>);
@@ -30,9 +37,14 @@ void dump(std::ostream& out) noexcept;
 struct interface {
   explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{ std::move(interface) } {}
 
+//  template <template <typename first_t, typename second_t> typename event_t>
+//  struct extract_event_type {
+//    using type = second_t;
+//  };
+
   template <class state_machine_t, class event_t>
   void log_process_event(const event_t& /*event*/) {  // NOLINT(readability-identifier-naming)
-    last_event_ = boost::sml::aux::get_type_name<event_t::type>();
+    last_event_ = boost::sml::aux::get_type_name<event_t>();
   }
 
   template <class state_machine_t, class guard_t, class event_t>
@@ -44,9 +56,9 @@ struct interface {
   template <class state_machine_t, class source_state_t, class destination_state_t>
   void log_state_change(const source_state_t& src, const destination_state_t& dst) {
     impl_.on_state_change(src.c_str(), dst.c_str(), last_event_);
-    std::istringstream iss{};
-    detail::dump<state_machine_t, destination_state_t>(iss);
-    impl_.dot_format(iss.str());
+//    std::stringstream iss{};
+//    detail::dump<state_machine_t, destination_state_t>(iss);
+//    impl_.dot_format(iss.str());
   }
 
   interface_impl impl_;
