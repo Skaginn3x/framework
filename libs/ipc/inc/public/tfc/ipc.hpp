@@ -196,6 +196,11 @@ public:
   signal(signal const&) = delete;
   auto operator=(signal const&) -> signal& = delete;
 
+  ~signal() noexcept {
+    signal_.reset();
+    dbus_signal_.reset();
+  }
+
   auto send(value_t const& value) -> std::error_code {
     auto err{ signal_->send(value) };
     if (!err) {
