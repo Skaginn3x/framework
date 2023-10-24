@@ -81,7 +81,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
   const [stringValue, setStringValue] = React.useState<string>(storeValue?.toString() ?? '');
-  console.log('COMBO:', storeValue, initialUnit ?? '');
   const [value, setValue] = React.useState<Qty | undefined>(
     storeValue !== undefined
       ? Qty(`${storeValue}${initialUnit ?? ''}`)
@@ -97,7 +96,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    */
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
-    console.log(newUnit);
     console.log(value);
     console.log(newUnit);
     if (value !== null && value !== undefined && newUnit && initialUnit) {

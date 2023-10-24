@@ -35,7 +35,6 @@ const UnitsDropdown: React.FC<UnitsDropdownProps> = ({
 
   function getValue() {
     if (!unit || !initialUnit) return undefined;
-    console.log(Qty.parse(unit ?? initialUnit).units());
     const def = Qty.parse(unit ?? initialUnit).units() ?? unit ?? '';
     if (unitsToOffer?.includes(def)) {
       return def;
