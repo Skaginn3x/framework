@@ -184,13 +184,13 @@ public:
   signal(signal&& to_be_moved) noexcept
       : client_{ std::forward<manager_client_type>(to_be_moved.client_) }, signal_{ std::move(to_be_moved.signal_) },
         dbus_signal_{ std::move(to_be_moved.dbus_signal_) } {
-    dbus_signal_->set_value_getter([this]() { return this->value(); });
+    dbus_signal_->set_value_getter([this]() -> value_t const& { return this->value(); });
   }
   auto operator=(signal&& to_be_moved) noexcept -> signal& {
     client_ = std::forward<manager_client_type>(to_be_moved.client_);
     signal_ = std::move(to_be_moved.signal_);
     dbus_signal_ = std::move(to_be_moved.dbus_signal_);
-    dbus_signal_->set_value_getter([this]() { return this->value(); });
+    dbus_signal_->set_value_getter([this]() -> value_t const& { return this->value(); });
     return *this;
   }
   signal(signal const&) = delete;
