@@ -24,8 +24,8 @@ import { injectPluginStack, validators } from '@ui-schema/ui-schema';
 import { GridContainer } from '@ui-schema/ds-material/GridContainer';
 import Immutable from 'immutable';
 import { AlertVariant, Button } from '@patternfly/react-core';
-import { UnitWidget } from 'src/Components/Form/UnitsWidget';
 import { WidgetProps as BaseWidgetProps } from '@ui-schema/ui-schema/Widget';
+import { UnitWidget } from './UnitWidget';
 import { VariantWidget } from './VariantWidget';
 import { useAlertContext } from '../Alert/AlertContext';
 

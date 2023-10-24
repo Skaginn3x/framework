@@ -8,9 +8,7 @@ import React, {
 } from 'react';
 import TextField from '@mui/material/TextField';
 import { InputProps } from '@mui/material/Input';
-import {
-  FormControl, InputLabel, MenuItem, Select, Tooltip,
-} from '@mui/material';
+import { Tooltip } from '@mui/material';
 import { useUID } from 'react-uid';
 import { TransTitle } from '@ui-schema/ui-schema/Translate/TransTitle';
 import { mapSchema } from '@ui-schema/ui-schema/Utils/schemaToNative';
@@ -25,6 +23,7 @@ import Qty from 'js-quantities';
 import { Units } from './units';
 
 import { getNestedValue } from './WidgetFunctions';
+import UnitsDropdown from './UnitsDropdown';
 import './UnitsWidget.css';
 
 export interface UnitWidgetBaseProps {
@@ -50,13 +49,13 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const uid = useUID();
   const { store } = useUIStore();
 
-  let initialDimension: string | undefined;
+  let dimension: string | undefined;
   const storeValues = store ? store.toJS().values : {};
   let storeValue = getNestedValue(storeValues, storeKeys.toJS());
-  initialDimension = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].dimension : undefined;
+  dimension = schema.toJS()['x-tfc']?.dimension ? schema.toJS()['x-tfc'].dimension : undefined;
   const type = schema.get('type') as string | undefined;
-  const initialUnit = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].unit : undefined;
-  const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
+  let initialUnit = schema.toJS()['x-tfc']?.unit.unit_ascii ? schema.toJS()['x-tfc'].unit.unit_ascii : undefined;
+  const required = schema.toJS()['x-tfc']?.required ? schema.toJS()['x-tfc'].required : false;
   const { minimum, maximum } = schema.toJS();
   let inputRef = React.useRef();
   if (customInputRef) {
@@ -65,19 +64,24 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   // eslint-disable-next-line no-param-reassign
   inputProps = mapSchema(inputProps, schema);
-  const AllUnits = Units as { [key: string]: { all: string[], default: string } };
 
-  // Maybe we could default to SI units using .toSI().toJSON() (properties: unit, value)
-  // Could make it easier to configure.
-  // Hz becomes s^-1, m/s becomes m*s^-1, etc. (https://mathjs.org/docs/datatypes/units.html)
-  // We might want to override this to get Hz instead of s^-1, etc.
+  if (initialUnit === '%' && dimension === 'ratio') {
+    // eslint-disable-next-line no-param-reassign
+    InputProps = {
+      ...InputProps,
+      endAdornment: '%',
+    };
+    initialUnit = undefined;
+    dimension = undefined;
+  }
 
   if (typeof storeValue === 'object') {
     storeValue = undefined;
   }
 
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
-  const [stringValue, setStringValue] = React.useState<string>(`${storeValue}`);
+  const [stringValue, setStringValue] = React.useState<string>(storeValue?.toString() ?? '');
+  console.log('COMBO:', storeValue, initialUnit ?? '');
   const [value, setValue] = React.useState<Qty | undefined>(
     storeValue !== undefined
       ? Qty(`${storeValue}${initialUnit ?? ''}`)
@@ -93,6 +97,9 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    */
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
+    console.log(newUnit);
+    console.log(value);
+    console.log(newUnit);
     if (value !== null && value !== undefined && newUnit && initialUnit) {
       setValue(value.to(newUnit).toPrec(initialUnit));
       setStringValue(value.to(newUnit).toPrec(initialUnit).scalar.toString());
@@ -108,6 +115,8 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
             value.to(initialUnit).toPrec(initialUnit).scalar,
         },
       });
+    } else if (newUnit) {
+      setUnit(newUnit);
     }
   };
 
@@ -127,7 +136,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   function getStyle() {
     return {
       ...style,
-      width: !value?.isUnitless() ? 'calc(80% - 0.5rem)' : '100%',
+      width: initialUnit && dimension ? 'calc(80% - 0.5rem)' : '100%',
     };
   }
 
@@ -274,27 +283,13 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         />
       </Tooltip>
 
-      {(value && !value.isUnitless())
-        ? (
-          <FormControl style={{ width: '20%', marginLeft: '0.5rem' }}>
-            <InputLabel id="unit-select-label">Unit</InputLabel>
-            <Select
-              labelId="unit-select-label"
-              id="unit-select"
-              value={unit}
-              onChange={handleUnitChange}
-            >
-              {(AllUnits && initialDimension && initialUnit)
-                ? AllUnits[initialDimension].all.slice(AllUnits[initialDimension].all.indexOf(initialUnit))
-                  .map((mapunit: string) => (
-                    <MenuItem key={mapunit + uid} value={mapunit}>
-                      {mapunit}
-                    </MenuItem>
-                  )) : null}
-            </Select>
-          </FormControl>
-        )
-        : null}
+      <UnitsDropdown
+        initialDimension={dimension}
+        key={`${dimension}-${uid}`}
+        initialUnit={initialUnit}
+        handleUnitChange={handleUnitChange}
+        unit={unit}
+      />
 
       {isWarning() ? <h2 className="RequiredText">{errText}</h2>
         : null}
