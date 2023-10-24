@@ -159,7 +159,9 @@ public:
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
       : client_{ client }, signal_{ make_impl_signal(ctx, name) },
-        dbus_signal_{ std::make_unique<dbus_signal_t>(client_.connection(), full_name(), [this] -> value_t const& { return this->value(); }) } {
+        dbus_signal_{ std::make_unique<dbus_signal_t>(client_.connection(), full_name(), [this] -> value_t const& {
+          return this->value();
+        }) } {
     client_.register_signal(signal_->full_name(), description, type_desc::value_e,
                             details::register_cb(signal_->full_name()));
     dbus_signal_->initialize();
@@ -171,7 +173,9 @@ public:
          std::string_view description = "")
     requires(!std::is_lvalue_reference_v<manager_client_type>)
       : client_{ connection }, signal_{ make_impl_signal(ctx, name) },
-        dbus_signal_{ std::make_unique<dbus_signal_t>(client_.connection(), full_name(), [this] -> value_t const& { return this->value(); }) } {
+        dbus_signal_{ std::make_unique<dbus_signal_t>(client_.connection(), full_name(), [this] -> value_t const& {
+          return this->value();
+        }) } {
     client_.register_signal(signal_->full_name(), description, type_desc::value_e,
                             details::register_cb(signal_->full_name()));
     dbus_signal_->initialize();
