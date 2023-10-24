@@ -134,7 +134,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   function getStyle() {
     return {
       ...style,
-      width: initialUnit && dimension ? 'calc(80% - 0.5rem)' : '100%',
+      width: initialUnit && dimension ? 'calc(75% - 0.5rem)' : '100%',
     };
   }
 
@@ -260,7 +260,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           autoComplete="off"
           inputRef={inputRef}
           fullWidth
-          variant={schema.getIn(['view', 'variant']) as any}
+          variant={schema.getIn(['view', 'variant']) as 'filled' | 'standard' | 'outlined' | undefined}
           margin={schema.getIn(['view', 'margin']) as InputProps['margin']}
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           value={stringValue ?? ''}

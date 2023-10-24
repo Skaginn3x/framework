@@ -50,7 +50,7 @@ const UnitsDropdown: React.FC<UnitsDropdownProps> = ({
     <>
       {initialUnit && unitsToOffer
         ? (
-          <FormControl style={{ width: '20%', marginLeft: '0.5rem' }}>
+          <FormControl style={{ width: '25%', marginLeft: '0.5rem' }}>
             <InputLabel id="unit-select-label">Unit</InputLabel>
             <Select
               labelId="unit-select-label"
