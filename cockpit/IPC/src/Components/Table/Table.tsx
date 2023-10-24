@@ -60,7 +60,7 @@ export default function CustomTable({
 }: { signals: SignalType[], slots: SlotType[], connections: ConnectionType, DBUS: any, isDark: boolean }) {
   const [searchValue, setSearchValue] = React.useState('');
   const [processSelections, setProcessSelections] = React.useState<string[]>([]);
-  const [typeSelection, setTypeSelection] = React.useState('');
+  const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = React.useState(false);
   const [modalSelectedSlots, setModalSelectedSlots] = React.useState<Set<SlotType>>(new Set());
@@ -88,11 +88,11 @@ export default function CustomTable({
     }
     const matchesSearchValue = (signal.name + signal.created_by).search(searchValueInput) >= 0;
 
-    const matchesTypeSelection = typeSelection === '' || signal.type === typeSelection;
+    const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(signal.type);
 
     return (
       matchesSearchValue && matchesTypeSelection
-      && (processSelections.length === 0 || processSelections.includes(signal.name.split('.')[0]))
+      && (processSelections.length === 0 || processSelections.includes(signal.name.split('.').splice(0, 2).join('.')))
     );
   };
 
@@ -151,7 +151,7 @@ export default function CustomTable({
           variant="link"
           onClick={() => {
             setSearchValue('');
-            setTypeSelection('');
+            setTypeSelection([]);
             setProcessSelections([]);
           }}
         >

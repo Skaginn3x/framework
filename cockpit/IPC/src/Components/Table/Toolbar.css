@@ -1,0 +1,24 @@
+.pf-v5-c-toolbar__item.pf-m-pagination {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+.pf-v5-c-toolbar__content-section {
+    justify-content: center !important;
+}
+
+.pf-v5-c-menu__list {
+    margin-bottom: 0 !important;
+}
+
+.pf-v5-c-chip-group__list {
+    margin-bottom: 0 !important;
+}
+
+.pf-v5-c-chip-group.pf-m-category {
+    border-radius: 0.4rem !important;
+    padding: 0.5rem !important
+}
+
+.pf-v5-c-chip-group__close {
+    width: 2.5rem !important;
+}

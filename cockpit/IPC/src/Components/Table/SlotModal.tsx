@@ -37,7 +37,7 @@ export default function SlotModal({
   const [perPage, setPerPage] = React.useState(10);
   const searchBoxRef = useRef<HTMLInputElement | null>(null);
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
-  const [typeSelection, setTypeSelection] = React.useState<string>('');
+  const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
 
   const onSearchChange = (value: string) => {
     setSearchValue(value);

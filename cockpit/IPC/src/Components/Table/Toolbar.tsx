@@ -1,15 +1,15 @@
 import React from 'react';
 import FilterIcon from '@patternfly/react-icons/dist/esm/icons/filter-icon';
-
 import * as reactCore from '@patternfly/react-core';
 
 import { SignalType, SlotType } from '../../Types';
+import './Toolbar.css';
 
 export default function ToolBar( // NOSONAR
   setSearchValue: React.Dispatch<React.SetStateAction<string>>,
   searchValue: string,
-  setTypeSelection: React.Dispatch<React.SetStateAction<string>>,
-  typeSelection: string,
+  setTypeSelection: React.Dispatch<React.SetStateAction<string[]>>,
+  typeSelection: string[],
   setProcessSelections: React.Dispatch<React.SetStateAction<string[]>>,
   processSelections: string[],
   setActiveAttributeMenu: React.Dispatch<React.SetStateAction<string>>,
@@ -94,8 +94,12 @@ export default function ToolBar( // NOSONAR
       return;
     }
 
-    setTypeSelection(itemId.toString());
-    setIsTypeMenuOpen(!isTypeMenuOpen);
+    const itemStr = itemId.toString();
+    setTypeSelection(
+      typeSelection.includes(itemStr)
+        ? typeSelection.filter((type) => type !== itemStr)
+        : [itemStr, ...typeSelection],
+    );
   }
 
   const typeToggle = (
@@ -103,9 +107,10 @@ export default function ToolBar( // NOSONAR
       ref={typeToggleRef}
       onClick={onTypeToggleClick}
       isExpanded={isTypeMenuOpen}
+      badge={typeSelection.length > 0 ? <reactCore.Badge isRead>{typeSelection.length}</reactCore.Badge> : undefined}
       style={
         {
-          width: '200px',
+          width: '250px',
         } as React.CSSProperties
       }
     >
@@ -119,12 +124,25 @@ export default function ToolBar( // NOSONAR
       uniqueTypes.push(item.type);
     }
   });
+
   const typeMenu = (
-    <reactCore.Menu ref={typeMenuRef} id="attribute-search-type-menu" onSelect={onTypeSelect} selected={typeSelection}>
+    <reactCore.Menu
+      ref={typeMenuRef}
+      id="attribute-search-process-menu"
+      onSelect={onTypeSelect}
+      selected={typeSelection}
+    >
       <reactCore.MenuContent>
         <reactCore.MenuList>
           {uniqueTypes.map((type) => (
-            <reactCore.MenuItem itemId={type} key={type}>{type}</reactCore.MenuItem>
+            <reactCore.MenuItem
+              hasCheckbox
+              key={type}
+              isSelected={typeSelection.includes(type)}
+              itemId={type}
+            >
+              {type}
+            </reactCore.MenuItem>
           ))}
         </reactCore.MenuList>
       </reactCore.MenuContent>
@@ -295,7 +313,7 @@ export default function ToolBar( // NOSONAR
       badge={processSelections.length > 0 ? <reactCore.Badge isRead>{processSelections.length}</reactCore.Badge> : undefined}
       style={
         {
-          width: '200px',
+          width: '250px',
         } as React.CSSProperties
       }
     >
@@ -306,7 +324,7 @@ export default function ToolBar( // NOSONAR
   function getProcesses(signals: SignalType[] | SlotType[]) {
     const processes: string[] = [];
     signals.forEach((signal) => {
-      const process = signal.name.split('.')[0];
+      const process = signal.name.split('.').splice(0, 2).join('.');
       if (!processes.includes(process)) {
         processes.push(process);
       }
@@ -353,7 +371,7 @@ export default function ToolBar( // NOSONAR
       id="attribute-search-filter-toolbar"
       clearAllFilters={() => {
         setSearchValue('');
-        setTypeSelection('');
+        setTypeSelection([]);
         setProcessSelections([]);
       }}
     >
@@ -371,9 +389,9 @@ export default function ToolBar( // NOSONAR
               {searchInputTextbox}
             </reactCore.ToolbarFilter>
             <reactCore.ToolbarFilter
-              chips={typeSelection !== '' ? [typeSelection] : ([] as string[])}
-              deleteChip={() => setTypeSelection('')}
-              deleteChipGroup={() => setTypeSelection('')}
+              chips={typeSelection}
+              deleteChip={(category, chip) => setTypeSelection(typeSelection.filter((type) => type !== chip))}
+              deleteChipGroup={() => setTypeSelection([])}
               categoryName="Status"
               showToolbarItem={activeAttributeMenu === 'Type'}
             >
