@@ -3,7 +3,7 @@
 Creating a developing environment on Windows can be a bit of a hassle, this document should make it easier for anyone setting it up.
 
 This will cover the following
-1. Make Linux environment with window subsystem for Linux.
+1. Make Linux environment with windows subsystem for Linux.
 2. Setting up a compiler to make new applications (todo)
 3. Use [Cockpit](https://github.com/cockpit-project/cockpit/) to configure new and or current applications of `tfc`
 4. Propose methods for developing `HMI` with `flutter` (todo)
@@ -15,19 +15,17 @@ This wiki will use Debian to host the Linux environment, why, good question, it 
 
 Let's get to it.
 
-Follow the instructions on [windows-wsl](https://learn.microsoft.com/en-us/windows/wsl/install) or open powershell and run the following command
-
 Check that version of wsl is compliant for the following steps, minimum required is 0.67.6. Please update you have too old
 ```powershell
 wsl --version
 ```
 
-
+Follow the instructions on [windows-wsl](https://learn.microsoft.com/en-us/windows/wsl/install) or open powershell and run the following command
 ```powershell
 wsl --install Debian
 ```
 
-Now you should be inside the Linux environment, if not enter it by running `wsl` in powershell, enable [systemd](https://github.com/systemd/systemd/) in our environment:
+Now you should be inside a Linux environment, if not enter it by running `wsl` in powershell, enable [systemd](https://github.com/systemd/systemd/) in our environment:
 
 ```bash
 sudo nano /etc/wsl.conf # write the following text, CTRL+O to save and CTRL+X to exit.
