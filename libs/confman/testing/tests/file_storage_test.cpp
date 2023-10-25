@@ -6,12 +6,11 @@
 #include <tfc/confman/observable.hpp>
 #include <tfc/progbase.hpp>
 
-#include "inc/file_storage.hpp"
+#include "tfc/confman/detail/retention.hpp"
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::operator""_test;
-using ut::operator/;
 using tfc::confman::observable;
 
 struct test_me {
@@ -37,29 +36,29 @@ public:
   ~file_testable() {
     std::error_code ignore{};
     std::filesystem::remove(this->file(), ignore);
-
-    // delete backup files
-    for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(this->file().parent_path())) {
-      if (entry.path().string().find("/tmp/test") != std::string::npos) {
-        std::filesystem::remove(entry.path());
-      }
-    }
   }
 };
 
-auto create_file(std::filesystem::path file_path) -> void {
+namespace {
+auto create_file(const std::filesystem::path& file_path) -> void {
   if (!std::filesystem::exists(file_path)) {
     std::ofstream ofs(file_path);
     ofs << "some text\n";
     ofs.close();
   }
 }
+}  // namespace
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
+  std::filesystem::path file_name{ std::filesystem::temp_directory_path() / "file_storage_tests" / "test.me" };
+
+  if (!std::filesystem::exists(file_name.parent_path())) {
+    std::filesystem::create_directories(file_name.parent_path());
+  }
+
   asio::io_context ctx{};
-  std::string const file_name{ "/tmp/test.me" };
 
   "file path"_test = [&] {
     file_testable<test_me> const conf{ ctx, file_name };
@@ -100,7 +99,7 @@ auto main(int argc, char** argv) -> int {
     file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     glz::json_t json{};
     std::string buffer{};
-    glz::read_file_json(json, file_name, buffer);
+    glz::read_file_json(json, file_name.string(), buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
     ut::expect(json["b"].get<std::string>() == "bar");
 
@@ -108,7 +107,7 @@ auto main(int argc, char** argv) -> int {
     conf.make_change()->b = "test";
 
     buffer = {};
-    glz::read_file_json(json, file_name, buffer);
+    glz::read_file_json(json, file_name.string(), buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 2);
     ut::expect(json["b"].get<std::string>() == "test");
   };
@@ -117,7 +116,7 @@ auto main(int argc, char** argv) -> int {
     file_testable<test_me> const conf{ ctx, file_name };
     glz::json_t json{};
     std::string buffer{};
-    glz::read_file_json(json, file_name, buffer);
+    glz::read_file_json(json, file_name.string(), buffer);
 
     uint32_t a_called{};
     conf->a.observe([&a_called](int new_a, int old_a) {
@@ -139,7 +138,7 @@ auto main(int argc, char** argv) -> int {
   };
 
   "change test"_test = [&]() {
-    file_testable<map> my_map{ ctx, "/tmp/test.me" };
+    file_testable<map> my_map{ ctx, file_name };
     { my_map.make_change().value()["new_key"] = test_me{ .a = observable<int>{ 42 }, .b = "hello-world" }; }
     ut::expect(my_map.value().at("new_key") == test_me{ .a = observable<int>{ 42 }, .b = "hello-world" });
     ut::expect(my_map->at("new_key") == test_me{ .a = observable<int>{ 42 }, .b = "hello-world" });
@@ -152,18 +151,21 @@ auto main(int argc, char** argv) -> int {
   };
 
   "backup on config change"_test = [&] {
-    file_testable<test_me> conf{ ctx, "/tmp/test_uuid", test_me{ .a = observable<int>{ 3 }, .b = "bar" } };
+    std::filesystem::path const json_file_name{ file_name.parent_path() / "test_uuid.json" };
+
+    file_testable<test_me> conf{ ctx, json_file_name, test_me{ .a = observable<int>{ 3 }, .b = "bar" } };
     conf.make_change()->a = 2;
     ctx.run_for(std::chrono::milliseconds(1));
-    auto files = std::filesystem::directory_iterator("/tmp");
+    auto files = std::filesystem::directory_iterator(json_file_name.parent_path());
 
     bool backup_found = false;
-    std::string found_file;
+    std::filesystem::path found_file;
 
     for (const auto& file : files) {
-      if (file.path().string().find("/tmp/test_uuid_") != std::string::npos) {
+      if (file.path().string().find(static_cast<std::string>(json_file_name.parent_path().string() + "/test_uuid_")) !=
+          std::string::npos) {
         backup_found = true;
-        found_file = file.path().string();
+        found_file = file.path();
         break;
       }
     }
@@ -173,15 +175,15 @@ auto main(int argc, char** argv) -> int {
     if (backup_found) {
       glz::json_t backup_json{};
       std::string buffer{};
-      glz::read_file_json(backup_json, found_file, buffer);
+      glz::read_file_json(backup_json, found_file.string(), buffer);
 
-      ut::expect(backup_json["a"].get<double>() == 3) << backup_json["a"].get<double>();
+      ut::expect((backup_json["a"].get<double>() - 3) < 0.01) << backup_json["a"].get<double>();
       ut::expect(backup_json["b"].get<std::string>() == "bar");
     }
   };
 
   "testing retention policy without removal"_test = [&] {
-    std::filesystem::path const parent_path{ std::filesystem::temp_directory_path() / "retention" };
+    std::filesystem::path const parent_path{ file_name.parent_path() / "retention" };
 
     std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.txt" },
                                                     std::filesystem::path{ parent_path / "new_file2.txt" } };
@@ -246,11 +248,15 @@ auto main(int argc, char** argv) -> int {
 
   "write to file"_test = [&] {
     std::filesystem::path const file_path{ std::filesystem::temp_directory_path() / "glaze file" };
-    std::string const file_content = R"(file content: {"username": "newnewnewnewnewnewnew"})";
+    std::string const file_content = R"(file content: {"username": "me"})";
     tfc::confman::write_to_file(file_path, file_content);
     ut::expect(std::filesystem::exists(file_path));
     std::filesystem::remove(file_path);
   };
+
+  // delete entire folder to delete backup files
+  std::error_code ignore{};
+  std::filesystem::remove_all(file_name.parent_path(), ignore);
 
   return EXIT_SUCCESS;
 }

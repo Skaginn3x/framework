@@ -20,9 +20,10 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wdate-time)
 PRAGMA_CLANG_WARNING_POP
 // clang-format on
 
+#include <tfc/confman/detail/retention.hpp>
 #include <tfc/confman/file_storage.hpp>
 
-namespace tfc::confman {
+namespace {
 
 /// \brief fetch value of "TFC_CONFMAN_MIN_RETENTION_DAYS", if value is not set a default of std::chrono::days(30) is
 /// returned \return `std::chrono::days` set in the environment variable
@@ -54,63 +55,10 @@ auto get_minimum_retention_count() -> size_t {
   }
 }
 
-/// \brief get total file count in a directory
-/// \param directory path to directory
-static auto get_total_file_count(std::filesystem::path const& directory) -> size_t {
-  return std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{});
-}
-
-/// \brief get map of files in directory, sorting them by time
-/// \param directory path to directory
-static auto get_sorted_file_list(std::filesystem::path const& directory)
-    -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
-  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
-  for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory)) {
-    file_times.try_emplace(entry.last_write_time(), entry.path());
-  }
-  return file_times;
-}
-
-/// \brief removes files that exceed the specified retention policy
-/// \param file_times map containing files sorted by their modification time
-/// \param retention_count maximum number of files to retain
-/// \param retention_time maximum age of files to retain
-/// \note in order for a file to be removed, it both needs to be too old and too many files
-void remove_files_exceeding_retention(const std::map<std::filesystem::file_time_type, std::filesystem::path>& file_times,
-                                      size_t retention_count,
-                                      std::chrono::days retention_time) {
-  std::filesystem::file_time_type const current_time = std::filesystem::file_time_type::clock::now();
-
-  size_t count = 0;
-  for (auto const& [time, path] : file_times) {
-    count++;
-    if (count > retention_count && (current_time - time) > retention_time) {
-      std::filesystem::remove(path);
-    }
-  }
-}
-
-/// \brief Delete old files from the specified directory based on retention count and days. If the number
-/// of files exceed the retention count AND if the file's last modification date surpasses the retention time,
-/// \param directory path to directory containing files to possibly delete.
-static auto apply_retention_policy(std::filesystem::path const& directory) -> void {
-  // +2 for the file itself and the swap file
-  size_t const retention_count = get_minimum_retention_count() + 2;
-  std::chrono::days const retention_time = get_minimum_retention_days();
-
-  if (get_total_file_count(directory) <= retention_count) {
-    return;
-  }
-
-  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times = get_sorted_file_list(directory);
-
-  remove_files_exceeding_retention(file_times, retention_count, retention_time);
-}
-
 /// \brief Generates a universally unique identifier (UUID), generated UUID is compliant with the RFC 4122.
 /// \returns std::string of generated UUID.
 /// \example auto id = get_uuid(); id = "d53c5117-ddfd-4b31-9e3d-acf9ea627fee"
-static auto get_uuid() -> std::string {
+auto get_uuid() -> std::string {
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64 random_engine(seed_source);
   uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
@@ -124,9 +72,44 @@ static auto get_uuid() -> std::string {
 /// auto original_path = std::filesystem::path("/etc/configs/settings.conf");
 /// auto uuid_filename = generate_uuid_filename(original_path);
 /// // Possible result: "/etc/configs/settings_d53c5117-ddfd-4b31-9e3d-acf9ea627fee.json"
-static auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesystem::path {
+auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesystem::path {
   return std::filesystem::path{ config_file.replace_extension().string() + "_" + get_uuid() + ".json" };
 }
+
+/// \brief get map of files in directory, sorting them by time
+/// \param directory path to directory
+auto get_sorted_file_list(std::filesystem::path const& directory)
+    -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
+  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+  for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory)) {
+    file_times.try_emplace(entry.last_write_time(), entry.path());
+  }
+  return file_times;
+}
+
+/// \brief Delete old files from the specified directory based on retention count and days. If the number
+/// of files exceed the retention count AND if the file's last modification date surpasses the retention time,
+/// \param directory path to directory containing files to possibly delete.
+auto apply_retention_policy(std::filesystem::path const& directory) -> void {
+  // +2 for the file itself and the swap file
+  size_t const retention_count = get_minimum_retention_count() + 2;
+  std::chrono::days const retention_time = get_minimum_retention_days();
+
+  size_t total_file_count = static_cast<size_t>(
+      std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{}));
+
+  if (total_file_count <= retention_count) {
+    return;
+  }
+
+  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times = get_sorted_file_list(directory);
+
+  tfc::confman::remove_files_exceeding_retention(file_times, retention_count, retention_time);
+}
+
+}  // namespace
+
+namespace tfc::confman {
 
 /// \brief Write content to a backup file and delete older files if they surpass retention criteria.
 /// \param file_content content to be written to the new file.

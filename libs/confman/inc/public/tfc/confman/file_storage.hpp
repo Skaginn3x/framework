@@ -17,6 +17,8 @@ namespace tfc::confman {
 auto write_to_file(const std::filesystem::path& file_path, std::string_view file_contents) -> std::error_code;
 auto write_and_apply_retention_policy(std::string_view file_content, std::filesystem::path const& file_path)
     -> std::error_code;
+// auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesystem::path;
+// auto apply_retention_policy(std::filesystem::path const& directory) -> void;
 
 namespace asio = boost::asio;
 
@@ -90,7 +92,12 @@ public:
   /// When the helper struct is deconstructed the changes are written to the disc.
   /// \return change helper struct providing reference to this` value.
   auto make_change() noexcept -> change {
-    write_and_apply_retention_policy(to_json(), config_file_);
+    auto write_error{ write_and_apply_retention_policy(to_json(), config_file_) };
+
+    if (write_error) {
+      logger_.error("Error writing to file: ", write_error.message());
+    }
+
     return change{ *this };
   }
 
@@ -138,7 +145,11 @@ protected:
 
     logger_.trace("File change");
 
-    write_and_apply_retention_policy(to_json(), config_file_);
+    auto write_error{ write_and_apply_retention_policy(to_json(), config_file_) };
+
+    if (write_error) {
+      logger_.error("Error writing to file: ", write_error.message());
+    }
 
     // the following updates internal storage_ member
     read_file();
