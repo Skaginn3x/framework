@@ -1,15 +1,15 @@
 #pragma once
 
 #include <chrono>
+#include <concepts>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <map>
-
-#include <concepts>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <system_error>
 
 namespace tfc::confman {
 
@@ -26,7 +26,6 @@ static auto remove_files_exceeding_retention(
 
   size_t count = 0;
   for (auto const& [time, path] : file_times) {
-    std::cout << "path: " << path.string() << " time: " << time << std::endl;
     count++;
     if (count > retention_count && (current_time - time) > retention_time) {
       std::filesystem::remove(path);
