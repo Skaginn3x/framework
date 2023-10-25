@@ -126,12 +126,29 @@ struct interface : tfc::logger::sml_logger {
 };
 
 namespace detail {
+
+template <typename type_t>
+concept name_exists = requires {
+  { type_t::name };
+  requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
+};
+
+template <typename type_t>
+constexpr auto get_name() -> std::string {
+  if constexpr (name_exists<type_t>) {
+    return std::string{ type_t::name };
+  } else {
+    return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
+  }
+}
+
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
 template <class type_t, class state_t>
 void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream& out) noexcept {
-  auto src_state = std::string{ boost::sml::aux::string<typename type_t::src_state>{}.c_str() };
-  auto dst_state = std::string{ boost::sml::aux::string<typename type_t::dst_state>{}.c_str() };
+  std::string src_state{ get_name<typename type_t::src_state>() };
+  std::string dst_state{ get_name<typename type_t::dst_state>() };
+
   if (dst_state == "X") {
     dst_state = "[*]";
   }
@@ -164,7 +181,7 @@ void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream
   }
 
   if (has_event) {
-    auto event = std::string(boost::sml::aux::get_type_name<typename type_t::event>());
+    auto event = get_name<typename type_t::event>();
     if (is_entry) {
       event = "entry";
     } else if (is_exit) {
@@ -174,11 +191,11 @@ void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream
   }
 
   if (has_guard) {
-    out << " [" << boost::sml::aux::get_type_name<typename type_t::guard::type>() << "]";
+    out << " [" << get_name<typename type_t::guard::type>() << "]";
   }
 
   if (has_action) {
-    out << " / " << boost::sml::aux::get_type_name<typename type_t::action::type>();
+    out << " / " << get_name<typename type_t::action::type>();
   }
 
   out << "\n";
