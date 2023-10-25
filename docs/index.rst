@@ -6,6 +6,13 @@ Table of Contents
 -----------------
 
 .. toctree::
+    :caption: Getting Started
+    :maxdepth: 3
+    :glob:
+
+    getting_started/*
+
+.. toctree::
     :caption: Design
     :maxdepth: 3
     :glob:
