@@ -1,12 +1,8 @@
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
 #include <iterator>
 #include <map>
-#include <set>
-#include <system_error>
 
 #include <stduuid/uuid.h>
 
@@ -25,34 +21,28 @@ PRAGMA_CLANG_WARNING_POP
 
 namespace {
 
+static constexpr std::chrono::days default_retention_days{ 30 };
+static constexpr size_t default_retention_count{ 4 };
+
 /// \brief fetch value of "TFC_CONFMAN_MIN_RETENTION_DAYS", if value is not set a default of std::chrono::days(30) is
-/// returned \return `std::chrono::days` set in the environment variable
+/// returned
+/// \return `std::chrono::days` set in the environment variable
 auto get_minimum_retention_days() -> std::chrono::days {
-  const char* value = std::getenv("TFC_CONFMAN_MIN_RETENTION_DAYS");
-  try {
-    // default to 30 if value is nullptr or invalid
-    size_t const value_i = value != nullptr ? std::stoul(value) : 30;
-    return std::chrono::days(value_i);
-  } catch (std::invalid_argument const&) {
-    return std::chrono::days(30);
-  } catch (std::out_of_range const&) {
-    return std::chrono::days(30);
+  std::optional<size_t> const env = tfc::confman::getenv<size_t>("TFC_CONFMAN_MIN_RETENTION_DAYS");
+  if (!env.has_value()) {
+    return default_retention_days;
   }
+  return std::chrono::days(env.value());
 }
 
 /// \brief Fetches the value of the environment variable "TFC_CONFMAN_MIN_RETENTION_COUNT", default value is 4.
 /// \return minimum retention count set in the environment variable
 auto get_minimum_retention_count() -> size_t {
-  const char* value = std::getenv("TFC_CONFMAN_MIN_RETENTION_COUNT");
-  try {
-    // Default to 4 if value is nullptr or invalid
-    size_t const value_i = value != nullptr ? std::stoul(value) : 4;
-    return value_i;
-  } catch (std::invalid_argument const&) {
-    return 4;
-  } catch (std::out_of_range const&) {
-    return 4;
+  std::optional<size_t> const env = tfc::confman::getenv<size_t>("TFC_CONFMAN_MIN_RETENTION_COUNT");
+  if (!env.has_value()) {
+    return default_retention_count;
   }
+  return env.value();
 }
 
 /// \brief Generates a universally unique identifier (UUID), generated UUID is compliant with the RFC 4122.
@@ -78,7 +68,7 @@ auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesyste
 
 /// \brief get map of files in directory, sorting them by time
 /// \param directory path to directory
-auto get_sorted_file_list(std::filesystem::path const& directory)
+auto get_files_by_last_write_time(std::filesystem::path const& directory)
     -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
   std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
   for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory)) {
@@ -95,14 +85,15 @@ auto apply_retention_policy(std::filesystem::path const& directory) -> void {
   size_t const retention_count = get_minimum_retention_count() + 2;
   std::chrono::days const retention_time = get_minimum_retention_days();
 
-  size_t total_file_count = static_cast<size_t>(
+  size_t const total_file_count = static_cast<size_t>(
       std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{}));
 
   if (total_file_count <= retention_count) {
     return;
   }
 
-  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times = get_sorted_file_list(directory);
+  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times =
+      get_files_by_last_write_time(directory);
 
   tfc::confman::remove_files_exceeding_retention(file_times, retention_count, retention_time);
 }

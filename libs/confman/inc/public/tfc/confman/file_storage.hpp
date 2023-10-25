@@ -3,6 +3,7 @@
 #include <sys/inotify.h>
 #include <filesystem>
 #include <string>
+#include <system_error>
 
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>

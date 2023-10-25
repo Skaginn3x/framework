@@ -254,6 +254,11 @@ auto main(int argc, char** argv) -> int {
     std::filesystem::remove(file_path);
   };
 
+  "get env variable"_test = [&] {
+    std::optional<int> const env = tfc::confman::getenv<int>("TFC_CONFMAN_MIN_RETENTION_COUNT");
+    ut::expect(!env.has_value());
+  };
+
   // delete entire folder to delete backup files
   std::error_code ignore{};
   std::filesystem::remove_all(file_name.parent_path(), ignore);
