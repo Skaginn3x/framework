@@ -19,6 +19,7 @@ target_link_libraries(dbus_util
     magic_enum::magic_enum
     tfc::stx
     tfc::configure_options
+    tfc::logger
   PRIVATE
     tfc::base
 )

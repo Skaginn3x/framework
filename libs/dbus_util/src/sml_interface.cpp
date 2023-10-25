@@ -10,6 +10,8 @@ static constexpr std::string_view transition{ "Event" };
 static constexpr std::string_view state_machine{ "StateMachine" };
 }  // namespace tags
 
+namespace detail {
+
 interface_impl::interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : dbus_interface_{ interface } {
   dbus_interface_->register_property_r<std::string>(
       std::string{ tags::state }, sdbusplus::vtable::property_::emits_change,
@@ -39,4 +41,5 @@ void interface_impl::dot_format(std::string_view state_machine) {
   dbus_interface_->set_property(std::string{ tags::state_machine }, state_machine_dot_formatted_);
 }
 
+}  // namespace detail
 }  // namespace tfc::dbus::sml

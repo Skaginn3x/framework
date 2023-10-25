@@ -1,24 +1,33 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 #include <boost/sml.hpp>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/stx/concepts.hpp>
+#include <tfc/sml_logger.hpp>
 
 namespace tfc::dbus::sml {
 
 namespace tags {
 static constexpr std::string_view sub_path{ "StateMachines" };
 static constexpr std::string_view path{ const_dbus_path<sub_path> };
-}
+}  // namespace tags
+
+namespace detail {
 
 struct interface_impl {
   explicit interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface>);
+  interface_impl(interface_impl const&) = delete;
+  interface_impl(interface_impl&&) noexcept = default;
+  auto operator=(interface_impl const&) -> interface_impl& = delete;
+  auto operator=(interface_impl&&) noexcept -> interface_impl& = default;
+
   void on_state_change(std::string_view source_state, std::string_view destination_state, std::string_view event);
   void dot_format(std::string_view state_machine);
 
@@ -29,65 +38,115 @@ struct interface_impl {
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
 };
 
-namespace detail {
 template <class state_machine_t, class state_t>
-void dump(std::ostream& out) noexcept;
+void dump(state_t const& current_state, std::ostream& out) noexcept;
+
+template <template <typename, typename> typename event_t, typename first_t, typename second_t>
+auto constexpr extract_event_type(event_t<first_t, second_t> const&) noexcept -> std::string {
+  return boost::sml::aux::get_type_name<second_t>();
 }
 
-struct interface {
-  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{ std::move(interface) } {}
+template <typename event_t>
+auto constexpr extract_event_type(event_t const& event) noexcept -> std::string {
+  if constexpr (tfc::stx::is_specialization_v<event_t, boost::sml::back::on_entry> ||
+                tfc::stx::is_specialization_v<event_t, boost::sml::back::on_exit>) {
+    return detail::extract_event_type(event);
+  } else {
+    return boost::sml::aux::get_type_name<event_t>();
+  }
+}
 
-//  template <template <typename first_t, typename second_t> typename event_t>
-//  struct extract_event_type {
-//    using type = second_t;
-//  };
+}  // namespace detail
+
+/// \brief Interface for state machine logging and dbus API
+/// \example
+/// \code{.cpp}
+/// #include <tfc/dbus/sml_interface.hpp>
+/// struct state_machine {
+///   auto operator()() {
+///     using boost::sml::operator""_s;
+///     using boost::sml::operator""_e;
+///     return boost::sml::make_transition_table(
+///         * "init"_s + "set_stopped"_e = "stopped"_s
+///     );
+///   }
+/// };
+///
+/// int main() {
+///   boost::asio::io_context ctx{};
+///   auto bus = std::make_shared<sdbusplus::asio::connection>(ctx);
+///   auto interface = std::make_shared<sdbusplus::asio::dbus_interface>(bus, std::string{ tfc::dbus::sml::tags::path },
+///   "StateMachineName"); tfc::dbus::sml::interface sml_interface{ interface, "Log key" }; // optional log key
+///   // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
+///   boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface>> sm{ sml_interface };
+///   return EXIT_SUCCESS;
+/// }
+/// \endcode
+/// Get from cli example:
+/// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations StateMachine
+struct interface : tfc::logger::sml_logger {
+  using logger = tfc::logger::sml_logger;
+
+  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : logger{}, impl_{ std::move(interface) } {}
+  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view log_key)
+      : logger{ log_key }, impl_{ std::move(interface) } {}
+  interface(interface const&) = delete;
+  interface(interface&&) noexcept = default;
+  auto operator=(interface const&) -> interface& = delete;
+  auto operator=(interface&&) noexcept -> interface& = default;
 
   template <class state_machine_t, class event_t>
-  void log_process_event(const event_t& /*event*/) {  // NOLINT(readability-identifier-naming)
-    last_event_ = boost::sml::aux::get_type_name<event_t>();
+  void log_process_event([[maybe_unused]] event_t const& event) {
+    last_event_ = detail::extract_event_type(event);
+    logger::log_process_event<state_machine_t>(event);
   }
 
   template <class state_machine_t, class guard_t, class event_t>
-  void log_guard(const guard_t& /*guard*/, const event_t& /*event*/, bool result) {}
-
-  template <class state_machine_t, class action_t, class event_t>
-  void log_action(const action_t& /*action*/, const event_t& /*event*/) {}
-
-  template <class state_machine_t, class source_state_t, class destination_state_t>
-  void log_state_change(const source_state_t& src, const destination_state_t& dst) {
-    impl_.on_state_change(src.c_str(), dst.c_str(), last_event_);
-//    std::stringstream iss{};
-//    detail::dump<state_machine_t, destination_state_t>(iss);
-//    impl_.dot_format(iss.str());
+  void log_guard(guard_t const& guard, event_t const& event, bool result) {
+    logger::log_guard<state_machine_t>(guard, event, result);
   }
 
-  interface_impl impl_;
+  template <class state_machine_t, class action_t, class event_t>
+  void log_action(action_t const& action, event_t const& event) {
+    logger::log_action<state_machine_t>(action, event);
+  }
+
+  template <class state_machine_t, class source_state_t, class destination_state_t>
+  void log_state_change(source_state_t const& src, destination_state_t const& dst) {
+    impl_.on_state_change(src.c_str(), dst.c_str(), last_event_);
+    std::stringstream iss{};
+    detail::dump<boost::sml::sm<state_machine_t>>(dst, iss);
+    impl_.dot_format(iss.str());
+    logger::log_state_change<state_machine_t>(src, dst);
+  }
+
   std::string last_event_{};
+  detail::interface_impl impl_;
 };
 
 namespace detail {
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
-template <class T>
-void dump_transition(std::ostream& out) noexcept {
-  auto src_state = std::string{ boost::sml::aux::string<typename T::src_state>{}.c_str() };
-  auto dst_state = std::string{ boost::sml::aux::string<typename T::dst_state>{}.c_str() };
+template <class type_t, class state_t>
+void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream& out) noexcept {
+  auto src_state = std::string{ boost::sml::aux::string<typename type_t::src_state>{}.c_str() };
+  auto dst_state = std::string{ boost::sml::aux::string<typename type_t::dst_state>{}.c_str() };
   if (dst_state == "X") {
     dst_state = "[*]";
   }
 
-  if (T::initial) {
+  if (type_t::initial) {
     out << "[*] --> " << src_state << "\n";
   }
 
-  const auto has_event = !boost::sml::aux::is_same<typename T::event, boost::sml::anonymous>::value;
-  const auto has_guard = !boost::sml::aux::is_same<typename T::guard, boost::sml::front::always>::value;
-  const auto has_action = !boost::sml::aux::is_same<typename T::action, boost::sml::front::none>::value;
+  const auto has_event = !boost::sml::aux::is_same<typename type_t::event, boost::sml::anonymous>::value;
+  const auto has_guard = !boost::sml::aux::is_same<typename type_t::guard, boost::sml::front::always>::value;
+  const auto has_action = !boost::sml::aux::is_same<typename type_t::action, boost::sml::front::none>::value;
 
   const auto is_entry =
-      boost::sml::aux::is_same<typename T::event, boost::sml::back::on_entry<boost::sml::_, boost::sml::_>>::value;
+      boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_entry<boost::sml::_, boost::sml::_>>::value;
   const auto is_exit =
-      boost::sml::aux::is_same<typename T::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
+      boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
 
   if (is_entry || is_exit) {
     out << src_state;
@@ -95,12 +154,16 @@ void dump_transition(std::ostream& out) noexcept {
     out << src_state << " --> " << dst_state;
   }
 
+  if constexpr (std::same_as<std::remove_cvref_t<typename state_t::type>, typename type_t::dst_state>) {
+    out << " #limegreen";
+  }
+
   if (has_event || has_guard || has_action) {
     out << " :";
   }
 
   if (has_event) {
-    auto event = std::string(boost::sml::aux::get_type_name<typename T::event>());
+    auto event = std::string(boost::sml::aux::get_type_name<typename type_t::event>());
     if (is_entry) {
       event = "entry";
     } else if (is_exit) {
@@ -110,26 +173,26 @@ void dump_transition(std::ostream& out) noexcept {
   }
 
   if (has_guard) {
-    out << " [" << boost::sml::aux::get_type_name<typename T::guard::type>() << "]";
+    out << " [" << boost::sml::aux::get_type_name<typename type_t::guard::type>() << "]";
   }
 
   if (has_action) {
-    out << " / " << boost::sml::aux::get_type_name<typename T::action::type>();
+    out << " / " << boost::sml::aux::get_type_name<typename type_t::action::type>();
   }
 
   out << "\n";
 }
 
-template <template <class...> class T, class... Ts>
-void dump_transitions(const T<Ts...>&, std::ostream& out) noexcept {
-  int _[]{ 0, (dump_transition<Ts>(out), 0)... };
+template <template <class...> class type_t, class... types_t, class state_t>
+void dump_transitions(const type_t<types_t...>&, state_t const& current_state, std::ostream& out) noexcept {
+  int _[]{ 0, (dump_transition<types_t>(current_state, out), 0)... };
   (void)_;
 }
 
 template <class state_machine_t, class state_t>
-void dump(std::ostream& out) noexcept {
+void dump(state_t const& current_state, std::ostream& out) noexcept {
   out << "@startuml\n\n";
-  dump_transitions(typename state_machine_t::transitions{}, out);
+  dump_transitions(typename state_machine_t::transitions{}, current_state, out);
   out << "\n@enduml\n";
 }
 
