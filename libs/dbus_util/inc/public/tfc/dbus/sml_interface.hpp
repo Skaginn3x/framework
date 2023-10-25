@@ -9,8 +9,8 @@
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/stx/concepts.hpp>
 #include <tfc/sml_logger.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::dbus::sml {
 
@@ -83,7 +83,8 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 /// }
 /// \endcode
 /// Get from cli example:
-/// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations StateMachine
+/// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations
+/// StateMachine
 struct interface : tfc::logger::sml_logger {
   using logger = tfc::logger::sml_logger;
 
