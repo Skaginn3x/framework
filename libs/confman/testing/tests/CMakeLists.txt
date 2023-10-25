@@ -74,8 +74,3 @@ add_test(
   COMMAND
     file_storage_test
 )
-
-target_include_directories(file_storage_test
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc
-)
