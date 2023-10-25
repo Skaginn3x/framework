@@ -1,23 +1,17 @@
 /* eslint-disable react/no-array-index-key */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  SearchInput,
-  EmptyState,
-  EmptyStateIcon,
   Title,
-  EmptyStateBody,
   Button,
   Bullseye,
   Modal,
   ModalVariant,
   AlertVariant,
   Tooltip,
-  EmptyStateFooter,
 } from '@patternfly/react-core';
 import {
   Thead, Tr, Th, Tbody, Td, Table,
 } from '@patternfly/react-table';
-import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import PlusIcon from '@patternfly/react-icons/dist/esm/icons/plus-icon';
 import MinusIcon from '@patternfly/react-icons/dist/esm/icons/minus-icon';
 import { PencilAltIcon } from '@patternfly/react-icons';
@@ -25,9 +19,12 @@ import { SignalType, SlotType, ConnectionType } from '../../Types';
 import { useAlertContext } from '../Alert/AlertContext';
 import './Table.css';
 import SlotModal from './SlotModal';
-import ToolBar from './Toolbar';
+import ToolBar, { FilterConfig } from './Toolbar';
 import FilterModal from './FilterModal';
 import { removeOrg } from '../Form/WidgetFunctions';
+import MultiSelectAttribute from './ToolbarItems/MultiSelectAttribute';
+import TextboxAttribute from './ToolbarItems/TextBoxAttribute';
+import emptyStateComponent from './TableItems/EmptyState';
 
 function formatDate(dateStr: string, withTime = false) {
   const date = new Date(dateStr);
@@ -58,9 +55,9 @@ const columnNames = {
 export default function CustomTable({
   signals, slots, connections, DBUS, isDark,
 }: { signals: SignalType[], slots: SlotType[], connections: ConnectionType, DBUS: any, isDark: boolean }) {
-  const [searchValue, setSearchValue] = React.useState('');
+  const [nameSelection, setNameSelection] = React.useState<string[]>([]);
   const [processSelections, setProcessSelections] = React.useState<string[]>([]);
-  const [typeSelection, setTypeSelection] = React.useState('');
+  const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = React.useState(false);
   const [modalSelectedSlots, setModalSelectedSlots] = React.useState<Set<SlotType>>(new Set());
@@ -69,30 +66,42 @@ export default function CustomTable({
   const [selectedSlot, setSelectedSlot] = React.useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
-  const searchBoxRef = useRef<HTMLInputElement | null>(null);
+  const attributeRefs: Record<string, React.RefObject<HTMLInputElement>> = {
+    Name: useRef<HTMLInputElement | null>(null),
+    Type: useRef<HTMLInputElement | null>(null),
+    Process: useRef<HTMLInputElement | null>(null),
+  };
 
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
 
   const { addAlert } = useAlertContext();
 
-  const onSearchChange = (value: string) => {
-    setSearchValue(value);
-  };
-
+  /**
+   * When the the filters are updated, this function is called to determine if a signal should be displayed
+   * @param signal The signal that is being checked
+  */
   const onFilter = (signal: SignalType) => {
-    let searchValueInput: RegExp;
-    try {
-      searchValueInput = new RegExp(searchValue, 'i');
-    } catch (err) {
-      searchValueInput = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const createSafeRegex = (value: string) => {
+      try {
+        return new RegExp(value, 'i');
+      } catch (err) {
+        return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      }
+    };
+    let matchesSearchValue;
+    if (nameSelection && nameSelection.length !== 0) {
+      const searchRegexList = nameSelection.map((value) => createSafeRegex(value));
+      matchesSearchValue = searchRegexList.some(
+        (regex) => (signal.name + signal.created_by).search(regex) >= 0,
+      );
+    } else {
+      matchesSearchValue = true;
     }
-    const matchesSearchValue = (signal.name + signal.created_by).search(searchValueInput) >= 0;
-
-    const matchesTypeSelection = typeSelection === '' || signal.type === typeSelection;
-
+    const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(signal.type);
     return (
-      matchesSearchValue && matchesTypeSelection
-      && (processSelections.length === 0 || processSelections.includes(signal.name.split('.')[0]))
+      matchesSearchValue
+      && matchesTypeSelection
+      && (processSelections.length === 0 || processSelections.includes(signal.name.split('.').splice(0, 2).join('.')))
     );
   };
 
@@ -112,64 +121,34 @@ export default function CustomTable({
 
   useEffect(() => {
     setPage(1);
-  }, [searchValue, typeSelection, processSelections]);
+  }, [nameSelection, typeSelection, processSelections]);
 
-  // Set up name search input
-  const searchInput = (
-    <SearchInput
-      placeholder="Filter by name"
-      value={searchValue}
-      ref={searchBoxRef}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && filteredSignals.length > 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          // set focus on first row
-          signalRefs[0]?.current?.focus();
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          e.stopPropagation();
-          onSearchChange('');
-          searchBoxRef.current?.blur();
-        }
-      }}
-      onChange={(_event, value) => onSearchChange(value)}
-      onClear={() => onSearchChange('')}
-    />
-  );
+  /**
+   * Clear all filters to get back to the original table
+   */
+  function clearAllFilters() {
+    setNameSelection([]);
+    setTypeSelection([]);
+    setProcessSelections([]);
+  }
 
-  const emptyState = (
-    <EmptyState>
-      <EmptyStateIcon icon={SearchIcon} />
-      <Title size="lg" headingLevel="h4">
-        No results found
-      </Title>
-      <EmptyStateBody>No results match the filter criteria. Clear all filters and try again.</EmptyStateBody>
-      <EmptyStateFooter>
-        <Button
-          variant="link"
-          onClick={() => {
-            setSearchValue('');
-            setTypeSelection('');
-            setProcessSelections([]);
-          }}
-        >
-          Clear all filters
-        </Button>
-      </EmptyStateFooter>
-    </EmptyState>
-  );
-
+  /**
+   * When the user clicks the plus button to add slots to a signal
+   * @param signal The signal to add slots to
+   */
   const handlePlusClick = (signal: SignalType) => {
     setSelectedSignal(signal ?? undefined);
     setIsModalOpen(true);
   };
 
+  /**
+   * When the user clicks the pencil button to edit filters for a slot
+   * @param slot The slot to edit filters for
+   */
   const handlePencilClick = (slot: SlotType) => {
     setSelectedSlot(slot.name ?? undefined);
     setFilterModalOpen(true);
-  };
+  }; // When user wants to edit filters for a slot
 
   const AddButtonRef = React.createRef<HTMLButtonElement>();
   const removeButtonRef = React.createRef<HTMLButtonElement>();
@@ -179,6 +158,9 @@ export default function CustomTable({
     setIsRemoveModalOpen(true);
   };
 
+  /**
+   * When the user clicks the remove button when removing slots from a signal
+   */
   const handleRemoveSlots = () => {
     if (!selectedSlot) return;
     // look through connections to find the signal that has the slot
@@ -194,6 +176,10 @@ export default function CustomTable({
         ? selectedIndexes[0] - 1 : selectedIndexes[0], selectedIndexes[1] - 1 >= -1 ? selectedIndexes[1] - 1 : -1],
     );
   };
+
+  /**
+   * When a user clicks the add button to add slots to a signal
+   */
   const handleAddSlots = () => {
     if (!selectedSignal) return;
     modalSelectedSlots.forEach((slot) => {
@@ -207,39 +193,29 @@ export default function CustomTable({
     setModalSelectedSlots(new Set());
   };
 
+  /**
+   * When the user clicks the cancel button when removing slots from a signal
+   */
   const handleCancelAddSlots = () => {
     setModalSelectedSlots(new Set());
     setIsModalOpen(false);
   };
 
-  useEffect(() => {
-    const handleTableKeyDown = (event: any) => {
-      if (event.ctrlKey && event.key === 'f' && !isModalOpen) {
-        event.preventDefault();
-        // Ensure that searchBoxRef.current is available
-        setActiveAttributeMenu('Name');
-        setTimeout(() => {
-          searchBoxRef.current?.focus();
-        }, 0);
-      }
-    };
-
-    window.addEventListener('keydown', handleTableKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleTableKeyDown);
-    };
-  }, []);
-
   function focusOnSlot(globalIndex: number, slotIdx: number) {
     setSelectedIndexes([globalIndex, slotIdx]);
     slotRefs[globalIndex - startIndex][slotIdx].current?.focus();
-  }
+  } //
 
   function focusOnSignal(globalIndex: number) {
     setSelectedIndexes([globalIndex, -1]);
     signalRefs[globalIndex - startIndex].current?.focus();
   }
 
+  /**
+   * When the user presses the arrow down key. This function will determine what to focus on next
+   * @param slotIndex current slot index
+   * @param globalSignalIndex current signal index
+   */
   function handleArrowDown(slotIndex: number, globalSignalIndex: number) {
     const nextSlotIndex = slotIndex + 1;
     const signalSlots = connections[filteredSignals[globalSignalIndex].name];
@@ -262,6 +238,11 @@ export default function CustomTable({
   }
   const getPreviousSignalSlots = (globalIndex: number) => connections[filteredSignals[globalIndex].name];
 
+  /**
+   * When the user presses the arrow up key. This function will determine what to focus on next
+   * @param globalSignalIndex current signal index
+   * @param start_index the index of the first signal on the current page
+   */
   function focusOnPreviousItem(globalSignalIndex: number, start_index: number) {
     const prevGlobalSignalIndex = globalSignalIndex - 1;
 
@@ -285,6 +266,12 @@ export default function CustomTable({
     }
   }
 
+  /**
+   * Handles the arrow up key when the user is focused on a slot
+   * Used to determine what to focus on next.
+   * @param slotIndex current slot index
+   * @param globalSignalIndex current signal index
+   */
   function handleArrowUp(slotIndex: number, globalSignalIndex: number) {
     if (slotIndex > 0) {
       focusOnSlot(globalSignalIndex, slotIndex - 1);
@@ -295,6 +282,12 @@ export default function CustomTable({
     }
   }
 
+  /**
+   * Handles the arrow key pressed to select which handler to call
+   * @param event Keyboard event
+   * @param globalSignalIndex Current signal index
+   * @param slotIndex Current slot index
+   */
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, globalSignalIndex: number, slotIndex: number) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -327,6 +320,9 @@ export default function CustomTable({
     return () => window.removeEventListener('keydown', handleRemoveModalKeyDown);
   }, [isRemoveModalOpen]);
 
+  /**
+   * When the selected Slot changes, this determines where to focus
+   */
   useEffect(() => {
     // Use setTimeout to push the focus command to the end of the JavaScript event queue
     if (isModalOpen) return;
@@ -344,38 +340,87 @@ export default function CustomTable({
       }
     }, 0);
 
-    // Clear the timer when the component unmounts or when selectedIndexes changes
     // eslint-disable-next-line consistent-return
     return () => clearTimeout(timer);
   }, [selectedIndexes, slotRefs, page]);
 
-  const attributes = ['Name', 'Type', 'Process'];
-  const toolbar = ToolBar(
-    setSearchValue,
-    searchValue,
-    setTypeSelection,
-    typeSelection,
-    setProcessSelections,
-    processSelections,
-    setActiveAttributeMenu,
-    activeAttributeMenu,
-    searchInput,
-    setPage,
-    page,
-    setPerPage,
-    perPage,
-    attributes,
-    signals,
-    filteredSignals,
-  );
+  // Get Unique Types and processes
+  const uniqueTypes = [...new Set(signals.map((slot) => slot.type))];
+  let AllProcesses = signals.map((signal) => signal.name.split('.').slice(0, 2).join('.'));
+  AllProcesses = AllProcesses.concat(slots.map((slot) => slot.name.split('.').slice(0, 2).join('.')));
+  const uniqueProcesses = [...new Set(AllProcesses)];
+
+  /**
+   * Configuration file for the filters
+   * Uses the Toolbar component's FilterConfig type
+   */
+  const Configs = [
+    {
+      key: 'Name',
+      chips: nameSelection,
+      categoryName: 'Name',
+      setFiltered: setNameSelection,
+      component:
+  <TextboxAttribute
+    selectedItems={nameSelection}
+    setActiveItems={setNameSelection}
+    attributeName="Name"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={attributeRefs.Name}
+  />,
+    },
+
+    {
+      key: 'Type',
+      chips: typeSelection,
+      categoryName: 'Type',
+      setFiltered: setTypeSelection,
+      component:
+  <MultiSelectAttribute
+    items={uniqueTypes}
+    selectedItems={typeSelection}
+    setActiveItems={setTypeSelection}
+    attributeName="Type"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={attributeRefs.Type}
+  />,
+    },
+
+    {
+      key: 'Process',
+      chips: processSelections,
+      categoryName: 'Process',
+      setFiltered: setProcessSelections,
+      component:
+  <MultiSelectAttribute
+    items={uniqueProcesses}
+    selectedItems={processSelections}
+    setActiveItems={setProcessSelections}
+    attributeName="Process"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={attributeRefs.Process}
+  />,
+    },
+  ] as FilterConfig[];
 
   const selectionSignalColor = isDark ? '#555 ' : 'lightgrey';
   const selectionSlotColor = isDark ? '#555 ' : '#CCC';
   const nonSelectionSlotColor = isDark ? '#313131' : '#f6f6f6';
+  const empty = emptyStateComponent(clearAllFilters);
 
   return (
     <>
-      {toolbar}
+      <ToolBar
+        setPage={setPage}
+        page={page}
+        setPerPage={setPerPage}
+        perPage={perPage}
+        filteredItems={filteredSignals}
+        filterConfigs={Configs}
+        activeAttributeMenu={activeAttributeMenu}
+        setActiveAttributeMenu={setActiveAttributeMenu}
+        refs={attributeRefs}
+      />
       <Table aria-label="Selectable table">
         <Thead>
           <Tr>
@@ -625,7 +670,7 @@ export default function CustomTable({
           {filteredSignals.length === 0 && (
             <Tr>
               <Td colSpan={8}>
-                <Bullseye>{emptyState}</Bullseye>
+                <Bullseye>{empty}</Bullseye>
               </Td>
             </Tr>
           )}

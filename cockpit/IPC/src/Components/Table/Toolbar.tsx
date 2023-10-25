@@ -1,28 +1,42 @@
-import React from 'react';
+/* eslint-disable react/function-component-definition */
+import React, { useEffect } from 'react';
 import FilterIcon from '@patternfly/react-icons/dist/esm/icons/filter-icon';
-
 import * as reactCore from '@patternfly/react-core';
 
 import { SignalType, SlotType } from '../../Types';
+import './Toolbar.css';
 
-export default function ToolBar( // NOSONAR
-  setSearchValue: React.Dispatch<React.SetStateAction<string>>,
-  searchValue: string,
-  setTypeSelection: React.Dispatch<React.SetStateAction<string>>,
-  typeSelection: string,
-  setProcessSelections: React.Dispatch<React.SetStateAction<string[]>>,
-  processSelections: string[],
-  setActiveAttributeMenu: React.Dispatch<React.SetStateAction<string>>,
-  activeAttributeMenu: string,
-  searchInputTextbox: JSX.Element,
-  setPage: React.Dispatch<React.SetStateAction<number>>,
-  page: number,
-  setPerPage: React.Dispatch<React.SetStateAction<number>>,
-  perPage: number,
-  attributes: string[],
-  items: SignalType[] | SlotType[],
-  filteredItems: SignalType[] | SlotType[],
-) {
+export type FilterConfig = {
+  key: string;
+  component: JSX.Element;
+  chips: string[] | undefined;
+  categoryName: string;
+  setFiltered: React.Dispatch<React.SetStateAction<any[]>>;
+};
+
+type ToolBarProps = {
+  setPage: React.Dispatch<React.SetStateAction<number>>;
+  page: number;
+  setPerPage: React.Dispatch<React.SetStateAction<number>>;
+  perPage: number;
+  filteredItems: SignalType[] | SlotType[];
+  filterConfigs: FilterConfig[];
+  activeAttributeMenu: string;
+  setActiveAttributeMenu: React.Dispatch<React.SetStateAction<string>>;
+  refs: Record<string, React.RefObject<HTMLInputElement>>;
+};
+
+const ToolBar: React.FC<ToolBarProps> = ({ // NOSONAR
+  setPage,
+  page,
+  setPerPage,
+  perPage,
+  filteredItems,
+  filterConfigs,
+  activeAttributeMenu,
+  setActiveAttributeMenu,
+  refs,
+}) => {
   const toolbarPagination = (
     <reactCore.Pagination
       perPageOptions={[
@@ -50,7 +64,6 @@ export default function ToolBar( // NOSONAR
   const [isTypeMenuOpen, setIsTypeMenuOpen] = React.useState<boolean>(false);
   const typeToggleRef = React.useRef<HTMLButtonElement>(null);
   const typeMenuRef = React.useRef<HTMLDivElement>(null);
-  const typeContainerRef = React.useRef<HTMLDivElement>(null);
 
   const handleTypeMenuKeys = (event: KeyboardEvent) => {
     if (isTypeMenuOpen && typeMenuRef.current?.contains(event.target as Node)) {
@@ -76,72 +89,6 @@ export default function ToolBar( // NOSONAR
     };
   }, [isTypeMenuOpen, typeMenuRef]);
 
-  const onTypeToggleClick = (ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    setTimeout(() => {
-      if (typeMenuRef.current) {
-        const firstElement = typeMenuRef.current.querySelector('li > button:not(:disabled)');
-        if (firstElement) {
-          (firstElement as HTMLElement).focus();
-        }
-      }
-    }, 0);
-    setIsTypeMenuOpen(!isTypeMenuOpen);
-  };
-
-  function onTypeSelect(event: React.MouseEvent | undefined, itemId: string | number | undefined) {
-    if (typeof itemId === 'undefined') {
-      return;
-    }
-
-    setTypeSelection(itemId.toString());
-    setIsTypeMenuOpen(!isTypeMenuOpen);
-  }
-
-  const typeToggle = (
-    <reactCore.MenuToggle
-      ref={typeToggleRef}
-      onClick={onTypeToggleClick}
-      isExpanded={isTypeMenuOpen}
-      style={
-        {
-          width: '200px',
-        } as React.CSSProperties
-      }
-    >
-      Filter by Type
-    </reactCore.MenuToggle>
-  );
-
-  const uniqueTypes: string[] = [];
-  items.forEach((item) => {
-    if (!uniqueTypes.includes(item.type)) {
-      uniqueTypes.push(item.type);
-    }
-  });
-  const typeMenu = (
-    <reactCore.Menu ref={typeMenuRef} id="attribute-search-type-menu" onSelect={onTypeSelect} selected={typeSelection}>
-      <reactCore.MenuContent>
-        <reactCore.MenuList>
-          {uniqueTypes.map((type) => (
-            <reactCore.MenuItem itemId={type} key={type}>{type}</reactCore.MenuItem>
-          ))}
-        </reactCore.MenuList>
-      </reactCore.MenuContent>
-    </reactCore.Menu>
-  );
-
-  const typeSelect = (
-    <div ref={typeContainerRef}>
-      <reactCore.Popper
-        trigger={typeToggle}
-        popper={typeMenu}
-        appendTo={typeContainerRef.current ?? undefined}
-        isVisible={isTypeMenuOpen}
-      />
-    </div>
-  );
-
   // Set up attribute selector
   const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
   const attributeToggleRef = React.useRef<HTMLButtonElement>(null);
@@ -158,7 +105,11 @@ export default function ToolBar( // NOSONAR
     ) {
       if (event.key === 'Escape' || event.key === 'Tab') {
         setIsAttributeMenuOpen(!isAttributeMenuOpen);
-        attributeToggleRef.current?.focus();
+        attributeToggleRef.current?.blur();
+      }
+      if (event.key === 'Enter') {
+        setIsAttributeMenuOpen(!isAttributeMenuOpen);
+        refs[activeAttributeMenu].current?.focus();
       }
     }
   };
@@ -179,6 +130,7 @@ export default function ToolBar( // NOSONAR
   }, [isAttributeMenuOpen, attributeMenuRef]);
 
   const onAttributeToggleClick = (ev: React.MouseEvent) => {
+    ev.preventDefault();
     ev.stopPropagation(); // Stop handleClickOutside from handling
     setTimeout(() => {
       if (attributeMenuRef.current) {
@@ -187,9 +139,24 @@ export default function ToolBar( // NOSONAR
           (firstElement as HTMLElement).focus();
         }
       }
-    }, 0);
+    }, 50);
     setIsAttributeMenuOpen(!isAttributeMenuOpen);
   };
+
+  // Event handler for ctrl+f to open attribute menu
+  useEffect(() => {
+    const handleTableKeyDown = (event: any) => {
+      if (event.ctrlKey && event.key === 'f') {
+        event.preventDefault();
+        onAttributeToggleClick(event);
+      }
+    };
+
+    window.addEventListener('keydown', handleTableKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleTableKeyDown);
+    };
+  }, []);
 
   const attributeToggle = (
     <reactCore.MenuToggle
@@ -202,18 +169,22 @@ export default function ToolBar( // NOSONAR
     </reactCore.MenuToggle>
   );
   const attributeMenu = (
-    // eslint-disable-next-line no-console
     <reactCore.Menu
       ref={attributeMenuRef}
       onSelect={(_ev, itemId) => {
-        setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Type' | 'Process');
+        setActiveAttributeMenu(itemId as string ?? '');
         setIsAttributeMenuOpen(!isAttributeMenuOpen);
+        setTimeout(() => {
+          refs[itemId as string]?.current?.focus(); // Focus on the input
+        }, 50);
       }}
     >
       <reactCore.MenuContent>
         <reactCore.MenuList>
-          {attributes.map((attribute) => (
-            <reactCore.MenuItem itemId={attribute} key={attribute}>{attribute}</reactCore.MenuItem>
+          {filterConfigs.map((attribute) => (
+            <reactCore.MenuItem itemId={attribute.key} key={attribute.key}>
+              {attribute.categoryName}
+            </reactCore.MenuItem>
           ))}
         </reactCore.MenuList>
       </reactCore.MenuContent>
@@ -234,7 +205,6 @@ export default function ToolBar( // NOSONAR
   const [isProcessMenuOpen, setIsProcessMenuOpen] = React.useState<boolean>(false);
   const processToggleRef = React.useRef<HTMLButtonElement>(null);
   const processMenuRef = React.useRef<HTMLDivElement>(null);
-  const processContainerRef = React.useRef<HTMLDivElement>(null);
 
   const handleProcessMenuKeys = (event: KeyboardEvent) => {
     if (isProcessMenuOpen && processMenuRef.current?.contains(event.target as Node)) {
@@ -260,138 +230,50 @@ export default function ToolBar( // NOSONAR
     };
   }, [isProcessMenuOpen, processMenuRef]);
 
-  const onProcessMenuToggleClick = (ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    setTimeout(() => {
-      if (processMenuRef.current) {
-        const firstElement = processMenuRef.current.querySelector('li > button:not(:disabled)');
-        if (firstElement) {
-          (firstElement as HTMLElement).focus();
-        }
-      }
-    }, 0);
-    setIsProcessMenuOpen(!isProcessMenuOpen);
-  };
-
-  function onProcessMenuSelect(event: React.MouseEvent | undefined, itemId: string | number | undefined) {
-    if (typeof itemId === 'undefined') {
-      return;
-    }
-
-    const itemStr = itemId.toString();
-
-    setProcessSelections(
-      processSelections.includes(itemStr)
-        ? processSelections.filter((selection) => selection !== itemStr)
-        : [itemStr, ...processSelections],
-    );
-  }
-
-  const processToggle = (
-    <reactCore.MenuToggle
-      ref={processToggleRef}
-      onClick={onProcessMenuToggleClick}
-      isExpanded={isProcessMenuOpen}
-      badge={processSelections.length > 0 ? <reactCore.Badge isRead>{processSelections.length}</reactCore.Badge> : undefined}
-      style={
-        {
-          width: '200px',
-        } as React.CSSProperties
-      }
-    >
-      Filter by Process
-    </reactCore.MenuToggle>
-  );
-
-  function getProcesses(signals: SignalType[] | SlotType[]) {
-    const processes: string[] = [];
-    signals.forEach((signal) => {
-      const process = signal.name.split('.')[0];
-      if (!processes.includes(process)) {
-        processes.push(process);
-      }
-    });
-    return processes;
-  }
-
-  const processMenu = (
-    <reactCore.Menu
-      ref={processMenuRef}
-      id="attribute-search-process-menu"
-      onSelect={onProcessMenuSelect}
-      selected={processSelections}
-    >
-      <reactCore.MenuContent>
-        <reactCore.MenuList>
-          {getProcesses(items).map((name) => (
-            <reactCore.MenuItem
-              hasCheckbox
-              key={name}
-              isSelected={processSelections.includes(name)}
-              itemId={name}
-            >
-              {name}
-            </reactCore.MenuItem>
-          ))}
-        </reactCore.MenuList>
-      </reactCore.MenuContent>
-    </reactCore.Menu>
-  );
-
-  const processSelect = (
-    <div ref={processContainerRef}>
-      <reactCore.Popper
-        trigger={processToggle}
-        popper={processMenu}
-        appendTo={processContainerRef.current ?? undefined}
-        isVisible={isProcessMenuOpen}
-      />
-    </div>
-  );
   return (
     <reactCore.Toolbar
       id="attribute-search-filter-toolbar"
       clearAllFilters={() => {
-        setSearchValue('');
-        setTypeSelection('');
-        setProcessSelections([]);
+        console.log('Clearing all filters');
+        filterConfigs.forEach((filter) => filter.setFiltered([]));
       }}
     >
       <reactCore.ToolbarContent>
         <reactCore.ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
           <reactCore.ToolbarGroup variant="filter-group">
             <reactCore.ToolbarItem>{attributeDropdown}</reactCore.ToolbarItem>
-            <reactCore.ToolbarFilter
-              chips={searchValue !== '' ? [searchValue] : ([] as string[])}
-              deleteChip={() => setSearchValue('')}
-              deleteChipGroup={() => setSearchValue('')}
-              categoryName="Name"
-              showToolbarItem={activeAttributeMenu === 'Name'}
-            >
-              {searchInputTextbox}
-            </reactCore.ToolbarFilter>
-            <reactCore.ToolbarFilter
-              chips={typeSelection !== '' ? [typeSelection] : ([] as string[])}
-              deleteChip={() => setTypeSelection('')}
-              deleteChipGroup={() => setTypeSelection('')}
-              categoryName="Status"
-              showToolbarItem={activeAttributeMenu === 'Type'}
-            >
-              {typeSelect}
-            </reactCore.ToolbarFilter>
-            <reactCore.ToolbarFilter
-              chips={processSelections}
-              deleteChip={(category, chip) => onProcessMenuSelect(undefined, chip as string)}
-              deleteChipGroup={() => setProcessSelections([])}
-              categoryName="Process"
-              showToolbarItem={activeAttributeMenu === 'Process'}
-            >
-              {processSelect}
-            </reactCore.ToolbarFilter>
+            {filterConfigs.map((filter) => {
+              let chipsArray: string[] | undefined;
+              if (Array.isArray(filter.chips) && filter.chips.length > 0) {
+                chipsArray = filter.chips;
+              }
+              return (
+                <reactCore.ToolbarFilter
+                  key={`${filter.key}-Toolbar`}
+                  chips={chipsArray}
+                  deleteChip={(_, chip) => {
+                    if (filter.chips?.filter((item: any) => item !== chip).length === 0) {
+                      filter.setFiltered([]);
+                      console.log('No chips left');
+                      return;
+                    }
+                    if (filter.chips) {
+                      filter.setFiltered(filter.chips.filter((item: any) => item !== chip));
+                    }
+                  }}
+                  deleteChipGroup={() => filter.setFiltered([])}
+                  categoryName={filter.categoryName}
+                >
+                  {filter.component}
+                </reactCore.ToolbarFilter>
+              );
+            })}
           </reactCore.ToolbarGroup>
         </reactCore.ToolbarToggleGroup>
         <reactCore.ToolbarItem variant="pagination">{toolbarPagination}</reactCore.ToolbarItem>
       </reactCore.ToolbarContent>
     </reactCore.Toolbar>
   );
-}
+};
+
+export default ToolBar;
