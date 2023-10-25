@@ -21,8 +21,8 @@ PRAGMA_CLANG_WARNING_POP
 
 namespace {
 
-static constexpr std::chrono::days default_retention_days{ 30 };
-static constexpr size_t default_retention_count{ 4 };
+constexpr std::chrono::days default_retention_days{ 30 };
+constexpr size_t default_retention_count{ 4 };
 
 /// \brief fetch value of "TFC_CONFMAN_MIN_RETENTION_DAYS", if value is not set a default of std::chrono::days(30) is
 /// returned
@@ -85,7 +85,7 @@ auto apply_retention_policy(std::filesystem::path const& directory) -> void {
   size_t const retention_count = get_minimum_retention_count() + 2;
   std::chrono::days const retention_time = get_minimum_retention_days();
 
-  size_t const total_file_count = static_cast<size_t>(
+  auto const total_file_count = static_cast<size_t>(
       std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{}));
 
   if (total_file_count <= retention_count) {

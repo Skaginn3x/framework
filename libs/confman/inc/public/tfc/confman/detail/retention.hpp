@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace tfc::confman {
 
@@ -49,7 +50,10 @@ auto getenv(std::string_view name) -> std::optional<type_t> {
     } else {
       return_val = value_str;
     }
-  } catch (const std::exception&) {
+  } catch (const std::invalid_argument&) {
+    // return_val already set to std::nullopt by default
+  } catch (const std::out_of_range&) {
+    // return_val already set to std::nullopt by default
   }
   return return_val;
 }
