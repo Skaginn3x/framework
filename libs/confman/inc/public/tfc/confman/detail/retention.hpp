@@ -51,9 +51,9 @@ auto getenv(std::string_view name) -> std::optional<type_t> {
       return_val = value_str;
     }
   } catch (const std::invalid_argument&) {
-    // return_val already set to std::nullopt by default
+    return std::nullopt;
   } catch (const std::out_of_range&) {
-    // return_val already set to std::nullopt by default
+    return std::nullopt;
   }
   return return_val;
 }
