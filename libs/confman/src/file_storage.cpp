@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iterator>
 #include <map>
+#include <optional>
 
 #include <stduuid/uuid.h>
 
