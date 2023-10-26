@@ -41,9 +41,24 @@ struct interface_impl {
 template <class state_machine_t, class state_t>
 void dump(state_t const& current_state, std::ostream& out) noexcept;
 
+template <typename type_t>
+concept name_exists = requires {
+  { type_t::name };
+  requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
+};
+
+template <typename type_t>
+constexpr auto get_name() -> std::string {
+  if constexpr (name_exists<type_t>) {
+    return std::string{ type_t::name };
+  } else {
+    return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
+  }
+}
+
 template <template <typename, typename> typename event_t, typename first_t, typename second_t>
 auto constexpr extract_event_type(event_t<first_t, second_t> const&) noexcept -> std::string {
-  return boost::sml::aux::get_type_name<second_t>();
+  return get_name<second_t>();
 }
 
 template <typename event_t>
@@ -52,7 +67,7 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
                 tfc::stx::is_specialization_v<event_t, boost::sml::back::on_exit>) {
     return detail::extract_event_type(event);
   } else {
-    return boost::sml::aux::get_type_name<event_t>();
+    return get_name<event_t>();
   }
 }
 
@@ -114,7 +129,7 @@ struct interface : tfc::logger::sml_logger {
 
   template <class state_machine_t, class source_state_t, class destination_state_t>
   void log_state_change(source_state_t const& src, destination_state_t const& dst) {
-    impl_.on_state_change(src.c_str(), dst.c_str(), last_event_);
+    impl_.on_state_change(detail::get_name<typename source_state_t::type>(), detail::get_name<typename destination_state_t::type>(), last_event_);
     std::stringstream iss{};
     detail::dump<boost::sml::sm<state_machine_t>>(dst, iss);
     impl_.dot_format(iss.str());
@@ -126,21 +141,6 @@ struct interface : tfc::logger::sml_logger {
 };
 
 namespace detail {
-
-template <typename type_t>
-concept name_exists = requires {
-  { type_t::name };
-  requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
-};
-
-template <typename type_t>
-constexpr auto get_name() -> std::string {
-  if constexpr (name_exists<type_t>) {
-    return std::string{ type_t::name };
-  } else {
-    return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
-  }
-}
 
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
