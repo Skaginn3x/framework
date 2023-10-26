@@ -26,6 +26,7 @@
     "@ui-schema/ui-schema": "^0.4.5",
     "bootstrap": "^5.3.0",
     "bootstrap-icons": "^1.10.5",
+    "graphviz-react": "^1.2.5",
     "hamburger-react": "^2.5.0",
     "immutable": "^4.3.0",
     "js-quantities": "^1.8.0",
