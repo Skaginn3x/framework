@@ -98,7 +98,7 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 ///   // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
 ///   boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface>> my_sm{ sml_interface };
 ///   return EXIT_SUCCESS;
-//}
+/// }
 /// \endcode
 /// Get from cli example:
 /// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations
