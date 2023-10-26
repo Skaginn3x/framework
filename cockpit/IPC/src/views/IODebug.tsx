@@ -22,7 +22,6 @@ import { AngleDownIcon } from '@patternfly/react-icons';
 import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
 import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
 import TextboxAttribute from 'src/Components/Table/ToolbarItems/TextBoxAttribute';
-import { CockpitDBUSTypes } from 'src/Types';
 
 declare global {
   interface Window { cockpit: any; }
@@ -98,15 +97,18 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
         return updatedInterfaces;
       });
     };
+
     const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
+
     try {
       // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-      await processProxy.call('Introspect').then((data: any) => {
+      await processProxy.call('Introspect').then(async (data: any) => {
         const interfacesData = parseXMLInterfaces(data);
         // eslint-disable-next-line no-restricted-syntax
         for (const interfaceData of interfacesData) {
           const proxy = processDBUS.proxy(interfaceData.name, path);
-          proxy.wait().then(() => {
+          // eslint-disable-next-line no-await-in-loop
+          await proxy.wait().then(() => {
             const match = {
               interface: 'org.freedesktop.DBus.Properties',
               path,
@@ -124,7 +126,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
               proxy,
               process,
               interfaceName: interfaceData.name,
-              type: interfaceData.valueType,
+              type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
               direction,
               hidden: false,
             });
@@ -136,26 +138,30 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
+  const getInterfaceDataForProcess = async (process: any) => {
+    const interfaces: any[] = [];
+    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+    try {
+      await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
+    } catch (e) {
+      console.error(`Failed to get interface data for process ${process}:`, e);
+    }
+    try {
+      await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
+    } catch (e) {
+      console.error(`Failed to get interface data for process ${process}:`, e);
+    }
+    return interfaces;
+  };
+
   useEffect(() => {
     if (!processes) return;
 
     const fetchAndConnectInterfaces = async () => {
-      const interfaces: any[] = [];
-
-      // eslint-disable-next-line no-restricted-syntax
-      for (const process of processes) {
-        const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        // eslint-disable-next-line no-await-in-loop
-        await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
-        // eslint-disable-next-line no-await-in-loop
-        await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
-      }
-      if (interfaces.length === 0) return;
-      interfaces[0].hidden = false;
-      const signalIndex = interfaces.findIndex((iface) => iface.direction === 'signal' && iface.process === interfaces[0].process);
-      interfaces[signalIndex >= 0 ? signalIndex : 0].hidden = false;
-
-      setDbusInterfaces(interfaces);
+      const allInterfaces = await Promise.all(processes.map(getInterfaceDataForProcess));
+      // Flatten the result since each item in allInterfaces is an array of interfaces
+      const flatInterfaces = allInterfaces.flat();
+      setDbusInterfaces(flatInterfaces);
     };
 
     fetchAndConnectInterfaces();
@@ -211,7 +217,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     if (scrollRef.current) {
       const element = scrollRef.current;
       const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
-      console.log(element.scrollTop, element.clientHeight, element.scrollHeight);
 
       if (isNearBottom) {
         element.scrollTop = element.scrollHeight;
@@ -234,7 +239,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const uniqueTypes = Array.from(new Set(dbusInterfaces.map((iface) => iface.type)));
   const uniqueProcesses = Array.from(new Set(dbusInterfaces.map((iface) => iface.process.split('.').slice(3).join('.'))));
 
-  const CockpitTypes = CockpitDBUSTypes as { [key: string]: string };
   /**
    * Configuration file for the filters
    * Uses the Toolbar component's FilterConfig type
@@ -262,7 +266,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
       setFiltered: setTypeSelection,
       component:
   <MultiSelectAttribute
-    items={uniqueTypes.map((type) => CockpitTypes[type])}
+    items={uniqueTypes}
     selectedItems={typeSelection}
     setActiveItems={setTypeSelection}
     attributeName="Type"
@@ -325,7 +329,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     } else {
       matchesSearchValue = true;
     }
-    const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(CockpitTypes[dbusInterface.type]);
+    const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(dbusInterface.type);
 
     const matchesDirection = directionSelection.length === 0 || directionSelection.includes(dbusInterface.direction);
 
@@ -379,7 +383,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
             Slots
           </Title>
-          <DataList aria-label="Checkbox and action data list example">
+          <DataList aria-label="Checkbox and action data list example" key="slots">
             {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
                 return (
@@ -402,7 +406,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
             Signals
           </Title>
-          <DataList aria-label="Checkbox and action data list example">
+          <DataList aria-label="Checkbox and action data list example" key="signals">
             {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
                 return (
@@ -421,6 +425,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             })
               : <Spinner />}
           </DataList>
+          <div style={{ height: '10rem' }} />
         </div>
       </div>
       {!isMobile && dbusInterfaces.map((dbusInterface:any, index:number) => (
@@ -487,6 +492,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     padding: '0px 0.2rem',
                     width: '100vw',
                     color: '#EEE',
+                    zIndex: 2,
                   }}
                 >
                   <p>

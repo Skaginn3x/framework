@@ -2,6 +2,8 @@
 /* eslint-disable no-param-reassign */
 import React, { ReactElement } from 'react';
 import {
+  ClipboardCopy,
+  ClipboardCopyVariant,
   DataListAction,
   DataListCell,
   DataListItem,
@@ -19,6 +21,7 @@ import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
 import StringTinker from 'src/Components/Tinker/StringTinker';
 import BoolTinker from 'src/Components/Tinker/BoolTinker';
 import NumberTinker from 'src/Components/Tinker/NumberTinker';
+// import JSONTinker from '../Tinker/JSONTinker';
 
 interface ListItemProps {
   dbusInterface: any,
@@ -64,6 +67,45 @@ const ListItem: React.FC<ListItemProps> = ({
   }
 
   /**
+   * Handles the content of the secondary column for JSON objects
+   * @param data The data to be displayed
+   * @returns ReactElement to be displayed
+   */
+  function handleJSONContent(data: any): ReactElement {
+    // Test if string is JSON
+    let isJSON = false;
+    if (data.Value[0] === '{' || data.Value[0] === '[') {
+      try {
+        JSON.parse(data.Value);
+        isJSON = true;
+      } catch {
+        isJSON = false;
+      }
+    }
+
+    if (isJSON) {
+      return (
+        <ClipboardCopy
+          isCode
+          hoverTip="Copy"
+          isReadOnly
+          clickTip="Copied"
+          variant={ClipboardCopyVariant.expansion}
+          style={{
+            alignSelf: 'baseline', marginTop: '-.85rem', zIndex: 1, maxWidth: '25vw',
+          }}
+        >
+          {JSON.stringify(JSON.parse(data.Value), null, 2)}
+        </ClipboardCopy>
+      );
+    }
+
+    return (
+      <p style={{ marginBottom: '0px' }}>{data.Value}</p>
+    );
+  }
+
+  /**
    * Handles the content of the secondary column
    * @param data Interface data
    * @returns ReactElement to be displayed
@@ -71,20 +113,19 @@ const ListItem: React.FC<ListItemProps> = ({
   function getSecondaryContent(data: any): ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
-        case 'b':
+        case 'boolean':
           return handleBoolContent(interfacedata.proxy.data);
 
-        case 's':
-          return handleStringContent(interfacedata.proxy.data);
+        case 'string':
+          return handleJSONContent(interfacedata.proxy.data);
+          // If the string is not JSON, it falls back to string
 
-        case 'n': // INT16
-        case 'q': // UINT16
-        case 'i': // INT32
-        case 'u': // UINT32
-        case 'x': // INT64
-        case 't': // UNIT64
-        case 'd': // Double
-        case 'y': // Byte
+        case 'object':
+          return handleJSONContent(interfacedata.proxy.data);
+
+        case 'number':
+        case 'integer':
+        case 'double':
           return handleStringContent(interfacedata.proxy.data);
 
         default:
@@ -114,20 +155,18 @@ const ListItem: React.FC<ListItemProps> = ({
   function getTinkerInterface(data: any): React.ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
-        case 'b':
+        case 'boolean':
           return <BoolTinker data={interfacedata} />;
 
-        case 's':
+        case 'string':
           return <StringTinker data={interfacedata} />;
 
-        case 'n': // INT16
-        case 'q': // UINT16
-        case 'i': // INT32
-        case 'u': // UINT32
-        case 'x': // INT64
-        case 't': // UNIT64
-        case 'd': // Double
-        case 'y': // Byte
+        case 'object':
+          return <StringTinker data={interfacedata} />;
+
+        case 'number':
+        case 'integer':
+        case 'double':
           return <NumberTinker data={interfacedata} />;
 
         default:
@@ -169,17 +208,21 @@ const ListItem: React.FC<ListItemProps> = ({
             >
               {getSecondaryContent(dbusInterface)}
             </DataListCell>,
-            <DataListCell
-              key={`${dbusInterface.interfaceName}-tinker-content`}
-              style={{
-                textAlign: 'right',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              { dbusInterface.direction === 'slot' ? getTinkerInterface(dbusInterface) : null }
-            </DataListCell>,
+            dbusInterface.direction === 'slot'
+              ? (
+                <DataListCell
+                  key={`${dbusInterface.interfaceName}-tinker-content`}
+                  style={{
+                    textAlign: 'right',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  { getTinkerInterface(dbusInterface) }
+                </DataListCell>
+              )
+              : null,
           ]}
         />
         <DataListAction
