@@ -191,11 +191,20 @@ void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream
   }
 
   if (has_guard) {
-    out << " [" << get_name<typename type_t::guard::type>() << "]";
+    auto guard_name = get_name<typename type_t::guard>();
+    // todo this could be done during compilation if boost::sml::aux::get_type_name would be constexpr
+    if (guard_name.find("(lambda") != std::string::npos || guard_name.find("<lambda") != std::string::npos) {
+      guard_name = "lambda";
+    }
+    out << " [" << guard_name << "]";
   }
 
   if (has_action) {
-    out << " / " << get_name<typename type_t::action::type>();
+    auto action_name = get_name<typename type_t::action::type>();
+    if (action_name.find("(lambda") != std::string::npos || action_name.find("<lambda") != std::string::npos) {
+      action_name = "lambda";
+    }
+    out << " / " << action_name;
   }
 
   out << "\n";
