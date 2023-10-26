@@ -187,10 +187,14 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
       if (has_event) {
         auto event = get_name<typename type_t::event>();
         if (event == last_event) {
-          color = "[#yellow]";
+          color = "[#gold]";
         }
       }
     }
+    else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
+      color = "[#green]";
+    }
+
     out << src_state << " -" << color << "-> " << dst_state;
   }
 
