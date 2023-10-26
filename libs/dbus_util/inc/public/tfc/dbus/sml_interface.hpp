@@ -73,28 +73,32 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 }  // namespace detail
 
 /// \brief Interface for state machine logging and dbus API
-/// \example
+/// \example example_sml_interface.cpp
 /// \code{.cpp}
+/// #include <boost/asio.hpp>
+/// #include <boost/sml.hpp>
+/// #include <memory>
+/// #include <sdbusplus/asio/connection.hpp>
+/// #include <sdbusplus/asio/object_server.hpp>
 /// #include <tfc/dbus/sml_interface.hpp>
 /// struct state_machine {
 ///   auto operator()() {
 ///     using boost::sml::operator""_s;
 ///     using boost::sml::operator""_e;
-///     return boost::sml::make_transition_table(
-///         * "init"_s + "set_stopped"_e = "stopped"_s
-///     );
+///     return boost::sml::make_transition_table(*"init"_s + "set_stopped"_e = "stopped"_s);
 ///   }
 /// };
-///
 /// int main() {
 ///   boost::asio::io_context ctx{};
 ///   auto bus = std::make_shared<sdbusplus::asio::connection>(ctx);
-///   auto interface = std::make_shared<sdbusplus::asio::dbus_interface>(bus, std::string{ tfc::dbus::sml::tags::path },
-///   "StateMachineName"); tfc::dbus::sml::interface sml_interface{ interface, "Log key" }; // optional log key
+///   auto interface =
+///       std::make_shared<sdbusplus::asio::dbus_interface>(bus, std::string{ tfc::dbus::sml::tags::path },
+///       "StateMachineName");
+///   tfc::dbus::sml::interface sml_interface{ interface, "Log key" };  // optional log key
 ///   // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
-///   boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface>> sm{ sml_interface };
+///   boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface>> my_sm{ sml_interface };
 ///   return EXIT_SUCCESS;
-/// }
+//}
 /// \endcode
 /// Get from cli example:
 /// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations
@@ -102,7 +106,7 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 struct interface : tfc::logger::sml_logger {
   using logger = tfc::logger::sml_logger;
 
-  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : logger{}, impl_{ std::move(interface) } {}
+  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{ std::move(interface) } {}
   explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view log_key)
       : logger{ log_key }, impl_{ std::move(interface) } {}
   interface(interface const&) = delete;
