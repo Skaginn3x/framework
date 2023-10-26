@@ -220,10 +220,12 @@ export default function SlotModal({
 
   const toolbar = (
     <ToolBar
-      setPage={setPage}
-      page={page}
-      setPerPage={setPerPage}
-      perPage={perPage}
+      pagination={{
+        setPage,
+        page,
+        setPerPage,
+        perPage,
+      }}
       filteredItems={filteredSlots}
       filterConfigs={Configs}
       activeAttributeMenu={activeAttributeMenu}

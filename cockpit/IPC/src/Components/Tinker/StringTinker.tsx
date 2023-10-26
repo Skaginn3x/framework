@@ -7,7 +7,6 @@ interface StringTinkerIface {
 }
 
 const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
-  console.log('data:', data);
   const [inputValue, setInputValue] = useState<string>(data.proxy.data.Value);
 
   const handleInputChange = (value: string) => {

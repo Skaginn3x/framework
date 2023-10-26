@@ -73,3 +73,19 @@ export type TreeNodeProps = {
 export interface ConnectionType {
   [key: string]: string[];
 }
+
+export const CockpitDBUSTypes = {
+  y: 'Byte',
+  b: 'Boolean',
+  n: 'Int16',
+  q: 'UInt16',
+  i: 'Int32',
+  u: 'UInt32',
+  x: 'Int64',
+  t: 'UInt64',
+  d: 'Double',
+  s: 'String',
+  o: 'Object Path',
+  g: 'Signature',
+  ay: 'Array of Bytes',
+};

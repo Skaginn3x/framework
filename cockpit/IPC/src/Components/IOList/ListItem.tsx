@@ -159,7 +159,7 @@ const ListItem: React.FC<ListItemProps> = ({
               <p className="PrimaryText">{removeSlotOrg(dbusInterface.proxy.iface)}</p>
             </DataListCell>,
             <DataListCell
-              key="secondary content 1"
+              key={`${dbusInterface.interfaceName}-secondary-content`}
               style={{
                 textAlign: 'right',
                 height: '100%',
@@ -170,7 +170,7 @@ const ListItem: React.FC<ListItemProps> = ({
               {getSecondaryContent(dbusInterface)}
             </DataListCell>,
             <DataListCell
-              key="secondary content 2"
+              key={`${dbusInterface.interfaceName}-tinker-content`}
               style={{
                 textAlign: 'right',
                 height: '100%',

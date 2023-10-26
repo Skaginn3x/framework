@@ -22,3 +22,7 @@
 .pf-v5-c-chip-group__close {
     width: 2.5rem !important;
 }
+
+.pf-v5-c-toolbar__content.pf-m-chip-container {
+    justify-content: center;
+}
