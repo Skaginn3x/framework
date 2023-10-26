@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -39,10 +38,7 @@ struct interface_impl {
 };
 
 template <class state_machine_t, class source_state_t, class destination_state_t>
-void dump(source_state_t const& src,
-          destination_state_t const& dst,
-          std::string_view last_event,
-          std::ostream& out) noexcept;
+auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string;
 
 template <typename type_t>
 concept name_exists = requires {
@@ -134,9 +130,7 @@ struct interface : tfc::logger::sml_logger {
   void log_state_change(source_state_t const& src, destination_state_t const& dst) {
     impl_.on_state_change(detail::get_name<typename source_state_t::type>(),
                           detail::get_name<typename destination_state_t::type>(), last_event_);
-    std::stringstream iss{};
-    detail::dump<boost::sml::sm<state_machine_t>>(src, dst, last_event_, iss);
-    impl_.dot_format(iss.str());
+    impl_.dot_format(detail::dump<boost::sml::sm<state_machine_t>>(src, dst, last_event_));
     logger::log_state_change<state_machine_t>(src, dst);
   }
 
@@ -158,7 +152,7 @@ template <class type_t, class source_state_t, class destination_state_t>
 void dump_transition([[maybe_unused]] source_state_t const& src,
                      [[maybe_unused]] destination_state_t const& dst,
                      std::string_view last_event,
-                     std::ostream& out) noexcept {
+                     std::string& buffer) {
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
@@ -167,7 +161,7 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
   }
 
   if (type_t::initial) {
-    out << "[*] --> " << src_state << "\n";
+    buffer.append("[*] --> ").append(src_state).append("\n");
   }
 
   const auto has_event = !boost::sml::aux::is_same<typename type_t::event, boost::sml::anonymous>::value;
@@ -180,7 +174,7 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
       boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
 
   if (is_entry || is_exit) {
-    out << src_state;
+    buffer.append(src_state);
   } else {  // state to state transition
     std::string color{};
     if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
@@ -190,20 +184,19 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
           color = "[#gold]";
         }
       }
-    }
-    else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
+    } else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
       color = "[#green]";
     }
 
-    out << src_state << " -" << color << "-> " << dst_state;
+    buffer.append(src_state).append(" -").append(color).append("-> ").append(dst_state);
   }
 
   if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
-    out << " #limegreen";
+    buffer.append(" #limegreen");
   }
 
   if (has_event || has_guard || has_action) {
-    out << " :";
+    buffer.append(" :");
   }
 
   if (has_event) {
@@ -213,7 +206,7 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
     } else if (is_exit) {
       event = "exit";
     }
-    out << " " << event;
+    buffer.append(" ").append(event);
   }
 
   if (has_guard) {
@@ -222,7 +215,7 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
     if (guard_name.find("(lambda") != std::string::npos || guard_name.find("<lambda") != std::string::npos) {
       guard_name = "lambda";
     }
-    out << " [" << guard_name << "]";
+    buffer.append(" [").append(guard_name).append("]");
   }
 
   if (has_action) {
@@ -230,10 +223,10 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
     if (action_name.find("(lambda") != std::string::npos || action_name.find("<lambda") != std::string::npos) {
       action_name = "lambda";
     }
-    out << " / " << action_name;
+    buffer.append(" / ").append(action_name);
   }
 
-  out << "\n";
+  buffer.append("\n");
 }
 
 template <template <class...> class type_t, class... types_t, class source_state_t, class destination_state_t>
@@ -241,19 +234,16 @@ void dump_transitions(const type_t<types_t...>&,
                       source_state_t const& src,
                       destination_state_t const& dst,
                       std::string_view last_event,
-                      std::ostream& out) noexcept {
-  int _[]{ 0, (dump_transition<types_t>(src, dst, last_event, out), 0)... };
-  (void)_;
+                      std::string& buffer) {
+  (dump_transition<types_t>(src, dst, last_event, buffer), ...);
 }
 
 template <class state_machine_t, class source_state_t, class destination_state_t>
-void dump(source_state_t const& src,
-          destination_state_t const& dst,
-          std::string_view last_event,
-          std::ostream& out) noexcept {
-  out << "@startuml\n\n";
-  dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, out);
-  out << "\n@enduml\n";
+auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string {
+  std::string buffer{ "@startuml\n\n" };
+  dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer);
+  buffer.append("\n@enduml\n");
+  return buffer;
 }
 
 }  // namespace detail
