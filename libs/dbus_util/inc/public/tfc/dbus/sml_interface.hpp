@@ -147,7 +147,7 @@ struct interface : tfc::logger::sml_logger {
 namespace detail {
 
 template <typename transition_t, typename source_state_t, typename destination_state_t>
-bool constexpr is_likely_current_transition = []{
+bool constexpr is_likely_current_transition = [] {
   return std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename transition_t::dst_state> &&
          std::same_as<std::remove_cvref_t<typename source_state_t::type>, typename transition_t::src_state>;
 }();
