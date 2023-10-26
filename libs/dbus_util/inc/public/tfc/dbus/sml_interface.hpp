@@ -38,8 +38,11 @@ struct interface_impl {
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
 };
 
-template <class state_machine_t, class state_t>
-void dump(state_t const& current_state, std::ostream& out) noexcept;
+template <class state_machine_t, class source_state_t, class destination_state_t>
+void dump(source_state_t const& src,
+          destination_state_t const& dst,
+          std::string_view last_event,
+          std::ostream& out) noexcept;
 
 template <typename type_t>
 concept name_exists = requires {
@@ -132,7 +135,7 @@ struct interface : tfc::logger::sml_logger {
     impl_.on_state_change(detail::get_name<typename source_state_t::type>(),
                           detail::get_name<typename destination_state_t::type>(), last_event_);
     std::stringstream iss{};
-    detail::dump<boost::sml::sm<state_machine_t>>(dst, iss);
+    detail::dump<boost::sml::sm<state_machine_t>>(src, dst, last_event_, iss);
     impl_.dot_format(iss.str());
     logger::log_state_change<state_machine_t>(src, dst);
   }
@@ -143,10 +146,19 @@ struct interface : tfc::logger::sml_logger {
 
 namespace detail {
 
+template <typename transition_t, typename source_state_t, typename destination_state_t>
+bool constexpr is_likely_current_transition = []{
+  return std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename transition_t::dst_state> &&
+         std::same_as<std::remove_cvref_t<typename source_state_t::type>, typename transition_t::src_state>;
+}();
+
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
-template <class type_t, class state_t>
-void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream& out) noexcept {
+template <class type_t, class source_state_t, class destination_state_t>
+void dump_transition([[maybe_unused]] source_state_t const& src,
+                     [[maybe_unused]] destination_state_t const& dst,
+                     std::string_view last_event,
+                     std::ostream& out) noexcept {
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
@@ -170,10 +182,19 @@ void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream
   if (is_entry || is_exit) {
     out << src_state;
   } else {  // state to state transition
-    out << src_state << " --> " << dst_state;
+    std::string color{};
+    if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
+      if (has_event) {
+        auto event = get_name<typename type_t::event>();
+        if (event == last_event) {
+          color = "[#yellow]";
+        }
+      }
+    }
+    out << src_state << " -" << color << "-> " << dst_state;
   }
 
-  if constexpr (std::same_as<std::remove_cvref_t<typename state_t::type>, typename type_t::dst_state>) {
+  if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
     out << " #limegreen";
   }
 
@@ -211,16 +232,23 @@ void dump_transition([[maybe_unused]] state_t const& current_state, std::ostream
   out << "\n";
 }
 
-template <template <class...> class type_t, class... types_t, class state_t>
-void dump_transitions(const type_t<types_t...>&, state_t const& current_state, std::ostream& out) noexcept {
-  int _[]{ 0, (dump_transition<types_t>(current_state, out), 0)... };
+template <template <class...> class type_t, class... types_t, class source_state_t, class destination_state_t>
+void dump_transitions(const type_t<types_t...>&,
+                      source_state_t const& src,
+                      destination_state_t const& dst,
+                      std::string_view last_event,
+                      std::ostream& out) noexcept {
+  int _[]{ 0, (dump_transition<types_t>(src, dst, last_event, out), 0)... };
   (void)_;
 }
 
-template <class state_machine_t, class state_t>
-void dump(state_t const& current_state, std::ostream& out) noexcept {
+template <class state_machine_t, class source_state_t, class destination_state_t>
+void dump(source_state_t const& src,
+          destination_state_t const& dst,
+          std::string_view last_event,
+          std::ostream& out) noexcept {
   out << "@startuml\n\n";
-  dump_transitions(typename state_machine_t::transitions{}, current_state, out);
+  dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, out);
   out << "\n@enduml\n";
 }
 
