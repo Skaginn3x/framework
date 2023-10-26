@@ -21,7 +21,6 @@ import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
 import StringTinker from 'src/Components/Tinker/StringTinker';
 import BoolTinker from 'src/Components/Tinker/BoolTinker';
 import NumberTinker from 'src/Components/Tinker/NumberTinker';
-// import JSONTinker from '../Tinker/JSONTinker';
 
 interface ListItemProps {
   dbusInterface: any,

@@ -14,7 +14,7 @@ const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
   const [inputValue, setInputValue] = useState<string>(data.proxy.data.Value);
   const { addAlert } = useAlertContext();
   const handleInputChange = (value: string | number | undefined) => {
-    setInputValue(value?.toString() || '');
+    setInputValue(value?.toString() ?? '');
   };
 
   function updateDBUS() {
