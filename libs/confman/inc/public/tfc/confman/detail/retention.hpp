@@ -16,18 +16,21 @@ namespace tfc::confman {
 
 static constexpr std::string_view json_file_ending{ ".json" };
 
-/// \brief get map of files in directory, sorting them by time
-/// \param directory path to directory
-static auto get_json_files_by_last_write_time(std::filesystem::path const& directory)
+/// \brief get map of specified configuration in directory, sorting them by time
+/// \param file_path configuration file to get backups from
+static auto get_json_files_by_last_write_time(std::filesystem::path const& file_path)
     -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
   std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
 
-  constexpr auto make_json_filter = [](std::filesystem::directory_entry const& entry) noexcept {
-    return entry.path().extension() == json_file_ending;
+  auto make_filter = [file_path](std::filesystem::directory_entry entry) noexcept {
+    /// get all files that have .json ending and have same start letters
+    /// example: test_file.json, should return true on test_file_1.json and test_file_2.json, but not test.json
+    const auto& stem = file_path.stem().string();
+    return entry.path().extension() == json_file_ending && entry.path().stem().string().substr(0, stem.size()) == stem;
   };
 
   for (const std::filesystem::directory_entry& entry :
-       std::filesystem::directory_iterator(directory) | std::views::filter(make_json_filter)) {
+       std::filesystem::directory_iterator(file_path.parent_path()) | std::views::filter(make_filter)) {
     file_times.try_emplace(entry.last_write_time(), entry.path());
   }
   return file_times;

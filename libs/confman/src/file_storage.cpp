@@ -67,23 +67,21 @@ auto generate_uuid_filename(std::filesystem::path config_file) -> std::filesyste
   return std::filesystem::path{ config_file.replace_extension().string() + "_" + get_uuid() + ".json" };
 }
 
-/// \brief Delete old files from the specified directory based on retention count and days. If the number
+/// \brief Delete old files from a specified configuration setting based on retention count and days. If the number
 /// of files exceed the retention count AND if the file's last modification date surpasses the retention time,
-/// \param directory path to directory containing files to possibly delete.
-auto apply_retention_policy(std::filesystem::path const& directory) -> void {
+/// \param file_path configuration to apply retention to
+auto apply_retention_policy(std::filesystem::path const& file_path) -> void {
   // +1 for the file itself
   size_t const retention_count = get_minimum_retention_count() + 1;
   std::chrono::days const retention_time = get_minimum_retention_days();
 
-  auto const total_file_count = static_cast<size_t>(
-      std::distance(std::filesystem::directory_iterator(directory), std::filesystem::directory_iterator{}));
+  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times =
+      tfc::confman::get_json_files_by_last_write_time(file_path);
 
-  if (total_file_count <= retention_count) {
+  /// no need to apply retention if files are under the retention count
+  if (file_times.size() <= retention_count) {
     return;
   }
-
-  std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times =
-      tfc::confman::get_json_files_by_last_write_time(directory);
 
   tfc::confman::remove_json_files_exceeding_retention(file_times, retention_count, retention_time);
 }
@@ -104,7 +102,7 @@ auto write_and_apply_retention_policy(std::string_view file_content, std::filesy
     return write_error;
   }
 
-  apply_retention_policy(file_path.parent_path());
+  apply_retention_policy(file_path);
   return {};
 }
 

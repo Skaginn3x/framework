@@ -279,6 +279,8 @@ auto main(int argc, char** argv) -> int {
     std::vector<std::filesystem::path> const paths{
       std::filesystem::path{ parent_path / "new_file1.json" },  std::filesystem::path{ parent_path / "new_file2.json" },
       std::filesystem::path{ parent_path / "new_file3.json" },  std::filesystem::path{ parent_path / "new_file4.json" },
+      std::filesystem::path{ parent_path / "new.json" },        std::filesystem::path{ parent_path / "new2.json" },
+      std::filesystem::path{ parent_path / "n.json" },          std::filesystem::path{ parent_path / "n2.json" },
       std::filesystem::path{ parent_path / "extra_file1.txt" }, std::filesystem::path{ parent_path / "extra_file2.txt" },
       std::filesystem::path{ parent_path / "extra_file.swp" }
     };
@@ -297,10 +299,13 @@ auto main(int argc, char** argv) -> int {
                                        std::filesystem::file_time_type::clock::now() - std::chrono::days(30 + counter++));
     }
 
-    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 7);
+    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 11)
+        << std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{});
 
     std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times =
-        tfc::confman::get_json_files_by_last_write_time(parent_path);
+        tfc::confman::get_json_files_by_last_write_time(std::filesystem::path{ parent_path / "new_file.json" }
+                                                        // parent_path
+        );
 
     ut::expect(file_times.size() == 4) << file_times.size();
 
