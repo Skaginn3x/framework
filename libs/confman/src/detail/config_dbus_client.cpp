@@ -92,4 +92,8 @@ auto config_dbus_client::get_io_context() const noexcept -> asio::io_context& {
   return dbus_interface_->connection()->get_io_context();
 }
 
+auto config_dbus_client::get_dbus_interface_name() const -> std::string {
+  return dbus_interface_->get_interface_name();
+}
+
 }  // namespace tfc::confman::detail
