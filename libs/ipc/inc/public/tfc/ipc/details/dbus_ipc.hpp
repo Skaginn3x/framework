@@ -56,18 +56,8 @@ public:
   auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = delete;
 
   void initialize() {
-    interface_->register_property_r<value_t>(
-        std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
-        [this]([[maybe_unused]] value_t& old_value) {
-          if constexpr (tfc::stx::is_specialization_v<std::remove_cvref_t<decltype(value_getter_())>, std::optional>) {
-            if (auto current_value = value_getter_(); current_value.has_value()) {
-              return current_value.value();
-            }
-          } else {
-            return value_getter_();
-          }
-          return value_t{};
-        });
+    interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
+                                             [](value_t& old_value) { return old_value; });
     interface_->register_property_r<std::string>(
         std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
         []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
