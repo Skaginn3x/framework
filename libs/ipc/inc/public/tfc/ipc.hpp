@@ -63,8 +63,7 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name) },
-        dbus_slot_{ client.connection(), full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ client.connection(), full_name() },
         client_{ client }, filters_{ dbus_slot_.interface(),
                                      // store the callers callback in this lambda
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
@@ -87,8 +86,7 @@ public:
               callb(new_value);
               dbus_slot_.emit_value(new_value);
             }) },
-        dbus_slot_{ connection, full_name(), [this] -> std::optional<value_t> const& { return this->value(); } },
-        client_{ connection },
+        dbus_slot_{ connection, full_name() }, client_{ connection },
         filters_{ dbus_slot_.interface(),
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
@@ -133,7 +131,7 @@ private:
   }
 
   std::shared_ptr<details::slot_callback<type_desc>> slot_;
-  details::dbus_ipc<value_t, std::function<std::optional<value_t> const&()>, details::ipc_type_e::slot> dbus_slot_;
+  details::dbus_ipc<value_t, details::ipc_type_e::slot> dbus_slot_;
   manager_client_type client_;
   filter::filters<value_t, std::function<void(value_t const&)>> filters_;
 };
@@ -147,7 +145,7 @@ template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc
 class signal {
 public:
   using value_t = typename details::signal<type_desc>::value_t;
-  using dbus_signal_t = details::dbus_ipc<value_t, std::function<value_t const&()>, details::ipc_type_e::signal>;
+  using dbus_signal_t = details::dbus_ipc<value_t, details::ipc_type_e::signal>;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::signal<type_desc>::direction_v;
 
@@ -158,13 +156,10 @@ public:
    */
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
-      : client_{ client }, signal_{ make_impl_signal(ctx, name) },
-        dbus_signal_{ std::make_unique<dbus_signal_t>(client_.connection(), full_name(), [this] -> value_t const& {
-          return this->value();
-        }) } {
+      : client_{ client }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
     client_.register_signal(signal_->full_name(), description, type_desc::value_e,
                             details::register_cb(signal_->full_name()));
-    dbus_signal_->initialize();
+    dbus_signal_.initialize();
   }
 
   signal(asio::io_context& ctx,
@@ -172,46 +167,29 @@ public:
          std::string_view name,
          std::string_view description = "")
     requires(!std::is_lvalue_reference_v<manager_client_type>)
-      : client_{ connection }, signal_{ make_impl_signal(ctx, name) },
-        dbus_signal_{ std::make_unique<dbus_signal_t>(client_.connection(), full_name(), [this] -> value_t const& {
-          return this->value();
-        }) } {
+      : client_{ connection }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
     client_.register_signal(signal_->full_name(), description, type_desc::value_e,
                             details::register_cb(signal_->full_name()));
-    dbus_signal_->initialize();
+    dbus_signal_.initialize();
   }
 
-  signal(signal&& to_be_moved) noexcept
-      : client_{ std::forward<manager_client_type>(to_be_moved.client_) }, signal_{ std::move(to_be_moved.signal_) },
-        dbus_signal_{ std::move(to_be_moved.dbus_signal_) } {
-    dbus_signal_->set_value_getter([this]() -> value_t const& { return this->value(); });
-  }
-  auto operator=(signal&& to_be_moved) noexcept -> signal& {
-    client_ = std::forward<manager_client_type>(to_be_moved.client_);
-    signal_ = std::move(to_be_moved.signal_);
-    dbus_signal_ = std::move(to_be_moved.dbus_signal_);
-    dbus_signal_->set_value_getter([this]() -> value_t const& { return this->value(); });
-    return *this;
-  }
+  signal(signal&&) noexcept = default;
+  auto operator=(signal&&) noexcept -> signal& = default;
   signal(signal const&) = delete;
   auto operator=(signal const&) -> signal& = delete;
-
-  ~signal() noexcept {
-    signal_.reset();
-    dbus_signal_.reset();
-  }
+  ~signal() noexcept = default;
 
   auto send(value_t const& value) -> std::error_code {
     auto err{ signal_->send(value) };
     if (!err) {
-      dbus_signal_->emit_value(value);
+      dbus_signal_.emit_value(value);
     }
     return err;
   }
 
   template <typename completion_token_t>
   auto async_send(value_t const& value, completion_token_t&& token) -> auto {
-    dbus_signal_->emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
+    dbus_signal_.emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
@@ -232,7 +210,7 @@ private:
 
   manager_client_type client_;
   std::shared_ptr<details::signal<type_desc>> signal_;
-  std::unique_ptr<dbus_signal_t> dbus_signal_;
+  dbus_signal_t dbus_signal_;
 };
 
 template <typename return_t, typename manager_client_t, template <typename, typename> typename ipc_base_t>
