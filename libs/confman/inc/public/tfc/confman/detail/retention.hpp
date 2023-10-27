@@ -22,7 +22,7 @@ static auto get_json_files_by_last_write_time(std::filesystem::path const& direc
     -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
   std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
 
-  constexpr auto make_json_filter = [](std::filesystem::directory_entry const entry) noexcept {
+  constexpr auto make_json_filter = [](std::filesystem::directory_entry const& entry) noexcept {
     return entry.path().extension() == json_file_ending;
   };
 
