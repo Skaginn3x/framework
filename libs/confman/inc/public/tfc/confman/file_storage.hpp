@@ -93,7 +93,7 @@ public:
   /// \return change helper struct providing reference to this` value.
   auto make_change() noexcept -> change {
     if (auto write_error{ write_and_apply_retention_policy(to_json(), config_file_) }; write_error) {
-      logger_.error("Error writing to file: ", write_error.message());
+      logger_.warn(R"(Error: "{}" writing to file: "{}")", write_error.message(), config_file_.string());
     }
     return change{ *this };
   }
