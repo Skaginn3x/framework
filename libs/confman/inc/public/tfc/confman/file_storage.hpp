@@ -142,10 +142,6 @@ protected:
 
     logger_.trace("File change");
 
-    if (auto write_error{ write_and_apply_retention_policy(to_json(), config_file_) }; write_error) {
-      logger_.error("Error writing to file: ", write_error.message());
-    }
-
     // the following updates internal storage_ member
     read_file();
 
