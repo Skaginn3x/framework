@@ -60,7 +60,7 @@ auto create_file(const std::filesystem::path& file_path) -> void {
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  std::filesystem::path file_name{ std::filesystem::temp_directory_path() / "file_storage_tests" / "test.me" }; // NOSONAR
+  std::filesystem::path file_name{ std::filesystem::temp_directory_path() / "file_storage_tests" / "test.me" }; //NOSONAR
 
   if (!std::filesystem::exists(file_name.parent_path())) {
     std::filesystem::create_directories(file_name.parent_path());
