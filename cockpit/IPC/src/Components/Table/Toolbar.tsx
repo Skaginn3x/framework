@@ -15,10 +15,12 @@ export type FilterConfig = {
 };
 
 type ToolBarProps = {
-  setPage: React.Dispatch<React.SetStateAction<number>>;
-  page: number;
-  setPerPage: React.Dispatch<React.SetStateAction<number>>;
-  perPage: number;
+  pagination?: {
+    setPage: React.Dispatch<React.SetStateAction<number>>;
+    page: number;
+    setPerPage: React.Dispatch<React.SetStateAction<number>>;
+    perPage: number;
+  };
   filteredItems: SignalType[] | SlotType[];
   filterConfigs: FilterConfig[];
   activeAttributeMenu: string;
@@ -27,17 +29,18 @@ type ToolBarProps = {
 };
 
 const ToolBar: React.FC<ToolBarProps> = ({ // NOSONAR
-  setPage,
-  page,
-  setPerPage,
-  perPage,
+  pagination,
   filteredItems,
   filterConfigs,
   activeAttributeMenu,
   setActiveAttributeMenu,
   refs,
 }) => {
-  const toolbarPagination = (
+  const {
+    setPage, page, setPerPage, perPage,
+  } = pagination ?? {};
+
+  const toolbarPagination = pagination && setPage && setPerPage ? (
     <reactCore.Pagination
       perPageOptions={[
         { title: '10', value: 10 },
@@ -58,7 +61,7 @@ const ToolBar: React.FC<ToolBarProps> = ({ // NOSONAR
       widgetId="attribute-search-mock-pagination"
       isCompact
     />
-  );
+  ) : null;
 
   // Set up Type single select
   const [isTypeMenuOpen, setIsTypeMenuOpen] = React.useState<boolean>(false);
@@ -274,6 +277,10 @@ const ToolBar: React.FC<ToolBarProps> = ({ // NOSONAR
       </reactCore.ToolbarContent>
     </reactCore.Toolbar>
   );
+};
+
+ToolBar.defaultProps = {
+  pagination: undefined,
 };
 
 export default ToolBar;

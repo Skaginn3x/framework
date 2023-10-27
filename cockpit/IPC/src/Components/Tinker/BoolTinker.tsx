@@ -1,14 +1,17 @@
 /* eslint-disable react/function-component-definition */
 import React from 'react';
-import { Switch } from '@patternfly/react-core';
+import { AlertVariant, Switch } from '@patternfly/react-core';
+import { useAlertContext } from '../Alert/AlertContext';
 
 interface BoolTinkerIface {
   data: any
 }
 
 const BoolTinker: React.FC<BoolTinkerIface> = ({ data }) => {
+  const { addAlert } = useAlertContext();
   const handleInputChange = (value: boolean) => {
     data.proxy.Tinker(value ? 1 : 0);
+    addAlert(`Value of ${data.interfaceName} has been set ${value ? 'true' : 'false'}`, AlertVariant.success);
   };
 
   return (

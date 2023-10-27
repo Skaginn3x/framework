@@ -22,12 +22,13 @@ const TextboxAttribute: React.FC<TextboxAttributeProps> = ({
   const handleInputChange = (val: string) => {
     setInputValue(val);
   };
-  console.log(selectedItems);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim() !== '') {
       // Add the inputValue to the selectedItems
-      setActiveItems((prevItems) => [...prevItems, inputValue.trim()]);
+      if (!selectedItems.includes(inputValue.trim())) {
+        setActiveItems((prevItems) => [...prevItems, inputValue.trim()]);
+      }
       setInputValue(''); // clear the input
     }
   };
