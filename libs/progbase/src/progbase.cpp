@@ -120,9 +120,9 @@ auto get_config_directory() -> std::filesystem::path {
 }
 auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path {
   auto config_dir{ get_config_directory() };
-  std::filesystem::path filename_path{ filename };
+  std::string filename_path{ filename };
   if (!extension.empty()) {
-    filename_path.replace_extension(extension);
+    filename_path.append(".").append(extension);
   }
   return config_dir / get_exe_name() / get_proc_name() / filename_path;
 }

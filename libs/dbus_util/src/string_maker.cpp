@@ -41,4 +41,11 @@ auto make_dbus_process_name() -> std::string {
   return make_dbus_name(postfix);
 }
 
+auto strip_dbus_name(std::string_view input_name) -> std::string {
+  if (input_name.starts_with(detail::dbus_name_prefix)) {
+    return std::string{ input_name.substr(detail::dbus_name_prefix.size()) };
+  }
+  return std::string{ input_name };
+}
+
 }  // namespace tfc::dbus

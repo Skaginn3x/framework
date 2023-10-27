@@ -15,6 +15,7 @@
 #include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/confman/file_storage.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/json_schema.hpp>
 
@@ -92,7 +93,11 @@ public:
   config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key, storage_type&& def)
       : client_{ interface, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
-        storage_{ client_.get_io_context(), tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
+        storage_{ client_.get_io_context(),
+                  tfc::base::make_config_file_name(
+                      fmt::format("{}.{}", tfc::dbus::strip_dbus_name(client_.get_dbus_interface_name()), key),
+                      "json"),
+                  std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
     init();
   }
