@@ -185,8 +185,8 @@ auto main(int argc, char** argv) -> int {
       std::string buffer{};
       glz::read_file_json(backup_json, found_file.string(), buffer);
 
-      ut::expect((backup_json["a"].get<double>() - 3) < 0.01) << backup_json["a"].get<double>();
-      ut::expect(backup_json["b"].get<std::string>() == "bar");
+      ut::expect(backup_json["a"].as<int>() == 3) << backup_json["a"].as<int>();
+      ut::expect(backup_json["b"].get<std::string>() == "bar") << backup_json["b"].get<std::string>();
     }
   };
 
@@ -258,7 +258,12 @@ auto main(int argc, char** argv) -> int {
   "write to file"_test = [&] {
     std::filesystem::path const file_path{ std::filesystem::temp_directory_path() / "glaze file" };
     std::string const file_content = R"(file content: {"username": "me"})";
-    tfc::confman::write_to_file(file_path, file_content);
+
+    auto write_error{ tfc::confman::write_to_file(file_path, file_content) };
+    if (write_error) {
+      ut::expect(false) << "write error";
+    }
+
     ut::expect(std::filesystem::exists(file_path));
     std::filesystem::remove(file_path);
   };
