@@ -26,7 +26,7 @@ static constexpr std::string_view path_signal{ tfc::dbus::const_dbus_path<signal
 
 enum struct ipc_type_e : std::uint8_t { slot, signal };
 
-template <typename slot_value_t, typename callback_t, ipc_type_e type>
+template <typename slot_value_t, ipc_type_e type>
 class dbus_ipc {
 public:
   using value_t = slot_value_t;
@@ -44,30 +44,18 @@ public:
     }
   }
 
-  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name, auto&& value_getter)
+  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name)
       : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
                                                                       std::string{ path() },
-                                                                      tfc::dbus::make_dbus_name(slot_name)) },
-        value_getter_{ std::forward<decltype(value_getter)>(value_getter) } {}
+                                                                      tfc::dbus::make_dbus_name(slot_name)) } {}
 
   dbus_ipc(dbus_ipc const&) = delete;
-  dbus_ipc(dbus_ipc&&) noexcept = delete;
+  dbus_ipc(dbus_ipc&&) noexcept = default;
   auto operator=(dbus_ipc const&) -> dbus_ipc& = delete;
-  auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = delete;
+  auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = default;
 
   void initialize() {
-    interface_->register_property_r<value_t>(
-        std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
-        [this]([[maybe_unused]] value_t& old_value) {
-          if constexpr (tfc::stx::is_specialization_v<std::remove_cvref_t<decltype(value_getter_())>, std::optional>) {
-            if (auto current_value = value_getter_(); current_value.has_value()) {
-              return current_value.value();
-            }
-          } else {
-            return value_getter_();
-          }
-          return value_t{};
-        });
+    interface_->register_property<value_t>(std::string{ dbus::tags::value }, value_t{});
     interface_->register_property_r<std::string>(
         std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
         []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
@@ -88,11 +76,8 @@ public:
         [callb = std::forward<decltype(callback)>(callback)](value_t const& set_value) { callb(value_t{ set_value }); });
   }
 
-  void set_value_getter(auto&& value_getter) { value_getter_ = std::forward<decltype(value_getter)>(value_getter); }
-
 private:
   std::shared_ptr<sdbusplus::asio::dbus_interface> interface_{};
-  callback_t value_getter_{};
 };
 
 }  // namespace tfc::ipc::details
