@@ -50,6 +50,11 @@ public:
                                                                       tfc::dbus::make_dbus_name(slot_name)) },
         value_getter_{ std::forward<decltype(value_getter)>(value_getter) } {}
 
+  dbus_ipc(dbus_ipc const&) = delete;
+  dbus_ipc(dbus_ipc&&) noexcept = delete;
+  auto operator=(dbus_ipc const&) -> dbus_ipc& = delete;
+  auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = delete;
+
   void initialize() {
     interface_->register_property_r<value_t>(
         std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
@@ -82,6 +87,8 @@ public:
         std::string{ dbus::tags::tinker },
         [callb = std::forward<decltype(callback)>(callback)](value_t const& set_value) { callb(value_t{ set_value }); });
   }
+
+  void set_value_getter(auto&& value_getter) { value_getter_ = std::forward<decltype(value_getter)>(value_getter); }
 
 private:
   std::shared_ptr<sdbusplus::asio::dbus_interface> interface_{};

@@ -7,23 +7,58 @@
 namespace tfc::operation::detail {
 
 namespace events {
-struct set_starting {};
-struct run_button {};
-struct starting_timeout {};
-struct starting_finished {};
-struct set_stopped {};
-struct stopping_timeout {};
-struct stopping_finished {};
-struct cleaning_button {};
-struct set_cleaning {};
-struct set_emergency {};
-struct emergency_on {};
-struct emergency_off {};
-struct fault_on {};
-struct set_fault {};
-struct fault_off {};
-struct maintenance_button {};
-struct set_maintenance {};
+using std::string_view_literals::operator""sv;
+struct set_starting {
+  static constexpr auto name{ "set_starting"sv };
+};
+struct run_button {
+  static constexpr auto name{ "run_button"sv };
+};
+struct starting_timeout {
+  static constexpr auto name{ "starting_timeout"sv };
+};
+struct starting_finished {
+  static constexpr auto name{ "starting_finished"sv };
+};
+struct set_stopped {
+  static constexpr auto name{ "set_stopped"sv };
+};
+struct stopping_timeout {
+  static constexpr auto name{ "stopping_timeout"sv };
+};
+struct stopping_finished {
+  static constexpr auto name{ "stopping_finished"sv };
+};
+struct cleaning_button {
+  static constexpr auto name{ "cleaning_button"sv };
+};
+struct set_cleaning {
+  static constexpr auto name{ "set_cleaning"sv };
+};
+struct set_emergency {
+  static constexpr auto name{ "set_emergency"sv };
+};
+struct emergency_on {
+  static constexpr auto name{ "emergency_on"sv };
+};
+struct emergency_off {
+  static constexpr auto name{ "emergency_off"sv };
+};
+struct fault_on {
+  static constexpr auto name{ "fault_on"sv };
+};
+struct set_fault {
+  static constexpr auto name{ "set_fault"sv };
+};
+struct fault_off {
+  static constexpr auto name{ "fault_off"sv };
+};
+struct maintenance_button {
+  static constexpr auto name{ "maintenance_button"sv };
+};
+struct set_maintenance {
+  static constexpr auto name{ "set_maintenance"sv };
+};
 }  // namespace events
 
 namespace states {

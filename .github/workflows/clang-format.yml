@@ -1,17 +1,8 @@
-name: clang-format
-
+name: auto-clang-format
 on:
-  push:
-    branches:
-      - main
-      - feature/*
-    paths-ignore:
-      - '**.md'
   pull_request:
-    branches: [main]
     paths-ignore:
       - '**.md'
-  workflow_dispatch:
 
 jobs:
   build:
@@ -19,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GH_PAT }} # This is needed to run CI on the generated commit
       - uses: DoozyX/clang-format-lint-action@v0.16.2
         with:
           source: '.'
@@ -33,4 +25,4 @@ jobs:
           inplace: True
       - uses: EndBug/add-and-commit@v9
         with:
-          message: 'Committing clang-format changes'
+          message: ':art: Committing clang-format changes'

@@ -57,7 +57,7 @@ constexpr auto too_long_press = [](my_deps& deps) {
 // actions
 constexpr auto start_timeout = [](const auto&, auto& state_machine, auto& deps, const auto& subs) {
   // Create a timer from a shared_ptr
-  auto deps_v = deps.value;
+  auto& deps_v = deps.value;
   auto timer = std::make_shared<asio::steady_timer>(deps_v.ctx);
   auto left = 500ms;
   timer->expires_after(left);

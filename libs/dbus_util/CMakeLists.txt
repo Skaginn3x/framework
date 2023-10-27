@@ -1,7 +1,7 @@
 project(dbus_util)
 cmake_minimum_required(VERSION 3.21)
 
-add_library(dbus_util src/dbus_util.cpp src/compile_tests.cpp src/exception.cpp src/string_maker.cpp)
+add_library(dbus_util src/dbus_util.cpp src/compile_tests.cpp src/exception.cpp src/sml_interface.cpp src/string_maker.cpp)
 add_library(tfc::dbus_util ALIAS dbus_util)
 target_include_directories(dbus_util
   PUBLIC
@@ -19,6 +19,7 @@ target_link_libraries(dbus_util
     magic_enum::magic_enum
     tfc::stx
     tfc::configure_options
+    tfc::logger
   PRIVATE
     tfc::base
 )

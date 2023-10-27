@@ -2,12 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Thead, Tr, Th, Tbody, Td, Table,
 } from '@patternfly/react-table';
-import {
-  SearchInput,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Tooltip } from '@patternfly/react-core';
 import { SignalType, SlotType } from '../../Types';
 import ToolBar from './Toolbar';
+import MultiSelectAttribute from './ToolbarItems/MultiSelectAttribute';
+import TextboxAttribute from './ToolbarItems/TextBoxAttribute';
 
 interface ModalType {
   slots: SlotType[];
@@ -31,31 +30,40 @@ export default function SlotModal({
   slots, selectedSlots, setSelectedSlots, addButtonRef, signal, isDark,
 }: ModalType) {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
-  const [searchValue, setSearchValue] = React.useState('');
+  const [nameSelection, setNameSelection] = React.useState<string[]>([]);
   const [processSelections, setProcessSelections] = React.useState<string[]>([]);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
-  const searchBoxRef = useRef<HTMLInputElement | null>(null);
-  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
-  const [typeSelection, setTypeSelection] = React.useState<string>('');
-
-  const onSearchChange = (value: string) => {
-    setSearchValue(value);
+  const attributeRefs: Record<string, React.RefObject<HTMLInputElement>> = {
+    Name: useRef<HTMLInputElement | null>(null),
+    Type: useRef<HTMLInputElement | null>(null),
+    Process: useRef<HTMLInputElement | null>(null),
   };
+  const searchBoxRef = attributeRefs.Name;
+  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
 
   const onFilter = (slot: SlotType) => {
-    let searchValueInput: RegExp;
-    try {
-      searchValueInput = new RegExp(searchValue, 'i');
-    } catch (err) {
-      searchValueInput = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const createSafeRegex = (value: string) => {
+      try {
+        return new RegExp(value, 'i');
+      } catch (err) {
+        return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      }
+    };
+    let matchesSearchValue;
+    if (nameSelection && nameSelection.length !== 0) {
+      const searchRegexList = nameSelection.map((value) => createSafeRegex(value));
+      matchesSearchValue = searchRegexList.some(
+        (regex) => (slot.name + slot.created_by).search(regex) >= 0,
+      );
+    } else {
+      matchesSearchValue = true;
     }
-    const matchesSearchValue = (slot.name + slot.created_by).search(searchValueInput) >= 0;
-
     return (
-      matchesSearchValue && (processSelections.length === 0 || processSelections.includes(slot.name.split('.')[0]))
+      matchesSearchValue && (processSelections.length === 0 || processSelections.includes(slot.name.split('.').splice(0, 2).join('.')))
     );
   };
+
   // remove types that dont match. Also remove the slot that is already connected to the signal
   const filteredSlots = slots.filter((slot: any) => slot.type === signal?.type && slot.connected_to !== signal?.name).filter(onFilter);
   // Array to hold refs for each row
@@ -63,35 +71,7 @@ export default function SlotModal({
 
   useEffect(() => {
     setPage(1);
-  }, [searchValue, processSelections]);
-
-  // Set up name search input
-  const searchInput = (
-    <SearchInput
-      placeholder="Filter by name"
-      value={searchValue}
-      ref={searchBoxRef}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && filteredSlots.length > 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          // set focus on first row
-          rowRefs[0]?.current?.focus();
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          e.stopPropagation();
-          onSearchChange('');
-          searchBoxRef.current?.blur();
-          setTimeout(() => {
-            rowRefs[focusedIndex]?.current?.focus();
-          }, 0);
-        }
-      }}
-      onChange={(_event, value) => onSearchChange(value)}
-      onClear={() => onSearchChange('')}
-    />
-  );
+  }, [nameSelection, processSelections]);
 
   React.useEffect(() => {
     if (window.document.activeElement === searchBoxRef.current) {
@@ -203,24 +183,55 @@ export default function SlotModal({
     rowRefs[newFocusIndex]?.current?.focus();
   }, [page]);
 
-  const attributes = ['Name', 'Process'];
-  const toolbar = ToolBar(
-    setSearchValue,
-    searchValue,
-    setTypeSelection,
-    typeSelection,
-    setProcessSelections,
-    processSelections,
-    setActiveAttributeMenu,
-    activeAttributeMenu,
-    searchInput,
-    setPage,
-    page,
-    setPerPage,
-    perPage,
-    attributes,
-    slots,
-    filteredSlots,
+  const uniqueProcesses = [...new Set(slots.map((slot) => slot.name.split('.').slice(0, 2).join('.')))];
+
+  const Configs = [
+    {
+      key: 'Name',
+      chips: nameSelection,
+      categoryName: 'Name',
+      setFiltered: setNameSelection,
+      component:
+  <TextboxAttribute
+    selectedItems={nameSelection}
+    setActiveItems={setNameSelection}
+    attributeName="Name"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={attributeRefs.Name}
+  />,
+    },
+
+    {
+      key: 'Process',
+      chips: processSelections,
+      categoryName: 'Process',
+      setFiltered: setProcessSelections,
+      component:
+  <MultiSelectAttribute
+    items={uniqueProcesses}
+    selectedItems={processSelections}
+    setActiveItems={setProcessSelections}
+    attributeName="Process"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={attributeRefs.Process}
+  />,
+    },
+  ];
+
+  const toolbar = (
+    <ToolBar
+      pagination={{
+        setPage,
+        page,
+        setPerPage,
+        perPage,
+      }}
+      filteredItems={filteredSlots}
+      filterConfigs={Configs}
+      activeAttributeMenu={activeAttributeMenu}
+      setActiveAttributeMenu={setActiveAttributeMenu}
+      refs={attributeRefs}
+    />
   );
 
   return (

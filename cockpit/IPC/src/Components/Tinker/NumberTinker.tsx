@@ -64,6 +64,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
       aria-label="tinker text input"
       className="tinker-number-input"
       key={`${InterfaceOBJ.iface}-${InterfaceOBJ.process}`}
+      style={{ minWidth: '4rem' }}
     />
   );
 };
