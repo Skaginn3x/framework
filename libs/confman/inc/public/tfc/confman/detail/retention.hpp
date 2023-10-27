@@ -16,21 +16,36 @@ namespace tfc::confman {
 
 static constexpr std::string_view json_file_ending{ ".json" };
 
+/// \brief get map of files in directory, sorting them by time
+/// \param directory path to directory
+static auto get_json_files_by_last_write_time(std::filesystem::path const& directory)
+    -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
+  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+
+  constexpr auto make_json_filter = [](std::filesystem::directory_entry entry) noexcept {
+    return entry.path().extension() == json_file_ending;
+  };
+
+  for (const std::filesystem::directory_entry& entry :
+       std::filesystem::directory_iterator(directory) | std::views::filter(make_json_filter)) {
+    file_times.try_emplace(entry.last_write_time(), entry.path());
+  }
+  return file_times;
+}
+
 /// \brief removes files that exceed the specified retention policy
-/// \param file_times map containing files sorted by their modification time
+/// \param file_times map containing json files sorted by their modification time
 /// \param retention_count maximum number of files to retain
 /// \param retention_time maximum age of files to retain
 /// \note in order for a file to be removed, it both needs to be too old and too many files
-static auto remove_files_exceeding_retention(
+static auto remove_json_files_exceeding_retention(
     const std::map<std::filesystem::file_time_type, std::filesystem::path>& file_times,
     size_t retention_count,
     std::chrono::days retention_time) -> void {
   auto const current_time = std::filesystem::file_time_type::clock::now();
 
-  constexpr auto make_json_filter = [](const auto& pair) noexcept { return pair.second.extension() == json_file_ending; };
-
   size_t count = 0;
-  for (auto const& [time, path] : file_times | std::views::filter(make_json_filter)) {
+  for (auto const& [time, path] : file_times) {
     count++;
     if (count > retention_count && (current_time - time) > retention_time) {
       std::filesystem::remove(path);

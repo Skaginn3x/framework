@@ -212,7 +212,7 @@ auto main(int argc, char** argv) -> int {
       file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
     }
 
-    tfc::confman::remove_files_exceeding_retention(file_times, 4, std::chrono::days(20));
+    tfc::confman::remove_json_files_exceeding_retention(file_times, 4, std::chrono::days(20));
 
     ctx.run_for(std::chrono::milliseconds(1));
 
@@ -227,8 +227,7 @@ auto main(int argc, char** argv) -> int {
     std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.json" },
                                                     std::filesystem::path{ parent_path / "new_file2.json" },
                                                     std::filesystem::path{ parent_path / "new_file3.json" },
-                                                    std::filesystem::path{ parent_path / "new_file4.json" },
-                                                    std::filesystem::path{ parent_path / "extra_file.txt" } };
+                                                    std::filesystem::path{ parent_path / "new_file4.json" } };
 
     if (!std::filesystem::exists(parent_path)) {
       std::filesystem::create_directories(parent_path);
@@ -246,12 +245,12 @@ auto main(int argc, char** argv) -> int {
       file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
     }
 
-    tfc::confman::remove_files_exceeding_retention(file_times, 2, std::chrono::days(20));
+    tfc::confman::remove_json_files_exceeding_retention(file_times, 2, std::chrono::days(20));
 
     ctx.run_for(std::chrono::milliseconds(1));
 
-    /// it should keep 2 json files and not remove the .txt file
-    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 3);
+    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 2)
+        << std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{});
 
     std::filesystem::remove_all(parent_path);
   };
@@ -267,6 +266,40 @@ auto main(int argc, char** argv) -> int {
   "get env variable"_test = [&] {
     std::optional<int> const env = tfc::confman::getenv<int>("TFC_CONFMAN_MIN_RETENTION_COUNT");
     ut::expect(!env.has_value());
+  };
+
+  "map creation"_test = [&] {
+    std::filesystem::path const parent_path{ std::filesystem::temp_directory_path() / "retention" };
+
+    std::vector<std::filesystem::path> const paths{
+      std::filesystem::path{ parent_path / "new_file1.json" },  std::filesystem::path{ parent_path / "new_file2.json" },
+      std::filesystem::path{ parent_path / "new_file3.json" },  std::filesystem::path{ parent_path / "new_file4.json" },
+      std::filesystem::path{ parent_path / "extra_file1.txt" }, std::filesystem::path{ parent_path / "extra_file2.txt" },
+      std::filesystem::path{ parent_path / "extra_file.swp" }
+    };
+
+    if (!std::filesystem::exists(parent_path)) {
+      std::filesystem::create_directories(parent_path);
+    }
+
+    for (const auto& path : paths) {
+      create_file(path);
+    }
+
+    int counter = 0;
+    for (auto const& path : paths) {
+      std::filesystem::last_write_time(path,
+                                       std::filesystem::file_time_type::clock::now() - std::chrono::days(30 + counter++));
+    }
+
+    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 7);
+
+    std::map<std::filesystem::file_time_type, std::filesystem::path> const file_times =
+        tfc::confman::get_json_files_by_last_write_time(parent_path);
+
+    ut::expect(file_times.size() == 4) << file_times.size();
+
+    std::filesystem::remove_all(parent_path);
   };
 
   // delete entire folder to delete backup files
