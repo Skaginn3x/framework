@@ -57,10 +57,35 @@ auto create_file(const std::filesystem::path& file_path) -> void {
 }
 }  // namespace
 
+inline auto create_files(std::vector<std::filesystem::path> const& paths, asio::io_context& ctx)
+    -> std::map<std::filesystem::file_time_type, std::filesystem::path> {
+  if (paths.empty()) {
+    ut::expect(false);
+  }
+
+  if (!std::filesystem::exists(paths.back().parent_path())) {
+    std::filesystem::create_directories(paths.back().parent_path());
+  }
+
+  for (const auto& path : paths) {
+    create_file(path);
+  }
+
+  ctx.run_for(std::chrono::milliseconds(1));
+
+  std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
+
+  for (const auto& path : paths) {
+    file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
+  }
+
+  return file_times;
+}
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  std::filesystem::path file_name{ std::filesystem::temp_directory_path() / "file_storage_tests" / "test.me" }; //NOSONAR
+  std::filesystem::path file_name{ std::filesystem::temp_directory_path() / "file_storage_tests" / "test.me" };  // NOSONAR
 
   if (!std::filesystem::exists(file_name.parent_path())) {
     std::filesystem::create_directories(file_name.parent_path());
@@ -193,24 +218,11 @@ auto main(int argc, char** argv) -> int {
   "testing retention policy without removal"_test = [&] {
     std::filesystem::path const parent_path{ file_name.parent_path() / "retention" };
 
+    // ------------------------------------------------------------
     std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.txt" },
                                                     std::filesystem::path{ parent_path / "new_file2.txt" } };
 
-    if (!std::filesystem::exists(parent_path)) {
-      std::filesystem::create_directories(parent_path);
-    }
-
-    for (const auto& path : paths) {
-      create_file(path);
-    }
-
-    ctx.run_for(std::chrono::milliseconds(1));
-
-    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
-
-    for (const auto& path : paths) {
-      file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
-    }
+    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times = create_files(paths, ctx);
 
     tfc::confman::remove_json_files_exceeding_retention(file_times, 4, std::chrono::days(20));
 
@@ -229,21 +241,7 @@ auto main(int argc, char** argv) -> int {
                                                     std::filesystem::path{ parent_path / "new_file3.json" },
                                                     std::filesystem::path{ parent_path / "new_file4.json" } };
 
-    if (!std::filesystem::exists(parent_path)) {
-      std::filesystem::create_directories(parent_path);
-    }
-
-    for (const auto& path : paths) {
-      create_file(path);
-    }
-
-    ctx.run_for(std::chrono::milliseconds(1));
-
-    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times;
-
-    for (const auto& path : paths) {
-      file_times[std::filesystem::file_time_type::clock::now() - std::chrono::days(30)] = path.string();
-    }
+    std::map<std::filesystem::file_time_type, std::filesystem::path> file_times = create_files(paths, ctx);
 
     tfc::confman::remove_json_files_exceeding_retention(file_times, 2, std::chrono::days(20));
 
