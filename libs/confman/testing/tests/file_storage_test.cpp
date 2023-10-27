@@ -224,10 +224,11 @@ auto main(int argc, char** argv) -> int {
   "testing retention policy with removal"_test = [&] {
     std::filesystem::path const parent_path{ std::filesystem::temp_directory_path() / "retention" };
 
-    std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.txt" },
-                                                    std::filesystem::path{ parent_path / "new_file2.txt" },
-                                                    std::filesystem::path{ parent_path / "new_file3.txt" },
-                                                    std::filesystem::path{ parent_path / "new_file4.txt" } };
+    std::vector<std::filesystem::path> const paths{ std::filesystem::path{ parent_path / "new_file1.json" },
+                                                    std::filesystem::path{ parent_path / "new_file2.json" },
+                                                    std::filesystem::path{ parent_path / "new_file3.json" },
+                                                    std::filesystem::path{ parent_path / "new_file4.json" },
+                                                    std::filesystem::path{ parent_path / "extra_file.txt" } };
 
     if (!std::filesystem::exists(parent_path)) {
       std::filesystem::create_directories(parent_path);
@@ -249,7 +250,8 @@ auto main(int argc, char** argv) -> int {
 
     ctx.run_for(std::chrono::milliseconds(1));
 
-    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 2);
+    /// it should keep 2 json files and not remove the .txt file
+    ut::expect(std::distance(std::filesystem::directory_iterator(parent_path), std::filesystem::directory_iterator{}) == 3);
 
     std::filesystem::remove_all(parent_path);
   };

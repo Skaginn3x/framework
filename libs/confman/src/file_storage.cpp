@@ -82,8 +82,8 @@ auto get_files_by_last_write_time(std::filesystem::path const& directory)
 /// of files exceed the retention count AND if the file's last modification date surpasses the retention time,
 /// \param directory path to directory containing files to possibly delete.
 auto apply_retention_policy(std::filesystem::path const& directory) -> void {
-  // +2 for the file itself and the swap file
-  size_t const retention_count = get_minimum_retention_count() + 2;
+  // +1 for the file itself
+  size_t const retention_count = get_minimum_retention_count() + 1;
   std::chrono::days const retention_time = get_minimum_retention_days();
 
   auto const total_file_count = static_cast<size_t>(

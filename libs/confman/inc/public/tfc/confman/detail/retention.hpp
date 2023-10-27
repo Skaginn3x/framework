@@ -7,11 +7,14 @@
 #include <filesystem>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
 namespace tfc::confman {
+
+static constexpr std::string_view json_file_ending{ ".json" };
 
 /// \brief removes files that exceed the specified retention policy
 /// \param file_times map containing files sorted by their modification time
@@ -24,8 +27,10 @@ static auto remove_files_exceeding_retention(
     std::chrono::days retention_time) -> void {
   auto const current_time = std::filesystem::file_time_type::clock::now();
 
+  constexpr auto make_json_filter = [](const auto& pair) noexcept { return pair.second.extension() == json_file_ending; };
+
   size_t count = 0;
-  for (auto const& [time, path] : file_times) {
+  for (auto const& [time, path] : file_times | std::views::filter(make_json_filter)) {
     count++;
     if (count > retention_count && (current_time - time) > retention_time) {
       std::filesystem::remove(path);
