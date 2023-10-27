@@ -55,8 +55,7 @@ public:
   auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = default;
 
   void initialize() {
-    interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::emits_change,
-                                             [](value_t& old_value) { return old_value; });
+    interface_->register_property<value_t>(std::string{ dbus::tags::value }, value_t{});
     interface_->register_property_r<std::string>(
         std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
         []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
