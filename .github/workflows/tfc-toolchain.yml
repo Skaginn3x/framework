@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/tfc-toolchain.yml'
-      - 'containers/tfc-toolchain.dockerfile'
+      - 'containers/tfc-toolchain'
   workflow_dispatch:
 
 concurrency:
@@ -49,8 +49,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
-          context: ./containers
+          context: ./containers/tfc-toolchain
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ./containers/tfc-toolchain.dockerfile
+          file: ./containers/tfc-toolchain/tfc-toolchain.dockerfile
