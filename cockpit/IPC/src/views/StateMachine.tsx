@@ -127,65 +127,85 @@ const StateMachine: React.FC = () => {
     loadExternalScript(callback);
   }, []);
 
-  const testString = `digraph {
+  const [testString, setTestString] = useState<string>(`digraph G {
 
-  [*] --> init
-  init -[#gold]-> stopped #limegreen : set_stopped / lambda
-  stopped : entry / lambda
-  stopped : exit / lambda
-  stopped -[#green]-> starting : set_starting / lambda
-  stopped -[#green]-> starting : run_button / lambda
-  starting : entry / lambda
-  starting : exit / lambda
-  starting --> running : starting_timeout / lambda
-  starting --> running : starting_finished / lambda
-  running : entry / lambda
-  running : exit / lambda
-  running --> stopping : run_button / lambda
-  running --> stopping : set_stopped / lambda
-  stopping : entry / lambda
-  stopping : exit / lambda
-  stopping --> stopped : stopping_timeout / lambda
-  stopping --> stopped : stopping_finished / lambda
-  stopped -[#green]-> cleaning : cleaning_button / lambda
-  stopped -[#green]-> cleaning : set_cleaning / lambda
-  cleaning : entry / lambda
-  cleaning : exit / lambda
-  cleaning --> stopped : cleaning_button / lambda
-  cleaning --> stopped : set_stopped / lambda
-  stopped -[#green]-> emergency : set_emergency / lambda
-  stopping --> emergency : set_emergency / lambda
-  starting --> emergency : set_emergency / lambda
-  running --> emergency : set_emergency / lambda
-  cleaning --> emergency : set_emergency / lambda
-  fault --> emergency : set_emergency / lambda
-  maintenance --> emergency : set_emergency / lambda
-  stopped -[#green]-> emergency : emergency_on / lambda
-  stopping --> emergency : emergency_on / lambda
-  starting --> emergency : emergency_on / lambda
-  running --> emergency : emergency_on / lambda
-  cleaning --> emergency : emergency_on / lambda
-  fault --> emergency : emergency_on / lambda
-  maintenance --> emergency : emergency_on / lambda
-  emergency : entry / lambda
-  emergency : exit / lambda
-  emergency --> stopped : emergency_off / lambda
-  stopped -[#green]-> fault : fault_on / lambda
-  stopped -[#green]-> fault : set_fault / lambda
-  running --> fault : fault_on / lambda
-  running --> fault : set_fault / lambda
-  fault : entry / lambda
-  fault : exit / lambda
-  fault --> stopped : fault_off / lambda
-  fault --> stopped : set_stopped / lambda
-  stopped -[#green]-> maintenance : maintenance_button / lambda
-  stopped -[#green]-> maintenance : set_maintenance / lambda
-  maintenance : entry / lambda
-  maintenance : exit / lambda
-  maintenance --> stopped : maintenance_button / lambda
-  maintenance --> stopped : set_stopped / lambda
+    // Node definitions
+    init [shape=ellipse, color=black];
+    stopped [shape=ellipse, color=limegreen, label="stopped\nentry / lambda\nexit / lambda"];
+    starting [shape=ellipse, label="starting\nentry / lambda\nexit / lambda"];
+    running [shape=ellipse, label="running\nentry / lambda\nexit / lambda"];
+    stopping [shape=ellipse, label="stopping\nentry / lambda\nexit / lambda"];
+    cleaning [shape=ellipse, label="cleaning\nentry / lambda\nexit / lambda"];
+    emergency [shape=ellipse, label="emergency\nentry / lambda\nexit / lambda"];
+    fault [shape=ellipse, label="fault\nentry / lambda\nexit / lambda"];
+    maintenance [shape=ellipse, label="maintenance\nentry / lambda\nexit / lambda"];
   
-  }`;
+    // Transitions
+    init -> stopped [color=gold, label="set_stopped / lambda"];
+    stopped -> starting [color=green, label="set_starting / lambda"];
+    stopped -> starting [color=green, label="run_button / lambda"];
+    starting -> running [label="starting_timeout / lambda"];
+    starting -> running [label="starting_finished / lambda"];
+    running -> stopping [label="run_button / lambda"];
+    running -> stopping [label="set_stopped / lambda"];
+    stopping -> stopped [label="stopping_timeout / lambda"];
+    stopping -> stopped [label="stopping_finished / lambda"];
+    stopped -> cleaning [color=green, label="cleaning_button / lambda"];
+    stopped -> cleaning [color=green, label="set_cleaning / lambda"];
+    cleaning -> stopped [label="cleaning_button / lambda"];
+    cleaning -> stopped [label="set_stopped / lambda"];
+    stopped -> emergency [color=green, label="set_emergency / lambda"];
+    stopping -> emergency [label="set_emergency / lambda"];
+    starting -> emergency [label="set_emergency / lambda"];
+    running -> emergency [label="set_emergency / lambda"];
+    cleaning -> emergency [label="set_emergency / lambda"];
+    fault -> emergency [label="set_emergency / lambda"];
+    maintenance -> emergency [label="set_emergency / lambda"];
+    stopped -> emergency [color=green, label="emergency_on / lambda"];
+    stopping -> emergency [label="emergency_on / lambda"];
+    starting -> emergency [label="emergency_on / lambda"];
+    running -> emergency [label="emergency_on / lambda"];
+    cleaning -> emergency [label="emergency_on / lambda"];
+    fault -> emergency [label="emergency_on / lambda"];
+    maintenance -> emergency [label="emergency_on / lambda"];
+    emergency -> stopped [label="emergency_off / lambda"];
+    stopped -> fault [color=green, label="fault_on / lambda"];
+    stopped -> fault [color=green, label="set_fault / lambda"];
+    running -> fault [label="fault_on / lambda"];
+    running -> fault [label="set_fault / lambda"];
+    fault -> stopped [label="fault_off / lambda"];
+    fault -> stopped [label="set_stopped / lambda"];
+    stopped -> maintenance [color=green, label="maintenance_button / lambda"];
+    stopped -> maintenance [color=green, label="set_maintenance / lambda"];
+    maintenance -> stopped [label="maintenance_button / lambda"];
+    maintenance -> stopped [label="set_stopped / lambda"];
+  }`);
+
+  // Increment label on testString every second
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setTestString((prevString) => prevString.replace(/color=green/, 'color=blue'));
+  //   }, 1000);
+  //   return () => clearInterval(interval);
+  // }, []);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // find svg element inside div with id graphviz0
+      const svg = document.getElementById('graphviz0')?.getElementsByTagName('svg')[0];
+      // toggle green edges, red&green
+      if (svg) {
+        const greenEdges = svg.querySelectorAll('g.edge path[fill="none"][stroke="#00ff00"]');
+        const redEdges = svg.querySelectorAll('g.edge path[fill="none"][stroke="#ff0000"]');
+        greenEdges.forEach((edge) => {
+          edge.setAttribute('stroke', '#ff0000');
+        });
+        redEdges.forEach((edge) => {
+          edge.setAttribute('stroke', '#00ff00');
+        });
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{
