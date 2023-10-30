@@ -12,7 +12,11 @@ namespace events = sensor::control::events;
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx) : ctx_{ ctx } {}
+sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx) : ctx_{ ctx } {
+  using enum tfc::operation::mode_e;
+  operation_mode_.on_enter(running, [this](auto, auto) { this->on_running(); });
+  operation_mode_.on_leave(running, [this](auto, auto) { this->on_running_leave(); });
+}
 
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
@@ -197,6 +201,20 @@ void sensor_control<signal_t, slot_t, sml_t>::discharge_timer_cb(std::error_code
   }
   discharge_timer_.reset();
   sm_->process_event(events::complete{});
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::on_running() {
+  sm_->process_event(events::start{});
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void sensor_control<signal_t, slot_t, sml_t>::on_running_leave() {
+  sm_->process_event(events::stop{});
 }
 
 // clang-format off
