@@ -61,6 +61,7 @@ public:
   [[nodiscard]] auto motor_signal() const noexcept -> auto const& { return motor_percentage_; }
   [[nodiscard]] auto discharge_signal() const noexcept -> auto const& { return request_discharge_; }
   [[nodiscard]] auto discharge_allowance_signal() const noexcept -> auto const& { return discharge_allowance_; }
+  [[nodiscard]] auto discharge_request_slot() const noexcept -> auto const& { return discharge_request_; }
   [[nodiscard]] auto may_discharge_slot() const noexcept -> auto const& { return may_discharge_; }
   [[nodiscard]] auto sensor_slot() const noexcept -> auto const& { return sensor_; }
   [[nodiscard]] auto state_machine() const noexcept -> auto const& { return sm_; }
