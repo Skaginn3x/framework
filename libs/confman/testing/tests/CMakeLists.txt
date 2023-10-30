@@ -58,7 +58,7 @@ add_test(
     confman_unit_test
 )
 
-add_executable(file_storage_test file_storage_test.cpp)
+add_executable(file_storage_test ../../src/file_storage.cpp file_storage_test.cpp)
 
 target_link_libraries(file_storage_test
   PRIVATE

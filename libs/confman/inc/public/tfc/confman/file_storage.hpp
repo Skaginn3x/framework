@@ -1,6 +1,10 @@
 #pragma once
+
 #include <sys/inotify.h>
 #include <filesystem>
+#include <string>
+#include <string_view>
+#include <system_error>
 
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
@@ -11,6 +15,10 @@
 #include <tfc/logger.hpp>
 
 namespace tfc::confman {
+
+auto write_to_file(const std::filesystem::path& file_path, std::string_view file_contents) -> std::error_code;
+auto write_and_apply_retention_policy(std::string_view file_content, std::filesystem::path const& file_path)
+    -> std::error_code;
 
 namespace asio = boost::asio;
 
@@ -83,20 +91,28 @@ public:
   /// This helper struct will provide changeable access to this` underlying value.
   /// When the helper struct is deconstructed the changes are written to the disc.
   /// \return change helper struct providing reference to this` value.
-  auto make_change() noexcept -> change { return change{ *this }; }
+  auto make_change() noexcept -> change {
+    if (auto write_error{ write_and_apply_retention_policy(to_json(), config_file_) }; write_error) {
+      logger_.warn(R"(Error: "{}" writing to file: "{}")", write_error.message(), config_file_.string());
+    }
+    return change{ *this };
+  }
 
   /// \brief set_changed writes the current value to disc
   /// \return error_code if it was unable to write to disc.
   auto set_changed() const noexcept -> std::error_code {
-    std::string buffer{};  // this can throw, meaning memory error
-    glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
-    auto glz_err{ glz::buffer_to_file(buffer, config_file_.string()) };
-    if (glz_err != glz::error_code::none) {
-      logger_.warn(R"(Error: "{}" writing to file: "{}")", glz::write_json(glz_err), config_file_.string());
-      return std::make_error_code(std::errc::io_error);
-      // todo implicitly convert glaze error_code to std::error_code
+    if (auto write_error{ write_to_file(config_file_, to_json()) }; write_error) {
+      logger_.warn(R"(Error: "{}" writing to file: "{}")", write_error.message(), config_file_.string());
+      return write_error;
     }
     return {};
+  }
+
+  /// \brief generate json form of storage
+  auto to_json() const noexcept -> std::string {
+    std::string buffer{};  // this can throw, meaning memory error
+    glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
+    return buffer;
   }
 
 protected:
@@ -108,8 +124,7 @@ protected:
 
   auto read_file() -> std::error_code {
     std::string buffer{};
-    auto glz_err{ glz::read_file_json(storage_, config_file_.string(), buffer) };
-    if (glz_err) {
+    if (auto glz_err{ glz::read_file_json(storage_, config_file_.string(), buffer) }; glz_err) {
       logger_.warn(R"(Error: "{}" reading from file: "{}")", glz::write_json(glz_err.ec), config_file_.string());
       return std::make_error_code(std::errc::io_error);
       // todo implicitly convert glaze error_code to std::error_code
@@ -126,6 +141,8 @@ protected:
     file_watcher_.read_some(asio::buffer(buf));  // discard the data since we only got one watcher per inotify fd
 
     logger_.trace("File change");
+
+    // the following updates internal storage_ member
     read_file();
 
     if (cb_) {

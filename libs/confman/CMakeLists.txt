@@ -11,6 +11,7 @@ pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 add_library(confman
   src/confman.cpp
   src/remote_change.cpp
+  src/file_storage.cpp
   src/detail/config_dbus_client.cpp
 )
 add_library(tfc::confman ALIAS confman)
