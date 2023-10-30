@@ -46,7 +46,8 @@ struct mock_slot {
             manager_client_type&,
             std::string_view,
             std::string_view,
-            tfc::stx::invocable<value_t> auto&& cb): callback{ std::forward<decltype(cb)>(cb) } {
+            tfc::stx::invocable<value_t> auto&& cb)
+      : callback{ std::forward<decltype(cb)>(cb) } {
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
   }
   mock_slot(asio::io_context const&, manager_client_type&, std::string_view, tfc::stx::invocable<value_t> auto&&) {}
