@@ -8,14 +8,14 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/sml.hpp>
 
+#include <tfc/dbus/sml_interface.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/item.hpp>
 #include <tfc/logger.hpp>
-#include <tfc/sml_logger.hpp>
+#include <tfc/operation_mode.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
-#include <tfc/operation_mode.hpp>
 
 #include "state_machine.hpp"
 
@@ -28,11 +28,12 @@ template <template <typename, typename manager_client_t = ipc_ruler::ipc_manager
           template <typename, typename...> typename sml_t = boost::sml::sm>
 class sensor_control {
 public:
-  explicit sensor_control(asio::io_context&);
+  explicit sensor_control(asio::io_context& ctx, std::string_view log_key);
+  explicit sensor_control(asio::io_context& ctx) : sensor_control(ctx, "sensor_control") {}
 
   struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
-    std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{1} };
+    std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{ 1 } };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     struct glaze {
       using type = sensor_control_config;
@@ -96,6 +97,7 @@ private:
   using json_slot_t = slot_t<ipc::details::type_json>;
 
   asio::io_context& ctx_;
+  std::string_view log_key_;
   ipc_ruler::ipc_manager_client ipc_client_{ ctx_ };
   bool_slot_t sensor_{ ctx_, ipc_client_, "sensor",
                        "Sensor input at the end of my conveyor, item will stop here and wait for discharge",
@@ -111,19 +113,25 @@ private:
   double_signal_t motor_percentage_{ ctx_, ipc_client_, "motor_percentage", "Motor freq output, stopped when inactive." };
 
   std::optional<ipc::item::item> queued_item_{ std::nullopt };
-  logger::logger logger_{ "sensor_control" };
+  logger::logger logger_{ log_key_ };
 
-  using state_machine_t = sml_t<sensor::control::state_machine_operation_mode<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>;
-  std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, tfc::logger::sml_logger{}) };
+  using state_machine_t =
+      sml_t<sensor::control::state_machine_operation_mode<sensor_control>, boost::sml::logger<tfc::dbus::sml::interface>>;
+  tfc::dbus::sml::interface sml_interface{ std::make_shared<sdbusplus::asio::dbus_interface>(
+                                               ipc_client_.connection(),
+                                               std::string{ tfc::dbus::sml::tags::path },
+                                               "SensorControl"),
+                                           fmt::format("sm.{}", log_key_) };
+  std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
   tfc::confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
                                                        sensor_control_config{ .discharge_timeout = std::nullopt,
-                                                                              .await_sensor_timeout = std::chrono::minutes{1},
-                                                                              .run_speed = 100.0 * mp_units::percent
-                                                       } };
+                                                                              .await_sensor_timeout =
+                                                                                  std::chrono::minutes{ 1 },
+                                                                              .run_speed = 100.0 * mp_units::percent } };
   tfc::operation::interface operation_mode_{ ctx_, "operation_mode" };
 };
 

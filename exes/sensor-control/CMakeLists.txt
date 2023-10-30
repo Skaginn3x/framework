@@ -17,6 +17,7 @@ target_link_libraries(sensor_ctrl
     tfc::confman
     tfc::logger
     tfc::operation_mode
+    tfc::dbus_util
     Boost::boost
     fmt::fmt
     glaze::glaze
