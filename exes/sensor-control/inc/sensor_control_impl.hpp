@@ -12,7 +12,7 @@ namespace events = sensor::control::events;
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx) : ctx_{ ctx } {
+sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx, std::string_view log_key) : ctx_{ ctx }, log_key_{ log_key } {
   using enum tfc::operation::mode_e;
   operation_mode_.on_enter(running, [this](auto, auto) { this->on_running(); });
   operation_mode_.on_leave(running, [this](auto, auto) { this->on_running_leave(); });
