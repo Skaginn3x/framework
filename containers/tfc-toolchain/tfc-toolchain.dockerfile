@@ -15,25 +15,10 @@ COPY ./shared.sh /tmp/
 COPY install-common.sh /tmp/
 RUN ./install-common.sh
 
-# Install recent enough compiler for mold
-# This install actually replaces the system gcc
-COPY build-gcc.sh /tmp/
-RUN ./build-gcc.sh 12.3.0
-
 # Cmake is required for mold
 # Install cmake
 COPY install-cmake.sh /tmp/
 RUN ./install-cmake.sh 3.28.0-rc3
-
-# Install mold
-# Looks like mold can link gcc 13.2 and up but not the installed ld
-# could also try to update binutils
-COPY build-mold.sh /tmp/
-RUN ./build-mold.sh 2.3.1
-
-# Install gcc development
-COPY build-gcc-from-commit.sh /tmp/
-RUN ./build-gcc-from-commit.sh a5e69e94591ae282857d59e868ff6cea7306c802
 
 # Install ninja
 COPY build-ninja.sh /tmp/
@@ -42,6 +27,18 @@ RUN ./build-ninja.sh 1.11.1
 # Install llvm
 COPY build-clang.sh /tmp/
 RUN ./build-clang.sh 17.0.3
+
+# The linker shipped with debian 10
+# cannot link this gcc build, dont know why
+RUN ln -sf /cpproot/bin/lld /cpproot/bin/ld
+
+# Install gcc development
+COPY build-gcc-from-commit.sh /tmp/
+RUN ./build-gcc-from-commit.sh 39a11d8e0b9cc3ac5d7d1bfaef75639fc557fbe0
+
+# Install mold
+COPY build-mold.sh /tmp/
+RUN ./build-mold.sh 2.3.1
 
 # Install node
 COPY build-node.sh /tmp/

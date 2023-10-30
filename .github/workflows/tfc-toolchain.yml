@@ -1,5 +1,10 @@
 name: tfc-toolchain
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - '.github/workflows/tfc-toolchain.yml'
+      - 'containers/tfc-toolchain'
   pull_request:
     paths:
       - '.github/workflows/tfc-toolchain.yml'
@@ -50,7 +55,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-toolchain
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          push: ${{ github.ref == 'refs/haeds/main' }}
+          tags: ${{ steps.meta.outputs.tags }},latest
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-toolchain/tfc-toolchain.dockerfile

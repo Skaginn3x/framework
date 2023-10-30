@@ -4,7 +4,7 @@ source shared.sh
 
 
 hide_output apt update
-hide_output apt install -y --no-install-recommends \
+hide_output apt install -y \
   curl \
   ca-certificates \
   make \
@@ -13,4 +13,5 @@ hide_output apt install -y --no-install-recommends \
   g++ \
   git \
   zip \
-  unzip
+  unzip \
+  software-properties-common \

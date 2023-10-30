@@ -16,9 +16,8 @@ hide_output apt install libmpfr-dev libgmp3-dev libmpc-dev libisl-dev flex bzip2
 
 curl -L https://github.com/gcc-mirror/gcc/archive/$GCC_TAG.tar.gz | tar -xz -C /tmp/
 cd /tmp/gcc-$GCC_TAG
-# --disable-shared, Since this is a development build of gcc we disable shared
 
-hide_output ./configure --enable-languages=c,c++ --disable-shared --disable-multilib --prefix=/cpproot
+hide_output ./configure --enable-languages=c,c++ --disable-multilib --prefix=/cpproot
 
 hide_output make -j$(nproc)
 hide_output make install
