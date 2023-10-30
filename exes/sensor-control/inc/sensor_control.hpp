@@ -15,6 +15,7 @@
 #include <tfc/sml_logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
+#include <tfc/operation_mode.hpp>
 
 #include "state_machine.hpp"
 
@@ -45,6 +46,10 @@ public:
     };
   };
 
+  void enter_stopped() {}
+  void leave_stopped() {}
+  void enter_running() {}
+  void leave_running() {}
   void enter_idle();
   void leave_idle();
   void enter_awaiting_discharge();
@@ -77,6 +82,9 @@ public:
   void discharge_timer_cb(std::error_code const&);
   [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return discharge_timer_.has_value(); }
 
+  void on_running();
+  void on_running_leave();
+
 private:
   void stop_motor();
   void start_motor();
@@ -105,7 +113,7 @@ private:
   std::optional<ipc::item::item> queued_item_{ std::nullopt };
   logger::logger logger_{ "sensor_control" };
 
-  using state_machine_t = sml_t<sensor::control::state_machine<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>;
+  using state_machine_t = sml_t<sensor::control::state_machine_operation_mode<sensor_control>, boost::sml::logger<tfc::logger::sml_logger>>;
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, tfc::logger::sml_logger{}) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
@@ -116,6 +124,7 @@ private:
                                                                               .await_sensor_timeout = std::chrono::minutes{1},
                                                                               .run_speed = 100.0 * mp_units::percent
                                                        } };
+  tfc::operation::interface operation_mode_{ ctx_, "operation_mode" };
 };
 
 extern template class sensor_control<>;

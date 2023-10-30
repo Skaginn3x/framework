@@ -29,6 +29,8 @@ struct state_machine_mock {
   MOCK_METHOD(void, process_discharge, (), (const));
   MOCK_METHOD(void, process_complete, (), (const));
   MOCK_METHOD(void, process_await_sensor_timeout, (), (const));
+  MOCK_METHOD(void, process_start, (), (const));
+  MOCK_METHOD(void, process_stop, (), (const));
 
   template <typename event_t>
   void process_event(event_t const&) {
@@ -44,6 +46,10 @@ struct state_machine_mock {
       process_complete();
     } else if constexpr (std::is_same_v<event_t, events::await_sensor_timeout>) {
       process_await_sensor_timeout();
+    } else if constexpr (std::is_same_v<event_t, events::start>) {
+      process_start();
+    } else if constexpr (std::is_same_v<event_t, events::stop>) {
+      process_stop();
     } else {
       []<bool flag = false>() {
         static_assert(flag, "Unsupported event type");
@@ -57,7 +63,7 @@ struct test_instance {
   test_instance() {
     auto change = ctrl.config().make_change();
     change->discharge_timeout = std::nullopt;
-    change->await_sensor_timeout = std::chrono::minutes{1};
+    change->await_sensor_timeout = std::chrono::minutes{ 1 };
     change->run_speed = 100.0 * mp_units::percent;
   }
   asio::io_context ctx{};
@@ -157,19 +163,19 @@ auto main(int argc, char** argv) -> int {
 
   "integration test, awaiting_sensor timeout"_test = [] {
     test_instance instance{};
-    instance.ctrl.config().make_change()->await_sensor_timeout = std::chrono::milliseconds{0};
+    instance.ctrl.config().make_change()->await_sensor_timeout = std::chrono::milliseconds{ 0 };
     EXPECT_CALL(*instance.ctrl.state_machine(), process_await_sensor_timeout()).Times(1);
     instance.ctrl.enter_awaiting_sensor();
-    instance.ctx.run_for(std::chrono::milliseconds{1});
+    instance.ctx.run_for(std::chrono::milliseconds{ 1 });
   };
 
   "integration test, awaiting_sensor timeout cancelled"_test = [] {
     test_instance instance{};
-    instance.ctrl.config().make_change()->await_sensor_timeout = std::chrono::milliseconds{0};
+    instance.ctrl.config().make_change()->await_sensor_timeout = std::chrono::milliseconds{ 0 };
     EXPECT_CALL(*instance.ctrl.state_machine(), process_await_sensor_timeout()).Times(0);
     instance.ctrl.enter_awaiting_sensor();
-    instance.ctrl.leave_awaiting_sensor(); // should cancel the timer
-    instance.ctx.run_for(std::chrono::milliseconds{1});
+    instance.ctrl.leave_awaiting_sensor();  // should cancel the timer
+    instance.ctx.run_for(std::chrono::milliseconds{ 1 });
   };
 
   "leave_awaiting_sensor revokes discharge allowance"_test = [] {
@@ -236,6 +242,18 @@ auto main(int argc, char** argv) -> int {
         std::invoke(ctrl_function_pointer, instance.ctrl);
       } |
       std::make_tuple(&ctrl_t::enter_discharging, &ctrl_t::enter_discharging_allow_input);
+
+  "on_running emit event start"_test = [] {
+    test_instance instance{};
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_start()).Times(1);
+    instance.ctrl.on_running();
+  };
+
+  "on_running_leave emit event stop"_test = [] {
+    test_instance instance{};
+    EXPECT_CALL(*instance.ctrl.state_machine(), process_stop()).Times(1);
+    instance.ctrl.on_running_leave();
+  };
 
   return EXIT_SUCCESS;
 }
