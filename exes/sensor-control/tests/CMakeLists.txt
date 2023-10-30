@@ -44,3 +44,16 @@ add_test(
     sensor_control_test
 )
 
+add_executable(sensor_control_integration_test sensor_control_integration_test.cpp)
+target_link_libraries(sensor_control_integration_test
+  PRIVATE
+    Boost::ut
+    tfc::sensor_ctrl
+    tfc::mock_ipc
+)
+add_test(
+  NAME
+    sensor_control_integration_test
+  COMMAND
+    sensor_control_integration_test
+)
