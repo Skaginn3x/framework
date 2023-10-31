@@ -84,6 +84,7 @@ const Connections:React.FC<DarkModeType> = ({ isDark }) => {
       </div>
       <Modal
         isOpen={modalIsOpen}
+        aria-label="Keyboard Shortcut Information Modal"
         onEscapePress={() => setModalIsOpen(false)}
         onClose={() => setModalIsOpen(false)}
         style={{ color: isDark ? '#EEE' : '#111' }}
