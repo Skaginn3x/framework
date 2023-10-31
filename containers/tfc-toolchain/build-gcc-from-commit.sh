@@ -4,9 +4,6 @@ source shared.sh
 
 GCC_TAG=$1
 
-gcc --version
-cc --version
-
 # Fetch prerequisites
 hide_output apt install libmpfr-dev libgmp3-dev libmpc-dev libisl-dev flex bzip2 bison -y --no-install-recommends
 
