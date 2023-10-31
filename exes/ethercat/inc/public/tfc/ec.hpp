@@ -181,10 +181,9 @@ public:
             i + 1);
         async_wait(true);
         return {};
-      } else {
-        context_.slavelist[0].state = EC_STATE_OPERATIONAL;
-        ecx::write_state(&context_, 0);
       }
+      context_.slavelist[0].state = EC_STATE_OPERATIONAL;
+      ecx::write_state(&context_, 0);
     }
 
     std::string slave_status;
@@ -232,14 +231,6 @@ private:
     last_cycle_ = std::chrono::high_resolution_clock::now() - cycle_start_;
     min_cycle_ = std::min(min_cycle_, last_cycle_);
     max_cycle_ = std::max(max_cycle_, last_cycle_);
-
-    if (cycle_count_ % 10'000 == 0 and false) {
-      // log the max cycle time
-      logger_.trace("Ethercat max cycle time: {} us", max_cycle_.count());
-      logger_.trace("Ethercat max cycle time with sleep: {} us", max_cycle_with_sleep_.count());
-      logger_.trace("Ethercat min cycle time: {} us", min_cycle_.count());
-      logger_.trace("Ethercat min cycle time with sleep: {} us", min_cycle_with_sleep_.count());
-    }
 
     cycle_count_++;
 
