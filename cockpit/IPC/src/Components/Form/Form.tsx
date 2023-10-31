@@ -86,6 +86,10 @@ export default function FormGenerator(
       });
     }
 
+    if ('const' in json[key] && json[key].const !== undefined) {
+      json[key].widget = 'Text';
+    }
+
     if ('enum' in json[key]) {
       json[key].widget = 'Select';
     } else if ('oneOf' in json[key]) {

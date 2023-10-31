@@ -84,10 +84,21 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   }
 
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
+  console.log(schema.toJS());
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
+
+  function findConst(oneOf:any, selected:any) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const item of oneOf) {
+      if (item.get('title') === selected) {
+        return item.get('const');
+      }
+    }
+    return null;
+  }
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
@@ -108,7 +119,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         type: 'set',
         schema,
         required,
-        data: { value: undefined },
+        data: { value: findConst(oneOfSchema, event.target.value) },
       });
     }
     setSelectedTitle(event.target.value);
@@ -121,6 +132,12 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    */
   const renderSelectedObject = (title: string | null) => {
     const selectedObject = oneOfSchema.find((item: any) => item.get('title') === title);
+    console.log('title', title);
+    console.log('oneofSchema', oneOfSchema.toJS());
+    if (selectedObject && Object.keys(selectedObject.toJS()).includes('const')) {
+      console.log('selectedObject', selectedObject.toJS());
+      return null;
+    }
     return (
       <PluginStack
         schema={selectedObject}
@@ -166,8 +183,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           ))}
         </Select>
       </FormControl>
-
-      {renderSelectedObject(selectedTitle)}
+      { renderSelectedObject(selectedTitle) }
 
     </>
   );
