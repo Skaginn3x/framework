@@ -57,4 +57,9 @@ auto make_dbus_path(std::string_view input_name) -> std::string;
 
 auto make_dbus_process_name() -> std::string;
 
+/// \brief strip dbus name like org.freedesktop.<service_name> to <service_name>
+/// \return remove detail::dbus_name_prefix from input parameter
+/// \note if input parameter does not start with detail::dbus_name_prefix, returns input parameter
+auto strip_dbus_name(std::string_view input_name) -> std::string;
+
 }  // namespace tfc::dbus

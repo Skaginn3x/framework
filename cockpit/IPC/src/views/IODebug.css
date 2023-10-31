@@ -78,7 +78,9 @@ button.Hovr {
     background-color: #111;
     color: #EEE
 }
-
+.pf-v5-c-clipboard-copy__expandable-content > pre {
+    text-align: left !important;
+}
 @media (max-width: 768px) {
     :root {
         --pf-v5-global--spacer--sm: 0.2rem !important;
@@ -98,4 +100,7 @@ button.Hovr {
         width: 6rem;
     }
   }
-  
+
+.pf-v5-c-clipboard-copy__expandable-content {
+    width: max-content !important;
+}

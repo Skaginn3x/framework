@@ -411,10 +411,9 @@ export default function CustomTable({
   return (
     <>
       <ToolBar
-        setPage={setPage}
-        page={page}
-        setPerPage={setPerPage}
-        perPage={perPage}
+        pagination={{
+          setPage, page, setPerPage, perPage,
+        }}
         filteredItems={filteredSignals}
         filterConfigs={Configs}
         activeAttributeMenu={activeAttributeMenu}

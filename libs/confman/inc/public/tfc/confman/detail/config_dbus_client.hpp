@@ -63,7 +63,9 @@ public:
 
   void initialize();
 
-  auto get_io_context() const noexcept -> asio::io_context&;
+  [[nodiscard]] auto get_io_context() const noexcept -> asio::io_context&;
+
+  [[nodiscard]] auto get_dbus_interface_name() const -> std::string;
 
 private:
   std::filesystem::path interface_path_{};

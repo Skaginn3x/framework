@@ -8,23 +8,20 @@ import React, {
 import {
   DataList,
   Title,
-  DrawerContent,
-  Drawer,
-  DrawerContentBody,
-  DrawerPanelContent,
   Spinner,
   Divider,
 } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
-import DynamicNavbar from 'src/Components/NavBar/DynamicNavBar';
 import ListItem from 'src/Components/IOList/ListItem';
-import Hamburger from 'hamburger-react';
 import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import DraggableModal from 'src/Components/DraggableModal/DraggableModal';
 import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
 import { AngleDownIcon } from '@patternfly/react-icons';
+import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
+import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
+import TextboxAttribute from 'src/Components/Table/ToolbarItems/TextBoxAttribute';
 
 declare global {
   interface Window { cockpit: any; }
@@ -56,7 +53,6 @@ const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] 
 const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
-  const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(true);
   const [isShowingEvents, setIsShowingEvents] = useState<boolean>(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [history, setHistory] = useState<any>({});
@@ -101,15 +97,18 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
         return updatedInterfaces;
       });
     };
+
     const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
+
     try {
       // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-      await processProxy.call('Introspect').then((data: any) => {
+      await processProxy.call('Introspect').then(async (data: any) => {
         const interfacesData = parseXMLInterfaces(data);
         // eslint-disable-next-line no-restricted-syntax
         for (const interfaceData of interfacesData) {
           const proxy = processDBUS.proxy(interfaceData.name, path);
-          proxy.wait().then(() => {
+          // eslint-disable-next-line no-await-in-loop
+          await proxy.wait().then(() => {
             const match = {
               interface: 'org.freedesktop.DBus.Properties',
               path,
@@ -127,9 +126,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
               proxy,
               process,
               interfaceName: interfaceData.name,
-              type: interfaceData.valueType,
+              type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
               direction,
-              hidden: true,
+              hidden: false,
             });
           });
         }
@@ -139,26 +138,30 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
+  const getInterfaceDataForProcess = async (process: any) => {
+    const interfaces: any[] = [];
+    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+    try {
+      await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
+    } catch (e) {
+      console.error(`Failed to get interface data for process ${process}:`, e);
+    }
+    try {
+      await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
+    } catch (e) {
+      console.error(`Failed to get interface data for process ${process}:`, e);
+    }
+    return interfaces;
+  };
+
   useEffect(() => {
     if (!processes) return;
 
     const fetchAndConnectInterfaces = async () => {
-      const interfaces: any[] = [];
-
-      // eslint-disable-next-line no-restricted-syntax
-      for (const process of processes) {
-        const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        // eslint-disable-next-line no-await-in-loop
-        await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
-        // eslint-disable-next-line no-await-in-loop
-        await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
-      }
-      if (interfaces.length === 0) return;
-      interfaces[0].hidden = false;
-      const signalIndex = interfaces.findIndex((iface) => iface.direction === 'signal' && iface.process === interfaces[0].process);
-      interfaces[signalIndex >= 0 ? signalIndex : 0].hidden = false;
-
-      setDbusInterfaces(interfaces);
+      const allInterfaces = await Promise.all(processes.map(getInterfaceDataForProcess));
+      // Flatten the result since each item in allInterfaces is an array of interfaces
+      const flatInterfaces = allInterfaces.flat();
+      setDbusInterfaces(flatInterfaces);
     };
 
     fetchAndConnectInterfaces();
@@ -183,28 +186,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     } else {
       setActiveDropdown(index);
     }
-  };
-
-  /**
-   * Toggles the visibility of IO for the given process
-   * @param selected The selected process
-   */
-  function toggleSelection(selected: string) {
-    const updatedData = dbusInterfaces.map((dbusInterface) => ({
-      ...dbusInterface,
-      hidden: selected && dbusInterface.process !== selected,
-    }));
-    setDbusInterfaces(updatedData);
-    if (isMobile) {
-      setIsDrawerExpanded(false);
-    }
-  }
-
-  /**
-   * Toggles the drawer
-   */
-  const toggleDrawer = () => {
-    setIsDrawerExpanded(!isDrawerExpanded);
   };
 
   const dropdownRefs = useRef<any[]>([]); // Create a ref array to hold dropdown references
@@ -236,7 +217,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     if (scrollRef.current) {
       const element = scrollRef.current;
       const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
-      console.log(element.scrollTop, element.clientHeight, element.scrollHeight);
 
       if (isNearBottom) {
         element.scrollTop = element.scrollHeight;
@@ -244,130 +224,237 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     }
   }, [unsortedEvents]);
 
+  // FILTER CODE
+  const filterRefs: Record<string, React.RefObject<HTMLInputElement>> = {
+    Name: useRef<HTMLInputElement | null>(null),
+    Type: useRef<HTMLInputElement | null>(null),
+    Process: useRef<HTMLInputElement | null>(null),
+    Direction: useRef<HTMLInputElement | null>(null),
+  };
+  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
+  const [nameSelection, setNameSelection] = React.useState<string[]>([]);
+  const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
+  const [directionSelection, setDirectionSelection] = React.useState<string[]>([]);
+  const [processSelections, setProcessSelections] = React.useState<string[]>([]);
+  const uniqueTypes = Array.from(new Set(dbusInterfaces.map((iface) => iface.type)));
+  const uniqueProcesses = Array.from(new Set(dbusInterfaces.map((iface) => iface.process.split('.').slice(3).join('.'))));
+
+  /**
+   * Configuration file for the filters
+   * Uses the Toolbar component's FilterConfig type
+   */
+  const Configs = [
+    {
+      key: 'Name',
+      chips: nameSelection,
+      categoryName: 'Name',
+      setFiltered: setNameSelection,
+      component:
+  <TextboxAttribute
+    selectedItems={nameSelection}
+    setActiveItems={setNameSelection}
+    attributeName="Name"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={filterRefs.Name}
+  />,
+    },
+
+    {
+      key: 'Type',
+      chips: typeSelection,
+      categoryName: 'Type',
+      setFiltered: setTypeSelection,
+      component:
+  <MultiSelectAttribute
+    items={uniqueTypes}
+    selectedItems={typeSelection}
+    setActiveItems={setTypeSelection}
+    attributeName="Type"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={filterRefs.Type}
+  />,
+    },
+
+    {
+      key: 'Process',
+      chips: processSelections,
+      categoryName: 'Process',
+      setFiltered: setProcessSelections,
+      component:
+  <MultiSelectAttribute
+    items={uniqueProcesses}
+    selectedItems={processSelections}
+    setActiveItems={setProcessSelections}
+    attributeName="Process"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={filterRefs.Process}
+  />,
+    },
+
+    {
+      key: 'Direction',
+      chips: directionSelection,
+      categoryName: 'Direction',
+      setFiltered: setDirectionSelection,
+      component:
+  <MultiSelectAttribute
+    items={['signal', 'slot']}
+    selectedItems={directionSelection}
+    setActiveItems={setDirectionSelection}
+    attributeName="Direction"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={filterRefs.Direction}
+  />,
+    },
+  ] as FilterConfig[];
+
+  /**
+   * When the the filters are updated, this function is called to determine if a signal should be displayed
+   * @param signal The signal that is being checked
+  */
+  const onFilter = (dbusInterface: any) => {
+    const createSafeRegex = (value: string) => {
+      try {
+        return new RegExp(value, 'i');
+      } catch (err) {
+        return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      }
+    };
+    let matchesSearchValue;
+    if (nameSelection && nameSelection.length !== 0) {
+      const searchRegexList = nameSelection.map((value) => createSafeRegex(value));
+      matchesSearchValue = searchRegexList.some(
+        (regex) => (dbusInterface.interfaceName).search(regex) >= 0,
+      );
+    } else {
+      matchesSearchValue = true;
+    }
+    const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(dbusInterface.type);
+
+    const matchesDirection = directionSelection.length === 0 || directionSelection.includes(dbusInterface.direction);
+
+    return (
+      matchesSearchValue
+      && matchesTypeSelection
+      && (processSelections.length === 0 || processSelections.includes(dbusInterface.process.split('.').splice(3).join('.')))
+      && matchesDirection
+    );
+  };
+
+  useEffect(() => {
+    const filteredInterfaces = dbusInterfaces.filter(onFilter);
+    // set hidden to true for all except filteredInterfaces;
+    setDbusInterfaces((prevInterfaces) => prevInterfaces.map((iface) => ({
+      ...iface,
+      hidden: !filteredInterfaces.includes(iface),
+    })));
+  }, [nameSelection, typeSelection, processSelections, directionSelection]);
+
   return (
     <div style={{
-      height: '100vh',
+      minHeight: '100vh',
       fontFamily: '"RedHatText", helvetica, arial, sans-serif !important',
       width: '100%',
     }}
     >
-      <Drawer isExpanded={isDrawerExpanded} position="right">
-        <DrawerContent panelContent={(
-          <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
-            <DynamicNavbar
-              names={processes ?? []}
-              onClose={() => toggleDrawer()}
-              onItemSelect={(it: string) => toggleSelection(it)}
-            />
-          </DrawerPanelContent>
-        )}
+      <div style={{
+        minWidth: '300px',
+        flex: 1,
+        height: '100%',
+        width: '100%',
+        transition: 'width 0.2s ease-in-out',
+      }}
+      >
+        <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem', color: isDark ? '#EEE' : '#111' }}>
+          IO Debugging Tool
+        </Title>
+        <ToolBar
+          filteredItems={dbusInterfaces}
+          filterConfigs={Configs}
+          activeAttributeMenu={activeAttributeMenu}
+          setActiveAttributeMenu={setActiveAttributeMenu}
+          refs={filterRefs}
+        />
+        <div style={{
+          width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
+        }}
         >
-          <DrawerContentBody>
-            <div style={{
-              minWidth: '300px',
-              flex: 1,
-              height: '100%',
-              width: isDrawerExpanded ? 'calc(100% - 28rem)' : '100%',
-              transition: 'width 0.2s ease-in-out',
-            }}
-            >
-              <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem', color: isDark ? '#EEE' : '#111' }}>
-                IO Debugging Tool
-              </Title>
-              <div style={{
-                position: 'fixed',
-                right: isDrawerExpanded ? '29.5rem' : '1.5rem',
-                transition: 'right 0.2s ease-in-out',
-                top: '0rem',
-                zIndex: '10000',
-              }}
+          <Divider />
+          <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
+            Slots
+          </Title>
+          <DataList aria-label="Checkbox and action data list example" key="slots">
+            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+              if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
+                return (
+                  <ListItem
+                    dbusInterface={dbusInterface}
+                    index={index}
+                    key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
+                    activeDropdown={activeDropdown}
+                    dropdownRefs={dropdownRefs}
+                    onToggleClick={onToggleClick}
+                    setModalOpen={(i:number) => openModal(i)}
+                  />
+                );
+              }
+              return null;
+            })
+              : <Spinner />}
+          </DataList>
+          <Divider />
+          <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
+            Signals
+          </Title>
+          <DataList aria-label="Checkbox and action data list example" key="signals">
+            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+              if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
+                return (
+                  <ListItem
+                    dbusInterface={dbusInterface}
+                    index={index}
+                    key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
+                    activeDropdown={activeDropdown}
+                    dropdownRefs={dropdownRefs}
+                    onToggleClick={onToggleClick}
+                    setModalOpen={(i:number) => openModal(i)}
+                  />
+                );
+              }
+              return null;
+            })
+              : <Spinner />}
+          </DataList>
+          <div style={{ height: '10rem' }} />
+        </div>
+      </div>
+      {!isMobile && dbusInterfaces.map((dbusInterface:any, index:number) => (
+        <DraggableModal
+          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
+          iface={dbusInterface}
+          isOpen={isModalOpen(index)}
+          visibilityIndex={openModals.indexOf(index)}
+          onClose={() => closeModal(index)}
+          datapoints={history[dbusInterface.interfaceName] ?? []}
+        >
+          {history[dbusInterface.interfaceName]?.map((datapoint: any) => (
+            <React.Fragment key={datapoint.timestamp}>
+              <div
+                style={{
+                  display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
+                }}
               >
-                <Hamburger
-                  toggled={isDrawerExpanded}
-                  toggle={toggleDrawer}
-                  size={30}
-                  color={isDark ? '#EEE' : undefined}
-                />
+                <div style={{ color: '#EEE' }}>
+                  {/* eslint-disable-next-line max-len */ }
+                  {`${new Date(datapoint.timestamp).toLocaleTimeString('de-DE')}.${new Date(datapoint.timestamp).getMilliseconds()}`}
+                </div>
+                <div style={{ color: '#EEE' }}>{datapoint.value.toString()}</div>
               </div>
-              <div style={{
-                width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
-              }}
-              >
-                <Divider />
-                <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
-                  Slots
-                </Title>
-                <DataList aria-label="Checkbox and action data list example">
-                  {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
-                    if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
-                      return (
-                        <ListItem
-                          dbusInterface={dbusInterface}
-                          index={index}
-                          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
-                          activeDropdown={activeDropdown}
-                          dropdownRefs={dropdownRefs}
-                          onToggleClick={onToggleClick}
-                          setModalOpen={(i:number) => openModal(i)}
-                        />
-                      );
-                    }
-                    return null;
-                  })
-                    : <Spinner />}
-                </DataList>
-                <Divider />
-                <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
-                  Signals
-                </Title>
-                <DataList aria-label="Checkbox and action data list example">
-                  {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
-                    if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
-                      return (
-                        <ListItem
-                          dbusInterface={dbusInterface}
-                          index={index}
-                          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
-                          activeDropdown={activeDropdown}
-                          dropdownRefs={dropdownRefs}
-                          onToggleClick={onToggleClick}
-                          setModalOpen={(i:number) => openModal(i)}
-                        />
-                      );
-                    }
-                    return null;
-                  })
-                    : <Spinner />}
-                </DataList>
-              </div>
-            </div>
-            {!isMobile && dbusInterfaces.map((dbusInterface:any, index:number) => (
-              <DraggableModal
-                key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
-                iface={dbusInterface}
-                isOpen={isModalOpen(index)}
-                visibilityIndex={openModals.indexOf(index)}
-                onClose={() => closeModal(index)}
-                datapoints={history[dbusInterface.interfaceName] ?? []}
-              >
-                {history[dbusInterface.interfaceName]?.map((datapoint: any) => (
-                  <React.Fragment key={datapoint.timestamp}>
-                    <div
-                      style={{
-                        display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
-                      }}
-                    >
-                      <div style={{ color: '#EEE' }}>
-                        {/* eslint-disable-next-line max-len */ }
-                        {`${new Date(datapoint.timestamp).toLocaleTimeString('de-DE')}.${new Date(datapoint.timestamp).getMilliseconds()}`}
-                      </div>
-                      <div style={{ color: '#EEE' }}>{datapoint.value.toString()}</div>
-                    </div>
-                  </React.Fragment>
-                ))}
-              </DraggableModal>
-            ))}
-            {isMobile
+            </React.Fragment>
+          ))}
+        </DraggableModal>
+      ))}
+      {isMobile
                 && (
                 <AngleDownIcon
                   onClick={() => setIsShowingEvents(!isShowingEvents)}
@@ -380,7 +467,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                   className="TransitionUp ArrowIcons"
                 />
                 )}
-            {isMobile
+      {isMobile
             && (
             <div
               ref={scrollRef}
@@ -405,6 +492,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     padding: '0px 0.2rem',
                     width: '100vw',
                     color: '#EEE',
+                    zIndex: 2,
                   }}
                 >
                   <p>
@@ -418,9 +506,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
               ))}
             </div>
             )}
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
     </div>
   );
 };

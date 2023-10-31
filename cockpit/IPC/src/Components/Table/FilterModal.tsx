@@ -25,16 +25,21 @@ export default function FilterModal({
   useEffect(() => {
     if (!slot) { return; }
     loadExternalScript((allNames) => {
-      // Your specific logic to filter and set the dbusFilterName
+      // If process in in slotname is found in DBUS, use it
       const filteredName = allNames.filter(
-        (name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`),
-      )[0];
+        (name: string) => name
+        === `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.${slot.split('.').slice(0, name.split('.').slice(3).length).join('.')}`,
+      );
 
-      if (!filteredName || filteredName.length === 0) { // If not found, notify user
-        addAlert(`DBUS-Name-Error: No BUS interface with name "${slot}"`, AlertVariant.danger);
-        setError(['DBUS-Name-Error:', 'No BUS interface with name ', `"${slot}`]);
+      if (filteredName.length > 1) {
+        console.log('Ambiguity in filter name', filteredName, 'Selecting first one');
+        addAlert(`Ambiguity in filtername "${filteredName}". Selecting first`, AlertVariant.danger);
       }
-      setDbusFilterName(filteredName);
+      if (!filteredName[0] || filteredName[0].length === 0) { // If not found, notify user
+        addAlert(`DBUS-Name-Error: No BUS interface with name "${slot}"`, AlertVariant.danger);
+        setError(['DBUS-Name-Error:', 'No BUS interface with name ', `"${slot}`, 'Please make sure the process is running']);
+      }
+      setDbusFilterName(filteredName[0]);
     });
   }, [slot]);
 
@@ -50,6 +55,9 @@ export default function FilterModal({
         setSchema(parsedSchema);
         setFormData(parsedData);
         setIsLoading(false);
+      }).catch((err) => {
+        addAlert(err.message, AlertVariant.danger);
+        setError([err.message]);
       });
     }
   }, [dbusFilterName]);
