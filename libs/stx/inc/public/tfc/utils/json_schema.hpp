@@ -246,8 +246,28 @@ namespace detail {
 template <class T = void>
 struct to_json_schema {
   template <auto Opts>
-  static void op(auto& s, auto&) noexcept {
-    s.type = { "number", "string", "boolean", "object", "array", "null" };
+  static void op(auto& s, auto& defs) noexcept {
+    if constexpr (glz::detail::glaze_t<T> && std::is_member_object_pointer_v<glz::meta_wrapper_t<T>>) {  // &T::member
+      using val_t = glz::detail::member_t<T, glz::meta_wrapper_t<T>>;
+      to_json_schema<val_t>::template op<Opts>(s, defs);
+    } else if constexpr (glz::detail::glaze_t<T> && std::is_pointer_v<glz::meta_wrapper_t<T>> &&
+                         std::is_const_v<std::remove_pointer_t<glz::meta_wrapper_t<T>>>) {  // &T::constexpr_member
+      using constexpr_val_t = glz::detail::member_t<T, glz::meta_wrapper_t<T>>;
+      static constexpr auto val_v{ *glz::meta_wrapper_v<T> };
+      if constexpr (glz::detail::glaze_enum_t<constexpr_val_t>) {
+        s.attributes.constant = glz::enum_name_v<val_v>;
+      } else {
+        // General case, needs to be convertible to schema_any
+        s.attributes.constant = val_v;
+      }
+      to_json_schema<constexpr_val_t>::template op<Opts>(s, defs);
+    } else {
+      // todo static_assert, it is more beneficial to get compile error instead of default everything
+      []<bool flag = false> {
+        static_assert(flag, "Please provide a schema type for your given type");
+      }
+      ();
+    }
   }
 };
 
