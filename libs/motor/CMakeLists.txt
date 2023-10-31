@@ -8,7 +8,10 @@ target_sources(motor
   PUBLIC
     FILE_SET CXX_MODULES FILES
     src/motor.cxx
-    src/impl.cxx)
+    src/impl.cxx
+    src/motors/mock.cxx
+    src/motors/ethercat.cxx
+)
 
 find_package(magic_enum CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)

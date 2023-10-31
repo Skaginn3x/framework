@@ -1,4 +1,11 @@
-#pragma once
+module;
+#include <cstdint>
+#include <string_view>
+#include <glaze/core/common.hpp>
+#include <boost/asio/io_context.hpp>
+
+#include <tfc/confman/observable.hpp>
+export module motor:ethercat;
 
 namespace tfc::motor::types {
 class ethercat_motor {

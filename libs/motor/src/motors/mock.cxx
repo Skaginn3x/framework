@@ -1,16 +1,16 @@
-#pragma once
-
-#include <chrono>
+module;
+#include <boost/asio/io_context.hpp>
 #include <glaze/core/common.hpp>
 #include <string>
 #include <string_view>
-#include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/logger.hpp>
 
+export module motor:mock;
+
 namespace tfc::motor::types {
 using tfc::confman::observable;
-class virtual_motor {
+export class virtual_motor {
 private:
   struct config {
     using impl = virtual_motor;

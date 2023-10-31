@@ -1,5 +1,5 @@
 
-import tfc.motor.impl;
+import motor;
 
 #include <mp-units/systems/si/si.h>
 #include <mp-units/systems/isq/isq.h>

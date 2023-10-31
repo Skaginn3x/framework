@@ -1,5 +1,6 @@
 module;
 
+#include <type_traits> // Required for mp-units
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/isq_angle/isq_angle.h>
 #include <mp-units/systems/si/si.h>
@@ -8,10 +9,11 @@ module;
 #include <variant>
 
 #include <tfc/confman.hpp>
-#include "ethercat_motor.hpp"
-#include "virtual_motor.hpp"
+#include <tfc/confman/observable.hpp>
 
-export module tfc.motor;
+export module motor;
+import :ethercat;
+import :mock;
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -21,13 +23,13 @@ export module tfc.motor;
  * own implementation.
  */
 
-export namespace tfc::motor {
+namespace tfc::motor {
 
 namespace asio = boost::asio;
 using mp_units::QuantityOf;
 using SpeedRatio = mp_units::ratio;
 
-class interface {
+export class interface {
 public:
   // Default initialize the motor as a printing motor
   explicit interface(asio::io_context& ctx, std::string_view name)

@@ -16,6 +16,8 @@ include(CTest)
 # Add the cmake folder so the FindSphinx module is found
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake" "${CMAKE_CURRENT_LIST_DIR}/cmake/findModules")
 
+add_compile_definitions(BOOST_UT_DISABLE_MODULE)
+
 include(tfc_options)
 include(tfc_config)
 include(tfc_warnings)

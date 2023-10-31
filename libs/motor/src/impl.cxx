@@ -6,7 +6,7 @@ module;
 #include <concepts>
 #include <variant>
 
-export module tfc.motor.impl;
+export module motor:impl;
 
 namespace tfc::motor::impl {
 

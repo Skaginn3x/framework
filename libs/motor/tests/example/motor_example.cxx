@@ -1,6 +1,7 @@
 #include <tfc/progbase.hpp>
 #include <mp-units/systems/si/unit_symbols.h>
-import tfc.motor;
+
+import motor;
 
 
 namespace motor = tfc::motor;
