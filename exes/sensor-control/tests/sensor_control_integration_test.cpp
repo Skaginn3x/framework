@@ -26,8 +26,8 @@ struct two_connectives {
   auto init() {
     first.on_running();
     second.on_running();
-    ON_CALL(first.discharge_allowance_signal(), async_send_cb).WillByDefault([this](bool const& value, std::function<void(std::error_code, std::size_t)>) {
-      second.may_discharge_slot().callback(value);
+    ON_CALL(second.discharge_allowance_signal(), async_send_cb).WillByDefault([this](bool const& value, std::function<void(std::error_code, std::size_t)>) {
+      first.may_discharge_slot().callback(value);
     });
     ON_CALL(first.discharge_signal(), async_send_cb).WillByDefault([this](std::string const& value, std::function<void(std::error_code, std::size_t)>) {
       second.discharge_request_slot().callback(value);
@@ -44,7 +44,7 @@ int main (int argc, char** argv) {
 
   tfc::base::init(substitute_argv.size(), substitute_argv.data());
 
-  "two connectives"_test = [] {
+  "happy path"_test = [] {
     two_connectives test{};
     auto item{ tfc::ipc::item::make() };
     test.init();
