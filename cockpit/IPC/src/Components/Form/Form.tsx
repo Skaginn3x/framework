@@ -38,6 +38,8 @@ export default function FormGenerator(
     [key: string]: any;
   };
 
+  const { addAlert } = useAlertContext();
+
   interface ExtendedWidgetProps extends BaseWidgetProps<MuiWidgetBinding>, WithOnChange, WithValue { }
 
   type CustomWidgetBinding = {
@@ -61,6 +63,28 @@ export default function FormGenerator(
    */
   function assignWidget(key: string, json: JsonType) {
     const type = Array.isArray(json[key].type) ? json[key].type : [json[key].type];
+
+    const illegalType = [
+      'number',
+      'string',
+      'boolean',
+      'object',
+      'array',
+      'null',
+    ];
+    // count matches between illegalType and type
+    // if matches === illegalType.length, then type is illegal
+    if (!Object.keys(json[key]).includes('oneOf')) {
+      let counter = 0;
+      type.forEach((t: string) => {
+        if (illegalType.includes(t)) {
+          counter += 1;
+        }
+        if (counter === illegalType.length) {
+          addAlert('Illegal type in schema', AlertVariant.danger);
+        }
+      });
+    }
 
     if ('enum' in json[key]) {
       json[key].widget = 'Select';
@@ -150,7 +174,6 @@ export default function FormGenerator(
 
   const [schema] = React.useState<Immutable.OrderedMap<string | number, any>>(() => createOrderedMap(parseJson(inputSchema)));
   const [store, setStore] = React.useState(createStore(createOrderedMap(values)));
-  const { addAlert } = useAlertContext();
   const onInternalChange = React.useCallback((actions: any) => {
     setStore(storeUpdater(actions));
   }, [setStore]);

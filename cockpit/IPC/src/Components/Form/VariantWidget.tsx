@@ -91,8 +91,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
-    console.log('type', type);
-    console.log('event', event);
 
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
