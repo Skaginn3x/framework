@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react/no-unknown-property */
 /* eslint-disable react/jsx-no-useless-fragment */
@@ -10,8 +11,10 @@ import React, {
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-import { Graphviz } from 'graphviz-react';
+import { Graphviz } from '@hpcc-js/wasm';
 import { Spinner } from '@patternfly/react-core';
+import parse from 'html-react-parser';
+import { DarkModeType } from 'src/App';
 
 declare global {
   interface Window { cockpit: any; }
@@ -39,9 +42,11 @@ const parseXMLInterfaces = (xml: string): string[] => {
 };
 
 // eslint-disable-next-line react/function-component-definition
-const StateMachine: React.FC = () => {
+const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
+  const [svg, setSVG] = useState<string>();
+
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
 
@@ -98,35 +103,6 @@ const StateMachine: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (!processes) return;
-
-    const fetchAndConnectInterfaces = async () => {
-      const interfaces: any[] = [];
-
-      // eslint-disable-next-line no-restricted-syntax
-      for (const process of processes) {
-        const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-        console.log('process', process);
-        // eslint-disable-next-line no-await-in-loop
-        await getInterfaceData(interfaces, processDBUS, stateMachinePath, process);
-      }
-      console.log('ifaces', interfaces);
-      setDbusInterfaces(interfaces);
-    };
-
-    fetchAndConnectInterfaces();
-  }, [processes]);
-
-  useEffect(() => {
-    const callback = (allNames: string[]) => {
-      setProcesses(
-        allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
-      );
-    };
-    loadExternalScript(callback);
-  }, []);
-
   const [testString, setTestString] = useState<string>(`digraph G {
 
     // Node definitions
@@ -181,51 +157,99 @@ const StateMachine: React.FC = () => {
     maintenance -> stopped [label="set_stopped / lambda"];
   }`);
 
-  // Increment label on testString every second
-  useEffect(() => {
-    // Set svg width and height to 100% of parent div
-    const svg = document.getElementById('graphviz0')?.getElementsByTagName('svg')[0];
-    if (svg) {
-      svg.setAttribute('width', '100%');
-      svg.setAttribute('height', '100%');
+  function toggleDarkMode(svgString: string) {
+    if (isDark) {
+      svgString = svgString.replace(/fill="white"/g, 'fill="#1B1D21"');
+      svgString = svgString.replace(/fill="black"/g, 'fill="#EEE"');
+      svgString = svgString.replace(/stroke="black"/g, 'stroke="#EEE"');
+      svgString = svgString.replace(/stroke="white"/g, 'stroke="#1B1D21"');
+      svgString = svgString.replace(/<text /g, '<text fill="#EEE" ');
+    } else {
+      svgString = svgString.replace(/fill="#1B1D21"/g, 'fill="white"');
+      svgString = svgString.replace(/fill="#EEE"/g, 'fill="black"');
+      svgString = svgString.replace(/stroke="#EEE"/g, 'stroke="black"');
+      svgString = svgString.replace(/stroke="#1B1D21"/g, 'stroke="white"');
+      svgString = svgString.replace(/<text /g, '<text fill="black" ');
     }
-  }, []);
+    return svgString;
+  }
+
+  async function generateGraphviz() {
+    const graphviz = await Graphviz.load();
+    let svgString = graphviz.dot(testString);
+    svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
+    // same with height
+    svgString = svgString.replace(/height="\d+\.?\d*pt"/g, 'height="100%"');
+    svgString = svgString.replace('<title>G</title>', '');
+    svgString = toggleDarkMode(svgString);
+    setSVG(svgString);
+  }
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      // find svg element inside div with id graphviz0
-      const svg = document.getElementById('graphviz0')?.getElementsByTagName('svg')[0];
-      // toggle green edges, red&green
-      if (svg) {
-        const greenEdges = svg.querySelectorAll('g.edge path[fill="none"][stroke="#00ff00"]');
-        const redEdges = svg.querySelectorAll('g.edge path[fill="none"][stroke="#ff0000"]');
-        const greenArrowheads = svg.querySelectorAll('g.edge polygon[fill="#00ff00"]');
-        const redArrowheads = svg.querySelectorAll('g.edge polygon[fill="#ff0000"]');
-        greenEdges.forEach((edge) => {
-          edge.setAttribute('stroke', '#ff0000');
-        });
-        redEdges.forEach((edge) => {
-          edge.setAttribute('stroke', '#00ff00');
-        });
-        greenArrowheads.forEach((arrowhead) => {
-          arrowhead.setAttribute('fill', '#ff0000');
-        });
-        redArrowheads.forEach((arrowhead) => {
-          arrowhead.setAttribute('fill', '#00ff00');
-        });
-      }
-    }, 1000);
+    if (!svg) return;
+    let newSVG = svg;
+    newSVG = toggleDarkMode(newSVG);
+    setSVG(newSVG);
+  }, [isDark]);
+
+  useEffect(() => {
+    const interval = setInterval(
+      () => {
+        if (!svg) return;
+        let newSVG = svg;
+        if (newSVG.includes('stroke="green"')) {
+          newSVG = newSVG.replaceAll(/stroke="green"/g, 'stroke="red"');
+          newSVG = newSVG.replaceAll(/fill="green"/g, 'fill="red"');
+        } else {
+          newSVG = newSVG.replaceAll(/stroke="red"/g, 'stroke="green"');
+          newSVG = newSVG.replaceAll(/fill="red"/g, 'fill="green"');
+        }
+        setSVG(newSVG);
+      },
+      500,
+    );
     return () => clearInterval(interval);
+  }, [svg]);
+
+  useEffect(() => {
+    if (!processes) return;
+
+    const fetchAndConnectInterfaces = async () => {
+      const interfaces: any[] = [];
+
+      // eslint-disable-next-line no-restricted-syntax
+      for (const process of processes) {
+        const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+        console.log('process', process);
+        // eslint-disable-next-line no-await-in-loop
+        await getInterfaceData(interfaces, processDBUS, stateMachinePath, process);
+      }
+      console.log('ifaces', interfaces);
+      setDbusInterfaces(interfaces);
+    };
+
+    fetchAndConnectInterfaces();
+    generateGraphviz();
+  }, [processes]);
+
+  useEffect(() => {
+    const callback = (allNames: string[]) => {
+      setProcesses(
+        allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
+      );
+    };
+    loadExternalScript(callback);
   }, []);
 
   return (
     <div style={{
-      height: '100vh',
+      maxHeight: '95vh',
       fontFamily: '"RedHatText", helvetica, arial, sans-serif !important',
-      width: '100%',
+      width: '95vw',
     }}
     >
-      <Graphviz dot={testString} className="Graphviz" />
+      {parse(svg ?? '') ?? <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>}
+
       {/* {dbusInterfaces.length > 0 && dbusInterfaces[0].proxy.data.StateMachine
         ? <Graphviz dot={dbusInterfaces[0].proxy.data.StateMachine} />
         : <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>} */}

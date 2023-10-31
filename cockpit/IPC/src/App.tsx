@@ -31,7 +31,7 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
     case 'configure': return <Configurator isDark={isDark} />;
     case 'list': return <ListDBUS isDark={isDark} />;
     case 'debug': return <IODebug isDark={isDark} />;
-    case 'state_machine': return <StateMachine />;
+    case 'state_machine': return <StateMachine isDark={isDark} />;
     default: return <NotFoundPage />;
   }
 };

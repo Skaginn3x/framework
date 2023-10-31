@@ -169,17 +169,21 @@ const ListItem: React.FC<ListItemProps> = ({
             >
               {getSecondaryContent(dbusInterface)}
             </DataListCell>,
-            <DataListCell
-              key="secondary content 2"
-              style={{
-                textAlign: 'right',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              { dbusInterface.direction === 'slot' ? getTinkerInterface(dbusInterface) : null }
-            </DataListCell>,
+            dbusInterface.direction === 'slot'
+              ? (
+                <DataListCell
+                  key="secondary content 2"
+                  style={{
+                    textAlign: 'right',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {getTinkerInterface(dbusInterface)}
+                </DataListCell>
+              )
+              : null,
           ]}
         />
         <DataListAction
