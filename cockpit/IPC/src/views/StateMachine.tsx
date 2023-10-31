@@ -182,12 +182,15 @@ const StateMachine: React.FC = () => {
   }`);
 
   // Increment label on testString every second
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setTestString((prevString) => prevString.replace(/color=green/, 'color=blue'));
-  //   }, 1000);
-  //   return () => clearInterval(interval);
-  // }, []);
+  useEffect(() => {
+    // Set svg width and height to 100% of parent div
+    const svg = document.getElementById('graphviz0')?.getElementsByTagName('svg')[0];
+    if (svg) {
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('height', '100%');
+    }
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       // find svg element inside div with id graphviz0
@@ -196,11 +199,19 @@ const StateMachine: React.FC = () => {
       if (svg) {
         const greenEdges = svg.querySelectorAll('g.edge path[fill="none"][stroke="#00ff00"]');
         const redEdges = svg.querySelectorAll('g.edge path[fill="none"][stroke="#ff0000"]');
+        const greenArrowheads = svg.querySelectorAll('g.edge polygon[fill="#00ff00"]');
+        const redArrowheads = svg.querySelectorAll('g.edge polygon[fill="#ff0000"]');
         greenEdges.forEach((edge) => {
           edge.setAttribute('stroke', '#ff0000');
         });
         redEdges.forEach((edge) => {
           edge.setAttribute('stroke', '#00ff00');
+        });
+        greenArrowheads.forEach((arrowhead) => {
+          arrowhead.setAttribute('fill', '#ff0000');
+        });
+        redArrowheads.forEach((arrowhead) => {
+          arrowhead.setAttribute('fill', '#00ff00');
         });
       }
     }, 1000);
@@ -214,7 +225,7 @@ const StateMachine: React.FC = () => {
       width: '100%',
     }}
     >
-      <Graphviz dot={testString} />
+      <Graphviz dot={testString} className="Graphviz" />
       {/* {dbusInterfaces.length > 0 && dbusInterfaces[0].proxy.data.StateMachine
         ? <Graphviz dot={dbusInterfaces[0].proxy.data.StateMachine} />
         : <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>} */}
