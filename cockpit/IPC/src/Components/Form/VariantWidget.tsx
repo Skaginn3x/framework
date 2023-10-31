@@ -60,7 +60,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    * @param vals  Store
    * @returns selected object title
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function findSelectedTitle(oneOf:any, vals:any) {
     if (!vals) { return null; }
     // Get key from store to determine what is selected
@@ -88,10 +87,13 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
-  const [selectedTitle, setSelectedTitle] = useState<string | null>(storeValue);
+  const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
+    console.log('type', type);
+    console.log('event', event);
+
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
         storeKeys,
@@ -108,7 +110,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         type: 'set',
         schema,
         required,
-        data: { value: event.target.value },
+        data: { value: undefined },
       });
     }
     setSelectedTitle(event.target.value);
@@ -160,7 +162,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (
-            <MenuItem key={item.get('title')} value={item.get('const')}>
+            <MenuItem key={item.get('title')} value={item.get('title')}>
               {item.get('title')}
             </MenuItem>
           ))}
