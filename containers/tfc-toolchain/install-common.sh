@@ -15,3 +15,12 @@ hide_output apt install -y \
   zip \
   unzip \
   software-properties-common \
+  python3 \
+  pkg-config
+
+# Install documentation specific packages
+hide_output apt install -y \
+  doxygen \
+  python3-venv \
+  python3-jinja2 \
+  graphviz

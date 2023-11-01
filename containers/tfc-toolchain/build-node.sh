@@ -6,8 +6,6 @@ NODE_VERSION=$1
 
 
 # Fetch prerequisites
-hide_output apt install python3 -y --no-install-recommends
-
 curl -L https://github.com/nodejs/node/archive/refs/tags/v$NODE_VERSION.tar.gz | tar -xz -C /tmp/
 cd /tmp/node-$NODE_VERSION
 

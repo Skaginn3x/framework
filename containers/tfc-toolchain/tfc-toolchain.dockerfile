@@ -51,9 +51,9 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN cd /opt && git clone https://github.com/microsoft/vcpkg.git && cd vcpkg && ./bootstrap-vcpkg.sh -musl
 RUN cd /opt && chmod 775 vcpkg
 
-#
 # Setup dbus for testing
 RUN apt-get update && apt-get install -y --no-install-recommends dbus
+RUN mkdir /var/run/dbus/
 RUN sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
 RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
 
