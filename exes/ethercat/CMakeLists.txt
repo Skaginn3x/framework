@@ -1,5 +1,4 @@
 project(ec)
-cmake_minimum_required(VERSION 3.21)
 
 find_path(BEXT_SML_INCLUDE_DIRS "boost/sml.hpp")
 find_package(fmt CONFIG REQUIRED)
