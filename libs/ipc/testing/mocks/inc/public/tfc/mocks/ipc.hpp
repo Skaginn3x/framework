@@ -35,7 +35,7 @@ struct mock_signal {
 
   // clang-format off
   MOCK_METHOD((std::error_code), send, (value_t const&), (const));  // NOLINT
-  MOCK_METHOD((std::error_code), async_send_cb, (value_t const&, std::function<void(std::error_code, std::size_t)>), (const));  // NOLINT
+  MOCK_METHOD((void), async_send_cb, (value_t const&, std::function<void(std::error_code, std::size_t)>), (const));  // NOLINT
   // clang-format on
 };
 
@@ -46,12 +46,15 @@ struct mock_slot {
             manager_client_type&,
             std::string_view,
             std::string_view,
-            tfc::stx::invocable<value_t> auto&&) {
-    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(std::nullopt));
+            tfc::stx::invocable<value_t> auto&& cb)
+      : callback{ std::forward<decltype(cb)>(cb) } {
+    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
   }
   mock_slot(asio::io_context const&, manager_client_type&, std::string_view, tfc::stx::invocable<value_t> auto&&) {}
 
   MOCK_METHOD((std::optional<value_t> const&), value, (), (const));  // NOLINT
+  std::optional<value_t> value_{ std::nullopt };
+  std::function<void(value_t const&)> callback;
 };
 
 }  // namespace tfc::ipc
