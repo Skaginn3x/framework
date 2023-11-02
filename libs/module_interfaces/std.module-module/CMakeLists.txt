@@ -3,6 +3,7 @@ set(CXX_STANDARD_REQUIRED ON)
 option(USE_EMULATION "use emulation of module 'std' instead of the library-provided one" OFF)
 
 add_library(std STATIC)
+add_library(mod::std ALIAS std)
 # the default PMIF is 'std.ixx'
 set(pmif std.ixx)
 
@@ -16,4 +17,4 @@ target_sources(std
 target_compile_features(std PUBLIC cxx_std_23)
 
 target_compile_definitions(std PRIVATE _BUILD_STD_MODULE)
-target_compile_options(std PUBLIC ${std-lang-additional})
+target_compile_options(std PUBLIC ${std-lang-additional} PRIVATE -Wno-reserved-module-identifier)

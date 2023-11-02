@@ -8,5 +8,5 @@ target_sources(argparse_mod
   PUBLIC FILE_SET CXX_MODULES FILES
     argparse.cxx
 )
-target_link_libraries(argparse_mod PUBLIC argparse::argparse)
+target_link_libraries(argparse_mod PUBLIC argparse::argparse mod::std)
 

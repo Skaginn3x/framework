@@ -44,16 +44,16 @@ configure_package_config_file(
   INSTALL_DESTINATION ${tfc_INSTALL_CMAKEDIR}
 )
 
-install(EXPORT ${tfc_PACKAGE_NAME}Targets DESTINATION ${tfc_INSTALL_CMAKEDIR})
-install(
-  FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${tfc_PACKAGE_NAME}ConfigVersion.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${tfc_PACKAGE_NAME}Config.cmake"
-  DESTINATION ${tfc_INSTALL_CMAKEDIR}
-)
-
-install(
-  EXPORT ${tfc_PACKAGE_NAME}Targets
-  NAMESPACE tfc::
-  DESTINATION ${tfc_INSTALL_CMAKEDIR}
-)
+# install(EXPORT ${tfc_PACKAGE_NAME}Targets DESTINATION ${tfc_INSTALL_CMAKEDIR})
+# install(
+#   FILES
+#     "${CMAKE_CURRENT_BINARY_DIR}/${tfc_PACKAGE_NAME}ConfigVersion.cmake"
+#     "${CMAKE_CURRENT_BINARY_DIR}/${tfc_PACKAGE_NAME}Config.cmake"
+#   DESTINATION ${tfc_INSTALL_CMAKEDIR}
+# )
+#
+# install(
+#   EXPORT ${tfc_PACKAGE_NAME}Targets
+#   NAMESPACE tfc::
+#   DESTINATION ${tfc_INSTALL_CMAKEDIR}
+# )
