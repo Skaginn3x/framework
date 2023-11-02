@@ -28,21 +28,17 @@ import emptyStateComponent from './TableItems/EmptyState';
 
 function formatDate(dateStr: string, withTime: boolean, locale: string) {
   const date = new Date(dateStr);
-  let stringType = 'de-DE';
-  // if locale contains America use en-US
-  if (locale.includes('America')) {
-    stringType = 'en-US';
-  }
+
   if (!withTime) {
-    return date.toLocaleDateString(stringType, {
+    return date.toLocaleDateString('de-DE', {
       day: '2-digit', month: '2-digit', year: 'numeric', timeZone: locale,
     });
   }
 
-  const formattedDate = date.toLocaleDateString(stringType, {
+  const formattedDate = date.toLocaleDateString('de-DE', {
     day: '2-digit', month: 'short', year: 'numeric', timeZone: locale,
   });
-  const formattedTime = date.toLocaleTimeString(stringType, { hour: '2-digit', minute: '2-digit', timeZone: locale });
+  const formattedTime = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: locale });
   return `${formattedTime} ${formattedDate}`;
 }
 
