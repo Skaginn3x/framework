@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Button, Modal, Title, Tooltip,
 } from '@patternfly/react-core';
 
 import { DarkModeType } from 'src/App';
+// import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import CustomTable from '../Components/Table/Table';
 import useDbusInterface from '../Components/Interface/DbusInterface';
 import { TFC_DBUS_ORGANIZATION, TFC_DBUS_DOMAIN } from '../variables';
@@ -17,14 +18,22 @@ const Connections:React.FC<DarkModeType> = ({ isDark }) => {
   const objectPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/ipc_ruler`;
 
   const dbusInterface = useDbusInterface(busName, interfaceName, objectPath);
-
+  const [timezone, setTimezone] = useState<string>('Atlantic/Reykjavik');
   const pollDbus = async () => {
     await dbusInterface.poll();
   };
-
   useEffect(() => {
     if (dbusInterface.valid) {
       pollDbus();
+      try {
+        const dbus = window.cockpit.dbus('org.freedesktop.timedate1');
+        const proxy = dbus.proxy();
+        proxy.wait().then(() => {
+          setTimezone(proxy.Timezone);
+        });
+      } catch (e) {
+        console.log(e);
+      }
     }
   }, [dbusInterface.valid]);
 
@@ -80,6 +89,7 @@ const Connections:React.FC<DarkModeType> = ({ isDark }) => {
           connections={connections || {}}
           DBUS={dbusInterface}
           isDark={isDark}
+          timezone={timezone}
         />
       </div>
       <Modal
