@@ -10,7 +10,6 @@
 
 #include <glaze/glaze.hpp>
 
-
 namespace tfc::confman {
 template <typename conf_param_t>
 concept observable_type = requires {
