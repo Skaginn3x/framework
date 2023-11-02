@@ -1,5 +1,4 @@
 project(motor)
-cmake_minimum_required(VERSION 3.28)
 
 add_library(motor)
 add_library(tfc::motor ALIAS motor)
@@ -18,6 +17,7 @@ find_package(mp-units CONFIG REQUIRED)
 
 target_link_libraries(motor
   PUBLIC
+    tfc::mstd
     tfc::base
     tfc::logger
     tfc::stx

@@ -5,10 +5,10 @@
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
-#include <glaze/glaze.hpp>
 
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/logger.hpp>
+#include <glaze/glaze.hpp>
 
 namespace tfc::confman {
 

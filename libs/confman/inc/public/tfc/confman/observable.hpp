@@ -5,18 +5,11 @@
 #include <functional>
 #include <type_traits>
 
-#include <glaze/core/meta.hpp>
-
 #include <tfc/stx/concepts.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
-// Fwd declare this class to give it access to private members
-namespace glz::detail {
+#include <glaze/glaze.hpp>
 
-template <typename value_t>
-struct from_json;
-
-}
 
 namespace tfc::confman {
 template <typename conf_param_t>
@@ -49,7 +42,7 @@ public:
   /// \brief construct observable with default value and changes callback
   /// \param value default value
   /// \param callback observer function of type void(conf_param_t const& new_value, conf_param_t const& former_value)
-  observable(conf_param_t&& value, tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback)
+  observable(conf_param_t&& value, ::tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback)
       : value_{ std::forward<decltype(value)>(value) }, callback_{ std::forward<decltype(callback)>(callback) } {}
 
   // todo default copy&move constructor differs from copy&move assignments
@@ -92,7 +85,7 @@ public:
   /// \param callback calling function for all changes, this function cannot throw.
   /// \note Reason for callback being nothrow is that when calling multiple observers it is
   ///       not known which observer is called first and it is expected that all observers will be called.
-  void observe(tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
+  void observe(::tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
     callback_ = std::forward<decltype(callback)>(callback);
   }
 
@@ -118,27 +111,24 @@ public:
     static auto constexpr value = &observable::value_;
     static constexpr std::string_view prefix{ "tfc::observable<" };
     static constexpr std::string_view postfix{ ">" };
-    static std::string_view constexpr name{ stx::string_view_join_v<prefix, glz::name_v<conf_param_t>, postfix> };
+    static std::string_view constexpr name{ ::tfc::stx::string_view_join_v<prefix, glz::name_v<conf_param_t>, postfix> };
   };
 };
 
 }  // namespace tfc::confman
 
-namespace glz::detail {
-
 template <typename value_t>
-struct from_json<tfc::confman::observable<value_t>> {
+struct glz::detail::from_json<tfc::confman::observable<value_t>> {
   template <auto opts>
   inline static void op(tfc::confman::observable<value_t>& value, auto&&... args) noexcept {
     // Catch reference to current value type to propagate notifications to sub observables
     value_t value_copy = value.value();
-    from_json<value_t>::template op<opts>(value.reference(), std::forward<decltype(args)>(args)...);
+    glz::detail::from_json<value_t>::template op<opts>(value.reference(), std::forward<decltype(args)>(args)...);
     if (value_copy != value.value()) {
       value.notify(value_copy);  // invoke callback
     }
   }
 };
-}  // namespace glz::detail
 
 namespace tfc::json::detail {
 

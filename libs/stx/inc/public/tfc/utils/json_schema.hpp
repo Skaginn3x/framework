@@ -3,9 +3,8 @@
 // For the license information refer to glaze.hpp
 #pragma once
 
-#include <glaze/api/impl.hpp>
-#include <glaze/json/write.hpp>
-#include <glaze/util/for_each.hpp>
+#include <map>
+#include <glaze/glaze.hpp>
 
 namespace tfc::json {
 struct schema_meta final {

@@ -1,11 +1,7 @@
 module;
-#include <boost/asio/io_context.hpp>
-#include <glaze/core/common.hpp>
-#include <string>
-#include <string_view>
+#include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/logger.hpp>
-
+#include <string>
 export module motor:mock;
 
 namespace tfc::motor::types {

@@ -1,18 +1,15 @@
 module;
-#include <cstdint>
+#include <tfc/confman.hpp>
 #include <string_view>
-#include <glaze/core/common.hpp>
-#include <boost/asio/io_context.hpp>
-
-#include <tfc/confman/observable.hpp>
 export module motor:ethercat;
+
 
 namespace tfc::motor::types {
 class ethercat_motor {
 private:
   struct config {
     using impl = ethercat_motor;
-    uint16_t slave_id;
+    std::uint16_t slave_id;
     struct glaze {
       using T = config;
       static constexpr auto value = glz::object("slave_id", &T::slave_id);

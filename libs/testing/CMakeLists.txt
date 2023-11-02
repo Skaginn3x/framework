@@ -1,5 +1,4 @@
 project(testing)
-cmake_minimum_required(VERSION 3.21)
 
 add_library(testing
   src/asio_clock.cpp

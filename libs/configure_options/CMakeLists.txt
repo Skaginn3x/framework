@@ -1,5 +1,4 @@
 project(configure_options)
-cmake_minimum_required(VERSION 3.21)
 
 
 configure_file(${CMAKE_CURRENT_LIST_DIR}/configure_options.hpp.in ${CMAKE_CURRENT_LIST_DIR}/inc/public/tfc/configure_options.hpp)

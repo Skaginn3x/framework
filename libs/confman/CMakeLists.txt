@@ -1,7 +1,5 @@
 project(confman)
-cmake_minimum_required(VERSION 3.21)
 
-find_package(glaze CONFIG REQUIRED)
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS )
@@ -26,11 +24,11 @@ target_link_libraries(confman
   PUBLIC
     Boost::boost
     fmt::fmt
-    glaze::glaze
     tfc::base
     tfc::stx
     tfc::dbus_util
     tfc::logger
+    tfc::mstd
   PRIVATE
     PkgConfig::SDBUSPLUS
 )
