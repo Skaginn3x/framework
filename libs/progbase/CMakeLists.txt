@@ -15,13 +15,11 @@ target_include_directories(base
     ${TFC_LOGGER_INCLUDE_DIRS}
 )
 
-find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(fmt CONFIG REQUIRED)
 
 target_link_libraries(base
   PRIVATE
-    Boost::boost
-    Boost::program_options
+    mod::argparse
     fmt::fmt
     tfc::stx
 )

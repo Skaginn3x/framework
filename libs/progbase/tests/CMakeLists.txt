@@ -1,13 +1,13 @@
 find_package(ut CONFIG REQUIRED)
 
 add_executable(progbase_options_test options.cpp)
-target_link_libraries(progbase_options_test Boost::ut Boost::program_options tfc::base)
+target_link_libraries(progbase_options_test Boost::ut mod::argparse tfc::base)
 
 add_test(NAME progbase_options_test COMMAND progbase_options_test)
 
 # Add examples to tests so that they definitely compile
 add_executable(progbase_example_base examples/example_base.cpp)
-target_link_libraries(progbase_example_base tfc::base Boost::program_options)
+target_link_libraries(progbase_example_base tfc::base mod::argparse)
 add_test(
   NAME
     progbase_example_base

@@ -4,11 +4,10 @@
 #include <optional>
 #include <string_view>
 
-namespace boost {
-namespace program_options {
-class options_description;
-class variables_map;
+namespace argparse{
+class ArgumentParser;
 }  // namespace program_options
+namespace boost {
 namespace asio {
 class any_io_executor;
 template <typename return_t, typename executor_t>
@@ -25,11 +24,11 @@ namespace tfc::base {
 
 /// \brief Description of command line arguments for the program
 /// \return Default description for tfc applications
-[[nodiscard]] auto default_description() -> boost::program_options::options_description;
+[[nodiscard]] auto default_parser() -> argparse::ArgumentParser;
 
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
 /// \example example_base.cpp
-void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);
+void init(int argc, char const* const* argv, argparse::ArgumentParser const& parser);
 void init(int argc, char const* const* argv);
 
 /// \return stripped executable name
@@ -44,7 +43,7 @@ void init(int argc, char const* const* argv);
 [[nodiscard]] auto get_log_lvl() noexcept -> tfc::logger::lvl_e;
 
 /// \return boost variables map if needed to get custom parameters from description
-[[nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const&;
+//[[nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const&;
 
 /// \return Configuration directory path
 /// default return value is /etc/tfc/
