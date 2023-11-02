@@ -16,7 +16,8 @@ hide_output apt install -y \
   unzip \
   software-properties-common \
   python3 \
-  pkg-config
+  pkg-config \
+  autoconf
 
 # Install documentation specific packages
 hide_output apt install -y \
