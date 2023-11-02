@@ -26,12 +26,19 @@ import MultiSelectAttribute from './ToolbarItems/MultiSelectAttribute';
 import TextboxAttribute from './ToolbarItems/TextBoxAttribute';
 import emptyStateComponent from './TableItems/EmptyState';
 
-function formatDate(dateStr: string, withTime = false) {
+function formatDate(dateStr: string, withTime: boolean, locale: string) {
   const date = new Date(dateStr);
-  if (!withTime) { return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
 
-  const formattedDate = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
-  const formattedTime = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  if (!withTime) {
+    return date.toLocaleDateString('de-DE', {
+      day: '2-digit', month: '2-digit', year: 'numeric', timeZone: locale,
+    });
+  }
+
+  const formattedDate = date.toLocaleDateString('de-DE', {
+    day: '2-digit', month: 'short', year: 'numeric', timeZone: locale,
+  });
+  const formattedTime = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: locale });
   return `${formattedTime} ${formattedDate}`;
 }
 
@@ -53,8 +60,8 @@ const columnNames = {
  * @returns
  */
 export default function CustomTable({
-  signals, slots, connections, DBUS, isDark,
-}: { signals: SignalType[], slots: SlotType[], connections: ConnectionType, DBUS: any, isDark: boolean }) {
+  signals, slots, connections, DBUS, isDark, timezone,
+}: { signals: SignalType[], slots: SlotType[], connections: ConnectionType, DBUS: any, isDark: boolean, timezone:string }) {
   const [nameSelection, setNameSelection] = React.useState<string[]>([]);
   const [processSelections, setProcessSelections] = React.useState<string[]>([]);
   const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
@@ -473,26 +480,26 @@ export default function CustomTable({
                   </Td>
                   <Td dataLabel={columnNames.created_at} modifier="truncate" style={{ verticalAlign: 'middle', paddingLeft: '0.5rem' }}>
                     <Tooltip
-                      content={formatDate(signal.created_at, true)}
+                      content={formatDate(signal.created_at, true, timezone)}
                       enableFlip
                       distance={5}
                       entryDelay={1000}
                     >
                       <div style={{ width: 'min-content' }}>
-                        {formatDate(signal.created_at)}
+                        {formatDate(signal.created_at, false, timezone)}
                       </div>
                     </Tooltip>
                   </Td>
                   {/* eslint-disable-next-line max-len */}
                   <Td dataLabel={columnNames.last_registered} modifier="truncate" style={{ verticalAlign: 'middle', paddingLeft: '0.7rem' }}>
                     <Tooltip
-                      content={formatDate(signal.last_registered, true)}
+                      content={formatDate(signal.last_registered, true, timezone)}
                       enableFlip
                       distance={5}
                       entryDelay={1000}
                     >
                       <div style={{ width: 'min-content' }}>
-                        {formatDate(signal.last_registered)}
+                        {formatDate(signal.last_registered, false, timezone)}
                       </div>
                     </Tooltip>
                   </Td>
@@ -597,18 +604,18 @@ export default function CustomTable({
                           style={{ verticalAlign: 'middle', paddingLeft: '0.7rem !important' }}
                           tooltip={
                             <div style={{ width: 'min-content' }}>
-                              {formatDate(slot.created_at, true)}
+                              {formatDate(slot.created_at, true, timezone)}
                             </div> as React.ReactNode
                           }
                         >
                           <Tooltip
-                            content={formatDate(slot.created_at, true)}
+                            content={formatDate(slot.created_at, true, timezone)}
                             enableFlip
                             distance={5}
                             entryDelay={1000}
                           >
                             <div style={{ width: 'min-content' }}>
-                              {formatDate(slot.created_at)}
+                              {formatDate(slot.created_at, false, timezone)}
                             </div>
                           </Tooltip>
                         </Td>
@@ -621,13 +628,13 @@ export default function CustomTable({
                           tooltip={null}
                         >
                           <Tooltip
-                            content={formatDate(slot.last_registered, true)}
+                            content={formatDate(slot.last_registered, true, timezone)}
                             enableFlip
                             distance={5}
                             entryDelay={1000}
                           >
                             <div style={{ width: 'min-content' }}>
-                              {formatDate(slot.last_registered)}
+                              {formatDate(slot.last_registered, false, timezone)}
                             </div>
                           </Tooltip>
                         </Td>
