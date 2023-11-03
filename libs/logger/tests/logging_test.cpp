@@ -11,8 +11,7 @@ auto main(int argc, char** argv) -> int {
   using boost::ut::expect;
 
   // Initilize framework
-  auto prog_desc{ tfc::base::default_description() };
-  tfc::base::init(argc, argv, prog_desc);
+  tfc::base::init(argc, argv);
 
   "example logging"_test = []() {
     tfc::logger::logger foo("key");

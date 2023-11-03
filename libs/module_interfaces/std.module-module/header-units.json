@@ -1,6 +1,0 @@
-{
-    "Version": "1.0",
-    "BuildAsHeaderUnits": [
-        "allstd.hpp" // #includes all headers from *only* the C++ standard library
-    ]
-}

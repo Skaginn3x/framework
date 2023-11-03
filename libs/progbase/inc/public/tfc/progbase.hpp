@@ -28,7 +28,7 @@ namespace tfc::base {
 
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
 /// \example example_base.cpp
-void init(int argc, char const* const* argv, argparse::ArgumentParser const& parser);
+void init(int argc, char const* const* argv, argparse::ArgumentParser parser);
 void init(int argc, char const* const* argv);
 
 /// \return stripped executable name

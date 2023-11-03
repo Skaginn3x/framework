@@ -73,9 +73,7 @@ auto start(asio::io_context& io_ctx_) -> asio::awaitable<void> {
 }
 
 auto main(int argc, char* argv[]) -> int {
-  auto program_description{ tfc::base::default_description() };
-
-  tfc::base::init(argc, argv, program_description);
+  tfc::base::init(argc, argv);
 
   asio::io_context io_ctx{};
 

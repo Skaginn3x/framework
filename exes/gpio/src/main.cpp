@@ -1,6 +1,3 @@
-#include <cstdlib>
-#include <string>
-
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
@@ -8,14 +5,18 @@
 
 #include "gpio.hpp"
 
+import std;
+import argparse;
+
 namespace bpo = boost::program_options;
 namespace asio = boost::asio;
 
 auto main(int argc, char** argv) -> int {
-  auto desc{ tfc::base::default_description() };
+  auto desc{ tfc::base::default_parser() };
   std::string device{};
-  desc.add_options()("device,d", bpo::value<std::string>(&device)->default_value("/dev/gpiochip0"),
-                     "GPIO character device.");
+  desc.add_argument("-d", "--device").action([&device](const std::string& val){
+                                       device = val;
+                                     }).default_value(std::string("/dev/gpiochip0")).help("GPIO character device.");
   tfc::base::init(argc, argv, desc);
 
   asio::io_context ctx{};

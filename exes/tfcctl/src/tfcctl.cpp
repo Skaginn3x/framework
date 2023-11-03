@@ -1,7 +1,4 @@
-#include <memory>
-#include <string>
-#include <string_view>
-#include <variant>
+import std;
 
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/co_spawn.hpp>
@@ -67,16 +64,22 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
 }
 
 auto main(int argc, char** argv) -> int {
-  auto description{ tfc::base::default_description() };
+  auto description{ tfc::base::default_parser() };
 
   std::string signal{};
   std::string slot{};
 
   std::vector<std::string> connect;
 
-  description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
-      "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
-      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
+  description.add_argument("--signal")
+      .action([&signal](const std::string& val) { signal = val; })
+      .help("IPC signal channel (output)");
+  description.add_argument("--slot")
+      .action([&slot](const std::string& val) { slot = val; })
+      .help("IPC slot channel (input)");
+  description.add_argument("--connect")
+      .action([&slot](const std::vector<std::string>& val) {  connect = val; })
+      .help("Connect to these slots");
   tfc::base::init(argc, argv, description);
 
   // Must provide an argument

@@ -1,3 +1,4 @@
+add_subdirectory(module-test)
 add_subdirectory(ethercat)
 add_subdirectory(button)
 add_subdirectory(gpio)

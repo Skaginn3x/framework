@@ -2,6 +2,8 @@
 #include <tfc/confman/file_storage.hpp>
 #include <tfc/ipc/details/dbus_server_iface.hpp>
 
+import std;
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 

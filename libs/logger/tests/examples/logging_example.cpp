@@ -7,8 +7,7 @@ using std::string_view_literals::operator""sv;
 
 auto main(int argc, char** argv) -> int {
   // base::init reads the log lvl, program id and stdout parameters from command line.
-  auto prog_desc{ tfc::base::default_description() };
-  tfc::base::init(argc, argv, prog_desc);
+  tfc::base::init(argc, argv);
 
   // Create a instance of a logger
   tfc::logger::logger logger_instance("tank1");

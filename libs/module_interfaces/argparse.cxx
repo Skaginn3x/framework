@@ -29,8 +29,8 @@ Licensed under the MIT License <http://opensource.org/licenses/MIT>.
       SOFTWARE.
           */
 
-      module;
-
+module;
+#include <algorithm>
 #ifndef ARGPARSE_MODULE_USE_STD_MODULE
 #include <argparse/argparse.hpp>
 #endif
