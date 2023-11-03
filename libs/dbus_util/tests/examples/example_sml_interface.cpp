@@ -1,9 +1,14 @@
+#include <memory>
+
 #include <boost/asio.hpp>
 #include <boost/sml.hpp>
-#include <memory>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
+
 #include <tfc/dbus/sml_interface.hpp>
+
+#include <iostream>
+
 struct state_machine {
   auto operator()() {
     using boost::sml::operator""_s;
@@ -11,15 +16,30 @@ struct state_machine {
     return boost::sml::make_transition_table(*"init"_s + "set_stopped"_e = "stopped"_s);
   }
 };
+
 int main() {
   boost::asio::io_context ctx{};
-  auto bus = std::make_shared<sdbusplus::asio::connection>(ctx);
-  auto interface =
-      std::make_shared<sdbusplus::asio::dbus_interface>(bus, std::string{ tfc::dbus::sml::tags::path }, "StateMachineName");
+
+  std::shared_ptr<sdbusplus::asio::connection> bus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+
+  std::shared_ptr<sdbusplus::asio::dbus_interface> interface {
+    std::make_shared<sdbusplus::asio::dbus_interface>(bus,
+                                                      std::string{ tfc::dbus::sml::tags::path },
+                                                      tfc::dbus::make_dbus_name("example_state_machine"))
+  };
+
+  interface->initialize();
+
   tfc::dbus::sml::interface sml_interface {
-    interface, "Log key"
-  };  // optional log key
-  // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
-  boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface>> my_sm{ sml_interface };
+    interface, "example_state_machine"
+  };
+
+  using state_machine_t = boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface> >;
+
+  std::shared_ptr<state_machine_t> combined_state_machine_{ std::make_shared<state_machine_t>(state_machine{},
+                                                                                              sml_interface) };
+
+  ctx.run();
+
   return EXIT_SUCCESS;
 }
