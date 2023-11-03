@@ -4,7 +4,7 @@ source shared.sh
 
 
 hide_output apt update
-hide_output apt install -y \
+hide_output apt install -y --no-install-recommends \
   curl \
   ca-certificates \
   make \
@@ -20,8 +20,8 @@ hide_output apt install -y \
   autoconf
 
 # Install documentation specific packages
-hide_output apt install -y \
-  doxygen \
-  python3-venv \
-  python3-jinja2 \
-  graphviz
+#hide_output apt install -y \
+#  doxygen \
+#  python3-venv \
+#  python3-jinja2 \
+#  graphviz
