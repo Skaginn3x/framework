@@ -1,43 +1,59 @@
 #include <memory>
+#include <string>
+#include <string_view>
 
 #include <boost/asio.hpp>
 #include <boost/sml.hpp>
-#include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
+#include <tfc/ipc.hpp>
+#include <tfc/progbase.hpp>
+
 #include <tfc/dbus/sml_interface.hpp>
+#include <tfc/dbus/string_maker.hpp>
 
-#include <iostream>
+struct running {
+  static constexpr std::string_view name{ "running" };
+};
+struct not_running {
+  static constexpr std::string_view name{ "not_running" };
+};
 
-struct state_machine {
+struct control_modes {
   auto operator()() {
+    using boost::sml::event;
     using boost::sml::operator""_s;
-    using boost::sml::operator""_e;
-    return boost::sml::make_transition_table(*"init"_s + "set_stopped"_e = "stopped"_s);
+
+    auto table = boost::sml::make_transition_table(*"not_running"_s + event<running> = "running"_s,
+                                                   "running"_s + event<not_running> = "not_running"_s);
+    return table;
   }
 };
 
-int main() {
+auto main(int argc, char** argv) -> int {
+  tfc::base::init(argc, argv);
   boost::asio::io_context ctx{};
 
-  std::shared_ptr<sdbusplus::asio::connection> bus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+  tfc::ipc_ruler::ipc_manager_client const ipc_client{ ctx };
 
-  std::shared_ptr<sdbusplus::asio::dbus_interface> interface {
-    std::make_shared<sdbusplus::asio::dbus_interface>(bus,
+  std::shared_ptr<sdbusplus::asio::dbus_interface> const interface {
+    std::make_shared<sdbusplus::asio::dbus_interface>(ipc_client.connection(),
                                                       std::string{ tfc::dbus::sml::tags::path },
                                                       tfc::dbus::make_dbus_name("example_state_machine"))
   };
 
-  interface->initialize();
-
   tfc::dbus::sml::interface sml_interface {
+    /// log key is optional
     interface, "example_state_machine"
   };
 
-  using state_machine_t = boost::sml::sm<state_machine, boost::sml::logger<tfc::dbus::sml::interface> >;
+  using state_machine_t = boost::sml::sm<control_modes, boost::sml::logger<tfc::dbus::sml::interface> >;
 
-  std::shared_ptr<state_machine_t> combined_state_machine_{ std::make_shared<state_machine_t>(state_machine{},
-                                                                                              sml_interface) };
+  std::shared_ptr<state_machine_t> const state_machine{ std::make_shared<state_machine_t>(control_modes{}, sml_interface) };
+
+  interface->initialize();
+
+  state_machine->process_event(running{});
 
   ctx.run();
 
