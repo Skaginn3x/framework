@@ -6,7 +6,6 @@ add_executable(mqtt_bridge
   src/main.cpp
 )
 
-find_package(Boost REQUIRED COMPONENTS log program_options)
 find_package(OpenSSL REQUIRED)
 
 target_include_directories(mqtt_bridge
@@ -23,9 +22,6 @@ target_link_libraries(mqtt_bridge
     tfc::ipc
     tfc::operation_mode
     tfc::confman
-    Boost::boost
-    Boost::log
-    Boost::program_options
     OpenSSL::SSL OpenSSL::Crypto
     tfc::sparkplug::proto
 )

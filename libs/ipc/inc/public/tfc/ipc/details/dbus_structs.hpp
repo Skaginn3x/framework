@@ -1,7 +1,6 @@
 #pragma once
 
-#include <chrono>
-#include <string>
+import std;
 
 #include <tfc/ipc/enums.hpp>
 

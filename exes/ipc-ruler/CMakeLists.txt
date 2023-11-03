@@ -1,6 +1,5 @@
 add_executable(ipc-ruler src/ipc-ruler.cpp)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
@@ -12,7 +11,6 @@ target_link_libraries(ipc-ruler
     tfc::confman
     tfc::logger
     tfc::dbus_util
-    Boost::program_options
     PkgConfig::SDBUSPLUS
 )
 

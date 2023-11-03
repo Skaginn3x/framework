@@ -2,7 +2,8 @@
 
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/progbase.hpp>
+
+import tfc.base;
 
 namespace tfc::dbus {
 

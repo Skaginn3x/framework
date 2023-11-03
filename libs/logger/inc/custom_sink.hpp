@@ -3,16 +3,12 @@
 // Copyright(c) 2019 ZVYAGIN.Alexander@gmail.com
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
-#include <syslog.h>
-#include <bit>
-
-#include <spdlog/details/null_mutex.h>
-#include <spdlog/details/synchronous_factory.h>
-#include <spdlog/sinks/base_sink.h>
-#include <boost/asio/local/datagram_protocol.hpp>
 
 #include "journald_encoding.hpp"
-#include "tfc/progbase.hpp"
+import asio;
+import std;
+import spdlog;
+import tfc.base;
 
 namespace spdlog {
 namespace sinks {
@@ -52,8 +48,8 @@ protected:
   bool enable_formatting_ = false;
   using levels_array = std::array<int, 7>;
   levels_array syslog_levels_;
-  boost::asio::io_context ctx_;
-  boost::asio::local::datagram_protocol::socket sock_;
+  asio::io_context ctx_;
+  asio::local::datagram_protocol::socket sock_;
 
   void sink_it_(const details::log_msg& msg) override {
     string_view_t payload;
@@ -65,10 +61,10 @@ protected:
       payload = msg.payload;
     }
 
-    size_t length = payload.size();
+    std::size_t length = payload.size();
     // limit to max int
-    if (length > static_cast<size_t>(std::numeric_limits<int>::max())) {
-      length = static_cast<size_t>(std::numeric_limits<int>::max());
+    if (length > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+      length = static_cast<std::size_t>(std::numeric_limits<int>::max());
     }
 
     std::vector<std::pair<std::string_view, std::string_view>> parameters;
@@ -90,8 +86,8 @@ protected:
     auto to_transmit = tfc::logger::journald::to_message(parameters);
 
     try {
-      sock_.send(boost::asio::buffer(to_transmit));
-    } catch (boost::system::system_error const& error) {
+      sock_.send(asio::buffer(to_transmit));
+    } catch (std::system_error const& error) {
       throw_spdlog_ex(fmt::format("Failed writing to systemd {}", error.what()));
     }
   }

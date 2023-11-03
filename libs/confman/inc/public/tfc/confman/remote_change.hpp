@@ -1,8 +1,9 @@
 #pragma once
 // todo rename to remote operation?
-#include <concepts>
 
 #include <glaze/glaze.hpp>
+
+import std;
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 

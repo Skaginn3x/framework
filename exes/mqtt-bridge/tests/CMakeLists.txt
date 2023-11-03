@@ -22,9 +22,6 @@ target_link_libraries(test_mqtt_bridge
     tfc::ipc
     tfc::operation_mode
     tfc::confman
-    Boost::boost
-    Boost::log
-    Boost::program_options
     OpenSSL::SSL OpenSSL::Crypto
     tfc::sparkplug::proto
 )

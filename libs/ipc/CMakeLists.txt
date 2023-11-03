@@ -19,7 +19,6 @@ target_include_directories(ipc
 
 find_package(Boost REQUIRED)
 find_package(ZeroMQ REQUIRED)
-find_package(fmt CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(stduuid CONFIG REQUIRED)
 find_path(PCG_INCLUDE_DIRS "pcg_random.hpp")
@@ -32,9 +31,9 @@ target_link_libraries(ipc
     tfc::dbus_util
     tfc::confman
     Boost::boost
-    fmt::fmt
     glaze::glaze
     stduuid
+    mod::fmt
     $<IF:$<BOOL:${ZeroMQ_LIBRARY}>,${ZeroMQ_LIBRARY},${ZeroMQ_STATIC_LIBRARY}>
 )
 

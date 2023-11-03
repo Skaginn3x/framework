@@ -31,11 +31,9 @@ target_link_libraries(ec
 
 add_executable(ethercat src/main.cpp)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
 target_link_libraries(ethercat
   PUBLIC
     tfc::ec
-    Boost::program_options
 )
 
 if (BUILD_TESTING)

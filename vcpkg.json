@@ -7,7 +7,7 @@
     "bext-sml",
     "bext-ut",
     "asio",
-    "boost-program-options",
+    "boost-stacktrace",
     "argparse",
     "date",
     "fmt",

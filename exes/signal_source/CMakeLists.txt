@@ -7,7 +7,6 @@ target_include_directories(signal_source
     ${AZMQ_INCLUDE_DIRS}
 )
 
-find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(glaze CONFIG REQUIRED)
 
 target_link_libraries(signal_source
@@ -16,7 +15,6 @@ target_link_libraries(signal_source
     tfc::base
     tfc::logger
     tfc::confman
-    Boost::program_options
     glaze::glaze
 )
 

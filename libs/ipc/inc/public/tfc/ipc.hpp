@@ -1,9 +1,7 @@
 #pragma once
 
-
-#include <fmt/format.h>
-
 import std;
+import fmt;
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>

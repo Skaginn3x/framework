@@ -1,11 +1,6 @@
 #pragma once
 
-#include <functional>
-#include <map>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <unordered_map>
+import std;
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_constants.hpp>

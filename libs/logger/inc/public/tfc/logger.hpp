@@ -1,25 +1,10 @@
 #pragma once
 
-#include <fmt/core.h>
-#include <memory>
-#include <string>
-#include <string_view>
-
-namespace spdlog {
-class async_logger;
-}  // namespace spdlog
+import std;
+import fmt;
+import spdlog;
 
 namespace tfc::logger {
-/*! Logging level*/
-enum struct lvl_e : int {
-  trace = 0,
-  debug = 1,
-  info = 2,
-  warn = 3,
-  error = 4,
-  critical = 5,
-  off = 6, /*! Log regardless of set logging level*/
-};
 
 /**
  * @brief tfc::logger class used for transmitting log messages with id aquired from tfc::base and keys from project
@@ -49,7 +34,7 @@ public:
    * @param msg String to log
    * @param parameters Variables embedded into the msg
    */
-  template <lvl_e log_level, typename... args_t>
+  template <base::log_lvl_e log_level, typename... args_t>
   void log(fmt::format_string<args_t...> msg, args_t&&... parameters) const {
     log_(log_level, fmt::vformat(msg, fmt::make_format_args(parameters...)));
   }
@@ -57,46 +42,46 @@ public:
    * @brief Log messages
    * @param msg String to log
    */
-  template <lvl_e log_level>
+  template <base::log_lvl_e log_level>
   void log(std::string_view msg) const {
     log_(log_level, msg);
   }
   template <typename... args_t>
   void trace(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
-    log<lvl_e::trace>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
+    log<base::log_lvl_e::trace>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-  void trace(std::string_view msg) const { log<lvl_e::trace>(msg); }
+  void trace(std::string_view msg) const { log<base::log_lvl_e::trace>(msg); }
   template <typename... args_t>
   void debug(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
-    log<lvl_e::debug>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
+    log<base::log_lvl_e::debug>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-  void debug(std::string_view msg) const { log<lvl_e::debug>(msg); }
+  void debug(std::string_view msg) const { log<base::log_lvl_e::debug>(msg); }
   template <typename... args_t>
   void info(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
-    log<lvl_e::info>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
+    log<base::log_lvl_e::info>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-  void info(std::string_view msg) const { log<lvl_e::info>(msg); }
+  void info(std::string_view msg) const { log<base::log_lvl_e::info>(msg); }
   template <typename... args_t>
   void warn(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
-    log<lvl_e::warn>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
+    log<base::log_lvl_e::warn>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-  void warn(std::string_view msg) const { log<lvl_e::warn>(msg); }
+  void warn(std::string_view msg) const { log<base::log_lvl_e::warn>(msg); }
   template <typename... args_t>
   void error(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
-    log<lvl_e::error>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
+    log<base::log_lvl_e::error>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-  void error(std::string_view msg) const { log<lvl_e::error>(msg); }
+  void error(std::string_view msg) const { log<base::log_lvl_e::error>(msg); }
   template <typename... args_t>
   void critical(fmt::format_string<args_t...>&& msg, args_t&&... parameters) const {
-    log<lvl_e::critical>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
+    log<base::log_lvl_e::critical>(std::forward<decltype(msg)>(msg), std::forward<args_t>(parameters)...);
   }
-  void critical(std::string_view msg) const { log<lvl_e::critical>(msg); }
+  void critical(std::string_view msg) const { log<base::log_lvl_e::critical>(msg); }
 
   /**
    * @brief Override loglevel set by program parameters
    * @param log_level new log level
    * */
-  void set_loglevel(lvl_e log_level);
+  void set_loglevel(base::log_lvl_e log_level);
 
 private:
   /**
@@ -104,7 +89,7 @@ private:
    * @param log_lvl Log level
    * @param msg String to log
    */
-  void log_(lvl_e log_lvl, std::string_view msg) const;
+  void log_(base::log_lvl_e log_lvl, std::string_view msg) const;
   std::string key_;
   std::shared_ptr<spdlog::async_logger> async_logger_;
 };

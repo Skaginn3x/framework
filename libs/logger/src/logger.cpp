@@ -1,16 +1,16 @@
-#include <string>
-
+import std;
+import fmt;
+import spdlog;
+import asio;
+import tfc.base;
 #include <tfc/logger.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include "custom_sink.hpp"
 
-#include <spdlog/async.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 
 inline constexpr std::string_view logging_pattern = "*** %l [%H:%M:%S %z] (thread %t) {0}.{1} *** \t\t %v ";
-inline constexpr size_t tp_queue_size = 128;
-inline constexpr size_t tp_worker_count = 1;
+inline constexpr std::size_t tp_queue_size = 128;
+inline constexpr std::size_t tp_worker_count = 1;
 
 namespace {
 // clang-format off

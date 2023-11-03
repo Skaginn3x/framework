@@ -12,17 +12,14 @@ target_include_directories(logger
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
 )
 
-find_package(Boost REQUIRED COMPONENTS )
-
-find_package(fmt CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-
+find_package(Boost REQUIRED COMPONENTS)
 target_link_libraries(logger
   PUBLIC
-    fmt::fmt
+    mod::fmt
+    mod::spdlog
+    mod::asio
     Boost::boost
   PRIVATE
-    spdlog::spdlog
     tfc::base
     tfc::stx
 )

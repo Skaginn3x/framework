@@ -16,8 +16,9 @@
 #include <tfc/confman/file_storage.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/utils/json_schema.hpp>
+
+import tfc.base;
 
 namespace tfc::confman {
 

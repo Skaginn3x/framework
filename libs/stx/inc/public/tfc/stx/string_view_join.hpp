@@ -1,7 +1,6 @@
 #pragma once
 
-#include <array>
-#include <string_view>
+import std;
 
 namespace tfc::stx {
 

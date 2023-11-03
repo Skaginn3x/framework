@@ -21,10 +21,11 @@
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/packet.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/socket.hpp>
+
+import tfc.base;
 
 namespace tfc::ipc::details {
 

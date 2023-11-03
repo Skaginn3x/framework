@@ -24,7 +24,7 @@
 #include <tfc/ipc/enums.hpp>
 #include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/logger.hpp>
-#include <tfc/progbase.hpp>
+import tfc.base;
 
 namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;

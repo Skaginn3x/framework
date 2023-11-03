@@ -8,7 +8,7 @@
 #include <tfc/confman/remote_change.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/progbase.hpp>
+import tfc.base;
 
 namespace tfc::confman {
 

@@ -1,5 +1,4 @@
 find_package(ut CONFIG REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(fmt CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 add_executable(observer_test observer_test.cpp)

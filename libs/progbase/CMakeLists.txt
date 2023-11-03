@@ -1,8 +1,7 @@
 project(progbase)
 
-add_library(base
-  src/progbase.cpp
-)
+add_library(base)
+target_sources(base PUBLIC FILE_SET CXX_MODULES FILES progbase.cxx)
 add_library(tfc::base ALIAS base)
 get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(base
@@ -19,7 +18,8 @@ find_package(fmt CONFIG REQUIRED)
 target_link_libraries(base
   PRIVATE
     mod::argparse
-    fmt::fmt
+    mod::fmt
+    mod::asio
     tfc::stx
 )
 

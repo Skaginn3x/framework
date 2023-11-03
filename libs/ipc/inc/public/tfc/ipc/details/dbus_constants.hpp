@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string_view>
+import std;
 #include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::ipc_ruler::consts {

@@ -23,6 +23,7 @@ target_link_libraries(operation_mode
     tfc::stx
     tfc::dbus_util
     magic_enum::magic_enum
+    mod::fmt
   PRIVATE
     PkgConfig::SDBUSPLUS
     Boost::boost

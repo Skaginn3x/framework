@@ -4,12 +4,13 @@
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
-#include <tfc/progbase.hpp>
 
 #include <fmt/format.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
+
+import tfc.base;
 
 namespace tfc::confman::detail {
 
