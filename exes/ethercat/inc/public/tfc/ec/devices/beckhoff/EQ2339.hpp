@@ -11,7 +11,7 @@
 #include <system_error>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <boost/asio.hpp>
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ipc.hpp>
