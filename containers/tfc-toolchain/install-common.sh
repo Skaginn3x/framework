@@ -15,7 +15,6 @@ hide_output apt install -y --no-install-recommends \
   zip \
   unzip \
   software-properties-common \
-  python3 \
   pkg-config \
   autoconf
 
