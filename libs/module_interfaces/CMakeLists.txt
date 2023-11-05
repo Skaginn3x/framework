@@ -36,3 +36,13 @@ target_sources(asio_mod
     asio.cxx
 )
 target_link_libraries(asio_mod PUBLIC asio::asio std)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
+add_library(sdbus_mod)
+add_library(mod::sdbus ALIAS sdbus_mod)
+target_sources(sdbus_mod
+    PUBLIC FILE_SET CXX_MODULES FILES
+    sdbusplus.cxx
+)
+target_link_libraries(sdbus_mod PUBLIC PkgConfig::SDBUSPLUS std)

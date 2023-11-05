@@ -5,8 +5,6 @@ module;
 export module asio;
 import std;
 extern "C++"{
-#include <asio/local/stream_protocol.hpp>
-#include <asio/local/datagram_protocol.hpp>
 }
 export namespace asio
 {

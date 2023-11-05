@@ -13,6 +13,7 @@ extern "C++" {
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/common.h>
 #include <spdlog/details/console_globals.h>
+#include <spdlog/details/log_msg.h>
 }
 
 export namespace spdlog {

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <concepts>
-#include <type_traits>
+import std;
 
 namespace tfc::stx {
 
