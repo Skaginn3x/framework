@@ -1,8 +1,6 @@
 #pragma once
 
-#include <concepts>
-#include <string>
-#include <tuple>
+import std;
 
 #include <magic_enum.hpp>
 

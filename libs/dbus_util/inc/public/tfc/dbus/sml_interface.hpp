@@ -1,15 +1,13 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <string_view>
-
 #include <boost/sml.hpp>
 
-#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/sml_logger.hpp>
 #include <tfc/stx/concepts.hpp>
+
+import std;
+import sdbus;
 
 namespace tfc::dbus::sml {
 

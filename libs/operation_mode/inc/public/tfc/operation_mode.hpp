@@ -1,18 +1,11 @@
 #pragma once
 
-#include <concepts>
-#include <cstdint>
-#include <functional>
-#include <system_error>
-#include <vector>
+import std;
+import sdbus;
+import asio;
 
-#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/operation_mode/common.hpp>
-
-namespace boost::asio {
-class io_context;
-}
 
 namespace tfc::operation {
 
@@ -27,13 +20,13 @@ concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>
 
 class interface {
 public:
-  explicit interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
-  interface(boost::asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
+  explicit interface(asio::io_context& ctx) : interface(ctx, "operation") {}
+  interface(asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
   /// \brief construct an interface to operation mode controller
   /// \param ctx context to run in
   /// \param log_key key to use for logging
   /// \param dbus_service_name name of the service to connect to
-  interface(boost::asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name);
+  interface(asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name);
   interface(interface const&) = delete;
   auto operator=(interface const&) -> interface& = delete;
   interface(interface&&) noexcept;

@@ -4,8 +4,7 @@
 #include <glaze/glaze.hpp>
 
 import std;
-
-#include <tfc/dbus/sdbusplus_fwd.hpp>
+import sdbus;
 
 namespace tfc::confman {
 

@@ -1,8 +1,7 @@
 #pragma once
 
 import std;
-
-#include <tfc/dbus/sdbusplus_fwd.hpp>
+import sdbus;
 #include <tfc/ipc/details/dbus_constants.hpp>
 #include <tfc/ipc/details/dbus_structs.hpp>
 #include <tfc/ipc/enums.hpp>

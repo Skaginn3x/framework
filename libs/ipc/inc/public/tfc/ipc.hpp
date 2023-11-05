@@ -2,8 +2,8 @@
 
 import std;
 import fmt;
+import sdbus;
 
-#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/dbus_ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>

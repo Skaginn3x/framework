@@ -1,7 +1,7 @@
 #pragma once
 
 // Standard
-#include <memory>
+import std;
 
 // Third party
 #include <boost/sml.hpp>

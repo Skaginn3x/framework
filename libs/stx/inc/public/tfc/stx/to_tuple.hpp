@@ -5,10 +5,7 @@
 
 // clang-format off
 
-#include <cstddef>
-#include <tuple>
-#include <type_traits>
-#include <utility>
+import std;
 
 namespace tfc::stx {
 

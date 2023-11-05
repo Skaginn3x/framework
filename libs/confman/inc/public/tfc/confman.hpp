@@ -1,23 +1,16 @@
 #pragma once
 
-#include <filesystem>
-#include <functional>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <system_error>
-#include <type_traits>
-
-#include <fmt/format.h>
 #include <glaze/glaze.hpp>
 
 #include <tfc/confman/detail/change.hpp>
 #include <tfc/confman/detail/config_dbus_client.hpp>
 #include <tfc/confman/file_storage.hpp>
-#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/utils/json_schema.hpp>
 
+import std;
+import fmt;
+import sdbus;
 import tfc.base;
 
 namespace tfc::confman {

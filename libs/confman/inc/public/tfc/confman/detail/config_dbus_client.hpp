@@ -1,14 +1,10 @@
 #pragma once
 
-#include <filesystem>
-#include <functional>
-#include <memory>
-#include <string_view>
-#include <system_error>
-
-#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/stx/to_tuple.hpp>
+
+import std;
+import sdbus;
 
 namespace boost::asio {
 class io_context;

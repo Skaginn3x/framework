@@ -8,8 +8,6 @@ target_include_directories(dbus_util
     $<INSTALL_INTERFACE:include>
 )
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 find_package(magic_enum CONFIG REQUIRED)
 
 target_link_libraries(dbus_util
@@ -19,6 +17,7 @@ target_link_libraries(dbus_util
     tfc::stx
     tfc::configure_options
     tfc::logger
+    mod::sdbus
   PRIVATE
     tfc::base
 )

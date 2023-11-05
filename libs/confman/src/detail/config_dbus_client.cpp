@@ -3,9 +3,7 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 
-#include <sdbusplus/asio/connection.hpp>
-#include <sdbusplus/asio/object_server.hpp>
-
+import sdbus;
 import tfc.base;
 import std;
 import asio;

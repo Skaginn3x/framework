@@ -15,6 +15,17 @@ namespace sinks {
 using std::string_view_literals::operator""sv;
 static constexpr std::string_view journald_socket = "/run/systemd/journal/socket"sv;
 
+enum syslog_priorities : std::uint8_t {
+    EMERG	= 0,	/* system is unusable */
+    ALERT	= 1,	/* action must be taken immediately */
+    CRIT	= 2,	/* critical conditions */
+    ERR		= 3,	/* error conditions */
+    WARNING	= 4,	/* warning conditions */
+    NOTICE	= 5,	/* normal but significant condition */
+    INFO	= 6,	/* informational */
+    DEBUG	= 7,	/* debug-level messages */
+};
+
 /**
  * Sink that write to systemd journal using the `sd_journal_send()` library call.
  */
@@ -24,13 +35,13 @@ public:
   explicit tfc_systemd_sink(std::string key, bool enable_formatting = false)
       : key_{ std::move(key) }, enable_formatting_{ enable_formatting },
         syslog_levels_{
-          { /* spdlog::level::trace      */ LOG_DEBUG,
-            /* spdlog::level::debug      */ LOG_DEBUG,
-            /* spdlog::level::info       */ LOG_INFO,
-            /* spdlog::level::warn       */ LOG_WARNING,
-            /* spdlog::level::err        */ LOG_ERR,
-            /* spdlog::level::critical   */ LOG_CRIT,
-            /* spdlog::level::off        */ LOG_INFO },
+          { /* spdlog::level::trace      */ syslog_priorities::DEBUG,
+            /* spdlog::level::debug      */ syslog_priorities::DEBUG,
+            /* spdlog::level::info       */ syslog_priorities::INFO,
+            /* spdlog::level::warn       */ syslog_priorities::WARNING,
+            /* spdlog::level::err        */ syslog_priorities::ERR,
+            /* spdlog::level::critical   */ syslog_priorities::CRIT,
+            /* spdlog::level::off        */ syslog_priorities::INFO },
         },
         sock_{ ctx_ } {
     // This throws if the socket is not available.

@@ -23,12 +23,13 @@ target_include_directories(confman
 target_link_libraries(confman
   PUBLIC
     Boost::boost
-    fmt::fmt
     glaze::glaze
     tfc::base
     tfc::stx
     tfc::dbus_util
     tfc::logger
+    mod::fmt
+    mod::sdbus
   PRIVATE
 )
 add_library_to_docs(tfc::confman)
