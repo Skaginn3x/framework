@@ -1,4 +1,5 @@
-FROM debian:10-slim AS base
+# boost-build requires newer compiler than gcc 8
+FROM debian:12-slim AS base
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -27,7 +28,7 @@ RUN cd /opt && git clone https://github.com/microsoft/vcpkg.git && cd vcpkg && .
 RUN cd /opt && chmod 775 vcpkg
 
 RUN apt-get update && apt-get install -y --no-install-recommends dbus
-RUN mkdir /var/run/dbus/
+RUN mkdir -p /var/run/dbus/
 RUN sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
 RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
 
@@ -65,7 +66,8 @@ ENV AR="llvm-ar"
 COPY build-mold.sh /tmp/
 RUN ./build-mold.sh 2.3.1
 
-RUN apt remove -y gcc g++
+# THIS is so much crap, boost-build vcpkg port strictly requires gcc, need to fix port to bypass
+#RUN apt remove -y gcc g++
 RUN apt update && apt install -y --no-install-recommends libc-dev
 RUN apt autoremove -y
 RUN apt clean all
@@ -81,6 +83,7 @@ COPY build-node.sh /tmp/
 COPY ./shared.sh /tmp/
 RUN ./build-node.sh 21.1.0
 
-RUN apt remove -y gcc
+# THIS is so much crap, boost-build vcpkg port strictly requires gcc, need to fix port to bypass
+#RUN apt remove -y gcc
 RUN apt autoremove -y
 RUN apt clean all

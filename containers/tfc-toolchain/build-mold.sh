@@ -17,4 +17,4 @@ hide_output cmake --build . --target install
 cd /tmp
 rm -rf mold-$MOLD_VERSION
 # Make mold the default linker
-ln -sf /cpproot/bin/mold /usr/bin/ld
+#ln -sf /cpproot/bin/mold /usr/bin/ld
