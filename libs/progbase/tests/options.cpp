@@ -1,6 +1,7 @@
 import argparse;
 #include <boost/ut.hpp>
-#include <tfc/progbase.hpp>
+
+import tfc.base;
 
 auto main(int argc, char** argv) -> int {
   using boost::ut::operator""_test;

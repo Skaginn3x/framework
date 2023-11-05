@@ -1,15 +1,16 @@
 #include <gmock/gmock.h>
-#include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/mocks/confman/detail/config_dbus_client.hpp>
 #include <tfc/mocks/confman/file_storage.hpp>
-#include <tfc/progbase.hpp>
+
+import tfc.base;
+import asio;
 
 namespace ut = boost::ut;
-namespace asio = boost::asio;
+namespace assio = boot::asio;
 
 using ut::operator""_test;
 using tfc::confman::observable;

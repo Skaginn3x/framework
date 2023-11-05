@@ -1,11 +1,11 @@
 /**
  * Read signal and slots property from ipc_ruler and print it out
  */
-#include <fmt/core.h>
-#include <boost/asio/io_context.hpp>
-
 #include <tfc/ipc/details/dbus_client_iface.hpp>
-#include <tfc/progbase.hpp>
+
+import tfc.base;
+import asio;
+import fmt;
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);

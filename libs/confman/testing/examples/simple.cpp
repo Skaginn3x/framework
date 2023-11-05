@@ -7,9 +7,10 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
+
+import tfc.base;
 
 namespace asio = boost::asio;
 

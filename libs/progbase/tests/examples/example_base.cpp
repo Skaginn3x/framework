@@ -1,4 +1,4 @@
-#include "tfc/progbase.hpp"
+import tfc.base;
 
 import argparse;
 

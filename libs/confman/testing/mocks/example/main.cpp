@@ -3,7 +3,8 @@
 
 #include <tfc/mocks/confman.hpp>
 #include <tfc/mocks/confman/file_storage.hpp>
-#include <tfc/progbase.hpp>
+
+import tfc.base;
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

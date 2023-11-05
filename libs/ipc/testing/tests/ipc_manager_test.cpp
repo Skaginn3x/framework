@@ -1,4 +1,3 @@
-#include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
 #include <tfc/confman/file_storage.hpp>
@@ -6,7 +5,9 @@
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/ipc/details/dbus_server_iface.hpp>
-#include <tfc/progbase.hpp>
+
+import asio;
+import tfc.base;
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

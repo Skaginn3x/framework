@@ -1,9 +1,9 @@
-
-#include <boost/asio.hpp>
 #include <tfc/operation_mode.hpp>
-#include <tfc/progbase.hpp>
 
 #include <sdbusplus/asio/connection.hpp>
+
+import asio;
+import tfc.base;
 
 namespace asio = boost::asio;
 

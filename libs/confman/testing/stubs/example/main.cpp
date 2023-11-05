@@ -1,8 +1,8 @@
-#include <boost/asio.hpp>
-
-#include <tfc/progbase.hpp>
 #include <tfc/stubs/confman.hpp>
 #include <tfc/stubs/confman/file_storage.hpp>
+
+import asio;
+import tfc.base;
 
 namespace asio = boost::asio;
 

@@ -1,8 +1,7 @@
-#include <fmt/format.h>
-
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/string_maker.hpp>
 
+import fmt;
 import tfc.base;
 
 namespace tfc::dbus {

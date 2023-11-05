@@ -1,12 +1,8 @@
-#include <iostream>
-#include <system_error>
-
-#include <boost/asio/io_context.hpp>
-
 #include <tfc/ipc/details/dbus_client_iface.hpp>
-#include <tfc/progbase.hpp>
 
-namespace asio = boost::asio;
+import std;
+import asio;
+import tfc.base;
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
