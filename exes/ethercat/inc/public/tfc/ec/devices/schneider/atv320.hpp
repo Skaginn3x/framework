@@ -454,7 +454,8 @@ static_assert(percentage_to_deci_freq(-10000 * mp_units::percent,
 // outside bounds forward
 static_assert(percentage_to_deci_freq(10000 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz, .reverse = false });
+                                      high_speed_HSP{ .value = 500 * dHz }) ==
+              speed{ .value = 500 * dHz, .reverse = false });
 }  // namespace detail
 
 template <typename manager_client_type>
@@ -616,11 +617,11 @@ public:
 
     if (reference_frequency_.reverse) {
       std::bitset<16> command_word{ std::to_underlying(command) };
-      static constexpr std::size_t reverse_bit = 11; // from https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
+      static constexpr std::size_t reverse_bit =
+          11;  // from https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
       command_word.set(reverse_bit, true);
       out->command_word = static_cast<uint16_t>(command_word.to_ulong());
-    }
-    else {
+    } else {
       out->command_word = static_cast<uint16_t>(command);
     }
 

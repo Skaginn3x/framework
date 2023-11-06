@@ -13,13 +13,13 @@
 namespace tfc::ec::util {
 template <typename from, typename to>
 inline constexpr auto map(from value, from in_min, from in_max, to out_min, to out_max) noexcept -> to {
-  return static_cast<to>(static_cast<double>(std::max(std::min(value, in_max), in_min) - in_min) * static_cast<double>(out_max - out_min) /
-                             static_cast<double>(in_max - in_min) +
+  return static_cast<to>(static_cast<double>(std::max(std::min(value, in_max), in_min) - in_min) *
+                             static_cast<double>(out_max - out_min) / static_cast<double>(in_max - in_min) +
                          static_cast<double>(out_min));
 }
 static_assert(map(10, 0, 10, 0, 20) == 20);
-static_assert(map(100000, 0, 10, 0, 20) == 20); // above max
-static_assert(map(0, 1, 10, 0, 20) == 0); // below min
+static_assert(map(100000, 0, 10, 0, 20) == 20);  // above max
+static_assert(map(0, 1, 10, 0, 20) == 0);        // below min
 static_assert(map(500, 0, 1000, 0, 20) == 10);
 static_assert(map(500.0, 0.0, 1000.0, 0, 20) == 10);
 static_assert(map(500, 0, 1000, 0.0, 20.0) == 10);
