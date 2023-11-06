@@ -12,7 +12,7 @@
 
 namespace tfc::ec::util {
 template <typename from, typename to>
-inline constexpr auto map(from value, from in_min, from in_max, to out_min, to out_max) noexcept -> to {
+constexpr auto map(from value, from in_min, from in_max, to out_min, to out_max) noexcept -> to {
   return static_cast<to>(static_cast<double>(std::max(std::min(value, in_max), in_min) - in_min) *
                              static_cast<double>(out_max - out_min) / static_cast<double>(in_max - in_min) +
                          static_cast<double>(out_min));

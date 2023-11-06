@@ -404,7 +404,7 @@ struct speed {
   bool reverse{ false };
   constexpr auto operator==(speed const& other) const noexcept -> bool = default;
 };
-inline constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, double> percentage,
+constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, double> percentage,
                                               [[maybe_unused]] low_speed_LSP min_freq,
                                               [[maybe_unused]] high_speed_HSP max_freq) noexcept -> speed {
   if (percentage == 0 * mp_units::percent) {
