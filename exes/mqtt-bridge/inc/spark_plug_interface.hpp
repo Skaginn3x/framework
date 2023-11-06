@@ -10,7 +10,6 @@
 import std;
 import asio;
 
-
 namespace async_mqtt {
 class buffer;
 namespace v5 {

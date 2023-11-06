@@ -78,7 +78,7 @@ auto main(int argc, char** argv) -> int {
       .action([&slot](const std::string& val) { slot = val; })
       .help("IPC slot channel (input)");
   description.add_argument("--connect")
-      .action([&slot](const std::vector<std::string>& val) {  connect = val; })
+      .action([&slot](const std::vector<std::string>& val) { connect = val; })
       .help("Connect to these slots");
   tfc::base::init(argc, argv, description);
 

@@ -8,7 +8,6 @@
 import tfc.base;
 import fmt;
 
-
 struct the_owner {
   MOCK_METHOD((void), enter_stopped, (), ());
   MOCK_METHOD((void), leave_stopped, (), ());

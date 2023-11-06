@@ -8,7 +8,6 @@ import tfc.base;
 #include <tfc/utils/pragmas.hpp>
 #include "custom_sink.hpp"
 
-
 inline constexpr std::string_view logging_pattern = "*** %l [%H:%M:%S %z] (thread %t) {0}.{1} *** \t\t %v ";
 inline constexpr std::size_t tp_queue_size = 128;
 inline constexpr std::size_t tp_worker_count = 1;

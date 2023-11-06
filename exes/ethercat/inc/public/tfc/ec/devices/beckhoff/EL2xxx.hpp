@@ -10,7 +10,6 @@ import asio;
 
 namespace tfc::ec::devices::beckhoff {
 
-
 template <typename manager_client_type, size_t size, uint32_t pc, tfc::stx::basic_fixed_string name>
 class el2xxx final : public base {
 public:

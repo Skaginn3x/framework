@@ -11,9 +11,10 @@ namespace asio = boost::asio;
 auto main(int argc, char** argv) -> int {
   auto desc{ tfc::base::default_parser() };
   std::string device{};
-  desc.add_argument("-d", "--device").action([&device](const std::string& val){
-                                       device = val;
-                                     }).default_value(std::string("/dev/gpiochip0")).help("GPIO character device.");
+  desc.add_argument("-d", "--device")
+      .action([&device](const std::string& val) { device = val; })
+      .default_value(std::string("/dev/gpiochip0"))
+      .help("GPIO character device.");
   tfc::base::init(argc, argv, desc);
 
   asio::io_context ctx{};
