@@ -22,10 +22,10 @@ hide_output cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_BUILD_LLVM_DYLIB=ON \
   -DLLVM_LINK_LLVM_DYLIB=ON \
   -DLIBCXX_ENABLE_STD_MODULES=ON \
-  -DLLVM_TARGETS_TO_BUILD="host;AArch64" \
   -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
   -DCMAKE_INSTALL_PREFIX=/cpproot/ \
   -S llvm-project-$LLVM_VERSION.src/llvm -B llvm-build
+  #-DLLVM_TARGETS_TO_BUILD="host;AArch64" \
 hide_output cmake --build llvm-build
 hide_output cmake --install llvm-build
 

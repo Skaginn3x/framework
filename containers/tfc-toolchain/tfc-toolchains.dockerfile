@@ -60,7 +60,7 @@ ENV CC=clang
 ENV CXX=clang++
 ENV CFLAGS="-stdlib=libc++"
 ENV CXXFLAGS="-stdlib=libc++"
-ENV LDFLAGS="-fuse-ld=lld -stdlib=libc++ -rtlib=compiler-rt"
+ENV LDFLAGS="-fuse-ld=lld -stdlib=libc++"
 ENV AR="llvm-ar"
 
 COPY build-mold.sh /tmp/
