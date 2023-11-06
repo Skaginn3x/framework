@@ -1,6 +1,7 @@
 #pragma once
 
-#include <boost/asio.hpp>
+import asio;
+
 #include <tfc/stx/glaze_meta.hpp>
 #include "state_machine.hpp"
 #include "state_machine_owner.hpp"

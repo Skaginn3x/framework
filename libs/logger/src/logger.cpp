@@ -3,6 +3,7 @@ import fmt;
 import spdlog;
 import asio;
 import tfc.base;
+#include <stdio.h>
 #include <tfc/logger.hpp>
 #include <tfc/utils/pragmas.hpp>
 #include "custom_sink.hpp"
@@ -27,7 +28,7 @@ tfc::logger::logger::logger(std::string_view key) : key_{ key } {
   std::shared_ptr<spdlog::sinks::tfc_systemd_sink_mt> systemd;
   try {
     systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_);
-  } catch (boost::system::system_error const& err) {
+  } catch (std::system_error const& err) {
     auto loc = std::source_location::current();
     fmt::print(
         stderr,

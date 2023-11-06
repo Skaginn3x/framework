@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cerrno>
-#include <exception>
-#include <string>
+import std;
 
 #include <systemd/sd-bus.h>
 

@@ -10,7 +10,6 @@ import asio;
 #include <tfc/ipc/details/dbus_structs.hpp>
 #include <tfc/ipc/enums.hpp>
 #include <tfc/stx/concepts.hpp>
-#include <tfc/utils/asio_fwd.hpp>
 
 namespace tfc::ipc_ruler {
 

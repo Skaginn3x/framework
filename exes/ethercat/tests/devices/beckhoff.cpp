@@ -1,4 +1,3 @@
-#include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
 #include <tfc/ec/devices/beckhoff/EL1xxx_impl.hpp>
@@ -6,7 +5,9 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/mocks/ipc.hpp>
-#include <tfc/progbase.hpp>
+
+import tfc.base;
+import asio;
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

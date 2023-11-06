@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tfc/utils/asio_fwd.hpp>
+import asio;
 
 namespace tfc::mqtt {
 

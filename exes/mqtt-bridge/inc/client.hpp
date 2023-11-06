@@ -1,18 +1,12 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <tuple>
-
-#include <boost/asio.hpp>
-
 #include <config/broker.hpp>
 #include <config/broker_mock.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
-#include <tfc/utils/asio_fwd.hpp>
+
+import std;
+import asio;
 
 namespace async_mqtt {
 enum class qos : std::uint8_t;
@@ -30,8 +24,6 @@ namespace tfc::mqtt {
 
 class endpoint_client;
 class endpoint_client_mock;
-
-namespace asio = boost::asio;
 
 template <class client_t, class config_t>
 class client {

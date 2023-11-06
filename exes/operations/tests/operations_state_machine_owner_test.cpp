@@ -1,13 +1,11 @@
 #include <gmock/gmock.h>
-#include <boost/asio/io_context.hpp>
 #include <boost/ut.hpp>
-
 #include <tfc/mocks/ipc.hpp>
-#include <tfc/progbase.hpp>
-
 #include "details/state_machine_owner_impl.hpp"
 
-namespace asio = boost::asio;
+import tfc.base;
+import asio;
+
 namespace ut = boost::ut;
 using ut::operator""_test;
 using ut::operator|;

@@ -2,10 +2,12 @@
 #include <boost/sml.hpp>
 #include <boost/ut.hpp>
 
-#include <fmt/format.h>
 #include <tfc/operation_mode/common.hpp>
-#include <tfc/progbase.hpp>
 #include "details/state_machine.hpp"
+
+import tfc.base;
+import fmt;
+
 
 struct the_owner {
   MOCK_METHOD((void), enter_stopped, (), ());

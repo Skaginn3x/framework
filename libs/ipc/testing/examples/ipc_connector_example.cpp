@@ -7,7 +7,7 @@ import tfc.base;
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-  boost::asio::io_context ctx;
+  asio::io_context ctx;
   tfc::ipc_ruler::ipc_manager_client client(ctx);
 
   client.register_signal("signal", "", tfc::ipc::details::type_e::_bool, [](const std::error_code& ec) {

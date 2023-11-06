@@ -1,6 +1,8 @@
 #include <boost/asio.hpp>
-#include <tfc/progbase.hpp>
 #include "app_operation_mode.hpp"
+
+import tfc.base;
+import asio;
 
 namespace asio = boost::asio;
 

@@ -1,15 +1,17 @@
-#include <boost/asio.hpp>
 #include <boost/ut.hpp>
-#include <sdbusplus/asio/property.hpp>
 
 #include <tfc/confman/remote_change.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/mocks/ipc.hpp>
 #include <tfc/operation_mode.hpp>
-#include <tfc/progbase.hpp>
 
 #include "details/app_operation_mode_impl.hpp"
 #include "details/state_machine_owner_impl.hpp"
+
+import tfc.base;
+import asio;
+import sdbus;
+
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

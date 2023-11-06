@@ -1,4 +1,3 @@
-#include <boost/asio.hpp>
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 #include <tfc/confman/file_storage.hpp>
@@ -8,6 +7,7 @@
 
 import tfc.base;
 import std;
+import asio;
 
 namespace ut = boost::ut;
 using ut::operator""_test;

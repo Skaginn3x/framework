@@ -1,21 +1,15 @@
 #pragma once
 
-#include <bitset>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <span>
-#include <vector>
-
 #include <tfc/ec/devices/base.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc_fwd.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
-#include <tfc/utils/asio_fwd.hpp>
+
+import std;
+import asio;
 
 namespace tfc::ec::devices::beckhoff {
 
-namespace asio = boost::asio;
 
 template <typename manager_client_type, size_t size, uint32_t pc, tfc::stx::basic_fixed_string name>
 class el2xxx final : public base {

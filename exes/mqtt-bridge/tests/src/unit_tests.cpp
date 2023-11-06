@@ -1,9 +1,4 @@
-#include <chrono>
-#include <string>
-
 #include <async_mqtt/all.hpp>
-#include <boost/asio.hpp>
-#include <boost/program_options.hpp>
 #include <boost/ut.hpp>
 
 #include <client.hpp>
@@ -11,10 +6,11 @@
 #include <spark_plug_interface.hpp>
 #include <test_external_to_tfc.hpp>
 #include <test_tfc_to_external.hpp>
-#include <tfc/progbase.hpp>
 
+import std;
+import tfc.base;
+import asio;
 namespace ut = boost::ut;
-namespace asio = boost::asio;
 
 using ut::operator""_test;
 using ut::operator>>;
@@ -22,8 +18,7 @@ using ut::expect;
 using ut::fatal;
 
 auto main(int argc, char* argv[]) -> int {
-  auto program_description{ tfc::base::default_description() };
-  tfc::base::init(argc, argv, program_description);
+  tfc::base::init(argc, argv);
   asio::io_context io_ctx;
 
   "testing tfc to external"_test = [&]() {

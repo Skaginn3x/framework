@@ -19,7 +19,10 @@ extern "C++" {
 export namespace spdlog {
 using spdlog::async_logger;
 using spdlog::sinks::base_sink;
+using spdlog::sinks::stderr_color_sink_mt;
+using spdlog::sink_ptr;
 using spdlog::details::thread_pool;
+using spdlog::async_overflow_policy;
 using spdlog::level_t;
 using spdlog::level::level_enum;
 using spdlog::string_view_t;

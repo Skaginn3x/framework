@@ -1,12 +1,9 @@
-#include <boost/asio.hpp>
-#include <boost/program_options.hpp>
-
-#include <tfc/progbase.hpp>
-
 #include "gpio.hpp"
 
+import tfc.base;
 import std;
 import argparse;
+import asio;
 
 namespace bpo = boost::program_options;
 namespace asio = boost::asio;

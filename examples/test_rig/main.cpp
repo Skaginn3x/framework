@@ -1,17 +1,14 @@
-#include <string>
-#include <string_view>
-
-#include <boost/asio.hpp>
 #include <glaze/glaze.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/operation_mode.hpp>
-#include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/json_schema.hpp>
 
-namespace asio = boost::asio;
+import std;
+import asio;
+import tfc.base;
 
 struct config_struct {
   std::chrono::milliseconds servo_cycle{};
