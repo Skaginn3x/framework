@@ -29,22 +29,7 @@ struct control_word {
   bool reserved_5 : 1 {};
 
   static constexpr auto from_uint(std::uint16_t word) noexcept -> control_word {
-    return control_word{ .operating_state_switch_on = static_cast<bool>(word & 0b1),
-                         .enable_voltage = static_cast<bool>(word & 0b10),
-                         .operating_state_quick_stop = static_cast<bool>(word & 0b100),
-                         .enable_operation = static_cast<bool>(word & 0b1000),
-                         .operating_mode_specific_0 = static_cast<bool>(word & 0b10000),
-                         .operating_mode_specific_1 = static_cast<bool>(word & 0b100000),
-                         .operating_mode_specific_2 = static_cast<bool>(word & 0b1000000),
-                         .fault_reset = static_cast<bool>(word & 0b10000000),
-                         .halt = static_cast<bool>(word & 0b100000000),
-                         .operating_mode_specific_3 = static_cast<bool>(word & 0b1000000000),
-                         .reserved_0 = static_cast<bool>(word & 0b10000000000),
-                         .reserved_1 = static_cast<bool>(word & 0b100000000000),
-                         .reserved_2 = static_cast<bool>(word & 0b1000000000000),
-                         .reserved_3 = static_cast<bool>(word & 0b10000000000000),
-                         .reserved_4 = static_cast<bool>(word & 0b100000000000000),
-                         .reserved_5 = static_cast<bool>(word & 0b1000000000000000) };
+    return std::bit_cast<control_word>(word);
   }
 
   constexpr explicit operator uint16_t() const noexcept {
@@ -208,26 +193,8 @@ struct status_word {
     return states_e::not_ready_to_switch_on;
   }
 
-  static constexpr auto from_uint(uint16_t word) -> status_word {
-    std::bitset<16> word_bitset{ word };
-    return {
-      .state_ready_to_switch_on = word_bitset[0],
-      .state_switched_on = word_bitset[1],
-      .state_operation_enabled = word_bitset[2],
-      .state_fault = word_bitset[3],
-      .voltage_enabled = word_bitset[4],
-      .state_quick_stop = word_bitset[5],
-      .state_switch_on_disabled = word_bitset[6],
-      .warning = word_bitset[7],
-      .halt_request_active = word_bitset[8],
-      .remote = word_bitset[9],
-      .target_reached = word_bitset[10],
-      .internal_limit_active = word_bitset[11],
-      .application_specific_0 = word_bitset[12],
-      .application_specific_1 = word_bitset[13],
-      .application_specific_2 = word_bitset[14],
-      .application_specific_3 = word_bitset[15],
-    };
+  static constexpr auto from_uint(uint16_t word) noexcept -> status_word {
+    return std::bit_cast<status_word>(word);
   }
 };
 
