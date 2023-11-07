@@ -22,7 +22,6 @@ static_assert(map(100000, 0, 10, 0, 20) == 20);  // above max
 static_assert(map(0, 1, 10, 0, 20) == 0);        // below min
 static_assert(map(500, 0, 1000, 0, 20) == 10);
 static_assert(map(500.0, 0.0, 1000.0, 0, 20) == 10);
-static_assert(map(500, 0, 1000, 0.0, 20.0) == 10);
 
 /// \brief Generic setting struct for enums and arithmetic types
 /// Please note that below are specialization of this same struct for useful unit notations like std::chrono

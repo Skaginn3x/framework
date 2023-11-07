@@ -416,6 +416,8 @@ constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, dou
                              max_freq.value.numerical_value_) };
   return { .value = mapped * dHz, .reverse = reverse };
 }
+// gcc only supports constexpr std::abs and there is no feature flag
+#ifdef __GNUC__
 // stop test
 static_assert(percentage_to_deci_freq(0 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
@@ -456,6 +458,7 @@ static_assert(percentage_to_deci_freq(10000 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
                                       high_speed_HSP{ .value = 500 * dHz }) ==
               speed{ .value = 500 * dHz, .reverse = false });
+#endif
 }  // namespace detail
 
 template <typename manager_client_type>
