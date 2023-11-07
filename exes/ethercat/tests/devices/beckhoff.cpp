@@ -199,6 +199,24 @@ auto main(int argc, const char* argv[]) -> int {
       EXPECT_CALL(*transmitters.at(15), async_send_cb(false, testing::_)).Times(0);
       vars.device.process_data(buffer, {});
     };
+
+    static constexpr auto process_data{ []<std::size_t size>(auto& eq2339, std::bitset<size> test_value) {
+      for (std::size_t idx{ 0 }; idx < test_value.size(); idx++) {
+        eq2339.set_output(idx, test_value[idx]);
+      }
+      std::array<std::byte, 1> buffer{};
+      eq2339.process_data({}, buffer);
+      std::uint16_t buffer_out{ std::to_integer<uint8_t>(buffer[0]) };  // NOLINT
+      decltype(test_value) buffer_bitset{ buffer_out };
+      return buffer_bitset;
+    } };
+
+    "16 outputs"_test = [](std::bitset<16> test_value) {
+      test_vars<beckhoff::eq2339<ipc_manager_client_mock>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
+      auto bitset{ process_data(vars.device, test_value) };
+      ut::expect(bitset == test_value);
+    } | std::vector<std::bitset<16>>{ 0b1010101010101010, 0b1111000011110000, 0b1111111111111111, 0b0000000000000000 };
+
   };
 
   return static_cast<int>(ut::cfg<>.run({ .report_errors = true }));
