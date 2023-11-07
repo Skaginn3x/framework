@@ -610,7 +610,8 @@ public:
     last_frequency_ = frequency;
     using tfc::ec::cia_402::commands_e;
     using tfc::ec::cia_402::states_e;
-    auto command = tfc::ec::cia_402::transition(state, !running_);
+    bool const quick_stop = !running_ || reference_frequency_.value == 0 * dHz;
+    auto command = tfc::ec::cia_402::transition(state, quick_stop);
 
     if (cia_402::to_string(command) != last_command_) {
       command_transmitter_.async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
