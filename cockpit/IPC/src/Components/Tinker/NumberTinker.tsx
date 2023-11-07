@@ -40,7 +40,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
         addAlert(`Data Validation Error: ${error}`, AlertVariant.danger);
         return;
       }
-      if (!inputValue) {
+      if (inputValue === undefined || inputValue === null) {
         addAlert('Input Error: Invalid Input', AlertVariant.danger);
         return;
       }
