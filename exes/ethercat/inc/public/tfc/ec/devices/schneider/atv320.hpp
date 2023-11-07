@@ -405,8 +405,8 @@ struct speed {
   constexpr auto operator==(speed const& other) const noexcept -> bool = default;
 };
 constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, double> percentage,
-                                              [[maybe_unused]] low_speed_LSP min_freq,
-                                              [[maybe_unused]] high_speed_HSP max_freq) noexcept -> speed {
+                                       [[maybe_unused]] low_speed_LSP min_freq,
+                                       [[maybe_unused]] high_speed_HSP max_freq) noexcept -> speed {
   if (percentage == 0 * mp_units::percent) {
     return { .value = 0 * dHz, .reverse = false };
   }
@@ -616,7 +616,8 @@ public:
     }
 
     out->command_word = cia_402::control_word::from_uint(std::to_underlying(command));
-    // Reverse bit is bit 11 of control word from https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
+    // Reverse bit is bit 11 of control word from
+    // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
     out->command_word.reserved_1 = reference_frequency_.reverse;
 
     out->frequency = running_ ? reference_frequency_.value.numerical_value_ : 0;
