@@ -28,9 +28,7 @@ struct control_word {
   bool reserved_4 : 1 {};
   bool reserved_5 : 1 {};
 
-  static constexpr auto from_uint(std::uint16_t word) noexcept -> control_word {
-    return std::bit_cast<control_word>(word);
-  }
+  static constexpr auto from_uint(std::uint16_t word) noexcept -> control_word { return std::bit_cast<control_word>(word); }
 
   constexpr explicit operator uint16_t() const noexcept {
     std::bitset<16> output{};
@@ -193,9 +191,7 @@ struct status_word {
     return states_e::not_ready_to_switch_on;
   }
 
-  static constexpr auto from_uint(uint16_t word) noexcept -> status_word {
-    return std::bit_cast<status_word>(word);
-  }
+  static constexpr auto from_uint(uint16_t word) noexcept -> status_word { return std::bit_cast<status_word>(word); }
 };
 
 static_assert(sizeof(status_word) == 2);
