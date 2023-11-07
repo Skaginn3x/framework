@@ -554,7 +554,7 @@ public:
   };
   static_assert(sizeof(input_t) == 12);
   struct output_t {
-    uint16_t command_word{};
+    cia_402::control_word command_word{};
     uint16_t frequency{};
     uint16_t digital_outputs{};
   };
@@ -615,15 +615,9 @@ public:
       });
     }
 
-    if (reference_frequency_.reverse) {
-      std::bitset<16> command_word{ std::to_underlying(command) };
-      static constexpr std::size_t reverse_bit =
-          11;  // from https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
-      command_word.set(reverse_bit, true);
-      out->command_word = static_cast<uint16_t>(command_word.to_ulong());
-    } else {
-      out->command_word = static_cast<uint16_t>(command);
-    }
+    out->command_word = cia_402::control_word::from_uint(std::to_underlying(command));
+    // Reverse bit is bit 11 of control word from https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
+    out->command_word.reserved_1 = reference_frequency_.reverse;
 
     out->frequency = running_ ? reference_frequency_.value.numerical_value_ : 0;
   }

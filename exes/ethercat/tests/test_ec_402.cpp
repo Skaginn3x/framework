@@ -35,6 +35,8 @@ auto main(int, char**) -> int {
 }
 
 namespace compile_tests {
+using tfc::ec::cia_402::commands_e;
+using tfc::ec::cia_402::control_word;
 using tfc::ec::cia_402::states_e;
 using tfc::ec::cia_402::status_word;
 
@@ -96,5 +98,9 @@ static_assert(states_e::fault == status_word{ .state_fault = 1 }.parse_state());
 static_assert(states_e::fault == status_word{ .state_fault = 1, .voltage_enabled = 1 }.parse_state());
 static_assert(states_e::fault == status_word{ .state_fault = 1, .state_quick_stop = 1 }.parse_state());
 static_assert(states_e::fault == status_word{ .state_fault = 1, .voltage_enabled = 1, .state_quick_stop = 1 }.parse_state());
+
+static_assert(control_word::from_uint(static_cast<std::uint16_t>(
+                  control_word{ .operating_state_switch_on = true, .operating_state_quick_stop = true, .halt = true })) ==
+              control_word{ .operating_state_switch_on = true, .operating_state_quick_stop = true, .halt = true });
 
 }  // namespace compile_tests

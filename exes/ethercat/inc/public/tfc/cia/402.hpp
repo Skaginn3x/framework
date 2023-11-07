@@ -28,6 +28,25 @@ struct control_word {
   bool reserved_4 : 1 {};
   bool reserved_5 : 1 {};
 
+  static constexpr auto from_uint(std::uint16_t word) noexcept -> control_word {
+    return control_word{ .operating_state_switch_on = static_cast<bool>(word & 0b1),
+                         .enable_voltage = static_cast<bool>(word & 0b10),
+                         .operating_state_quick_stop = static_cast<bool>(word & 0b100),
+                         .enable_operation = static_cast<bool>(word & 0b1000),
+                         .operating_mode_specific_0 = static_cast<bool>(word & 0b10000),
+                         .operating_mode_specific_1 = static_cast<bool>(word & 0b100000),
+                         .operating_mode_specific_2 = static_cast<bool>(word & 0b1000000),
+                         .fault_reset = static_cast<bool>(word & 0b10000000),
+                         .halt = static_cast<bool>(word & 0b100000000),
+                         .operating_mode_specific_3 = static_cast<bool>(word & 0b1000000000),
+                         .reserved_0 = static_cast<bool>(word & 0b10000000000),
+                         .reserved_1 = static_cast<bool>(word & 0b100000000000),
+                         .reserved_2 = static_cast<bool>(word & 0b1000000000000),
+                         .reserved_3 = static_cast<bool>(word & 0b10000000000000),
+                         .reserved_4 = static_cast<bool>(word & 0b100000000000000),
+                         .reserved_5 = static_cast<bool>(word & 0b1000000000000000) };
+  }
+
   constexpr explicit operator uint16_t() const noexcept {
     std::bitset<16> output{};
     output.set(0, operating_state_switch_on);
@@ -48,6 +67,7 @@ struct control_word {
     output.set(15, reserved_5);
     return static_cast<uint16_t>(output.to_ulong());
   }
+  auto constexpr operator==(control_word const&) const noexcept -> bool = default;
 };
 
 static_assert(sizeof(control_word) == 2);
@@ -64,6 +84,8 @@ enum struct commands_e : uint16_t {
                                                          .enable_operation = true }),
   fault_reset = static_cast<uint16_t>(control_word{ .fault_reset = true })
 };
+
+static_assert(sizeof(commands_e) == sizeof(control_word));
 
 [[maybe_unused]] static auto to_string(commands_e value) -> std::string {
   using std::string_literals::operator""s;
