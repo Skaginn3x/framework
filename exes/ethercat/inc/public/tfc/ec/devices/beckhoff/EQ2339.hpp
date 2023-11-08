@@ -61,8 +61,6 @@ public:
 
   auto set_output(size_t position, bool value) -> void { output_states_.set(position, value); }
 
-  auto setup() -> int final { return 1; }
-
   auto transmitters() const noexcept -> auto const& { return transmitters_; }
 
 private:
