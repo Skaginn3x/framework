@@ -148,3 +148,32 @@ export async function fetchDataFromDBus(name: string, iface: string, path: strin
 
   return { parsedData, parsedSchema };
 }
+
+/**
+   * Finds all internal null values and sets them to actual null.
+   * This is need because UI-schema handles null weirdly
+   * @param data Configuration values
+   * @returns updated Configuration values
+   */
+export function handleNullValue(data: any): any {
+  if (Array.isArray(data)) {
+    return data.filter((item) => item != null && item !== undefined).map(handleNullValue);
+  }
+  if (typeof data === 'object' && data !== null) {
+    const newObj: any = {};
+    // eslint-disable-next-line no-restricted-syntax, guard-for-in
+    for (const key in data) {
+      const childObj = handleNullValue(data[key]);
+
+      if (key === 'internal_null_value_do_not_use' && childObj === null) {
+        return null; // Set the entire object to null if this key is present and its value is null
+      }
+
+      if (childObj !== undefined) {
+        newObj[key] = childObj;
+      }
+    }
+    return newObj;
+  }
+  return data;
+}
