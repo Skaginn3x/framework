@@ -9,26 +9,7 @@
 
 #include <tfc/motors/ethercat.hpp>
 #include <tfc/motors/mock.hpp>
-
-namespace tfc::motor::impl {
-
-using mp_units::QuantityOf;
-using namespace mp_units::si::unit_symbols;
-using namespace mp_units;
-
-/**
- * @brief Retrieve a frequency to run a motor at, given it's nominal speed @ 50Hz and a linear relationship between the
- * motors frequency and output speed.
- * @param reference_speed Motor speed at 50Hz
- * @param target_speed target velocity
- * @return Frequency to maintain `target_speed`
- */
-constexpr auto nominal_at_50Hz_to_frequency(QuantityOf<isq::velocity> auto reference_speed,
-                                                   QuantityOf<isq::velocity> auto target_speed) {
-  return 50. * Hz * (target_speed / reference_speed);
-}
-
-}  // namespace tfc::motor::impl
+#include <tfc/motors/errors.hpp>
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -75,15 +56,7 @@ public:
   interface(interface&) = delete;
   interface(interface&&) = delete;
 
-  void pump() {
-    return std::visit(
-        [](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            motor_impl_.pump();
-          }
-        },
-        impl_);
-  }
+  void pump() {}
   void pump(QuantityOf<mp_units::isq::volume_flow_rate> auto) {}
   void pump(QuantityOf<mp_units::isq::volume_flow_rate> auto,
             QuantityOf<mp_units::isq::volume> auto,
@@ -94,8 +67,28 @@ public:
   void pump(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
   void pump(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
-  void convey() {}
-  void convey(QuantityOf<mp_units::isq::velocity> auto) {}
+  [[nodiscard]] auto convey() -> std::error_code {
+    return std::visit(
+        [](auto& motor_impl_) -> std::error_code {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.convey();
+          } else {
+            return motor_error(errors::err_enum::no_motor_configured);
+          }
+        },
+        impl_);
+  }
+  [[nodiscard]] auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {
+    return std::visit(
+        [&](auto& motor_impl_) -> std::error_code {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.convey(vel);
+          } else {
+            return motor_error(errors::err_enum::no_motor_configured);
+          }
+        },
+        impl_);
+  }
   void convey(QuantityOf<mp_units::isq::velocity> auto,
               QuantityOf<mp_units::isq::length> auto,
               std::invocable<std::error_code> auto) {}
@@ -135,8 +128,9 @@ public:
 private:
   asio::io_context& ctx_;
 
-  using implementations = std::variant<std::monostate, types::virtual_motor, types::ethercat_motor>;
-  using config_t = std::variant<std::monostate, types::virtual_motor::config_t, types::ethercat_motor::config_t>;
+  //TODO(omarhogni): Implement convey and move over ethercat motor
+  using implementations = std::variant<std::monostate, types::virtual_motor>; //, types::ethercat_motor>;
+  using config_t = std::variant<std::monostate, types::virtual_motor::config_t>; // , types::ethercat_motor::config_t>;
   implementations impl_;
   confman::config<confman::observable<config_t>> config_;
   logger::logger logger_;

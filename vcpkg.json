@@ -20,10 +20,7 @@
       ]
     },
     "magic-enum",
-    {
-      "name": "mp-units",
-      "version>=": "2.0.0"
-    },
+    "mp-units",
     "openssl",
     "pcg",
     "protobuf",

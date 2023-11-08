@@ -1,6 +1,7 @@
 #include <tfc/progbase.hpp>
 #include <tfc/motor.hpp>
 #include <mp-units/systems/si/unit_symbols.h>
+#include <iostream>
 
 namespace motor = tfc::motor;
 using namespace mp_units::si::unit_symbols;  // NOLINT(*-build-using-namespace)
@@ -17,18 +18,20 @@ auto main(int argc, char** argv) -> int {
   //my_motor.pump(10 * (l / min), 10 * l, [](const std::error_code&) {});
   //my_motor.pump(10 * (l / min), 10 * min, [](const std::error_code&) {});
 
+  std::error_code err;
+
   // Configured speed
   my_motor.pump();
   //my_motor.pump(10 * l, [](const std::error_code&) {});
   my_motor.pump(10 * min, [](const std::error_code&) {});
 
   /// Linear transport
-  my_motor.convey(10 * (m / s));
+  err =  my_motor.convey(10 * (m / s));
   my_motor.convey(10 * (m / s), 10 * m, [](const std::error_code&) {});
   my_motor.convey(10 * (m / s), 10 * min, [](const std::error_code&) {});
 
   // Configured speed
-  my_motor.convey();
+  err =  my_motor.convey();
   my_motor.convey(10 * m, [](const std::error_code&) {});
   my_motor.convey(10 * min, [](const std::error_code&) {});
 
@@ -74,6 +77,9 @@ auto main(int argc, char** argv) -> int {
   my_motor.run(-50);
 
   ctx.run();
+  if (err) {
+    std::cout << err << std::endl;
+  }
 
   return EXIT_SUCCESS;
 }

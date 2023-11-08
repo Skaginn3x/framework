@@ -1,17 +1,29 @@
 #include <string>
+
+#include <mp-units/format.h>
+#include <mp-units/ostream.h>
+#include <mp-units/systems/isq/isq.h>
+#include <mp-units/systems/si/si.h>
+
+#include <tfc/motors/impl.hpp>
+#include <tfc/motors/errors.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::types {
+using mp_units::QuantityOf;
 using tfc::confman::observable;
+using namespace mp_units::si::unit_symbols;
 class virtual_motor {
 private:
   struct config {
     using impl = virtual_motor;
     observable<std::string> name;
+    std::optional<mp_units::quantity<mp_units::si::milli<mp_units::si::metre> / mp_units::si::second>> nominal;
     struct glaze {
       using T = config;
-      static constexpr auto value = glz::object("name", &T::name);
+      static constexpr auto value = glz::object("name", &T::name, "nominal", &T::nominal);
       static constexpr std::string_view name{ "printing_motor" };
     };
     auto operator==(const config&) const noexcept -> bool = default;
@@ -26,10 +38,22 @@ public:
       logger_ = logger::logger(new_v);
     });
   }
-  ~virtual_motor(){
-    logger_.info("virtual_motor d-tor: {}", config_.name.value());
+  ~virtual_motor() {}
+  auto convey() -> std::error_code {
+    logger_.info("convey!");
+    return {};
   }
-  void pump() { logger_.info("pump!"); }
+
+  auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {
+    if (!config_.nominal){
+      return tfc::motor::motor_error(errors::err_enum::motor_missing_speed_reference);
+    }
+    [[maybe_unused]] auto frequency = tfc::motor::impl::nominal_at_50Hz_to_frequency(config_.nominal.value(), vel);
+    std::stringstream ss;
+    ss << frequency;
+    logger_.info("convey running at {}", ss.str());
+    return {};
+  }
 
 private:
   const config_t& config_;

@@ -2,6 +2,7 @@ project(motor)
 
 add_library(motor
   src/motor.cpp
+  src/error.cpp
 )
 add_library(tfc::motor ALIAS motor)
 
