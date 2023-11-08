@@ -287,11 +287,11 @@ struct to_json_schema<T> {
   static void op(auto& s, auto&) noexcept {
     if constexpr (std::integral<T>) {
       s.type = { "integer" };
-      s.attributes.minimum = static_cast<std::int64_t>(std::numeric_limits<T>::min());
+      s.attributes.minimum = static_cast<std::int64_t>(std::numeric_limits<T>::lowest());
       s.attributes.maximum = static_cast<std::uint64_t>(std::numeric_limits<T>::max());
     } else {
       s.type = { "number" };
-      s.attributes.minimum = std::numeric_limits<T>::min();
+      s.attributes.minimum = std::numeric_limits<T>::lowest();
       s.attributes.maximum = std::numeric_limits<T>::max();
     }
   }
