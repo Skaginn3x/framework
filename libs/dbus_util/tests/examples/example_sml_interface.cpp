@@ -43,9 +43,9 @@ auto main(int argc, char** argv) -> int {
   };
 
   tfc::dbus::sml::interface sml_interface {
-    /// log key is optional
-    interface, "example_state_machine"
-  };
+    interface, "Log key"
+  };  // optional log key
+  // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
 
   using state_machine_t = boost::sml::sm<control_modes, boost::sml::logger<tfc::dbus::sml::interface> >;
 
