@@ -1,3 +1,10 @@
+#include <array>
+#include <bitset>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <vector>
+
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
@@ -137,7 +144,8 @@ auto main(int argc, const char* argv[]) -> int {
         .device = { vars.ctx, vars.connect_interface, 42 }
       };
 
-      std::array<std::byte, 2> buffer{ std::byte{ 0b11111111 }, std::byte{ 0b11111111 } };
+      std::array<std::byte, 2> output{};
+      std::array<std::byte, 2> input{ std::byte{ 0b11111111 }, std::byte{ 0b11111111 } };
       auto const& transmitters{ vars.device.transmitters() };
 
       EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
@@ -157,9 +165,9 @@ auto main(int argc, const char* argv[]) -> int {
       EXPECT_CALL(*transmitters.at(14), async_send_cb(true, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(15), async_send_cb(true, testing::_)).Times(1);
 
-      vars.device.process_data(buffer, {});
+      vars.device.process_data(input, output);
 
-      buffer = { std::byte{ 0b00000000 }, std::byte{ 0b00000000 } };
+      input = { std::byte{ 0b00000000 }, std::byte{ 0b00000000 } };
       EXPECT_CALL(*transmitters.at(0), async_send_cb(false, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(2), async_send_cb(false, testing::_)).Times(1);
@@ -177,10 +185,10 @@ auto main(int argc, const char* argv[]) -> int {
       EXPECT_CALL(*transmitters.at(14), async_send_cb(false, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(15), async_send_cb(false, testing::_)).Times(1);
 
-      vars.device.process_data(buffer, {});
+      vars.device.process_data(input, output);
 
       // Only calls when value changes
-      buffer = { std::byte{ 0b01010101 }, std::byte{ 0b01010101 } };
+      input = { std::byte{ 0b01010101 }, std::byte{ 0b01010101 } };
       EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(0);
       EXPECT_CALL(*transmitters.at(2), async_send_cb(true, testing::_)).Times(1);
@@ -197,16 +205,19 @@ auto main(int argc, const char* argv[]) -> int {
       EXPECT_CALL(*transmitters.at(13), async_send_cb(false, testing::_)).Times(0);
       EXPECT_CALL(*transmitters.at(14), async_send_cb(true, testing::_)).Times(1);
       EXPECT_CALL(*transmitters.at(15), async_send_cb(false, testing::_)).Times(0);
-      vars.device.process_data(buffer, {});
+      vars.device.process_data(input, output);
     };
 
     static constexpr auto process_data{ []<std::size_t size>(auto& eq2339, std::bitset<size> test_value) {
       for (std::size_t idx{ 0 }; idx < test_value.size(); idx++) {
         eq2339.set_output(idx, test_value[idx]);
       }
-      std::array<std::byte, 1> buffer{};
-      eq2339.process_data({}, buffer);
-      std::uint16_t buffer_out{ std::to_integer<uint8_t>(buffer[0]) };  // NOLINT
+      std::array<std::byte, 2> output{};
+      std::array<std::byte, 2> input{};
+      eq2339.process_data(input, output);
+      std::uint16_t const buffer_out{ static_cast<std::uint16_t>((std::to_integer<std::uint16_t>(output[1]) << 8) |
+                                                                 std::to_integer<std::uint16_t>(output[0])) };
+
       decltype(test_value) buffer_bitset{ buffer_out };
       return buffer_bitset;
     } };
