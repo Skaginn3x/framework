@@ -14,6 +14,8 @@ auto main(int, char**) -> int {
   using tfc::ec::cia_402::transition;
 
   "parse state test"_test = []() {
+// bitcast is not completely constexpr in clang, memcpy is not constexpr, underlying behaviour of bitcast
+#ifndef __clang__
     static_assert(status_word::from_uint(0xff40U).parse_state() == states_e::switch_on_disabled);
     static_assert(status_word::from_uint(0xff50U).parse_state() == states_e::switch_on_disabled);
     static_assert(status_word::from_uint(0xff21U).parse_state() == states_e::ready_to_switch_on);
@@ -23,6 +25,7 @@ auto main(int, char**) -> int {
     static_assert(status_word::from_uint(0xff33U).parse_state() == states_e::switched_on);
     static_assert(status_word::from_uint(0xff37U).parse_state() == states_e::operation_enabled);
     static_assert(status_word::from_uint(0xff17U).parse_state() == states_e::quick_stop_active);
+#endif
   };
 
   "transition_to_operation"_test = []() {
