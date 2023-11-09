@@ -111,7 +111,8 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 ///   boost::asio::io_context ctx{};
 ///
 ///   /// Raw dbus connection, ipc_client also has a dbus connection which can be used through ipc_client.connection()
-///   std::shared_ptr<sdbusplus::asio::connection> const dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+///   std::shared_ptr<sdbusplus::asio::connection> const dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx)
+///   };
 ///
 ///   std::shared_ptr<sdbusplus::asio::dbus_interface> const interface {
 ///     std::make_shared<sdbusplus::asio::dbus_interface>(dbus_connection,
@@ -126,7 +127,8 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 ///
 ///   using state_machine_t = boost::sml::sm<control_modes, boost::sml::logger<tfc::dbus::sml::interface> >;
 ///
-///   std::shared_ptr<state_machine_t> const state_machine{ std::make_shared<state_machine_t>(control_modes{}, sml_interface) };
+///   std::shared_ptr<state_machine_t> const state_machine{ std::make_shared<state_machine_t>(control_modes{}, sml_interface)
+///   };
 ///
 ///   interface->initialize();
 ///
