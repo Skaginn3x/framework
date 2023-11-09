@@ -411,10 +411,9 @@ constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, dou
     return { .value = 0 * dHz, .reverse = false };
   }
   bool reverse = percentage.numerical_value_ < 0;
-  auto mapped{ ec::util::map(mp_units::abs(percentage).numerical_value_, (1.0 * mp_units::percent).numerical_value_,
-                             (100.0 * mp_units::percent).numerical_value_, min_freq.value.numerical_value_,
-                             max_freq.value.numerical_value_) };
-  return { .value = mapped * dHz, .reverse = reverse };
+  mp_units::Quantity auto mapped{ ec::util::map(mp_units::abs(percentage), (1.0 * mp_units::percent),
+                                                (100.0 * mp_units::percent), min_freq.value, max_freq.value) };
+  return { .value = mapped, .reverse = reverse };
 }
 // gcc only supports constexpr std::abs and there is no feature flag
 #ifndef __clang__
