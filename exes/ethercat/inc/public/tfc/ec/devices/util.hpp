@@ -39,7 +39,7 @@ constexpr auto map(from_t value, from_t in_min, from_t in_max, to_t out_min, to_
 }
 
 // clang-format off
-PRAGMA_CLANG_WARNING_PUSH_OFF("-Wfloat-equal")
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
 // clang-format on
 static_assert(map(10, 0, 10, 0, 20) == 20);
 static_assert(map(100000, 0, 10, 0, 20) == 20);  // above max
