@@ -1,8 +1,16 @@
+#include <array>
+#include <bitset>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <vector>
+
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
 #include <tfc/ec/devices/beckhoff/EL1xxx_impl.hpp>
 #include <tfc/ec/devices/beckhoff/EL2xxx_impl.hpp>
+#include <tfc/ec/devices/beckhoff/EQ2339.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/mocks/ipc.hpp>
@@ -128,6 +136,98 @@ auto main(int argc, const char* argv[]) -> int {
       auto bitset{ process_data(vars.device, test_value) };
       ut::expect(bitset == test_value);
     } | std::vector<std::bitset<16>>{ 0b1010101010101010, 0b1111000011110000, 0b1111111111111111, 0b0000000000000000 };
+  };
+
+  [[maybe_unused]] ut::suite<"EQ2339"> eq2339_suite = [] {  // NOLINT
+    "16 input"_test = [] {
+      test_vars<beckhoff::eq2339<ipc_manager_client_mock, tfc::ipc::mock_signal>> vars{
+        .device = { vars.ctx, vars.connect_interface, 42 }
+      };
+
+      std::array<std::byte, 2> output{};
+      std::array<std::byte, 2> input{ std::byte{ 0b11111111 }, std::byte{ 0b11111111 } };
+      auto const& transmitters{ vars.device.transmitters() };
+
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(2), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(3), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(4), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(5), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(6), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(7), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(8), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(9), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(10), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(11), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(12), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(13), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(14), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(15), async_send_cb(true, testing::_)).Times(1);
+
+      vars.device.process_data(input, output);
+
+      input = { std::byte{ 0b00000000 }, std::byte{ 0b00000000 } };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(2), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(3), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(4), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(5), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(6), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(7), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(8), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(9), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(10), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(11), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(12), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(13), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(14), async_send_cb(false, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(15), async_send_cb(false, testing::_)).Times(1);
+
+      vars.device.process_data(input, output);
+
+      // Only calls when value changes
+      input = { std::byte{ 0b01010101 }, std::byte{ 0b01010101 } };
+      EXPECT_CALL(*transmitters.at(0), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(1), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(2), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(3), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(4), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(5), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(6), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(7), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(8), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(9), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(10), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(11), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(12), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(13), async_send_cb(false, testing::_)).Times(0);
+      EXPECT_CALL(*transmitters.at(14), async_send_cb(true, testing::_)).Times(1);
+      EXPECT_CALL(*transmitters.at(15), async_send_cb(false, testing::_)).Times(0);
+      vars.device.process_data(input, output);
+    };
+
+    static constexpr auto process_data{ []<std::size_t size>(auto& eq2339, std::bitset<size> test_value) {
+      for (std::size_t idx{ 0 }; idx < test_value.size(); idx++) {
+        eq2339.set_output(idx, test_value[idx]);
+      }
+      std::array<std::byte, 2> output{};
+      std::array<std::byte, 2> input{};
+      eq2339.process_data(input, output);
+      std::uint16_t const buffer_out{ static_cast<std::uint16_t>((std::to_integer<std::uint16_t>(output[1]) << 8) |
+                                                                 std::to_integer<std::uint16_t>(output[0])) };
+
+      decltype(test_value) buffer_bitset{ buffer_out };
+      return buffer_bitset;
+    } };
+
+    "16 outputs"_test = [](std::bitset<16> test_value) {
+      test_vars<beckhoff::eq2339<ipc_manager_client_mock>> vars{ .device = { vars.ctx, vars.connect_interface, 42 } };
+      auto bitset{ process_data(vars.device, test_value) };
+      ut::expect(bitset == test_value);
+    } | std::vector<std::bitset<16>>{ 0b1010101010101010, 0b1111000011110000, 0b1111111111111111, 0b0000000000000000 };
+
   };
 
   return static_cast<int>(ut::cfg<>.run({ .report_errors = true }));
