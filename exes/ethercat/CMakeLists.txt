@@ -42,6 +42,8 @@ if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
 
+configure_file("${CMAKE_SOURCE_DIR}/exes/ethercat/systemd/ethercat@.service" "systemd/ethercat@.service")
+
 include(GNUInstallDirs)
 install(
   FILES
