@@ -355,13 +355,13 @@ using assignment_R1 =
 
 // ATV320 specific data type and multiplier for unit
 using decifrequency = mp_units::quantity<mp_units::si::deci<mp_units::si::hertz>, uint16_t>;
-using hectowatt = mp_units::quantity<mp_units::si::hecto<mp_units::si::watt>, uint16_t>;
+using deciwatt = mp_units::quantity<mp_units::si::deci<mp_units::si::watt>, uint16_t>;
 using atv_deciampere_rep = mp_units::quantity<mp_units::si::deci<mp_units::si::ampere>, uint16_t>;
 
 using namespace mp_units::si::unit_symbols;
 
 // Units 0.01 KW / 10W
-using nominal_motor_power_NPR = setting<ecx::index_t{ 0x2042, 0x0E }, "NPR", "Nominal motor power", hectowatt, 15 * hW>;
+using nominal_motor_power_NPR = setting<ecx::index_t{ 0x2042, 0x0E }, "NPR", "Nominal motor power", deciwatt, 15 * hW>;
 using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
                                           "UNS",
                                           "Nominal motor voltage",
