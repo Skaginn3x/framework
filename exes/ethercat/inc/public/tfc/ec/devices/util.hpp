@@ -10,8 +10,8 @@
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>
-#include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/json_schema.hpp>
+#include <tfc/utils/pragmas.hpp>
 
 namespace std {
 inline auto max(mp_units::Quantity auto&& first, mp_units::Quantity auto&& second) {
