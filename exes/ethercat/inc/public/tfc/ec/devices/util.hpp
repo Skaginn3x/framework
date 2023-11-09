@@ -10,6 +10,7 @@
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>
+#include <tfc/utils/pragmas.hpp>
 #include <tfc/utils/json_schema.hpp>
 
 namespace std {
@@ -37,11 +38,15 @@ constexpr auto map(from_t value, from_t in_min, from_t in_max, to_t out_min, to_
                                                   (out_min_d));
 }
 
+// clang-format off
+PRAGMA_CLANG_WARNING_PUSH_OFF("-Wfloat-equal")
+// clang-format on
 static_assert(map(10, 0, 10, 0, 20) == 20);
 static_assert(map(100000, 0, 10, 0, 20) == 20);  // above max
 static_assert(map(0, 1, 10, 0, 20) == 0);        // below min
 static_assert(map(500, 0, 1000, 0, 20) == 10);
 static_assert(map(500.0, 0.0, 1000.0, 0, 20) == 10);
+PRAGMA_CLANG_WARNING_POP
 
 /// \brief Generic setting struct for enums and arithmetic types
 /// Please note that below are specialization of this same struct for useful unit notations like std::chrono
