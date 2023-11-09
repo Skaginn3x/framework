@@ -5,7 +5,6 @@ target_link_libraries(example_sml_interface
     tfc::logger
     tfc::base
     tfc::dbus_util
-    tfc::ipc
 )
 
 add_example_to_docs(example_sml_interface)

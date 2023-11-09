@@ -4,19 +4,18 @@
 
 #include <boost/asio.hpp>
 #include <boost/sml.hpp>
+#include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
-
-#include <tfc/ipc.hpp>
-#include <tfc/progbase.hpp>
 
 #include <tfc/dbus/sml_interface.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/progbase.hpp>
 
-struct running {
-  static constexpr std::string_view name{ "running" };
+struct run {
+  static constexpr std::string_view name{ "run" };
 };
-struct not_running {
-  static constexpr std::string_view name{ "not_running" };
+struct stop {
+  static constexpr std::string_view name{ "stop" };
 };
 
 struct control_modes {
@@ -24,8 +23,8 @@ struct control_modes {
     using boost::sml::event;
     using boost::sml::operator""_s;
 
-    auto table = boost::sml::make_transition_table(*"not_running"_s + event<running> = "running"_s,
-                                                   "running"_s + event<not_running> = "not_running"_s);
+    auto table = boost::sml::make_transition_table(*"not_running"_s + event<run> = "running"_s,
+                                                   "running"_s + event<stop> = "not_running"_s);
     return table;
   }
 };
@@ -34,10 +33,11 @@ auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
   boost::asio::io_context ctx{};
 
-  tfc::ipc_ruler::ipc_manager_client const ipc_client{ ctx };
+  /// Raw dbus connection, ipc_client also has a dbus connection which can be used through ipc_client.connection()
+  std::shared_ptr<sdbusplus::asio::connection> const dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
 
   std::shared_ptr<sdbusplus::asio::dbus_interface> const interface {
-    std::make_shared<sdbusplus::asio::dbus_interface>(ipc_client.connection(),
+    std::make_shared<sdbusplus::asio::dbus_interface>(dbus_connection,
                                                       std::string{ tfc::dbus::sml::tags::path },
                                                       tfc::dbus::make_dbus_name("example_state_machine"))
   };
@@ -53,7 +53,7 @@ auto main(int argc, char** argv) -> int {
 
   interface->initialize();
 
-  state_machine->process_event(running{});
+  state_machine->process_event(run{});
 
   ctx.run();
 
