@@ -60,7 +60,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    * @param vals  Store
    * @returns selected object title
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function findSelectedTitle(oneOf:any, vals:any) {
     if (!vals) { return null; }
     // Get key from store to determine what is selected
@@ -85,13 +84,25 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   }
 
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
+  console.log(schema.toJS());
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
-  const [selectedTitle, setSelectedTitle] = useState<string | null>(storeValue);
+  const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
+
+  function findConst(oneOf:any, selected:any) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const item of oneOf) {
+      if (item.get('title') === selected) {
+        return item.get('const');
+      }
+    }
+    return null;
+  }
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     const type = getType(oneOfSchema, event.target.value);
+
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
         storeKeys,
@@ -108,7 +119,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
         type: 'set',
         schema,
         required,
-        data: { value: event.target.value },
+        data: { value: findConst(oneOfSchema, event.target.value) },
       });
     }
     setSelectedTitle(event.target.value);
@@ -121,6 +132,12 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    */
   const renderSelectedObject = (title: string | null) => {
     const selectedObject = oneOfSchema.find((item: any) => item.get('title') === title);
+    console.log('title', title);
+    console.log('oneofSchema', oneOfSchema.toJS());
+    if (selectedObject && Object.keys(selectedObject.toJS()).includes('const')) {
+      console.log('selectedObject', selectedObject.toJS());
+      return null;
+    }
     return (
       <PluginStack
         schema={selectedObject}
@@ -160,14 +177,13 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (
-            <MenuItem key={item.get('title')} value={item.get('const')}>
+            <MenuItem key={item.get('title')} value={item.get('title')}>
               {item.get('title')}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
-
-      {renderSelectedObject(selectedTitle)}
+      { renderSelectedObject(selectedTitle) }
 
     </>
   );
