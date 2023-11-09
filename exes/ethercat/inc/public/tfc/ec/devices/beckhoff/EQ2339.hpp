@@ -24,7 +24,7 @@ template <typename manager_client_type, template <typename, typename> typename s
 class eq2339 final : public base {
 public:
   static constexpr size_t size = 16;
-  static constexpr std::string_view name{ "EQ2339_0022" };
+  static constexpr std::string_view name{ "EQ2339" };
   static constexpr auto product_code = 0x9234452;
   static constexpr uint32_t vendor_id = 0x2;
 
