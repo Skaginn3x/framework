@@ -11,25 +11,25 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
   const [error, setError] = useState<string | undefined>(undefined);
   const { addAlert } = useAlertContext();
   const typeJson = useMemo(() => JSON.parse(InterfaceOBJ.proxy.data.Type), [InterfaceOBJ.proxy.data.Type]);
-  const min = typeJson.minimum;
-  const max = typeJson.maximum;
   const type = typeJson.type[0];
+  const min = typeJson.minimum as number;
+  const max = typeJson.maximum as number;
 
   const handleInputChange = (value: string) => {
-    let localError;
-    if (value < min) {
-      localError = 'Value is too low';
+    if (type !== 'integer' && type !== 'number') {
+      return { value: undefined, error: 'Unknown type' };
     }
-    if (value > max) {
-      localError = 'Value is too high';
+
+    const val = type === 'integer' ? parseInt(value, 10) : parseFloat(value);
+
+    if (val < min) {
+      return { value: val, error: 'Value is too low' };
     }
-    if (type === 'integer') {
-      return { value: parseInt(value, 10), error: localError };
+    if (val > max) {
+      return { value: val, error: 'Value is too high' };
     }
-    if (type === 'number') {
-      return { value: parseFloat(value), error: localError };
-    }
-    return { value: undefined, error: 'Unknown type' };
+
+    return { value: val, error: undefined };
   };
 
   const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(InterfaceOBJ.proxy.data.Value).value);
@@ -40,7 +40,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
         addAlert(`Data Validation Error: ${error}`, AlertVariant.danger);
         return;
       }
-      if (!inputValue) {
+      if (inputValue === undefined || inputValue === null) {
         addAlert('Input Error: Invalid Input', AlertVariant.danger);
         return;
       }
