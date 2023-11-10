@@ -192,7 +192,7 @@ auto get_color(bool has_event, std::string_view last_event) -> std::string {
 }
 
 template <typename type_t>
-std::string get_action_label(const std::string& src_state) {
+auto get_action_label(const std::string& src_state) -> std::string {
   std::string action_name = get_action_name<type_t>();
   return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state, action_name);
 }
@@ -200,10 +200,10 @@ std::string get_action_label(const std::string& src_state) {
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
 template <class type_t, class source_state_t, class destination_state_t>
-void dump_transition([[maybe_unused]] source_state_t const& src,
+auto dump_transition([[maybe_unused]] source_state_t const& src,
                      [[maybe_unused]] destination_state_t const& dst,
                      std::string_view last_event,
-                     std::string& buffer) {
+                     std::string& buffer) -> void {
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
@@ -244,11 +244,11 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
 }
 
 template <template <class...> class type_t, class... types_t, class source_state_t, class destination_state_t>
-void dump_transitions(const type_t<types_t...>&,
+auto dump_transitions(const type_t<types_t...>&,
                       source_state_t const& src,
                       destination_state_t const& dst,
                       std::string_view last_event,
-                      std::string& buffer) {
+                      std::string& buffer) -> void {
   (dump_transition<types_t>(src, dst, last_event, buffer), ...);
 }
 
