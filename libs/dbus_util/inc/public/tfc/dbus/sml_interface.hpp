@@ -165,9 +165,9 @@ bool constexpr is_likely_current_transition = [] {
 template <typename type_t>
 auto get_filtered_name() -> std::string {
   auto filtered_name = get_name<type_t>();
-   if (filtered_name.contains("(lambda") || filtered_name.contains("<lambda")) {
-     filtered_name = "lambda";
-   }
+  if (filtered_name.contains("(lambda") || filtered_name.contains("<lambda")) {
+    filtered_name = "lambda";
+  }
   return filtered_name;
 }
 
