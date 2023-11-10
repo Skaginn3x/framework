@@ -12,8 +12,10 @@ namespace events = sensor::control::events;
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx, std::string_view log_key) : ctx_{ ctx }, log_key_{ log_key } {
+sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx, std::string_view log_key)
+    : ctx_{ ctx }, log_key_{ log_key } {
   using enum tfc::operation::mode_e;
+  dbus_interface_->initialize();
   operation_mode_.on_enter(running, [this](auto, auto) { this->on_running(); });
   operation_mode_.on_leave(running, [this](auto, auto) { this->on_running_leave(); });
 }
@@ -23,6 +25,10 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   stop_motor();
+  if (queued_item_) { // todo test
+    logger_.info("Discharge request queued, will propagate event");
+    sm_->process_event(events::new_info{});
+  }
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
