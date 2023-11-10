@@ -12,6 +12,7 @@ target_include_directories(dbus_util
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 find_package(magic_enum CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 target_link_libraries(dbus_util
   PUBLIC
