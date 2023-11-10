@@ -150,10 +150,11 @@ auto main(int argc, char** argv) -> int {
             EXPECT_CALL(instance.owner, leave_discharge_delayed());
           } else if constexpr (std::same_as<typename state_t::type, states::discharging_allow_input>) {
             EXPECT_CALL(instance.owner, leave_discharging_allow_input());
-          }
-          else {
-            []<bool flag = false>(){
-              static_assert(flag, "Missing test case for newly added state"); }();
+          } else {
+            []<bool flag = false>() {
+              static_assert(flag, "Missing test case for newly added state");
+            }
+            ();
           }
 
           instance.sm.process_event(events::stop{});
@@ -161,20 +162,15 @@ auto main(int argc, char** argv) -> int {
 
           if constexpr (std::same_as<typename state_t::type, states::idle>) {
             EXPECT_CALL(instance.owner, enter_idle());
-          }
-          else if constexpr (std::same_as<typename state_t::type, states::awaiting_discharge>) {
+          } else if constexpr (std::same_as<typename state_t::type, states::awaiting_discharge>) {
             EXPECT_CALL(instance.owner, enter_awaiting_discharge());
-          }
-          else if constexpr (std::same_as<typename state_t::type, states::awaiting_sensor>) {
+          } else if constexpr (std::same_as<typename state_t::type, states::awaiting_sensor>) {
             EXPECT_CALL(instance.owner, enter_awaiting_sensor());
-          }
-          else if constexpr (std::same_as<typename state_t::type, states::discharging>) {
+          } else if constexpr (std::same_as<typename state_t::type, states::discharging>) {
             EXPECT_CALL(instance.owner, enter_discharging());
-          }
-          else if constexpr (std::same_as<typename state_t::type, states::discharge_delayed>) {
+          } else if constexpr (std::same_as<typename state_t::type, states::discharge_delayed>) {
             EXPECT_CALL(instance.owner, enter_discharge_delayed());
-          }
-          else if constexpr (std::same_as<typename state_t::type, states::discharging_allow_input>) {
+          } else if constexpr (std::same_as<typename state_t::type, states::discharging_allow_input>) {
             EXPECT_CALL(instance.owner, enter_discharging_allow_input());
           } else {
             []<bool flag = false>() {

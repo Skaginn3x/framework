@@ -25,7 +25,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   stop_motor();
-  if (queued_item_) { // todo test
+  if (queued_item_) {  // todo test
     logger_.info("Discharge request queued, will propagate event");
     sm_->process_event(events::new_info{});
   }
