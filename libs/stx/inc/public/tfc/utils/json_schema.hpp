@@ -246,8 +246,28 @@ namespace detail {
 template <class T = void>
 struct to_json_schema {
   template <auto Opts>
-  static void op(auto& s, auto&) noexcept {
-    s.type = { "number", "string", "boolean", "object", "array", "null" };
+  static void op(auto& s, auto& defs) noexcept {
+    if constexpr (glz::detail::glaze_t<T> && std::is_member_object_pointer_v<glz::meta_wrapper_t<T>>) {  // &T::member
+      using val_t = glz::detail::member_t<T, glz::meta_wrapper_t<T>>;
+      to_json_schema<val_t>::template op<Opts>(s, defs);
+    } else if constexpr (glz::detail::glaze_t<T> && std::is_pointer_v<glz::meta_wrapper_t<T>> &&
+                         std::is_const_v<std::remove_pointer_t<glz::meta_wrapper_t<T>>>) {  // &T::constexpr_member
+      using constexpr_val_t = glz::detail::member_t<T, glz::meta_wrapper_t<T>>;
+      static constexpr auto val_v{ *glz::meta_wrapper_v<T> };
+      if constexpr (glz::detail::glaze_enum_t<constexpr_val_t>) {
+        s.attributes.constant = glz::enum_name_v<val_v>;
+      } else {
+        // General case, needs to be convertible to schema_any
+        s.attributes.constant = val_v;
+      }
+      to_json_schema<constexpr_val_t>::template op<Opts>(s, defs);
+    } else {
+      // todo static_assert, it is more beneficial to get compile error instead of default everything
+      []<bool flag = false> {
+        static_assert(flag, "Please provide a schema type for your given type");
+      }
+      ();
+    }
   }
 };
 
@@ -267,11 +287,11 @@ struct to_json_schema<T> {
   static void op(auto& s, auto&) noexcept {
     if constexpr (std::integral<T>) {
       s.type = { "integer" };
-      s.attributes.minimum = static_cast<std::int64_t>(std::numeric_limits<T>::min());
+      s.attributes.minimum = static_cast<std::int64_t>(std::numeric_limits<T>::lowest());
       s.attributes.maximum = static_cast<std::uint64_t>(std::numeric_limits<T>::max());
     } else {
       s.type = { "number" };
-      s.attributes.minimum = std::numeric_limits<T>::min();
+      s.attributes.minimum = std::numeric_limits<T>::lowest();
       s.attributes.maximum = std::numeric_limits<T>::max();
     }
   }
@@ -464,7 +484,7 @@ inline auto write_json_schema() noexcept {
   detail::schematic s{};
   s.defs.emplace();
   detail::to_json_schema<std::decay_t<T>>::template op<glz::opts{}>(s, *s.defs);
-  glz::write<glz::opts{ .prettify = true, .write_type_info = false }>(std::move(s), buffer);
+  glz::write<glz::opts{ .write_type_info = false }>(std::move(s), buffer);
   return buffer;
 }
 }  // namespace tfc::json

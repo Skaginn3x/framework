@@ -15,7 +15,9 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import Hamburger from 'hamburger-react';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
-import { fetchDataFromDBus, removeOrg, updateFormData } from 'src/Components/Form/WidgetFunctions';
+import {
+  fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
+} from 'src/Components/Form/WidgetFunctions';
 import { DarkModeType } from 'src/App';
 import FormGenerator from '../Components/Form/Form';
 import { useAlertContext } from '../Components/Alert/AlertContext';
@@ -71,35 +73,6 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
       });
     }
   }, [names]);
-
-  /**
-   * Finds all internal null values and sets them to actual null.
-   * This is need because UI-schema handles null weirdly
-   * @param data Configuration values
-   * @returns updated Configuration values
-   */
-  function handleNullValue(data: any): any {
-    if (Array.isArray(data)) {
-      return data.filter((item) => item != null && item !== undefined).map(handleNullValue);
-    }
-    if (typeof data === 'object' && data !== null) {
-      const newObj: any = {};
-      // eslint-disable-next-line no-restricted-syntax, guard-for-in
-      for (const key in data) {
-        const childObj = handleNullValue(data[key]);
-
-        if (key === 'internal_null_value_do_not_use' && childObj === null) {
-          return null; // Set the entire object to null if this key is present and its value is null
-        }
-
-        if (childObj !== undefined) {
-          newObj[key] = childObj;
-        }
-      }
-      return newObj;
-    }
-    return data;
-  }
 
   /**
    * Get title from dbus name

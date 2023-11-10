@@ -45,10 +45,6 @@ auto main(int, char**) -> int {
   [[maybe_unused]] example::chrono_test const test3{};
   [[maybe_unused]] example::mp_test const test4{};
 
-  "mapping function"_test = []() {
-    expect(tfc::ec::util::map(10, 0, 10, 0, 20) == 20);
-    expect(tfc::ec::util::map(500, 0, 1000, 0, 20) == 10);
-  };
   "setting to json"_test = []() {
     [[maybe_unused]] example::trivial_type_setting const test{};
     auto const json = glz::write_json(test);

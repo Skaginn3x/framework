@@ -71,14 +71,16 @@
       "name": "pack-gcc-debug",
       "inherits": [
         "ci-gcc-debug",
-        "cfg-enable-docs"
+        "cfg-enable-docs",
+        "cfg-enable-static"
       ]
     },
     {
       "name": "pack-gcc-release",
       "inherits": [
         "ci-gcc-release",
-        "cfg-enable-docs"
+        "cfg-enable-docs",
+        "cfg-enable-static"
       ]
     },
     {
@@ -86,7 +88,8 @@
       "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-aarch64",
-        "pack-gcc-debug"
+        "pack-gcc-debug",
+        "cfg-enable-static"
       ]
     },
     {
@@ -94,7 +97,8 @@
       "generator": "Ninja",
       "inherits": [
         "cfg-vcpkg-aarch64",
-        "pack-gcc-release"
+        "pack-gcc-release",
+        "cfg-enable-static"
       ]
     }
   ],

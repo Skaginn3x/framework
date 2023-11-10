@@ -4,7 +4,9 @@ import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import FormGenerator from '../Form/Form';
 import { useAlertContext } from '../Alert/AlertContext';
 import { loadExternalScript } from '../Interface/ScriptLoader';
-import { fetchDataFromDBus, removeOrg, updateFormData } from '../Form/WidgetFunctions';
+import {
+  fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
+} from '../Form/WidgetFunctions';
 
 interface ModalType {
   slot: string | undefined;
@@ -77,12 +79,13 @@ export default function FilterModal({
               inputSchema={schema}
               key={dbusFilterName}
               onSubmit={(data: any) => {
+                const newdata = handleNullValue(data.values.config);
                 updateFormData(
                   dbusFilterName,
                   `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`,
                   'Slots',
                   'Filter',
-                  data.values.config,
+                  newdata,
                   setFormData,
                   addAlert,
                 );

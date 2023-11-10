@@ -91,6 +91,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
 endif ()
 
 
-option(ENABLE_STATIC_LINKING "Globally add -static link flag to all targets" OFF)
+option(ENABLE_STATIC_LINKING "Globally add -static-libstdc link flag to all targets" OFF)
 add_feature_info("ENABLE_STATIC_LINKING" ENABLE_STATIC_LINKING
-    "Globally add -static link flag to all targets")
+    "Globally add -static-libstdc++ link flag to all targets")

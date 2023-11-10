@@ -7,6 +7,7 @@
 #include <mp-units/bits/ratio.h>
 #include <mp-units/quantity.h>
 #include <mp-units/systems/angular/angular.h>
+#include <mp-units/systems/si/units.h>
 #include <mp-units/unit.h>
 
 #include <tfc/stx/string_view_join.hpp>
