@@ -407,10 +407,10 @@ struct speed {
 constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, double> percentage,
                                        [[maybe_unused]] low_speed_LSP min_freq,
                                        [[maybe_unused]] high_speed_HSP max_freq) noexcept -> speed {
-  if (percentage == 0 * mp_units::percent) {
+  if (mp_units::abs(percentage) < 1 * mp_units::percent) {
     return { .value = 0 * dHz, .reverse = false };
   }
-  bool reverse = percentage.numerical_value_ < 0;
+  bool reverse = percentage.numerical_value_ <= -1;
   mp_units::Quantity auto mapped{ ec::util::map(mp_units::abs(percentage), (1.0 * mp_units::percent),
                                                 (100.0 * mp_units::percent), min_freq.value, max_freq.value) };
   return { .value = mapped, .reverse = reverse };
@@ -525,7 +525,7 @@ public:
         ratio_(ctx,
                client,
                fmt::format("atv320.s{}.ratio", slave_index),
-               "Speed ratio.\n100% is max freq.\n1%, is min freq.\n0% is stopped.\n-100% is reverse max freq.\n-1% is "
+               "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
                "reverse min freq.",
                [this](double value) {
                  reference_frequency_ = detail::percentage_to_deci_freq(
@@ -556,8 +556,8 @@ public:
   };
   static_assert(sizeof(input_t) == 12);
   struct output_t {
-    cia_402::control_word command_word{};
-    uint16_t frequency{};
+    cia_402::control_word control{};
+    decifrequency frequency{};
     uint16_t digital_outputs{};
   };
   static_assert(sizeof(output_t) == 6);
@@ -618,12 +618,11 @@ public:
       });
     }
 
-    out->command_word = cia_402::control_word::from_uint(std::to_underlying(command));
+    out->control = cia_402::control_word::from_uint(std::to_underlying(command));
     // Reverse bit is bit 11 of control word from
     // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
-    out->command_word.reserved_1 = reference_frequency_.reverse;
-
-    out->frequency = running_ ? reference_frequency_.value.numerical_value_ : 0;
+    out->control.reserved_1 = reference_frequency_.reverse;
+    out->frequency = running_ ? reference_frequency_.value : 0 * mp_units::quantity<mp_units::si::hertz, uint16_t>{};
   }
 
   auto async_send_callback(std::error_code const& error, size_t) -> void {
