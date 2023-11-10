@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include <boost/sml.hpp>
+#include <fmt/format.h>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>

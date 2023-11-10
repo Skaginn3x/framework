@@ -20,6 +20,7 @@ target_link_libraries(dbus_util
     tfc::stx
     tfc::configure_options
     tfc::logger
+    fmt::fmt
   PRIVATE
     tfc::base
 )
