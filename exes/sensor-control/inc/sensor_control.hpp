@@ -9,6 +9,7 @@
 #include <boost/sml.hpp>
 
 #include <tfc/dbus/sml_interface.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/item.hpp>
@@ -117,12 +118,15 @@ private:
 
   using state_machine_t =
       sml_t<sensor::control::state_machine_operation_mode<sensor_control>, boost::sml::logger<tfc::dbus::sml::interface>>;
-  tfc::dbus::sml::interface sml_interface{ std::make_shared<sdbusplus::asio::dbus_interface>(
-                                               ipc_client_.connection(),
-                                               std::string{ tfc::dbus::sml::tags::path },
-                                               "SensorControl"),
+
+  std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(
+      ipc_client_.connection(),
+      std::string{ tfc::dbus::sml::tags::path },
+      tfc::dbus::make_dbus_name("SensorControl")) };
+
+  tfc::dbus::sml::interface sml_interface_{ dbus_interface_,
                                            fmt::format("sm.{}", log_key_) };
-  std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface) };
+  std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface_) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
