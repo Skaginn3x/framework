@@ -1,9 +1,9 @@
 #pragma once
 
+#include <concepts>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <concepts>
 
 #include <fmt/format.h>
 #include <boost/sml.hpp>
