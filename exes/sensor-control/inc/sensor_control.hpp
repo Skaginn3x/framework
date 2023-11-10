@@ -124,8 +124,9 @@ private:
       std::string{ tfc::dbus::sml::tags::path },
       tfc::dbus::make_dbus_name("SensorControl")) };
 
-  tfc::dbus::sml::interface sml_interface_{ dbus_interface_,
-                                           fmt::format("sm.{}", log_key_) };
+  tfc::dbus::sml::interface sml_interface_ {
+    dbus_interface_, fmt::format("sm.{}", log_key_)
+  };
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface_) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
@@ -136,7 +137,9 @@ private:
                                                                               .await_sensor_timeout =
                                                                                   std::chrono::minutes{ 1 },
                                                                               .run_speed = 100.0 * mp_units::percent } };
-  tfc::operation::interface operation_mode_{ ctx_, "operation_mode" };
+  tfc::operation::interface operation_mode_ {
+    ctx_, "operation_mode"
+  };
 };
 
 extern template class sensor_control<>;

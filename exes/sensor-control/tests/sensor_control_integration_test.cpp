@@ -1,10 +1,10 @@
-#include <boost/asio.hpp>
-#include <boost/ut.hpp>
-#include <boost/sml.hpp>
 #include <gmock/gmock.h>
+#include <boost/asio.hpp>
+#include <boost/sml.hpp>
+#include <boost/ut.hpp>
 
-#include <tfc/progbase.hpp>
 #include <tfc/mocks/ipc.hpp>
+#include <tfc/progbase.hpp>
 
 #include <sensor_control.hpp>
 #include <sensor_control_impl.hpp>
@@ -26,12 +26,14 @@ struct two_connectives {
   auto init() {
     first.on_running();
     second.on_running();
-    ON_CALL(second.discharge_allowance_signal(), async_send_cb).WillByDefault([this](bool const& value, std::function<void(std::error_code, std::size_t)>) {
-      first.may_discharge_slot().callback(value);
-    });
-    ON_CALL(first.discharge_signal(), async_send_cb).WillByDefault([this](std::string const& value, std::function<void(std::error_code, std::size_t)>) {
-      second.discharge_request_slot().callback(value);
-    });
+    ON_CALL(second.discharge_allowance_signal(), async_send_cb)
+        .WillByDefault([this](bool const& value, std::function<void(std::error_code, std::size_t)>) {
+          first.may_discharge_slot().callback(value);
+        });
+    ON_CALL(first.discharge_signal(), async_send_cb)
+        .WillByDefault([this](std::string const& value, std::function<void(std::error_code, std::size_t)>) {
+          second.discharge_request_slot().callback(value);
+        });
     ut::expect(first.state_machine()->is<decltype(state<inner_sm_t>)>(state<control::states::idle>));
     ut::expect(second.state_machine()->is<decltype(state<inner_sm_t>)>(state<control::states::idle>));
   }
@@ -39,7 +41,7 @@ struct two_connectives {
 
 using inner_sm_state_t = decltype(state<two_connectives::inner_sm_t>);
 
-int main (int argc, char** argv) {
+int main(int argc, char** argv) {
   auto substitute_argv = std::array{ "sensor_control_integration_test", "--log-level=trace", "--stdout" };
 
   tfc::base::init(substitute_argv.size(), substitute_argv.data());
@@ -59,9 +61,7 @@ int main (int argc, char** argv) {
     test.first.sensor_slot().callback(true);
     ut::expect(test.first.state_machine()->is<inner_sm_state_t>(state<control::states::discharging>));
     ut::expect(test.second.state_machine()->is<inner_sm_state_t>(state<control::states::awaiting_sensor>));
-
   };
 
   return 0;
 }
-

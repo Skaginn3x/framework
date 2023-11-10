@@ -11,14 +11,30 @@
 namespace tfc::sensor::control {
 
 namespace events {
-struct sensor_active {};
-struct sensor_inactive {};
-struct await_sensor_timeout {};
-struct new_info {};
-struct discharge {};
-struct complete {};
-struct stop {};
-struct start {};
+struct sensor_active {
+  static constexpr std::string_view name{ "sensor_active" };
+};
+struct sensor_inactive {
+  static constexpr std::string_view name{ "sensor_inactive" };
+};
+struct await_sensor_timeout {
+  static constexpr std::string_view name{ "await_sensor_timeout" };
+};
+struct new_info {
+  static constexpr std::string_view name{ "new_info" };
+};
+struct discharge {
+  static constexpr std::string_view name{ "discharge" };
+};
+struct complete {
+  static constexpr std::string_view name{ "complete" };
+};
+struct stop {
+  static constexpr std::string_view name{ "stop" };
+};
+struct start {
+  static constexpr std::string_view name{ "start" };
+};
 }  // namespace events
 
 namespace states {
