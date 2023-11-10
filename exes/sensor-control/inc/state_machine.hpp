@@ -73,6 +73,7 @@ struct state_machine {
       , state<states::awaiting_discharge> + on_entry<_> / enter_awaiting_discharge
       , state<states::awaiting_discharge> + on_exit<_> / leave_awaiting_discharge
       , state<states::awaiting_discharge> + event<events::discharge> = state<states::discharging>
+      , state<states::awaiting_discharge> + event<events::sensor_inactive> = state<states::idle> // todo test
 
       , state<states::awaiting_sensor> + on_entry<_> / enter_awaiting_sensor
       , state<states::awaiting_sensor> + on_exit<_> / leave_awaiting_sensor
