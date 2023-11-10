@@ -4,19 +4,49 @@
 
 #include <glaze/glaze.hpp>
 
+#include <mp-units/bits/quantity_concepts.h>
+#include <mp-units/bits/value_cast.h>
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/stx/to_string_view.hpp>
 #include <tfc/utils/json_schema.hpp>
+#include <tfc/utils/pragmas.hpp>
+
+namespace std {
+inline auto max(mp_units::Quantity auto&& first, mp_units::Quantity auto&& second) {
+  return first > second ? first : second;
+}
+inline auto min(mp_units::Quantity auto&& first, mp_units::Quantity auto&& second) {
+  return first < second ? first : second;
+}
+}  // namespace std
 
 namespace tfc::ec::util {
-template <typename from, typename to>
-auto map(from value, from in_min, from in_max, to out_min, to out_max) -> to {
-  return static_cast<to>((static_cast<double>(value - in_min)) * static_cast<double>(out_max - out_min) /
-                             static_cast<double>(in_max - in_min) +
-                         static_cast<double>(out_min));
+constexpr auto map(double value, double in_min, double in_max, double out_min, double out_max) noexcept -> double {
+  return (std::max(std::min(value, in_max), in_min) - in_min) * (out_max - out_min) / (in_max - in_min) + (out_min);
 }
+template <mp_units::Quantity from_t, mp_units::Quantity to_t>
+constexpr auto map(from_t value, from_t in_min, from_t in_max, to_t out_min, to_t out_max) noexcept -> to_t {
+  mp_units::quantity<from_t::reference, double> const value_d{ value };
+  mp_units::quantity<from_t::reference, double> const in_min_d{ in_min };
+  mp_units::quantity<from_t::reference, double> const in_max_d{ in_max };
+  mp_units::quantity<to_t::reference, double> const out_min_d{ out_min };
+  mp_units::quantity<to_t::reference, double> const out_max_d{ out_max };
+  return mp_units::value_cast<typename to_t::rep>((std::max(std::min(value_d, in_max_d), in_min_d) - in_min_d) *
+                                                      (out_max_d - out_min_d) / (in_max_d - in_min_d) +
+                                                  (out_min_d));
+}
+
+// clang-format off
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+// clang-format on
+static_assert(map(10, 0, 10, 0, 20) == 20);
+static_assert(map(100000, 0, 10, 0, 20) == 20);  // above max
+static_assert(map(0, 1, 10, 0, 20) == 0);        // below min
+static_assert(map(500, 0, 1000, 0, 20) == 10);
+static_assert(map(500.0, 0.0, 1000.0, 0, 20) == 10);
+PRAGMA_CLANG_WARNING_POP
 
 /// \brief Generic setting struct for enums and arithmetic types
 /// Please note that below are specialization of this same struct for useful unit notations like std::chrono
