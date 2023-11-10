@@ -140,6 +140,7 @@ private:
   tfc::operation::interface operation_mode_ {
     ctx_, "operation_mode"
   };
+  bool first_time_{ true };
 };
 
 extern template class sensor_control<>;

@@ -24,7 +24,13 @@ sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx, s
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
-  stop_motor();
+  if (first_time_) { // todo test
+    first_time_ = false;
+    start_motor();
+  }
+  else {
+    stop_motor();
+  }
   if (queued_item_) {  // todo test
     logger_.info("Discharge request queued, will propagate event");
     sm_->process_event(events::new_info{});
