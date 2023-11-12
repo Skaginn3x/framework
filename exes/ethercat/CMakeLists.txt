@@ -43,12 +43,16 @@ if (BUILD_TESTING)
 endif ()
 
 include(GNUInstallDirs)
+
+configure_file("${CMAKE_CURRENT_LIST_DIR}/systemd/ethercat@.service" "${CMAKE_BINARY_DIR}/systemd/ethercat@.service")
+
 install(
   FILES
-    systemd/ethercat@.service
+    "${CMAKE_BINARY_DIR}/systemd/ethercat@.service"
   DESTINATION
     /usr/lib/systemd/system/
-  CONFIGURATIONS Release
+  CONFIGURATIONS
+    Release
 )
 
 install(

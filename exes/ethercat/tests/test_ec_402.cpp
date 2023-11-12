@@ -14,6 +14,8 @@ auto main(int, char**) -> int {
   using tfc::ec::cia_402::transition;
 
   "parse state test"_test = []() {
+// bitcast is not completely constexpr in clang, memcpy is not constexpr, underlying behaviour of bitcast
+#ifndef __clang__
     static_assert(status_word::from_uint(0xff40U).parse_state() == states_e::switch_on_disabled);
     static_assert(status_word::from_uint(0xff50U).parse_state() == states_e::switch_on_disabled);
     static_assert(status_word::from_uint(0xff21U).parse_state() == states_e::ready_to_switch_on);
@@ -23,6 +25,7 @@ auto main(int, char**) -> int {
     static_assert(status_word::from_uint(0xff33U).parse_state() == states_e::switched_on);
     static_assert(status_word::from_uint(0xff37U).parse_state() == states_e::operation_enabled);
     static_assert(status_word::from_uint(0xff17U).parse_state() == states_e::quick_stop_active);
+#endif
   };
 
   "transition_to_operation"_test = []() {
@@ -35,6 +38,8 @@ auto main(int, char**) -> int {
 }
 
 namespace compile_tests {
+using tfc::ec::cia_402::commands_e;
+using tfc::ec::cia_402::control_word;
 using tfc::ec::cia_402::states_e;
 using tfc::ec::cia_402::status_word;
 
@@ -97,4 +102,11 @@ static_assert(states_e::fault == status_word{ .state_fault = 1, .voltage_enabled
 static_assert(states_e::fault == status_word{ .state_fault = 1, .state_quick_stop = 1 }.parse_state());
 static_assert(states_e::fault == status_word{ .state_fault = 1, .voltage_enabled = 1, .state_quick_stop = 1 }.parse_state());
 
+// bitcast is not completely constexpr in clang, memcpy is not constexpr, underlying behaviour of bitcast
+#ifndef __clang__
+static_assert(control_word::from_uint(static_cast<std::uint16_t>(
+                  control_word{ .operating_state_switch_on = true, .operating_state_quick_stop = true, .halt = true })) ==
+              control_word{ .operating_state_switch_on = true, .operating_state_quick_stop = true, .halt = true });
+
+#endif
 }  // namespace compile_tests
