@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable no-param-reassign */
-import React, { ReactElement } from 'react';
+import React, { ChangeEvent, ReactElement } from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
@@ -29,11 +29,12 @@ interface ListItemProps {
   dropdownRefs: any,
   onToggleClick: any,
   setModalOpen: any,
+  onCheck: (checked: boolean) => void,
 }
 
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
-  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen,
+  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen, onCheck,
 }) => {
   const isMobile = window.innerWidth < 768;
   /**
@@ -188,9 +189,20 @@ const ListItem: React.FC<ListItemProps> = ({
     console.log(value);
   };
 
+  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onCheck(event.target.checked);
+  };
+
   return (
     <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface + dbusInterface.process}>
       <DataListItemRow size={10}>
+        <DataListCell key="checkbox" style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
+          <input
+            type="checkbox"
+            onChange={handleCheckboxChange}
+            aria-label={`Select ${dbusInterface.proxy.iface}`}
+          />
+        </DataListCell>
         <DataListItemCells
           dataListCells={[
             <DataListCell key="primary content" style={{ textAlign: 'left' }}>
