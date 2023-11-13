@@ -22,9 +22,11 @@ export type DarkModeType = {
 
 // eslint-disable-next-line react/function-component-definition
 const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
+  console.log('Routing');
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
+  console.log('Found service: ', id);
   switch (id) {
     case 'connect': return <Connections isDark={isDark} />;
     case 'configure': return <Configurator isDark={isDark} />;
@@ -55,7 +57,7 @@ function App() {
 
   const cockpitDark = localStorage.getItem('shell:style');
   const [isDark, setIsDark] = React.useState<boolean>(changeDarkMode(cockpitDark));
-
+  console.log('Dark Mode: ', isDark);
   if (isDark) {
     document.getElementsByTagName('html')[0].classList.add('pf-v5-theme-dark');
   } else {
@@ -72,8 +74,8 @@ function App() {
   );
 
   /**
-   * Listens to cockpit changing local storage shell:style to
-   */
+     * Listens to cockpit changing local storage shell:style to
+    */
   window.addEventListener('storage', (event) => {
     if (event.key === 'shell:style') {
       setIsDark(changeDarkMode(event.newValue));
@@ -85,7 +87,7 @@ function App() {
       <AlertProvider>
         <div className="App">
           <Alerts />
-          <Router basename="/cockpit/@localhost/IPC">
+          <Router basename="/cockpit/@localhost/ipc">
             <div style={{
               display: 'flex',
               flexDirection: 'column',
