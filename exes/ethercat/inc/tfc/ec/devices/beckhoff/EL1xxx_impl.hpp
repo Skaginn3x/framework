@@ -15,8 +15,8 @@ template <typename manager_client_type,
           template <typename, typename>
           typename signal_t>
 el1xxx<manager_client_type, size, entries, pc, name, signal_t>::el1xxx(asio::io_context& ctx,
-                                                              manager_client_type& client,
-                                                              const uint16_t slave_index)
+                                                                       manager_client_type& client,
+                                                                       const uint16_t slave_index)
     : base(slave_index) {
   for (size_t i = 0; i < size; i++) {
     transmitters_.emplace_back(std::make_unique<bool_signal_t>(
@@ -33,7 +33,7 @@ template <typename manager_client_type,
           template <typename, typename>
           typename signal_t>
 void el1xxx<manager_client_type, size, entries, pc, name, signal_t>::process_data(std::span<std::byte> input,
-                                                                         std::span<std::byte>) noexcept {
+                                                                                  std::span<std::byte>) noexcept {
   constexpr size_t minimum_byte_count = (size / 9) + 1;
   assert(input.size() == minimum_byte_count && "EL1XXX Size mismatch between process data and expected");
 
