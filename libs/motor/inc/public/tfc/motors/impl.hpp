@@ -5,7 +5,6 @@ using mp_units::QuantityOf;
 using namespace mp_units::si::unit_symbols;
 using namespace mp_units;
 
-
 /**
  * @brief Retrieve a frequency to run a motor at, given it's nominal speed @ 50Hz and a linear relationship between the
  * motors frequency and output speed.

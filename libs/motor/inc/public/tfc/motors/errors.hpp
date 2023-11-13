@@ -34,4 +34,4 @@ inline std::error_code motor_error(errors::err_enum error) {
   int error_int = static_cast<int>(error);
   return std::error_code(error_int, category());
 }
-}
+}  // namespace tfc::motor

@@ -1,15 +1,15 @@
-#include <type_traits>
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
-#include <concepts>
-#include <variant>
 #include <boost/asio.hpp>
+#include <concepts>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <type_traits>
+#include <variant>
 
+#include <tfc/motors/errors.hpp>
 #include <tfc/motors/ethercat.hpp>
 #include <tfc/motors/mock.hpp>
-#include <tfc/motors/errors.hpp>
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -128,9 +128,9 @@ public:
 private:
   asio::io_context& ctx_;
 
-  //TODO(omarhogni): Implement convey and move over ethercat motor
-  using implementations = std::variant<std::monostate, types::virtual_motor>; //, types::ethercat_motor>;
-  using config_t = std::variant<std::monostate, types::virtual_motor::config_t>; // , types::ethercat_motor::config_t>;
+  // TODO(omarhogni): Implement convey and move over ethercat motor
+  using implementations = std::variant<std::monostate, types::virtual_motor>;     //, types::ethercat_motor>;
+  using config_t = std::variant<std::monostate, types::virtual_motor::config_t>;  // , types::ethercat_motor::config_t>;
   implementations impl_;
   confman::config<confman::observable<config_t>> config_;
   logger::logger logger_;

@@ -1,7 +1,6 @@
 #include <string_view>
 #include "tfc/confman.hpp"
 
-
 namespace tfc::motor::types {
 class ethercat_motor {
 private:

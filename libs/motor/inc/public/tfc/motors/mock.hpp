@@ -5,10 +5,10 @@
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
 
-#include <tfc/motors/impl.hpp>
-#include <tfc/motors/errors.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/motors/errors.hpp>
+#include <tfc/motors/impl.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::types {
@@ -45,7 +45,7 @@ public:
   }
 
   auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {
-    if (!config_.nominal){
+    if (!config_.nominal) {
       return tfc::motor::motor_error(errors::err_enum::motor_missing_speed_reference);
     }
     [[maybe_unused]] auto frequency = tfc::motor::impl::nominal_at_50Hz_to_frequency(config_.nominal.value(), vel);
