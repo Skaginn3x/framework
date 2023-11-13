@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <mp-units/math.h>
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
 #include <bitset>
@@ -396,9 +397,69 @@ using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", 
 // 100 = 10 seconds
 // 10 = 1 second
 using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", deciseconds, 1>;
-}  // namespace tfc::ec::devices::schneider
 
-namespace tfc::ec::devices::schneider {
+namespace detail {
+struct speed {
+  decifrequency value{ 0 * dHz };
+  bool reverse{ false };
+  constexpr auto operator==(speed const& other) const noexcept -> bool = default;
+};
+constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, double> percentage,
+                                       [[maybe_unused]] low_speed_LSP min_freq,
+                                       [[maybe_unused]] high_speed_HSP max_freq) noexcept -> speed {
+  if (mp_units::abs(percentage) < 1 * mp_units::percent) {
+    return { .value = 0 * dHz, .reverse = false };
+  }
+  bool reverse = percentage.numerical_value_ <= -1;
+  mp_units::Quantity auto mapped{ ec::util::map(mp_units::abs(percentage), (1.0 * mp_units::percent),
+                                                (100.0 * mp_units::percent), min_freq.value, max_freq.value) };
+  return { .value = mapped, .reverse = reverse };
+}
+// gcc only supports constexpr std::abs and there is no feature flag
+#ifndef __clang__
+// stop test
+static_assert(percentage_to_deci_freq(0 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 0 * dHz, .reverse = false });
+// min test forward
+static_assert(percentage_to_deci_freq(1 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) ==
+              speed{ .value = 200 * dHz, .reverse = false });
+// max test forward
+static_assert(percentage_to_deci_freq(100 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) ==
+              speed{ .value = 500 * dHz, .reverse = false });
+// 50% test forward
+static_assert(percentage_to_deci_freq(50 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) ==
+              speed{ .value = 348 * dHz, .reverse = false });
+// max test reverse
+static_assert(percentage_to_deci_freq(-100 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz, .reverse = true });
+// min test reverse
+static_assert(percentage_to_deci_freq(-1 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 200 * dHz, .reverse = true });
+// 50% test reverse
+static_assert(percentage_to_deci_freq(-50 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 348 * dHz, .reverse = true });
+// outside bounds reverse
+static_assert(percentage_to_deci_freq(-10000 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz, .reverse = true });
+// outside bounds forward
+static_assert(percentage_to_deci_freq(10000 * mp_units::percent,
+                                      low_speed_LSP{ .value = 200 * dHz },
+                                      high_speed_HSP{ .value = 500 * dHz }) ==
+              speed{ .value = 500 * dHz, .reverse = false });
+#endif
+}  // namespace detail
+
 template <typename manager_client_type>
 class atv320 final : public base {
 public:
@@ -461,11 +522,15 @@ public:
              fmt::format("atv320.s{}.run", slave_index),
              "Turn on motor",
              [this](bool value) { running_ = value; }),
-        frequency_recv_(ctx,
-                        client,
-                        fmt::format("atv320.s{}.out.freq", slave_index),
-                        "Output Frequency",
-                        [this](double value) { reference_frequency_ = static_cast<int16_t>(value * 10.0); }),
+        ratio_(ctx,
+               client,
+               fmt::format("atv320.s{}.ratio", slave_index),
+               "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
+               "reverse min freq.",
+               [this](double value) {
+                 reference_frequency_ = detail::percentage_to_deci_freq(
+                     value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
+               }),
         frequency_transmit_(ctx, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
         config_{ ctx, fmt::format("atv320_i{}", slave_index) } {
     config_->observe([this](auto&, auto&) {
@@ -491,8 +556,8 @@ public:
   };
   static_assert(sizeof(input_t) == 12);
   struct output_t {
-    uint16_t command_word{};
-    uint16_t frequency{};
+    cia_402::control_word control{};
+    decifrequency frequency{};
     uint16_t digital_outputs{};
   };
   static_assert(sizeof(output_t) == 6);
@@ -544,7 +609,8 @@ public:
     last_frequency_ = frequency;
     using tfc::ec::cia_402::commands_e;
     using tfc::ec::cia_402::states_e;
-    auto command = tfc::ec::cia_402::transition(state, !running_);
+    bool const quick_stop = !running_ || reference_frequency_.value == 0 * dHz;
+    auto command = tfc::ec::cia_402::transition(state, quick_stop);
 
     if (cia_402::to_string(command) != last_command_) {
       command_transmitter_.async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
@@ -552,8 +618,11 @@ public:
       });
     }
 
-    out->command_word = static_cast<uint16_t>(command);
-    out->frequency = running_ ? static_cast<uint16_t>(reference_frequency_) : 0;
+    out->control = cia_402::control_word::from_uint(std::to_underlying(command));
+    // Reverse bit is bit 11 of control word from
+    // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
+    out->control.reserved_1 = reference_frequency_.reverse;
+    out->frequency = running_ ? reference_frequency_.value : 0 * mp_units::quantity<mp_units::si::hertz, uint16_t>{};
   }
 
   auto async_send_callback(std::error_code const& error, size_t) -> void {
@@ -637,8 +706,8 @@ private:
   tfc::ipc::string_signal command_transmitter_;
   bool running_{};
   tfc::ipc::bool_slot run_;
-  int16_t reference_frequency_ = 0;
-  tfc::ipc::double_slot frequency_recv_;
+  detail::speed reference_frequency_{ .value = 0 * dHz, .reverse = false };
+  tfc::ipc::double_slot ratio_;
   int16_t last_frequency_;
   tfc::ipc::double_signal frequency_transmit_;
   config_t config_;
