@@ -10,6 +10,8 @@ class motor_error_category_t : public std::error_category{ [[nodiscard]] auto na
 }
 [[nodiscard]] auto message(int error) const noexcept -> std::string override {
   switch (static_cast<err_enum>(error)) {
+    case err_enum::success:
+      return "Success";
     case err_enum::no_motor_configured:
       return "No motor configured";
     case err_enum::motor_not_connected:

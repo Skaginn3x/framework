@@ -15,6 +15,7 @@ target_include_directories(motor
 )
 
 find_package(magic_enum CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)
 
 target_link_libraries(motor

@@ -18,6 +18,7 @@ namespace tfc::motor {
 // inside some alarm manager.
 namespace errors {
 enum struct err_enum : int {
+  success = 0,
   no_motor_configured,
   motor_not_connected,
   motor_general_error,

@@ -20,7 +20,12 @@
       ]
     },
     "magic-enum",
-    "mp-units",
+    {
+      "name": "mp-units",
+      "features": [
+        "use-libfmt"
+      ]
+    },
     "openssl",
     "pcg",
     "protobuf",
