@@ -145,7 +145,7 @@ export async function fetchDataFromDBus(name: string, iface: string, path: strin
     return {};
   }
 
-  if ((parsedData === null && data[property][0].length > 5) || !Object.keys(parsedData).includes(property)) {
+  if ((parsedData === null && data[property][0].length > 3) || !Object.keys(parsedData).includes(property)) {
     parsedData = { config: parsedData };
   }
 
