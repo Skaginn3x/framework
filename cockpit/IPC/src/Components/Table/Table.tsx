@@ -65,6 +65,7 @@ export default function CustomTable({
   const [nameSelection, setNameSelection] = React.useState<string[]>([]);
   const [processSelections, setProcessSelections] = React.useState<string[]>([]);
   const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
+  const [connectionSelection, setConnectionSelection] = React.useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = React.useState(false);
   const [modalSelectedSlots, setModalSelectedSlots] = React.useState<Set<SlotType>>(new Set());
@@ -77,6 +78,7 @@ export default function CustomTable({
     Name: useRef<HTMLInputElement | null>(null),
     Type: useRef<HTMLInputElement | null>(null),
     Process: useRef<HTMLInputElement | null>(null),
+    Connected: useRef<HTMLInputElement | null>(null),
   };
 
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
@@ -105,9 +107,19 @@ export default function CustomTable({
       matchesSearchValue = true;
     }
     const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(signal.type);
+    let matchesConnectedToSelection = true;
+    if (connectionSelection.includes('Connected Only')) {
+      matchesConnectedToSelection = connections[signal.name] && connections[signal.name].length > 0;
+    } else if (connectionSelection.includes('Not Connected Only')) {
+      matchesConnectedToSelection = !connections[signal.name] || connections[signal.name].length === 0;
+    }
+    if (connectionSelection.length === 2) {
+      matchesConnectedToSelection = true;
+    }
     return (
       matchesSearchValue
       && matchesTypeSelection
+      && matchesConnectedToSelection
       && (processSelections.length === 0 || processSelections.includes(signal.name.split('.').splice(0, 2).join('.')))
     );
   };
@@ -137,6 +149,7 @@ export default function CustomTable({
     setNameSelection([]);
     setTypeSelection([]);
     setProcessSelections([]);
+    setConnectionSelection([]);
   }
 
   /**
@@ -406,6 +419,21 @@ export default function CustomTable({
     attributeName="Process"
     activeAttributeMenu={activeAttributeMenu}
     innerRef={attributeRefs.Process}
+  />,
+    },
+    {
+      key: 'Connection',
+      chips: connectionSelection,
+      categoryName: 'Connection',
+      setFiltered: setConnectionSelection,
+      component:
+  <MultiSelectAttribute
+    items={['Connected Only', 'Not Connected Only']}
+    selectedItems={connectionSelection}
+    setActiveItems={setConnectionSelection}
+    attributeName="Connection"
+    activeAttributeMenu={activeAttributeMenu}
+    innerRef={attributeRefs.Connected}
   />,
     },
   ] as FilterConfig[];
