@@ -70,6 +70,10 @@ button.Hovr {
 .TransitionUp {
     transition: transform 0.3s ease-in-out;
 }
+
+.FullSizeCell {
+    min-width: 20rem !important;
+}
 .ArrowIcons {
     width: 32px;
     height: 32px;
@@ -98,6 +102,9 @@ button.Hovr {
     }
     .tinker-number-input {
         width: 6rem;
+    }
+    .FullSizeCell {
+        min-width: unset !important;
     }
   }
 

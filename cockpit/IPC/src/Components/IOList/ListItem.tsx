@@ -91,7 +91,7 @@ const ListItem: React.FC<ListItemProps> = ({
           clickTip="Copied"
           variant={ClipboardCopyVariant.expansion}
           style={{
-            alignSelf: 'baseline', marginTop: '-.85rem', zIndex: 1, maxWidth: '25vw',
+            alignSelf: 'baseline', marginTop: '-.25rem', zIndex: 1, maxWidth: '25vw',
           }}
         >
           {JSON.stringify(JSON.parse(data.Value), null, 2)}
@@ -198,6 +198,7 @@ const ListItem: React.FC<ListItemProps> = ({
             </DataListCell>,
             <DataListCell
               key={`${dbusInterface.interfaceName}-secondary-content`}
+              className="FullSizeCell"
               style={{
                 textAlign: 'right',
                 height: '100%',
