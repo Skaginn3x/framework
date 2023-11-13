@@ -160,6 +160,10 @@ export default function FormGenerator(
       return true; // Ignore validity check for arrays
     }
 
+    if (Object.keys(actualData).includes('internal_null_value_do_not_use')) {
+      return true;
+    }
+
     if (Object.keys(data).includes('__valid') && data.__valid === false) {
       return false;
     }
@@ -202,6 +206,7 @@ export default function FormGenerator(
           if (checkValidity(store.toJS().validity, store.toJS().values)) {
             onSubmit(store.toJS());
           } else {
+            console.log(store.toJS());
             addAlert('Could not validate configuration', AlertVariant.danger);
           }
         }}

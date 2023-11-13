@@ -80,10 +80,10 @@ export const updateFormData = (
   React.Dispatch<any>,
   addAlert: any,
 ) => {
-  if (!newData || !name) return;
+  if (newData === undefined || !name) return;
 
   // Unwrap config object if it exists (for nested schemas)
-  if (newData.config) {
+  if (newData && newData.config) {
     // eslint-disable-next-line no-param-reassign
     newData = newData.config;
   }

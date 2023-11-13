@@ -113,6 +113,8 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
   function handleSubmit(data: any) {
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
+    console.log('data: ', data);
+    console.log('data: ', JSON.stringify(data));
     updateFormData(
       activeItem, // Process name
       activeItem, // Interface name

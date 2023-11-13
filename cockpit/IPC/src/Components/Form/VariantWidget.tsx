@@ -61,7 +61,12 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    * @returns selected object title
    */
   function findSelectedTitle(oneOf:any, vals:any) {
-    if (!vals) { return null; }
+    if (vals === undefined) { return null; }
+
+    // if vals is null, return std::monostate
+    if (vals === null && oneOf.toJS().map((item: any) => item.title).includes('std::monostate')) {
+      return 'std::monostate';
+    }
     // Get key from store to determine what is selected
     const selectedProp = Object.keys(vals).length > 0 ? Object.keys(vals)[0] : undefined;
     if (!selectedProp) { return null; }
@@ -134,7 +139,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     const selectedObject = oneOfSchema.find((item: any) => item.get('title') === title);
     console.log('title', title);
     console.log('oneofSchema', oneOfSchema.toJS());
-    if (selectedObject && Object.keys(selectedObject.toJS()).includes('const')) {
+    if (selectedObject && (Object.keys(selectedObject.toJS()).includes('const') || selectedObject.toJS().type === 'null')) {
       console.log('selectedObject', selectedObject.toJS());
       return null;
     }
