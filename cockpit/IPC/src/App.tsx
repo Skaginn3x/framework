@@ -97,7 +97,6 @@ function App() {
               alignItems: 'center',
               minHeight: '100vh',
               backgroundColor: isDark ? '#1b1d21' : 'transparent',
-              overflowX: 'scroll',
               minWidth: 'fit-content',
             }}
             >

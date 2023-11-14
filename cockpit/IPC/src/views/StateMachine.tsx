@@ -353,7 +353,12 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                 />
               </div>
               <div style={{
-                width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: isDark ? '#EEE' : '#111',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                color: isDark ? '#EEE' : '#111',
+                maxHeight: 'calc(100vh - 4rem)',
               }}
               >
                 {parse(svg ?? '') ?? <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>}
