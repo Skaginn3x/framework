@@ -7,10 +7,10 @@ add_library(motor
 add_library(tfc::motor ALIAS motor)
 
 target_include_directories(motor
-    PUBLIC
+  PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:include>
-    PRIVATE
+  PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
 )
 
