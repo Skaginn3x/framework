@@ -541,10 +541,11 @@ public:
       di_transmitters_.emplace_back(
           tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
     }
-    for (size_t i = 0; i < 2; i++) {
-      ai_transmitters_.emplace_back(
-          tfc::ipc::int_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Analog input"));
-    }
+    // TODO: Design a sane method for transmitting analog signals in event based enviorments
+    // for (size_t i = 0; i < 2; i++) {
+    //   ai_transmitters_.emplace_back(
+    //       tfc::ipc::int_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Analog input"));
+    // }
   }
 
   struct input_t {
@@ -591,14 +592,15 @@ public:
     }
     last_bool_values_ = value;
 
-    for (size_t i = 0; i < 2; i++) {
-      if (last_analog_inputs_[i] != in->analog_inputs[i]) {
-        ai_transmitters_[i].async_send(in->analog_inputs[i], [this](auto&& PH1, size_t const bytes_transfered) {
-          async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-        });
-      }
-      last_analog_inputs_[i] = in->analog_inputs[i];
-    }
+    // TODO: Design a sane method for transmitting analog signals in event based enviorments
+    // for (size_t i = 0; i < 2; i++) {
+    //   if (last_analog_inputs_[i] != in->analog_inputs[i]) {
+    //     ai_transmitters_[i].async_send(in->analog_inputs[i], [this](auto&& PH1, size_t const bytes_transfered) {
+    //       async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
+    //     });
+    //   }
+    //   last_analog_inputs_[i] = in->analog_inputs[i];
+    // }
     auto frequency = static_cast<int16_t>(in->frequency);
     if (last_frequency_ != frequency) {
       frequency_transmit_.async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, size_t const bytes_transfered) {
