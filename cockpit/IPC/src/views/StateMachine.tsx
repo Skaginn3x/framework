@@ -12,9 +12,15 @@ import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import { Graphviz } from '@hpcc-js/wasm';
-import { Spinner } from '@patternfly/react-core';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerPanelContent, Nav, NavGroup, NavItem, Spinner, Title,
+} from '@patternfly/react-core';
 import parse from 'html-react-parser';
 import { DarkModeType } from 'src/App';
+import Hamburger from 'hamburger-react';
 
 declare global {
   interface Window { cockpit: any; }
@@ -46,6 +52,9 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
   const [svg, setSVG] = useState<string>();
+
+  const [activeItem, setActiveItem] = React.useState('');
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
 
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
@@ -175,9 +184,9 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   }
 
   async function generateGraphviz() {
-    if (dbusInterfaces.length === 0) return;
+    if (!activeItem) return;
     const graphviz = await Graphviz.load();
-    let svgString = graphviz.dot(dbusInterfaces[0].proxy.data.StateMachine);
+    let svgString = graphviz.dot(activeItem);
     svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
     // same with height
     svgString = svgString.replace(/height="\d+\.?\d*pt"/g, 'height="100%"');
@@ -195,7 +204,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
 
   useEffect(() => {
     generateGraphviz();
-  }, [dbusInterfaces]);
+  }, [activeItem]);
 
   useEffect(() => {
     const interval = setInterval(
@@ -245,18 +254,121 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript(callback);
   }, []);
 
+  const onSelect = (selectedItem: {
+    groupId: string | number;
+    itemId: string | number;
+  }) => {
+    if (selectedItem.itemId) {
+      setActiveItem(selectedItem.itemId as string);
+      setIsDrawerExpanded(false);
+    }
+  };
+
+  const panelContent = (
+    <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
+      <div style={{
+        minWidth: '15rem', backgroundColor: isDark ? '#212427' : '#EEEEEE', height: '-webkit-fill-available',
+      }}
+      >
+        {dbusInterfaces.length > 0
+          ? (
+            <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
+              {/* Remove this group to get rid of demo data */}
+              <NavGroup title="Processes">
+                <NavItem
+                  preventDefault
+                  to="#all"
+                  key="all-navItem"
+                  groupId={undefined}
+                  isActive={activeItem === undefined}
+                >
+                  All
+                </NavItem>
+                {dbusInterfaces.map((iface: any) => (
+                  <NavItem
+                    preventDefault
+                    to={`#${iface.interfaceName}`}
+                    key={`${iface.interfaceName}-navItem`}
+                    groupId={iface.interfaceName}
+                    isActive={activeItem === iface.interfaceName}
+                  >
+                    {iface.interfaceName}
+                  </NavItem>
+                ))}
+              </NavGroup>
+            </Nav>
+          )
+          : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100vh',
+              color: isDark ? '#EEE' : '#111',
+            }}
+            >
+              <p> No processes Running</p>
+            </div>
+          )}
+      </div>
+    </DrawerPanelContent>
+  );
+  const toggleDrawer = () => {
+    setIsDrawerExpanded(!isDrawerExpanded);
+  };
+
   return (
     <div style={{
-      maxHeight: '95vh',
+      height: '100vh',
       fontFamily: '"RedHatText", helvetica, arial, sans-serif !important',
-      width: '95vw',
+      width: '100%',
     }}
     >
-      {parse(svg ?? '') ?? <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>}
-
-      {/* {dbusInterfaces.length > 0 && dbusInterfaces[0].proxy.data.StateMachine
-        ? <Graphviz dot={dbusInterfaces[0].proxy.data.StateMachine} />
-        : <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>} */}
+      <Drawer isExpanded={isDrawerExpanded} position="right">
+        <DrawerContent panelContent={panelContent}>
+          <DrawerContentBody>
+            <div style={{
+              minWidth: '300px',
+              flex: 1,
+              height: '100%',
+              width: isDrawerExpanded ? 'calc(100% - 28rem)' : '100%',
+              transition: 'width 0.2s ease-in-out',
+            }}
+            >
+              <Title
+                headingLevel="h1"
+                size="2xl"
+                style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
+              >
+                State Machines
+              </Title>
+              <div style={{
+                position: 'fixed',
+                right: isDrawerExpanded ? '29.5rem' : '1.5rem',
+                transition: 'right 0.2s ease-in-out',
+                top: '0rem',
+                zIndex: '10000',
+              }}
+              >
+                <Hamburger
+                  toggled={isDrawerExpanded}
+                  toggle={toggleDrawer}
+                  size={30}
+                  color={isDark ? '#EEE' : undefined}
+                />
+              </div>
+              <div style={{
+                width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: isDark ? '#EEE' : '#111',
+              }}
+              >
+                {parse(svg ?? '') ?? <div style={{ height: '100vh', width: '100vw' }}><Spinner size="xl" /></div>}
+              </div>
+            </div>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
