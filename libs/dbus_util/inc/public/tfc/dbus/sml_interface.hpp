@@ -265,7 +265,7 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
   const auto is_exit =
       boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
 
-  if (!is_entry & !is_exit) {
+  if (!is_entry && !is_exit) {
     std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
     std::string guard{ has_guard ? get_guard_name<type_t>() : "" };
     std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
