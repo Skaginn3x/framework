@@ -176,7 +176,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
 
   async function generateGraphviz() {
     const graphviz = await Graphviz.load();
-    let svgString = graphviz.dot(testString);
+    let svgString = graphviz.dot(dbusInterfaces[0].proxy.data.StateMachine);
     svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
     // same with height
     svgString = svgString.replace(/height="\d+\.?\d*pt"/g, 'height="100%"');
