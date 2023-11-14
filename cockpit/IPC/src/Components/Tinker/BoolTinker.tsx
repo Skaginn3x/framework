@@ -9,15 +9,21 @@ interface BoolTinkerIface {
 
 const BoolTinker: React.FC<BoolTinkerIface> = ({ data }) => {
   const { addAlert } = useAlertContext();
-  const handleInputChange = (value: boolean) => {
-    data.proxy.Tinker(value ? 1 : 0);
-    addAlert(`Value of ${data.interfaceName} has been set ${value ? 'true' : 'false'}`, AlertVariant.success);
+  const [value, setValue] = React.useState(data.proxy.data.Value);
+
+  const handleInputChange = (newValue: boolean) => {
+    data.proxy.Tinker(newValue ? 1 : 0).then(() => {
+      addAlert(`Value of ${data.interfaceName} has been set ${newValue ? 'true' : 'false'}`, AlertVariant.success);
+      setValue(newValue);
+    }).catch(() => {
+      addAlert(`Error setting value of ${data.interfaceName}`, AlertVariant.danger);
+    });
   };
 
   return (
     <Switch
       aria-label={`tinker-{${data.iface}}-{${data.process}}}`}
-      isChecked={data.proxy.data.Value}
+      isChecked={value}
       onChange={(e, val) => handleInputChange(val)}
       isDisabled={false}
       key={`${data.iface}-${data.process}`}
