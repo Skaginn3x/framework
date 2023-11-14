@@ -253,7 +253,7 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
   }
 
   if (type_t::initial) {
-    buffer.append("start --> ").append(src_state).append("\n");
+    buffer.append("start -> ").append(src_state).append("\n");
   }
 
   const auto has_event = !boost::sml::aux::is_same<typename type_t::event, boost::sml::anonymous>::value;
