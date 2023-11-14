@@ -175,6 +175,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   }
 
   async function generateGraphviz() {
+    if (dbusInterfaces.length === 0) return;
     const graphviz = await Graphviz.load();
     let svgString = graphviz.dot(dbusInterfaces[0].proxy.data.StateMachine);
     svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
@@ -191,6 +192,10 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     newSVG = toggleDarkMode(newSVG);
     setSVG(newSVG);
   }, [isDark]);
+
+  useEffect(() => {
+    generateGraphviz();
+  }, [dbusInterfaces]);
 
   useEffect(() => {
     const interval = setInterval(
@@ -229,7 +234,6 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     };
 
     fetchAndConnectInterfaces();
-    generateGraphviz();
   }, [processes]);
 
   useEffect(() => {
