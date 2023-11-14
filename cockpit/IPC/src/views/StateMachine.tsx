@@ -112,60 +112,6 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
-  const [testString, setTestString] = useState<string>(`digraph G {
-
-    // Node definitions
-    init [shape=ellipse, color=black];
-    stopped [shape=ellipse, color=limegreen, label="stopped\nentry / lambda\nexit / lambda"];
-    starting [shape=ellipse, label="starting\nentry / lambda\nexit / lambda"];
-    running [shape=ellipse, label="running\nentry / lambda\nexit / lambda"];
-    stopping [shape=ellipse, label="stopping\nentry / lambda\nexit / lambda"];
-    cleaning [shape=ellipse, label="cleaning\nentry / lambda\nexit / lambda"];
-    emergency [shape=ellipse, label="emergency\nentry / lambda\nexit / lambda"];
-    fault [shape=ellipse, label="fault\nentry / lambda\nexit / lambda"];
-    maintenance [shape=ellipse, label="maintenance\nentry / lambda\nexit / lambda"];
-  
-    // Transitions
-    init -> stopped [color=gold, label="set_stopped / lambda"];
-    stopped -> starting [color=green, label="set_starting / lambda"];
-    stopped -> starting [color=green, label="run_button / lambda"];
-    starting -> running [label="starting_timeout / lambda"];
-    starting -> running [label="starting_finished / lambda"];
-    running -> stopping [label="run_button / lambda"];
-    running -> stopping [label="set_stopped / lambda"];
-    stopping -> stopped [label="stopping_timeout / lambda"];
-    stopping -> stopped [label="stopping_finished / lambda"];
-    stopped -> cleaning [color=green, label="cleaning_button / lambda"];
-    stopped -> cleaning [color=green, label="set_cleaning / lambda"];
-    cleaning -> stopped [label="cleaning_button / lambda"];
-    cleaning -> stopped [label="set_stopped / lambda"];
-    stopped -> emergency [color=green, label="set_emergency / lambda"];
-    stopping -> emergency [label="set_emergency / lambda"];
-    starting -> emergency [label="set_emergency / lambda"];
-    running -> emergency [label="set_emergency / lambda"];
-    cleaning -> emergency [label="set_emergency / lambda"];
-    fault -> emergency [label="set_emergency / lambda"];
-    maintenance -> emergency [label="set_emergency / lambda"];
-    stopped -> emergency [color=green, label="emergency_on / lambda"];
-    stopping -> emergency [label="emergency_on / lambda"];
-    starting -> emergency [label="emergency_on / lambda"];
-    running -> emergency [label="emergency_on / lambda"];
-    cleaning -> emergency [label="emergency_on / lambda"];
-    fault -> emergency [label="emergency_on / lambda"];
-    maintenance -> emergency [label="emergency_on / lambda"];
-    emergency -> stopped [label="emergency_off / lambda"];
-    stopped -> fault [color=green, label="fault_on / lambda"];
-    stopped -> fault [color=green, label="set_fault / lambda"];
-    running -> fault [label="fault_on / lambda"];
-    running -> fault [label="set_fault / lambda"];
-    fault -> stopped [label="fault_off / lambda"];
-    fault -> stopped [label="set_stopped / lambda"];
-    stopped -> maintenance [color=green, label="maintenance_button / lambda"];
-    stopped -> maintenance [color=green, label="set_maintenance / lambda"];
-    maintenance -> stopped [label="maintenance_button / lambda"];
-    maintenance -> stopped [label="set_stopped / lambda"];
-  }`);
-
   function toggleDarkMode(svgString: string) {
     if (isDark) {
       svgString = svgString.replace(/fill="white"/g, 'fill="#1B1D21"');
@@ -207,25 +153,6 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   useEffect(() => {
     generateGraphviz();
   }, [activeItem]);
-
-  // useEffect(() => {
-  //   const interval = setInterval(
-  //     () => {
-  //       if (!svg) return;
-  //       let newSVG = svg;
-  //       if (newSVG.includes('stroke="green"')) {
-  //         newSVG = newSVG.replaceAll(/stroke="green"/g, 'stroke="red"');
-  //         newSVG = newSVG.replaceAll(/fill="green"/g, 'fill="red"');
-  //       } else {
-  //         newSVG = newSVG.replaceAll(/stroke="red"/g, 'stroke="green"');
-  //         newSVG = newSVG.replaceAll(/fill="red"/g, 'fill="green"');
-  //       }
-  //       setSVG(newSVG);
-  //     },
-  //     500,
-  //   );
-  //   return () => clearInterval(interval);
-  // }, [svg]);
 
   useEffect(() => {
     if (!processes) return;
