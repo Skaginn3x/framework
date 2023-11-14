@@ -65,39 +65,90 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
-  const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, direction:string, process:string) => {
-    const handleChanged = (value: any, name:any) => {
-      setDbusInterfaces((prevInterfaces) => {
-        const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
-        if (index === -1) return prevInterfaces;
+  const handleChanged = (value: any, iFaceName:any) => {
+    setDbusInterfaces((prevInterfaces) => {
+      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === iFaceName);
+      if (index === -1) return prevInterfaces;
 
-        const updatedInterfaces = [...prevInterfaces];
-        updatedInterfaces[index].proxy.data.Value = value;
+      const updatedInterfaces = [...prevInterfaces];
+      updatedInterfaces[index].proxy.data.Value = value;
+      if (openModals.includes(index) && !isMobile) {
         setHistory((prevHistory: any) => {
           const newHistory = { ...prevHistory };
-          if (!newHistory[name]) {
-            newHistory[name] = [];
+          if (!newHistory[iFaceName]) {
+            newHistory[iFaceName] = [];
           }
-          if (newHistory[name].length > 200) { // Limit history to 200 entries per interface
-            newHistory[name].shift();
+          if (newHistory[iFaceName].length > 200) { // Limit history to 200 entries per interface
+            newHistory[iFaceName].shift();
           }
-          newHistory[name].push({ value, timestamp: Date.now() });
+          newHistory[iFaceName].push({ value, timestamp: Date.now() });
           return newHistory;
         });
-
+      }
+      if (isMobile) {
         setUnsortedEvents((prevEvents: any) => {
           const newEvents = [...prevEvents];
           if (newEvents.length > 20) { // Limit history to 20 entries per interface
             newEvents.shift();
           }
-          newEvents.push({ interface: name, value, timestamp: Date.now() });
+          newEvents.push({ interface: iFaceName, value, timestamp: Date.now() });
           return newEvents;
         });
+      }
 
-        return updatedInterfaces;
-      });
+      return updatedInterfaces;
+    });
+  };
+
+  const subscribeToItem = async (name: string, process: string, path:string) => {
+    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+    console.log('Subscribed to ', name);
+
+    const match = {
+      interface: 'org.freedesktop.DBus.Properties',
+      path,
+      member: 'PropertiesChanged', // Standard DBus signal for property changes
+      arg0: name,
     };
+    const subscription:any = processDBUS.subscribe(match, (pathz: any, iface: any, signal: any, args: any) => {
+      // Check if the changed property is 'Value'
+      if (args && Object.keys(args[1]).includes('Value') && args[1].Value.v !== undefined) {
+        handleChanged(args[1].Value.v, name);
+      }
+    });
+    eventHandlersRef.current.set(name, subscription);
 
+    setDbusInterfaces((prevInterfaces) => {
+      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
+      if (index === -1) return prevInterfaces;
+
+      const updatedInterfaces = [...prevInterfaces];
+      updatedInterfaces[index].listener = subscription;
+      return updatedInterfaces;
+    });
+
+    return subscription;
+  };
+
+  const unsubscribeFromItem = async (name: string) => {
+    const subscription = dbusInterfaces.find((iface) => iface.interfaceName === name)?.listener;
+    if (!subscription) return;
+
+    subscription.remove();
+    eventHandlersRef.current.delete(name);
+    console.log('Unsubscribed from ', name);
+
+    setDbusInterfaces((prevInterfaces) => {
+      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
+      if (index === -1) return prevInterfaces;
+
+      const updatedInterfaces = [...prevInterfaces];
+      updatedInterfaces[index].listener = false;
+      return updatedInterfaces;
+    });
+  };
+
+  const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, direction:string, process:string) => {
     const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
 
     try {
@@ -109,19 +160,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           const proxy = processDBUS.proxy(interfaceData.name, path);
           // eslint-disable-next-line no-await-in-loop
           await proxy.wait().then(() => {
-            const match = {
-              interface: 'org.freedesktop.DBus.Properties',
-              path,
-              member: 'PropertiesChanged', // Standard DBus signal for property changes
-              arg0: interfaceData.name,
-            };
-            const subscription:any = processDBUS.subscribe(match, (pathz: any, iface: any, signal: any, args: any) => {
-              // Check if the changed property is 'Value'
-              if (args && Object.keys(args[1]).includes('Value') && args[1].Value.v !== undefined) {
-                handleChanged(args[1].Value.v, interfaceData.name);
-              }
-            });
-            eventHandlersRef.current.set(interfaceData.name, subscription);
             interfaces.push({
               proxy,
               process,
@@ -129,6 +167,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
               type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
               direction,
               hidden: false,
+              listener: false,
             });
           });
         }
@@ -395,6 +434,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     dropdownRefs={dropdownRefs}
                     onToggleClick={onToggleClick}
                     setModalOpen={(i:number) => openModal(i)}
+                    onCheck={() => (dbusInterface.listener
+                      ? unsubscribeFromItem(dbusInterface.interfaceName)
+                      : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
                   />
                 );
               }
@@ -418,6 +460,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     dropdownRefs={dropdownRefs}
                     onToggleClick={onToggleClick}
                     setModalOpen={(i:number) => openModal(i)}
+                    onCheck={() => (dbusInterface.listener
+                      ? unsubscribeFromItem(dbusInterface.name)
+                      : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
                   />
                 );
               }
