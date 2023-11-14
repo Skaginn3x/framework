@@ -186,7 +186,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   async function generateGraphviz() {
     if (!activeItem) return;
     const graphviz = await Graphviz.load();
-    let svgString = graphviz.dot(activeItem);
+    let svgString = graphviz.dot(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine ?? '');
     svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
     // same with height
     svgString = svgString.replace(/height="\d+\.?\d*pt"/g, 'height="100%"');
@@ -206,24 +206,24 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     generateGraphviz();
   }, [activeItem]);
 
-  useEffect(() => {
-    const interval = setInterval(
-      () => {
-        if (!svg) return;
-        let newSVG = svg;
-        if (newSVG.includes('stroke="green"')) {
-          newSVG = newSVG.replaceAll(/stroke="green"/g, 'stroke="red"');
-          newSVG = newSVG.replaceAll(/fill="green"/g, 'fill="red"');
-        } else {
-          newSVG = newSVG.replaceAll(/stroke="red"/g, 'stroke="green"');
-          newSVG = newSVG.replaceAll(/fill="red"/g, 'fill="green"');
-        }
-        setSVG(newSVG);
-      },
-      500,
-    );
-    return () => clearInterval(interval);
-  }, [svg]);
+  // useEffect(() => {
+  //   const interval = setInterval(
+  //     () => {
+  //       if (!svg) return;
+  //       let newSVG = svg;
+  //       if (newSVG.includes('stroke="green"')) {
+  //         newSVG = newSVG.replaceAll(/stroke="green"/g, 'stroke="red"');
+  //         newSVG = newSVG.replaceAll(/fill="green"/g, 'fill="red"');
+  //       } else {
+  //         newSVG = newSVG.replaceAll(/stroke="red"/g, 'stroke="green"');
+  //         newSVG = newSVG.replaceAll(/fill="red"/g, 'fill="green"');
+  //       }
+  //       setSVG(newSVG);
+  //     },
+  //     500,
+  //   );
+  //   return () => clearInterval(interval);
+  // }, [svg]);
 
   useEffect(() => {
     if (!processes) return;
@@ -275,15 +275,6 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
             <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
               {/* Remove this group to get rid of demo data */}
               <NavGroup title="Processes">
-                <NavItem
-                  preventDefault
-                  to="#all"
-                  key="all-navItem"
-                  groupId={undefined}
-                  isActive={activeItem === undefined}
-                >
-                  All
-                </NavItem>
                 {dbusInterfaces.map((iface: any) => (
                   <NavItem
                     preventDefault
