@@ -15,6 +15,7 @@ import Connections from './views/Connections';
 import NotFoundPage from './views/NotFoundPage';
 import ListDBUS from './views/ListDBUS';
 import IODebug from './views/IODebug';
+import StateMachine from './views/StateMachine';
 
 export type DarkModeType = {
   isDark: boolean;
@@ -32,6 +33,7 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
     case 'configure': return <Configurator isDark={isDark} />;
     case 'list': return <ListDBUS isDark={isDark} />;
     case 'debug': return <IODebug isDark={isDark} />;
+    case 'state_machine': return <StateMachine isDark={isDark} />;
     default: return <NotFoundPage />;
   }
 };
@@ -95,7 +97,6 @@ function App() {
               alignItems: 'center',
               minHeight: '100vh',
               backgroundColor: isDark ? '#1b1d21' : 'transparent',
-              overflowX: 'scroll',
               minWidth: 'fit-content',
             }}
             >

@@ -14,6 +14,10 @@
             "path": "index.html?service=debug"
         },
         "tfc4": {
+            "label": "TFC State Machine",
+            "path": "index.html?service=state_machine"
+        },
+        "tfc5": {
             "label": "TFC List DBUS",
             "path": "index.html?service=list"
         }

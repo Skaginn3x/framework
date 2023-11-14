@@ -1,9 +1,11 @@
 #pragma once
 
+#include <concepts>
 #include <memory>
 #include <string>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <boost/sml.hpp>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
@@ -22,12 +24,17 @@ namespace detail {
 
 struct interface_impl {
   explicit interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface>);
+
   interface_impl(interface_impl const&) = delete;
+
   interface_impl(interface_impl&&) noexcept = default;
+
   auto operator=(interface_impl const&) -> interface_impl& = delete;
+
   auto operator=(interface_impl&&) noexcept -> interface_impl& = default;
 
   void on_state_change(std::string_view source_state, std::string_view destination_state, std::string_view event);
+
   void dot_format(std::string_view state_machine);
 
   std::string source_state_{};
@@ -146,11 +153,16 @@ struct interface : tfc::logger::sml_logger {
   using logger = tfc::logger::sml_logger;
 
   explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{ std::move(interface) } {}
+
   explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view log_key)
       : logger{ log_key }, impl_{ std::move(interface) } {}
+
   interface(interface const&) = delete;
+
   interface(interface&&) noexcept = default;
+
   auto operator=(interface const&) -> interface& = delete;
+
   auto operator=(interface&&) noexcept -> interface& = default;
 
   template <class state_machine_t, class event_t>
@@ -189,22 +201,59 @@ bool constexpr is_likely_current_transition = [] {
          std::same_as<std::remove_cvref_t<typename source_state_t::type>, typename transition_t::src_state>;
 }();
 
+template <typename type_t>
+auto get_filtered_name() -> std::string {
+  auto filtered_name = get_name<type_t>();
+  if (filtered_name.contains("(lambda") || filtered_name.contains("<lambda")) {
+    filtered_name = "lambda";
+  }
+  return filtered_name;
+}
+
+template <typename type_t>
+auto get_guard_name() -> std::string {
+  return "[" + get_filtered_name<typename type_t::guard>() + "]";
+}
+
+template <typename type_t>
+auto get_action_name() -> std::string {
+  return get_filtered_name<typename type_t::action::type>();
+}
+
+template <class type_t, class source_state_t, class destination_state_t>
+auto get_color(bool has_event, std::string_view last_event) -> std::string {
+  if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
+    if (has_event && get_name<typename type_t::event>() == last_event) {
+      return "gold";
+    }
+  } else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
+    return "lightblue";
+  }
+  return "";
+}
+
+template <typename type_t>
+auto get_action_label(const std::string& src_state) -> std::string {
+  std::string action_name = get_action_name<type_t>();
+  return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state, action_name);
+}
+
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
 template <class type_t, class source_state_t, class destination_state_t>
-void dump_transition([[maybe_unused]] source_state_t const& src,
+auto dump_transition([[maybe_unused]] source_state_t const& src,
                      [[maybe_unused]] destination_state_t const& dst,
                      std::string_view last_event,
-                     std::string& buffer) {
+                     std::string& buffer) -> void {
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
-  if (dst_state == "X") {
-    dst_state = "[*]";
+  if (dst_state == "terminate") {
+    dst_state = "stop";
   }
 
   if (type_t::initial) {
-    buffer.append("[*] --> ").append(src_state).append("\n");
+    buffer.append("start -> ").append(src_state).append("\n");
   }
 
   const auto has_event = !boost::sml::aux::is_same<typename type_t::event, boost::sml::anonymous>::value;
@@ -216,79 +265,40 @@ void dump_transition([[maybe_unused]] source_state_t const& src,
   const auto is_exit =
       boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
 
-  if (is_entry || is_exit) {
-    buffer.append(src_state);
-  } else {  // state to state transition
-    std::string color{};
-    if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
-      if (has_event) {
-        auto event = get_name<typename type_t::event>();
-        if (event == last_event) {
-          color = "[#gold]";
-        }
-      }
-    } else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
-      color = "[#green]";
-    }
+  if (!is_entry && !is_exit) {
+    std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
+    std::string guard{ has_guard ? get_guard_name<type_t>() : "" };
+    std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
+    std::string event_label{ has_event ? get_name<typename type_t::event>() : "" };
+    buffer.append(fmt::format("{} -> {} [label=\"{} {}\"{}]\n", src_state, dst_state, event_label, guard, color_attr));
+  }
 
-    buffer.append(src_state).append(" -").append(color).append("-> ").append(dst_state);
+  if constexpr (has_action) {
+    buffer.append(get_action_label<type_t>(get_name<typename type_t::src_state>()));
   }
 
   if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
-    buffer.append(" #limegreen");
-  }
-
-  if (has_event || has_guard || has_action) {
-    buffer.append(" :");
-  }
-
-  if (has_event) {
-    auto event = get_name<typename type_t::event>();
-    if (is_entry) {
-      event = "entry";
-    } else if (is_exit) {
-      event = "exit";
-    }
-    buffer.append(" ").append(event);
-  }
-
-  if (has_guard) {
-    auto guard_name = get_name<typename type_t::guard>();
-    // todo this could be done during compilation if boost::sml::aux::get_type_name would be constexpr
-    if (guard_name.find("(lambda") != std::string::npos || guard_name.find("<lambda") != std::string::npos) {
-      guard_name = "lambda";
-    }
-    buffer.append(" [").append(guard_name).append("]");
-  }
-
-  if (has_action) {
-    auto action_name = get_name<typename type_t::action::type>();
-    if (action_name.find("(lambda") != std::string::npos || action_name.find("<lambda") != std::string::npos) {
-      action_name = "lambda";
-    }
-    buffer.append(" / ").append(action_name);
+    buffer.append(fmt::format("\n {} [color=\"green\"]", dst_state));
   }
 
   buffer.append("\n");
 }
 
 template <template <class...> class type_t, class... types_t, class source_state_t, class destination_state_t>
-void dump_transitions(const type_t<types_t...>&,
+auto dump_transitions(const type_t<types_t...>&,
                       source_state_t const& src,
                       destination_state_t const& dst,
                       std::string_view last_event,
-                      std::string& buffer) {
+                      std::string& buffer) -> void {
   (dump_transition<types_t>(src, dst, last_event, buffer), ...);
 }
 
 template <class state_machine_t, class source_state_t, class destination_state_t>
 auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string {
-  std::string buffer{ "@startuml\n\n" };
+  std::string buffer{ "digraph {\n\n" };
   dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer);
-  buffer.append("\n@enduml\n");
+  buffer.append("\n}\n");
   return buffer;
 }
-
 }  // namespace detail
-
 }  // namespace tfc::dbus::sml

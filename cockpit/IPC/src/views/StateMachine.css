@@ -1,0 +1,7 @@
+.Graphviz {
+    width: 95vw;
+    height: 95vh;
+    position: relative;
+    overflow: hidden;
+    background-color: #fff;
+}
