@@ -260,8 +260,8 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     groupId: string | number;
     itemId: string | number;
   }) => {
-    if (selectedItem.itemId) {
-      setActiveItem(selectedItem.itemId as string);
+    if (selectedItem.groupId) {
+      setActiveItem(selectedItem.groupId as string);
       setIsDrawerExpanded(false);
     }
   };
