@@ -108,9 +108,9 @@ export default function CustomTable({
     }
     const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(signal.type);
     let matchesConnectedToSelection = true;
-    if (connectionSelection.includes('Connected Only')) {
+    if (connectionSelection.includes('Connected')) {
       matchesConnectedToSelection = connections[signal.name] && connections[signal.name].length > 0;
-    } else if (connectionSelection.includes('Not Connected Only')) {
+    } else if (connectionSelection.includes('Not connected')) {
       matchesConnectedToSelection = !connections[signal.name] || connections[signal.name].length === 0;
     }
     if (connectionSelection.length === 2) {
@@ -428,7 +428,7 @@ export default function CustomTable({
       setFiltered: setConnectionSelection,
       component:
   <MultiSelectAttribute
-    items={['Connected Only', 'Not Connected Only']}
+    items={['Connected', 'Not connected']}
     selectedItems={connectionSelection}
     setActiveItems={setConnectionSelection}
     attributeName="Connection"
