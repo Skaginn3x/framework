@@ -39,6 +39,9 @@ export function removeOrg(name: string) {
   if (name.split('.').length > 4) {
     return name.split('.').slice(3).join('.');
   }
+  if (name.split('.').length >= 3) {
+    return name.split('.').slice(2).join('.');
+  }
   return name;
 }
 

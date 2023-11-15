@@ -185,15 +185,19 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript(callback);
   }, []);
 
+  const [subtitle, setSubtile] = useState<string>('');
+
   const onSelect = (selectedItem: {
-    groupId: string | number;
-    itemId: string | number;
+    groupId: string;
+    itemId: string;
   }) => {
     if (selectedItem.itemId) {
-      setActiveItem(selectedItem.itemId as string);
+      setActiveItem(selectedItem.itemId.split('=')[0]);
+      const process = selectedItem.itemId.split('=')[1];
+      setSubtile(`${process ?? ''} - ${removeOrg(selectedItem.itemId.split('=')[0])}`);
       setIsDrawerExpanded(false);
     } else if (selectedItem.groupId) {
-      setActiveItemFilter(selectedItem.groupId as string);
+      setActiveItemFilter(selectedItem.groupId);
       setActiveItem('');
     } else {
       setActiveItemFilter(undefined);
@@ -222,7 +226,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
       >
         {processes && dbusInterfaces.length > 0
           ? (
-            <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
+            <Nav onSelect={(_, item) => onSelect(item as { groupId: string, itemId: string })} aria-label="Grouped global">
               {/* Remove this group to get rid of demo data */}
               <NavGroup title="Processes">
                 <NavItem
@@ -261,10 +265,10 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                       preventDefault
                       to={`#${iface.interfaceName}`}
                       key={`${iface.interfaceName}${iface.process}-navItem`}
-                      itemId={iface.interfaceName}
+                      itemId={`${iface.interfaceName}=${iface.process}`}
                       isActive={activeItem === iface.interfaceName && activeItemFilter === iface.process}
                     >
-                      {activeItemFilter ? getTitle(iface.interfaceName) : removeOrg(iface.interfaceName)}
+                      {activeItemFilter ? removeOrg(iface.interfaceName) : removeOrg(iface.interfaceName)}
                     </NavItem>
                   </Tooltip>
                 ))}
@@ -316,6 +320,13 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                 style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
               >
                 State Machines
+              </Title>
+              <Title
+                headingLevel="h1"
+                size="md"
+                style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
+              >
+                {subtitle}
               </Title>
               <div style={{
                 position: 'fixed',
