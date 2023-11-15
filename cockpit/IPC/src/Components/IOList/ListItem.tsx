@@ -4,38 +4,44 @@ import React, { ChangeEvent, ReactElement } from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
-  DataListAction,
+  // DataListAction,
   DataListCell,
   DataListItem,
   DataListItemCells,
   DataListItemRow,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
-  MenuToggleElement,
+  // Dropdown,
+  // DropdownItem,
+  // DropdownList,
+  // MenuToggleElement,
   Tooltip,
 } from '@patternfly/react-core';
 import Circle from 'src/Components/Simple/Circle';
 import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
-import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
+// import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
 import StringTinker from 'src/Components/Tinker/StringTinker';
 import BoolTinker from 'src/Components/Tinker/BoolTinker';
 import NumberTinker from 'src/Components/Tinker/NumberTinker';
 
 interface ListItemProps {
   dbusInterface: any,
-  index: number,
-  activeDropdown: number | null,
-  dropdownRefs: any,
-  onToggleClick: any,
-  setModalOpen: any,
+  // index: number,
+  // activeDropdown: number | null,
+  // dropdownRefs: any,
+  // onToggleClick: any,
+  // setModalOpen: any,
   onCheck: (checked: boolean) => void,
   isChecked: boolean,
 }
 
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
-  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen, onCheck, isChecked,
+  dbusInterface,
+  // index,
+  // activeDropdown,
+  // dropdownRefs,
+  // onToggleClick,
+  // setModalOpen,
+  onCheck, isChecked,
 }) => {
   const isMobile = window.innerWidth < 768;
   /**
@@ -193,9 +199,9 @@ const ListItem: React.FC<ListItemProps> = ({
       </div>
     );
   }
-  const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
-    console.log(value);
-  };
+  // const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+  //   console.log(value);
+  // };
 
   const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
     onCheck(event.target.checked);
@@ -219,6 +225,7 @@ const ListItem: React.FC<ListItemProps> = ({
             </DataListCell>,
             <DataListCell
               key={`${dbusInterface.interfaceName}-secondary-content`}
+              className="SecondaryText"
               style={{
                 textAlign: 'right',
                 height: '100%',
@@ -232,6 +239,7 @@ const ListItem: React.FC<ListItemProps> = ({
               ? (
                 <DataListCell
                   key={`${dbusInterface.interfaceName}-tinker-content`}
+                  className="TinkerText"
                   style={{
                     textAlign: 'right',
                     height: '100%',
@@ -245,43 +253,6 @@ const ListItem: React.FC<ListItemProps> = ({
               : null,
           ]}
         />
-        <DataListAction
-          aria-labelledby="check-action-item1 check-action-action1"
-          id="check-action-action1"
-          aria-label="Actions"
-          isPlainButtonAction
-        >
-          <Dropdown
-            className="DropdownItem"
-            key={`${dbusInterface.proxy.iface}${dbusInterface.process}`}
-            toggle={(toggleRef: React.Ref<MenuToggleElement>) => ( // NOSONAR
-              <CustomMenuToggle
-                toggleRef={(ref) => {
-                  if (typeof toggleRef === 'function') {
-                    toggleRef(ref);
-                  }
-                  dropdownRefs.current[index] = ref; // Store the ref for the dropdown
-                }}
-                onClick={() => onToggleClick(index)}
-                isExpanded={dbusInterface.dropdown}
-              />
-            )}
-            isOpen={activeDropdown === index}
-            onSelect={onSelect}
-            popperProps={{ enableFlip: true }}
-          >
-            <DropdownList>
-              <DropdownItem key="history" style={{ textDecoration: 'none' }} isDisabled> View History </DropdownItem>
-              <DropdownItem
-                key={`watch-${dbusInterface.interfaceName}-dd`}
-                style={{ textDecoration: 'none' }}
-                onMouseDown={() => setModalOpen(index)}
-              >
-                Watch
-              </DropdownItem>
-            </DropdownList>
-          </Dropdown>
-        </DataListAction>
       </DataListItemRow>
     </DataListItem>
   );

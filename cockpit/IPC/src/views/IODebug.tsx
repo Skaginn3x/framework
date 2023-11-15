@@ -16,7 +16,6 @@ import './IODebug.css';
 import ListItem from 'src/Components/IOList/ListItem';
 import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-import DraggableModal from 'src/Components/DraggableModal/DraggableModal';
 import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
 import { AngleDownIcon } from '@patternfly/react-icons';
 import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
@@ -54,9 +53,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
   const [isShowingEvents, setIsShowingEvents] = useState<boolean>(false);
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
-  const [history, setHistory] = useState<any>({});
-  const [openModals, setOpenModals] = useState<number[]>([]);
   // eslint-disable-next-line @typescript-eslint/comma-spacing
   const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -72,32 +68,20 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
 
       const updatedInterfaces = [...prevInterfaces];
       updatedInterfaces[index].proxy.data.Value = value;
-      if (openModals.includes(index) && !isMobile) {
-        setHistory((prevHistory: any) => {
-          const newHistory = { ...prevHistory };
-          if (!newHistory[iFaceName]) {
-            newHistory[iFaceName] = [];
-          }
-          if (newHistory[iFaceName].length > 200) { // Limit history to 200 entries per interface
-            newHistory[iFaceName].shift();
-          }
-          newHistory[iFaceName].push({ value, timestamp: Date.now() });
-          return newHistory;
-        });
-      }
-      if (isMobile) {
-        setUnsortedEvents((prevEvents: any) => {
-          const newEvents = [...prevEvents];
-          if (newEvents.length > 20) { // Limit history to 20 entries per interface
-            newEvents.shift();
-          }
-          newEvents.push({ interface: iFaceName, value, timestamp: Date.now() });
-          return newEvents;
-        });
-      }
 
       return updatedInterfaces;
     });
+
+    if (isMobile) {
+      setUnsortedEvents((prevEvents: any) => {
+        const newEvents = [...prevEvents];
+        if (newEvents.length > 20) { // Limit history to 20 entries per interface
+          newEvents.shift();
+        }
+        newEvents.push({ interface: iFaceName, value, timestamp: Date.now() });
+        return newEvents;
+      });
+    }
   };
 
   const subscribeToItem = async (name: string, process: string, path:string) => {
@@ -152,28 +136,30 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
 
     try {
-      // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-      await processProxy.call('Introspect').then(async (data: any) => {
-        const interfacesData = parseXMLInterfaces(data);
-        // eslint-disable-next-line no-restricted-syntax
-        for (const interfaceData of interfacesData) {
-          const proxy = processDBUS.proxy(interfaceData.name, path);
-          // eslint-disable-next-line no-await-in-loop
-          await proxy.wait().then(() => {
-            interfaces.push({
-              proxy,
-              process,
-              interfaceName: interfaceData.name,
-              type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
-              direction,
-              hidden: false,
-              listener: false,
-            });
-          });
-        }
+      const data = await processProxy.call('Introspect');
+      const interfacesData = parseXMLInterfaces(data);
+
+      // Create an array of promises for each proxy creation
+      const proxyPromises = interfacesData.map(async (interfaceData) => {
+        const proxy = processDBUS.proxy(interfaceData.name, path);
+        await proxy.wait(); // Wait for the proxy to be ready
+
+        return {
+          proxy,
+          process,
+          interfaceName: interfaceData.name,
+          type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
+          direction,
+          hidden: false,
+          listener: false,
+        };
       });
+
+      // Wait for all proxies to be created
+      const newInterfaces = await Promise.all(proxyPromises);
+      interfaces.push(...newInterfaces);
     } catch (e) {
-      console.log(e);
+      console.error('Error in getInterfaceData:', e);
     }
   };
 
@@ -214,40 +200,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     };
     loadExternalScript(callback);
   }, []);
-
-  /**
-   * Toggles the dropdown for the given index
-   * @param index Index of the dropdown
-   */
-  const onToggleClick = (index: number) => {
-    if (activeDropdown === index) {
-      setActiveDropdown(null);
-    } else {
-      setActiveDropdown(index);
-    }
-  };
-
-  const dropdownRefs = useRef<any[]>([]); // Create a ref array to hold dropdown references
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRefs.current.some((ref) => ref?.contains(event.target))) {
-        return;
-      }
-      setActiveDropdown(null); // Close all dropdowns
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  const openModal = (index: number) => {
-    setOpenModals((prevOpenModals) => [...prevOpenModals, index]);
-  };
-  const closeModal = (index: number) => {
-    setOpenModals((prevOpenModals) => prevOpenModals.filter((i) => i !== index));
-  };
-  const isModalOpen = (index: number) => openModals.includes(index);
 
   // use effect to scroll to bottom of div on unsortedEvent change
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -425,17 +377,12 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             Slots
           </Title>
           <DataList aria-label="Checkbox and action data list example" key="slots">
-            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
                 return (
                   <MemoizedListItem
                     dbusInterface={dbusInterface}
-                    index={index}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
-                    activeDropdown={activeDropdown}
-                    dropdownRefs={dropdownRefs}
-                    onToggleClick={onToggleClick}
-                    setModalOpen={(i:number) => openModal(i)}
                     isChecked={dbusInterface.listener}
                     onCheck={() => (dbusInterface.listener
                       ? unsubscribeFromItem(dbusInterface.interfaceName)
@@ -452,17 +399,12 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             Signals
           </Title>
           <DataList aria-label="Checkbox and action data list example" key="signals">
-            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
                 return (
                   <MemoizedListItem
                     dbusInterface={dbusInterface}
-                    index={index}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
-                    activeDropdown={activeDropdown}
-                    dropdownRefs={dropdownRefs}
-                    onToggleClick={onToggleClick}
-                    setModalOpen={(i:number) => openModal(i)}
                     isChecked={dbusInterface.listener}
                     onCheck={() => (dbusInterface.listener
                       ? unsubscribeFromItem(dbusInterface.interfaceName)
@@ -477,32 +419,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           <div style={{ height: '10rem' }} />
         </div>
       </div>
-      {!isMobile && dbusInterfaces.map((dbusInterface:any, index:number) => (
-        <DraggableModal
-          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
-          iface={dbusInterface}
-          isOpen={isModalOpen(index)}
-          visibilityIndex={openModals.indexOf(index)}
-          onClose={() => closeModal(index)}
-          datapoints={history[dbusInterface.interfaceName] ?? []}
-        >
-          {history[dbusInterface.interfaceName]?.map((datapoint: any) => (
-            <React.Fragment key={datapoint.timestamp}>
-              <div
-                style={{
-                  display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
-                }}
-              >
-                <div style={{ color: '#EEE' }}>
-                  {/* eslint-disable-next-line max-len */ }
-                  {`${new Date(datapoint.timestamp).toLocaleTimeString('de-DE')}.${new Date(datapoint.timestamp).getMilliseconds()}`}
-                </div>
-                <div style={{ color: '#EEE' }}>{datapoint.value.toString()}</div>
-              </div>
-            </React.Fragment>
-          ))}
-        </DraggableModal>
-      ))}
       {isMobile
                 && (
                 <AngleDownIcon

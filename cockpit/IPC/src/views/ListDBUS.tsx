@@ -31,40 +31,14 @@ const ListDBUS:React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript(callback);
   }, []);
 
-  // // run after 2sec
-  // setTimeout(() => {
-  //   const systemBus = window.cockpit.dbus('org.freedesktop.DBus', { bus: 'system', superuser: 'try' });
+  // run after 2sec
+  setTimeout(() => {
+    const client = window.cockpit.dbus('org.freedesktop.DBus', { bus: 'system', superuser: 'try' });
 
-  //   // Define your match rules
-  //   const matchRules = [
-  //     "path='/com/skaginn3x/Slots',member='PropertiesChanged'",
-  //     // Add other match rules here
-  //   ];
-
-  //   // Call BecomeMonitor
-  //   systemBus.call(
-  //     '/org/freedesktop/DBus',
-  //     'org.freedesktop.DBus.Monitoring',
-  //     'BecomeMonitor',
-  //     [matchRules, 0],
-  //   ).done(() => {
-  //     // Monitor is now active
-  //     console.log('Monitoring DBus signals');
-  //   }).fail((err: any) => {
-  //     // Handle error
-  //     console.error('Error setting up DBus monitor:', err);
-  //   });
-
-  //   // Handle incoming signals
-  //   systemBus.addEventListener('message', (event: { data: any; }) => {
-  //     // Process the message/event
-  //     const msg = event.data;
-
-  //     if (msg && msg.member === 'PropertiesChanged') {
-  //       console.log(msg);
-  //     }
-  //   });
-  // }, 2000);
+    client.watch('/com/skaginn3x/Slots').then((event: any) => {
+      console.log(event);
+    });
+  }, 2000);
 
   return (
     <div style={{ color: isDark ? '#EEE' : '#111' }}>
