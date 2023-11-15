@@ -4,31 +4,20 @@ import React, { ChangeEvent, ReactElement } from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
-  // DataListAction,
   DataListCell,
   DataListItem,
   DataListItemCells,
   DataListItemRow,
-  // Dropdown,
-  // DropdownItem,
-  // DropdownList,
-  // MenuToggleElement,
   Tooltip,
 } from '@patternfly/react-core';
 import Circle from 'src/Components/Simple/Circle';
 import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
-// import CustomMenuToggle from 'src/Components/Dropdown/CustomMenuToggle';
 import StringTinker from 'src/Components/Tinker/StringTinker';
 import BoolTinker from 'src/Components/Tinker/BoolTinker';
 import NumberTinker from 'src/Components/Tinker/NumberTinker';
 
 interface ListItemProps {
   dbusInterface: any,
-  // index: number,
-  // activeDropdown: number | null,
-  // dropdownRefs: any,
-  // onToggleClick: any,
-  // setModalOpen: any,
   onCheck: (checked: boolean) => void,
   isChecked: boolean,
 }
@@ -36,11 +25,6 @@ interface ListItemProps {
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
   dbusInterface,
-  // index,
-  // activeDropdown,
-  // dropdownRefs,
-  // onToggleClick,
-  // setModalOpen,
   onCheck, isChecked,
 }) => {
   const isMobile = window.innerWidth < 768;
@@ -199,9 +183,6 @@ const ListItem: React.FC<ListItemProps> = ({
       </div>
     );
   }
-  // const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
-  //   console.log(value);
-  // };
 
   const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
     onCheck(event.target.checked);
