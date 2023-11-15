@@ -20,12 +20,13 @@ interface ListItemProps {
   dbusInterface: any,
   onCheck: (checked: boolean) => void,
   isChecked: boolean,
+  data: any,
 }
 
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
   dbusInterface,
-  onCheck, isChecked,
+  onCheck, isChecked, data,
 }) => {
   const isMobile = window.innerWidth < 768;
   /**
@@ -33,16 +34,16 @@ const ListItem: React.FC<ListItemProps> = ({
   * @param data The data to be displayed
   * @returns ReactElement to be displayed
   */
-  function handleBoolContent(data: any): ReactElement {
+  function handleBoolContent(booldata: any): ReactElement {
     return (
       <Tooltip
-        content={`Value is ${data.Value ? 'true' : 'false'}`}
+        content={`Value is ${booldata.Value ? 'true' : 'false'}`}
         enableFlip
         distance={5}
         entryDelay={1000}
       >
         { isChecked
-          ? <Circle size="1rem" color={data.Value ? 'green' : 'red'} />
+          ? <Circle size="1rem" color={booldata.Value ? 'green' : 'red'} />
           : <Circle size="1rem" color="#888888" />}
       </Tooltip>
     );
@@ -53,11 +54,11 @@ const ListItem: React.FC<ListItemProps> = ({
    * @param data The data to be displayed
    * @returns ReactElement to be displayed
    */
-  function handleStringContent(data: any): ReactElement {
+  function handleStringContent(stringdata: any): ReactElement {
     if (!isChecked) {
       return (<p style={{ marginBottom: '0px' }}>Unknown</p>);
     }
-    return (<p style={{ marginBottom: '0px' }}>{data.Value}</p>);
+    return (<p style={{ marginBottom: '0px' }}>{stringdata.Value}</p>);
   }
 
   /**
@@ -65,16 +66,16 @@ const ListItem: React.FC<ListItemProps> = ({
    * @param data The data to be displayed
    * @returns ReactElement to be displayed
    */
-  function handleJSONContent(data: any): ReactElement {
+  function handleJSONContent(stringdata: any): ReactElement {
     if (!isChecked) {
       return (<p style={{ marginBottom: '0px' }}>Unknown</p>);
     }
 
     // Test if string is JSON
     let isJSON = false;
-    if (data.Value[0] === '{' || data.Value[0] === '[') {
+    if (stringdata.Value[0] === '{' || stringdata.Value[0] === '[') {
       try {
-        JSON.parse(data.Value);
+        JSON.parse(stringdata.Value);
         isJSON = true;
       } catch {
         isJSON = false;
@@ -93,13 +94,13 @@ const ListItem: React.FC<ListItemProps> = ({
             alignSelf: 'baseline', marginTop: '-.85rem', zIndex: 1, maxWidth: '25vw',
           }}
         >
-          {JSON.stringify(JSON.parse(data.Value), null, 2)}
+          {JSON.stringify(JSON.parse(stringdata.Value), null, 2)}
         </ClipboardCopy>
       );
     }
 
     return (
-      <p style={{ marginBottom: '0px' }}>{data.Value}</p>
+      <p style={{ marginBottom: '0px' }}>{stringdata.Value}</p>
     );
   }
 
@@ -108,23 +109,23 @@ const ListItem: React.FC<ListItemProps> = ({
    * @param data Interface data
    * @returns ReactElement to be displayed
    */
-  function getSecondaryContent(data: any): ReactElement | null {
-    const internals = (interfacedata: any) => {
-      switch (interfacedata.type) {
+  function getSecondaryContent(interfaceData: any): ReactElement | null {
+    const internals = (secData: any) => {
+      switch (secData.type) {
         case 'boolean':
-          return handleBoolContent(interfacedata.proxy.data);
+          return handleBoolContent(data);
 
         case 'string':
-          return handleJSONContent(interfacedata.proxy.data);
+          return handleJSONContent(data);
           // If the string is not JSON, it falls back to string
 
         case 'object':
-          return handleJSONContent(interfacedata.proxy.data);
+          return handleJSONContent(data);
 
         case 'number':
         case 'integer':
         case 'double':
-          return handleStringContent(interfacedata.proxy.data);
+          return handleStringContent(data);
 
         default:
           return <>Type Error</>;
@@ -140,7 +141,7 @@ const ListItem: React.FC<ListItemProps> = ({
         padding: isMobile ? '10px' : '0px',
       }}
       >
-        {internals(data)}
+        {internals(interfaceData)}
       </div>
     );
   }
@@ -150,7 +151,7 @@ const ListItem: React.FC<ListItemProps> = ({
  * @param data Interface data
  * @returns ReactElement to be displayed
  */
-  function getTinkerInterface(data: any): React.ReactElement | null {
+  function getTinkerInterface(interfaceData: any): React.ReactElement | null {
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
         case 'boolean':
@@ -179,7 +180,7 @@ const ListItem: React.FC<ListItemProps> = ({
         justifyContent: 'start',
       }}
       >
-        {internals(data)}
+        {internals(interfaceData)}
       </div>
     );
   }

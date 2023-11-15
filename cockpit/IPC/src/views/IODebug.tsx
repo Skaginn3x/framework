@@ -384,6 +384,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     dbusInterface={dbusInterface}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
                     isChecked={dbusInterface.listener}
+                    data={dbusInterface.proxy.data}
                     onCheck={() => (dbusInterface.listener
                       ? unsubscribeFromItem(dbusInterface.interfaceName)
                       : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
@@ -406,6 +407,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     dbusInterface={dbusInterface}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
                     isChecked={dbusInterface.listener}
+                    data={dbusInterface.proxy.data}
                     onCheck={() => (dbusInterface.listener
                       ? unsubscribeFromItem(dbusInterface.interfaceName)
                       : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}

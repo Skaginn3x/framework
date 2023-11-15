@@ -16,8 +16,9 @@ const BoolTinker: React.FC<BoolTinkerIface> = ({ data, isChecked }) => {
     data.proxy.Tinker(newValue ? 1 : 0).then(() => {
       addAlert(`Value of ${data.interfaceName} has been set ${newValue ? 'true' : 'false'}`, AlertVariant.success);
       setValue(newValue);
-    }).catch(() => {
+    }).catch((e: any) => {
       addAlert(`Error setting value of ${data.interfaceName}`, AlertVariant.danger);
+      console.log(e);
     });
   };
 

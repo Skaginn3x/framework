@@ -31,14 +31,13 @@ const ListDBUS:React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript(callback);
   }, []);
 
-  // run after 2sec
-  setTimeout(() => {
-    const client = window.cockpit.dbus('org.freedesktop.DBus', { bus: 'system', superuser: 'try' });
+  // // run after 2sec
+  // setTimeout(async () => {
+  //   const client = window.cockpit.dbus('com.skaginn3x.tfc.operations.def', { bus: 'system', superuser: 'try' });
 
-    client.watch('/com/skaginn3x/Slots').then((event: any) => {
-      console.log(event);
-    });
-  }, 2000);
+  //   const watch = client.watch('/com/skaginn3x/Slots');
+  //   console.log(watch);
+  // }, 2000);
 
   return (
     <div style={{ color: isDark ? '#EEE' : '#111' }}>
