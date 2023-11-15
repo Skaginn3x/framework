@@ -200,6 +200,7 @@ void sensor_control<signal_t, slot_t, sml_t>::await_sensor_timer_cb(const std::e
     logger_.trace("Await sensor timer error: {}\n", err.message());
     return;
   }
+  queued_item_.reset();
   sm_->process_event(events::await_sensor_timeout{});
 }
 
