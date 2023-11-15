@@ -5,6 +5,11 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <iostream>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <ranges>
 
 #include <fmt/format.h>
 #include <boost/sml.hpp>
@@ -16,69 +21,71 @@
 
 namespace tfc::dbus::sml {
 
-namespace tags {
-static constexpr std::string_view sub_path{ "StateMachines" };
-static constexpr std::string_view path{ const_dbus_path<sub_path> };
-}  // namespace tags
+    namespace tags {
+        static constexpr std::string_view sub_path{"StateMachines"};
+        static constexpr std::string_view path{const_dbus_path<sub_path>};
+    }  // namespace tags
 
-namespace detail {
+    namespace detail {
 
-struct interface_impl {
-  explicit interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface>);
+        struct interface_impl {
+            explicit interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface>);
 
-  interface_impl(interface_impl const&) = delete;
+            interface_impl(interface_impl const &) = delete;
 
-  interface_impl(interface_impl&&) noexcept = default;
+            interface_impl(interface_impl &&) noexcept = default;
 
-  auto operator=(interface_impl const&) -> interface_impl& = delete;
+            auto operator=(interface_impl const &) -> interface_impl & = delete;
 
-  auto operator=(interface_impl&&) noexcept -> interface_impl& = default;
+            auto operator=(interface_impl &&) noexcept -> interface_impl & = default;
 
-  void on_state_change(std::string_view source_state, std::string_view destination_state, std::string_view event);
+            void
+            on_state_change(std::string_view source_state, std::string_view destination_state, std::string_view event);
 
-  void dot_format(std::string_view state_machine);
+            void dot_format(std::string_view state_machine);
 
-  std::string source_state_{};
-  std::string destination_state_{};
-  std::string event_{};
-  std::string state_machine_dot_formatted_{};
-  std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
-};
+            std::string source_state_{};
+            std::string destination_state_{};
+            std::string event_{};
+            std::string state_machine_dot_formatted_{};
+            std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
+        };
 
-template <class state_machine_t, class source_state_t, class destination_state_t>
-auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string;
+        template<class state_machine_t, class source_state_t, class destination_state_t>
+        auto
+        dump(source_state_t const &src, destination_state_t const &dst, std::string_view last_event) -> std::string;
 
-template <typename type_t>
-concept name_exists = requires {
-  { type_t::name };
-  requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
-};
+        template<typename type_t>
+        concept name_exists = requires {
+            { type_t::name };
+            requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
+        };
 
-template <typename type_t>
-constexpr auto get_name() -> std::string {
-  if constexpr (name_exists<type_t>) {
-    return std::string{ type_t::name };
-  } else {
-    return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
-  }
-}
+        template<typename type_t>
+        constexpr auto get_name() -> std::string {
+            if constexpr (name_exists<type_t>) {
+                return std::string{type_t::name};
+            } else {
+                return std::string{boost::sml::aux::string<type_t>{}.c_str()};
+            }
+        }
 
-template <template <typename, typename> typename event_t, typename first_t, typename second_t>
-auto constexpr extract_event_type(event_t<first_t, second_t> const&) noexcept -> std::string {
-  return get_name<second_t>();
-}
+        template<template<typename, typename> typename event_t, typename first_t, typename second_t>
+        auto constexpr extract_event_type(event_t<first_t, second_t> const &) noexcept -> std::string {
+            return get_name<second_t>();
+        }
 
-template <typename event_t>
-auto constexpr extract_event_type(event_t const& event) noexcept -> std::string {
-  if constexpr (tfc::stx::is_specialization_v<event_t, boost::sml::back::on_entry> ||
-                tfc::stx::is_specialization_v<event_t, boost::sml::back::on_exit>) {
-    return detail::extract_event_type(event);
-  } else {
-    return get_name<event_t>();
-  }
-}
+        template<typename event_t>
+        auto constexpr extract_event_type(event_t const &event) noexcept -> std::string {
+            if constexpr (tfc::stx::is_specialization_v<event_t, boost::sml::back::on_entry> ||
+                          tfc::stx::is_specialization_v<event_t, boost::sml::back::on_exit>) {
+                return detail::extract_event_type(event);
+            } else {
+                return get_name<event_t>();
+            }
+        }
 
-}  // namespace detail
+    }  // namespace detail
 
 /// \brief Interface for state machine logging and dbus API
 /// \example example_sml_interface.cpp
@@ -150,200 +157,268 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 /// Get from cli example:
 /// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations
 /// StateMachine
-struct interface : tfc::logger::sml_logger {
-  using logger = tfc::logger::sml_logger;
+    struct interface : tfc::logger::sml_logger {
+        using logger = tfc::logger::sml_logger;
 
-  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{ std::move(interface) } {}
+        explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{std::move(interface)} {}
 
-  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view log_key)
-      : logger{ log_key }, impl_{ std::move(interface) } {}
+        explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view log_key)
+                : logger{log_key}, impl_{std::move(interface)} {}
 
-  interface(interface const&) = delete;
+        interface(interface const &) = delete;
 
-  interface(interface&&) noexcept = default;
+        interface(interface &&) noexcept = default;
 
-  auto operator=(interface const&) -> interface& = delete;
+        auto operator=(interface const &) -> interface & = delete;
 
-  auto operator=(interface&&) noexcept -> interface& = default;
+        auto operator=(interface &&) noexcept -> interface & = default;
 
-  template <class state_machine_t, class event_t>
-  void log_process_event([[maybe_unused]] event_t const& event) {
-    last_event_ = detail::extract_event_type(event);
-    logger::log_process_event<state_machine_t>(event);
-  }
+        template<class state_machine_t, class event_t>
+        void log_process_event([[maybe_unused]] event_t const &event) {
+            last_event_ = detail::extract_event_type(event);
+            logger::log_process_event<state_machine_t>(event);
+        }
 
-  template <class state_machine_t, class guard_t, class event_t>
-  void log_guard(guard_t const& guard, event_t const& event, bool result) {
-    logger::log_guard<state_machine_t>(guard, event, result);
-  }
+        template<class state_machine_t, class guard_t, class event_t>
+        void log_guard(guard_t const &guard, event_t const &event, bool result) {
+            logger::log_guard<state_machine_t>(guard, event, result);
+        }
 
-  template <class state_machine_t, class action_t, class event_t>
-  void log_action(action_t const& action, event_t const& event) {
-    logger::log_action<state_machine_t>(action, event);
-  }
+        template<class state_machine_t, class action_t, class event_t>
+        void log_action(action_t const &action, event_t const &event) {
+            logger::log_action<state_machine_t>(action, event);
+        }
 
-  template <class state_machine_t, class source_state_t, class destination_state_t>
-  void log_state_change(source_state_t const& src, destination_state_t const& dst) {
-    impl_.on_state_change(detail::get_name<typename source_state_t::type>(),
-                          detail::get_name<typename destination_state_t::type>(), last_event_);
-    impl_.dot_format(detail::dump<boost::sml::sm<state_machine_t>>(src, dst, last_event_));
-    logger::log_state_change<state_machine_t>(src, dst);
-  }
+        template<class state_machine_t, class source_state_t, class destination_state_t>
+        void log_state_change(source_state_t const &src, destination_state_t const &dst) {
+            impl_.on_state_change(detail::get_name<typename source_state_t::type>(),
+                                  detail::get_name<typename destination_state_t::type>(), last_event_);
+            impl_.dot_format(detail::dump<boost::sml::sm<state_machine_t>>(src, dst, last_event_));
+            logger::log_state_change<state_machine_t>(src, dst);
+        }
 
-  std::string last_event_{};
-  detail::interface_impl impl_;
-};
+        std::string last_event_{};
+        detail::interface_impl impl_;
+    };
 
-namespace detail {
+    namespace detail {
 
-class node {
-public:
-  node() = default;
+        class node {
+        public:
+            node() = default;
 
-  auto get_dot_format(std::string_view label) const -> std::string {
-    std::string entry_dot_format{ entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_) };
-    std::string exit_dot_format{ exit_.empty() ? "" : fmt::format(" \n exit / {} ", exit_) };
-    std::string color_dot_format{ color_.empty() ? "" : fmt::format(" , color = \"{}\"", color_) };
-    std::string dot_format{ fmt::format("{} [ label = \" {} {} {} \" {} ]", label, label, entry_dot_format, exit_dot_format,
-                                        color_dot_format) };
+            auto get_dot_format(std::string_view label) const -> std::string {
+                std::string entry_dot_format{entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_)};
+                std::string exit_dot_format{exit_.empty() ? "" : fmt::format(" \n exit / {} ", exit_)};
+                std::string color_dot_format{color_.empty() ? "" : fmt::format(" , color = \"{}\"", color_)};
+                std::string dot_format{
+                        fmt::format("{} [ label = \" {} {} {} \" {} ]", label, label, entry_dot_format, exit_dot_format,
+                                    color_dot_format)};
 
-    return dot_format;
-  }
+                return dot_format;
+            }
 
-  auto set_color(std::string_view color) -> void { color_ = color; }
-  auto set_entry(std::string_view entry) -> void { entry_ = entry; }
-  auto set_exit(std::string_view exit) -> void { exit_ = exit; }
+            auto set_color(std::string_view color) -> void { color_ = color; }
 
-private:
-  std::string color_;
-  std::string entry_;
-  std::string exit_;
-};
+            auto set_entry(std::string_view entry) -> void { entry_ = entry; }
 
-template <typename transition_t, typename source_state_t, typename destination_state_t>
-bool constexpr is_likely_current_transition = [] {
-  return std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename transition_t::dst_state> &&
-         std::same_as<std::remove_cvref_t<typename source_state_t::type>, typename transition_t::src_state>;
-}();
+            auto set_exit(std::string_view exit) -> void { exit_ = exit; }
 
-template <typename type_t>
-auto get_filtered_name() -> std::string {
-  auto filtered_name = get_name<type_t>();
-  if (filtered_name.contains("(lambda") || filtered_name.contains("<lambda")) {
-    filtered_name = "lambda";
-  }
-  return filtered_name;
-}
+        private:
+            std::string color_;
+            std::string entry_;
+            std::string exit_;
+        };
 
-template <typename type_t>
-auto get_action_name() -> std::string {
-  return get_filtered_name<typename type_t::action::type>();
-}
+        template<typename transition_t, typename source_state_t, typename destination_state_t>
+        bool constexpr is_likely_current_transition = [] {
+            return std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename transition_t::dst_state> &&
+                   std::same_as<std::remove_cvref_t<typename source_state_t::type>, typename transition_t::src_state>;
+        }();
 
-template <typename type_t>
-auto get_guard_name() -> std::string {
-  return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
-}
+        template<typename type_t>
+        auto get_filtered_name() -> std::string {
+            auto filtered_name = get_name<type_t>();
+            if (filtered_name.contains("(lambda") || filtered_name.contains("<lambda")) {
+                filtered_name = "lambda";
+            }
+            return filtered_name;
+        }
 
-template <class type_t, class source_state_t, class destination_state_t>
-auto get_color(bool has_event, std::string_view last_event) -> std::string {
-  if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
-    if (has_event && get_name<typename type_t::event>() == last_event) {
-      return "gold";
-    }
-  } else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
-    return "lightblue";
-  }
-  return "";
-}
+        template<typename type_t>
+        auto get_action_name() -> std::string {
+            return get_filtered_name<typename type_t::action::type>();
+        }
 
-template <typename type_t>
-auto get_action_label(const std::string& src_state) -> std::string {
-  std::string action_name = get_action_name<type_t>();
-  return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state, action_name);
-}
+        // Check if guard is a not_ guard (!guard)
+        template<typename t>
+        struct is_not_guard : std::false_type {
+        };
 
-// modified version of https://boost-ext.github.io/sml/examples.html
+        template<typename t>
+        struct is_not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<t>>> : std::true_type {
+        };
+
+        // Helper to unwrap the not_ guard (!guard) and get the underlying guard type
+        template<typename t>
+        struct unwrap_not_guard {
+            using type = t;
+        };
+
+        template<typename t>
+        struct unwrap_not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<t>>> {
+            using type = t;
+        };
+
+        template<typename type_t>
+        auto get_guard_name() -> std::string {
+            if constexpr (is_not_guard<typename type_t::guard>::value) {
+                using guard_type = typename unwrap_not_guard<typename type_t::guard>::type;
+                return fmt::format("[!{}]", get_name<guard_type>()); // Prefix with '!' to indicate negation
+            }
+            return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
+        }
+
+        template<class type_t, class source_state_t, class destination_state_t>
+        auto get_color(bool has_event, std::string_view last_event) -> std::string {
+            if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
+                if (has_event && get_name<typename type_t::event>() == last_event) {
+                    return "gold";
+                }
+            } else if constexpr (std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename type_t::src_state>) {
+                return "lightblue";
+            }
+            return "";
+        }
+
+        template<typename type_t>
+        auto get_action_label(const std::string &src_state) -> std::string {
+            std::string action_name = get_action_name<type_t>();
+            return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state,
+                                                          action_name);
+        }
+
+        auto filter_sub_state_machine_id(std::string &state) -> void {
+            std::string sub_state_machine_id{"boost::sml::back::sm<boost::sml::back::sm_policy<"};
+
+            if (state.starts_with(sub_state_machine_id)) {
+                state.erase(0, sub_state_machine_id.size());
+                state.erase(state.size() - 2, state.size());
+
+                // only take the string up until the first <
+                state.erase(state.find_first_of("<"), state.size());
+
+                // replace :: with _
+                std::string pattern{"::"};
+                std::string replacement{"_"};
+                size_t pos = 0;
+                while ((pos = state.find(pattern, pos)) != std::string::npos) {
+                    state.replace(pos, pattern.length(), replacement);
+                    pos += replacement.length();
+                }
+                // place sub_state_machine in front
+                state = fmt::format("sub_sm_{}", state);
+            }
+        }
+
+
+        // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
-template <class type_t, class source_state_t, class destination_state_t>
-auto dump_transition([[maybe_unused]] source_state_t const& src,
-                     [[maybe_unused]] destination_state_t const& dst,
-                     std::string_view last_event,
-                     std::string& buffer,
-                     std::map<std::string, node>& nodes) -> void {
-  std::string src_state{ get_name<typename type_t::src_state>() };
-  std::string dst_state{ get_name<typename type_t::dst_state>() };
+        template<class type_t, class source_state_t, class destination_state_t>
+        auto dump_transition([[maybe_unused]] source_state_t const &src,
+                             [[maybe_unused]] destination_state_t const &dst,
+                             std::string_view last_event,
+                             std::string &buffer,
+                             std::map<std::string, node> &nodes) -> void {
+            std::string src_state{get_name<typename type_t::src_state>()};
+            std::string dst_state{get_name<typename type_t::dst_state>()};
 
-  if (dst_state == "terminate") {
-    dst_state = "stop";
-  }
+            filter_sub_state_machine_id(src_state);
+            filter_sub_state_machine_id(dst_state);
 
-  if (type_t::initial) {
-    buffer.append("start -> ").append(src_state).append("\n");
-  }
+            if (dst_state == "terminate") {
+                dst_state = "stop";
+            }
 
-  const auto has_event = !boost::sml::aux::is_same<typename type_t::event, boost::sml::anonymous>::value;
-  const auto has_guard = !boost::sml::aux::is_same<typename type_t::guard, boost::sml::front::always>::value;
-  const auto has_action = !boost::sml::aux::is_same<typename type_t::action, boost::sml::front::none>::value;
+            if (type_t::initial) {
+                buffer.append("start -> ").append(src_state).append("\n");
+            }
 
-  const auto is_entry =
-      boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_entry<boost::sml::_, boost::sml::_>>::value;
-  const auto is_exit =
-      boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
+            const auto has_event = !boost::sml::aux::is_same<typename type_t::event, boost::sml::anonymous>::value;
+            const auto has_guard = !boost::sml::aux::is_same<typename type_t::guard, boost::sml::front::always>::value;
+            const auto has_action = !boost::sml::aux::is_same<typename type_t::action, boost::sml::front::none>::value;
 
-  if (!is_entry && !is_exit) {
-    std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
-    std::string guard{ has_guard ? get_guard_name<type_t>() : "" };
-    std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
-    std::string event_label{ has_event
-                                 ? fmt::format("{} / {}", get_name<typename type_t::event>(), get_action_name<type_t>())
-                                 : "" };
-    buffer.append(fmt::format("{} -> {} [label=\"{} {}\"{}]\n", src_state, dst_state, event_label, guard, color_attr));
-  }
+            const auto is_entry =
+                    boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_entry<boost::sml::_, boost::sml::_>>::value;
+            const auto is_exit =
+                    boost::sml::aux::is_same<typename type_t::event, boost::sml::back::on_exit<boost::sml::_, boost::sml::_>>::value;
 
-  if (has_action) {
-    if (is_entry) {
-      auto entry_action = get_action_name<type_t>();
-      nodes[src_state].set_entry(entry_action);
-    }
+            if (!is_entry && !is_exit) {
+                std::string color{get_color<type_t, source_state_t, destination_state_t>(has_event, last_event)};
+                std::string guard{has_guard ? get_guard_name<type_t>() : ""};
+                std::string color_attr{color.empty() ? "" : fmt::format(", color=\"{}\"", color)};
 
-    if (is_exit) {
-      nodes[src_state].set_exit(get_action_name<type_t>());
-    }
-  }
+                std::string event_label{};
+                if (has_event && has_action) {
+                    event_label = fmt::format("{} / {}", get_name<typename type_t::event>(), get_action_name<type_t>());
+                } else if (has_event) {
+                    event_label = fmt::format("{}", get_name<typename type_t::event>());
+                }
 
-  if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
-    nodes[dst_state].set_color("green");
-  }
+                buffer.append(fmt::format("{} -> {} [label=\"{} {}\"{}]\n", src_state, dst_state, event_label, guard,
+                                          color_attr));
+            }
 
-  buffer.append("\n");
-}
+            if (has_action) {
+                if (is_entry) {
+                    auto entry_action = get_action_name<type_t>();
+                    nodes[src_state].set_entry(entry_action);
+                }
 
-template <template <class...> class type_t, class... types_t, class source_state_t, class destination_state_t>
-auto dump_transitions(const type_t<types_t...>&,
-                      source_state_t const& src,
-                      destination_state_t const& dst,
-                      std::string_view last_event,
-                      std::string& buffer,
-                      std::map<std::string, node>& nodes
+                if (is_exit) {
+                    nodes[src_state].set_exit(get_action_name<type_t>());
+                }
+            }
 
-                      ) -> void {
-  (dump_transition<types_t>(src, dst, last_event, buffer, nodes), ...);
-}
+            if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
+                nodes[dst_state].set_color("green");
+            }
 
-template <class state_machine_t, class source_state_t, class destination_state_t>
-auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string {
-  std::string buffer{ "digraph {\n\n" };
-  std::map<std::string, node> nodes;
-  dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer, nodes);
+            buffer.append("\n");
+        }
 
-  for (auto& [label, node_data] : nodes) {
-    buffer.append(fmt::format("{} \n", node_data.get_dot_format(label)));
-  }
+        template<template<class...> class type_t, class... types_t, class source_state_t, class destination_state_t>
+        auto dump_transitions(const type_t<types_t...> &,
+                              source_state_t const &src,
+                              destination_state_t const &dst,
+                              std::string_view last_event,
+                              std::string &buffer,
+                              std::map<std::string, node> &nodes) -> void {
+            (dump_transition<types_t>(src, dst, last_event, buffer, nodes), ...);
+        }
 
-  buffer.append("\n}\n");
+        template<class state_machine_t, class source_state_t, class destination_state_t>
+        auto
+        dump(source_state_t const &src, destination_state_t const &dst, std::string_view last_event) -> std::string {
+            std::string buffer{"digraph {\n\n"};
+            std::map<std::string, node> nodes;
+            dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer, nodes);
 
-  return buffer;
-}
-}  // namespace detail
+            for (auto &[label, node_data]: nodes) {
+                buffer.append(fmt::format("{} \n", node_data.get_dot_format(label)));
+            }
+
+            buffer.append("\n}\n");
+
+
+            std::cout << "---------------------------------------------------------------------------------"
+                      << std::endl;
+            std::cout << buffer << std::endl;
+            std::cout << "---------------------------------------------------------------------------------"
+                      << std::endl;
+
+            return buffer;
+        }
+    }  // namespace detail
 }  // namespace tfc::dbus::sml
+
