@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <memory>
+#include <set>
 #include <string>
 #include <string_view>
 
@@ -195,6 +196,35 @@ struct interface : tfc::logger::sml_logger {
 
 namespace detail {
 
+class node {
+public:
+  node() {}
+
+  auto get_color() const -> std::string { return color_; }
+  auto get_entry() const -> std::string { return entry_; }
+  auto get_exit() const -> std::string { return exit_; }
+
+  auto get_dot_format(std::string label) const -> std::string {
+    std::string entry_dot_format = entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_);
+    std::string exit_dot_format = exit_.empty() ? "" : fmt::format(" \n exit / {} ", exit_);
+    std::string color_dot_format = color_.empty() ? "" : fmt::format(" , color = \"{}\"", color_);
+
+    std::string dot_format =
+        fmt::format("{} [ label = \" {} {} {} \" {} ]", label, label, entry_dot_format, exit_dot_format, color_dot_format);
+
+    return dot_format;
+  }
+
+  auto set_color(std::string color) -> void { color_ = color; }
+  auto set_entry(std::string entry) -> void { entry_ = entry; }
+  auto set_exit(std::string exit) -> void { exit_ = exit; }
+
+private:
+  std::string color_;
+  std::string entry_;
+  std::string exit_;
+};
+
 template <typename transition_t, typename source_state_t, typename destination_state_t>
 bool constexpr is_likely_current_transition = [] {
   return std::same_as<std::remove_cvref_t<typename destination_state_t::type>, typename transition_t::dst_state> &&
@@ -211,13 +241,13 @@ auto get_filtered_name() -> std::string {
 }
 
 template <typename type_t>
-auto get_guard_name() -> std::string {
-  return "[" + get_filtered_name<typename type_t::guard>() + "]";
+auto get_action_name() -> std::string {
+  return get_filtered_name<typename type_t::action::type>();
 }
 
 template <typename type_t>
-auto get_action_name() -> std::string {
-  return get_filtered_name<typename type_t::action::type>();
+auto get_guard_name() -> std::string {
+  return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
 }
 
 template <class type_t, class source_state_t, class destination_state_t>
@@ -244,7 +274,8 @@ template <class type_t, class source_state_t, class destination_state_t>
 auto dump_transition([[maybe_unused]] source_state_t const& src,
                      [[maybe_unused]] destination_state_t const& dst,
                      std::string_view last_event,
-                     std::string& buffer) -> void {
+                     std::string& buffer,
+                     std::map<std::string, node>& nodes) -> void {
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
@@ -269,16 +300,24 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
     std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
     std::string guard{ has_guard ? get_guard_name<type_t>() : "" };
     std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
-    std::string event_label{ has_event ? get_name<typename type_t::event>() : "" };
+    std::string event_label{ has_event
+                                 ? fmt::format("{} / {}", get_name<typename type_t::event>(), get_action_name<type_t>())
+                                 : "" };
     buffer.append(fmt::format("{} -> {} [label=\"{} {}\"{}]\n", src_state, dst_state, event_label, guard, color_attr));
   }
 
-  if constexpr (has_action) {
-    buffer.append(get_action_label<type_t>(get_name<typename type_t::src_state>()));
+  if (has_action) {
+    if (is_entry) {
+      nodes[src_state].set_entry(get_action_name<type_t>());
+    }
+
+    if (is_exit) {
+      nodes[src_state].set_exit(get_action_name<type_t>());
+    }
   }
 
   if constexpr (is_likely_current_transition<type_t, source_state_t, destination_state_t>) {
-    buffer.append(fmt::format("\n {} [color=\"green\"]", dst_state));
+    nodes[dst_state].set_color("green");
   }
 
   buffer.append("\n");
@@ -289,14 +328,24 @@ auto dump_transitions(const type_t<types_t...>&,
                       source_state_t const& src,
                       destination_state_t const& dst,
                       std::string_view last_event,
-                      std::string& buffer) -> void {
-  (dump_transition<types_t>(src, dst, last_event, buffer), ...);
+                      std::string& buffer,
+                      std::map<std::string, tfc::dbus::sml::detail::node>& nodes
+
+                      ) -> void {
+  (dump_transition<types_t>(src, dst, last_event, buffer, nodes), ...);
 }
 
 template <class state_machine_t, class source_state_t, class destination_state_t>
 auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string {
   std::string buffer{ "digraph {\n\n" };
-  dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer);
+  std::map<std::string, tfc::dbus::sml::detail::node> nodes;
+  dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer, nodes);
+
+  for (auto& node : nodes) {
+    buffer.append(node.second.get_dot_format(node.first));
+    buffer.append("\n");
+  }
+
   buffer.append("\n}\n");
   return buffer;
 }
