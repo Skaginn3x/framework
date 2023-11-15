@@ -8,9 +8,10 @@ import { useAlertContext } from '../Alert/AlertContext';
 
 interface StringTinkerIface {
   data: any;
+  isChecked: boolean;
 }
 
-const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
+const StringTinker: React.FC<StringTinkerIface> = ({ data, isChecked }) => {
   const [inputValue, setInputValue] = useState<string>(data.proxy.data.Value);
   const { addAlert } = useAlertContext();
   const handleInputChange = (value: string | number | undefined) => {
@@ -22,6 +23,10 @@ const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
     addAlert(`Value of ${data.interfaceName} has been set to ${inputValue}`, AlertVariant.success);
   }
 
+  if (!isChecked) {
+    return (
+      <p>Unknown</p>);
+  }
   return (
     <>
       <ClipboardCopy

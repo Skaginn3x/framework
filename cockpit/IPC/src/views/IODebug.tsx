@@ -389,6 +389,8 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     })));
   }, [nameSelection, typeSelection, processSelections, directionSelection]);
 
+  const MemoizedListItem = React.memo(ListItem);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -426,7 +428,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
                 return (
-                  <ListItem
+                  <MemoizedListItem
                     dbusInterface={dbusInterface}
                     index={index}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
@@ -434,6 +436,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     dropdownRefs={dropdownRefs}
                     onToggleClick={onToggleClick}
                     setModalOpen={(i:number) => openModal(i)}
+                    isChecked={dbusInterface.listener}
                     onCheck={() => (dbusInterface.listener
                       ? unsubscribeFromItem(dbusInterface.interfaceName)
                       : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
@@ -452,7 +455,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
                 return (
-                  <ListItem
+                  <MemoizedListItem
                     dbusInterface={dbusInterface}
                     index={index}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
@@ -460,8 +463,9 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
                     dropdownRefs={dropdownRefs}
                     onToggleClick={onToggleClick}
                     setModalOpen={(i:number) => openModal(i)}
+                    isChecked={dbusInterface.listener}
                     onCheck={() => (dbusInterface.listener
-                      ? unsubscribeFromItem(dbusInterface.name)
+                      ? unsubscribeFromItem(dbusInterface.interfaceName)
                       : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
                   />
                 );

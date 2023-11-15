@@ -4,10 +4,11 @@ import { AlertVariant, Switch } from '@patternfly/react-core';
 import { useAlertContext } from '../Alert/AlertContext';
 
 interface BoolTinkerIface {
-  data: any
+  data: any;
+  isChecked: boolean;
 }
 
-const BoolTinker: React.FC<BoolTinkerIface> = ({ data }) => {
+const BoolTinker: React.FC<BoolTinkerIface> = ({ data, isChecked }) => {
   const { addAlert } = useAlertContext();
   const [value, setValue] = React.useState(data.proxy.data.Value);
 
@@ -25,7 +26,7 @@ const BoolTinker: React.FC<BoolTinkerIface> = ({ data }) => {
       aria-label={`tinker-{${data.iface}}-{${data.process}}}`}
       isChecked={value}
       onChange={(e, val) => handleInputChange(val)}
-      isDisabled={false}
+      isDisabled={!isChecked}
       key={`${data.iface}-${data.process}`}
     />
   );

@@ -5,9 +5,10 @@ import { useAlertContext } from '../Alert/AlertContext';
 
 interface NumberTinkerIface {
   data: any;
+  isChecked: boolean;
 }
 
-const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
+const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ, isChecked }) => {
   const [error, setError] = useState<string | undefined>(undefined);
   const { addAlert } = useAlertContext();
   const typeJson = useMemo(() => JSON.parse(InterfaceOBJ.proxy.data.Type), [InterfaceOBJ.proxy.data.Type]);
@@ -61,6 +62,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
       onKeyDown={handleKeyDown}
       validated={error ? 'error' : 'default'}
       type="number"
+      isDisabled={!isChecked}
       aria-label="tinker text input"
       className="tinker-number-input"
       key={`${InterfaceOBJ.iface}-${InterfaceOBJ.process}`}

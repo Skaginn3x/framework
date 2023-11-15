@@ -30,11 +30,12 @@ interface ListItemProps {
   onToggleClick: any,
   setModalOpen: any,
   onCheck: (checked: boolean) => void,
+  isChecked: boolean,
 }
 
 // eslint-disable-next-line react/function-component-definition
 const ListItem: React.FC<ListItemProps> = ({
-  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen, onCheck,
+  dbusInterface, index, activeDropdown, dropdownRefs, onToggleClick, setModalOpen, onCheck, isChecked,
 }) => {
   const isMobile = window.innerWidth < 768;
   /**
@@ -50,7 +51,9 @@ const ListItem: React.FC<ListItemProps> = ({
         distance={5}
         entryDelay={1000}
       >
-        <Circle size="1rem" color={data.Value ? 'green' : 'red'} />
+        { isChecked
+          ? <Circle size="1rem" color={data.Value ? 'green' : 'red'} />
+          : <Circle size="1rem" color="#888888" />}
       </Tooltip>
     );
   }
@@ -61,9 +64,10 @@ const ListItem: React.FC<ListItemProps> = ({
    * @returns ReactElement to be displayed
    */
   function handleStringContent(data: any): ReactElement {
-    return (
-      <p style={{ marginBottom: '0px' }}>{data.Value}</p>
-    );
+    if (!isChecked) {
+      return (<p style={{ marginBottom: '0px' }}>Unknown</p>);
+    }
+    return (<p style={{ marginBottom: '0px' }}>{data.Value}</p>);
   }
 
   /**
@@ -72,6 +76,10 @@ const ListItem: React.FC<ListItemProps> = ({
    * @returns ReactElement to be displayed
    */
   function handleJSONContent(data: any): ReactElement {
+    if (!isChecked) {
+      return (<p style={{ marginBottom: '0px' }}>Unknown</p>);
+    }
+
     // Test if string is JSON
     let isJSON = false;
     if (data.Value[0] === '{' || data.Value[0] === '[') {
@@ -156,18 +164,18 @@ const ListItem: React.FC<ListItemProps> = ({
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
         case 'boolean':
-          return <BoolTinker data={interfacedata} />;
+          return <BoolTinker data={interfacedata} isChecked={isChecked} />;
 
         case 'string':
-          return <StringTinker data={interfacedata} />;
+          return <StringTinker data={interfacedata} isChecked={isChecked} />;
 
         case 'object':
-          return <StringTinker data={interfacedata} />;
+          return <StringTinker data={interfacedata} isChecked={isChecked} />;
 
         case 'number':
         case 'integer':
         case 'double':
-          return <NumberTinker data={interfacedata} />;
+          return <NumberTinker data={interfacedata} isChecked={isChecked} />;
 
         default:
           return <>Type Error</>;
@@ -201,6 +209,7 @@ const ListItem: React.FC<ListItemProps> = ({
             type="checkbox"
             onChange={handleCheckboxChange}
             aria-label={`Select ${dbusInterface.proxy.iface}`}
+            checked={isChecked}
           />
         </DataListCell>
         <DataListItemCells

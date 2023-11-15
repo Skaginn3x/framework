@@ -6,9 +6,10 @@ import { useAlertContext } from '../Alert/AlertContext';
 
 interface StringTinkerIface {
   data: any;
+  isChecked: boolean;
 }
 
-const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
+const StringTinker: React.FC<StringTinkerIface> = ({ data, isChecked }) => {
   const [inputValue, setInputValue] = useState<string>(data.proxy.data.Value);
   const { addAlert } = useAlertContext();
 
@@ -31,6 +32,7 @@ const StringTinker: React.FC<StringTinkerIface> = ({ data }) => {
         aria-label="tinker text input"
         key={`${data.iface}-${data.process}`}
         style={{ minWidth: data.proxy.data.Value === inputValue ? '4rem' : '3rem' }}
+        isDisabled={!isChecked}
       />
       {data.proxy.data.Value === inputValue ? null : (
         <Button
