@@ -1,8 +1,8 @@
 #pragma once
 
 #include <concepts>
+#include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <string_view>
 
@@ -200,10 +200,6 @@ class node {
 public:
   node() {}
 
-  auto get_color() const -> std::string { return color_; }
-  auto get_entry() const -> std::string { return entry_; }
-  auto get_exit() const -> std::string { return exit_; }
-
   auto get_dot_format(std::string label) const -> std::string {
     std::string entry_dot_format = entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_);
     std::string exit_dot_format = exit_.empty() ? "" : fmt::format(" \n exit / {} ", exit_);
@@ -342,8 +338,7 @@ auto dump(source_state_t const& src, destination_state_t const& dst, std::string
   dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer, nodes);
 
   for (auto& node : nodes) {
-    buffer.append(node.second.get_dot_format(node.first));
-    buffer.append("\n");
+    buffer.append(fmt::format("{} \n", node.second.get_dot_format(node.first)));
   }
 
   buffer.append("\n}\n");
