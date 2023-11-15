@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -200,20 +201,19 @@ class node {
 public:
   node() {}
 
-  auto get_dot_format(std::string label) const -> std::string {
-    std::string entry_dot_format = entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_);
-    std::string exit_dot_format = exit_.empty() ? "" : fmt::format(" \n exit / {} ", exit_);
-    std::string color_dot_format = color_.empty() ? "" : fmt::format(" , color = \"{}\"", color_);
-
-    std::string dot_format =
-        fmt::format("{} [ label = \" {} {} {} \" {} ]", label, label, entry_dot_format, exit_dot_format, color_dot_format);
+  auto get_dot_format(std::string_view label) const -> std::string {
+    std::string entry_dot_format{ entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_) };
+    std::string exit_dot_format{ exit_.empty() ? "" : fmt::format(" \n exit / {} ", exit_) };
+    std::string color_dot_format{ color_.empty() ? "" : fmt::format(" , color = \"{}\"", color_) };
+    std::string dot_format{ fmt::format("{} [ label = \" {} {} {} \" {} ]", label, label, entry_dot_format, exit_dot_format,
+                                        color_dot_format) };
 
     return dot_format;
   }
 
-  auto set_color(std::string color) -> void { color_ = color; }
-  auto set_entry(std::string entry) -> void { entry_ = entry; }
-  auto set_exit(std::string exit) -> void { exit_ = exit; }
+  auto set_color(std::string_view color) -> void { color_ = color; }
+  auto set_entry(std::string_view entry) -> void { entry_ = entry; }
+  auto set_exit(std::string_view exit) -> void { exit_ = exit; }
 
 private:
   std::string color_;
@@ -304,7 +304,8 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
 
   if (has_action) {
     if (is_entry) {
-      nodes[src_state].set_entry(get_action_name<type_t>());
+      auto entry_action = get_action_name<type_t>();
+      nodes[src_state].set_entry(entry_action);
     }
 
     if (is_exit) {
@@ -342,6 +343,7 @@ auto dump(source_state_t const& src, destination_state_t const& dst, std::string
   }
 
   buffer.append("\n}\n");
+
   return buffer;
 }
 }  // namespace detail
