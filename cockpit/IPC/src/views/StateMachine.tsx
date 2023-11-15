@@ -21,6 +21,7 @@ import {
 import parse from 'html-react-parser';
 import { DarkModeType } from 'src/App';
 import Hamburger from 'hamburger-react';
+import { removeOrg } from 'src/Components/Form/WidgetFunctions';
 
 declare global {
   interface Window { cockpit: any; }
@@ -54,6 +55,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   const [svg, setSVG] = useState<string>();
 
   const [activeItem, setActiveItem] = React.useState('');
+  const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
 
   // eslint-disable-next-line @typescript-eslint/comma-spacing
@@ -187,11 +189,29 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     groupId: string | number;
     itemId: string | number;
   }) => {
-    if (selectedItem.groupId) {
-      setActiveItem(selectedItem.groupId as string);
+    if (selectedItem.itemId) {
+      setActiveItem(selectedItem.itemId as string);
       setIsDrawerExpanded(false);
+    } else if (selectedItem.groupId) {
+      setActiveItemFilter(selectedItem.groupId as string);
+    } else {
+      setActiveItemFilter(undefined);
     }
   };
+
+  /**
+   * Get title from dbus name
+   * @param name  string
+   * @returns string
+   */
+  function getTitle(name: string) {
+    // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
+    // return operation_mode.def.state_machine if there are more than 5 dots
+    if (name.split('.').length > 5) {
+      return name.split('.').slice(5).join('.');
+    }
+    return name;
+  }
 
   const panelContent = (
     <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
@@ -199,20 +219,44 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
         minWidth: '15rem', backgroundColor: isDark ? '#212427' : '#EEEEEE', height: '-webkit-fill-available',
       }}
       >
-        {dbusInterfaces.length > 0
+        {processes && dbusInterfaces.length > 0
           ? (
             <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
               {/* Remove this group to get rid of demo data */}
               <NavGroup title="Processes">
-                {dbusInterfaces.map((iface: any) => (
+                <NavItem
+                  preventDefault
+                  to="#all"
+                  key="all-navItem"
+                  groupId={undefined}
+                  isActive={activeItemFilter === undefined}
+                >
+                  All
+                </NavItem>
+                {processes.map((name: string) => (
                   <NavItem
                     preventDefault
-                    to={`#${iface.interfaceName}`}
-                    key={`${iface.interfaceName}-navItem`}
-                    groupId={iface.interfaceName}
-                    isActive={activeItem === iface.interfaceName}
+                    to={`#${name}`}
+                    key={`${name}-navItem`}
+                    groupId={name}
+                    isActive={activeItemFilter === name}
                   >
-                    {iface.interfaceName}
+                    {name}
+                  </NavItem>
+                ))}
+              </NavGroup>
+              {/* End Remove */}
+              <NavGroup title="Schemas">
+                {/* Might want to remove this slice too, if demoData is removed from state */}
+                {dbusInterfaces.filter((iface) => iface.process === activeItem).map((name: string) => (
+                  <NavItem
+                    preventDefault
+                    to={`#${name}`}
+                    key={`${name}-navItem`}
+                    itemId={name}
+                    isActive={activeItem === name}
+                  >
+                    {activeItemFilter ? getTitle(name) : removeOrg(name)}
                   </NavItem>
                 ))}
               </NavGroup>
