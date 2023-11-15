@@ -2,12 +2,17 @@
 Description=TFC Ethercat master
 Requires=dbus.socket
 After=dbus.socket
+StartLimitBurst=5
 
 [Service]
 ExecStart=@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/ethercat --iface %i
 StandardOutput=journal
 StandardError=journal
 LimitNOFILE=8192
+User=tfc
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+Restart=always
+RestartSec=1s
 
 [Install]
 WantedBy=multi-user.target
