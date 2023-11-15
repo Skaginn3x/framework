@@ -16,7 +16,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  DrawerPanelContent, Nav, NavGroup, NavItem, Spinner, Title,
+  DrawerPanelContent, Nav, NavGroup, NavItem, Spinner, Title, Tooltip,
 } from '@patternfly/react-core';
 import parse from 'html-react-parser';
 import { DarkModeType } from 'src/App';
@@ -194,6 +194,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
       setIsDrawerExpanded(false);
     } else if (selectedItem.groupId) {
       setActiveItemFilter(selectedItem.groupId as string);
+      setActiveItem('');
     } else {
       setActiveItemFilter(undefined);
     }
@@ -233,31 +234,39 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                 >
                   All
                 </NavItem>
-                {processes.map((name: string) => (
-                  <NavItem
-                    preventDefault
-                    to={`#${name}`}
-                    key={`${name}-navItem`}
-                    groupId={name}
-                    isActive={activeItemFilter === name}
-                  >
-                    {name}
-                  </NavItem>
-                ))}
+                {processes.map((name: string) => {
+                  if (dbusInterfaces.find((iface) => iface.process === name) === undefined) return null;
+                  return (
+                    <NavItem
+                      preventDefault
+                      to={`#${name}`}
+                      key={`${name}-navItem`}
+                      groupId={name}
+                      isActive={activeItemFilter === name}
+                    >
+                      {name}
+                    </NavItem>
+                  );
+                })}
               </NavGroup>
               {/* End Remove */}
               <NavGroup title="Interfaces">
                 {/* Might want to remove this slice too, if demoData is removed from state */}
-                {dbusInterfaces.filter((iface) => !activeItemFilter || iface.process === activeItem).map((iface: any) => (
-                  <NavItem
-                    preventDefault
-                    to={`#${iface.interfaceName}`}
-                    key={`${iface.interfaceName}-navItem`}
-                    itemId={iface.interfaceName}
-                    isActive={activeItem === iface.interfaceName}
+                {dbusInterfaces.filter((iface) => !activeItemFilter || iface.process === activeItemFilter).map((iface: any) => (
+                  <Tooltip
+                    content={iface.process}
+                    key={`${iface.interfaceName}${iface.process}-Tooltip`}
                   >
-                    {activeItemFilter ? getTitle(iface.interfaceName) : removeOrg(iface.interfaceName)}
-                  </NavItem>
+                    <NavItem
+                      preventDefault
+                      to={`#${iface.interfaceName}`}
+                      key={`${iface.interfaceName}${iface.process}-navItem`}
+                      itemId={iface.interfaceName}
+                      isActive={activeItem === iface.interfaceName && activeItemFilter === iface.process}
+                    >
+                      {activeItemFilter ? getTitle(iface.interfaceName) : removeOrg(iface.interfaceName)}
+                    </NavItem>
+                  </Tooltip>
                 ))}
               </NavGroup>
             </Nav>
