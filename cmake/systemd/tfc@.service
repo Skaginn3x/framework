@@ -7,7 +7,7 @@ After=dbus.socket
 ExecStart=@CMAKE_INSTALL_PREFIX@/@INSTALL_DIR@/@EXE_NAME@ --id %i
 StandardOutput=journal
 StandardError=journal
-User=s3x
+User=tfc
 Restart=always
 RestartSec=1s
 
