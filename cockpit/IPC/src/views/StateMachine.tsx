@@ -246,17 +246,17 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                 ))}
               </NavGroup>
               {/* End Remove */}
-              <NavGroup title="Schemas">
+              <NavGroup title="Interfaces">
                 {/* Might want to remove this slice too, if demoData is removed from state */}
-                {dbusInterfaces.filter((iface) => iface.process === activeItem).map((name: string) => (
+                {dbusInterfaces.filter((iface) => !activeItemFilter || iface.process === activeItem).map((iface: any) => (
                   <NavItem
                     preventDefault
-                    to={`#${name}`}
-                    key={`${name}-navItem`}
-                    itemId={name}
-                    isActive={activeItem === name}
+                    to={`#${iface.interfaceName}`}
+                    key={`${iface.interfaceName}-navItem`}
+                    itemId={iface.interfaceName}
+                    isActive={activeItem === iface.interfaceName}
                   >
-                    {activeItemFilter ? getTitle(name) : removeOrg(name)}
+                    {activeItemFilter ? getTitle(iface.interfaceName) : removeOrg(iface.interfaceName)}
                   </NavItem>
                 ))}
               </NavGroup>
