@@ -1,7 +1,6 @@
 #pragma once
 
 #include <concepts>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -199,7 +198,7 @@ namespace detail {
 
 class node {
 public:
-  node() {}
+  node() = default;
 
   auto get_dot_format(std::string_view label) const -> std::string {
     std::string entry_dot_format{ entry_.empty() ? "" : fmt::format(" \n entry / {} ", entry_) };
@@ -326,7 +325,7 @@ auto dump_transitions(const type_t<types_t...>&,
                       destination_state_t const& dst,
                       std::string_view last_event,
                       std::string& buffer,
-                      std::map<std::string, tfc::dbus::sml::detail::node>& nodes
+                      std::map<std::string, node>& nodes
 
                       ) -> void {
   (dump_transition<types_t>(src, dst, last_event, buffer, nodes), ...);
@@ -335,11 +334,11 @@ auto dump_transitions(const type_t<types_t...>&,
 template <class state_machine_t, class source_state_t, class destination_state_t>
 auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string {
   std::string buffer{ "digraph {\n\n" };
-  std::map<std::string, tfc::dbus::sml::detail::node> nodes;
+  std::map<std::string, node> nodes;
   dump_transitions(typename state_machine_t::transitions{}, src, dst, last_event, buffer, nodes);
 
-  for (auto& node : nodes) {
-    buffer.append(fmt::format("{} \n", node.second.get_dot_format(node.first)));
+  for (auto& [label, node_data] : nodes) {
+    buffer.append(fmt::format("{} \n", node_data.get_dot_format(label)));
   }
 
   buffer.append("\n}\n");
