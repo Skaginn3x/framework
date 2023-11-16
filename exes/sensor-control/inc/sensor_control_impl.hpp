@@ -88,7 +88,9 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_sensor() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
-  start_motor();
+  if (config_->run_on_discharge) { // todo test
+    start_motor();
+  }
   discharge_active_.async_send(true, [this](auto const& err, std::size_t) { // todo test
     if (err) {
       this->logger_.error("Failed to set discharge active: {}", err.message());
