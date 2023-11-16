@@ -35,8 +35,7 @@ private:
 public:
   using config_t = config;
 
-  explicit virtual_motor(boost::asio::io_context&, const config& config)
-    : config_(config), logger_(config.name.value()) {
+  explicit virtual_motor(boost::asio::io_context&, const config& config) : config_(config), logger_(config.name.value()) {
     logger_.info("virtual_motor c-tor: {}", config.name.value());
     config_.name.observe([this](std::string const& new_v, std::string const& old_v) {
       logger_.warn("Printing motor name switched from: {}, to: {}! takes effect after this short message", old_v, new_v);
@@ -44,8 +43,7 @@ public:
     });
   }
 
-  ~virtual_motor() {
-  }
+  ~virtual_motor() {}
 
   auto convey() -> std::error_code {
     logger_.info("convey!");
@@ -87,16 +85,14 @@ public:
     if (!config_.nominal) {
       cb(motor_error(errors::err_enum::motor_missing_speed_reference));
     }
-
   }
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto) {
     logger_.trace("convey({});", time);
-
   }
 
 private:
   const config_t& config_;
   tfc::logger::logger logger_;
 };
-} // namespace tfc::motor::types
+}  // namespace tfc::motor::types
