@@ -36,13 +36,15 @@ public:
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
     std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{ 1 } };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
+    bool run_on_discharge{ true };
     struct glaze {
       using type = sensor_control_config;
       static constexpr std::string_view name{ "tfc::sensor_control" };
       // clang-format off
       static constexpr auto value{ glz::object(
         "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
-        "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 }
+        "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
+        "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item."
       ) };
       // clang-format on
     };
@@ -124,9 +126,7 @@ private:
       std::string{ tfc::dbus::sml::tags::path },
       tfc::dbus::make_dbus_name("SensorControl")) };
 
-  tfc::dbus::sml::interface sml_interface_ {
-    dbus_interface_, fmt::format("sm.{}", log_key_)
-  };
+  tfc::dbus::sml::interface sml_interface_{ dbus_interface_, fmt::format("sm.{}", log_key_) };
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface_) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
@@ -136,10 +136,9 @@ private:
                                                        sensor_control_config{ .discharge_timeout = std::nullopt,
                                                                               .await_sensor_timeout =
                                                                                   std::chrono::minutes{ 1 },
-                                                                              .run_speed = 100.0 * mp_units::percent } };
-  tfc::operation::interface operation_mode_ {
-    ctx_, "operation_mode"
-  };
+                                                                              .run_speed = 100.0 * mp_units::percent,
+                                                                              .run_on_discharge = true } };
+  tfc::operation::interface operation_mode_{ ctx_, "operation_mode" };
   bool first_time_{ true };
 };
 
