@@ -39,6 +39,9 @@ export function removeOrg(name: string) {
   if (name.split('.').length > 4) {
     return name.split('.').slice(3).join('.');
   }
+  if (name.split('.').length >= 3) {
+    return name.split('.').slice(2).join('.');
+  }
   return name;
 }
 
@@ -77,10 +80,10 @@ export const updateFormData = (
   React.Dispatch<any>,
   addAlert: any,
 ) => {
-  if (!newData || !name) return;
+  if (newData === undefined || !name) return;
 
   // Unwrap config object if it exists (for nested schemas)
-  if (newData.config) {
+  if (newData && newData.config) {
     // eslint-disable-next-line no-param-reassign
     newData = newData.config;
   }
@@ -142,7 +145,7 @@ export async function fetchDataFromDBus(name: string, iface: string, path: strin
     return {};
   }
 
-  if (!Object.keys(parsedData).includes(property)) {
+  if ((parsedData === null && data[property][0].length > 3) || !Object.keys(parsedData).includes(property)) {
     parsedData = { config: parsedData };
   }
 
