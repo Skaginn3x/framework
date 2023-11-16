@@ -25,7 +25,9 @@ export type DarkModeType = {
 const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   console.log('Routing');
   const location = useLocation();
+  console.log(location);
   const query = new URLSearchParams(location.search);
+  console.log(query);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   console.log('Found service: ', id);
   switch (id) {
@@ -89,7 +91,7 @@ function App() {
       <AlertProvider>
         <div className="App">
           <Alerts />
-          <Router basename="/cockpit/@localhost/ipc">
+          <Router>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -101,8 +103,7 @@ function App() {
             }}
             >
               <Routes>
-                <Route path="/index.html" element={<RouterElem isDark={isDark} />} />
-                <Route path="*" element={<NotFoundPage />} />
+                <Route path="*" element={<RouterElem isDark={isDark} />} />
               </Routes>
             </div>
           </Router>
