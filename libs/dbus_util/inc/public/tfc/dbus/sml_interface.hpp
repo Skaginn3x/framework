@@ -284,8 +284,8 @@ auto get_action_label(const std::string& src_state) -> std::string {
   return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state, action_name);
 }
 
-auto filter_sub_state_machine_id(std::string& state) -> void {
-  std::string_view sub_state_machine_id{ "boost::sml::back::sm<boost::sml::back::sm_policy<" };
+inline auto filter_sub_state_machine_id(std::string& state) -> void {
+  std::string_view const sub_state_machine_id{ "boost::sml::back::sm<boost::sml::back::sm_policy<" };
 
   if (state.starts_with(sub_state_machine_id)) {
     // remove boost::sml::back::sm<boost::sml::back::sm_policy<
@@ -297,8 +297,8 @@ auto filter_sub_state_machine_id(std::string& state) -> void {
     state.erase(state.find_first_of("<"), state.size());
 
     // replace :: with _
-    std::string pattern{ "::" };
-    std::string replacement{ "_" };
+    std::string const pattern{ "::" };
+    std::string const replacement{ "_" };
     size_t pos = 0;
     while ((pos = state.find(pattern, pos)) != std::string::npos) {
       state.replace(pos, pattern.length(), replacement);
