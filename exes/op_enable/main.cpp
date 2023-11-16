@@ -8,6 +8,7 @@
 #include <tfc/ipc.hpp>
 #include <tfc/operation_mode.hpp>
 #include <tfc/operation_mode/common.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 
@@ -15,7 +16,8 @@ auto main(int argc, char const* const* const argv) -> int {
   tfc::base::init(argc, argv);
 
   asio::io_context ctx{};
-  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
   tfc::logger::logger logger{ "actuator" };
   bool running{ false };
 
