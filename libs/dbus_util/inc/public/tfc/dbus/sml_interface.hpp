@@ -244,25 +244,23 @@ auto get_action_name() -> std::string {
   return get_filtered_name<typename type_t::action::type>();
 }
 
-// not_guard struct for checking and unwrapping a not_ guard
 template <typename T>
-struct not_guard {
-  static constexpr bool is_not = false;
-  using type = T;
-};
+concept is_not_guard = tfc::stx::is_specialization_v<T, boost::sml::aux::zero_wrapper> &&
+                       tfc::stx::is_specialization_v<typename T::type, boost::sml::front::not_>;
 
 template <typename T>
+struct not_guard {};
+
+// need the inner type to be able to get the name
+template <typename T>
 struct not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<T>>> {
-  static constexpr bool is_not = true;
   using type = T;
 };
 
 template <typename type_t>
 auto get_guard_name() -> std::string {
-  using guard_info = not_guard<typename type_t::guard>;
-
-  if constexpr (guard_info::is_not) {
-    // Use the unwrapped type if it is a not_ guard
+  if constexpr (is_not_guard<typename type_t::guard>) {
+    using guard_info = not_guard<typename type_t::guard>;
     return fmt::format("[!{}]", get_name<typename guard_info::type>());
   }
   return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
