@@ -61,6 +61,37 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
 
   const stateMachinePath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/StateMachines`;
 
+  function toggleDarkMode(svgString: string) {
+    if (isDark) {
+      svgString = svgString.replace(/fill="white"/g, 'fill="#1B1D21"');
+      svgString = svgString.replace(/fill="black"/g, 'fill="#EEE"');
+      svgString = svgString.replace(/stroke="black"/g, 'stroke="#EEE"');
+      svgString = svgString.replace(/stroke="white"/g, 'stroke="#1B1D21"');
+      svgString = svgString.replace(/<text /g, '<text fill="#EEE" ');
+    } else {
+      svgString = svgString.replace(/fill="#1B1D21"/g, 'fill="white"');
+      svgString = svgString.replace(/fill="#EEE"/g, 'fill="black"');
+      svgString = svgString.replace(/stroke="#EEE"/g, 'stroke="black"');
+      svgString = svgString.replace(/stroke="#1B1D21"/g, 'stroke="white"');
+      svgString = svgString.replace(/<text /g, '<text fill="black" ');
+    }
+    return svgString;
+  }
+
+  async function generateGraphviz() {
+    if (!activeItem) return;
+    const graphviz = await Graphviz.load();
+    console.log(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine);
+    console.log(dbusInterfaces);
+    let svgString = graphviz.dot(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine ?? '');
+    svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
+    // same with height
+    svgString = svgString.replace(/height="\d+\.?\d*pt"/g, 'height="100%"');
+    svgString = svgString.replace('<title>G</title>', '');
+    svgString = toggleDarkMode(svgString);
+    setSVG(svgString);
+  }
+
   const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, process:string) => {
     const handleChanged = (value: any, name:any) => {
       setDbusInterfaces((prevInterfaces) => {
@@ -72,6 +103,9 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
 
         return updatedInterfaces;
       });
+      if (name === activeItem) {
+        generateGraphviz();
+      }
     };
     const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
     try {
@@ -112,37 +146,6 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
-  function toggleDarkMode(svgString: string) {
-    if (isDark) {
-      svgString = svgString.replace(/fill="white"/g, 'fill="#1B1D21"');
-      svgString = svgString.replace(/fill="black"/g, 'fill="#EEE"');
-      svgString = svgString.replace(/stroke="black"/g, 'stroke="#EEE"');
-      svgString = svgString.replace(/stroke="white"/g, 'stroke="#1B1D21"');
-      svgString = svgString.replace(/<text /g, '<text fill="#EEE" ');
-    } else {
-      svgString = svgString.replace(/fill="#1B1D21"/g, 'fill="white"');
-      svgString = svgString.replace(/fill="#EEE"/g, 'fill="black"');
-      svgString = svgString.replace(/stroke="#EEE"/g, 'stroke="black"');
-      svgString = svgString.replace(/stroke="#1B1D21"/g, 'stroke="white"');
-      svgString = svgString.replace(/<text /g, '<text fill="black" ');
-    }
-    return svgString;
-  }
-
-  async function generateGraphviz() {
-    if (!activeItem) return;
-    const graphviz = await Graphviz.load();
-    console.log(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine);
-    console.log(dbusInterfaces);
-    let svgString = graphviz.dot(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine ?? '');
-    svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
-    // same with height
-    svgString = svgString.replace(/height="\d+\.?\d*pt"/g, 'height="100%"');
-    svgString = svgString.replace('<title>G</title>', '');
-    svgString = toggleDarkMode(svgString);
-    setSVG(svgString);
-  }
-
   useEffect(() => {
     if (!svg) return;
     let newSVG = svg;
@@ -151,6 +154,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   }, [isDark]);
 
   useEffect(() => {
+    if (!dbusInterfaces) return;
     generateGraphviz();
   }, [activeItem]);
 
