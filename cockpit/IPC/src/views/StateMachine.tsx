@@ -16,11 +16,12 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  DrawerPanelContent, Nav, NavGroup, NavItem, Spinner, Title,
+  DrawerPanelContent, Nav, NavGroup, NavItem, Spinner, Title, Tooltip,
 } from '@patternfly/react-core';
 import parse from 'html-react-parser';
 import { DarkModeType } from 'src/App';
 import Hamburger from 'hamburger-react';
+import { removeOrg } from 'src/Components/Form/WidgetFunctions';
 
 declare global {
   interface Window { cockpit: any; }
@@ -54,6 +55,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   const [svg, setSVG] = useState<string>();
 
   const [activeItem, setActiveItem] = React.useState('');
+  const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
 
   // eslint-disable-next-line @typescript-eslint/comma-spacing
@@ -183,15 +185,38 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript(callback);
   }, []);
 
+  const [subtitle, setSubtile] = useState<string>('');
+
   const onSelect = (selectedItem: {
-    groupId: string | number;
-    itemId: string | number;
+    groupId: string;
+    itemId: string;
   }) => {
-    if (selectedItem.groupId) {
-      setActiveItem(selectedItem.groupId as string);
+    if (selectedItem.itemId) {
+      setActiveItem(selectedItem.itemId.split('=')[0]);
+      const process = selectedItem.itemId.split('=')[1];
+      setSubtile(`${process ?? ''} - ${removeOrg(selectedItem.itemId.split('=')[0])}`);
       setIsDrawerExpanded(false);
+    } else if (selectedItem.groupId) {
+      setActiveItemFilter(selectedItem.groupId);
+      setActiveItem('');
+    } else {
+      setActiveItemFilter(undefined);
     }
   };
+
+  /**
+   * Get title from dbus name
+   * @param name  string
+   * @returns string
+   */
+  function getTitle(name: string) {
+    // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
+    // return operation_mode.def.state_machine if there are more than 5 dots
+    if (name.split('.').length > 5) {
+      return name.split('.').slice(5).join('.');
+    }
+    return name;
+  }
 
   const panelContent = (
     <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
@@ -199,21 +224,53 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
         minWidth: '15rem', backgroundColor: isDark ? '#212427' : '#EEEEEE', height: '-webkit-fill-available',
       }}
       >
-        {dbusInterfaces.length > 0
+        {processes && dbusInterfaces.length > 0
           ? (
-            <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
+            <Nav onSelect={(_, item) => onSelect(item as { groupId: string, itemId: string })} aria-label="Grouped global">
               {/* Remove this group to get rid of demo data */}
               <NavGroup title="Processes">
-                {dbusInterfaces.map((iface: any) => (
-                  <NavItem
-                    preventDefault
-                    to={`#${iface.interfaceName}`}
-                    key={`${iface.interfaceName}-navItem`}
-                    groupId={iface.interfaceName}
-                    isActive={activeItem === iface.interfaceName}
+                <NavItem
+                  preventDefault
+                  to="#all"
+                  key="all-navItem"
+                  groupId={undefined}
+                  isActive={activeItemFilter === undefined}
+                >
+                  All
+                </NavItem>
+                {processes.map((name: string) => {
+                  if (dbusInterfaces.find((iface) => iface.process === name) === undefined) return null;
+                  return (
+                    <NavItem
+                      preventDefault
+                      to={`#${name}`}
+                      key={`${name}-navItem`}
+                      groupId={name}
+                      isActive={activeItemFilter === name}
+                    >
+                      {name}
+                    </NavItem>
+                  );
+                })}
+              </NavGroup>
+              {/* End Remove */}
+              <NavGroup title="Interfaces">
+                {/* Might want to remove this slice too, if demoData is removed from state */}
+                {dbusInterfaces.filter((iface) => !activeItemFilter || iface.process === activeItemFilter).map((iface: any) => (
+                  <Tooltip
+                    content={iface.process}
+                    key={`${iface.interfaceName}${iface.process}-Tooltip`}
                   >
-                    {iface.interfaceName}
-                  </NavItem>
+                    <NavItem
+                      preventDefault
+                      to={`#${iface.interfaceName}`}
+                      key={`${iface.interfaceName}${iface.process}-navItem`}
+                      itemId={`${iface.interfaceName}=${iface.process}`}
+                      isActive={activeItem === iface.interfaceName && activeItemFilter === iface.process}
+                    >
+                      {activeItemFilter ? removeOrg(iface.interfaceName) : removeOrg(iface.interfaceName)}
+                    </NavItem>
+                  </Tooltip>
                 ))}
               </NavGroup>
             </Nav>
@@ -263,6 +320,13 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                 style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
               >
                 State Machines
+              </Title>
+              <Title
+                headingLevel="h1"
+                size="md"
+                style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}
+              >
+                {subtitle}
               </Title>
               <div style={{
                 position: 'fixed',
