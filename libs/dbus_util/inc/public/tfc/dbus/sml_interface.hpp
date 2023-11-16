@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <concepts>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <ranges>
@@ -173,19 +172,16 @@ struct interface : tfc::logger::sml_logger {
   void log_process_event([[maybe_unused]] event_t const& event) {
     last_event_ = detail::extract_event_type(event);
     logger::log_process_event<state_machine_t>(event);
-    std::cout << "log process event" << std::endl;
   }
 
   template <class state_machine_t, class guard_t, class event_t>
   void log_guard(guard_t const& guard, event_t const& event, bool result) {
     logger::log_guard<state_machine_t>(guard, event, result);
-    std::cout << "log guard" << std::endl;
   }
 
   template <class state_machine_t, class action_t, class event_t>
   void log_action(action_t const& action, event_t const& event) {
     logger::log_action<state_machine_t>(action, event);
-    std::cout << "log action" << std::endl;
   }
 
   template <class state_machine_t, class source_state_t, class destination_state_t>
@@ -194,7 +190,6 @@ struct interface : tfc::logger::sml_logger {
                           detail::get_name<typename destination_state_t::type>(), last_event_);
     impl_.dot_format(detail::dump<boost::sml::sm<state_machine_t>>(src, dst, last_event_));
     logger::log_state_change<state_machine_t>(src, dst);
-    std::cout << "log state change" << std::endl;
   }
 
   std::string last_event_{};
@@ -249,31 +244,26 @@ auto get_action_name() -> std::string {
   return get_filtered_name<typename type_t::action::type>();
 }
 
-// Check if guard is a not_ guard (!guard)
-template <typename t>
-struct is_not_guard : std::false_type {};
-
-template <typename t>
-struct is_not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<t>>> : std::true_type {};
-
-// Helper to unwrap the not_ guard (!guard) and get the underlying guard type
-template <typename t>
-struct unwrap_not_guard {
-  using type = t;
+// not_guard struct for checking and unwrapping a not_ guard
+template <typename T>
+struct not_guard {
+  static constexpr bool is_not = false;
+  using type = T;
 };
 
-template <typename t>
-struct unwrap_not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<t>>> {
-  using type = t;
+template <typename T>
+struct not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<T>>> {
+  static constexpr bool is_not = true;
+  using type = T;
 };
 
 template <typename type_t>
 auto get_guard_name() -> std::string {
-  if constexpr (is_not_guard<typename type_t::guard>::value) {
-    // structs are needed because name cannot be automatically deduced from type_t::guard
-    using guard_type = typename unwrap_not_guard<typename type_t::guard>::type;
-    // prefix with '!' to indicate negation
-    return fmt::format("[!{}]", get_name<guard_type>());
+  using guard_info = not_guard<typename type_t::guard>;
+
+  if constexpr (guard_info::is_not) {
+    // Use the unwrapped type if it is a not_ guard
+    return fmt::format("[!{}]", get_name<typename guard_info::type>());
   }
   return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
 }
