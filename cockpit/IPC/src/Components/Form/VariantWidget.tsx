@@ -69,7 +69,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     }
     if (vals === null) { return null; }
     // Get key from store to determine what is selected
-    console.log('vals', vals);
     const selectedProp = Object.keys(vals).length > 0 ? Object.keys(vals)[0] : undefined;
     if (!selectedProp) { return null; }
 
