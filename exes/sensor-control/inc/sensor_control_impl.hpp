@@ -24,11 +24,10 @@ sensor_control<signal_t, slot_t, sml_t>::sensor_control(asio::io_context& ctx, s
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
-  if (first_time_) { // todo test
+  if (first_time_) {  // todo test
     first_time_ = false;
     start_motor();
-  }
-  else {
+  } else {
     stop_motor();
   }
   if (queued_item_) {  // todo test
@@ -89,7 +88,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
   start_motor();
-  discharge_active_.async_send(true, [this](auto const& err, std::size_t) { // todo test
+  discharge_active_.async_send(true, [this](auto const& err, std::size_t) {  // todo test
     if (err) {
       this->logger_.error("Failed to set discharge active: {}", err.message());
     }
@@ -102,7 +101,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_discharging() {
-  discharge_active_.async_send(false, [this](auto const& err, std::size_t) { // todo test
+  discharge_active_.async_send(false, [this](auto const& err, std::size_t) {  // todo test
     if (err) {
       this->logger_.error("Failed to set discharge active: {}", err.message());
     }
@@ -112,15 +111,11 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_discharging() {
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void sensor_control<signal_t, slot_t, sml_t>::enter_uncontrolled_discharge() {
-
-}
+void sensor_control<signal_t, slot_t, sml_t>::enter_uncontrolled_discharge() {}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void sensor_control<signal_t, slot_t, sml_t>::leave_uncontrolled_discharge() {
-
-}
+void sensor_control<signal_t, slot_t, sml_t>::leave_uncontrolled_discharge() {}
 
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
@@ -224,7 +219,7 @@ void sensor_control<signal_t, slot_t, sml_t>::await_sensor_timer_cb(const std::e
     logger_.trace("Await sensor timer error: {}\n", err.message());
     return;
   }
-  queued_item_.reset(); // todo test
+  queued_item_.reset();  // todo test
   sm_->process_event(events::await_sensor_timeout{});
 }
 

@@ -6,13 +6,13 @@
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
-#include <tfc/progbase.hpp>
-#include <tfc/ipc.hpp>
-#include <tfc/operation_mode.hpp>
-#include <tfc/operation_mode/common.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
+#include <tfc/operation_mode.hpp>
+#include <tfc/operation_mode/common.hpp>
+#include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
 
@@ -41,23 +41,27 @@ auto main(int argc, char const* const* const argv) -> int {
     }
   };
 
-  tfc::operation::interface operations{ ctx, "operations" };
-  operations.on_enter(tfc::operation::mode_e::running, [&running, &sig, &slot, &logger](tfc::operation::mode_e, tfc::operation::mode_e) {
-    running = true;
-    sig.async_send(slot.value().value_or(false), [&logger](std::error_code err, std::size_t) {
-      if (err) {
-        logger.error("Failed to send signal: {}", err.message());
-      }
-    });
-  });
-  operations.on_leave(tfc::operation::mode_e::running, [&running, &sig, &logger](tfc::operation::mode_e, tfc::operation::mode_e) {
-    running = false;
-    sig.async_send(false, [&logger](std::error_code err, std::size_t) {
-      if (err) {
-        logger.error("Failed to send signal: {}", err.message());
-      }
-    });
-  });
+  tfc::operation::interface operations {
+    ctx, "operations"
+  };
+  operations.on_enter(tfc::operation::mode_e::running,
+                      [&running, &sig, &slot, &logger](tfc::operation::mode_e, tfc::operation::mode_e) {
+                        running = true;
+                        sig.async_send(slot.value().value_or(false), [&logger](std::error_code err, std::size_t) {
+                          if (err) {
+                            logger.error("Failed to send signal: {}", err.message());
+                          }
+                        });
+                      });
+  operations.on_leave(tfc::operation::mode_e::running,
+                      [&running, &sig, &logger](tfc::operation::mode_e, tfc::operation::mode_e) {
+                        running = false;
+                        sig.async_send(false, [&logger](std::error_code err, std::size_t) {
+                          if (err) {
+                            logger.error("Failed to send signal: {}", err.message());
+                          }
+                        });
+                      });
 
   ctx.run();
 
