@@ -97,7 +97,7 @@ static constexpr auto udp_endpoint_v = generic_endpoint<endpoint_url, endpoint_p
 namespace test {
 using std::string_view_literals::operator""sv;
 
-static_assert(ipc_endpoint_v<"foo"> == "ipc:///tmp/foo"sv);
+static_assert(ipc_endpoint_v<"foo"> == "ipc:///var/run/tfc/foo"sv);
 static_assert(tcp_endpoint_v<"foo", 42> == "tcp://foo:42"sv);
 static_assert(udp_endpoint_v<"foo", 42> == "udp://foo:42"sv);
 static_assert(tcp_endpoint_v<"192.168.1.1", 42> == "tcp://192.168.1.1:42"sv);
