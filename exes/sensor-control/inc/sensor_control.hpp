@@ -62,10 +62,15 @@ public:
   void leave_awaiting_sensor();
   void enter_discharging();
   void leave_discharging();
+  void enter_uncontrolled_discharge();
+  void leave_uncontrolled_discharge();
   void enter_discharge_delayed();
   void leave_discharge_delayed();
   void enter_discharging_allow_input();
   void leave_discharging_allow_input();
+
+  auto config_run_on_discharge() const noexcept -> bool { return config_.value().run_on_discharge; }
+
   // accessors for testing purposes
   [[nodiscard]] auto motor_signal() const noexcept -> auto const& { return motor_percentage_; }
   [[nodiscard]] auto discharge_signal() const noexcept -> auto const& { return request_discharge_; }
