@@ -41,7 +41,7 @@ struct two_connectives {
 
 using inner_sm_state_t = decltype(state<two_connectives::inner_sm_t>);
 
-int main([[maybe_unused]] int argc,[[maybe_unused]] char** argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
   auto substitute_argv = std::array{ "sensor_control_integration_test", "--log-level=trace", "--stdout" };
 
   tfc::base::init(substitute_argv.size(), substitute_argv.data());
