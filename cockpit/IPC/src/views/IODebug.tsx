@@ -6,342 +6,90 @@ import React, {
   useEffect, useRef, useState,
 } from 'react';
 import {
-  DataList,
   Title,
-  Spinner,
   Divider,
 } from '@patternfly/react-core';
-import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
-import ListItem from 'src/Components/IOList/ListItem';
 import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
-import { AngleDownIcon } from '@patternfly/react-icons';
-import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
-import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
-import TextboxAttribute from 'src/Components/Table/ToolbarItems/TextBoxAttribute';
+import loadExternalScript from 'src/Components/Interface/ScriptLoader';
 
-declare global {
-  interface Window { cockpit: any; }
+interface SubType {
+  [key: string]: { data: any };
 }
-
-/**
- * Parses DBUS XML strings to extract interfaces
- * @param xml XML string
- * @returns Array of interfaces with name and value type { name: string, valueType: string}
- */
-const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] => {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xml, 'text/xml');
-  const interfaceElements = xmlDoc.querySelectorAll(`interface[name^="${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}."]`);
-  const interfaces: { name: string, valueType: string }[] = [];
-  interfaceElements.forEach((element) => {
-    const name = element.getAttribute('name');
-    const valueType = element.querySelector('property[name="Value"]')?.getAttribute('type') ?? 'unknown';
-
-    if (name) {
-      interfaces.push({ name, valueType });
-    }
-  });
-
-  return interfaces;
-};
 
 // eslint-disable-next-line react/function-component-definition
 const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
-  const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
-  const [processes, setProcesses] = useState<string[]>();
-  const [isShowingEvents, setIsShowingEvents] = useState<boolean>(false);
-  // eslint-disable-next-line @typescript-eslint/comma-spacing
-  const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const [unsortedEvents, setUnsortedEvents] = useState<any[]>([]);
-
-  const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
-  const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
-
-  const handleChanged = (value: any, iFaceName:any) => {
-    setDbusInterfaces((prevInterfaces) => {
-      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === iFaceName);
-      if (index === -1) return prevInterfaces;
-
-      const updatedInterfaces = [...prevInterfaces];
-      updatedInterfaces[index].proxy.data.Value = value;
-
-      return updatedInterfaces;
-    });
-
-    if (isMobile) {
-      setUnsortedEvents((prevEvents: any) => {
-        const newEvents = [...prevEvents];
-        if (newEvents.length > 20) { // Limit history to 20 entries per interface
-          newEvents.shift();
-        }
-        newEvents.push({ interface: iFaceName, value, timestamp: Date.now() });
-        return newEvents;
-      });
-    }
-  };
-
-  const subscribeToItem = async (name: string, process: string, path:string) => {
-    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-    console.log('Subscribed to ', name);
-
-    const match = {
-      interface: 'org.freedesktop.DBus.Properties',
-      path,
-      member: 'PropertiesChanged', // Standard DBus signal for property changes
-      arg0: name,
-    };
-    const subscription:any = processDBUS.subscribe(match, (pathz: any, iface: any, signal: any, args: any) => {
-      // Check if the changed property is 'Value'
-      if (args && Object.keys(args[1]).includes('Value') && args[1].Value.v !== undefined) {
-        handleChanged(args[1].Value.v, name);
-      }
-    });
-    eventHandlersRef.current.set(name, subscription);
-
-    setDbusInterfaces((prevInterfaces) => {
-      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
-      if (index === -1) return prevInterfaces;
-
-      const updatedInterfaces = [...prevInterfaces];
-      updatedInterfaces[index].listener = subscription;
-      return updatedInterfaces;
-    });
-
-    return subscription;
-  };
-
-  const unsubscribeFromItem = async (name: string) => {
-    const subscription = dbusInterfaces.find((iface) => iface.interfaceName === name)?.listener;
-    if (!subscription) return;
-
-    subscription.remove();
-    eventHandlersRef.current.delete(name);
-    console.log('Unsubscribed from ', name);
-
-    setDbusInterfaces((prevInterfaces) => {
-      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
-      if (index === -1) return prevInterfaces;
-
-      const updatedInterfaces = [...prevInterfaces];
-      updatedInterfaces[index].listener = false;
-      return updatedInterfaces;
-    });
-  };
-
-  const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, direction:string, process:string) => {
-    const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
-
-    try {
-      const data = await processProxy.call('Introspect');
-      const interfacesData = parseXMLInterfaces(data);
-
-      // Create an array of promises for each proxy creation
-      const proxyPromises = interfacesData.map(async (interfaceData) => {
-        const proxy = processDBUS.proxy(interfaceData.name, path);
-        await proxy.wait(); // Wait for the proxy to be ready
-
-        return {
-          proxy,
-          process,
-          interfaceName: interfaceData.name,
-          type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
-          direction,
-          hidden: false,
-          listener: false,
-        };
-      });
-
-      // Wait for all proxies to be created
-      const newInterfaces = await Promise.all(proxyPromises);
-      interfaces.push(...newInterfaces);
-    } catch (e) {
-      console.error('Error in getInterfaceData:', e);
-    }
-  };
-
-  const getInterfaceDataForProcess = async (process: any) => {
-    const interfaces: any[] = [];
-    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-    try {
-      await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
-    } catch (e) {
-      console.error(`Failed to get interface data for process ${process}:`, e);
-    }
-    try {
-      await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
-    } catch (e) {
-      console.error(`Failed to get interface data for process ${process}:`, e);
-    }
-    return interfaces;
-  };
+  const [processDBUS, setProcessDBUS] = useState<any>();
+  const [subscriptions, setSubscriptions] = useState<SubType>({});
+  const subscriptionsRef = useRef(subscriptions);
 
   useEffect(() => {
-    if (!processes) return;
-
-    const fetchAndConnectInterfaces = async () => {
-      const allInterfaces = await Promise.all(processes.map(getInterfaceDataForProcess));
-      // Flatten the result since each item in allInterfaces is an array of interfaces
-      const flatInterfaces = allInterfaces.flat();
-      setDbusInterfaces(flatInterfaces);
-    };
-
-    fetchAndConnectInterfaces();
-  }, [processes]);
-
-  useEffect(() => {
-    const callback = (allNames: string[]) => {
-      setProcesses(
-        allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
-      );
-    };
-    loadExternalScript(callback);
+    loadExternalScript(() => {
+      setProcessDBUS(window.cockpit.dbus(null));
+    });
   }, []);
 
-  // use effect to scroll to bottom of div on unsortedEvent change
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
-    if (scrollRef.current) {
-      const element = scrollRef.current;
-      const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
+    if (!processDBUS) return;
 
-      if (isNearBottom) {
-        element.scrollTop = element.scrollHeight;
-      }
-    }
-  }, [unsortedEvents]);
+    const match = {
+      path_namespace: `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}`,
+    };
+    processDBUS.watch(match);
 
-  // FILTER CODE
-  const filterRefs: Record<string, React.RefObject<HTMLInputElement>> = {
-    Name: useRef<HTMLInputElement | null>(null),
-    Type: useRef<HTMLInputElement | null>(null),
-    Process: useRef<HTMLInputElement | null>(null),
-    Direction: useRef<HTMLInputElement | null>(null),
-  };
-  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>('Name');
-  const [nameSelection, setNameSelection] = React.useState<string[]>([]);
-  const [typeSelection, setTypeSelection] = React.useState<string[]>([]);
-  const [directionSelection, setDirectionSelection] = React.useState<string[]>([]);
-  const [processSelections, setProcessSelections] = React.useState<string[]>([]);
-  const uniqueTypes = Array.from(new Set(dbusInterfaces.map((iface) => iface.type)));
-  const uniqueProcesses = Array.from(new Set(dbusInterfaces.map((iface) => iface.process.split('.').slice(3).join('.'))));
-
-  /**
-   * Configuration file for the filters
-   * Uses the Toolbar component's FilterConfig type
-   */
-  const Configs = [
-    {
-      key: 'Name',
-      chips: nameSelection,
-      categoryName: 'Name',
-      setFiltered: setNameSelection,
-      component:
-  <TextboxAttribute
-    selectedItems={nameSelection}
-    setActiveItems={setNameSelection}
-    attributeName="Name"
-    activeAttributeMenu={activeAttributeMenu}
-    innerRef={filterRefs.Name}
-  />,
-    },
-
-    {
-      key: 'Type',
-      chips: typeSelection,
-      categoryName: 'Type',
-      setFiltered: setTypeSelection,
-      component:
-  <MultiSelectAttribute
-    items={uniqueTypes}
-    selectedItems={typeSelection}
-    setActiveItems={setTypeSelection}
-    attributeName="Type"
-    activeAttributeMenu={activeAttributeMenu}
-    innerRef={filterRefs.Type}
-  />,
-    },
-
-    {
-      key: 'Process',
-      chips: processSelections,
-      categoryName: 'Process',
-      setFiltered: setProcessSelections,
-      component:
-  <MultiSelectAttribute
-    items={uniqueProcesses}
-    selectedItems={processSelections}
-    setActiveItems={setProcessSelections}
-    attributeName="Process"
-    activeAttributeMenu={activeAttributeMenu}
-    innerRef={filterRefs.Process}
-  />,
-    },
-
-    {
-      key: 'Direction',
-      chips: directionSelection,
-      categoryName: 'Direction',
-      setFiltered: setDirectionSelection,
-      component:
-  <MultiSelectAttribute
-    items={['signal', 'slot']}
-    selectedItems={directionSelection}
-    setActiveItems={setDirectionSelection}
-    attributeName="Direction"
-    activeAttributeMenu={activeAttributeMenu}
-    innerRef={filterRefs.Direction}
-  />,
-    },
-  ] as FilterConfig[];
-
-  /**
-   * When the the filters are updated, this function is called to determine if a signal should be displayed
-   * @param signal The signal that is being checked
-  */
-  const onFilter = (dbusInterface: any) => {
-    const createSafeRegex = (value: string) => {
-      try {
-        return new RegExp(value, 'i');
-      } catch (err) {
-        return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const notifyHandler = (data: any) => {
+      const removePath = data.detail[Object.keys(data.detail)[0]];
+      const ifaceName = Object.keys(removePath)[0];
+      if (subscriptionsRef.current[ifaceName]) {
+        setSubscriptions((prevState: any) => {
+          const newState = { ...prevState };
+          newState[ifaceName].data = removePath[ifaceName].Value;
+          return newState;
+        });
       }
     };
-    let matchesSearchValue;
-    if (nameSelection && nameSelection.length !== 0) {
-      const searchRegexList = nameSelection.map((value) => createSafeRegex(value));
-      matchesSearchValue = searchRegexList.some(
-        (regex) => (dbusInterface.interfaceName).search(regex) >= 0,
-      );
-    } else {
-      matchesSearchValue = true;
-    }
-    const matchesTypeSelection = typeSelection.length === 0 || typeSelection.includes(dbusInterface.type);
 
-    const matchesDirection = directionSelection.length === 0 || directionSelection.includes(dbusInterface.direction);
+    processDBUS.addEventListener('notify', notifyHandler);
 
-    return (
-      matchesSearchValue
-      && matchesTypeSelection
-      && (processSelections.length === 0 || processSelections.includes(dbusInterface.process.split('.').splice(3).join('.')))
-      && matchesDirection
-    );
-  };
+    // eslint-disable-next-line consistent-return
+    return () => {
+      processDBUS.removeEventListener('notify', notifyHandler);
+    };
+  }, [processDBUS]);
 
   useEffect(() => {
-    const filteredInterfaces = dbusInterfaces.filter(onFilter);
-    // set hidden to true for all except filteredInterfaces;
-    setDbusInterfaces((prevInterfaces) => prevInterfaces.map((iface) => ({
-      ...iface,
-      hidden: !filteredInterfaces.includes(iface),
-    })));
-  }, [nameSelection, typeSelection, processSelections, directionSelection]);
+    subscriptionsRef.current = subscriptions;
+  }, [subscriptions]);
 
-  const MemoizedListItem = React.memo(ListItem);
+  const subscribe = (interfaceName: string) => {
+    console.log('Subscribed to: ', interfaceName);
+    setSubscriptions((prevState) => ({
+      ...prevState,
+      [interfaceName]: { data: null },
+    }));
+  };
+
+  const unsubscribe = (interfaceName: string) => {
+    console.log('Unsubscribed to: ', interfaceName);
+    setSubscriptions((prevState) => {
+      const newState = { ...prevState };
+      delete newState[interfaceName];
+      return newState;
+    });
+  };
+
+  // subscribe after 4 sec then never unsubscribe
+  useEffect(() => {
+    setTimeout(() => {
+      console.log('SUBBINBING');
+      subscribe('com.skaginn3x.signal_source.def.bool.square_wave_2000ms');
+      subscribe('com.skaginn3x.signal_source.def.bool.square_wave_200ms');
+      subscribe('com.skaginn3x.signal_source.def.bool.square_wave_500ms');
+      subscribe('com.skaginn3x.signal_source.def.bool.square_wave_400ms');
+      unsubscribe('com.skaginn3x.signal_source.def.bool.square_wave_400ms');
+    }, 4000);
+  }, []);
 
   return (
     <div style={{
@@ -361,118 +109,45 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
         <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem', color: isDark ? '#EEE' : '#111' }}>
           IO Debugging Tool
         </Title>
-        <ToolBar
+        {/* <ToolBar
           filteredItems={dbusInterfaces}
           filterConfigs={Configs}
           activeAttributeMenu={activeAttributeMenu}
           setActiveAttributeMenu={setActiveAttributeMenu}
           refs={filterRefs}
-        />
+        /> */}
         <div style={{
           width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}
         >
           <Divider />
-          <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
-            Slots
-          </Title>
-          <DataList aria-label="Checkbox and action data list example" key="slots">
-            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any) => {
-              if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
-                return (
-                  <MemoizedListItem
-                    dbusInterface={dbusInterface}
-                    key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
-                    isChecked={dbusInterface.listener}
-                    data={dbusInterface.proxy.data}
-                    onCheck={() => (dbusInterface.listener
-                      ? unsubscribeFromItem(dbusInterface.interfaceName)
-                      : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
-                  />
-                );
-              }
-              return null;
-            })
-              : <Spinner />}
-          </DataList>
-          <Divider />
-          <Title headingLevel="h2" size="xl" style={{ marginBottom: '2rem', color: isDark ? '#EEE' : '#111' }}>
-            Signals
-          </Title>
-          <DataList aria-label="Checkbox and action data list example" key="signals">
-            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any) => {
-              if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
-                return (
-                  <MemoizedListItem
-                    dbusInterface={dbusInterface}
-                    key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
-                    isChecked={dbusInterface.listener}
-                    data={dbusInterface.proxy.data}
-                    onCheck={() => (dbusInterface.listener
-                      ? unsubscribeFromItem(dbusInterface.interfaceName)
-                      : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
-                  />
-                );
-              }
-              return null;
-            })
-              : <Spinner />}
-          </DataList>
-          <div style={{ height: '10rem' }} />
-        </div>
-      </div>
-      {isMobile
-                && (
-                <AngleDownIcon
-                  onClick={() => setIsShowingEvents(!isShowingEvents)}
-                  style={{
-                    position: 'fixed',
-                    bottom: 'calc(6.8rem + 5px)',
-                    left: '5px',
-                    transform: isShowingEvents ? 'translateY(0)' : 'translateY(6.8rem) rotate(180deg)',
-                  }}
-                  className="TransitionUp ArrowIcons"
-                />
-                )}
-      {isMobile
-            && (
-            <div
-              ref={scrollRef}
-              style={{
-                position: 'fixed',
-                bottom: '0px',
-                height: '6.8rem',
-                overflowY: 'scroll',
-                transform: isShowingEvents ? 'translateY(0)' : 'translateY(7rem)',
-                backgroundColor: '#111',
-                width: '100vw',
-              }}
-              className="TransitionUp"
+          { processDBUS && (
+            <div style={{
+              width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
+            }}
             >
-              {unsortedEvents.map((event:any) => (
-                <div
-                  key={event.timestamp}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    padding: '0px 0.2rem',
-                    width: '100vw',
-                    color: '#EEE',
-                    zIndex: 2,
-                  }}
-                >
-                  <p>
-                    {removeSlotOrg(event.interface)}
-                  </p>
-                  <p>
-                    {`${new Date(event.timestamp).toLocaleTimeString('de-DE')}.${new Date(event.timestamp).getMilliseconds()}`}
-                  </p>
-                  <p>{event.value.toString()}</p>
-                </div>
-              ))}
+              <Title headingLevel="h1" size="2xl" style={{ marginBottom: '1rem', color: isDark ? '#EEE' : '#111' }}>
+                Values
+              </Title>
+              { subscriptions && Object.keys(subscriptions).map((key) => (
+                subscriptions[key].data !== null
+                  ? (
+                    <div
+                      key={key}
+                      style={{
+                        display: 'flex', flexDirection: 'row', alignItems: 'center', color: isDark ? '#EEE' : '#222',
+                      }}
+                    >
+                      <p style={{ marginRight: '1rem' }}>{key}</p>
+                      <p>{subscriptions[key].data.toString()}</p>
+                    </div>
+                  )
+                  : null)) }
             </div>
-            )}
+          ) }
+        </div>
+
+      </div>
     </div>
   );
 };
