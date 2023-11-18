@@ -90,7 +90,6 @@ export default function CustomTable({
    * @param signal The signal that is being checked
   */
   const onFilter = (signal: SignalType) => {
-    console.log(connections);
     const createSafeRegex = (value: string) => {
       try {
         return new RegExp(value, 'i');
