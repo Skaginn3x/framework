@@ -67,6 +67,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     if (vals === null && oneOf.toJS().map((item: any) => item.title).includes('std::monostate')) {
       return 'std::monostate';
     }
+    if (vals === null) { return null; }
     // Get key from store to determine what is selected
     const selectedProp = Object.keys(vals).length > 0 ? Object.keys(vals)[0] : undefined;
     if (!selectedProp) { return null; }
