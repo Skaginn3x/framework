@@ -20,6 +20,10 @@
         "tfc5": {
             "label": "TFC List DBUS",
             "path": "index.html?service=list"
+        },
+        "tfc6": {
+            "label": "SVG Manipulation",
+            "path": "index.html?service=svg"
         }
     },
     "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval'"

@@ -16,6 +16,7 @@ import NotFoundPage from './views/NotFoundPage';
 import ListDBUS from './views/ListDBUS';
 import IODebug from './views/IODebug';
 import StateMachine from './views/StateMachine';
+import VisualState from './views/VisualState';
 
 export type DarkModeType = {
   isDark: boolean;
@@ -36,6 +37,7 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
     case 'list': return <ListDBUS isDark={isDark} />;
     case 'debug': return <IODebug isDark={isDark} />;
     case 'state_machine': return <StateMachine isDark={isDark} />;
+    case 'svg': return <VisualState isDark={isDark} />;
     default: return <NotFoundPage />;
   }
 };
