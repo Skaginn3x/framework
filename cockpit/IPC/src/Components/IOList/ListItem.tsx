@@ -37,13 +37,13 @@ const ListItem: React.FC<ListItemProps> = ({
   function handleBoolContent(booldata: any): ReactElement {
     return (
       <Tooltip
-        content={`Value is ${booldata.Value ? 'true' : 'false'}`}
+        content={booldata !== null && isChecked ? `Value is ${booldata ? 'true' : 'false'}` : 'Unknown'} // NOSONAR
         enableFlip
         distance={5}
         entryDelay={1000}
       >
-        { isChecked
-          ? <Circle size="1rem" color={booldata.Value ? 'green' : 'red'} />
+        { isChecked && booldata !== null
+          ? <Circle size="1rem" color={booldata ? 'green' : 'red'} />
           : <Circle size="1rem" color="#888888" />}
       </Tooltip>
     );
@@ -55,10 +55,10 @@ const ListItem: React.FC<ListItemProps> = ({
    * @returns ReactElement to be displayed
    */
   function handleStringContent(stringdata: any): ReactElement {
-    if (!isChecked) {
+    if (!isChecked || stringdata === null) {
       return (<p style={{ marginBottom: '0px' }}>Unknown</p>);
     }
-    return (<p style={{ marginBottom: '0px' }}>{stringdata.Value}</p>);
+    return (<p style={{ marginBottom: '0px' }}>{stringdata}</p>);
   }
 
   /**
@@ -67,15 +67,15 @@ const ListItem: React.FC<ListItemProps> = ({
    * @returns ReactElement to be displayed
    */
   function handleJSONContent(stringdata: any): ReactElement {
-    if (!isChecked) {
+    if (!isChecked || stringdata === null) {
       return (<p style={{ marginBottom: '0px' }}>Unknown</p>);
     }
 
     // Test if string is JSON
     let isJSON = false;
-    if (stringdata.Value[0] === '{' || stringdata.Value[0] === '[') {
+    if (stringdata[0] === '{' || stringdata[0] === '[') {
       try {
-        JSON.parse(stringdata.Value);
+        JSON.parse(stringdata);
         isJSON = true;
       } catch {
         isJSON = false;
@@ -91,16 +91,16 @@ const ListItem: React.FC<ListItemProps> = ({
           clickTip="Copied"
           variant={ClipboardCopyVariant.expansion}
           style={{
-            alignSelf: 'baseline', marginTop: '-.85rem', zIndex: 1, maxWidth: '25vw',
+            alignSelf: 'baseline', marginTop: '-.25rem', zIndex: 1, maxWidth: '25vw',
           }}
         >
-          {JSON.stringify(JSON.parse(stringdata.Value), null, 2)}
+          {JSON.stringify(JSON.parse(stringdata), null, 2)}
         </ClipboardCopy>
       );
     }
 
     return (
-      <p style={{ marginBottom: '0px' }}>{stringdata.Value}</p>
+      <p style={{ marginBottom: '0px' }}>{stringdata}</p>
     );
   }
 
@@ -155,18 +155,18 @@ const ListItem: React.FC<ListItemProps> = ({
     const internals = (interfacedata: any) => {
       switch (interfacedata.type) {
         case 'boolean':
-          return <BoolTinker data={interfacedata} isChecked={isChecked} />;
+          return <BoolTinker interfaceData={interfacedata} isChecked={isChecked} />;
 
         case 'string':
-          return <StringTinker data={interfacedata} isChecked={isChecked} />;
+          return <StringTinker interfaceData={interfacedata} isChecked={isChecked} />;
 
         case 'object':
-          return <StringTinker data={interfacedata} isChecked={isChecked} />;
+          return <StringTinker interfaceData={interfacedata} isChecked={isChecked} />;
 
         case 'number':
         case 'integer':
         case 'double':
-          return <NumberTinker data={interfacedata} isChecked={isChecked} />;
+          return <NumberTinker interfaceData={interfacedata} isChecked={isChecked} />;
 
         default:
           return <>Type Error</>;
@@ -190,20 +190,20 @@ const ListItem: React.FC<ListItemProps> = ({
   };
 
   return (
-    <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.proxy.iface + dbusInterface.process}>
+    <DataListItem aria-labelledby="check-action-item1" key={dbusInterface.interfaceName}>
       <DataListItemRow size={10}>
         <DataListCell key="checkbox" style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
           <input
             type="checkbox"
             onChange={handleCheckboxChange}
-            aria-label={`Select ${dbusInterface.proxy.iface}`}
+            aria-label={`Select ${dbusInterface.interfaceName}`}
             checked={isChecked}
           />
         </DataListCell>
         <DataListItemCells
           dataListCells={[
             <DataListCell key="primary content" style={{ textAlign: 'left' }}>
-              <p className="PrimaryText">{removeSlotOrg(dbusInterface.proxy.iface)}</p>
+              <p className="PrimaryText">{removeSlotOrg(dbusInterface.interfaceName)}</p>
             </DataListCell>,
             <DataListCell
               key={`${dbusInterface.interfaceName}-secondary-content`}

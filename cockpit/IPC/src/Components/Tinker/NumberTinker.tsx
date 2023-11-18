@@ -1,20 +1,23 @@
 /* eslint-disable react/function-component-definition */
 import React, { useCallback, useMemo, useState } from 'react';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import { AlertVariant, TextInput } from '@patternfly/react-core';
 import { useAlertContext } from '../Alert/AlertContext';
 
 interface NumberTinkerIface {
-  data: any;
+  interfaceData: any;
   isChecked: boolean;
 }
 
-const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ, isChecked }) => {
+const NumberTinker: React.FC<NumberTinkerIface> = ({ interfaceData, isChecked }) => {
   const [error, setError] = useState<string | undefined>(undefined);
   const { addAlert } = useAlertContext();
-  const typeJson = useMemo(() => JSON.parse(InterfaceOBJ.proxy.data.Type), [InterfaceOBJ.proxy.data.Type]);
+  const typeJson = useMemo(() => JSON.parse(interfaceData.type), [interfaceData.type]);
   const type = typeJson.type[0];
   const min = typeJson.minimum as number;
   const max = typeJson.maximum as number;
+  const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
+  const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
   const handleInputChange = (value: string) => {
     if (type !== 'integer' && type !== 'number') {
@@ -33,9 +36,9 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ, isCheck
     return { value: val, error: undefined };
   };
 
-  const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(InterfaceOBJ.proxy.data.Value).value);
+  const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(interfaceData.proxy.data.Value).value);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       if (error) {
         addAlert(`Data Validation Error: ${error}`, AlertVariant.danger);
@@ -45,7 +48,11 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ, isCheck
         addAlert('Input Error: Invalid Input', AlertVariant.danger);
         return;
       }
-      InterfaceOBJ.proxy.Tinker(inputValue);
+      const client = window.cockpit.dbus(interfaceData.process, { bus: 'system', superuser: 'try' });
+      const proxy = client.proxy(interfaceData.interfaceName, interfaceData.direction === 'slot' ? slotPath : signalPath);
+      await proxy.wait().then(() => {
+        proxy.Tinker(inputValue);
+      });
     }
   };
 
@@ -57,7 +64,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ, isCheck
 
   return (
     <TextInput
-      value={inputValue}
+      value={isChecked ? inputValue : ''}
       onChange={onChangeHandler}
       onKeyDown={handleKeyDown}
       validated={error ? 'error' : 'default'}
@@ -65,7 +72,7 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ, isCheck
       isDisabled={!isChecked}
       aria-label="tinker text input"
       className="tinker-number-input"
-      key={`${InterfaceOBJ.iface}-${InterfaceOBJ.process}`}
+      key={`${interfaceData.iface}-${interfaceData.process}`}
       style={{ minWidth: '4rem' }}
     />
   );
