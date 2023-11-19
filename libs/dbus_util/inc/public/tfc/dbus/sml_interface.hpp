@@ -284,28 +284,25 @@ auto get_action_label(const std::string& src_state) -> std::string {
   return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state, action_name);
 }
 
-inline auto filter_sub_state_machine_id(std::string& state) -> void {
-  std::string_view const sub_state_machine_id{ "boost::sml::back::sm<boost::sml::back::sm_policy<" };
+template <typename T>
+concept is_sub_sm = tfc::stx::is_specialization_v<T, boost::sml::back::sm>;
 
-  if (state.starts_with(sub_state_machine_id)) {
-    // remove boost::sml::back::sm<boost::sml::back::sm_policy<
-    state.erase(0, sub_state_machine_id.size());
-    // remove >>
-    state.erase(state.size() - 2, state.size());
+template <typename T>
+struct sub_sm {};
 
-    // only take the string up until the first <
-    state.erase(state.find_first_of("<"), state.size());
+// need the inner type to be able to get the name
+template <typename T>
+struct sub_sm<boost::sml::back::sm<boost::sml::back::sm_policy<T>>> {
+  using type = T;
+};
 
-    // replace :: with _
-    std::string const pattern{ "::" };
-    std::string const replacement{ "_" };
-    size_t pos = 0;
-    while ((pos = state.find(pattern, pos)) != std::string::npos) {
-      state.replace(pos, pattern.length(), replacement);
-      pos += replacement.length();
-    }
-    // place sub_state_machine in front
-    state = fmt::format("sub_sm_{}", state);
+template <typename type_t>
+auto get_state_name(std::string& state) -> void {
+  if constexpr (is_sub_sm<type_t>) {
+    using sub_sm = sub_sm<type_t>;
+    state = std::string{ get_name<typename sub_sm::type>() };
+  } else if constexpr (name_exists<type_t>) {
+    state = std::string{ type_t::name };
   }
 }
 
@@ -320,8 +317,8 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
-  filter_sub_state_machine_id(src_state);
-  filter_sub_state_machine_id(dst_state);
+  get_state_name<typename type_t::src_state>(src_state);
+  get_state_name<typename type_t::dst_state>(dst_state);
 
   if (dst_state == "terminate") {
     dst_state = "stop";
