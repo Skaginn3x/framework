@@ -1,11 +1,12 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 import React, { useEffect, useRef, useState } from 'react';
-import { Title } from '@patternfly/react-core';
+import { AlertVariant, Title } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import { DarkModeType } from 'src/App';
 import parse from 'html-react-parser';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
+import { useAlertContext } from 'src/Components/Alert/AlertContext';
 
 declare global {
   interface Window { cockpit: any; }
@@ -17,6 +18,9 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
   const [processDBUS, setProcessDBUS] = useState<any>();
   const [data, setData] = useState<any>({});
   const dataRef = useRef(data);
+
+  const { addAlert } = useAlertContext();
+
   const initialsvg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     <svg
        sodipodi:docname="demo.svg"
@@ -158,7 +162,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
            cy="-43.435825"
            rx="8.4046373"
            ry="8.0472383"
-           tfcSignal="com.skaginn3x.operations.def.bool.run_button"
+           tfcSlot="com.skaginn3x.operations.def.bool.run_button"
            tfcOn_true="green" 
            tfcOn_false="red"/>
         <text
@@ -177,7 +181,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
            transform="matrix(0.93749998,0,0,0.93749998,431.60097,-577.8504)"
            id="text1-2"
            style="white-space:pre;shape-inside:url(#rect2-6);fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:0.714331;stroke-dasharray:none;stroke-opacity:1"
-           tfcSignal="com.skaginn3x.sensor_control.sadd.json.discharge_request"><tspan
+           tfcSlot="com.skaginn3x.sensor_control.sadd.json.discharge_request"><tspan
              x="942.15039"
              y="607.71538"
              id="tspan4">\${} Hz</tspan></text>
@@ -193,6 +197,24 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
       svgString = svgString.replaceAll('fill:#EEE', 'fill:#000000');
     }
     return svgString;
+  }
+
+  async function getInitialValue(interfaceName: string, direction: string, processes: string[]) {
+    if (!processes) return null;
+    const more = processes.map((process: string) => {
+      if (interfaceName.includes(process.replace('.tfc.', '.').split('.').splice(0, 4).join('.'))) {
+        return process;
+      }
+      return null;
+    });
+    const filtered = more.filter((item: any) => item !== null);
+    if (filtered.length === 0) return null;
+    if (filtered.length > 1) addAlert(`Process ambiguity, found ${filtered.length} processes for ${interfaceName}`, AlertVariant.danger);
+    const dbus = window.cockpit.dbus(filtered[0]);
+    const proxy = dbus.proxy(interfaceName, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${direction}`);
+    // wait for proxy and return value
+    await proxy.wait();
+    return proxy.data.Value;
   }
 
   function parseDBusTextObjects(svgString: string) {
@@ -223,7 +245,6 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
   }
 
   function replaceDBusSignals(svgString: string): string {
-    // data is of format: [{ com.skaginn3x.operations.def.bool.run_button: true }, { com.skaginn3x.operations.def.bool.run_button: false }}]
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(svgString, 'text/xml');
     // Check for parsing errors
@@ -232,31 +253,29 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
       return '';
     }
 
-    const dbusElements = xmlDoc.querySelectorAll('[tfcSignal]');
+    const dbusElements = xmlDoc.querySelectorAll('[tfcSignal], [tfcSlot]');
 
     dbusElements.forEach((element) => {
       // Check if the element matches the specified criteria
-      const signal = element.getAttribute('tfcSignal');
-      console.log('signal', signal);
-      console.log('1');
+      const signal = element.getAttribute('tfcSignal') ?? element.getAttribute('tfcSlot');
       if (element.hasAttribute('tfcOn_true') && element.hasAttribute('tfcOn_false')) {
         const onTrue = element.getAttribute('tfcOn_true');
         const onFalse = element.getAttribute('tfcOn_false');
-        console.log('2');
         // Replace placeholder in the text content
         if (signal && onTrue && onFalse) {
           element.setAttribute('style', '');
-          console.log('3', element.getAttribute('style'));
           if (data[signal] === true) {
             element.setAttribute('fill', onTrue);
             element.setAttribute('stroke', onTrue);
-          } else {
+          } else if (data[signal] === false) {
             element.setAttribute('fill', onFalse);
             element.setAttribute('stroke', onFalse);
+          } else {
+            element.setAttribute('fill', '#AAA');
+            element.setAttribute('stroke', '#AAA');
           }
         }
       } else if (signal) {
-        console.log('4');
         // Replace placeholder in the text content
         const tspan = element.querySelector('tspan');
         // replace
@@ -269,7 +288,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
     return new XMLSerializer().serializeToString(xmlDoc);
   }
 
-  function parseDBusSignals(svgString: string) {
+  async function parseDBusSignals(svgString: string, processes: string[]) {
     // Returns names of signals
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(svgString, 'text/xml');
@@ -285,11 +304,27 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
       const signal = element.getAttribute('tfcSignal') ?? '';
       return signal;
     });
+    const dbusElements2 = xmlDoc.querySelectorAll('[tfcSlot]');
+    const dbusSlots = Array.from(dbusElements2).map((element) => {
+      // Extract the placeholder value inside ${}
+      const signal = element.getAttribute('tfcSlot') ?? '';
+      return signal;
+    });
 
-    return dbusSignals.reduce((acc: any, cur: any) => {
-      acc[cur] = null;
-      return acc;
-    }, {});
+    const signalPromises = dbusSignals.map((signal) => (signal !== '' ? getInitialValue(signal, 'Signals', processes).then((value) => ({ [signal]: value })) : null));
+
+    const slotPromises = dbusSlots.map((slot) => (slot !== '' ? getInitialValue(slot, 'Slots', processes).then((value) => ({ [slot]: value })) : null));
+
+    // Filter out null values and wait for all promises to resolve
+    const resolvedSignals = await Promise.all(signalPromises.filter((p) => p !== null));
+    const resolvedSlots = await Promise.all(slotPromises.filter((p) => p !== null));
+
+    // Combine the results into single objects
+    const signalObj = Object.assign({}, ...resolvedSignals);
+    const slotObj = Object.assign({}, ...resolvedSlots);
+    console.log('signalObj', signalObj);
+    console.log('slotObj', slotObj);
+    return { ...signalObj, ...slotObj };
   }
 
   function replaceSvgPlaceholders(svgString: string, interfaceName: string, process: string, path: string, placeholder:string, replacementValue: string) {
@@ -348,17 +383,22 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
     let newSvg = replaceDBusSignals(initialsvg);
     // resolve promises
     Promise.all(proxies.map(async (iface: any) => {
-      await iface.proxy.wait();
-      const replacementValue = iface.proxy.data[iface.placeholder];
-      newSvg = replaceSvgPlaceholders(newSvg, iface.interface, iface.process, iface.path, iface.placeholder, replacementValue);
+      if (!iface.proxy) {
+        console.log('iface', iface);
+        // eslint-disable-next-line no-continue
+      } else {
+        await iface.proxy.wait();
+        const replacementValue = iface.proxy.data[iface.placeholder];
+        newSvg = replaceSvgPlaceholders(newSvg, iface.interface, iface.process, iface.path, iface.placeholder, replacementValue);
+      }
     })).then(() => {
       setSVG(toggleDarkMode(newSvg));
     });
   }
 
   useEffect(() => {
-    loadExternalScript(() => {
-      setData(parseDBusSignals(initialsvg));
+    loadExternalScript(async (allNames) => {
+      setData(await parseDBusSignals(initialsvg, allNames.filter((name) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`))));
       setProcessDBUS(window.cockpit.dbus(null));
       handleChange();
     });
@@ -374,13 +414,10 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
 
     const notifyHandler = (newData: any) => {
       const removePath = newData.detail[Object.keys(newData.detail)[0]];
-      console.log('removePath', removePath);
-      console.log('dataref', dataRef.current);
       const ifaceName = Object.keys(removePath)[0];
       if (Object.keys(dataRef.current).includes(ifaceName)) {
         setData((prevState: any) => {
           const newState = { ...prevState };
-          console.log('newState', newState);
           newState[ifaceName] = removePath[ifaceName].Value;
           return newState;
         });
@@ -395,6 +432,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
   }, [processDBUS]);
 
   useEffect(() => {
+    if (!data) return;
     dataRef.current = data;
     handleChange();
   }, [data]);
