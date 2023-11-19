@@ -22,7 +22,7 @@
             "path": "index.html?service=list"
         },
         "tfc6": {
-            "label": "SVG Manipulation",
+            "label": "TFC Visual States",
             "path": "index.html?service=svg"
         }
     },
