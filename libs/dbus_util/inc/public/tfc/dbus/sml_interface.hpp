@@ -56,9 +56,24 @@ concept name_exists = requires {
   requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
 };
 
+template <typename T>
+concept is_sub_sm = tfc::stx::is_specialization_v<T, boost::sml::back::sm>;
+
+template <typename T>
+struct sub_sm {};
+
+// need the inner type to be able to get the name
+template <typename T>
+struct sub_sm<boost::sml::back::sm<boost::sml::back::sm_policy<T>>> {
+  using type = T;
+};
+
 template <typename type_t>
 constexpr auto get_name() -> std::string {
-  if constexpr (name_exists<type_t>) {
+  if constexpr (is_sub_sm<type_t>) {
+    using sub_sm = sub_sm<type_t>;
+    return get_name<typename sub_sm::type>();
+  } else if constexpr (name_exists<type_t>) {
     return std::string{ type_t::name };
   } else {
     return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
@@ -284,28 +299,6 @@ auto get_action_label(const std::string& src_state) -> std::string {
   return action_name.empty() ? "" : fmt::format(R"({} [label = "{}\nentry / {}"])", src_state, src_state, action_name);
 }
 
-template <typename T>
-concept is_sub_sm = tfc::stx::is_specialization_v<T, boost::sml::back::sm>;
-
-template <typename T>
-struct sub_sm {};
-
-// need the inner type to be able to get the name
-template <typename T>
-struct sub_sm<boost::sml::back::sm<boost::sml::back::sm_policy<T>>> {
-  using type = T;
-};
-
-template <typename type_t>
-auto get_state_name(std::string& state) -> void {
-  if constexpr (is_sub_sm<type_t>) {
-    using sub_sm = sub_sm<type_t>;
-    state = std::string{ get_name<typename sub_sm::type>() };
-  } else if constexpr (name_exists<type_t>) {
-    state = std::string{ type_t::name };
-  }
-}
-
 // modified version of https://boost-ext.github.io/sml/examples.html
 // added color to current state
 template <class type_t, class source_state_t, class destination_state_t>
@@ -317,8 +310,8 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
-  get_state_name<typename type_t::src_state>(src_state);
-  get_state_name<typename type_t::dst_state>(dst_state);
+  src_state = get_name<typename type_t::src_state>();
+  dst_state = get_name<typename type_t::dst_state>();
 
   if (dst_state == "terminate") {
     dst_state = "stop";
