@@ -33,15 +33,26 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   if (queued_item_) {  // todo test
     logger_.info("Discharge request queued, will propagate event");
     sm_->process_event(events::new_info{});
-  }
-  else if (sensor_.value().value_or(false)) {
+  } else if (sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_active{});  // todo test
+  } else {
+    idle_.async_send(true, [this](auto const& err, std::size_t) {
+      if (err) {
+        this->logger_.error("Failed to set idle: {}", err.message());
+      }
+    });
   }
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {}
+void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
+  idle_.async_send(false, [this](auto const& err, std::size_t) {
+    if (err) {
+      this->logger_.error("Failed to set idle: {}", err.message());
+    }
+  });
+}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
