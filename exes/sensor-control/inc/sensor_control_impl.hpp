@@ -34,6 +34,9 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
     logger_.info("Discharge request queued, will propagate event");
     sm_->process_event(events::new_info{});
   }
+  else if (sensor_.value().value_or(false)) {
+    sm_->process_event(events::sensor_active{});  // todo test
+  }
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
@@ -62,6 +65,11 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_discharge() {}
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
+  // Make sure we don't already have something blocking the sensor
+  if (sensor_.value().value_or(false)) {
+    sm_->process_event(events::sensor_active{});  // todo test
+    return;
+  }
   start_motor();
   discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
     if (err) {
