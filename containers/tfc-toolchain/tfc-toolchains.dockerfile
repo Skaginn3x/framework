@@ -56,12 +56,12 @@ FROM base as clang-17
 COPY build-clang.sh /tmp/
 RUN ./build-clang.sh 17.0.3
 
-ENV CC=clang
-ENV CXX=clang++
-ENV CFLAGS="-stdlib=libc++"
-ENV CXXFLAGS="-stdlib=libc++"
-ENV LDFLAGS="-fuse-ld=lld -stdlib=libc++"
-ENV AR="llvm-ar"
+#ENV CC=clang
+#ENV CXX=clang++
+#ENV CFLAGS="-stdlib=libc++"
+#ENV CXXFLAGS="-stdlib=libc++"
+#ENV LDFLAGS="-fuse-ld=lld -stdlib=libc++"
+#ENV AR="llvm-ar"
 
 COPY build-mold.sh /tmp/
 RUN ./build-mold.sh 2.3.1
