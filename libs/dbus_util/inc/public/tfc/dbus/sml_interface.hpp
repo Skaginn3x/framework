@@ -308,9 +308,6 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
   std::string src_state{ get_name<typename type_t::src_state>() };
   std::string dst_state{ get_name<typename type_t::dst_state>() };
 
-  src_state = get_name<typename type_t::src_state>();
-  dst_state = get_name<typename type_t::dst_state>();
-
   if (dst_state == "terminate") {
     dst_state = "stop";
   }
