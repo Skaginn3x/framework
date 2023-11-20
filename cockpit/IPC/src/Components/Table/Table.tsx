@@ -100,9 +100,15 @@ export default function CustomTable({
     let matchesSearchValue;
     if (nameSelection && nameSelection.length !== 0) {
       const searchRegexList = nameSelection.map((value) => createSafeRegex(value));
-      matchesSearchValue = searchRegexList.some(
-        (regex) => (signal.name + signal.created_by).search(regex) >= 0,
-      );
+      matchesSearchValue = searchRegexList.some((regex) => {
+        // Check if the signal name or created_by matches the regex
+        if ((signal.name + signal.created_by).search(regex) >= 0) {
+          return true;
+        }
+        // Check if any connected slot name matches the regex
+        const connectedSlots = connections[signal.name] || [];
+        return connectedSlots.some((slotName) => regex.test(slotName));
+      });
     } else {
       matchesSearchValue = true;
     }
