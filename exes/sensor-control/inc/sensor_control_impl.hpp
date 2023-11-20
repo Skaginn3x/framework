@@ -36,7 +36,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   } else if (sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_active{});  // todo test
   } else {
-    idle_.async_send(true, [this](auto const& err, std::size_t) {
+    idle_.async_send(true, [this](auto const& err, std::size_t) { // todo test
       if (err) {
         this->logger_.error("Failed to set idle: {}", err.message());
       }
@@ -47,7 +47,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
-  idle_.async_send(false, [this](auto const& err, std::size_t) {
+  idle_.async_send(false, [this](auto const& err, std::size_t) { // todo test
     if (err) {
       this->logger_.error("Failed to set idle: {}", err.message());
     }
