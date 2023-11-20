@@ -26,9 +26,7 @@ export type DarkModeType = {
 const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   console.log('Routing');
   const location = useLocation();
-  console.log(location);
   const query = new URLSearchParams(location.search);
-  console.log(query);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   console.log('Found service: ', id);
   switch (id) {

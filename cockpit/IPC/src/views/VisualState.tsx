@@ -162,7 +162,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
            cy="-43.435825"
            rx="8.4046373"
            ry="8.0472383"
-           tfcSlot="com.skaginn3x.operations.def.bool.run_button"
+           tfcSignal="com.skaginn3x.signal_source.def.bool.square_wave_500ms"
            tfcOn_true="green" 
            tfcOn_false="red"/>
         <text
@@ -322,8 +322,6 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
     // Combine the results into single objects
     const signalObj = Object.assign({}, ...resolvedSignals);
     const slotObj = Object.assign({}, ...resolvedSlots);
-    console.log('signalObj', signalObj);
-    console.log('slotObj', slotObj);
     return { ...signalObj, ...slotObj };
   }
 
@@ -383,10 +381,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
     let newSvg = replaceDBusSignals(initialsvg);
     // resolve promises
     Promise.all(proxies.map(async (iface: any) => {
-      if (!iface.proxy) {
-        console.log('iface', iface);
-        // eslint-disable-next-line no-continue
-      } else {
+      if (iface.proxy) {
         await iface.proxy.wait();
         const replacementValue = iface.proxy.data[iface.placeholder];
         newSvg = replaceSvgPlaceholders(newSvg, iface.interface, iface.process, iface.path, iface.placeholder, replacementValue);
