@@ -54,9 +54,24 @@ concept name_exists = requires {
   requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
 };
 
+template <typename T>
+concept is_sub_sm = tfc::stx::is_specialization_v<T, boost::sml::back::sm>;
+
+template <typename T>
+struct sub_sm {};
+
+// need the inner type to be able to get the name
+template <typename T>
+struct sub_sm<boost::sml::back::sm<boost::sml::back::sm_policy<T>>> {
+  using type = T;
+};
+
 template <typename type_t>
 constexpr auto get_name() -> std::string {
-  if constexpr (name_exists<type_t>) {
+  if constexpr (is_sub_sm<type_t>) {
+    using sub_sm = sub_sm<type_t>;
+    return get_name<typename sub_sm::type>();
+  } else if constexpr (name_exists<type_t>) {
     return std::string{ type_t::name };
   } else {
     return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
@@ -211,7 +226,9 @@ public:
   }
 
   auto set_color(std::string_view color) -> void { color_ = color; }
+
   auto set_entry(std::string_view entry) -> void { entry_ = entry; }
+
   auto set_exit(std::string_view exit) -> void { exit_ = exit; }
 
 private:
@@ -240,8 +257,25 @@ auto get_action_name() -> std::string {
   return get_filtered_name<typename type_t::action::type>();
 }
 
+template <typename T>
+concept is_not_guard = tfc::stx::is_specialization_v<T, boost::sml::aux::zero_wrapper> &&
+                       tfc::stx::is_specialization_v<typename T::type, boost::sml::front::not_>;
+
+template <typename T>
+struct not_guard {};
+
+// need the inner type to be able to get the name
+template <typename T>
+struct not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<T>>> {
+  using type = T;
+};
+
 template <typename type_t>
 auto get_guard_name() -> std::string {
+  if constexpr (is_not_guard<typename type_t::guard>) {
+    using guard_info = not_guard<typename type_t::guard>;
+    return fmt::format("[!{}]", get_name<typename guard_info::type>());
+  }
   return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
 }
 
@@ -295,9 +329,14 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
     std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
     std::string guard{ has_guard ? get_guard_name<type_t>() : "" };
     std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
-    std::string event_label{ has_event
-                                 ? fmt::format("{} / {}", get_name<typename type_t::event>(), get_action_name<type_t>())
-                                 : "" };
+
+    std::string event_label{};
+    if (has_event && has_action) {
+      event_label = fmt::format("{} / {}", get_name<typename type_t::event>(), get_action_name<type_t>());
+    } else if (has_event) {
+      event_label = fmt::format("{}", get_name<typename type_t::event>());
+    }
+
     buffer.append(fmt::format("{} -> {} [label=\"{} {}\"{}]\n", src_state, dst_state, event_label, guard, color_attr));
   }
 
@@ -325,9 +364,7 @@ auto dump_transitions(const type_t<types_t...>&,
                       destination_state_t const& dst,
                       std::string_view last_event,
                       std::string& buffer,
-                      std::map<std::string, node>& nodes
-
-                      ) -> void {
+                      std::map<std::string, node>& nodes) -> void {
   (dump_transition<types_t>(src, dst, last_event, buffer, nodes), ...);
 }
 
