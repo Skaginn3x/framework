@@ -1,12 +1,13 @@
+#include <type_traits>
+#include <variant>
+#include <concepts>
+
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
-#include <concepts>
+
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <type_traits>
-#include <variant>
-
 #include <tfc/motors/errors.hpp>
 #include <tfc/motors/ethercat.hpp>
 #include <tfc/motors/mock.hpp>
