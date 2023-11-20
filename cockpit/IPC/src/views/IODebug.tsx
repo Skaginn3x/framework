@@ -63,7 +63,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
       setProcesses(
         allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
       );
-      setProcessDBUS(window.cockpit.dbus(null));
+      setProcessDBUS(window.cockpit.dbus(null, { bus: 'system', superuser: 'try' }));
     });
   }, []);
 
@@ -94,12 +94,14 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
 
     // Ensure only one listener is active at a time
     processDBUS.removeEventListener('notify', notifyHandler);
+    console.log('Adding Event listener');
     processDBUS.addEventListener('notify', notifyHandler);
 
     setLoading(false);
 
     // eslint-disable-next-line consistent-return
     return () => {
+      console.log('Removing Event listener');
       processDBUS.removeEventListener('notify', notifyHandler);
     };
   }, [processDBUS]);

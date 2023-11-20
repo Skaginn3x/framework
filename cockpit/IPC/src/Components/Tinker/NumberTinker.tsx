@@ -12,31 +12,46 @@ interface NumberTinkerIface {
 const NumberTinker: React.FC<NumberTinkerIface> = ({ interfaceData, isChecked }) => {
   const [error, setError] = useState<string | undefined>(undefined);
   const { addAlert } = useAlertContext();
-  const typeJson = useMemo(() => JSON.parse(interfaceData.type), [interfaceData.type]);
-  const type = typeJson.type[0];
-  const min = typeJson.minimum as number;
-  const max = typeJson.maximum as number;
+  const [typeJson, setTypeJson] = useState<{ type: string[], minimum: number | null, maximum: number | null }>();
+  function getType(): void {
+    const proxy = window.cockpit.dbus(interfaceData.process)
+      .proxy(interfaceData.interfaceName, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`);
+    proxy.wait().then(() => {
+      try {
+        setTypeJson(JSON.parse(proxy.data.Type));
+      } catch (e) {
+        setTypeJson({ type: ['integer'], minimum: null, maximum: null });
+      }
+    });
+  }
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
+  useMemo(() => {
+    getType();
+  }, [interfaceData]);
+
   const handleInputChange = (value: string) => {
-    if (type !== 'integer' && type !== 'number') {
+    if (!typeJson) {
+      return { value: undefined, error: 'Unknown type' };
+    }
+    if (typeJson.type[0] !== 'integer' && typeJson.type[0] !== 'number') {
       return { value: undefined, error: 'Unknown type' };
     }
 
-    const val = type === 'integer' ? parseInt(value, 10) : parseFloat(value);
+    const val = typeJson.type[0] === 'integer' ? parseInt(value, 10) : parseFloat(value);
 
-    if (val < min) {
+    if (typeJson.minimum && val < typeJson.minimum) {
       return { value: val, error: 'Value is too low' };
     }
-    if (val > max) {
+    if (typeJson.maximum && val > typeJson.maximum) {
       return { value: val, error: 'Value is too high' };
     }
 
     return { value: val, error: undefined };
   };
 
-  const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(interfaceData.proxy.data.Value).value);
+  const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(interfaceData.data).value);
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
