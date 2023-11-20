@@ -1,6 +1,6 @@
+#include <concepts>
 #include <type_traits>
 #include <variant>
-#include <concepts>
 
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
