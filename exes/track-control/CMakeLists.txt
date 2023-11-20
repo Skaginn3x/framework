@@ -6,9 +6,9 @@ find_package(ut CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_path(BEXT_SML_INCLUDE_DIRS "boost/sml.hpp")
 
-add_library(track_ctrl inc/public/tfc/track_ctrl.hpp)
+add_library(track_ctrl src/track_ctrl.cpp)
 add_library(tfc::track_ctrl ALIAS track_ctrl)
-add_executable(track_ctrl src/main.cpp)
+add_executable(track_control src/main.cpp)
 
 target_link_libraries(track_ctrl
   PRIVATE
@@ -24,6 +24,4 @@ target_include_directories(track_ctrl
     ${BEXT_SML_INCLUDE_DIRS}
 )
 
-target_link_libraries(track_ctrl PRIVATE tfc::track_ctrl)
-
-
+target_link_libraries(track_control PRIVATE tfc::track_ctrl)
