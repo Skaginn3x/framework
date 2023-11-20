@@ -25,7 +25,6 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   if (first_time_) {  // todo test
-    first_time_ = false;
     start_motor();
   } else {
     stop_motor();
@@ -47,6 +46,10 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
+  if (first_time_) {
+    first_time_ = false;
+    stop_motor();
+  }
   idle_.async_send(false, [this](auto const& err, std::size_t) { // todo test
     if (err) {
       this->logger_.error("Failed to set idle: {}", err.message());
