@@ -147,7 +147,7 @@ struct leave_discharging_allow_input {
 
 template <typename owner_t>
 struct state_machine {
-  static constexpr std::string_view name{ "tfc::sensor::control::state_machine" };
+  static constexpr std::string_view name{ "sensor_control_state_machine" };
 
   auto operator()() {
     using boost::sml::_;
