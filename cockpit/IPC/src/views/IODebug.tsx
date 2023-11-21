@@ -6,26 +6,21 @@ import React, {
   useEffect, useRef, useState,
 } from 'react';
 import {
-  DataList,
   Title,
-  Spinner,
   Divider,
+  DataList,
+  Spinner,
+  AlertVariant,
 } from '@patternfly/react-core';
-import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import './IODebug.css';
-import ListItem from 'src/Components/IOList/ListItem';
 import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-import DraggableModal from 'src/Components/DraggableModal/DraggableModal';
-import { removeSlotOrg } from 'src/Components/Form/WidgetFunctions';
-import { AngleDownIcon } from '@patternfly/react-icons';
-import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
-import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
+import loadExternalScript from 'src/Components/Interface/ScriptLoader';
+import ListItem from 'src/Components/IOList/ListItem';
+import { useAlertContext } from 'src/Components/Alert/AlertContext';
 import TextboxAttribute from 'src/Components/Table/ToolbarItems/TextBoxAttribute';
-
-declare global {
-  interface Window { cockpit: any; }
-}
+import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
+import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
 
 /**
  * Parses DBUS XML strings to extract interfaces
@@ -51,142 +46,146 @@ const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] 
 
 // eslint-disable-next-line react/function-component-definition
 const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
-  const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
+  const [processDBUS, setProcessDBUS] = useState<any>();
   const [processes, setProcesses] = useState<string[]>();
-  const [isShowingEvents, setIsShowingEvents] = useState<boolean>(false);
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
-  const [history, setHistory] = useState<any>({});
-  const [openModals, setOpenModals] = useState<number[]>([]);
-  // eslint-disable-next-line @typescript-eslint/comma-spacing
-  const eventHandlersRef = useRef<Map<string,(e: any) => void>>(new Map()); // NOSONAR
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const [unsortedEvents, setUnsortedEvents] = useState<any[]>([]);
+  const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
-  const handleChanged = (value: any, iFaceName:any) => {
-    setDbusInterfaces((prevInterfaces) => {
-      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === iFaceName);
-      if (index === -1) return prevInterfaces;
+  const { addAlert } = useAlertContext();
 
-      const updatedInterfaces = [...prevInterfaces];
-      updatedInterfaces[index].proxy.data.Value = value;
-      if (openModals.includes(index) && !isMobile) {
-        setHistory((prevHistory: any) => {
-          const newHistory = { ...prevHistory };
-          if (!newHistory[iFaceName]) {
-            newHistory[iFaceName] = [];
-          }
-          if (newHistory[iFaceName].length > 200) { // Limit history to 200 entries per interface
-            newHistory[iFaceName].shift();
-          }
-          newHistory[iFaceName].push({ value, timestamp: Date.now() });
-          return newHistory;
-        });
-      }
-      if (isMobile) {
-        setUnsortedEvents((prevEvents: any) => {
-          const newEvents = [...prevEvents];
-          if (newEvents.length > 20) { // Limit history to 20 entries per interface
-            newEvents.shift();
-          }
-          newEvents.push({ interface: iFaceName, value, timestamp: Date.now() });
-          return newEvents;
-        });
-      }
+  const dbusInterfaceRef = useRef<any[]>([]);
 
-      return updatedInterfaces;
+  useEffect(() => {
+    loadExternalScript((allNames: string[]) => {
+      setProcesses(
+        allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
+      );
+      setProcessDBUS(window.cockpit.dbus(null, { bus: 'system', superuser: 'try' }));
     });
+  }, []);
+
+  const notifyHandler = (data: any) => {
+    const removePath = data.detail[Object.keys(data.detail)[0]];
+    if (!removePath) return;
+    const ifaceName = Object.keys(removePath)[0];
+    const changedIndex = dbusInterfaceRef.current.findIndex((iface) => iface.interfaceName === ifaceName);
+    if (changedIndex !== -1 && dbusInterfaceRef.current[changedIndex].listener) {
+      setDbusInterfaces((prevState) => {
+        const newState = [...prevState];
+        const index = newState.findIndex((iface) => iface.interfaceName === ifaceName);
+        if (index !== -1) {
+          newState[index].data = removePath[ifaceName].Value;
+        }
+        return newState;
+      });
+    }
   };
 
-  const subscribeToItem = async (name: string, process: string, path:string) => {
-    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
-    console.log('Subscribed to ', name);
+  useEffect(() => {
+    if (!processDBUS || !loading) return;
 
     const match = {
-      interface: 'org.freedesktop.DBus.Properties',
-      path,
-      member: 'PropertiesChanged', // Standard DBus signal for property changes
-      arg0: name,
+      path_namespace: `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}`,
     };
-    const subscription:any = processDBUS.subscribe(match, (pathz: any, iface: any, signal: any, args: any) => {
-      // Check if the changed property is 'Value'
-      if (args && Object.keys(args[1]).includes('Value') && args[1].Value.v !== undefined) {
-        handleChanged(args[1].Value.v, name);
+    processDBUS.watch(match);
+
+    // Ensure only one listener is active at a time
+    processDBUS.removeEventListener('notify', notifyHandler);
+    console.log('Adding Event listener');
+    processDBUS.addEventListener('notify', notifyHandler);
+
+    setLoading(false);
+
+    // eslint-disable-next-line consistent-return
+    return () => {
+      console.log('Removing Event listener');
+      processDBUS.removeEventListener('notify', notifyHandler);
+    };
+  }, [processDBUS]);
+
+  const subscribe = async (interfaceName: string) => {
+    const interfaceIndex = dbusInterfaces.findIndex((iface) => iface.interfaceName === interfaceName);
+    if (interfaceIndex === -1) return;
+    const client = window.cockpit.dbus(dbusInterfaces[interfaceIndex].process, { bus: 'system', superuser: 'try' });
+    const proxy = client.proxy(interfaceName, dbusInterfaces[interfaceIndex].direction === 'slot' ? slotPath : signalPath);
+    await proxy.wait().then(() => {
+      setDbusInterfaces((prevState) => {
+        const newState = [...prevState];
+        const index = newState.findIndex((iface) => iface.interfaceName === interfaceName);
+        if (index !== -1) {
+          newState[index].listener = true;
+          newState[index].data = proxy.data.Value;
+        }
+        return newState;
+      });
+    }).catch((error: any) => {
+      addAlert(`Failed to subscribe to ${interfaceName}`, AlertVariant.danger);
+      console.error('Failed to subscribe to interface:', error);
+    });
+  };
+
+  const unsubscribe = (interfaceName: string) => {
+    setDbusInterfaces((prevState) => {
+      const newState = [...prevState];
+      const index = newState.findIndex((iface) => iface.interfaceName === interfaceName);
+      if (index !== -1) {
+        newState[index].listener = false;
       }
-    });
-    eventHandlersRef.current.set(name, subscription);
-
-    setDbusInterfaces((prevInterfaces) => {
-      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
-      if (index === -1) return prevInterfaces;
-
-      const updatedInterfaces = [...prevInterfaces];
-      updatedInterfaces[index].listener = subscription;
-      return updatedInterfaces;
-    });
-
-    return subscription;
-  };
-
-  const unsubscribeFromItem = async (name: string) => {
-    const subscription = dbusInterfaces.find((iface) => iface.interfaceName === name)?.listener;
-    if (!subscription) return;
-
-    subscription.remove();
-    eventHandlersRef.current.delete(name);
-    console.log('Unsubscribed from ', name);
-
-    setDbusInterfaces((prevInterfaces) => {
-      const index = prevInterfaces.findIndex((iface) => iface.interfaceName === name);
-      if (index === -1) return prevInterfaces;
-
-      const updatedInterfaces = [...prevInterfaces];
-      updatedInterfaces[index].listener = false;
-      return updatedInterfaces;
+      if (index === -1) {
+        addAlert(`Failed to unsubscribe from ${interfaceName}`, AlertVariant.danger);
+      }
+      return newState;
     });
   };
 
-  const getInterfaceData = async (interfaces:any, processDBUS: any, path:string, direction:string, process:string) => {
-    const processProxy = processDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
+  useEffect(() => {
+    dbusInterfaceRef.current = dbusInterfaces;
+  }, [dbusInterfaces]);
+
+  const getInterfaceData = async (interfaces:any, tempDBUS: any, path:string, direction:string, process:string) => {
+    const processProxy = tempDBUS.proxy('org.freedesktop.DBus.Introspectable', path);
 
     try {
-      // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-      await processProxy.call('Introspect').then(async (data: any) => {
-        const interfacesData = parseXMLInterfaces(data);
-        // eslint-disable-next-line no-restricted-syntax
-        for (const interfaceData of interfacesData) {
-          const proxy = processDBUS.proxy(interfaceData.name, path);
-          // eslint-disable-next-line no-await-in-loop
-          await proxy.wait().then(() => {
-            interfaces.push({
-              proxy,
-              process,
-              interfaceName: interfaceData.name,
-              type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
-              direction,
-              hidden: false,
-              listener: false,
-            });
-          });
-        }
+      const data = await processProxy.call('Introspect');
+      const interfacesData = parseXMLInterfaces(data);
+
+      // Create an array of promises for each proxy creation
+      const proxyPromises = interfacesData.map(async (interfaceData) => {
+        const proxy = tempDBUS.proxy(interfaceData.name, path);
+        await proxy.wait(); // Wait for the proxy to be ready
+
+        return {
+          data: proxy.data.Value,
+          process,
+          interfaceName: interfaceData.name,
+          typeJson: JSON.parse(proxy.Type) ?? interfaceData.valueType,
+          direction,
+          hidden: false,
+          listener: false,
+        };
       });
+
+      // Wait for all proxies to be created
+      const newInterfaces = await Promise.all(proxyPromises);
+      interfaces.push(...newInterfaces);
     } catch (e) {
-      console.log(e);
+      console.error('Error in getInterfaceData:', e);
     }
   };
 
   const getInterfaceDataForProcess = async (process: any) => {
     const interfaces: any[] = [];
-    const processDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+    const tempDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
     try {
-      await getInterfaceData(interfaces, processDBUS, slotPath, 'slot', process);
+      await getInterfaceData(interfaces, tempDBUS, slotPath, 'slot', process);
     } catch (e) {
       console.error(`Failed to get interface data for process ${process}:`, e);
     }
     try {
-      await getInterfaceData(interfaces, processDBUS, signalPath, 'signal', process);
+      await getInterfaceData(interfaces, tempDBUS, signalPath, 'signal', process);
     } catch (e) {
       console.error(`Failed to get interface data for process ${process}:`, e);
     }
@@ -206,64 +205,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
     fetchAndConnectInterfaces();
   }, [processes]);
 
-  useEffect(() => {
-    const callback = (allNames: string[]) => {
-      setProcesses(
-        allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
-      );
-    };
-    loadExternalScript(callback);
-  }, []);
-
-  /**
-   * Toggles the dropdown for the given index
-   * @param index Index of the dropdown
-   */
-  const onToggleClick = (index: number) => {
-    if (activeDropdown === index) {
-      setActiveDropdown(null);
-    } else {
-      setActiveDropdown(index);
-    }
-  };
-
-  const dropdownRefs = useRef<any[]>([]); // Create a ref array to hold dropdown references
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRefs.current.some((ref) => ref?.contains(event.target))) {
-        return;
-      }
-      setActiveDropdown(null); // Close all dropdowns
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  const openModal = (index: number) => {
-    setOpenModals((prevOpenModals) => [...prevOpenModals, index]);
-  };
-  const closeModal = (index: number) => {
-    setOpenModals((prevOpenModals) => prevOpenModals.filter((i) => i !== index));
-  };
-  const isModalOpen = (index: number) => openModals.includes(index);
-
-  // use effect to scroll to bottom of div on unsortedEvent change
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      const element = scrollRef.current;
-      const isNearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
-
-      if (isNearBottom) {
-        element.scrollTop = element.scrollHeight;
-      }
-    }
-  }, [unsortedEvents]);
-
-  // FILTER CODE
   const filterRefs: Record<string, React.RefObject<HTMLInputElement>> = {
     Name: useRef<HTMLInputElement | null>(null),
     Type: useRef<HTMLInputElement | null>(null),
@@ -423,20 +364,18 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             Slots
           </Title>
           <DataList aria-label="Checkbox and action data list example" key="slots">
-            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'slot') {
                 return (
                   <ListItem
                     dbusInterface={dbusInterface}
-                    index={index}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Slot`}
-                    activeDropdown={activeDropdown}
-                    dropdownRefs={dropdownRefs}
-                    onToggleClick={onToggleClick}
-                    setModalOpen={(i:number) => openModal(i)}
+                    isChecked={dbusInterface.listener}
+                    data={dbusInterface.data}
                     onCheck={() => (dbusInterface.listener
-                      ? unsubscribeFromItem(dbusInterface.interfaceName)
-                      : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
+                      ? unsubscribe(dbusInterface.interfaceName)
+                      : subscribe(dbusInterface.interfaceName)
+                    )}
                   />
                 );
               }
@@ -449,20 +388,18 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
             Signals
           </Title>
           <DataList aria-label="Checkbox and action data list example" key="signals">
-            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any, index: number) => {
+            {dbusInterfaces.length > 0 ? dbusInterfaces.map((dbusInterface: any) => {
               if (!dbusInterface.hidden && dbusInterface.direction === 'signal') {
                 return (
                   <ListItem
                     dbusInterface={dbusInterface}
-                    index={index}
                     key={`${dbusInterface.interfaceName}-${dbusInterface.process}-List-Signal`}
-                    activeDropdown={activeDropdown}
-                    dropdownRefs={dropdownRefs}
-                    onToggleClick={onToggleClick}
-                    setModalOpen={(i:number) => openModal(i)}
+                    isChecked={dbusInterface.listener}
+                    data={dbusInterface.data}
                     onCheck={() => (dbusInterface.listener
-                      ? unsubscribeFromItem(dbusInterface.name)
-                      : subscribeToItem(dbusInterface.interfaceName, dbusInterface.process, slotPath))}
+                      ? unsubscribe(dbusInterface.interfaceName)
+                      : subscribe(dbusInterface.interfaceName)
+                    )}
                   />
                 );
               }
@@ -473,84 +410,6 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           <div style={{ height: '10rem' }} />
         </div>
       </div>
-      {!isMobile && dbusInterfaces.map((dbusInterface:any, index:number) => (
-        <DraggableModal
-          key={`${dbusInterface.interfaceName}-${dbusInterface.process}-Modal`}
-          iface={dbusInterface}
-          isOpen={isModalOpen(index)}
-          visibilityIndex={openModals.indexOf(index)}
-          onClose={() => closeModal(index)}
-          datapoints={history[dbusInterface.interfaceName] ?? []}
-        >
-          {history[dbusInterface.interfaceName]?.map((datapoint: any) => (
-            <React.Fragment key={datapoint.timestamp}>
-              <div
-                style={{
-                  display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '0px 2rem',
-                }}
-              >
-                <div style={{ color: '#EEE' }}>
-                  {/* eslint-disable-next-line max-len */ }
-                  {`${new Date(datapoint.timestamp).toLocaleTimeString('de-DE')}.${new Date(datapoint.timestamp).getMilliseconds()}`}
-                </div>
-                <div style={{ color: '#EEE' }}>{datapoint.value.toString()}</div>
-              </div>
-            </React.Fragment>
-          ))}
-        </DraggableModal>
-      ))}
-      {isMobile
-                && (
-                <AngleDownIcon
-                  onClick={() => setIsShowingEvents(!isShowingEvents)}
-                  style={{
-                    position: 'fixed',
-                    bottom: 'calc(6.8rem + 5px)',
-                    left: '5px',
-                    transform: isShowingEvents ? 'translateY(0)' : 'translateY(6.8rem) rotate(180deg)',
-                  }}
-                  className="TransitionUp ArrowIcons"
-                />
-                )}
-      {isMobile
-            && (
-            <div
-              ref={scrollRef}
-              style={{
-                position: 'fixed',
-                bottom: '0px',
-                height: '6.8rem',
-                overflowY: 'scroll',
-                transform: isShowingEvents ? 'translateY(0)' : 'translateY(7rem)',
-                backgroundColor: '#111',
-                width: '100vw',
-              }}
-              className="TransitionUp"
-            >
-              {unsortedEvents.map((event:any) => (
-                <div
-                  key={event.timestamp}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    padding: '0px 0.2rem',
-                    width: '100vw',
-                    color: '#EEE',
-                    zIndex: 2,
-                  }}
-                >
-                  <p>
-                    {removeSlotOrg(event.interface)}
-                  </p>
-                  <p>
-                    {`${new Date(event.timestamp).toLocaleTimeString('de-DE')}.${new Date(event.timestamp).getMilliseconds()}`}
-                  </p>
-                  <p>{event.value.toString()}</p>
-                </div>
-              ))}
-            </div>
-            )}
     </div>
   );
 };

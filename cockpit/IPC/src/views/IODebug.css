@@ -66,7 +66,9 @@ button.Hovr {
 .PrimaryText {
     min-width: 30rem;
 }
-
+.SecondaryText {
+    min-width: 15rem !important;
+}
 .TransitionUp {
     transition: transform 0.3s ease-in-out;
 }
@@ -99,8 +101,16 @@ button.Hovr {
     .tinker-number-input {
         width: 6rem;
     }
+    .SecondaryText {
+        min-width: unset;
+    }
   }
 
+  @media (max-width: 1000px) {
+    .SecondaryText {
+        min-width: 10rem !important;
+    }
+  }
 .pf-v5-c-clipboard-copy__expandable-content {
     width: max-content !important;
 }

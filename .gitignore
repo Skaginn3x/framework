@@ -5,3 +5,4 @@ vcpkg/
 .vscode
 CMakeUserPresets.json
 *.kdev4
+cmake-build*

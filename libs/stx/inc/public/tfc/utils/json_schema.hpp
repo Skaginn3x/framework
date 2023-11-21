@@ -75,7 +75,7 @@ enum struct defined_formats : std::uint8_t {
 struct schema {
   std::string_view ref{};
   using schema_number = std::optional<std::variant<std::int64_t, std::uint64_t, double>>;
-  using schema_any = std::variant<bool, std::int64_t, std::uint64_t, double, std::string_view>;
+  using schema_any = std::variant<std::monostate, bool, std::int64_t, std::uint64_t, double, std::string_view>;
   // meta data keywords, ref: https://www.learnjsonschema.com/2020-12/meta-data/
   std::optional<std::string_view> title{};
   std::optional<std::string_view> description{};
@@ -311,6 +311,7 @@ struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
     s.type = { "null" };
+    s.attributes.constant = std::monostate{};
   }
 };
 
