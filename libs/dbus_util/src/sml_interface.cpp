@@ -41,16 +41,5 @@ void interface_impl::dot_format(std::string_view state_machine) {
   dbus_interface_->set_property(std::string{ tags::state_machine }, state_machine_dot_formatted_);
 }
 
-namespace test {
-struct test_state {
-  static constexpr std::string_view name{ "test_state" };
-};
-struct invalid_test_state {
-  static constexpr std::string_view name1{ "test_state" };
-};
-static_assert(name_exists<test_state>);
-static_assert(!name_exists<invalid_test_state>);
-}  // namespace test
-
 }  // namespace detail
 }  // namespace tfc::dbus::sml
