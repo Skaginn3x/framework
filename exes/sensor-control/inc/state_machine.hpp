@@ -39,6 +39,7 @@ struct start {
 
 namespace states {
 // clang-format off
+struct initial { static constexpr std::string_view name{ "initial" }; };
 struct idle { static constexpr std::string_view name{ "idle" }; };
 struct awaiting_discharge { static constexpr std::string_view name{ "awaiting_discharge" }; };
 struct awaiting_sensor { static constexpr std::string_view name{ "awaiting_sensor" }; };
@@ -162,7 +163,8 @@ struct state_machine {
     // clang-format off
     PRAGMA_CLANG_WARNING_PUSH_OFF(-Wused-but-marked-unused) // Todo fix sml.hpp
     auto table = boost::sml::make_transition_table(
-      state<states::idle>(H) + on_entry<_> / actions::enter_idle<owner_t>{}
+      state<states::initial>(H) = state<states::idle>
+      , state<states::idle> + on_entry<_> / actions::enter_idle<owner_t>{}
       , state<states::idle> + on_exit<_> / actions::leave_idle<owner_t>{}
       , state<states::idle> + event<events::sensor_active> = state<states::awaiting_discharge>
       , state<states::idle> + event<events::new_info> = state<states::awaiting_sensor>
