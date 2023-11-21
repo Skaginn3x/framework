@@ -123,6 +123,8 @@ private:
   double_signal_t motor_percentage_{ ctx_, ipc_client_, "motor_percentage", "Motor freq output, stopped when inactive." };
 
   std::optional<ipc::item::item> queued_item_{ std::nullopt };
+  std::optional<ipc::item::item> awaiting_sensor_item_{ std::nullopt };
+
   logger::logger logger_{ log_key_ };
 
   using state_machine_t =

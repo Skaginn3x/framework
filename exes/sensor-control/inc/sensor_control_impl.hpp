@@ -60,8 +60,8 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
-  auto itm = queued_item_ ? std::move(queued_item_.value()) : ipc::item::make();
-  queued_item_ = std::nullopt;
+  auto itm = awaiting_sensor_item_ ? std::move(awaiting_sensor_item_.value()) : ipc::item::make();
+  awaiting_sensor_item_ = std::nullopt;
   request_discharge_.async_send(itm.to_json(), [this](auto const& err, std::size_t) {
     if (err) {
       this->logger_.info("Failed to send discharge request: {}", err.message());
@@ -79,6 +79,13 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_discharge() {}
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
+  if (awaiting_sensor_item_) {
+    logger_.info("I am sorry, won't discard awaiting sensor item with id: {}", awaiting_sensor_item_->id());
+  }
+  else {
+    awaiting_sensor_item_ = queued_item_ ? std::move(queued_item_.value()) : ipc::item::make();
+    queued_item_ = std::nullopt;
+  }
   // Make sure we don't already have something blocking the sensor
   if (sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_active{});  // todo test
@@ -227,7 +234,6 @@ void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(bool new_value) {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::set_queued_item(ipc::item::item&& new_value) {
-  // todo I think we need to handle two items in queue !!!!!
   if (queued_item_) {
     logger_.info("Overwriting queued item with id: {}", queued_item_->id());
   }
@@ -241,7 +247,8 @@ void sensor_control<signal_t, slot_t, sml_t>::await_sensor_timer_cb(const std::e
     logger_.trace("Await sensor timer error: {}\n", err.message());
     return;
   }
-  queued_item_.reset();  // todo test
+  // queued_item_.reset();  // todo test
+  awaiting_sensor_item_.reset(); // todo test
   sm_->process_event(events::await_sensor_timeout{});
 }
 
