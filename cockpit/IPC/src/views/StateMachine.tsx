@@ -115,7 +115,6 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
         // eslint-disable-next-line no-restricted-syntax
         for (const interfaceData of interfacesData) {
           const proxy = processDBUS.proxy(interfaceData, path);
-          console.log('proxy', proxy);
           // eslint-disable-next-line no-await-in-loop
           await proxy.wait().then(() => {
             const match = {

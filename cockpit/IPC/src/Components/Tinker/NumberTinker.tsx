@@ -1,40 +1,59 @@
 /* eslint-disable react/function-component-definition */
 import React, { useCallback, useMemo, useState } from 'react';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import { AlertVariant, TextInput } from '@patternfly/react-core';
 import { useAlertContext } from '../Alert/AlertContext';
 
 interface NumberTinkerIface {
-  data: any;
+  interfaceData: any;
+  isChecked: boolean;
 }
 
-const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
+const NumberTinker: React.FC<NumberTinkerIface> = ({ interfaceData, isChecked }) => {
   const [error, setError] = useState<string | undefined>(undefined);
   const { addAlert } = useAlertContext();
-  const typeJson = useMemo(() => JSON.parse(InterfaceOBJ.proxy.data.Type), [InterfaceOBJ.proxy.data.Type]);
-  const type = typeJson.type[0];
-  const min = typeJson.minimum as number;
-  const max = typeJson.maximum as number;
+  const [typeJson, setTypeJson] = useState<{ type: string[], minimum: number | null, maximum: number | null }>();
+  function getType(): void {
+    const proxy = window.cockpit.dbus(interfaceData.process)
+      .proxy(interfaceData.interfaceName, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`);
+    proxy.wait().then(() => {
+      try {
+        setTypeJson(JSON.parse(proxy.data.Type));
+      } catch (e) {
+        setTypeJson({ type: ['integer'], minimum: null, maximum: null });
+      }
+    });
+  }
+  const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
+  const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
+
+  useMemo(() => {
+    getType();
+  }, [interfaceData]);
 
   const handleInputChange = (value: string) => {
-    if (type !== 'integer' && type !== 'number') {
+    if (!typeJson) {
+      return { value: undefined, error: 'Unknown type' };
+    }
+    if (typeJson.type[0] !== 'integer' && typeJson.type[0] !== 'number') {
       return { value: undefined, error: 'Unknown type' };
     }
 
-    const val = type === 'integer' ? parseInt(value, 10) : parseFloat(value);
+    const val = typeJson.type[0] === 'integer' ? parseInt(value, 10) : parseFloat(value);
 
-    if (val < min) {
+    if (typeJson.minimum && val < typeJson.minimum) {
       return { value: val, error: 'Value is too low' };
     }
-    if (val > max) {
+    if (typeJson.maximum && val > typeJson.maximum) {
       return { value: val, error: 'Value is too high' };
     }
 
     return { value: val, error: undefined };
   };
 
-  const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(InterfaceOBJ.proxy.data.Value).value);
+  const [inputValue, setInputValue] = useState<number | undefined>(() => handleInputChange(interfaceData.data).value);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       if (error) {
         addAlert(`Data Validation Error: ${error}`, AlertVariant.danger);
@@ -44,7 +63,11 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
         addAlert('Input Error: Invalid Input', AlertVariant.danger);
         return;
       }
-      InterfaceOBJ.proxy.Tinker(inputValue);
+      const client = window.cockpit.dbus(interfaceData.process, { bus: 'system', superuser: 'try' });
+      const proxy = client.proxy(interfaceData.interfaceName, interfaceData.direction === 'slot' ? slotPath : signalPath);
+      await proxy.wait().then(() => {
+        proxy.Tinker(inputValue);
+      });
     }
   };
 
@@ -56,14 +79,15 @@ const NumberTinker: React.FC<NumberTinkerIface> = ({ data: InterfaceOBJ }) => {
 
   return (
     <TextInput
-      value={inputValue}
+      value={isChecked ? inputValue : ''}
       onChange={onChangeHandler}
       onKeyDown={handleKeyDown}
       validated={error ? 'error' : 'default'}
       type="number"
+      isDisabled={!isChecked}
       aria-label="tinker text input"
       className="tinker-number-input"
-      key={`${InterfaceOBJ.iface}-${InterfaceOBJ.process}`}
+      key={`${interfaceData.iface}-${interfaceData.process}`}
       style={{ minWidth: '4rem' }}
     />
   );

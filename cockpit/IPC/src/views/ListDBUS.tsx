@@ -31,6 +31,14 @@ const ListDBUS:React.FC<DarkModeType> = ({ isDark }) => {
     loadExternalScript(callback);
   }, []);
 
+  // // run after 2sec
+  // setTimeout(async () => {
+  //   const client = window.cockpit.dbus('com.skaginn3x.tfc.operations.def', { bus: 'system', superuser: 'try' });
+
+  //   const watch = client.watch('/com/skaginn3x/Slots');
+  //   console.log(watch);
+  // }, 2000);
+
   return (
     <div style={{ color: isDark ? '#EEE' : '#111' }}>
       <Title headingLevel="h1" size="2xl">DBUS Names</Title>
