@@ -1,3 +1,4 @@
+add_subdirectory(and)
 add_subdirectory(ethercat)
 add_subdirectory(button)
 add_subdirectory(gpio)
