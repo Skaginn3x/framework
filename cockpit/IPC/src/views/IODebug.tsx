@@ -161,7 +161,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
           data: proxy.data.Value,
           process,
           interfaceName: interfaceData.name,
-          type: JSON.parse(proxy.Type).type[0] ?? interfaceData.valueType,
+          typeJson: JSON.parse(proxy.Type) ?? interfaceData.valueType,
           direction,
           hidden: false,
           listener: false,

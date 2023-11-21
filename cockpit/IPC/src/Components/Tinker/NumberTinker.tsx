@@ -1,5 +1,5 @@
 /* eslint-disable react/function-component-definition */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import { AlertVariant, TextInput } from '@patternfly/react-core';
 import { useAlertContext } from '../Alert/AlertContext';
@@ -12,26 +12,13 @@ interface NumberTinkerIface {
 const NumberTinker: React.FC<NumberTinkerIface> = ({ interfaceData, isChecked }) => {
   const [error, setError] = useState<string | undefined>(undefined);
   const { addAlert } = useAlertContext();
-  const [typeJson, setTypeJson] = useState<{ type: string[], minimum: number | null, maximum: number | null }>();
-  function getType(): void {
-    const proxy = window.cockpit.dbus(interfaceData.process)
-      .proxy(interfaceData.interfaceName, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`);
-    proxy.wait().then(() => {
-      try {
-        setTypeJson(JSON.parse(proxy.data.Type));
-      } catch (e) {
-        setTypeJson({ type: ['integer'], minimum: null, maximum: null });
-      }
-    });
-  }
+  const { typeJson } = interfaceData;
+
   const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
-  useMemo(() => {
-    getType();
-  }, [interfaceData]);
-
   const handleInputChange = (value: string) => {
+    console.log(typeJson);
     if (!typeJson) {
       return { value: undefined, error: 'Unknown type' };
     }
