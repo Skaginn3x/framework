@@ -67,8 +67,9 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
       this->logger_.info("Failed to send discharge request: {}", err.message());
     }
   });
-  if (may_discharge_.value().value_or(false)) {
+  if (may_discharge_new_state_) {
     sm_->process_event(events::discharge{});
+    may_discharge_new_state_ = false;
   }
 }
 // clang-format off
@@ -225,6 +226,7 @@ void sensor_control<signal_t, slot_t, sml_t>::on_discharge_request(std::string c
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(bool new_value) {
+  may_discharge_new_state_ = new_value;
   if (new_value) {
     sm_->process_event(events::discharge{});
   }

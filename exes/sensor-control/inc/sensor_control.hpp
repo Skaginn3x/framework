@@ -122,6 +122,7 @@ private:
                               std::bind_front(&sensor_control::on_may_discharge, this) };
   double_signal_t motor_percentage_{ ctx_, ipc_client_, "motor_percentage", "Motor freq output, stopped when inactive." };
 
+  bool may_discharge_new_state_{ false };
   std::optional<ipc::item::item> queued_item_{ std::nullopt };
   std::optional<ipc::item::item> awaiting_sensor_item_{ std::nullopt };
 
