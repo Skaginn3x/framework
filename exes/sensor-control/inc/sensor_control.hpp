@@ -44,6 +44,7 @@ public:
       static constexpr auto value{ glz::object(
         "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
         "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
+        "await sensor timeout", &type::await_sensor_timeout, "Timeout for awaiting sensor input.",
         "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item."
       ) };
       // clang-format on
