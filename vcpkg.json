@@ -22,7 +22,9 @@
     "magic-enum",
     {
       "name": "mp-units",
-      "version>=": "2.0.0"
+      "features": [
+        "use-libfmt"
+      ]
     },
     "openssl",
     "pcg",
