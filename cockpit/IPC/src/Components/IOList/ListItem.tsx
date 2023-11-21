@@ -111,7 +111,7 @@ const ListItem: React.FC<ListItemProps> = ({
    */
   function getSecondaryContent(interfaceData: any): ReactElement | null {
     const internals = (secData: any) => {
-      switch (secData.type) {
+      switch (secData.typeJson.type[0]) {
         case 'boolean':
           return handleBoolContent(data);
 
@@ -153,7 +153,7 @@ const ListItem: React.FC<ListItemProps> = ({
  */
   function getTinkerInterface(interfaceData: any): React.ReactElement | null {
     const internals = (interfacedata: any) => {
-      switch (interfacedata.type) {
+      switch (interfacedata.typeJson.type[0]) {
         case 'boolean':
           return <BoolTinker interfaceData={interfacedata} isChecked={isChecked} />;
 
