@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 import React, { useEffect, useRef, useState } from 'react';
@@ -364,31 +365,39 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
   }
 
   function handleChange() {
-    const interfacesToChange = parseDBusTextObjects(initialsvg);
-    const proxies = interfacesToChange.map((interfaceToChange) => {
-      if (window.cockpit) {
-        const dbus = window.cockpit.dbus(interfaceToChange.service);
-        return {
-          interface: interfaceToChange.interface,
-          path: interfaceToChange.path,
-          process: interfaceToChange.service,
-          placeholder: interfaceToChange.property,
-          proxy: dbus.proxy(interfaceToChange.interface, interfaceToChange.path),
-        };
-      }
-      return {};
-    });
-    let newSvg = replaceDBusSignals(initialsvg);
+    // const interfacesToChange = parseDBusTextObjects(initialsvg);
+    // console.log('interfacesToChange', interfacesToChange);
+    // const proxies = interfacesToChange.map((interfaceToChange) => {
+    //   if (window.cockpit) {
+    //     const dbus = window.cockpit.dbus(interfaceToChange.service);
+    //     return {
+    //       interface: interfaceToChange.interface,
+    //       path: interfaceToChange.path,
+    //       process: interfaceToChange.service,
+    //       placeholder: interfaceToChange.property,
+    //       proxy: dbus.proxy(interfaceToChange.interface, interfaceToChange.path),
+    //     };
+    //   }
+    //   return {};
+    // });
+    // let newSvg = replaceDBusSignals(initialsvg);
+    setSVG(replaceDBusSignals(toggleDarkMode(initialsvg)));
     // resolve promises
-    Promise.all(proxies.map(async (iface: any) => {
-      if (iface.proxy) {
-        await iface.proxy.wait();
-        const replacementValue = iface.proxy.data[iface.placeholder];
-        newSvg = replaceSvgPlaceholders(newSvg, iface.interface, iface.process, iface.path, iface.placeholder, replacementValue);
-      }
-    })).then(() => {
-      setSVG(toggleDarkMode(newSvg));
-    });
+    // console.log('proxies', proxies);
+    // Promise.all(proxies.map(async (iface: any) => {
+    //   if (iface.proxy) {
+    //     await iface.proxy.wait();
+    //     console.log('proxy]', iface.proxy);
+    //     const replacementValue = iface.proxy.data[iface.placeholder];
+    //     console.log('replacementValue', iface.proxy.data);
+    //     newSvg = replaceSvgPlaceholders(newSvg, iface.interface, iface.process, iface.path, iface.placeholder, replacementValue);
+    //   }
+    // })).then(() => {
+    //   console.log('updatingsvg');
+    //   setSVG(toggleDarkMode(newSvg));
+    // }).catch((e) => {
+    //   console.log(e);
+    // });
   }
 
   useEffect(() => {
@@ -429,6 +438,7 @@ const VisualState:React.FC<DarkModeType> = ({ isDark }) => {
   useEffect(() => {
     if (!data) return;
     dataRef.current = data;
+    console.log('updating data');
     handleChange();
   }, [data]);
 
