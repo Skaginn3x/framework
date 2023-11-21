@@ -17,11 +17,13 @@
 #include <tfc/operation_mode.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
+#include <tfc/confman/observable.hpp>
 
+#include "actions/generic_io.hpp"
+#include "behaviour.hpp"
 #include "state_machine.hpp"
 
 namespace tfc {
-
 namespace asio = boost::asio;
 
 template <template <typename, typename manager_client_t = ipc_ruler::ipc_manager_client&> typename signal_t = ipc::signal,
@@ -30,34 +32,52 @@ template <template <typename, typename manager_client_t = ipc_ruler::ipc_manager
 class sensor_control {
 public:
   explicit sensor_control(asio::io_context& ctx, std::string_view log_key);
-  explicit sensor_control(asio::io_context& ctx) : sensor_control(ctx, "sensor_control") {}
+
+  explicit sensor_control(asio::io_context& ctx)
+    : sensor_control(ctx, "sensor_control") {
+  }
 
   struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
     std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{ 1 } };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     bool run_on_discharge{ true };
+    confman::observable<std::variant<std::monostate, sensor::control::behaviour<
+                                       sensor::control::actions::generic_io::config>>> action{ std::monostate{} };
+
     struct glaze {
       using type = sensor_control_config;
       static constexpr std::string_view name{ "tfc::sensor_control" };
       // clang-format off
       static constexpr auto value{ glz::object(
-        "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
-        "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
-        "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item."
-      ) };
+          "discharge delay", &type::discharge_timeout,
+          "Delay after falling edge of sensor to keep output of discharge active high.",
+          "run speed", &type::run_speed,
+          json::schema{ .description = "Speed of the motor when running.", .minimum = 0.0, .maximum = 100.0 },
+          "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item.",
+          "action", &type::action, "Action to take when awaiting sensor input."
+          ) };
       // clang-format on
     };
   };
 
-  void enter_stopped() {}
-  void leave_stopped() {}
-  void enter_running() {}
-  void leave_running() {}
+  void enter_stopped() {
+  }
+
+  void leave_stopped() {
+  }
+
+  void enter_running() {
+  }
+
+  void leave_running() {
+  }
+
   void enter_idle();
   void leave_idle();
   void enter_awaiting_discharge();
   void leave_awaiting_discharge();
+  void enter_awaiting_action();
   void enter_awaiting_sensor();
   void leave_awaiting_sensor();
   void enter_discharging();
@@ -90,6 +110,7 @@ public:
   void await_sensor_timer_cb(std::error_code const&);
   void discharge_timer_cb(std::error_code const&);
   [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return discharge_timer_.has_value(); }
+  [[nodiscard]] auto using_action() const noexcept -> bool { return !std::holds_alternative<std::monostate>(action_); }
 
   void on_running();
   void on_running_leave();
@@ -125,14 +146,14 @@ private:
   logger::logger logger_{ log_key_ };
 
   using state_machine_t =
-      sml_t<sensor::control::state_machine_operation_mode<sensor_control>, boost::sml::logger<tfc::dbus::sml::interface>>;
+  sml_t<sensor::control::state_machine_operation_mode<sensor_control>, boost::sml::logger<tfc::dbus::sml::interface>>;
 
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(
       ipc_client_.connection(),
       std::string{ tfc::dbus::sml::tags::path },
-      tfc::dbus::make_dbus_name("SensorControl")) };
+      dbus::make_dbus_name("SensorControl")) };
 
-  tfc::dbus::sml::interface sml_interface_ {
+  dbus::sml::interface sml_interface_{
     dbus_interface_, fmt::format("sm.{}", log_key_)
   };
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface_) };
@@ -140,18 +161,18 @@ private:
   asio::steady_timer await_sensor_timer_{ ctx_ };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
-  tfc::confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
+  confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
                                                        sensor_control_config{ .discharge_timeout = std::nullopt,
                                                                               .await_sensor_timeout =
-                                                                                  std::chrono::minutes{ 1 },
+                                                                              std::chrono::minutes{ 1 },
                                                                               .run_speed = 100.0 * mp_units::percent,
                                                                               .run_on_discharge = true } };
-  tfc::operation::interface operation_mode_ {
+  operation::interface operation_mode_{
     ctx_, "operation_mode"
   };
   bool first_time_{ true };
+  std::variant<std::monostate, sensor::control::actions::generic_io::config> action_{ std::monostate{} };
 };
 
 extern template class sensor_control<>;
-
-}  // namespace tfc
+} // namespace tfc

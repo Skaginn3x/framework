@@ -11,36 +11,24 @@
 namespace tfc::sensor::control {
 
 namespace events {
-struct sensor_active {
-  static constexpr std::string_view name{ "sensor_active" };
-};
-struct sensor_inactive {
-  static constexpr std::string_view name{ "sensor_inactive" };
-};
-struct await_sensor_timeout {
-  static constexpr std::string_view name{ "await_sensor_timeout" };
-};
-struct new_info {
-  static constexpr std::string_view name{ "new_info" };
-};
-struct discharge {
-  static constexpr std::string_view name{ "discharge" };
-};
-struct complete {
-  static constexpr std::string_view name{ "complete" };
-};
-struct stop {
-  static constexpr std::string_view name{ "stop" };
-};
-struct start {
-  static constexpr std::string_view name{ "start" };
-};
+// clang-format off
+struct sensor_active { static constexpr std::string_view name{ "sensor_active" }; };
+struct sensor_inactive { static constexpr std::string_view name{ "sensor_inactive" }; };
+struct action_complete { static constexpr std::string_view name{ "action_complete" }; };
+struct await_sensor_timeout { static constexpr std::string_view name{ "await_sensor_timeout" }; };
+struct new_info { static constexpr std::string_view name{ "new_info" }; };
+struct discharge { static constexpr std::string_view name{ "discharge" }; };
+struct complete { static constexpr std::string_view name{ "complete" }; };
+struct stop { static constexpr std::string_view name{ "stop" }; };
+struct start { static constexpr std::string_view name{ "start" }; };
+// clang-format on
 }  // namespace events
 
 namespace states {
 // clang-format off
 struct idle { static constexpr std::string_view name{ "idle" }; };
 struct awaiting_discharge { static constexpr std::string_view name{ "awaiting_discharge" }; };
+struct awaiting_action { static constexpr std::string_view name{ "awaiting_action" }; };
 struct awaiting_sensor { static constexpr std::string_view name{ "awaiting_sensor" }; };
 struct uncontrolled_discharge { static constexpr std::string_view name{ "uncontrolled_discharge" }; };
 struct discharging { static constexpr std::string_view name{ "discharging" }; };
@@ -70,6 +58,16 @@ struct not_using_discharge_delay {
   static constexpr std::string_view name{ "not_using_discharge_delay" };
   auto operator()(owner_t const& owner) const noexcept -> bool { return !owner.using_discharge_delay(); }
 };
+template <typename owner_t>
+struct using_action {
+  static constexpr std::string_view name{ "using_action" };
+  auto operator()(owner_t const& owner) const noexcept -> bool { return owner.using_action(); }
+};
+template <typename owner_t>
+struct not_using_action {
+  static constexpr std::string_view name{ "using_action" };
+  auto operator()(owner_t const& owner) const noexcept -> bool { return !owner.using_action(); }
+};
 }  // namespace guards
 
 namespace actions {
@@ -92,6 +90,11 @@ template <typename owner_t>
 struct leave_awaiting_discharge {
   static constexpr std::string_view name{ "leave_awaiting_discharge" };
   auto operator()(owner_t& owner) const noexcept { owner.leave_awaiting_discharge(); }
+};
+template <typename owner_t>
+struct enter_awaiting_action {
+  static constexpr std::string_view name{ "enter_awaiting_action" };
+  auto operator()(owner_t& owner) const noexcept { owner.enter_awaiting_action(); }
 };
 template <typename owner_t>
 struct enter_awaiting_sensor {
@@ -165,7 +168,13 @@ struct state_machine {
       state<states::idle>(H) + on_entry<_> / actions::enter_idle<owner_t>{}
       , state<states::idle> + on_exit<_> / actions::leave_idle<owner_t>{}
       , state<states::idle> + event<events::sensor_active> = state<states::awaiting_discharge>
-      , state<states::idle> + event<events::new_info> = state<states::awaiting_sensor>
+
+      , state<states::idle> + event<events::new_info>[guards::not_using_action<owner_t>{}] = state<states::awaiting_sensor>
+      , state<states::idle> + event<events::new_info>[guards::using_action<owner_t>{}] = state<states::awaiting_action>
+
+      , state<states::awaiting_action> + event<events::action_complete> = state<states::awaiting_sensor>
+      , state<states::awaiting_action> + on_entry<_> / actions::enter_awaiting_discharge<owner_t>{}
+
 
       , state<states::awaiting_discharge> + on_entry<_> / actions::enter_awaiting_discharge<owner_t>{}
       , state<states::awaiting_discharge> + on_exit<_> / actions::leave_awaiting_discharge<owner_t>{}
