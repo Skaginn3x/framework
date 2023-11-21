@@ -16,13 +16,14 @@ public:
   };
 
 
-  generic_io(asio::io_context& io_context)
-    : ctx_{ io_context }
+  generic_io(asio::io_context& io_context, config& cfg)
+    : ctx_{ io_context }, cfg_{ cfg }
   {}
 
 
 private:
   asio::io_context& ctx_;
+  config& cfg_;
 };
 
 
