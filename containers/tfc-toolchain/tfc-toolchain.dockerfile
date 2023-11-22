@@ -1,4 +1,4 @@
-FROM debian:10-slim
+FROM ubuntu:23.10
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -7,7 +7,7 @@ ENV LD_LIBRARY_PATH=/cpproot/lib64:/cpproot/lib32:/cpproot/lib
 ENV PKG_CONFIG_PATH=/cpproot/lib/pkgconfig
 
 # Store custom artifacts in /cpproot
-RUN mkdir /cpproot
+RUN mkdir -p /cpproot/bin
 WORKDIR /tmp
 COPY ./shared.sh /tmp/
 
@@ -15,10 +15,17 @@ COPY ./shared.sh /tmp/
 COPY install-common.sh /tmp/
 RUN ./install-common.sh
 
+# Give gcc-13 some better names
+RUN ln -sf /usr/bin/gcc-13 /cpproot/bin/gcc
+RUN ln -sf /usr/bin/g++-13 /cpproot/bin/g++
+RUN ln -sf /usr/bin/gcc-13 /cpproot/bin/cc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-13 /cpproot/bin/aarch64-linux-gnu-gcc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-g++-13 /cpproot/bin/aarch64-linux-gnu-g++
+
 # Cmake is required for mold
 # Install cmake
 COPY install-cmake.sh /tmp/
-RUN ./install-cmake.sh 3.28.0-rc3
+RUN ./install-cmake.sh 3.27.0
 
 # Install ninja
 COPY build-ninja.sh /tmp/
@@ -28,13 +35,9 @@ RUN ./build-ninja.sh 1.11.1
 COPY build-clang.sh /tmp/
 RUN ./build-clang.sh 17.0.3
 
-# The linker shipped with debian 10
-# cannot link this gcc build, dont know why
-RUN ln -sf /cpproot/bin/lld /cpproot/bin/ld
-
 # Install gcc development
-COPY build-gcc-from-commit.sh /tmp/
-RUN ./build-gcc-from-commit.sh 39a11d8e0b9cc3ac5d7d1bfaef75639fc557fbe0
+# COPY build-gcc-from-commit.sh /tmp/
+# RUN ./build-gcc-from-commit.sh 39a11d8e0b9cc3ac5d7d1bfaef75639fc557fbe0
 
 # Install mold
 COPY build-mold.sh /tmp/
@@ -53,7 +56,7 @@ RUN cd /opt && chmod 775 vcpkg
 
 # Setup dbus for testing
 RUN apt-get update && apt-get install -y --no-install-recommends dbus
-RUN mkdir /var/run/dbus/
+RUN mkdir -p /var/run/dbus/
 RUN sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
 RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
 

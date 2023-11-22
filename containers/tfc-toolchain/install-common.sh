@@ -10,8 +10,6 @@ hide_output apt install -y --no-install-recommends \
   make \
   automake \
   xz-utils \
-  gcc \
-  g++ \
   git \
   zip \
   unzip \
@@ -25,6 +23,9 @@ hide_output apt install -y --no-install-recommends \
   python3-distutils \
   python3-jinja2 \
   python3-venv
+  gcc-13 \
+  g++-13 \
+  g++-13-aarch64-linux-gnu
 
 # Install documentation specific packages
 #hide_output apt install -y \
