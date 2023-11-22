@@ -28,7 +28,7 @@ auto state_machine_owner<signal_t, slot_t, sml_t>::set_mode(tfc::operation::mode
 
   bool handled{};
   switch (new_mode) {
-    using enum tfc::operation::mode_e;
+    using enum mode_e;
     case unknown:
       break;
     case stopping:
@@ -246,6 +246,26 @@ template <template <typename, typename> typename signal_t, template <typename, t
 void state_machine_owner<signal_t, slot_t, sml_t>::maintenance_new_state(bool new_state) {
   if (new_state) {
     states_->process_event(detail::events::maintenance_button{});
+  }
+}
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void state_machine_owner<signal_t, slot_t, sml_t>::emergency(bool new_state) {
+  if (new_state) {
+    states_->process_event(detail::events::emergency_on{});
+  } else {
+    states_->process_event(detail::events::emergency_off{});
+  }
+}
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+void state_machine_owner<signal_t, slot_t, sml_t>::fault(bool new_state) {
+  if (new_state) {
+    states_->process_event(detail::events::fault_on{});
+  } else {
+    states_->process_event(detail::events::fault_off{});
   }
 }
 // clang-format off
