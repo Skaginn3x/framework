@@ -317,7 +317,7 @@ void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance() {
         logger_.info("Discharge allowance pulse timer error: {}", err.message());
         return;
       }
-      discharge_allowance_.async_send(false, [this](std::error_code const& err2) {
+      discharge_allowance_.async_send(false, [this](std::error_code const& err2, std::size_t) {
         logger_.warn("Failed to send discharge allowance: {}", err2.message());
       });
     });
