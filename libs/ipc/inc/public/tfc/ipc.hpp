@@ -192,13 +192,13 @@ public:
     dbus_signal_.emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
-  
-  template<typename logger_t>
+
+  template <typename logger_t>
   auto async_send(std::shared_ptr<logger_t> logger) -> std::function<void(value_t)> {
     auto weak_logger = std::weak_ptr<logger_t>(logger);
 
     return [this, weak_logger](value_t value) {
-      signal_->async_send(value, [this, weak_logger](std::error_code const &send_error, size_t) {
+      signal_->async_send(value, [this, weak_logger](std::error_code const& send_error, size_t) {
         if (send_error) {
           auto logger = weak_logger.lock();
           if (logger) {
