@@ -11,7 +11,7 @@
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
-#include <tfc/sml_logger.hpp>
+#include <tfc/sml/logger.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::dbus::sml {
@@ -47,51 +47,6 @@ struct interface_impl {
 
 template <class state_machine_t, class source_state_t, class destination_state_t>
 auto dump(source_state_t const& src, destination_state_t const& dst, std::string_view last_event) -> std::string;
-
-template <typename type_t>
-concept name_exists = requires {
-  { type_t::name };
-  requires std::same_as<std::string_view, std::remove_cvref_t<decltype(type_t::name)>>;
-};
-
-template <typename T>
-concept is_sub_sm = tfc::stx::is_specialization_v<T, boost::sml::back::sm>;
-
-template <typename T>
-struct sub_sm {};
-
-// need the inner type to be able to get the name
-template <typename T>
-struct sub_sm<boost::sml::back::sm<boost::sml::back::sm_policy<T>>> {
-  using type = T;
-};
-
-template <typename type_t>
-constexpr auto get_name() -> std::string {
-  if constexpr (is_sub_sm<type_t>) {
-    using sub_sm = sub_sm<type_t>;
-    return get_name<typename sub_sm::type>();
-  } else if constexpr (name_exists<type_t>) {
-    return std::string{ type_t::name };
-  } else {
-    return std::string{ boost::sml::aux::string<type_t>{}.c_str() };
-  }
-}
-
-template <template <typename, typename> typename event_t, typename first_t, typename second_t>
-auto constexpr extract_event_type(event_t<first_t, second_t> const&) noexcept -> std::string {
-  return get_name<second_t>();
-}
-
-template <typename event_t>
-auto constexpr extract_event_type(event_t const& event) noexcept -> std::string {
-  if constexpr (tfc::stx::is_specialization_v<event_t, boost::sml::back::on_entry> ||
-                tfc::stx::is_specialization_v<event_t, boost::sml::back::on_exit>) {
-    return detail::extract_event_type(event);
-  } else {
-    return get_name<event_t>();
-  }
-}
 
 }  // namespace detail
 

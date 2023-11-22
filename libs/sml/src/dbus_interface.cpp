@@ -1,4 +1,4 @@
-#include "tfc/dbus/sml_interface.hpp"
+#include <tfc/sml/dbus_interface.hpp>
 
 #include <sdbusplus/asio/object_server.hpp>
 
