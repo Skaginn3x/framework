@@ -193,17 +193,16 @@ public:
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
-
-        template<typename logger_t>
-        auto async_send(logger_t &logger) -> std::function<void(value_t)> {
-            return [this, &logger](value_t value) {
-                signal_->async_send(value, [this, &logger](std::error_code const &send_error, size_t) {
-                    if (send_error) {
-                        logger.error("{}: Failed to send: {}", name(), send_error.message());
-                    }
-                });
-            };
+  template <typename logger_t>
+  auto async_send(logger_t& logger) -> std::function<void(value_t)> {
+    return [this, &logger](value_t value) {
+      signal_->async_send(value, [this, &logger](std::error_code const& send_error, size_t) {
+        if (send_error) {
+          logger.error("{}: Failed to send: {}", name(), send_error.message());
         }
+      });
+    };
+  }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return signal_->name(); }
 
