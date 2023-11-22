@@ -79,6 +79,7 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_discharge() {}
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
+  logger_.trace("Entering awaiting sensor, value of sensor is: {}", sensor_.value().value_or(false));
   if (awaiting_sensor_item_) {
     logger_.info("I am sorry, won't discard awaiting sensor item with id: {}", awaiting_sensor_item_->id());
   } else {
