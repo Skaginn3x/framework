@@ -34,6 +34,7 @@ public:
 
   struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
+    std::optional<std::chrono::milliseconds> discharge_allowance_pulse{ std::chrono::seconds{ 1 } };
     std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{ 1 } };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     bool run_on_discharge{ true };
@@ -45,7 +46,8 @@ public:
         "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
         "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
         "await sensor timeout", &type::await_sensor_timeout, "Timeout for awaiting sensor input.",
-        "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item."
+        "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item.",
+        "discharge allowance pulse", &type::discharge_allowance_pulse, "Pulse duration to allow discharge to upstream (if not set, will keep high until item arrives in sensor)."
       ) };
       // clang-format on
     };
@@ -98,6 +100,7 @@ public:
 private:
   void stop_motor();
   void start_motor();
+  void pulse_discharge_allowance();
 
   using bool_signal_t = signal_t<ipc::details::type_bool>;
   using double_signal_t = signal_t<ipc::details::type_double>;
@@ -141,12 +144,14 @@ private:
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface_) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
+  std::optional<asio::steady_timer> discharge_allowance_pulse_timer_{ std::nullopt };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
   tfc::confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
                                                        sensor_control_config{ .discharge_timeout = std::nullopt,
                                                                               .await_sensor_timeout =
                                                                                   std::chrono::minutes{ 1 },
+                                                         .discharge_allowance_pulse = std::chrono::seconds{ 1 },
                                                                               .run_speed = 100.0 * mp_units::percent,
                                                                               .run_on_discharge = true } };
   tfc::operation::interface operation_mode_ {

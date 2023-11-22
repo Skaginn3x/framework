@@ -35,7 +35,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   } else if (sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_active{});  // todo test
   } else {
-    idle_.async_send(true, [this](auto const& err, std::size_t) { // todo test
+    idle_.async_send(true, [this](auto const& err, std::size_t) {  // todo test
       if (err) {
         this->logger_.error("Failed to set idle: {}", err.message());
       }
@@ -50,7 +50,7 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
     first_time_ = false;
     stop_motor();
   }
-  idle_.async_send(false, [this](auto const& err, std::size_t) { // todo test
+  idle_.async_send(false, [this](auto const& err, std::size_t) {  // todo test
     if (err) {
       this->logger_.error("Failed to set idle: {}", err.message());
     }
@@ -81,8 +81,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
   if (awaiting_sensor_item_) {
     logger_.info("I am sorry, won't discard awaiting sensor item with id: {}", awaiting_sensor_item_->id());
-  }
-  else {
+  } else {
     awaiting_sensor_item_ = queued_item_ ? std::move(queued_item_.value()) : ipc::item::make();
     queued_item_ = std::nullopt;
   }
@@ -92,11 +91,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
     return;
   }
   start_motor();
-  discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
-    if (err) {
-      this->logger_.error("Failed to set discharge active: {}", err.message());
-    }
-  });
+  pulse_discharge_allowance();
   await_sensor_timer_.expires_after(config_->await_sensor_timeout);
   await_sensor_timer_.async_wait(std::bind_front(&sensor_control::await_sensor_timer_cb, this));
 }
@@ -105,11 +100,13 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_sensor() {
   stop_motor();
-  discharge_allowance_.async_send(false, [this](auto const& err, std::size_t) {
-    if (err) {
-      this->logger_.error("Failed to set discharge inactive: {}", err.message());
-    }
-  });
+  if (!config_->discharge_allowance_pulse) {
+    discharge_allowance_.async_send(false, [this](auto const& err, std::size_t) {
+      if (err) {
+        this->logger_.warn("Failed to set discharge allowance: {}", err.message());
+      }
+    });
+  }
   await_sensor_timer_.cancel();
 }
 // clang-format off
@@ -177,11 +174,7 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_discharge_delayed() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging_allow_input() {
-  discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
-    if (err) {
-      this->logger_.error("Failed to set discharge active: {}", err.message());
-    }
-  });
+  pulse_discharge_allowance();
   if (!sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_inactive{});
   }
@@ -248,7 +241,7 @@ void sensor_control<signal_t, slot_t, sml_t>::await_sensor_timer_cb(const std::e
     return;
   }
   // queued_item_.reset();  // todo test
-  awaiting_sensor_item_.reset(); // todo test
+  awaiting_sensor_item_.reset();  // todo test
   sm_->process_event(events::await_sensor_timeout{});
 }
 
@@ -295,11 +288,40 @@ template <template <typename, typename> typename signal_t, template <typename, t
 void sensor_control<signal_t, slot_t, sml_t>::start_motor() {
   // todo should run speed be configurable in this process?
   // or more generically in ethercat process
+  // will be implemented in motor library further on
   motor_percentage_.async_send(config_->run_speed.numerical_value_, [this](auto const& err, std::size_t) {
     if (err) {
       this->logger_.error("Failed to start motor: {}", err.message());
     }
   });
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+// todo test
+void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance() {
+  discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
+    if (err) {
+      logger_.warn("Failed to send discharge allowance: {}", err.message());
+    }
+  });
+  if (config_->discharge_allowance_pulse) {
+    if (discharge_allowance_pulse_timer_) {
+      discharge_allowance_pulse_timer_.reset();
+    }
+    discharge_allowance_pulse_timer_ = asio::steady_timer{ ctx_ };
+    discharge_allowance_pulse_timer_->expires_after(config_->discharge_allowance_pulse.value());
+    discharge_allowance_pulse_timer_->async_wait([this](std::error_code const& err) {
+      if (err) {
+        logger_.info("Discharge allowance pulse timer error: {}", err.message());
+        return;
+      }
+      discharge_allowance_.async_send(false, [this](std::error_code const& err2) {
+        logger_.warn("Failed to send discharge allowance: {}", err2.message());
+      });
+    });
+  }
 }
 
 }  // namespace tfc
