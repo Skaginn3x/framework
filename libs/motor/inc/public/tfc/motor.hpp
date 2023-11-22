@@ -173,7 +173,17 @@ public:
 
   void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
 
-  void stop() {}
+  [[nodiscard]] std::error_code stop() {
+    return std::visit(
+        [&](auto& motor_impl_) -> std::error_code {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.stop();
+          } else {
+            return motor_error(errors::err_enum::no_motor_configured);
+          }
+        },
+        impl_);
+  }
 
   void stop(QuantityOf<mp_units::isq::time> auto) {}
 

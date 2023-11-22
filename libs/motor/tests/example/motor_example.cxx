@@ -45,7 +45,7 @@ auto main(int argc, char** argv) -> int {
 
   /// All types
   my_motor.run(50);  // Run with SpeedRatio
-  my_motor.stop();   // Stop freewheel
+  err = my_motor.stop();   // Stop freewheel
 
   // Absolute positioning
   my_motor.move(10 * m);
@@ -79,6 +79,7 @@ auto main(int argc, char** argv) -> int {
   my_motor.run(50);
   my_motor.run(-50);
 
+  err = my_motor.stop();
   ctx.run();
 
   return EXIT_SUCCESS;
