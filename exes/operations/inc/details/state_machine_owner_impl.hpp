@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include <boost/asio.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include "state_machine.hpp"
@@ -174,11 +176,19 @@ void state_machine_owner<signal_t, slot_t, sml_t>::leave_emergency() {}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void state_machine_owner<signal_t, slot_t, sml_t>::enter_fault() {}
+void state_machine_owner<signal_t, slot_t, sml_t>::enter_fault() {
+  fault_out_.async_send(true, [this](std::error_code const& err, std::size_t) {
+    logger_.info("Unable to send fault signal true, error: {}", err.message());
+  });
+}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void state_machine_owner<signal_t, slot_t, sml_t>::leave_fault() {}
+void state_machine_owner<signal_t, slot_t, sml_t>::leave_fault() {
+  fault_out_.async_send(false, [this](std::error_code const& err, std::size_t) {
+    logger_.info("Unable to send fault signal true, error: {}", err.message());
+  });
+}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
