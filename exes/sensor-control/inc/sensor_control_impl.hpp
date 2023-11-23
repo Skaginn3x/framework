@@ -70,7 +70,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
   if (may_discharge_.value().value_or(false)) {
     sm_->process_event(events::discharge{});
   }
-  if (sensor_.value().value_or(false)) {
+  if (!sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_inactive{}); // Handle if stopping system and removing tub then start system again
   }
 }
