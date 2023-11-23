@@ -614,10 +614,11 @@ public:
     bool const quick_stop = !running_ || reference_frequency_.value == 0 * dHz;
     auto command = tfc::ec::cia_402::transition(state, quick_stop);
 
-    if (cia_402::to_string(command) != last_command_) {
+    if (command != last_command_) {
       command_transmitter_.async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
+      last_command_ = command;
     }
 
     out->control = cia_402::control_word::from_uint(std::to_underlying(command));
@@ -704,7 +705,7 @@ private:
   std::vector<tfc::ipc::bool_signal> di_transmitters_;
   cia_402::states_e last_state_;
   tfc::ipc::string_signal state_transmitter_;
-  std::string last_command_;
+  tfc::ec::cia_402::commands_e last_command_;
   tfc::ipc::string_signal command_transmitter_;
   bool running_{};
   tfc::ipc::bool_slot run_;
