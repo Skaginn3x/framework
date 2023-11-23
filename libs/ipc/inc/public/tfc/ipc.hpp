@@ -200,9 +200,9 @@ public:
     return [this, weak_logger](value_t value) {
       signal_->async_send(value, [this, weak_logger](std::error_code const& send_error, size_t) {
         if (send_error) {
-          auto logger = weak_logger.lock();
-          if (logger) {
-            logger->error("{}: Failed to send: {}", signal_->name(), send_error.message());
+          auto logger_ = weak_logger.lock();
+          if (logger_) {
+            logger_->error("{}: Failed to send: {}", signal_->name(), send_error.message());
           }
         }
       });
