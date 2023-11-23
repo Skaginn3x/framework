@@ -618,6 +618,7 @@ public:
       command_transmitter_.async_send(cia_402::to_string(command), [this](auto&& PH1, size_t const bytes_transfered) {
         async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
       });
+      last_command_ = cia_402::to_string(command);
     }
 
     out->control = cia_402::control_word::from_uint(std::to_underlying(command));
