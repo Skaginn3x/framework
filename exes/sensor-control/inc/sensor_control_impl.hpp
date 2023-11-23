@@ -31,10 +31,10 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   }
   // todo extract new final state in state machine so discharge active can be set low in final state
   discharge_active_.async_send(false, [this](auto const& err, std::size_t) {  // todo test
-  if (err) {
-    this->logger_.error("Failed to set discharge active: {}", err.message());
-  }
-});
+    if (err) {
+      this->logger_.error("Failed to set discharge active: {}", err.message());
+    }
+  });
   if (queued_item_) {  // todo test
     logger_.info("Discharge request queued, will propagate event");
     sm_->process_event(events::new_info{});
@@ -77,7 +77,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
     sm_->process_event(events::discharge{});
   }
   if (!sensor_.value().value_or(false)) {
-    sm_->process_event(events::sensor_inactive{}); // Handle if stopping system and removing tub then start system again
+    sm_->process_event(events::sensor_inactive{});  // Handle if stopping system and removing tub then start system again
   }
 }
 // clang-format off
@@ -97,10 +97,10 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
   }
   // todo extract new final state in state machine so discharge active can be set low in final state
   discharge_active_.async_send(false, [this](auto const& err, std::size_t) {  // todo test
-  if (err) {
-    this->logger_.error("Failed to set discharge active: {}", err.message());
-  }
-});
+    if (err) {
+      this->logger_.error("Failed to set discharge active: {}", err.message());
+    }
+  });
   // Make sure we don't already have something blocking the sensor
   if (sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_active{});  // todo test
@@ -149,7 +149,13 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_discharging() {}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void sensor_control<signal_t, slot_t, sml_t>::enter_uncontrolled_discharge() {}
+void sensor_control<signal_t, slot_t, sml_t>::enter_uncontrolled_discharge() {
+  discharge_active_.async_send(true, [this](auto const& err, std::size_t) {  // todo test
+    if (err) {
+      this->logger_.error("Failed to set discharge active: {}", err.message());
+    }
+  });
+}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
