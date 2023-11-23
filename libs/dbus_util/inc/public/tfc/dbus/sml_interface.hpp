@@ -383,7 +383,7 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
 
   if (!is_entry && !is_exit) {
     std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
-    std::string guard{has_guard ? fmt::format("[{}]", get_guard_name<typename type_t::guard>()) : ""};
+    std::string guard{ has_guard ? fmt::format("[{}]", get_guard_name<typename type_t::guard>()) : "" };
     std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
 
     std::string event_label{};
