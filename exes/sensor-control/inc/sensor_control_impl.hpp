@@ -125,6 +125,8 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
   });
   if (!sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_inactive{});
+  } else if (queued_item_) {
+    sm_->process_event(events::new_info{});
   }
 }
 // clang-format off
