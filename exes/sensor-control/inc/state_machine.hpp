@@ -59,7 +59,7 @@ struct is_controlled_discharge {
 template <typename owner_t>
 struct is_uncontrolled_discharge {
   static constexpr std::string_view name{ "is_uncontrolled_discharge" };
-  auto operator()(owner_t const& owner) const noexcept -> bool { return is_controlled_discharge<owner_t>{}(owner); }
+  auto operator()(owner_t const& owner) const noexcept -> bool { return !is_controlled_discharge<owner_t>{}(owner); }
 };
 template <typename owner_t>
 struct using_discharge_delay {
