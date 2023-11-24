@@ -174,37 +174,15 @@ public:
     context_.slavelist[0].state = EC_STATE_OPERATIONAL;
     ecx::write_state(&context_, 0);
 
-    for (int i = 0; i < 10000; i++) {
-      processdata(milliseconds{ 2000 });
-      auto lowest_state = ecx_readstate(&context_);
-      if (lowest_state == EC_STATE_OPERATIONAL) {
-        // Start async loop
-        logger_.info(
-            "Ethercat bus initialized in {} tries {}",
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_config),
-            i + 1);
-        expected_wkc_ = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
-        // Start in ok
-        wkc_ = expected_wkc_;
-        async_wait(true);
-        check_thread_ = std::make_unique<std::thread>(&context_t::check_state, this, 0);
-        return {};
-      } else {
-        context_.slavelist[0].state = EC_STATE_OPERATIONAL;
-        ecx::write_state(&context_, 0);
-      }
-    }
-
-    std::string slave_status;
-    ecx_readstate(&context_);
-    auto slave_list = slave_list_as_span();
-    for (auto& slave : slave_list) {
-      if (slave.state != EC_STATE_OPERATIONAL) {
-        slave_status += fmt::format("slave -> {} is 0x{} (AL-status=0x{} {})\n", slave.name, slave.state, slave.ALstatuscode,
-                                    ec_ALstatuscode2string(slave.ALstatuscode));
-      }
-    }
-    throw std::runtime_error(slave_status);
+    processdata(milliseconds{ 2000 });
+    auto lowest_state = ecx_readstate(&context_);
+    // Start async loop
+    expected_wkc_ = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
+    // Start in ok
+    wkc_ = expected_wkc_;
+    async_wait(true);
+    check_thread_ = std::make_unique<std::thread>(&context_t::check_state, this, 0);
+    return {};
   }
 
 private:
@@ -227,7 +205,7 @@ private:
     }
     int32_t last_wkc = wkc_;
     wkc_ = processdata(microseconds{ 100 });
-    if (wkc_ < expected_wkc_ && wkc_ != last_wkc) { // Don't wot over an already logged fault.
+    if (wkc_ < expected_wkc_ && wkc_ != last_wkc) {  // Don't wot over an already logged fault.
       // ctx_.post([this]() { check_state(); });
       logger_.warn("Working counter got {} expected {}", wkc_, expected_wkc_);
     }
