@@ -146,7 +146,6 @@ public:
    * and processing IO's
    */
   auto async_start() -> std::error_code {
-    auto start_config = std::chrono::high_resolution_clock::now();
     if (!config_init(false)) {
       // TODO: Switch for error_code
       throw std::runtime_error("No slaves found!");
@@ -175,7 +174,6 @@ public:
     ecx::write_state(&context_, 0);
 
     processdata(milliseconds{ 2000 });
-    auto lowest_state = ecx_readstate(&context_);
     // Start async loop
     expected_wkc_ = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
     // Start in ok
