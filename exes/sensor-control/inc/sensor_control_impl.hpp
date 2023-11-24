@@ -67,15 +67,17 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
-  auto itm = current_item_ ? current_item_.value() : ipc::item::make();
+  if (!current_item_.has_value()) {
+    current_item_ = ipc::item::make();
+  }
   logger_.trace("I am now awaiting discharge of item: {}", current_item_->id());
   // awaiting_sensor_item_ = std::nullopt;
-  request_discharge_.async_send(itm.to_json(), [this](auto const& err, std::size_t) {
+  request_discharge_.async_send(current_item_->to_json(), [this](auto const& err, std::size_t) {
     if (err) {
       this->logger_.info("Failed to send discharge request: {}", err.message());
     }
   });
-  if (may_discharge_.value().value_or("Don't match") == itm.id()) {
+  if (may_discharge_.value().value_or("Don't match") == current_item_->id()) {
     sm_->process_event(events::discharge{});
   }
   if (!sensor_.value().value_or(false)) {
