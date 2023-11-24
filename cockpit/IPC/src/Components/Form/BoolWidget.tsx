@@ -1,5 +1,5 @@
 /* eslint-disable import/prefer-default-export */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormControlLabel, Switch, Tooltip } from '@mui/material';
 import {
   TransTitle, WidgetProps, WithValue, useUIStore,
@@ -14,11 +14,19 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const { store } = useUIStore();
 
   function getNestedValue(obj: any, path: any) {
-    return path.reduce((xs: any, x: any) => (xs[x] ? xs[x] : null), obj);
+    console.log('getNestedValue: ', obj, path);
+    console.log('getNestedValueRES: ', path.reduce((xs: any, x: any) => (xs && xs[x] ? xs[x] : false), obj));
+    return path.reduce((xs: any, x: any) => (xs && xs[x] ? xs[x] : false), obj);
   }
 
   const [value, setValue] = useState<boolean>(getNestedValue(store?.toJS().values, storeKeys.toJS()));
   const isConst = schema.get('const') as boolean ?? false;
+
+  useEffect(() => {
+    if (isConst) {
+      setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
+    }
+  }, [store]);
 
   const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setValue(event.target.checked);
