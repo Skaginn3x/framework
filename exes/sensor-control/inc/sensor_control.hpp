@@ -125,7 +125,7 @@ private:
   json_slot_t discharge_request_{ ctx_, ipc_client_, "discharge_request", "Get discharge request from upstream",
                                   std::bind_front(&sensor_control::on_discharge_request, this) };
   bool_signal_t idle_{ ctx_, ipc_client_, "idle", "Indication of not doing anything" };
-  string_signal_t discharge_allowance_uuid_{ ctx_, ipc_client_, "discharge_allowance_uuid",
+  string_signal_t discharge_allowance_{ ctx_, ipc_client_, "discharge_allowance_uuid",
                                       "Let upstream know that the uuid can discharge onto me" };
   bool_signal_t discharge_active_{ ctx_, ipc_client_, "discharge_active", "Discharging item to downstream" };
   string_slot_t may_discharge_{ ctx_, ipc_client_, "may_discharge_uuid", "Get acknowledgement of discharging item with uuid",

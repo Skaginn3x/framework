@@ -315,7 +315,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 // todo test
 void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance() {
-  discharge_allowance_uuid_.async_send(current_item_->id(), [this](auto const& err, std::size_t) {
+  discharge_allowance_.async_send(current_item_->id(), [this](auto const& err, std::size_t) {
     if (err) {
       logger_.warn("Failed to send discharge allowance: {}", err.message());
     }
