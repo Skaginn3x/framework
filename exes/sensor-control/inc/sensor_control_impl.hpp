@@ -108,7 +108,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
     return;
   }
   start_motor();
-  pulse_discharge_allowance();
+  pulse_discharge_allowance(current_item_.value());
   await_sensor_timer_.expires_after(config_->await_sensor_timeout);
   await_sensor_timer_.async_wait(std::bind_front(&sensor_control::await_sensor_timer_cb, this));
 }
@@ -188,7 +188,7 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_discharge_delayed() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging_allow_input() {
-  pulse_discharge_allowance();
+  pulse_discharge_allowance(queued_item_.value());
   if (!sensor_.value().value_or(false)) {
     sm_->process_event(events::sensor_inactive{});
   }
@@ -232,7 +232,9 @@ void sensor_control<signal_t, slot_t, sml_t>::on_discharge_request(std::string c
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(std::string const& new_value) {
-  if (new_value == current_item_->id()) {
+  auto curr_id{ current_item_.has_value() ? current_item_->id() : std::string{} };
+  logger_.trace("I know may discharge: {}, I am waiting for: {}", new_value, curr_id);
+  if (new_value == curr_id) {
     sm_->process_event(events::discharge{});
   }
 }
@@ -314,8 +316,8 @@ void sensor_control<signal_t, slot_t, sml_t>::start_motor() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 // todo test
-void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance() {
-  discharge_allowance_.async_send(current_item_->id(), [this](auto const& err, std::size_t) {
+void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance(ipc::item::item& itm) {
+  discharge_allowance_.async_send(itm.id(), [this](auto const& err, std::size_t) {
     if (err) {
       logger_.warn("Failed to send discharge allowance: {}", err.message());
     }

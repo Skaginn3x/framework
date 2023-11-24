@@ -104,7 +104,7 @@ public:
 private:
   void stop_motor();
   void start_motor();
-  void pulse_discharge_allowance();
+  void pulse_discharge_allowance(ipc::item::item& itm);
   void start_min_discharge_timer();
 
   using bool_signal_t = signal_t<ipc::details::type_bool>;
