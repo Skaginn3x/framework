@@ -130,6 +130,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_discharging() {
   start_motor();
+  start_min_discharge_timer();
   discharge_active_.async_send(true, [this](auto const& err, std::size_t) {  // todo test
     if (err) {
       this->logger_.error("Failed to set discharge active: {}", err.message());
@@ -150,6 +151,7 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_discharging() {}
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_uncontrolled_discharge() {
+  start_min_discharge_timer();
   discharge_active_.async_send(true, [this](auto const& err, std::size_t) {  // todo test
     if (err) {
       this->logger_.error("Failed to set discharge active: {}", err.message());
@@ -342,6 +344,25 @@ void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance() {
       });
     });
   }
+}
+
+// clang-format off
+template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
+// clang-format on
+// todo test
+void sensor_control<signal_t, slot_t, sml_t>::start_min_discharge_timer() {
+  min_discharge_timer_is_on_ = true;
+  min_discharge_timer_.expires_after(config_->minimum_discharge_duration);
+  min_discharge_timer_.async_wait([this](std::error_code err) {
+    if (err) {
+      logger_.info("Minimum discharge timer fault: {}", err.message());
+      return;
+    }
+    min_discharge_timer_is_on_ = false;
+    if (sensor_.value().value_or(false)) {
+      sm_->process_event(events::sensor_inactive{});
+    }
+  });
 }
 
 }  // namespace tfc

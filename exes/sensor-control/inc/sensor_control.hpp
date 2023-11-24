@@ -35,19 +35,23 @@ public:
   struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
     std::optional<std::chrono::milliseconds> discharge_allowance_pulse{ std::chrono::seconds{ 1 } };
+    std::chrono::milliseconds minimum_discharge_duration{ std::chrono::seconds{ 1 } };
     std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{ 1 } };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
     bool run_on_discharge{ true };
+    bool allow_item_removal{ false };
     struct glaze {
       using type = sensor_control_config;
       static constexpr std::string_view name{ "tfc::sensor_control" };
       // clang-format off
       static constexpr auto value{ glz::object(
         "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
-        "run speed", &type::run_speed, tfc::json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
+        "discharge allowance pulse", &type::discharge_allowance_pulse, "Pulse duration to allow discharge to upstream (if not set, will keep high until item arrives in sensor).",
+        "minimum discharge duration", &type::minimum_discharge_duration, "Minumum discharge duration, set with relation to item length and conveyor speed.",
         "await sensor timeout", &type::await_sensor_timeout, "Timeout for awaiting sensor input.",
+        "run speed", &type::run_speed, json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
         "run on discharge", &type::run_on_discharge, "Run the motor when discharging an item.",
-        "discharge allowance pulse", &type::discharge_allowance_pulse, "Pulse duration to allow discharge to upstream (if not set, will keep high until item arrives in sensor)."
+        "allow item removal", &type::allow_item_removal, "Allow removing item while awaiting discharge"
       ) };
       // clang-format on
     };
@@ -93,6 +97,8 @@ public:
   void await_sensor_timer_cb(std::error_code const&);
   void discharge_timer_cb(std::error_code const&);
   [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return discharge_timer_.has_value(); }
+  [[nodiscard]] auto allow_item_removal() const noexcept -> bool { return config_->allow_item_removal; }
+  [[nodiscard]] auto min_discharge_duration_elapsed() const noexcept -> bool { return !min_discharge_timer_is_on_; }
 
   void on_running();
   void on_running_leave();
@@ -101,6 +107,7 @@ private:
   void stop_motor();
   void start_motor();
   void pulse_discharge_allowance();
+  void start_min_discharge_timer();
 
   using bool_signal_t = signal_t<ipc::details::type_bool>;
   using double_signal_t = signal_t<ipc::details::type_double>;
@@ -138,23 +145,27 @@ private:
       std::string{ tfc::dbus::sml::tags::path },
       tfc::dbus::make_dbus_name("SensorControl")) };
 
-  tfc::dbus::sml::interface sml_interface_ {
+  dbus::sml::interface sml_interface_ {
     dbus_interface_, fmt::format("sm.{}", log_key_)
   };
   std::shared_ptr<state_machine_t> sm_{ std::make_shared<state_machine_t>(*this, sml_interface_) };
 
   asio::steady_timer await_sensor_timer_{ ctx_ };
+  asio::steady_timer min_discharge_timer_{ ctx_ };
+  bool min_discharge_timer_is_on_{ false };
   std::optional<asio::steady_timer> discharge_allowance_pulse_timer_{ std::nullopt };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
-  tfc::confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
+  confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
                                                        sensor_control_config{
                                                            .discharge_timeout = std::nullopt,
                                                            .discharge_allowance_pulse = std::chrono::seconds{ 1 },
+                                                           .minimum_discharge_duration = std::chrono::seconds{ 1 },
                                                            .await_sensor_timeout = std::chrono::minutes{ 1 },
                                                            .run_speed = 100.0 * mp_units::percent,
-                                                           .run_on_discharge = true } };
-  tfc::operation::interface operation_mode_ {
+                                                           .run_on_discharge = true,
+                                                       .allow_item_removal = false } };
+  operation::interface operation_mode_ {
     ctx_, "operation_mode"
   };
   bool first_time_{ true };

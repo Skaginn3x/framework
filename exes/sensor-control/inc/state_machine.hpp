@@ -11,30 +11,16 @@
 namespace tfc::sensor::control {
 
 namespace events {
-struct sensor_active {
-  static constexpr std::string_view name{ "sensor_active" };
-};
-struct sensor_inactive {
-  static constexpr std::string_view name{ "sensor_inactive" };
-};
-struct await_sensor_timeout {
-  static constexpr std::string_view name{ "await_sensor_timeout" };
-};
-struct new_info {
-  static constexpr std::string_view name{ "new_info" };
-};
-struct discharge {
-  static constexpr std::string_view name{ "discharge" };
-};
-struct complete {
-  static constexpr std::string_view name{ "complete" };
-};
-struct stop {
-  static constexpr std::string_view name{ "stop" };
-};
-struct start {
-  static constexpr std::string_view name{ "start" };
-};
+// clang-format off
+struct sensor_active { static constexpr std::string_view name{ "sensor_active" }; };
+struct sensor_inactive { static constexpr std::string_view name{ "sensor_inactive" }; };
+struct await_sensor_timeout { static constexpr std::string_view name{ "await_sensor_timeout" }; };
+struct new_info { static constexpr std::string_view name{ "new_info" }; };
+struct discharge { static constexpr std::string_view name{ "discharge" }; };
+struct complete { static constexpr std::string_view name{ "complete" }; };
+struct stop { static constexpr std::string_view name{ "stop" }; };
+struct start { static constexpr std::string_view name{ "start" }; };
+// clang-format on
 }  // namespace events
 
 namespace states {
@@ -70,6 +56,16 @@ template <typename owner_t>
 struct not_using_discharge_delay {
   static constexpr std::string_view name{ "not_using_discharge_delay" };
   auto operator()(owner_t const& owner) const noexcept -> bool { return !owner.using_discharge_delay(); }
+};
+template <typename owner_t>
+struct allow_item_removal {
+  static constexpr std::string_view name{ "allow_item_removal" };
+  auto operator()(owner_t const& owner) const noexcept -> bool { return owner.allow_item_removal(); }
+};
+template <typename owner_t>
+struct min_discharge_duration_elapsed {
+  static constexpr std::string_view name{ "min_discharge_duration_elapsed" };
+  auto operator()(owner_t const& owner) const noexcept -> bool { return owner.min_discharge_duration_elapsed(); }
 };
 }  // namespace guards
 
@@ -173,7 +169,7 @@ struct state_machine {
       , state<states::awaiting_discharge> + on_exit<_> / actions::leave_awaiting_discharge<owner_t>{}
       , state<states::awaiting_discharge> + event<events::discharge> [guards::is_controlled_discharge<owner_t>{}] = state<states::discharging>
       , state<states::awaiting_discharge> + event<events::discharge> [guards::is_uncontrolled_discharge<owner_t>{}] = state<states::uncontrolled_discharge>
-      , state<states::awaiting_discharge> + event<events::sensor_inactive> = state<states::idle> // todo test
+      , state<states::awaiting_discharge> + event<events::sensor_inactive> [guards::allow_item_removal<owner_t>{}] = state<states::idle> // todo test
 
       , state<states::uncontrolled_discharge> + on_entry<_> / actions::enter_uncontrolled_discharge<owner_t>{}
       , state<states::uncontrolled_discharge> + on_exit<_> / actions::leave_uncontrolled_discharge<owner_t>{}
@@ -186,12 +182,12 @@ struct state_machine {
       , state<states::discharging> + on_entry<_> / actions::enter_discharging<owner_t>{}
       , state<states::discharging> + on_exit<_> / actions::leave_discharging<owner_t>{}
 
-      , state<states::discharging> + event<events::sensor_inactive> [guards::not_using_discharge_delay<owner_t>{}] = state<states::idle>
-      , state<states::discharging> + event<events::sensor_inactive> [guards::using_discharge_delay<owner_t>{}] = state<states::discharge_delayed>
+      , state<states::discharging> + event<events::sensor_inactive> [guards::not_using_discharge_delay<owner_t>{} && guards::min_discharge_duration_elapsed<owner_t>{}] = state<states::idle>
+      , state<states::discharging> + event<events::sensor_inactive> [guards::using_discharge_delay<owner_t>{} && guards::min_discharge_duration_elapsed<owner_t>{}] = state<states::discharge_delayed>
       , state<states::discharging> + event<events::new_info> = state<states::discharging_allow_input>
 
-      , state<states::uncontrolled_discharge> + event<events::sensor_inactive> [guards::not_using_discharge_delay<owner_t>{}] = state<states::idle>
-      , state<states::uncontrolled_discharge> + event<events::sensor_inactive> [guards::using_discharge_delay<owner_t>{}] = state<states::discharge_delayed>
+      , state<states::uncontrolled_discharge> + event<events::sensor_inactive> [guards::not_using_discharge_delay<owner_t>{} && guards::min_discharge_duration_elapsed<owner_t>{}] = state<states::idle>
+      , state<states::uncontrolled_discharge> + event<events::sensor_inactive> [guards::using_discharge_delay<owner_t>{} && guards::min_discharge_duration_elapsed<owner_t>{}] = state<states::discharge_delayed>
 
       , state<states::discharge_delayed> + on_entry<_> / actions::enter_discharge_delayed<owner_t>{}
       , state<states::discharge_delayed> + on_exit<_> / actions::leave_discharge_delayed<owner_t>{}
