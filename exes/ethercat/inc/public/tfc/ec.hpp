@@ -225,18 +225,11 @@ private:
     if (err) {
       return;
     }
-<<<<<<< Updated upstream
-    int32_t const expected_wkc = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
-    if (processdata(microseconds{ 100 }) < expected_wkc || ecx_iserror(&context_) != 0U ||
-        context_.slavelist[0].state != EC_STATE_OPERATIONAL) {
-      ctx_.post([this]() { check_state(); });
-=======
     int32_t last_wkc = wkc_;
     wkc_ = processdata(microseconds{ 100 });
     if (wkc_ < expected_wkc_ && wkc_ != last_wkc) { // Don't wot over an already logged fault.
       // ctx_.post([this]() { check_state(); });
       logger_.warn("Working counter got {} expected {}", wkc_, expected_wkc_);
->>>>>>> Stashed changes
     }
     while (ecx_iserror(&context_) != 0U) {
       logger_.error("Ethercat context error: {}", ecx_elist2string(&context_));
