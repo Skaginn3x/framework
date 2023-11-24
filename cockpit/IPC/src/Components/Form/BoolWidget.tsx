@@ -14,7 +14,7 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const { store } = useUIStore();
 
   function getNestedValue(obj: any, path: any) {
-    return path.reduce((xs: any, x: any) => (xs && xs[x] ? xs[x] : null), obj);
+    return path.reduce((xs: any, x: any) => (xs[x] ? xs[x] : null), obj);
   }
 
   const [value, setValue] = useState<boolean>(getNestedValue(store?.toJS().values, storeKeys.toJS()));
