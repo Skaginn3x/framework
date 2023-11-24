@@ -11,8 +11,8 @@
 #include "beckhoff/EL3xxx.hpp"
 #include "beckhoff/EL4xxx.hpp"
 #include "beckhoff/EQ2339.hpp"
-#include "schneider/atv320.hpp"
 #include "schneider/lxm32m.hpp"
+#include "tfc/ec/devices/schneider/atv320.hpp"
 
 namespace tfc::ec::devices {
 
@@ -34,7 +34,7 @@ using devices_list = devices_type<
   beckhoff::eq2339<manager_client_t>,
   //beckhoff::el3054,
   beckhoff::el4002,
-  schneider::atv320<manager_client_t>,
+  schneider::atv320::device<manager_client_t>,
   schneider::lxm32m<manager_client_t>
 >;
 // clang-format on
