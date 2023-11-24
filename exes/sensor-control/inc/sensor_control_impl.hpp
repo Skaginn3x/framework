@@ -201,7 +201,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_discharging_allow_input() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_discharging_allow_input() {
-  // next state will set discharge allowance to false
+  current_item_.reset();
 }
 
 // clang-format off
