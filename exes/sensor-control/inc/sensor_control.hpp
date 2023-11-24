@@ -96,7 +96,7 @@ public:
 
   void await_sensor_timer_cb(std::error_code const&);
   void discharge_timer_cb(std::error_code const&);
-  [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return discharge_timer_.has_value(); }
+  [[nodiscard]] auto using_discharge_delay() const noexcept -> bool { return config_->discharge_timeout.has_value(); }
   [[nodiscard]] auto allow_item_removal() const noexcept -> bool { return config_->allow_item_removal; }
   [[nodiscard]] auto min_discharge_duration_elapsed() const noexcept -> bool { return !min_discharge_timer_is_on_; }
 
