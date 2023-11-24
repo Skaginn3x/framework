@@ -63,6 +63,11 @@ struct allow_item_removal {
   auto operator()(owner_t const& owner) const noexcept -> bool { return owner.allow_item_removal(); }
 };
 template <typename owner_t>
+struct not_allow_item_removal {
+  static constexpr std::string_view name{ "allow_item_removal" };
+  auto operator()(owner_t const& owner) const noexcept -> bool { return !owner.allow_item_removal(); }
+};
+template <typename owner_t>
 struct min_discharge_duration_elapsed {
   static constexpr std::string_view name{ "min_discharge_duration_elapsed" };
   auto operator()(owner_t const& owner) const noexcept -> bool { return owner.min_discharge_duration_elapsed(); }
@@ -170,6 +175,7 @@ struct state_machine {
       , state<states::awaiting_discharge> + event<events::discharge> [guards::is_controlled_discharge<owner_t>{}] = state<states::discharging>
       , state<states::awaiting_discharge> + event<events::discharge> [guards::is_uncontrolled_discharge<owner_t>{}] = state<states::uncontrolled_discharge>
       , state<states::awaiting_discharge> + event<events::sensor_inactive> [guards::allow_item_removal<owner_t>{}] = state<states::idle> // todo test
+      , state<states::awaiting_discharge> + event<events::sensor_inactive> [guards::not_allow_item_removal<owner_t>{}] = state<states::awaiting_sensor> // todo test
 
       , state<states::uncontrolled_discharge> + on_entry<_> / actions::enter_uncontrolled_discharge<owner_t>{}
       , state<states::uncontrolled_discharge> + on_exit<_> / actions::leave_uncontrolled_discharge<owner_t>{}
