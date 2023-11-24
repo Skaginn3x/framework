@@ -64,7 +64,7 @@ struct allow_item_removal {
 };
 template <typename owner_t>
 struct not_allow_item_removal {
-  static constexpr std::string_view name{ "allow_item_removal" };
+  static constexpr std::string_view name{ "not_allow_item_removal" };
   auto operator()(owner_t const& owner) const noexcept -> bool { return !owner.allow_item_removal(); }
 };
 template <typename owner_t>
