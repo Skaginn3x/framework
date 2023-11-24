@@ -199,12 +199,11 @@ public:
   using config_t = tfc::confman::config<confman::observable<atv_config>>;
 
   explicit device(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index)
-      : base(slave_index),
-        run_(ctx,
-             client,
-             fmt::format("atv320.s{}.run", slave_index),
-             "Turn on motor",
-             [this](bool value) { running_ = value; }),
+      : base(slave_index), run_(ctx,
+                                client,
+                                fmt::format("atv320.s{}.run", slave_index),
+                                "Turn on motor",
+                                [this](bool value) { running_ = value; }),
         ratio_(ctx,
                client,
                fmt::format("atv320.s{}.ratio", slave_index),
@@ -216,7 +215,7 @@ public:
                }),
         frequency_transmit_(ctx, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
         hmis_transmitter_(ctx, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ ctx, fmt::format("atv320_i{}", slave_index) }{
+        config_{ ctx, fmt::format("atv320_i{}", slave_index) } {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
@@ -270,11 +269,11 @@ public:
     }
     last_bool_values_ = value;
 
-    if (in->drive_state != last_hmis_){
-        hmis_transmitter_.async_send(in->drive_state, [this](auto&& PH1, size_t bytes_transfered) {
-          async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-        });
-        last_hmis_ = in->drive_state;
+    if (in->drive_state != last_hmis_) {
+      hmis_transmitter_.async_send(in->drive_state, [this](auto&& PH1, size_t bytes_transfered) {
+        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
+      });
+      last_hmis_ = in->drive_state;
     }
 
     // TODO: Design a sane method for transmitting analog signals in event based environments
@@ -379,8 +378,8 @@ public:
   }
 
 private:
-  //int16_t last_analog_inputs_;
-  //tfc::ipc::int_signal ai_transmitter_;
+  // int16_t last_analog_inputs_;
+  // tfc::ipc::int_signal ai_transmitter_;
   std::bitset<6> last_bool_values_;
   std::vector<tfc::ipc::bool_signal> di_transmitters_;
   bool running_{};

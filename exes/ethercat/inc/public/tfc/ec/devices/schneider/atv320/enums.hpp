@@ -320,4 +320,4 @@ enum struct aiol_e : uint16_t {
   positive_only = 0,          // 0 - 100%
   positive_and_negative = 1,  // +/- 100%
 };
-}
+}  // namespace tfc::ec::devices::schneider::atv320
