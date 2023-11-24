@@ -352,6 +352,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // todo test
 void sensor_control<signal_t, slot_t, sml_t>::start_min_discharge_timer() {
   min_discharge_timer_is_on_ = true;
+  logger_.trace("Starting minimum discharge timer, waiting for: {}", config_->minimum_discharge_duration);
   min_discharge_timer_.expires_after(config_->minimum_discharge_duration);
   min_discharge_timer_.async_wait([this](std::error_code err) {
     if (err) {
@@ -359,7 +360,8 @@ void sensor_control<signal_t, slot_t, sml_t>::start_min_discharge_timer() {
       return;
     }
     min_discharge_timer_is_on_ = false;
-    if (sensor_.value().value_or(false)) {
+    logger_.trace("Minimum discharge timer is now elapsed, state of sensor is: {}", sensor_.value().value_or(false));
+    if (!sensor_.value().value_or(false)) {
       sm_->process_event(events::sensor_inactive{});
     }
   });
