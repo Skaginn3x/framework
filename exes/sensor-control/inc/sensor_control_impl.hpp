@@ -75,7 +75,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
       this->logger_.info("Failed to send discharge request: {}", err.message());
     }
   });
-  if (may_discharge_.value().value_or("") == itm.id()) {
+  if (may_discharge_.value().value_or("Don't match") == itm.id()) {
     sm_->process_event(events::discharge{});
   }
   if (!sensor_.value().value_or(false)) {
@@ -235,7 +235,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(std::string const& new_value) {
   auto curr_id{ current_item_.has_value() ? current_item_->id() : std::string{} };
   logger_.trace("I know may discharge: {}, I am waiting for: {}", new_value, curr_id);
-  if (new_value == curr_id) {
+  if (!new_value.empty() && new_value == curr_id) {
     sm_->process_event(events::discharge{});
   }
 }
