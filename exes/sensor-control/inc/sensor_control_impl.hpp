@@ -29,6 +29,7 @@ void sensor_control<signal_t, slot_t, sml_t>::enter_idle() {
   } else {
     stop_motor();
   }
+  current_item_ = std::nullopt;
   // todo extract new final state in state machine so discharge active can be set low in final state
   discharge_active_.async_send(false, [this](auto const& err, std::size_t) {  // todo test
     if (err) {
@@ -66,14 +67,14 @@ void sensor_control<signal_t, slot_t, sml_t>::leave_idle() {
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_discharge() {
-  auto itm = awaiting_sensor_item_ ? std::move(awaiting_sensor_item_.value()) : ipc::item::make();
-  awaiting_sensor_item_ = std::nullopt;
+  auto itm = current_item_ ? std::move(current_item_.value()) : ipc::item::make();
+  // awaiting_sensor_item_ = std::nullopt;
   request_discharge_.async_send(itm.to_json(), [this](auto const& err, std::size_t) {
     if (err) {
       this->logger_.info("Failed to send discharge request: {}", err.message());
     }
   });
-  if (may_discharge_.value().value_or(false)) {
+  if (may_discharge_.value().value_or("") == itm.id()) {
     sm_->process_event(events::discharge{});
   }
   if (!sensor_.value().value_or(false)) {
@@ -89,10 +90,10 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::enter_awaiting_sensor() {
   logger_.trace("Entering awaiting sensor, value of sensor is: {}", sensor_.value().value_or(false));
-  if (awaiting_sensor_item_) {
-    logger_.info("I am sorry, won't discard awaiting sensor item with id: {}", awaiting_sensor_item_->id());
+  if (current_item_) {
+    logger_.info("I am sorry, won't discard awaiting sensor item with id: {}", current_item_->id());
   } else {
-    awaiting_sensor_item_ = queued_item_ ? std::move(queued_item_.value()) : ipc::item::make();
+    current_item_ = queued_item_ ? std::move(queued_item_.value()) : ipc::item::make();
     queued_item_ = std::nullopt;
   }
   // todo extract new final state in state machine so discharge active can be set low in final state
@@ -116,13 +117,6 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void sensor_control<signal_t, slot_t, sml_t>::leave_awaiting_sensor() {
   stop_motor();
-  if (!config_->discharge_allowance_pulse) {
-    discharge_allowance_.async_send(false, [this](auto const& err, std::size_t) {
-      if (err) {
-        this->logger_.warn("Failed to set discharge allowance: {}", err.message());
-      }
-    });
-  }
   await_sensor_timer_.cancel();
 }
 // clang-format off
@@ -237,8 +231,8 @@ void sensor_control<signal_t, slot_t, sml_t>::on_discharge_request(std::string c
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(bool new_value) {
-  if (new_value) {
+void sensor_control<signal_t, slot_t, sml_t>::on_may_discharge(std::string const& new_value) {
+  if (new_value == current_item_->id()) {
     sm_->process_event(events::discharge{});
   }
 }
@@ -261,7 +255,7 @@ void sensor_control<signal_t, slot_t, sml_t>::await_sensor_timer_cb(const std::e
     return;
   }
   // queued_item_.reset();  // todo test
-  awaiting_sensor_item_.reset();  // todo test
+  current_item_.reset();  // todo test
   sm_->process_event(events::await_sensor_timeout{});
 }
 
@@ -321,29 +315,11 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 // todo test
 void sensor_control<signal_t, slot_t, sml_t>::pulse_discharge_allowance() {
-  discharge_allowance_.async_send(true, [this](auto const& err, std::size_t) {
+  discharge_allowance_uuid_.async_send(current_item_->id(), [this](auto const& err, std::size_t) {
     if (err) {
       logger_.warn("Failed to send discharge allowance: {}", err.message());
     }
   });
-  if (config_->discharge_allowance_pulse) {
-    if (discharge_allowance_pulse_timer_) {
-      discharge_allowance_pulse_timer_.reset();
-    }
-    discharge_allowance_pulse_timer_ = asio::steady_timer{ ctx_ };
-    discharge_allowance_pulse_timer_->expires_after(config_->discharge_allowance_pulse.value());
-    discharge_allowance_pulse_timer_->async_wait([this](std::error_code const& err) {
-      if (err) {
-        logger_.info("Discharge allowance pulse timer error: {}", err.message());
-        return;
-      }
-      discharge_allowance_.async_send(false, [this](std::error_code const& err2, std::size_t) {
-        if (err2) {
-          logger_.warn("Failed to send discharge allowance: {}", err2.message());
-        }
-      });
-    });
-  }
 }
 
 // clang-format off

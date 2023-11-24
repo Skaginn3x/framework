@@ -34,7 +34,6 @@ public:
 
   struct sensor_control_config {
     std::optional<std::chrono::milliseconds> discharge_timeout{ std::nullopt };
-    std::optional<std::chrono::milliseconds> discharge_allowance_pulse{ std::chrono::seconds{ 1 } };
     std::chrono::milliseconds minimum_discharge_duration{ std::chrono::seconds{ 1 } };
     std::chrono::milliseconds await_sensor_timeout{ std::chrono::minutes{ 1 } };
     mp_units::quantity<mp_units::percent, double> run_speed{ 0.0 * mp_units::percent };
@@ -46,7 +45,6 @@ public:
       // clang-format off
       static constexpr auto value{ glz::object(
         "discharge delay", &type::discharge_timeout, "Delay after falling edge of sensor to keep output of discharge active high.",
-        "discharge allowance pulse", &type::discharge_allowance_pulse, "Pulse duration to allow discharge to upstream (if not set, will keep high until item arrives in sensor).",
         "minimum discharge duration", &type::minimum_discharge_duration, "Minumum discharge duration, set with relation to item length and conveyor speed.",
         "await sensor timeout", &type::await_sensor_timeout, "Timeout for awaiting sensor input.",
         "run speed", &type::run_speed, json::schema{ .description="Speed of the motor when running.", .minimum=0.0, .maximum=100.0 },
@@ -91,7 +89,7 @@ public:
 
   void on_sensor(bool new_value);
   void on_discharge_request(std::string const& new_value);
-  void on_may_discharge(bool new_value);
+  void on_may_discharge(std::string const& new_value);
   void set_queued_item(ipc::item::item&&);
 
   void await_sensor_timer_cb(std::error_code const&);
@@ -112,8 +110,10 @@ private:
   using bool_signal_t = signal_t<ipc::details::type_bool>;
   using double_signal_t = signal_t<ipc::details::type_double>;
   using json_signal_t = signal_t<ipc::details::type_json>;
+  using string_signal_t = signal_t<ipc::details::type_string>;
   using bool_slot_t = slot_t<ipc::details::type_bool>;
   using json_slot_t = slot_t<ipc::details::type_json>;
+  using string_slot_t = slot_t<ipc::details::type_string>;
 
   asio::io_context& ctx_;
   std::string_view log_key_;
@@ -125,15 +125,15 @@ private:
   json_slot_t discharge_request_{ ctx_, ipc_client_, "discharge_request", "Get discharge request from upstream",
                                   std::bind_front(&sensor_control::on_discharge_request, this) };
   bool_signal_t idle_{ ctx_, ipc_client_, "idle", "Indication of not doing anything" };
-  bool_signal_t discharge_allowance_{ ctx_, ipc_client_, "discharge_allowance",
-                                      "Let upstream know that it can discharge onto me" };
+  string_signal_t discharge_allowance_uuid_{ ctx_, ipc_client_, "discharge_allowance_uuid",
+                                      "Let upstream know that the uuid can discharge onto me" };
   bool_signal_t discharge_active_{ ctx_, ipc_client_, "discharge_active", "Discharging item to downstream" };
-  bool_slot_t may_discharge_{ ctx_, ipc_client_, "may_discharge", "Get acknowledgement of discharging my item",
+  string_slot_t may_discharge_{ ctx_, ipc_client_, "may_discharge_uuid", "Get acknowledgement of discharging item with uuid",
                               std::bind_front(&sensor_control::on_may_discharge, this) };
   double_signal_t motor_percentage_{ ctx_, ipc_client_, "motor_percentage", "Motor freq output, stopped when inactive." };
 
   std::optional<ipc::item::item> queued_item_{ std::nullopt };
-  std::optional<ipc::item::item> awaiting_sensor_item_{ std::nullopt };
+  std::optional<ipc::item::item> current_item_{ std::nullopt };
 
   logger::logger logger_{ log_key_ };
 
@@ -153,13 +153,11 @@ private:
   asio::steady_timer await_sensor_timer_{ ctx_ };
   asio::steady_timer min_discharge_timer_{ ctx_ };
   bool min_discharge_timer_is_on_{ false };
-  std::optional<asio::steady_timer> discharge_allowance_pulse_timer_{ std::nullopt };
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
   confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
                                                        sensor_control_config{
                                                            .discharge_timeout = std::nullopt,
-                                                           .discharge_allowance_pulse = std::chrono::seconds{ 1 },
                                                            .minimum_discharge_duration = std::chrono::seconds{ 1 },
                                                            .await_sensor_timeout = std::chrono::minutes{ 1 },
                                                            .run_speed = 100.0 * mp_units::percent,
