@@ -48,7 +48,7 @@ struct filter;
 /// \brief behaviour flip the state of boolean
 template <>
 struct filter<filter_e::invert, bool> {
-  static constexpr bool const_value{ true };
+  static constexpr filter_e const_value{ filter_e::invert };
 
   auto async_process(bool&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -60,7 +60,7 @@ struct filter<filter_e::invert, bool> {
   struct glaze {
     using type = filter<filter_e::invert, bool>;
     static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object("invert", &type::const_value) };
+    static constexpr auto value{ &type::const_value };
   };
 };
 

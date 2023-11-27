@@ -1,25 +1,19 @@
 #pragma once
 
-#include <any>
-#include <cmath>
+#include <chrono>
+#include <concepts>
 #include <memory>
-#include <optional>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 #include <boost/asio.hpp>
 #include <sdbusplus/bus/match.hpp>
 
-#include <client.hpp>
-#include <config/broker.hpp>
-#include <config/spark_plug_b.hpp>
-#include <config/spark_plug_b_mock.hpp>
-#include <spark_plug_interface.hpp>
-#include <structs.hpp>
-#include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/logger.hpp>
+
+#include <spark_plug_interface.hpp>
 
 namespace tfc::mqtt {
 
@@ -28,55 +22,72 @@ namespace asio = boost::asio;
 template <class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
 class tfc_to_external {
 public:
-  explicit tfc_to_external(asio::io_context& io_ctx, spark_plug_interface<spark_plug_config_t, mqtt_client_t>& spark_plug_i);
+  explicit tfc_to_external(asio::io_context& io_ctx,
+                           tfc::mqtt::spark_plug_interface<spark_plug_config_t, mqtt_client_t>& spark_plug_i)
+      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(io_ctx_) {}
 
-  auto set_signals() -> void;
-
-  auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal> const& signals) -> void;
-
-  auto set_current_values() -> asio::awaitable<void>;
-
-  auto async_receive_routine(auto&& receiver, bool& read_finished, structs::signal_data& signal) -> asio::awaitable<void>;
-
-  auto set_initial_value(ipc::details::any_slot receiver, structs::signal_data& signal) -> asio::awaitable<void>;
-
-  auto listen_to_signal(structs::signal_data& signal_data, bool& failure) -> asio::awaitable<void>;
-
-  template <typename msg_t>
-  auto handle_msg(structs::signal_data& signal_data, std::optional<msg_t> msg) -> asio::awaitable<void> {
-    if (signal_data.current_value.has_value()) {
-      // unsafe to compare floating point values with ==, so we use a tolerance
-      if constexpr (std::is_floating_point_v<msg_t>) {
-        if (std::abs(std::any_cast<msg_t>(signal_data.current_value.value()) - msg.value()) > 0.0001) {
-          logger_.info("Value changed for signal: {}", signal_data.information.name);
-          signal_data.current_value = msg.value();
-          co_await spark_plug_interface_.update_value(signal_data);
-        }
-      } else {
-        if (std::any_cast<msg_t>(signal_data.current_value.value()) != msg.value()) {
-          logger_.info("Value changed for signal: {}", signal_data.information.name);
-          signal_data.current_value = msg.value();
-          co_await spark_plug_interface_.update_value(signal_data);
-        }
-      }
-    } else {
-      logger_.info("Value changed for signal: {}", signal_data.information.name);
-      signal_data.current_value = msg.value();
-      co_await spark_plug_interface_.update_value(signal_data);
-    }
+  explicit tfc_to_external(asio::io_context& io_ctx,
+                           tfc::mqtt::spark_plug_interface<spark_plug_config_t, mqtt_client_t>& spark_plug_i,
+                           ipc_client_t ipc_client)
+      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client) {
+    static_assert(std::is_lvalue_reference<ipc_client_t>::value);
   }
 
-  auto get_signals() -> std::vector<structs::signal_data>&;
+  auto set_signals() -> void {
+    logger_.trace("Starting to add new signals...");
+    ipc_client_.signals(
+        [this](std::vector<ipc_ruler::signal> const& signals) { handle_incoming_signals_from_ipc_client(signals); });
+  }
 
-  auto clear_signals() -> void;
+  auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal> const& signals) -> void {
+    logger_.trace("Received {} new signals to add.", signals.size());
+
+    signals_.clear();
+    signals_.reserve(signals.size());
+    for (const auto& signal : signals) {
+      signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
+
+      logger_.trace("Connecting: {}", signal.name);
+
+      auto& slot = signals_.back();
+
+      std::visit(
+          [this, &slot](auto&& receiver) {
+            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+            if constexpr (!std::same_as<receiver_t, std::monostate>) {
+              auto error_code =
+                  receiver->connect(receiver->name(), [this, &slot](auto&&) { spark_plug_interface_.update_value(slot); });
+              io_ctx_.run_for(std::chrono::milliseconds(10));
+              if (error_code) {
+                logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
+              }
+            }
+          },
+          slot);
+    }
+
+    logger_.trace("All new signals added. Preparing to send NBIRTH and start signals...");
+
+    set_current_values();
+  }
+
+  auto set_current_values() -> void {
+    logger_.info("Setting current values to interface");
+
+    spark_plug_interface_.set_current_values(signals_);
+    spark_plug_interface_.send_current_values();
+  }
+
+  auto get_signals() -> std::vector<tfc::ipc::details::any_slot_cb>& { return signals_; }
+
+  auto clear_signals() -> void { signals_.clear(); }
 
 private:
   asio::io_context& io_ctx_;
   spark_plug_interface<spark_plug_config_t, mqtt_client_t>& spark_plug_interface_;
-  ipc_client_t ipc_client_{ io_ctx_ };
+  ipc_client_t ipc_client_;
   tfc::logger::logger logger_{ "tfc_to_external" };
-  std::unique_ptr<sdbusplus::bus::match::match> properties_callback_;
-  std::vector<structs::signal_data> signals_;
+  std::vector<tfc::ipc::details::any_slot_cb> signals_;
 
   friend class test_tfc_to_external;
 };
@@ -87,15 +98,6 @@ using tfc_to_ext = tfc_to_external<tfc::confman::config<config::spark_plug_b>,
 
 using tfc_to_ext_mock = tfc_to_external<config::spark_plug_b_mock,
                                         client<endpoint_client_mock, config::broker_mock>,
-                                        tfc::ipc_ruler::ipc_manager_client_mock>;
+                                        tfc::ipc_ruler::ipc_manager_client_mock&>;
 
-extern template class tfc::mqtt::tfc_to_external<
-    tfc::mqtt::config::spark_plug_b_mock,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>,
-    tfc::ipc_ruler::ipc_manager_client_mock>;
-
-extern template class tfc::mqtt::tfc_to_external<
-    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>,
-    tfc::ipc_ruler::ipc_manager_client>;
 }  // namespace tfc::mqtt

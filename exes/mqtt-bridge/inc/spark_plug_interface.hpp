@@ -11,13 +11,15 @@
 #include <variant>
 #include <vector>
 
+#include <tfc/confman.hpp>
+#include <tfc/ipc.hpp>
+#include <tfc/logger.hpp>
+#include <tfc/utils/asio_fwd.hpp>
+
 #include <client.hpp>
 #include <config/broker.hpp>
 #include <config/spark_plug_b.hpp>
 #include <config/spark_plug_b_mock.hpp>
-#include <tfc/confman.hpp>
-#include <tfc/logger.hpp>
-#include <tfc/utils/asio_fwd.hpp>
 
 namespace async_mqtt {
 class buffer;
@@ -41,10 +43,6 @@ namespace tfc::mqtt {
 
 namespace asio = boost::asio;
 
-namespace structs {
-struct signal_data;
-}
-
 enum struct type_e : std::uint8_t;
 
 using org::eclipse::tahu::protobuf::DataType;
@@ -62,13 +60,15 @@ public:
 
   static auto timestamp_milliseconds() -> std::chrono::milliseconds;
 
-  auto set_current_values(std::vector<structs::signal_data> const& metrics) -> void;
+  auto set_current_values(std::vector<tfc::ipc::details::any_slot_cb> const& metrics) -> void;
 
   auto send_current_values() -> void;
 
-  auto update_value(structs::signal_data& signal) -> asio::awaitable<void>;
-
   auto make_payload() -> Payload;
+
+  auto update_value(tfc::ipc::details::any_slot_cb& signal_data) -> void;
+
+  auto update_value_impl(tfc::ipc::details::any_slot_cb& signal_data) -> asio::awaitable<void>;
 
   auto set_value_change_callback(
       std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)> const& callback) -> void;
@@ -99,7 +99,7 @@ private:
   asio::io_context& io_ctx_;
   config_t config_{ io_ctx_, "spark_plug_b_config" };
   std::unique_ptr<mqtt_client_t> mqtt_client_;
-  std::vector<structs::signal_data> nbirth_;
+  std::vector<tfc::ipc::details::any_slot_cb> nbirth_;
   uint64_t seq_ = 1;
   tfc::logger::logger logger_{ "spark_plug_interface" };
   std::optional<std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)>>

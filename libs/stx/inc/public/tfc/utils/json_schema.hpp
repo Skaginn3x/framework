@@ -4,6 +4,8 @@
 #pragma once
 
 #include <glaze/api/impl.hpp>
+#include <glaze/core/common.hpp>
+#include <glaze/core/meta.hpp>
 #include <glaze/json/write.hpp>
 #include <glaze/util/for_each.hpp>
 
@@ -250,8 +252,7 @@ struct to_json_schema {
     if constexpr (glz::detail::glaze_t<T> && std::is_member_object_pointer_v<glz::meta_wrapper_t<T>>) {  // &T::member
       using val_t = glz::detail::member_t<T, glz::meta_wrapper_t<T>>;
       to_json_schema<val_t>::template op<Opts>(s, defs);
-    } else if constexpr (glz::detail::glaze_t<T> && std::is_pointer_v<glz::meta_wrapper_t<T>> &&
-                         std::is_const_v<std::remove_pointer_t<glz::meta_wrapper_t<T>>>) {  // &T::constexpr_member
+    } else if constexpr (glz::detail::glaze_const_value_t<T>) {  // &T::constexpr_member
       using constexpr_val_t = glz::detail::member_t<T, glz::meta_wrapper_t<T>>;
       static constexpr auto val_v{ *glz::meta_wrapper_v<T> };
       if constexpr (glz::detail::glaze_enum_t<constexpr_val_t>) {

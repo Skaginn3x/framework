@@ -48,36 +48,22 @@ auto start(asio::io_context& io_ctx_) -> asio::awaitable<void> {
 
     auto signals = tfc_to_ext.get_signals();
 
-    std::vector<asio::cancellation_signal> cancel_signals(signals.size() + 1);
-
-    logger.trace("size:  {}", signals.size() + 1);
+    asio::cancellation_signal cancel_signal{};
 
     bool restart_needed = false;
 
     asio::co_spawn(sp_interface.strand(),
                    sp_interface.wait_for_payloads(std::bind_front(&tfc::mqtt::spark_plug::process_payload, &sp_interface),
                                                   restart_needed),
-                   asio::bind_cancellation_slot(cancel_signals[0].slot(), asio::detached));
-
-    for (std::size_t i = 0; i < signals.size(); ++i) {
-      asio::co_spawn(sp_interface.strand(), tfc_to_ext.listen_to_signal(signals[i], restart_needed),
-                     asio::bind_cancellation_slot(cancel_signals[i+1].slot(), asio::detached));
-    }
+                   asio::bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
     while (!restart_needed) {
-      co_await asio::steady_timer{ sp_interface.strand(), std::chrono::milliseconds{ 5 } }.async_wait(asio::use_awaitable);
+      co_await asio::steady_timer{ sp_interface.strand(), std::chrono::milliseconds{ 200 } }.async_wait(asio::use_awaitable);
     }
 
-    for (std::size_t i = 0; i < signals.size(); ++i) {
-      logger.trace("i: {}", i);
-      cancel_signals[i].emit(asio::cancellation_type::all);
-    }
-
-    // logger.trace("Failure has occurred, restarting the program");
+    cancel_signal.emit(asio::cancellation_type::all);
 
     tfc_to_ext.clear_signals();
-
-    std::exit(10);
   }
 }
 

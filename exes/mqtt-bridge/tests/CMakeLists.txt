@@ -1,9 +1,7 @@
 add_executable(test_mqtt_bridge
   ../src/client.cpp
   ../src/spark_plug_interface.cpp
-  ../src/tfc_to_external.cpp
   ../src/external_to_tfc.cpp
-  src/test_tfc_to_external.cpp
   src/test_external_to_tfc.cpp
   src/unit_tests.cpp
 )

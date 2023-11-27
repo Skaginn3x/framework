@@ -10,4 +10,6 @@ add_test(
     COMMAND
     motor_impl_test
 )
-add_subdirectory(example)
+if(BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()
