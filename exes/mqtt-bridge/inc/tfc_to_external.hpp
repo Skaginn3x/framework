@@ -68,6 +68,8 @@ public:
 
   auto get_signals() -> std::vector<structs::signal_data>&;
 
+  auto clear_signals() -> void;
+
 private:
   asio::io_context& io_ctx_;
   spark_plug_interface<spark_plug_config_t, mqtt_client_t>& spark_plug_interface_;

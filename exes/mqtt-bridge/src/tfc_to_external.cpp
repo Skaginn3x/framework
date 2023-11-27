@@ -80,9 +80,13 @@ auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::set_curr
 
     co_await std::visit(
         [&signal_data, this]<typename recv_t>(recv_t&& receiver) -> asio::awaitable<void> {
+          logger_.trace("here1");
           using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+          logger_.trace("here2");
           if constexpr (!std::same_as<std::monostate, receiver_t>) {
+            logger_.trace("here3");
             if (!signal_data.current_value.has_value()) {
+              logger_.trace("here4");
               co_await set_initial_value(receiver, signal_data);
             }
           }
@@ -90,7 +94,7 @@ auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::set_curr
         },
         signal_data.receiver);
 
-    logger_.info("Signal_data ({}) processed and added to the payload", signal_data.information.name);
+    // logger_.info("Signal_data ({}) processed and added to the payload", signal_data.information.name);
   }
 
   spark_plug_interface_.set_current_values(signals_);
@@ -177,6 +181,12 @@ auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::listen_t
       },
       signal_data.receiver);
   co_return;
+}
+
+
+template <class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
+auto tfc_to_external<spark_plug_config_t, mqtt_client_t, ipc_client_t>::clear_signals() -> void {
+  signals_.clear();
 }
 
 }  // namespace tfc::mqtt
