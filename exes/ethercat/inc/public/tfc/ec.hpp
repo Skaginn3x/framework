@@ -218,7 +218,8 @@ private:
       return;
     }
     int32_t const expected_wkc = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
-    if (processdata(microseconds{ 100 }) < expected_wkc) {
+    if (processdata(microseconds{ 100 }) < expected_wkc || ecx_iserror(&context_) != 0U ||
+        context_.slavelist[0].state != EC_STATE_OPERATIONAL) {
       ctx_.post([this]() { check_state(); });
     }
     while (ecx_iserror(&context_) != 0U) {

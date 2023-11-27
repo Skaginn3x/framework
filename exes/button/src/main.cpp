@@ -16,6 +16,7 @@ using sml::operator""_s;
 using sml::operator""_e;
 
 using std::chrono::milliseconds;
+using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
 using std::chrono::steady_clock;
 
@@ -51,7 +52,7 @@ constexpr auto short_press = [](my_deps& deps) {
 
 constexpr auto too_long_press = [](my_deps& deps) {
   auto delta = steady_clock::now() - deps.initial_time;
-  return delta >= 2500ms;
+  return delta >= 7s;
 };
 
 // actions
