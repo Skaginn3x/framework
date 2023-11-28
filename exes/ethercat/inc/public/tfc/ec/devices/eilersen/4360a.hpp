@@ -64,23 +64,6 @@ struct calibration {
   using milligram_64bit = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, uint64_t>;
   milligram_64bit calibration_load{};
   confman::read_only<weigth_t> calibration_load_read{};
-  struct glaze {
-    static constexpr std::string_view prefix{ "eilersen::4x60a::calibration::" };
-    static constexpr auto name{ tfc::stx::string_view_join_v<prefix, glz::enum_name_v<mode>> };
-    static constexpr auto value{ glz::object(
-        "type",
-        &calibration::type,
-        "The mode of this calibration."
-        "zero",
-        &calibration::zero,
-        "Read of load cell actual value when no load other then mechanics is applied.",
-        "calibration_load",
-        &calibration::calibration_load,
-        "The calibration load weight",
-        "calibration_load_read",
-        &calibration::calibration_load_read,
-        "Read of load cell actual value when calibration load is applied onto mechanics.") };
-  };
 };
 template <>
 struct calibration<mode_e::reference> : std::false_type {
@@ -135,6 +118,23 @@ public:
 };
 }  // namespace tfc::ec::devices::eilersen::e4x60a
 
+namespace foo {
+
+template <glz::detail::glaze_enum_t type>
+constexpr auto to_string_view(type const& value) noexcept -> std::string_view {
+  static constexpr auto frozen_map = glz::detail::make_string_to_enum_map<type>();
+  const auto& member_it = frozen_map.find(value);
+  if (member_it != frozen_map.end()) {
+    // value = member_it->second;
+  }
+  // else [[unlikely]] {
+  //   ctx.error = error_code::unexpected_enum;
+  // }
+  return {};
+}
+
+}
+
 template <>
 struct glz::meta<tfc::ec::devices::eilersen::e4x60a::mode_e> {
   static constexpr std::string_view name{ "mode" };
@@ -147,4 +147,19 @@ struct glz::meta<tfc::ec::devices::eilersen::e4x60a::mode_e> {
 template <>
 struct glz::meta<tfc::ec::devices::eilersen::e4x60a::not_used> {
   static constexpr std::string_view name{ "Not used" };
+};
+
+template <tfc::ec::devices::eilersen::e4x60a::mode_e mode>
+struct glz::meta<tfc::ec::devices::eilersen::e4x60a::calibration<mode>>
+{
+  using type = tfc::ec::devices::eilersen::e4x60a::calibration<mode>;
+  static constexpr std::string_view prefix{ "eilersen::4x60a::calibration::" };
+  static constexpr auto name{ foo::to_string_view(mode) };
+  // clang-format off
+  static constexpr auto value{ glz::object(
+      "type", &type::type, "The mode of this calibration."
+      "zero", &type::zero, "Read of load cell actual value when no load other then mechanics is applied.",
+      "calibration_load", &type::calibration_load, "The calibration load weight",
+      "calibration_load_read", &type::calibration_load_read, "Read of load cell actual value when calibration load is applied onto mechanics.") };
+  // clang-format on
 };
