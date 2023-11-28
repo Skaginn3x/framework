@@ -60,7 +60,7 @@ struct filter<filter_e::invert, bool> {
   struct glaze {
     using type = filter<filter_e::invert, bool>;
     static constexpr std::string_view name{ "tfc::ipc::filter::invert" };
-    static constexpr auto value{ glz::object("type", &type::const_value) };
+    static constexpr auto value{ &type::const_value };
   };
 };
 
