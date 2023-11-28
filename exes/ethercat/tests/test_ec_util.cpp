@@ -1,10 +1,11 @@
 #include <cstdint>
+#include <fmt/format.h>
 #include <type_traits>
 
 #include <mp-units/systems/si/si.h>
 #include <boost/ut.hpp>
 #include <tfc/ec/devices/util.hpp>
-#include "tfc/ec/devices/schneider/atv320.hpp"
+#include <tfc/ec/devices/schneider/atv320.hpp>
 
 namespace ut = boost::ut;
 using tfc::ec::util::setting;
@@ -55,8 +56,8 @@ auto main(int, char**) -> int {
   };
 
   "Test atv320 custom units"_test = []() {
-    static_assert(std::chrono::seconds{ 1 } == tfc::ec::devices::schneider::deciseconds{ 10 });
-    tfc::ec::devices::schneider::deciseconds an_hour = std::chrono::hours{ 1 };
-    expect(an_hour == tfc::ec::devices::schneider::deciseconds{ 36000 });
+    static_assert(std::chrono::seconds{ 1 } == tfc::ec::devices::schneider::atv320::deciseconds{ 10 });
+    tfc::ec::devices::schneider::atv320::deciseconds an_hour = std::chrono::hours{ 1 };
+    expect(an_hour == tfc::ec::devices::schneider::atv320::deciseconds{ 36000 });
   };
 }
