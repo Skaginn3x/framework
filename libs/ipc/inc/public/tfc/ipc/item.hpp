@@ -91,8 +91,8 @@ struct species {
     return res;
   }
   [[nodiscard]] constexpr auto to_int() const noexcept -> std::uint16_t {
-    constexpr auto impl{ [](auto& input) -> std::uint16_t {
-      constexpr auto const_toupper{ [](char character) -> char {
+    static constexpr auto impl{ [](auto& input) -> std::uint16_t {
+      static constexpr auto const_toupper{ [](char character) -> char {
         if ('a' <= character && character <= 'z') {
           return static_cast<char>(character - ('a' - 'A'));
         }

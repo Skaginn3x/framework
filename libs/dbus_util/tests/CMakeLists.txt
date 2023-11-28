@@ -7,6 +7,4 @@ target_link_libraries(dbus_util_test PRIVATE Boost::ut tfc::logger tfc::base tfc
 
 add_test(NAME dbus_util_test COMMAND dbus_util_test)
 
-if(BUILD_EXAMPLES)
 add_subdirectory(examples)
-endif()

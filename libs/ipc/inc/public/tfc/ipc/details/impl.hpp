@@ -291,11 +291,6 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  auto type() const -> const type_desc& {
-    static type_desc type;
-    return type;
-  }
-
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::shared_ptr<slot_callback<type_desc>> {
     return std::shared_ptr<slot_callback<type_desc>>(new slot_callback<type_desc>{ ctx, name });
