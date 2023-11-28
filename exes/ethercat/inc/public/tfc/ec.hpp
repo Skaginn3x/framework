@@ -68,6 +68,10 @@ public:
   auto operator=(const context_t&) -> context_t& = delete;
 
   ~context_t() {
+    running_ = false;
+    if (check_thread_ != nullptr) {
+      check_thread_->join();
+    }
     // Use slave 0 -> virtual for all
     // Set state to init
     slavelist_[0].state = EC_STATE_INIT;
@@ -142,7 +146,6 @@ public:
    * and processing IO's
    */
   auto async_start() -> std::error_code {
-    auto start_config = std::chrono::high_resolution_clock::now();
     if (!config_init(false)) {
       // TODO: Switch for error_code
       throw std::runtime_error("No slaves found!");
@@ -170,33 +173,14 @@ public:
     context_.slavelist[0].state = EC_STATE_OPERATIONAL;
     ecx::write_state(&context_, 0);
 
-    for (int i = 0; i < 10000; i++) {
-      processdata(milliseconds{ 2000 });
-      auto lowest_state = ecx_readstate(&context_);
-      if (lowest_state == EC_STATE_OPERATIONAL) {
-        // Start async loop
-        logger_.info(
-            "Ethercat bus initialized in {} tries {}",
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_config),
-            i + 1);
-        async_wait(true);
-        return {};
-      } else {
-        context_.slavelist[0].state = EC_STATE_OPERATIONAL;
-        ecx::write_state(&context_, 0);
-      }
-    }
-
-    std::string slave_status;
-    ecx_readstate(&context_);
-    auto slave_list = slave_list_as_span();
-    for (auto& slave : slave_list) {
-      if (slave.state != EC_STATE_OPERATIONAL) {
-        slave_status += fmt::format("slave -> {} is 0x{} (AL-status=0x{} {})\n", slave.name, slave.state, slave.ALstatuscode,
-                                    ec_ALstatuscode2string(slave.ALstatuscode));
-      }
-    }
-    throw std::runtime_error(slave_status);
+    processdata(milliseconds{ 2000 });
+    // Start async loop
+    expected_wkc_ = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
+    // Start in ok
+    wkc_ = expected_wkc_;
+    async_wait(true);
+    check_thread_ = std::make_unique<std::thread>(&context_t::check_state, this, 0);
+    return {};
   }
 
 private:
@@ -217,10 +201,10 @@ private:
     if (err) {
       return;
     }
-    int32_t const expected_wkc = context_.grouplist->outputsWKC * 2 + context_.grouplist->inputsWKC;
-    if (processdata(microseconds{ 100 }) < expected_wkc || ecx_iserror(&context_) != 0U ||
-        context_.slavelist[0].state != EC_STATE_OPERATIONAL) {
-      ctx_.post([this]() { check_state(); });
+    int32_t last_wkc = wkc_;
+    wkc_ = processdata(microseconds{ 100 });
+    if (wkc_ < expected_wkc_ && wkc_ != last_wkc) {  // Don't wot over an already logged fault.
+      logger_.warn("Working counter got {} expected {}", wkc_, expected_wkc_);
     }
     while (ecx_iserror(&context_) != 0U) {
       logger_.error("Ethercat context error: {}", ecx_elist2string(&context_));
@@ -244,7 +228,7 @@ private:
 
     cycle_count_++;
 
-    if (last_cycle_with_sleep_ > std::chrono::milliseconds(5)) {
+    if (last_cycle_with_sleep_ > std::chrono::milliseconds(100)) {
       logger_.warn("Ethercat cycle time is too long: {}",
                    std::chrono::duration_cast<std::chrono::microseconds>(last_cycle_with_sleep_));
     }
@@ -260,49 +244,52 @@ private:
    */
   auto check_state(uint8_t group_index = 0) -> void {
     auto& grp = group_list_as_span()[group_index];
-    grp.docheckstate = FALSE;
-    ecx_readstate(&context_);
-    auto slaves = slave_list_as_span();
-    uint16_t slave_index = 1;
-    for (ec_slave& slave : slaves) {
-      if (slave.group != group_index) {
-        /* This slave is part of another group: do nothing */
-      } else if (slave.state != EC_STATE_OPERATIONAL) {
-        grp.docheckstate = TRUE;
-        if (slave.state == EC_STATE_SAFE_OP + EC_STATE_ERROR) {
-          logger_.warn("Slave {}, {} is in SAFE_OP+ERROR, attempting ACK", slave_index, slave.name);
-          slave.state = EC_STATE_SAFE_OP + EC_STATE_ACK;
-          ecx_writestate(&context_, slave_index);
-        } else if (slave.state == EC_STATE_SAFE_OP) {
-          logger_.warn("Slave {}, {} is in SAFE_OP, change to OPERATIONAL", slave_index, slave.name);
-          slave.state = EC_STATE_OPERATIONAL;
-          ecx_writestate(&context_, slave_index);
-        } else if (slave.state > EC_STATE_NONE) {
-          if (ecx_reconfig_slave(&context_, slave_index, EC_TIMEOUTRET) != 0) {
-            slave.islost = FALSE;
-            logger_.warn("Slave {}, {} reconfigured", slave_index, slave.name);
+    while (running_) {
+      if (grp.docheckstate == 1 || wkc_ < expected_wkc_) {
+        grp.docheckstate = FALSE;
+        ecx_readstate(&context_);
+        auto slaves = slave_list_as_span();
+        uint16_t slave_index = 1;
+        for (ec_slave& slave : slaves) {
+          if (slave.state != EC_STATE_OPERATIONAL) {
+            grp.docheckstate = TRUE;
+            if (slave.state == EC_STATE_SAFE_OP + EC_STATE_ERROR) {
+              logger_.warn("Slave {}, {} is in SAFE_OP+ERROR, attempting ACK", slave_index, slave.name);
+              slave.state = EC_STATE_SAFE_OP + EC_STATE_ACK;
+              ecx_writestate(&context_, slave_index);
+            } else if (slave.state == EC_STATE_SAFE_OP) {
+              logger_.warn("Slave {}, {} is in SAFE_OP, change to OPERATIONAL", slave_index, slave.name);
+              slave.state = EC_STATE_OPERATIONAL;
+              ecx_writestate(&context_, slave_index);
+            } else if (slave.state > EC_STATE_NONE) {
+              if (ecx_reconfig_slave(&context_, slave_index, EC_TIMEOUTRET) != 0) {
+                slave.islost = FALSE;
+                logger_.warn("Slave {}, {} reconfigured", slave_index, slave.name);
+              }
+            } else if (slave.islost == 0) {
+              ecx_statecheck(&context_, slave_index, EC_STATE_OPERATIONAL, EC_TIMEOUTRET);
+              if (slave.state == EC_STATE_NONE) {
+                slave.islost = TRUE;
+                logger_.warn("Slave {}, {} lost", slave_index, slave.name);
+              }
+            }
           }
-        } else if (slave.islost == 0) {
-          ecx_statecheck(&context_, slave_index, EC_STATE_OPERATIONAL, EC_TIMEOUTRET);
-          if (slave.state == EC_STATE_NONE) {
-            slave.islost = TRUE;
-            logger_.warn("Slave {}, {} lost", slave_index, slave.name);
+          if (slave.islost == 1) {
+            if (slave.state != EC_STATE_NONE) {
+              slave.islost = FALSE;
+              logger_.info("Slave {}, {} found", slave_index, slave.name);
+            } else if (ecx_recover_slave(&context_, slave_index, EC_TIMEOUTRET) != 0) {
+              slave.islost = FALSE;
+              logger_.info("Slave {}, {} recovered", slave_index, slave.name);
+            }
           }
+          slave_index++;
         }
-      } else if (slave.islost != 0) {
-        if (slave.state != EC_STATE_NONE) {
-          slave.islost = FALSE;
-          logger_.info("Slave {}, {} found", slave_index, slave.name);
-        } else if (ecx_recover_slave(&context_, slave_index, EC_TIMEOUTRET) != 0) {
-          slave.islost = FALSE;
-          logger_.info("Slave {}, {} recovered", slave_index, slave.name);
+        if (context_.grouplist->docheckstate == 0) {
+          logger_.info("All slaves resumed OPERATIONAL");
         }
       }
-      slave_index++;
-    }
-
-    if (context_.grouplist->docheckstate == 0) {
-      logger_.info("All slaves resumed OPERATIONAL");
+      std::this_thread::sleep_for(milliseconds(10));
     }
   }
 
@@ -361,6 +348,7 @@ private:
   std::array<ec_PDOdesct, ecx::constants::max_concurrent_map_thread> PDOdesc_;
   ec_eepromSMt eep_SM_;
   ec_eepromFMMUt eepFMMU_;
+  bool running_ = true;
 
   tfc::ipc_ruler::ipc_manager_client client_;
 
@@ -374,7 +362,10 @@ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> cycle_start_with_sleep_;
   std::chrono::time_point<std::chrono::high_resolution_clock> cycle_start_;
   size_t cycle_count_ = 0;
+  int32_t expected_wkc_ = 0;
+  int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
+  std::unique_ptr<std::thread> check_thread_;
 };
 
 // Template deduction guide
