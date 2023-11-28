@@ -3,9 +3,9 @@
 // For the license information refer to glaze.hpp
 #pragma once
 
-#include <glaze/core/meta.hpp>
-#include <glaze/core/common.hpp>
 #include <glaze/api/impl.hpp>
+#include <glaze/core/common.hpp>
+#include <glaze/core/meta.hpp>
 #include <glaze/json/write.hpp>
 #include <glaze/util/for_each.hpp>
 
