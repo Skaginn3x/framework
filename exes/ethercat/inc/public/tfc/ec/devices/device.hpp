@@ -37,7 +37,7 @@ using devices_list = devices_type<
   beckhoff::el4002,
   schneider::atv320::device<manager_client_t>,
   schneider::lxm32m<manager_client_t>,
-  eilersen::e4x60a<manager_client_t>
+  eilersen::e4x60a::e4x60a<manager_client_t>
 >;
 // clang-format on
 
