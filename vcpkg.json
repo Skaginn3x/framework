@@ -11,10 +11,7 @@
     "boost-stacktrace",
     "date",
     "fmt",
-    {
-      "name": "glaze",
-      "version>=": "1.6.1"
-    },
+    "glaze",
     "gtest",
     {
       "name": "libgpiod",

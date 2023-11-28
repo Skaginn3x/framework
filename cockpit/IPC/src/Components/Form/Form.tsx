@@ -26,7 +26,6 @@ import Immutable from 'immutable';
 import { AlertVariant, Button } from '@patternfly/react-core';
 import { WidgetProps as BaseWidgetProps } from '@ui-schema/ui-schema/Widget';
 import { UnitWidget } from './UnitWidget';
-import { BooleanWidget } from './BoolWidget';
 import { VariantWidget } from './VariantWidget';
 import { useAlertContext } from '../Alert/AlertContext';
 
@@ -53,7 +52,6 @@ export default function FormGenerator(
       ...widgets.custom,
       Units: UnitWidget as React.FunctionComponent<ExtendedWidgetProps>,
       Variant: VariantWidget as React.FunctionComponent<ExtendedWidgetProps>,
-      Boolean: BooleanWidget as React.FunctionComponent<ExtendedWidgetProps>,
     } as CustomWidgetBinding,
     pluginSimpleStack: validators,
   };
@@ -100,8 +98,6 @@ export default function FormGenerator(
       json[key].widget = 'Units';
     } else if (type.includes('string')) {
       json[key].widget = 'Text';
-    } else if (type.includes('boolean')) {
-      json[key].widget = 'Boolean';
     } else if (type.includes('array')) {
       json[key].widget = 'GenericList';
       json[key].notSortable = true;

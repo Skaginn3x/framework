@@ -83,6 +83,8 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
   async function generateGraphviz() {
     if (!activeItem) return;
     const graphviz = await Graphviz.load();
+    console.log(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine);
+    console.log(dbusInterfaces);
     let svgString = graphviz.dot(dbusInterfaces.find((iface) => iface.interfaceName === activeItem)?.proxy.data.StateMachine ?? '');
     svgString = svgString.replace(/width="\d+\.?\d*pt"/g, 'width="100%"');
     // same with height
@@ -109,6 +111,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
       // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
       await processProxy.call('Introspect').then(async (data: any) => {
         const interfacesData = parseXMLInterfaces(data);
+        console.log('data', interfacesData);
         // eslint-disable-next-line no-restricted-syntax
         for (const interfaceData of interfacesData) {
           const proxy = processDBUS.proxy(interfaceData, path);
@@ -147,6 +150,10 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     newSVG = toggleDarkMode(newSVG);
     setSVG(newSVG);
   }, [isDark]);
+
+  useEffect(() => {
+    generateGraphviz();
+  }, [activeItem]);
 
   useEffect(() => {
     if (!processes) return;
@@ -196,12 +203,19 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
     }
   };
 
-  useEffect(() => {
-    if (!dbusInterfaces) return;
-    if (activeItem) {
-      generateGraphviz();
+  /**
+   * Get title from dbus name
+   * @param name  string
+   * @returns string
+   */
+  function getTitle(name: string) {
+    // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
+    // return operation_mode.def.state_machine if there are more than 5 dots
+    if (name.split('.').length > 5) {
+      return name.split('.').slice(5).join('.');
     }
-  }, [dbusInterfaces, activeItem]);
+    return name;
+  }
 
   const panelContent = (
     <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
@@ -253,7 +267,7 @@ const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
                       itemId={`${iface.interfaceName}=${iface.process}`}
                       isActive={activeItem === iface.interfaceName && activeItemFilter === iface.process}
                     >
-                      {removeOrg(iface.interfaceName)}
+                      {activeItemFilter ? removeOrg(iface.interfaceName) : removeOrg(iface.interfaceName)}
                     </NavItem>
                   </Tooltip>
                 ))}

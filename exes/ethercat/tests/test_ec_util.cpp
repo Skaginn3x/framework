@@ -1,4 +1,3 @@
-#include <fmt/format.h>
 #include <cstdint>
 #include <type_traits>
 
@@ -56,8 +55,8 @@ auto main(int, char**) -> int {
   };
 
   "Test atv320 custom units"_test = []() {
-    static_assert(std::chrono::seconds{ 1 } == tfc::ec::devices::schneider::atv320::deciseconds{ 10 });
-    tfc::ec::devices::schneider::atv320::deciseconds an_hour = std::chrono::hours{ 1 };
-    expect(an_hour == tfc::ec::devices::schneider::atv320::deciseconds{ 36000 });
+    static_assert(std::chrono::seconds{ 1 } == tfc::ec::devices::schneider::deciseconds{ 10 });
+    tfc::ec::devices::schneider::deciseconds an_hour = std::chrono::hours{ 1 };
+    expect(an_hour == tfc::ec::devices::schneider::deciseconds{ 36000 });
   };
 }
