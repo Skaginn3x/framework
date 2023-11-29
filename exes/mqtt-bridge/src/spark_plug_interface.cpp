@@ -189,7 +189,7 @@ auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> voi
           },
           signal_data);
 
-      variable_metric->set_name(format_signal_name(name));
+      variable_metric->set_name(name);
       variable_metric->set_timestamp(timestamp_milliseconds().count());
       variable_metric->set_datatype(type_enum_convert(type));
 
