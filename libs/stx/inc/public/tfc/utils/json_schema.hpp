@@ -332,16 +332,16 @@ struct to_json_schema<T> {
     // });
     s.oneOf = std::vector<schematic>(N);
     glz::for_each<N>([&](auto I) {
-      static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
+      static constexpr auto item = glz::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
-      enumeration.attributes.constant = glz::tuplet::get<0>(item);
-      enumeration.attributes.title = glz::tuplet::get<0>(item);
+      enumeration.attributes.constant = glz::get<0>(item);
+      enumeration.attributes.title = glz::get<0>(item);
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
-        using additional_data_type = decltype(glz::tuplet::get<2>(item));
+        using additional_data_type = decltype(glz::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
-          enumeration.attributes.description = glz::tuplet::get<2>(item);
+          enumeration.attributes.description = glz::get<2>(item);
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
-          enumeration.attributes = glz::tuplet::get<2>(item);
+          enumeration.attributes = glz::get<2>(item);
         }
       }
     });
@@ -444,23 +444,23 @@ struct to_json_schema<T> {
     static constexpr auto N = std::tuple_size_v<glz::meta_t<V>>;
     s.properties = std::map<std::string_view, schema, std::less<>>();
     glz::for_each<N>([&](auto I) {
-      static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
-      using mptr_t = decltype(glz::tuplet::get<1>(item));
+      static constexpr auto item = glz::get<I>(glz::meta_v<V>);
+      using mptr_t = decltype(glz::get<1>(item));
       using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
       auto& def = defs[glz::name_v<val_t>];
       auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
         // clang-format on
-        using additional_data_type = decltype(glz::tuplet::get<2>(item));
+        using additional_data_type = decltype(glz::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
-          ref_val.description = glz::tuplet::get<2>(item);
+          ref_val.description = glz::get<2>(item);
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
-          ref_val = glz::tuplet::get<2>(item);
+          ref_val = glz::get<2>(item);
           ref_val.ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>>;
         }
       }
-      (*s.properties)[glz::tuplet::get<0>(item)] = ref_val;
+      (*s.properties)[glz::get<0>(item)] = ref_val;
 
       if (!def.type) {
         to_json_schema<val_t>::template op<Opts>(def, defs);
