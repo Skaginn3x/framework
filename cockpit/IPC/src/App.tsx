@@ -1,5 +1,5 @@
 /* eslint-disable react/require-default-props */
-import React from 'react';
+import React, { Suspense } from 'react';
 import './App.css';
 
 import {
@@ -14,8 +14,9 @@ import Configurator from './views/Configurator';
 import Connections from './views/Connections';
 import NotFoundPage from './views/NotFoundPage';
 import ListDBUS from './views/ListDBUS';
-import IODebug from './views/IODebug';
 import StateMachine from './views/StateMachine';
+
+const IODebugLazy = React.lazy(() => import('./views/IODebug'));
 
 export type DarkModeType = {
   isDark: boolean;
@@ -30,11 +31,23 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   console.log(query);
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   console.log('Found service: ', id);
+
+  const includeIODebug = process.env.REACT_APP_INCLUDE_IODEBUG === 'true';
+  console.log('Include IO Debug: ', includeIODebug);
+
   switch (id) {
     case 'connect': return <Connections isDark={isDark} />;
     case 'configure': return <Configurator isDark={isDark} />;
     case 'list': return <ListDBUS isDark={isDark} />;
-    case 'debug': return <IODebug isDark={isDark} />;
+    case 'debug':
+      if (includeIODebug) {
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <IODebugLazy isDark={isDark} />
+          </Suspense>
+        );
+      }
+      return <div style={{ color: isDark ? '#EEE' : '#222' }}>The build does not contain the IODebug feature.</div>;
     case 'state_machine': return <StateMachine isDark={isDark} />;
     default: return <NotFoundPage />;
   }
