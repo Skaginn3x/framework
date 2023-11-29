@@ -45,7 +45,6 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
       const filteredNames = allNames.filter(
         (name: string) => name.includes('config')
           && !name.includes('ipc_ruler'),
-        // && !name.includes('_filters_'),
       );
       setNames(filteredNames);
     });
