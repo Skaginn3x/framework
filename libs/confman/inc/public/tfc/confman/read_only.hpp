@@ -7,6 +7,7 @@
 
 #include <glaze/util/parse.hpp>
 
+#include <tfc/utils/json_schema.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
 namespace tfc::confman {
@@ -74,6 +75,7 @@ template <typename value_t>
 struct to_json_schema<tfc::confman::read_only<value_t>> {
   template <auto opts>
   static void op(auto& schema, auto& defs) noexcept {
+    schema.attributes.read_only = true;
     to_json_schema<value_t>::template op<opts>(schema, defs);
   }
 };
