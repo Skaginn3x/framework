@@ -51,6 +51,7 @@ namespace tfc::ec::devices::eilersen::e4x60a {
 namespace asio = boost::asio;
 static constexpr std::size_t max_cells{ 4 };
 using signal_t = std::uint32_t;
+using weight_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>>;
 
 struct used_cells {
   bool cell_1{};
@@ -80,26 +81,32 @@ using get_used_cell_t = typename get_used_cell<mode>::type;
 static_assert(std::same_as<get_used_cell_t<cell_mode_e::single>, used_cell>);
 static_assert(std::same_as<get_used_cell_t<cell_mode_e::group_1>, used_cells>);
 
+struct calibration_zero {
+  confman::read_only<signal_t> read{};
+  confman::observable<bool> do_calibrate{ false };
+};
+
+struct calibration_weight {
+  confman::read_only<signal_t> read{};
+  weight_t weight{};
+  confman::observable<bool> do_calibrate{ false };
+};
+
 // todo support pounds ?
 template <cell_mode_e mode>
 struct calibration {
-  using weight_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>>;
   static constexpr auto name{ glz::enum_name_v<mode> };
-  confman::read_only<signal_t> zero{};
-  weight_t calibration_load{};
-  confman::read_only<signal_t> calibration_load_read{};
+  calibration_zero calibration_zero{};
+  calibration_weight calibration_weight{};
+  std::optional<weight_t> tare_weight{};
   weight_t minimum_load{ 1 * mp_units::si::kilogram };
   weight_t maximum_load{ 100 * mp_units::si::kilogram };
-  confman::read_only<weight_t> tare_weight{ 0 * mp_units::si::kilogram };
   weight_t max_zero_drift{ 500 * mp_units::si::gram };
   bool track_zero_drift{ false };
   // https://adamequipment.co.uk/content/post/d-vs-e-values/?fbclid=IwAR3x2eF7m1RXF9VSk-uxb391Sh_JnK0tK53hBycqdAj5hNdl0KmmZoXgyvk
   weight_t verification_scale_interval{ 10 * mp_units::si::gram }; // so called `e`
   get_used_cell_t<mode> this_cells{};
   // Below we declare boolean actions to perform on the device throught the config API
-  bool make_tare{ false };
-  bool make_zero{ false };
-  bool make_load{ false };
 };
 
 template <>
@@ -169,6 +176,31 @@ struct meta<e4x60a::used_cells> {
   // clang-format on
 };
 
+template <>
+struct meta<e4x60a::calibration_zero> {
+  using type = e4x60a::calibration_zero;
+  static constexpr std::string_view name{ "4x60a::calibration_zero" };
+  // clang-format off
+  static constexpr auto value{ glz::object(
+    "signal_read", &type::read, "The read value of the calibration zero",
+    "do_calibrate_zero", &type::do_calibrate, "Set to true to calibrate the zero"
+  ) };
+  // clang-format on
+};
+
+template <>
+struct meta<e4x60a::calibration_weight> {
+  using type = e4x60a::calibration_weight;
+  static constexpr std::string_view name{ "4x60a::calibration_weight" };
+  // clang-format off
+  static constexpr auto value{ glz::object(
+    "signal_read", &type::read, "The actual value signal from load cell/cells of the calibration weight",
+    "weight", &type::weight, tfc::json::schema{ .description = "Calibration weight", .default_value = 1UL },
+    "do_calibrate_with_load", &type::do_calibrate, "Set to true to calibrate the weight"
+  ) };
+  // clang-format on
+};
+
 template <e4x60a::cell_mode_e mode>
 struct meta<e4x60a::calibration<mode>> {
   using type = e4x60a::calibration<mode>;
@@ -177,19 +209,15 @@ struct meta<e4x60a::calibration<mode>> {
   // clang-format off
   static constexpr auto value{ glz::object(
       "type", &type::name, tfc::json::schema{ .description="The mode of this calibration.", .constant = type::name },
-      "zero", &type::zero, "Read of load cell actual value when no load other then mechanics is applied.",
-      "calibration_load", &type::calibration_load, tfc::json::schema{ .description="The calibration load weight", .default_value = 1UL },
-      "calibration_load_read", &type::calibration_load_read, "Read of load cell actual value when calibration load is applied onto mechanics.",
+      "calibration_zero", &type::calibration_zero, "Calibrate zero factors.",
+      "calibration_weight", &type::calibration_weight, "Calibrate weight factors.",
+      "tare_weight", &type::tare_weight, "The tare weight, will be subtracted from the weight. This is the weight of the container such as a box or a bag.",
       "minimum_load", &type::minimum_load, "The minimum load weight, won't report values below this.",
       "maximum_load", &type::maximum_load, "The maximum load weight, won't report values above this and load cells could get damaged.",
-      "tare_weight", &type::tare_weight, "The tare weight, will be subtracted from the weight. This is the weight of the container such as a box or a bag.",
       "max_zero_drift", &type::max_zero_drift, "The maximum zero drift, if zero has drifted greater than this value the weigher will be in errorous state.",
       "track_zero_drift", &type::track_zero_drift, "If true the zero drift will be tracked when stable for 1 sec zero reading. Will update zero but not change the config.",
       "verification_scale_interval", &type::verification_scale_interval, "The smallest scale increment that can be used to determine price by weight in commercial transactions known as `e`.",
-      "cell/cells", &type::this_cells, "The cells to use for this calibration.",
-      "make_tare", &type::make_tare, "Make tare action, will store current weight to `tare_weight` attribute.",
-      "make_zero", &type::make_zero, "Make zero action, will store current signal value to `zero` attribute.",
-      "make_load", &type::make_load, "Make calibration load action, will store current signal value to `calibration_load_read` attribute."
+      "cell/cells", &type::this_cells, "The cells to use for this calibration."
       ) };
   // clang-format on
 };
