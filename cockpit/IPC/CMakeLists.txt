@@ -1,12 +1,12 @@
 
 configure_file(${CMAKE_CURRENT_LIST_DIR}/src/variables.js.in ${CMAKE_CURRENT_LIST_DIR}/src/variables.js @ONLY)
 
-option(INCLUDE_DBUG "Include the dbuggingUI page in the build" ON)
+option(INCLUDE_DEBUG "Include the dbuggingUI page in the build" ON)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build
   COMMAND npm install --no-package-lock
-  COMMAND GENERATE_SOURCEMAP=false BUILD_PATH='./build' INCLUDE_DBUG=$<BOOL:${INCLUDE_DBUG}> ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/react-scripts/bin/react-scripts.js build
+  COMMAND GENERATE_SOURCEMAP=false BUILD_PATH='./build' INCLUDE_DEBUG=$<BOOL:${INCLUDE_DEBUG}> ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/react-scripts/bin/react-scripts.js build
   COMMAND rm -rf ${CMAKE_CURRENT_SOURCE_DIR}/node_modules
   COMMAND rm -rf ${CMAKE_CURRENT_BINARY_DIR}/build
   COMMAND mv ${CMAKE_CURRENT_SOURCE_DIR}/build ${CMAKE_CURRENT_BINARY_DIR}

@@ -32,7 +32,7 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   console.log('Found service: ', id);
 
-  const includeIODebug = process.env.REACT_APP_INCLUDE_IODEBUG === 'true';
+  const includeIODebug = process.env.REACT_APP_INCLUDE_DEBUG === 'true';
   console.log('Include IO Debug: ', includeIODebug);
 
   switch (id) {
