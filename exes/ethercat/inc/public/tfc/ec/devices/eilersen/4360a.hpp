@@ -50,7 +50,7 @@ namespace tfc::ec::devices::eilersen::e4x60a {
 
 namespace asio = boost::asio;
 static constexpr std::size_t max_cells{ 4 };
-using signal_t = std::uint32_t;
+using signal_t = std::int32_t;
 using weight_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>>;
 
 struct used_cells {
@@ -253,17 +253,17 @@ struct meta<e4x60a::config> {
 namespace tfc::ec::devices::eilersen::e4x60a {
 
 struct lc_status {
-  bool cell_1_working : 1 {};
-  bool cell_2_working : 1 {};
-  bool cell_3_working : 1 {};
-  bool cell_4_working : 1 {};
+  bool cell_1_broken : 1 {};
+  bool cell_2_broken : 1 {};
+  bool cell_3_broken : 1 {};
+  bool cell_4_broken : 1 {};
   std::uint8_t unused : 4 {};
 };
 
 #pragma pack(push, 1)
 struct pdo_input {
   lc_status status{};
-  std::uint8_t nr_of_cells_at_power_on{};
+  std::uint8_t nr_of_inputs{};
   signal_t weight_1{};
   signal_t weight_2{};
   signal_t weight_3{};
@@ -295,14 +295,14 @@ public:
       this->logger_.warn("Invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
       return;
     }
-    auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
-    if (input->nr_of_cells_at_power_on > max_cells) {
-      this->logger_.warn("Invalid number of active cells, expected less than {}, got {}", max_cells,
-                         input->nr_of_cells_at_power_on);
-      return;
-    }
-    for (auto used_cell_nr{ 0U }; used_cell_nr < input->nr_of_cells_at_power_on; ++used_cell_nr) {
-    }
+    [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
+    // if (input->nr_of_cells_at_power_on > max_cells) {
+    //   this->logger_.warn("Invalid number of active cells, expected less than {}, got {}", max_cells,
+    //                      input->nr_of_cells_at_power_on);
+    //   return;
+    // }
+    // for (auto used_cell_nr{ 0U }; used_cell_nr < input->nr_of_cells_at_power_on; ++used_cell_nr) {
+    // }
   }
 
   static constexpr uint32_t product_code = 0x1040;
