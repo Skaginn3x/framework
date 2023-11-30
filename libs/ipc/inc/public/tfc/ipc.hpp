@@ -216,6 +216,7 @@ using uint_slot = slot<details::type_uint>;
 using double_slot = slot<details::type_double>;
 using string_slot = slot<details::type_string>;
 using json_slot = slot<details::type_json>;
+using mass_slot = slot<details::type_mass>;
 using any_slot = std::variant<std::monostate,  //
                               bool_slot,       //
                               int_slot,        //
@@ -232,6 +233,7 @@ using uint_signal = signal<details::type_uint>;
 using double_signal = signal<details::type_double>;
 using string_signal = signal<details::type_string>;
 using json_signal = signal<details::type_json>;
+using mass_signal = signal<details::type_mass>;
 using any_signal = std::variant<std::monostate,  //
                                 bool_signal,     //
                                 int_signal,      //
@@ -260,6 +262,8 @@ struct make_any {
         return ipc_base_t<details::type_string, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case _json:
         return ipc_base_t<details::type_json, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _mass:
+        return ipc_base_t<details::type_mass, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case unknown:
         return std::monostate{};
     }

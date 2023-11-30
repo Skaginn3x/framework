@@ -385,6 +385,8 @@ struct make_any_ptr {
         return ipc_base_t<type_string>::create(std::forward<decltype(args)>(args)...);
       case type_e::_json:
         return ipc_base_t<type_json>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_mass:
+        return ipc_base_t<type_mass>::create(std::forward<decltype(args)>(args)...);
       case type_e::unknown:
         return std::monostate{};
     }

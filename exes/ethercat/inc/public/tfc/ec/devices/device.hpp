@@ -13,7 +13,7 @@
 #include "beckhoff/EQ2339.hpp"
 #include "schneider/lxm32m.hpp"
 #include "schneider/atv320.hpp"
-#include "eilersen/4360a.hpp"
+#include "eilersen/4x60a.hpp"
 
 namespace tfc::ec::devices {
 

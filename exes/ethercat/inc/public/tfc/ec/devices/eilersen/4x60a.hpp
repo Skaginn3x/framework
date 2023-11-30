@@ -9,8 +9,6 @@
 #include <functional>
 
 #include <mp-units/systems/si/si.h>
-// todo pounds
-// #include <mp-units/systems/international/international.h>
 #include <boost/asio/io_context.hpp>
 
 #include <tfc/utils/units_glaze_meta.hpp>
@@ -95,7 +93,6 @@ struct calibration_weight {
   confman::observable<bool> do_calibrate{ false };
 };
 
-// todo support pounds ?
 template <cell_mode_e mode>
 struct calibration {
   static constexpr auto name{ glz::enum_name_v<mode> };
@@ -109,7 +106,7 @@ struct calibration {
   // https://adamequipment.co.uk/content/post/d-vs-e-values/?fbclid=IwAR3x2eF7m1RXF9VSk-uxb391Sh_JnK0tK53hBycqdAj5hNdl0KmmZoXgyvk
   weight_t verification_scale_interval{ 10 * mp_units::si::gram }; // so called `e`
   get_used_cell_t<mode> this_cells{};
-  // Below we declare boolean actions to perform on the device throught the config API
+  std::string group_name{}; // this calibration group name
 };
 
 template <>
@@ -137,6 +134,36 @@ std::variant<not_used, calibration<cell_mode_e::single>, calibration<cell_mode_e
 struct calibration_config {
   calibration_types calibration_v{ not_used{} };
   confman::observable<bool> sealed{ false };
+  auto get_zero() const noexcept -> std::optional<signal_t> {
+    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<signal_t> {
+      if constexpr (std::convertible_to<visitor_t, not_used>) {
+        return std::nullopt;
+      }
+      else {
+        return visitor.calibration_zero.read.value();
+      }
+    }, calibration_v);
+  }
+  auto get_calibration_weight() const noexcept -> std::optional<std::pair<signal_t, weight_t>> {
+    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::pair<signal_t, weight_t>> {
+      if constexpr (std::convertible_to<visitor_t, not_used>) {
+        return std::nullopt;
+      }
+      else {
+        return std::make_pair(visitor.calibration_weight.read.value(), visitor.calibration_weight.weight);
+      }
+    }, calibration_v);
+  }
+  auto get_group_name() const noexcept -> std::optional<std::string_view> {
+    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::string_view> {
+      if constexpr (std::convertible_to<visitor_t, not_used>) {
+        return std::nullopt;
+      }
+      else {
+        return visitor.group_name;
+      }
+    }, calibration_v);
+  }
 };
 
 struct calibration_sealed_config {
@@ -220,7 +247,10 @@ struct meta<e4x60a::calibration<mode>> {
       "max_zero_drift", &type::max_zero_drift, "The maximum zero drift, if zero has drifted greater than this value the weigher will be in errorous state.",
       "track_zero_drift", &type::track_zero_drift, "If true the zero drift will be tracked when stable for 1 sec zero reading. Will update zero but not change the config.",
       "verification_scale_interval", &type::verification_scale_interval, "The smallest scale increment that can be used to determine price by weight in commercial transactions known as `e`.",
-      "cell/cells", &type::this_cells, "The cells to use for this calibration."
+      "cell/cells", &type::this_cells, "The cells to use for this calibration.",
+      "group_name", &type::group_name, tfc::json::schema{
+        .description= "The name of this calibration group, used for naming IPC signal. Requires restart of the process.",
+        .min_length = 3, .max_length = 30, .pattern = "^[a-zA-Z0-9_]+$" }
       ) };
   // clang-format on
 };
@@ -268,10 +298,7 @@ struct lc_status {
 struct pdo_input {
   lc_status status{};
   std::uint8_t nr_of_inputs{};
-  signal_t weight_1{};
-  signal_t weight_2{};
-  signal_t weight_3{};
-  signal_t weight_4{};
+  signal_t weight_signals[max_cells]{};
 };
 #pragma pack(pop)
 static_assert(sizeof(pdo_input) == 18);
@@ -285,6 +312,12 @@ struct pdo_output {
 };
 #pragma pack(pop)
 static_assert(sizeof(pdo_output) == 4);
+
+
+template <template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
+struct instance {
+
+};
 
 template <typename manager_client_type,
           template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
@@ -312,6 +345,22 @@ public:
       return;
     }
     [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
+
+    // for (auto const& section : config_->variations) {
+    //   std::visit([](auto const& visitor) {
+    //     std::visit([]<typename conf_t>(conf_t const& conf) {
+    //       if constexpr (std::convertible_to<conf_t, not_used>) {
+    //         return;
+    //       }
+    //       else if constexpr (std::convertible_to<conf_t, calibration<cell_mode_e::single>>) {
+    //
+    //       }
+    //       else {
+    //
+    //       }
+    //     }, visitor.calibration_v);
+    //   }, section);
+    // }
     // if (input->nr_of_cells_at_power_on > max_cells) {
     //   this->logger_.warn("Invalid number of active cells, expected less than {}, got {}", max_cells,
     //                      input->nr_of_cells_at_power_on);
