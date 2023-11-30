@@ -197,6 +197,7 @@ public:
   static auto constexpr value_e{ type_desc::value_e };
   using packet_t = packet<value_t, value_e>;
   static auto constexpr direction_v = direction_e::slot;
+  static int64_t constexpr reconnect_interval = 1000;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
@@ -211,6 +212,7 @@ public:
     socket_ = azmq::sub_socket(socket_.get_io_context(), true);
     boost::system::error_code error_code;
     std::string const socket_path{ utils::socket::zmq::ipc_endpoint_str(signal_name) };
+    zmq_setsockopt(socket_.native_handle(), ZMQ_RECONNECT_IVL, &reconnect_interval, sizeof(int));
     if (socket_.connect(socket_path, error_code)) {
       return error_code;
     }

@@ -161,6 +161,13 @@ auto client<client_t, config_t>::subscribe_to_topic(std::string topic) -> asio::
 
   auto suback_packet = suback_received.template get<async_mqtt::v5::suback_packet>();
 
+  auto* suback_packet_ptr = suback_received.template get_if<async_mqtt::v5::suback_packet>();
+
+  if (suback_packet_ptr == nullptr) {
+    logger_.error("Received packet is not a SUBACK packet");
+    co_return false;
+  }
+
   for (auto const& entry : suback_packet.entries()) {
     if (entry != async_mqtt::suback_reason_code::granted_qos_0) {
       logger_.error("Error subscribing to topic: {}, reason code: {}", topic.data(),
