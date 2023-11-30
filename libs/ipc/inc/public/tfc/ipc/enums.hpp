@@ -50,8 +50,8 @@ enum struct mass_error_e : std::uint8_t {
   unknown_error,
 };
 
-static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
-                                                                  "double",  "string", "json" };
+static constexpr std::array<std::string_view, 8> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
+                                                                  "double",  "string", "json", "mass" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];
