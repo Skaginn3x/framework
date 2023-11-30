@@ -356,12 +356,44 @@ struct to_json_schema<glz::basic_raw_json<T>> {
   }
 };
 
+template <class T>
+struct is_std_array {
+  static constexpr auto value{ false };
+};
+template <class T, std::size_t N>
+struct is_std_array<std::array<T, N>> {
+  static constexpr auto value{ true };
+};
+
+template <typename T>
+concept has_fixed_size = requires {
+  requires is_std_array<T>::value; // todo something else with fixed T::size
+};
+static_assert(has_fixed_size<std::array<int, 3>>);
+static_assert(!has_fixed_size<std::vector<int>>);
+
+template <typename T>
+struct get_size {
+  static constexpr auto value{ T::size };
+};
+
+template <typename T, std::size_t siz>
+struct get_size<std::array<T, siz>> {
+  static constexpr auto value{ siz };
+};
+template <typename T>
+static constexpr auto get_size_v{ get_size<T>::value };
+
 template <glz::detail::array_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
     using V = std::decay_t<glz::range_value_t<std::decay_t<T>>>;
     s.type = { "array" };
+    if constexpr (has_fixed_size<T>) {
+      s.attributes.min_items = get_size_v<T>;
+      s.attributes.max_items = get_size_v<T>;
+    }
     auto& def = defs[glz::name_v<V>];
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
