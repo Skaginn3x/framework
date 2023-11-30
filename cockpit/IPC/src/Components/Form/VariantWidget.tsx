@@ -60,32 +60,40 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    * @param vals  Store
    * @returns selected object title
    */
-  function findSelectedTitle(oneOf:any, vals:any) {
-    if (vals === undefined) { return null; }
+  interface SchemaElement {
+    title: string;
+    const?: any;
+    properties?: Record<string, any>;
+  }
 
-    // if vals is null, return std::monostate
-    if (vals === null && oneOf.toJS().map((item: any) => item.title).includes('std::monostate')) {
-      return 'std::monostate';
+  function findSelectedTitle(oneOf: { toJS: () => SchemaElement[] }, vals: Record<string, any> | null): string | null {
+    if (vals === null) {
+      const oneOfJS = oneOf.toJS();
+      return oneOfJS.some((item) => item.title === 'std::monostate') ? 'std::monostate' : null;
     }
-    if (vals === null) { return null; }
-    // Get key from store to determine what is selected
-    const selectedProp = Object.keys(vals).length > 0 ? Object.keys(vals)[0] : undefined;
-    if (!selectedProp) { return null; }
 
-    // if schema is invalid
-    if (!oneOf || oneOf.toJS().length === 0) {
-      console.error('Cannot find selected object.');
+    if (!vals || !oneOf || oneOf.toJS().length === 0) {
+      console.error('Invalid input for finding selected object.');
       return null;
     }
+
+    const selectedProp = Object.keys(vals)[0];
+    if (!selectedProp) {
+      return null;
+    }
+
     const oneOfJS = oneOf.toJS();
 
-    // Look through each oneOf object to find key under properties.
     // eslint-disable-next-line no-restricted-syntax
     for (const element of oneOfJS) {
-      if (element.properties && Object.keys(element.properties).includes(selectedProp)) {
+      if (element.const === vals) {
+        return element.title;
+      }
+      if (element.properties && selectedProp in element.properties) {
         return element.title;
       }
     }
+
     return null;
   }
 
@@ -93,6 +101,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
+  console.log('storeValue: ', storeValue);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
 
   function findConst(oneOf:any, selected:any) {
