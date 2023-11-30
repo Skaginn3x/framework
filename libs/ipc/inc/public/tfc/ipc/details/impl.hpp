@@ -213,9 +213,7 @@ public:
     std::string const socket_path{ utils::socket::zmq::ipc_endpoint_str(signal_name) };
 
     boost::system::error_code error_code;
-    if (socket_.set_option(
-            azmq::socket::reconnect_ivl(reconnect_interval.count()),
-            error_code)) {
+    if (socket_.set_option(azmq::socket::reconnect_ivl(reconnect_interval.count()), error_code)) {
       return error_code;
     }
 
