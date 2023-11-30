@@ -99,7 +99,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
-  console.log('storeValue: ', storeValue);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
 
   function findConst(oneOf:any, selected:any) {

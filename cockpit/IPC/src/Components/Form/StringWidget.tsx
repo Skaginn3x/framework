@@ -16,7 +16,6 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
   function getNestedValue(obj: any, path: any) {
     return path.reduce((xs: any, x: any) => (xs && xs[x] !== undefined ? xs[x] : ''), obj);
   }
-
   const constValue = schema.get('const') as string;
   const isConst = constValue !== undefined;
   const [value, setValue] = useState<string>(isConst ? constValue : getNestedValue(store?.toJS().values, storeKeys.toJS()));

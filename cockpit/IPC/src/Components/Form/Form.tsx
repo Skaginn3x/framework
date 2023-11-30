@@ -91,7 +91,7 @@ export default function FormGenerator(
     }
 
     if ('const' in json[key] && json[key].const !== undefined) {
-      json[key].widget = 'Text';
+      json[key].widget = 'String';
     }
 
     if ('enum' in json[key]) {
