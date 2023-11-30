@@ -36,6 +36,20 @@ enum struct type_e : std::uint8_t {
 
 };
 
+enum struct mass_error_e : std::uint8_t {
+  no_error = 0,
+  cell_fault,
+  module_fault,
+  power_failure, // Supply voltage too low
+  over_range, // Over max value
+  under_range, // Under min value, probably not used
+  bad_connection,
+  zero_error,
+  calibration_error,
+  not_calibrated,
+  unknown_error,
+};
+
 static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
                                                                   "double",  "string", "json" };
 
