@@ -197,7 +197,7 @@ public:
   static auto constexpr value_e{ type_desc::value_e };
   using packet_t = packet<value_t, value_e>;
   static auto constexpr direction_v = direction_e::slot;
-  constexpr int64_t reconnect_interval = 1000;
+  static int64_t constexpr reconnect_interval = 1000;
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
