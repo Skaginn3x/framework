@@ -212,7 +212,7 @@ public:
     boost::system::error_code error_code;
     std::string const socket_path{ utils::socket::zmq::ipc_endpoint_str(signal_name) };
     // set reconnect interval to 1 second
-    int64_t reconnect = 1000;
+    constexpr int64_t reconnect = 1000;
     zmq_setsockopt(socket_.native_handle(), ZMQ_RECONNECT_IVL, &reconnect, sizeof(int));
     if (socket_.connect(socket_path, error_code)) {
       return error_code;
