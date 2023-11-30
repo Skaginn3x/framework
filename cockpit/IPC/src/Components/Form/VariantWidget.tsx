@@ -90,7 +90,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   }
 
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
-  console.log(schema.toJS());
   const oneOfSchema = schema.get('oneOf');
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
@@ -138,10 +137,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
    */
   const renderSelectedObject = (title: string | null) => {
     const selectedObject = oneOfSchema.find((item: any) => item.get('title') === title);
-    console.log('title', title);
-    console.log('oneofSchema', oneOfSchema.toJS());
     if (selectedObject && (Object.keys(selectedObject.toJS()).includes('const') || selectedObject.toJS().type === 'null')) {
-      console.log('selectedObject', selectedObject.toJS());
       return null;
     }
     return (
