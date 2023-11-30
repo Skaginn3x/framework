@@ -54,18 +54,17 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     return null;
   }
 
+  interface SchemaElement {
+    title: string;
+    const?: any;
+    properties?: Record<string, any>;
+  }
   /**
    *  Find selected object based on data in store.
    * @param oneOf Schema
    * @param vals  Store
    * @returns selected object title
    */
-  interface SchemaElement {
-    title: string;
-    const?: any;
-    properties?: Record<string, any>;
-  }
-
   function findSelectedTitle(oneOf: { toJS: () => SchemaElement[] }, vals: Record<string, any> | null): string | null {
     if (vals === null) {
       const oneOfJS = oneOf.toJS();
@@ -73,7 +72,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     }
 
     if (!vals || !oneOf || oneOf.toJS().length === 0) {
-      console.error('Invalid input for finding selected object.');
       return null;
     }
 

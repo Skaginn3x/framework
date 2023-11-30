@@ -29,6 +29,7 @@ import { UnitWidget } from './UnitWidget';
 import { BooleanWidget } from './BoolWidget';
 import { VariantWidget } from './VariantWidget';
 import { useAlertContext } from '../Alert/AlertContext';
+import { StringWidget } from './StringWidget';
 
 const GridStack = injectPluginStack(GridContainer);
 
@@ -54,6 +55,7 @@ export default function FormGenerator(
       Units: UnitWidget as React.FunctionComponent<ExtendedWidgetProps>,
       Variant: VariantWidget as React.FunctionComponent<ExtendedWidgetProps>,
       Boolean: BooleanWidget as React.FunctionComponent<ExtendedWidgetProps>,
+      String: StringWidget as React.FunctionComponent<ExtendedWidgetProps>,
     } as CustomWidgetBinding,
     pluginSimpleStack: validators,
   };
@@ -99,7 +101,7 @@ export default function FormGenerator(
     } else if (type.includes('integer') || type.includes('number')) {
       json[key].widget = 'Units';
     } else if (type.includes('string')) {
-      json[key].widget = 'Text';
+      json[key].widget = 'String';
     } else if (type.includes('boolean')) {
       json[key].widget = 'Boolean';
     } else if (type.includes('array')) {
