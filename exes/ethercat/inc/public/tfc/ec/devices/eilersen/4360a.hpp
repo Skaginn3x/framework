@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <new>
 #include <span>
+#include <array>
+#include <variant>
+#include <functional>
 
 #include <mp-units/systems/si/si.h>
 // todo pounds
@@ -133,7 +136,7 @@ std::variant<not_used, calibration<cell_mode_e::single>, calibration<cell_mode_e
 
 struct calibration_config {
   calibration_types calibration_v{ not_used{} };
-  bool sealed{ false };
+  confman::observable<bool> sealed{ false };
 };
 
 struct calibration_sealed_config {
@@ -208,7 +211,7 @@ struct meta<e4x60a::calibration<mode>> {
   static constexpr std::string_view name{ type::name };
   // clang-format off
   static constexpr auto value{ glz::object(
-      "type", &type::name, tfc::json::schema{ .description="The mode of this calibration.", .constant = type::name },
+      type::name, &type::name, tfc::json::schema{ .description="The mode of this calibration.", .constant = type::name },
       "calibration_zero", &type::calibration_zero, "Calibrate zero factors.",
       "calibration_weight", &type::calibration_weight, "Calibrate weight factors.",
       "tare_weight", &type::tare_weight, "The tare weight, will be subtracted from the weight. This is the weight of the container such as a box or a bag.",
@@ -231,7 +234,8 @@ template <>
 struct meta<e4x60a::calibration_config> {
   using type = e4x60a::calibration_config;
   static constexpr std::string_view name{ "Calibration Config" };
-  static constexpr auto value{ glz::object("calibration", &type::calibration_v, "sealed", &type::sealed) };
+  // distingusing keys for the two variants, required for glaze
+  static constexpr auto value{ glz::object("calibration", &type::calibration_v, "make_seal", &type::sealed) };
 };
 
 template <>
@@ -288,8 +292,20 @@ class e4x60a final : public base {
 public:
   e4x60a(asio::io_context& ctx, manager_client_type& client, std::uint16_t slave_index)
     : base{ slave_index }, ctx_{ ctx } {
+    if (auto* itm{ std::get_if<calibration_config>(&config_->variations.at(0)) }) {
+      itm->sealed.observe(std::bind_front(&e4x60a::make_seal, this, 0));
+    }
   }
 
+  void make_seal(std::size_t idx, [[maybe_unused]] bool new_value,[[maybe_unused]] bool old_value) noexcept {
+    if (new_value) {
+      auto change{ config_.make_change() };
+      if (auto* itm{ std::get_if<calibration_config>(&change->variations.at(idx)) }) {
+        auto calibration_params{ std::move(itm->calibration_v) };
+        change->variations.at(idx) = calibration_sealed_config{ .calibration_v = confman::read_only<calibration_types>{ std::move(calibration_params) } };
+      }
+    }
+  }
   void process_data(std::span<std::byte> in, std::span<std::byte> out) final {
     if (in.size() != sizeof(pdo_input)) {
       this->logger_.warn("Invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
@@ -309,7 +325,7 @@ public:
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
   confman::config<config> config_{
-    ctx_, "weigher"
+    ctx_, fmt::format("eilersen_weighing_module_{}", slave_index_)
   };
 };
 } // namespace tfc::ec::devices::eilersen::e4x60a
