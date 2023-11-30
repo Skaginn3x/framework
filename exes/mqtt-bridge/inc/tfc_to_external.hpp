@@ -44,6 +44,7 @@ public:
 
     signals_.clear();
     signals_.reserve(signals.size());
+
     for (const auto& signal : signals) {
       signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
 
@@ -57,7 +58,6 @@ public:
             if constexpr (!std::same_as<receiver_t, std::monostate>) {
               auto error_code =
                   receiver->connect(receiver->name(), [this, &slot](auto&&) { spark_plug_interface_.update_value(slot); });
-              io_ctx_.run_for(std::chrono::milliseconds(10));
               if (error_code) {
                 logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
               }

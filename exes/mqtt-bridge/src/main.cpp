@@ -58,7 +58,7 @@ auto start(asio::io_context& io_ctx_) -> asio::awaitable<void> {
                    asio::bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
     while (!restart_needed) {
-      co_await asio::steady_timer{ sp_interface.strand(), std::chrono::milliseconds{ 200 } }.async_wait(asio::use_awaitable);
+      co_await asio::steady_timer{ sp_interface.strand(), std::chrono::seconds{ 5 } }.async_wait(asio::use_awaitable);
     }
 
     cancel_signal.emit(asio::cancellation_type::all);
