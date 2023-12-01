@@ -18,8 +18,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
-#include "endpoint.hpp"
-#include "endpoint_mock.hpp"
+#include <endpoint.hpp>
+#include <endpoint_mock.hpp>
 
 namespace tfc::mqtt {
 
@@ -28,11 +28,10 @@ client<client_t, config_t>::client(asio::io_context& io_ctx,
                                    std::string_view mqtt_will_topic,
                                    std::string_view mqtt_will_payload)
     : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload) {
-  using enum structs::ssl_active_e;
-  if (config_.value().ssl_active == yes) {
-    endpoint_client_ = std::make_unique<client_t>(io_ctx_, yes);
-  } else if (config_.value().ssl_active == no) {
-    endpoint_client_ = std::make_unique<client_t>(io_ctx_, no);
+  if (config_.value().ssl_active) {
+    endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::yes);
+  } else  {
+    endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::no);
   }
 }
 
@@ -69,6 +68,8 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
   logger_.trace("Starting SSL handshake");
 
   co_await endpoint_client_->async_handshake();
+
+  logger_.trace("Constructing MQTT connection packet.");
 
   /// SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
   auto connect_packet =

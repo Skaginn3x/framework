@@ -8,19 +8,12 @@
 
 #include <structs.hpp>
 
-template <>
-struct glz::meta<tfc::mqtt::structs::ssl_active_e> {
-  using enum tfc::mqtt::structs::ssl_active_e;
-  static constexpr std::string_view name{ "tfc::mqtt::ssl_active_e" };
-  static constexpr auto value = glz::enumerate("yes", yes, "no", no);
-};
-
 namespace tfc::mqtt::config {
 
 struct broker {
   std::string address{};
   uint16_t port{};
-  structs::ssl_active_e ssl_active{};
+  bool ssl_active{};
   std::string username{};
   std::string password{};
   std::string client_id{};
