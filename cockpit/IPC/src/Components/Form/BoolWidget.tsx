@@ -22,7 +22,7 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const [value, setValue] = useState<boolean>(isConst ? constValue : getNestedValue(store?.toJS().values, storeKeys.toJS()));
 
   useEffect(() => {
-    if (isConst) {
+    if (!isConst) {
       setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
     } else {
       onChange({
