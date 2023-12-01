@@ -15,19 +15,14 @@ public:
     bool stop_motor{ false };
   };
 
-
-  generic_io(asio::io_context& io_context, config& cfg)
-    : ctx_{ io_context }, cfg_{ cfg }
-  {}
-
+  generic_io(asio::io_context& io_context, config& cfg) : ctx_{ io_context }, cfg_{ cfg } {}
 
 private:
   asio::io_context& ctx_;
   config& cfg_;
 };
 
-
-} // namespace tfc::track::actions
+}  // namespace tfc::track::actions
 
 namespace glz {
 
@@ -38,7 +33,9 @@ template <>
 struct meta<tfc::track::actions::generic_io::config> {
   using type = tfc::track::actions::generic_io::config;
   static constexpr std::string_view name{ "generic_io" };
-  static constexpr auto value{ glz::object("stop_motor", &type::stop_motor, "Stop motor while awaiting complete indicator") };
+  static constexpr auto value{
+    glz::object("stop_motor", &type::stop_motor, "Stop motor while awaiting complete indicator")
+  };
 };
 
-}
+}  // namespace glz

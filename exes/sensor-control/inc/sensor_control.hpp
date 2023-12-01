@@ -126,10 +126,10 @@ private:
                                   std::bind_front(&sensor_control::on_discharge_request, this) };
   bool_signal_t idle_{ ctx_, ipc_client_, "idle", "Indication of not doing anything" };
   string_signal_t discharge_allowance_{ ctx_, ipc_client_, "discharge_allowance_uuid",
-                                      "Let upstream know that the uuid can discharge onto me" };
+                                        "Let upstream know that the uuid can discharge onto me" };
   bool_signal_t discharge_active_{ ctx_, ipc_client_, "discharge_active", "Discharging item to downstream" };
   string_slot_t may_discharge_{ ctx_, ipc_client_, "may_discharge_uuid", "Get acknowledgement of discharging item with uuid",
-                              std::bind_front(&sensor_control::on_may_discharge, this) };
+                                std::bind_front(&sensor_control::on_may_discharge, this) };
   double_signal_t motor_percentage_{ ctx_, ipc_client_, "motor_percentage", "Motor freq output, stopped when inactive." };
 
   std::optional<ipc::item::item> queued_item_{ std::nullopt };
@@ -156,13 +156,13 @@ private:
   std::optional<asio::steady_timer> discharge_timer_{ std::nullopt };
 
   confman::config<sensor_control_config> config_{ ctx_, "sensor_control",
-                                                       sensor_control_config{
-                                                           .discharge_timeout = std::nullopt,
-                                                           .minimum_discharge_duration = std::chrono::seconds{ 1 },
-                                                           .await_sensor_timeout = std::chrono::minutes{ 1 },
-                                                           .run_speed = 100.0 * mp_units::percent,
-                                                           .run_on_discharge = true,
-                                                       .allow_item_removal = false } };
+                                                  sensor_control_config{ .discharge_timeout = std::nullopt,
+                                                                         .minimum_discharge_duration =
+                                                                             std::chrono::seconds{ 1 },
+                                                                         .await_sensor_timeout = std::chrono::minutes{ 1 },
+                                                                         .run_speed = 100.0 * mp_units::percent,
+                                                                         .run_on_discharge = true,
+                                                                         .allow_item_removal = false } };
   operation::interface operation_mode_ {
     ctx_, "operation_mode"
   };

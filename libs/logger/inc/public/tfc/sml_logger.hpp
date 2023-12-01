@@ -1,10 +1,10 @@
 #pragma once
 
 // Standard
+#include <concepts>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <concepts>
 #include <type_traits>
 
 // Third party
@@ -69,8 +69,7 @@ struct sml_logger {
    * */
   template <class SM, class TEvent>
   void log_process_event(const TEvent& /*event*/) {  // NOLINT(readability-identifier-naming)
-    logger_->trace("[{}][process_event] {}\n", detail::get_name<SM>(),
-                   detail::get_name<TEvent>());
+    logger_->trace("[{}][process_event] {}\n", detail::get_name<SM>(), detail::get_name<TEvent>());
   }
 
   /**
@@ -80,8 +79,8 @@ struct sml_logger {
   void log_guard(const TGuard& /*guard*/,
                  const TEvent& /*event*/,
                  bool result) {  // NOLINT(readability-identifier-naming)
-    logger_->trace("[{}][guard] {} {} {}\n", detail::get_name<SM>(), detail::get_name<TGuard>(),
-                   detail::get_name<TEvent>(), (result ? "[OK]" : "[Reject]"));
+    logger_->trace("[{}][guard] {} {} {}\n", detail::get_name<SM>(), detail::get_name<TGuard>(), detail::get_name<TEvent>(),
+                   (result ? "[OK]" : "[Reject]"));
   }
 
   /**
@@ -89,8 +88,7 @@ struct sml_logger {
    * */
   template <class SM, class TAction, class TEvent>
   void log_action(const TAction& /*action*/, const TEvent& /*event*/) {  // NOLINT(readability-identifier-naming)
-    logger_->trace("[{}][action] {} {}\n", detail::get_name<SM>(), detail::get_name<TAction>(),
-                   detail::get_name<TEvent>());
+    logger_->trace("[{}][action] {} {}\n", detail::get_name<SM>(), detail::get_name<TAction>(), detail::get_name<TEvent>());
   }
 
   /**
