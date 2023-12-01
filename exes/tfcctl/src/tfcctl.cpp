@@ -88,8 +88,8 @@ auto main(int argc, char** argv) -> int {
   if (list_signals) {
     auto client{ tfc::ipc::make_manager_client(ctx) };
     client.signals([&logger](std::vector<tfc::ipc_ruler::signal> const& signals) {
-      for (const auto& signal : signals) {
-        logger.trace("{}", signal.name);
+      for (const auto& sig : signals) {
+        logger.trace("{}", sig.name);
       }
     });
     ctx.run_for(std::chrono::milliseconds(100));
@@ -99,8 +99,8 @@ auto main(int argc, char** argv) -> int {
   if (list_slots) {
     auto client{ tfc::ipc::make_manager_client(ctx) };
     client.slots([&logger](std::vector<tfc::ipc_ruler::slot> const& slots) {
-      for (const auto& slot : slots) {
-        logger.trace("{}", slot.name);
+      for (const auto& sl : slots) {
+        logger.trace("{}", sl.name);
       }
     });
     ctx.run_for(std::chrono::milliseconds(100));
