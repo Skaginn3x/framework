@@ -6,8 +6,6 @@
 
 #include <glaze/core/common.hpp>
 
-#include <structs.hpp>
-
 namespace tfc::mqtt::config {
 
 struct broker {

@@ -5,7 +5,6 @@
 #include <variant>
 
 #include <config/broker.hpp>
-#include <structs.hpp>
 
 namespace tfc::mqtt::config {
 

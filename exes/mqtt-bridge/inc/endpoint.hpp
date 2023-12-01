@@ -15,8 +15,6 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/system.hpp>
 
-#include <structs.hpp>
-
 namespace tfc::mqtt {
 
 namespace asio = boost::asio;

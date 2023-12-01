@@ -13,8 +13,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
-#include <structs.hpp>
-
 template <typename... types>
 class package_v {
   std::type_index type_index_t = typeid(void);

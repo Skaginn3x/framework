@@ -16,7 +16,6 @@
 
 #include <constants.hpp>
 #include <spark_plug_interface.hpp>
-#include <structs.hpp>
 #include <tfc/ipc.hpp>
 
 namespace tfc::mqtt {
