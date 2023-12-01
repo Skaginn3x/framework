@@ -23,6 +23,15 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
   useEffect(() => {
     if (!isConst) {
       setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
+    } else {
+      onChange({
+        storeKeys,
+        scopes: ['value'],
+        type: 'set',
+        schema,
+        required: schema.get('required') as boolean,
+        data: { value: constValue },
+      });
     }
   }, [store, storeKeys, isConst]);
 

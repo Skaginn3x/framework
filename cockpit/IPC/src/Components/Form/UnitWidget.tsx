@@ -61,7 +61,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   if (customInputRef) {
     inputRef = customInputRef;
   }
-
   // eslint-disable-next-line no-param-reassign
   inputProps = mapSchema(inputProps, schema);
 
@@ -291,6 +290,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         initialUnit={initialUnit}
         handleUnitChange={handleUnitChange}
         unit={unit}
+        disabled={schema.get('readOnly') as boolean | undefined}
       />
 
       {isWarning() ? <h2 className="RequiredText">{errText}</h2>

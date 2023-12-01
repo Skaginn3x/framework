@@ -13,10 +13,11 @@ interface UnitsDropdownProps {
   initialDimension: string | undefined
   initialUnit: string | undefined
   unit: string | undefined
+  disabled: boolean | undefined
 }
 
 const UnitsDropdown: React.FC<UnitsDropdownProps> = ({
-  handleUnitChange, initialDimension, initialUnit, unit,
+  handleUnitChange, initialDimension, initialUnit, unit, disabled,
 }) => {
   const AllUnits = Units as { [key: string]: { all: string[] } };
   const uid = useUID();
@@ -58,6 +59,7 @@ const UnitsDropdown: React.FC<UnitsDropdownProps> = ({
               // eslint-disable-next-line no-underscore-dangle
               value={getValue()}
               onChange={handleUnitChange}
+              disabled={disabled}
             >
               {(unitsToOffer && initialDimension && initialUnit)
                 ? unitsToOffer.map((mapunit: string) => (
