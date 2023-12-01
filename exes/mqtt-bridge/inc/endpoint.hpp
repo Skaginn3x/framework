@@ -101,18 +101,13 @@ public:
   }
 
   auto async_handshake() -> asio::awaitable<void> {
-    logger_.trace("Starting SSL handshake...");
-    logger_.trace("mqtts client: {}", mqtts_client_.has_value());
-    logger_.trace("mqtt client: {}", mqtt_client_.has_value());
     if (mqtts_client_) {
       co_await mqtts_client_->next_layer().async_handshake(async_mqtt::tls::stream_base::client, asio::use_awaitable);
     }
-    // co_return;
   }
 
 private:
   asio::io_context& io_ctx_;
-  tfc::logger::logger logger_{ "endpoint" };
   async_mqtt::tls::context tls_ctx_{ async_mqtt::tls::context::tlsv12 };
   std::optional<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client_;
   std::optional<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>> mqtts_client_;
