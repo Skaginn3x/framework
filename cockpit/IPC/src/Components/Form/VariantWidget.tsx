@@ -75,11 +75,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       return null;
     }
 
-    const selectedProp = Object.keys(vals)[0];
-    if (!selectedProp) {
-      return null;
-    }
-
+    console.log('vals: ', vals);
     const oneOfJS = oneOf.toJS();
 
     // eslint-disable-next-line no-restricted-syntax
@@ -87,8 +83,14 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       if (element.const === vals) {
         return element.title;
       }
-      if (element.properties && selectedProp in element.properties) {
-        return element.title;
+
+      // Check if element.properties is defined
+      if (element.properties) {
+        console.log('element.properties: ', element.properties);
+        const allPropsMatch = Object.keys(vals).every((key) => (Object.keys(element.properties ?? {}).includes(key)));
+        if (allPropsMatch) {
+          return element.title;
+        }
       }
     }
 
@@ -97,6 +99,9 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
   const oneOfSchema = schema.get('oneOf');
+
+  console.log('storeValue', storeValues);
+  console.log('storeKeys', storeKeys.toJS());
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
