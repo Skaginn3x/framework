@@ -197,6 +197,7 @@ public:
   static auto constexpr value_e{ type_desc::value_e };
   using packet_t = packet<value_t, value_e>;
   static auto constexpr direction_v = direction_e::slot;
+  static auto constexpr reconnect_interval = std::chrono::seconds(1);
 
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name) -> std::shared_ptr<slot<type_desc>> {
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
@@ -209,8 +210,15 @@ public:
   auto connect(std::string_view signal_name) -> std::error_code {
     // TODO: Find out if these mutexes inside optimize single threaded are really needed
     socket_ = azmq::sub_socket(socket_.get_io_context(), true);
-    boost::system::error_code error_code;
     std::string const socket_path{ utils::socket::zmq::ipc_endpoint_str(signal_name) };
+
+    boost::system::error_code error_code;
+    if (socket_.set_option(
+            azmq::socket::reconnect_ivl(std::chrono::duration_cast<std::chrono::milliseconds>(reconnect_interval).count()),
+            error_code)) {
+      return error_code;
+    }
+
     if (socket_.connect(socket_path, error_code)) {
       return error_code;
     }

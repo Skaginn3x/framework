@@ -54,43 +54,54 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     return null;
   }
 
+  interface SchemaElement {
+    title: string;
+    const?: any;
+    properties?: Record<string, any>;
+  }
   /**
    *  Find selected object based on data in store.
    * @param oneOf Schema
    * @param vals  Store
    * @returns selected object title
    */
-  function findSelectedTitle(oneOf:any, vals:any) {
-    if (vals === undefined) { return null; }
-
-    // if vals is null, return std::monostate
-    if (vals === null && oneOf.toJS().map((item: any) => item.title).includes('std::monostate')) {
-      return 'std::monostate';
+  function findSelectedTitle(oneOf: { toJS: () => SchemaElement[] }, vals: Record<string, any> | null): string | null {
+    if (vals === null) {
+      const oneOfJS = oneOf.toJS();
+      return oneOfJS.some((item) => item.title === 'std::monostate') ? 'std::monostate' : null;
     }
-    if (vals === null) { return null; }
-    // Get key from store to determine what is selected
-    const selectedProp = Object.keys(vals).length > 0 ? Object.keys(vals)[0] : undefined;
-    if (!selectedProp) { return null; }
 
-    // if schema is invalid
-    if (!oneOf || oneOf.toJS().length === 0) {
-      console.error('Cannot find selected object.');
+    if (!vals || !oneOf || oneOf.toJS().length === 0) {
       return null;
     }
+
+    console.log('vals: ', vals);
     const oneOfJS = oneOf.toJS();
 
-    // Look through each oneOf object to find key under properties.
     // eslint-disable-next-line no-restricted-syntax
     for (const element of oneOfJS) {
-      if (element.properties && Object.keys(element.properties).includes(selectedProp)) {
+      if (element.const === vals) {
         return element.title;
       }
+
+      // Check if element.properties is defined
+      if (element.properties) {
+        console.log('element.properties: ', element.properties);
+        const allPropsMatch = Object.keys(vals).every((key) => (Object.keys(element.properties ?? {}).includes(key)));
+        if (allPropsMatch) {
+          return element.title;
+        }
+      }
     }
+
     return null;
   }
 
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
   const oneOfSchema = schema.get('oneOf');
+
+  console.log('storeValue', storeValues);
+  console.log('storeKeys', storeKeys.toJS());
 
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
