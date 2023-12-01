@@ -272,7 +272,10 @@ template <>
 struct meta<e4x60a::calibration_sealed_config> {
   using type = e4x60a::calibration_sealed_config;
   static constexpr std::string_view name{ "Sealed Calibration Config" };
-  static constexpr auto value{ glz::object("calibration", &type::calibration_v, "sealed", &type::sealed) };
+  static constexpr auto value{ glz::object(
+    "calibration", &type::calibration_v, tfc::json::schema{ .read_only = true },
+    "sealed", &type::sealed, tfc::json::schema{ .constant = true }
+    ) };
 };
 
 template <>
