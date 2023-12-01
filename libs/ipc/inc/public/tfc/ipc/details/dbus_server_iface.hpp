@@ -22,7 +22,6 @@
 #include <tfc/ipc/details/dbus_structs.hpp>
 #include <tfc/ipc/details/dbus_structs_glaze_meta.hpp>
 #include <tfc/ipc/enums.hpp>
-#include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 

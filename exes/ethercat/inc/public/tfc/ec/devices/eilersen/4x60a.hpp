@@ -131,9 +131,8 @@ using calibration_types =
 std::variant<not_used, calibration<cell_mode_e::single>, calibration<cell_mode_e::group_1>, calibration<
                cell_mode_e::group_2>>;
 
-struct calibration_config {
-  calibration_types calibration_v{ not_used{} };
-  confman::observable<bool> sealed{ false };
+template <typename child_t>
+struct calibration_interface {
   auto get_zero() const noexcept -> std::optional<signal_t> {
     return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<signal_t> {
       if constexpr (std::convertible_to<visitor_t, not_used>) {
@@ -142,7 +141,7 @@ struct calibration_config {
       else {
         return visitor.calibration_zero.read.value();
       }
-    }, calibration_v);
+    }, static_cast<child_t*>(this)->get_calibration());
   }
   auto get_calibration_weight() const noexcept -> std::optional<std::pair<signal_t, weight_t>> {
     return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::pair<signal_t, weight_t>> {
@@ -152,7 +151,7 @@ struct calibration_config {
       else {
         return std::make_pair(visitor.calibration_weight.read.value(), visitor.calibration_weight.weight);
       }
-    }, calibration_v);
+    }, static_cast<child_t*>(this)->get_calibration());
   }
   auto get_group_name() const noexcept -> std::optional<std::string_view> {
     return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::string_view> {
@@ -162,13 +161,24 @@ struct calibration_config {
       else {
         return visitor.group_name;
       }
-    }, calibration_v);
+    }, static_cast<child_t*>(this)->get_calibration());
   }
 };
 
-struct calibration_sealed_config {
+struct calibration_config : calibration_interface<calibration_config> {
+  calibration_types calibration_v{ not_used{} };
+  confman::observable<bool> sealed{ false };
+  auto get_calibration() const noexcept -> calibration_types const& {
+    return calibration_v;
+  }
+};
+
+struct calibration_sealed_config : calibration_interface<calibration_sealed_config> {
   confman::read_only<calibration_types> calibration_v{ not_used{} };
   static constexpr bool sealed{ true };
+  auto get_calibration() const noexcept -> calibration_types const& {
+    return calibration_v.value();
+  }
 };
 
 using calibration_config_t = std::variant<calibration_config, calibration_sealed_config>;

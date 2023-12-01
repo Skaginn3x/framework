@@ -9,7 +9,6 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc/details/dbus_structs_glaze_meta.hpp>
-#include <tfc/ipc/glaze_meta.hpp>
 
 namespace tfc::ipc_ruler {
 
