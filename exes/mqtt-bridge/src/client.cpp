@@ -30,7 +30,7 @@ client<client_t, config_t>::client(asio::io_context& io_ctx,
     : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload) {
   if (config_.value().ssl_active) {
     endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::yes);
-  } else  {
+  } else {
     endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::no);
   }
 }
