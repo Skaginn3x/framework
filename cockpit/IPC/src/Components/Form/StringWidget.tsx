@@ -19,7 +19,7 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
   const constValue = schema.get('const') as string;
   const isConst = constValue !== undefined;
   const [value, setValue] = useState<string>(isConst ? constValue : getNestedValue(store?.toJS().values, storeKeys.toJS()));
-
+  console.log(schema.toJS());
   useEffect(() => {
     if (!isConst) {
       setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
@@ -49,6 +49,22 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
   };
 
   const description = schema.get('description') as string;
+  const maxLength = schema.get('maxLength') as number ?? undefined;
+  const minLength = schema.get('minLength') as number ?? undefined;
+  const pattern = schema.get('pattern') as string ?? undefined;
+
+  function getHelperText(): string {
+    if (value.length < minLength) {
+      return `Length must be at least ${minLength}`;
+    }
+    if (value.length > maxLength) {
+      return `Length must be less than ${maxLength}`;
+    }
+    if (!RegExp(pattern).test(value)) {
+      return 'Invalid input';
+    }
+    return '';
+  }
 
   return (
     <Tooltip title={description || ''}>
@@ -58,9 +74,11 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
         label={schema.get('title') as string ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
         id={`uis-${uid}`}
         fullWidth
+        error={value.length < minLength || value.length > maxLength || !RegExp(pattern).test(value)}
+        helperText={value.length < minLength || value.length > maxLength || !RegExp(pattern).test(value) ? getHelperText() : undefined}
         margin="normal"
         InputProps={{
-          readOnly: isConst,
+          readOnly: schema.get('readOnly') as boolean || isConst,
         }}
       />
     </Tooltip>
