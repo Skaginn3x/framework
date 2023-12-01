@@ -1,3 +1,4 @@
+#include <iostream>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -71,13 +72,41 @@ auto main(int argc, char** argv) -> int {
 
   std::string signal{};
   std::string slot{};
-
   std::vector<std::string> connect;
+  bool list_signals{};
+  bool list_slots{};
 
   description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
       "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
-      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots");
+      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots")(
+      "list-signals", po::bool_switch(&list_signals), "List all available IPC signals")(
+      "list-slots", po::bool_switch(&list_slots), "List all available IPC slots");
   tfc::base::init(argc, argv, description);
+
+  asio::io_context ctx;
+  tfc::logger::logger logger{ "tfc control" };
+
+  if (list_signals) {
+    auto client{ tfc::ipc::make_manager_client(ctx) };
+    client.signals([&logger](std::vector<tfc::ipc_ruler::signal> const& signals) {
+      for (const auto& signal : signals) {
+        logger.trace("{}", signal.name);
+      }
+    });
+    ctx.run_for(std::chrono::milliseconds(100));
+    return 0;
+  }
+
+  if (list_slots) {
+    auto client{ tfc::ipc::make_manager_client(ctx) };
+    client.slots([&logger](std::vector<tfc::ipc_ruler::slot> const& slots) {
+      for (const auto& slot : slots) {
+        logger.trace("{}", slot.name);
+      }
+    });
+    ctx.run_for(std::chrono::milliseconds(100));
+    return 0;
+  }
 
   // Must provide an argument
   if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
@@ -86,9 +115,6 @@ auto main(int argc, char** argv) -> int {
     fmt::print("Usage: tfcctl [options] \n{}", out.str());
     std::exit(0);
   }
-  tfc::logger::logger logger{ "tfc control" };
-
-  asio::io_context ctx;
 
   // For sending a signal
   if (!signal.empty()) {
