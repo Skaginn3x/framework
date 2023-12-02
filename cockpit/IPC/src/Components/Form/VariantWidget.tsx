@@ -116,11 +116,11 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
         storeKeys,
-        scopes: ['value'],
+        scopes: ['value', 'valid'],
         type: 'set',
         schema,
         required,
-        data: { value: { internal_null_value_do_not_use: null } },
+        data: { value: { internal_null_value_do_not_use: null }, valid: true },
       });
     } else {
       onChange({

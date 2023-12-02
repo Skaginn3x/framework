@@ -157,32 +157,28 @@ export default function FormGenerator(
    * @param actualData The actual data
    * @returns Boolean indicating validity
    */
-  function checkValidity(data: any, actualData: any) {
-    if (typeof data !== 'object' || data === null) {
+  function checkValidity(obj: any, actualData: any) {
+    // Check if the current level is valid
+
+    if (actualData && Object.keys(actualData).includes('internal_null_value_do_not_use')) {
       return true;
     }
 
-    if (Array.isArray(actualData)) {
-      return true; // Ignore validity check for arrays
-    }
-
-    if (Object.keys(actualData).includes('internal_null_value_do_not_use')) {
-      return true;
-    }
-
-    if (Object.keys(data).includes('__valid') && data.__valid === false) {
+    if (obj.__valid !== undefined && !obj.__valid && !Array.isArray(actualData)) {
       return false;
     }
-    // eslint-disable-next-line guard-for-in
-    for (const key in data) {
-      if (!Object.keys(actualData).includes(key)) {
-        return data[key].__valid ? data[key].__valid : true;
-      }
-      if (!checkValidity(data[key], actualData[key])) {
-        return false;
+
+    // Recursively check each property if it's an object
+    for (const key in obj) {
+      if (Object.hasOwn(obj, key) && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        const isValid = checkValidity(obj[key], actualData[key] ?? {});
+        if (!isValid) {
+          return false;
+        }
       }
     }
 
+    // If all checks passed, return true
     return true;
   }
 
@@ -208,7 +204,6 @@ export default function FormGenerator(
       <Button
         style={{ marginTop: 24 }}
         onClick={() => {
-          console.log(store.toJS());
           if (checkValidity(store.toJS().validity, store.toJS().values)) {
             onSubmit(store.toJS());
           } else {

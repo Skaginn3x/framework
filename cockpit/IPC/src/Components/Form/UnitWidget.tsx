@@ -4,7 +4,7 @@
 /* eslint-disable no-continue */
 /* eslint-disable react/require-default-props */
 import React, {
-  CSSProperties, FocusEventHandler, KeyboardEventHandler, MouseEventHandler,
+  CSSProperties, FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useEffect,
 } from 'react';
 import TextField from '@mui/material/TextField';
 import { InputProps } from '@mui/material/Input';
@@ -94,6 +94,50 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const max = Qty(`${maximum}${initialUnit ?? ''}`);
 
   /**
+   * Checks if the value is invalid.
+   * @returns true if the value is invalid, false otherwise.
+   */
+  function isWarning() { // NOSONAR
+    if (required && (!value || value.toString() === '')) {
+      if (errText !== 'Required') setErrText('Required');
+      return true;
+    }
+
+    if (type === 'integer' && value?.isUnitless() && value?.scalar.toString().indexOf('.') !== -1) {
+      if (errText !== 'Must be an integer') setErrText('Must be an integer');
+      return true;
+    }
+
+    if (!value || !min || !max) {
+      return false;
+    }
+
+    if (min.compareTo(value) === 1) {
+      if (errText !== `Minimum value: ${min.toString()}`) setErrText(`Minimum value: ${min.toString()}`);
+      return true;
+    }
+    if (max.compareTo(value) === -1) {
+      if (errText !== `Maxiumum value: ${max.toString()}`) setErrText(`Maxiumum value: ${max.toString()}`);
+      return true;
+    }
+
+    return false;
+  }
+
+  useEffect(() => {
+    onChange({
+      storeKeys,
+      scopes: ['valid'],
+      type: 'set',
+      schema,
+      required,
+      data: {
+        valid: !isWarning(),
+      },
+    });
+  });
+
+  /**
    * Handles the change of the unit in the UnitsWidget component.
    * @param event - The event object.
    */
@@ -107,13 +151,14 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       setUnit(newUnit);
       onChange({
         storeKeys,
-        scopes: ['value'],
+        scopes: ['value', 'valid'],
         type: 'set',
         schema,
         required,
         data: {
           value:
             value.to(initialUnit).toPrec(initialUnit).scalar,
+          valid: !isWarning(),
         },
       });
     } else if (newUnit) {
@@ -148,11 +193,11 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const onChangeWithValue = (value: number) => {
     onChange({
       storeKeys,
-      scopes: ['value'],
+      scopes: ['value', 'valid'],
       type: 'set',
       schema,
       required,
-      data: { value },
+      data: { value, valid: !isWarning() },
     });
   };
 
@@ -163,12 +208,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   const handleEmptyValue = () => {
     onChange({
       storeKeys,
-      scopes: ['value'],
+      scopes: ['value', 'valid'],
       type: 'set',
       schema,
       required,
       data: {
-        value: { internal_null_value_do_not_use: null },
+        value: { internal_null_value_do_not_use: null, valid: !isWarning() },
       },
     });
   };
@@ -214,37 +259,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     }
     handleUnitValue(parseFloat(val));
   };
-
-  /**
-   * Checks if the value is invalid.
-   * @returns true if the value is invalid, false otherwise.
-   */
-  function isWarning() { // NOSONAR
-    if (required && (!value || value.toString() === '')) {
-      if (errText !== 'Required') setErrText('Required');
-      return true;
-    }
-
-    if (type === 'integer' && value?.isUnitless() && value?.scalar.toString().indexOf('.') !== -1) {
-      if (errText !== 'Must be an integer') setErrText('Must be an integer');
-      return true;
-    }
-
-    if (!value || !min || !max) {
-      return false;
-    }
-
-    if (min.compareTo(value) === 1) {
-      if (errText !== `Minimum value: ${min.toString()}`) setErrText(`Minimum value: ${min.toString()}`);
-      return true;
-    }
-    if (max.compareTo(value) === -1) {
-      if (errText !== `Maxiumum value: ${max.toString()}`) setErrText(`Maxiumum value: ${max.toString()}`);
-      return true;
-    }
-
-    return false;
-  }
 
   return (
     <>

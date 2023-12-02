@@ -19,34 +19,7 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
   const constValue = schema.get('const') as string;
   const isConst = constValue !== undefined;
   const [value, setValue] = useState<string>(isConst ? constValue : getNestedValue(store?.toJS().values, storeKeys.toJS()));
-  console.log(schema.toJS());
-  useEffect(() => {
-    if (!isConst) {
-      setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
-    } else {
-      onChange({
-        storeKeys,
-        scopes: ['value'],
-        type: 'set',
-        schema,
-        required: schema.get('required') as boolean,
-        data: { value: constValue },
-      });
-    }
-  }, [store, storeKeys, isConst]);
-
-  const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    setValue(newValue);
-    onChange({
-      storeKeys,
-      scopes: ['value'],
-      type: 'set',
-      schema,
-      required: schema.get('required') as boolean,
-      data: { value: newValue },
-    });
-  };
+  const [isValid, setIsValid] = useState(true); // New state for validity
 
   const description = schema.get('description') as string;
   const maxLength = schema.get('maxLength') as number ?? undefined;
@@ -66,6 +39,56 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
     return '';
   }
 
+  // Update the validation logic
+  const validate = (val: string) => {
+    let valid = true;
+    if (minLength !== undefined && val.length < minLength) {
+      valid = false;
+    }
+    if (maxLength !== undefined && val.length > maxLength) {
+      valid = false;
+    }
+    if (pattern !== undefined && !RegExp(pattern).test(val)) {
+      valid = false;
+    }
+    setIsValid(valid); // Update the validity state
+    return valid;
+  };
+
+  useEffect(() => {
+    // ... existing code ...
+    validate(value); // Validate the value on component mount or update
+  }, [value, minLength, maxLength, pattern]);
+
+  useEffect(() => {
+    if (!isConst) {
+      setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
+    } else {
+      onChange({
+        storeKeys,
+        scopes: ['value'],
+        type: 'set',
+        schema,
+        required: schema.get('required') as boolean,
+        data: { value: constValue },
+      });
+    }
+  }, [store, storeKeys, isConst]);
+
+  const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    setValue(newValue);
+    const valid = validate(newValue);
+    onChange({
+      storeKeys,
+      scopes: ['value', 'valid'],
+      type: 'set',
+      schema,
+      required: schema.get('required') as boolean,
+      data: { value: newValue, valid },
+    });
+  };
+
   return (
     <Tooltip title={description || ''}>
       <TextField
@@ -74,8 +97,8 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
         label={schema.get('title') as string ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
         id={`uis-${uid}`}
         fullWidth
-        error={value.length < minLength || value.length > maxLength || !RegExp(pattern).test(value)}
-        helperText={value.length < minLength || value.length > maxLength || !RegExp(pattern).test(value) ? getHelperText() : undefined}
+        error={!isValid}
+        helperText={!isValid ? getHelperText() : undefined}
         margin="normal"
         InputProps={{
           readOnly: schema.get('readOnly') as boolean || isConst,
