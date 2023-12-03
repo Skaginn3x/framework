@@ -15,15 +15,16 @@ import Connections from './views/Connections';
 import NotFoundPage from './views/NotFoundPage';
 import ListDBUS from './views/ListDBUS';
 import StateMachine from './views/StateMachine';
+import { DarkModeProvider } from './Components/Simple/DarkModeContext';
 
 const IODebugLazy = React.lazy(() => import('./views/IODebug'));
 
-export type DarkModeType = {
-  isDark: boolean;
-};
+interface DarkModeInterface {
+  isDark: boolean
+}
 
 // eslint-disable-next-line react/function-component-definition
-const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
+const RouterElem:React.FC<DarkModeInterface> = ({ isDark }) => {
   console.log('Routing');
   const location = useLocation();
   console.log(location);
@@ -36,19 +37,19 @@ const RouterElem:React.FC<DarkModeType> = ({ isDark }) => {
   console.log('Include IO Debug: ', includeIODebug);
 
   switch (id) {
-    case 'connect': return <Connections isDark={isDark} />;
-    case 'configure': return <Configurator isDark={isDark} />;
-    case 'list': return <ListDBUS isDark={isDark} />;
+    case 'connect': return <Connections />;
+    case 'configure': return <Configurator />;
+    case 'list': return <ListDBUS />;
     case 'debug':
       if (includeIODebug) {
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <IODebugLazy isDark={isDark} />
+            <IODebugLazy />
           </Suspense>
         );
       }
       return <div style={{ color: isDark ? '#EEE' : '#222' }}>The build does not contain the IODebug feature.</div>;
-    case 'state_machine': return <StateMachine isDark={isDark} />;
+    case 'state_machine': return <StateMachine />;
     default: return <NotFoundPage />;
   }
 };
@@ -100,29 +101,31 @@ function App() {
   });
 
   return (
-    <ThemeProvider theme={theme}>
-      <AlertProvider>
-        <div className="App">
-          <Alerts />
-          <Router>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              margin: '0px 0px 0px 0px',
-              alignItems: 'center',
-              minHeight: '100vh',
-              backgroundColor: isDark ? '#1b1d21' : 'transparent',
-              minWidth: 'fit-content',
-            }}
-            >
-              <Routes>
-                <Route path="*" element={<RouterElem isDark={isDark} />} />
-              </Routes>
-            </div>
-          </Router>
-        </div>
-      </AlertProvider>
-    </ThemeProvider>
+    <DarkModeProvider>
+      <ThemeProvider theme={theme}>
+        <AlertProvider>
+          <div className="App">
+            <Alerts />
+            <Router>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                margin: '0px 0px 0px 0px',
+                alignItems: 'center',
+                minHeight: '100vh',
+                backgroundColor: isDark ? '#1b1d21' : 'transparent',
+                minWidth: 'fit-content',
+              }}
+              >
+                <Routes>
+                  <Route path="*" element={<RouterElem isDark={isDark} />} />
+                </Routes>
+              </div>
+            </Router>
+          </div>
+        </AlertProvider>
+      </ThemeProvider>
+    </DarkModeProvider>
   );
 }
 

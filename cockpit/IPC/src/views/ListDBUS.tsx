@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Title } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
-import { DarkModeType } from 'src/App';
+import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 
 declare global {
   interface Window { cockpit: any; }
@@ -17,8 +17,10 @@ const connectToDBusNames = (names: string[], dbus: any) => {
 };
 
 // eslint-disable-next-line react/function-component-definition
-const ListDBUS:React.FC<DarkModeType> = ({ isDark }) => {
+const ListDBUS:React.FC = () => {
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
+
+  const { isDark } = useDarkMode();
 
   useEffect(() => {
     const callback = (allNames: string[]) => {

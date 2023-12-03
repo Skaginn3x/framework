@@ -4,15 +4,15 @@ import {
   Button, Modal, Title, Tooltip,
 } from '@patternfly/react-core';
 
-import { DarkModeType } from 'src/App';
-// import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
+import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 import CustomTable from '../Components/Table/Table';
 import useDbusInterface from '../Components/Interface/DbusInterface';
 import { TFC_DBUS_ORGANIZATION, TFC_DBUS_DOMAIN } from '../variables';
 import './Connections.css';
 
 // eslint-disable-next-line react/function-component-definition
-const Connections:React.FC<DarkModeType> = ({ isDark }) => {
+const Connections:React.FC = () => {
+  const { isDark } = useDarkMode();
   const busName = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.ipc_ruler`;
   const interfaceName = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.manager`;
   const objectPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/ipc_ruler`;
