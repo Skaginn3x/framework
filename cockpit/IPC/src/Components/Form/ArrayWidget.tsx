@@ -114,7 +114,7 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
         ? <Box mb={1}>{info}</Box> : null}
 
       <Grid container spacing={3} style={{ margin: '0rem' }}>
-        {value && value.map((val, i) => (
+        {value?.map((val, i) => (
           <Box key={`${JSON.stringify(val)}-${i + 1}`} style={itemStyle}>
             <Box style={{ marginRight: '2rem' }} key={`${val}-Box-${i + 1}`}>{i}</Box>
             <div
