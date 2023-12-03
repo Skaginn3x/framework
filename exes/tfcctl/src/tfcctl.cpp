@@ -35,7 +35,7 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
     const std::size_t bytes_read = co_await input_stream.async_read_some(asio::buffer(buffer), asio::use_awaitable);
     std::string_view buffer_str{ std::begin(buffer), bytes_read - 1 };  // strip of the new line character
 
-    constexpr auto send{ [](std::string_view input, auto& in_sender, auto& in_logger) -> void {
+    static constexpr auto send{ [](std::string_view input, auto& in_sender, auto& in_logger) -> void {
       try {
         using value_t = typename std::remove_reference_t<decltype(in_sender)>::value_t;
         auto value = boost::lexical_cast<value_t>(input);
@@ -50,19 +50,26 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
         in_logger.template log<tfc::logger::lvl_e::info>("Invalid input {}, error: {}", input, bad_lexical_cast.what());
       }
     } };
-    if (auto* bool_sender{ std::get_if<ipc::bool_signal>(&sender) }) {
-      send(buffer_str, *bool_sender, logger);
-    } else if (auto* int_sender{ std::get_if<ipc::int_signal>(&sender) }) {
-      send(buffer_str, *int_sender, logger);
-    } else if (auto* uint_sender{ std::get_if<ipc::uint_signal>(&sender) }) {
-      send(buffer_str, *uint_sender, logger);
-    } else if (auto* double_sender{ std::get_if<ipc::double_signal>(&sender) }) {
-      send(buffer_str, *double_sender, logger);
-    } else if (auto* string_sender{ std::get_if<ipc::string_signal>(&sender) }) {
-      send(buffer_str, *string_sender, logger);
-    } else if (auto* json_sender{ std::get_if<ipc::json_signal>(&sender) }) {
-      send(buffer_str, *json_sender, logger);
-    }
+    std::visit([&logger, buffer_str]<typename signal_t>(signal_t&& my_signal){
+      if constexpr (!std::same_as<std::monostate, std::decay_t<signal_t>>) {
+        send(buffer_str, my_signal, logger);
+      }
+    }, sender);
+    // if (auto* bool_sender{ std::get_if<ipc::bool_signal>(&sender) }) {
+    //   send(buffer_str, *bool_sender, logger);
+    // } else if (auto* int_sender{ std::get_if<ipc::int_signal>(&sender) }) {
+    //   send(buffer_str, *int_sender, logger);
+    // } else if (auto* uint_sender{ std::get_if<ipc::uint_signal>(&sender) }) {
+    //   send(buffer_str, *uint_sender, logger);
+    // } else if (auto* double_sender{ std::get_if<ipc::double_signal>(&sender) }) {
+    //   send(buffer_str, *double_sender, logger);
+    // } else if (auto* string_sender{ std::get_if<ipc::string_signal>(&sender) }) {
+    //   send(buffer_str, *string_sender, logger);
+    // } else if (auto* json_sender{ std::get_if<ipc::json_signal>(&sender) }) {
+    //   send(buffer_str, *json_sender, logger);
+    // } else if (auto* mass_sender{ std::get_if<ipc::mass_signal>(&sender) }) {
+    //   send(buffer_str, *mass_sender, logger);
+    // }
   }
 }
 
@@ -129,7 +136,19 @@ auto main(int argc, char** argv) -> int {
             in_logger.trace("Connecting to signal {}", signal_name);
             std::string sig{ signal_name };
             auto error =
-                receiver->connect(signal_name, [sig, &in_logger](auto const& val) { in_logger.info("{}: {}", sig, val); });
+                receiver->connect(signal_name, [sig, &in_logger]<typename val_t>(val_t const& val) {
+                  if constexpr (tfc::stx::is_specialization_v<std::remove_cvref_t<val_t>, std::expected>) {
+                    if (val.has_value()) {
+                      in_logger.info("{}: {}", sig, val.value());
+                    }
+                    else {
+                      in_logger.info("{}: {}", sig, val.error());
+                    }
+                  }
+                  else {
+                    in_logger.info("{}: {}", sig, val);
+                  }
+                });
             if (error) {
               in_logger.warn("Failed to connect: {}", error.message());
             }

@@ -400,13 +400,15 @@ using uint_signal_ptr = std::shared_ptr<signal<type_uint>>;
 using double_signal_ptr = std::shared_ptr<signal<type_double>>;
 using string_signal_ptr = std::shared_ptr<signal<type_string>>;
 using json_signal_ptr = std::shared_ptr<signal<type_json>>;
+using mass_signal_ptr = std::shared_ptr<signal<type_mass>>;
 using any_signal = std::variant<std::monostate,     //
                                 bool_signal_ptr,    //
                                 int_signal_ptr,     //
                                 uint_signal_ptr,    //
                                 double_signal_ptr,  //
                                 string_signal_ptr,  //
-                                json_signal_ptr>;
+                                json_signal_ptr,
+                                mass_signal_ptr>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, "name");
 using make_any_signal = make_any_ptr<any_signal, signal>;
 
@@ -416,13 +418,15 @@ using uint_slot_ptr = std::shared_ptr<slot<type_uint>>;
 using double_slot_ptr = std::shared_ptr<slot<type_double>>;
 using string_slot_ptr = std::shared_ptr<slot<type_string>>;
 using json_slot_ptr = std::shared_ptr<slot<type_json>>;
+using mass_slot_ptr = std::shared_ptr<slot<type_mass>>;
 using any_slot = std::variant<std::monostate,   //
                               bool_slot_ptr,    //
                               int_slot_ptr,     //
                               uint_slot_ptr,    //
                               double_slot_ptr,  //
                               string_slot_ptr,  //
-                              json_slot_ptr>;
+                              json_slot_ptr,
+                              mass_slot_ptr>;
 /// \brief any_slot foo = make_any_slot::make(type_e::bool, ctx, "name");
 using make_any_slot = make_any_ptr<any_slot, slot>;
 
@@ -432,13 +436,15 @@ using uint_slot_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
 using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
 using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
 using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
+using mass_slot_cb_ptr = std::shared_ptr<slot_callback<type_mass>>;
 using any_slot_cb = std::variant<std::monostate,      //
                                  bool_slot_cb_ptr,    //
                                  int_slot_cb_ptr,     //
                                  uint_slot_cb_ptr,    //
                                  double_slot_cb_ptr,  //
                                  string_slot_cb_ptr,  //
-                                 json_slot_cb_ptr>;
+                                 json_slot_cb_ptr,
+                                 mass_slot_cb_ptr>;
 /// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
 using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 

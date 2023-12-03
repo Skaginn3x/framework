@@ -223,7 +223,8 @@ using any_slot = std::variant<std::monostate,  //
                               uint_slot,       //
                               double_slot,     //
                               string_slot,     //
-                              json_slot>;
+                              json_slot,
+                              mass_slot>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
 using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client&, slot>;
 
@@ -240,7 +241,8 @@ using any_signal = std::variant<std::monostate,  //
                                 uint_signal,     //
                                 double_signal,   //
                                 string_signal,   //
-                                json_signal>;
+                                json_signal,
+                                mass_signal>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, signal>;
 
