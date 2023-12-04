@@ -79,14 +79,8 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires(!std::is_lvalue_reference_v<manager_client_type>)
-      : slot_{ details::slot_callback<type_desc>::create(
-            ctx,
-            name,
-            [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
-              callb(new_value);
-              dbus_slot_.emit_value(new_value);
-            }) },
-        dbus_slot_{ connection, full_name() }, client_{ connection },
+                : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, full_name() },
+            client_{ connection },
         filters_{ dbus_slot_.interface(),
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
