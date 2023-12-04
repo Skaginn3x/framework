@@ -132,7 +132,7 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
                 schema={schema.get('items') as StoreSchemaType}
                 parentSchema={schema}
                 storeKeys={storeKeys.push(i)}
-                key={`${i + 1}-PluginStackzzz`}
+                key={`${i + 1}-PluginStack`}
                 level={level + 1}
                 schemaKeys={storeKeys?.push('items')}
               />
