@@ -270,14 +270,70 @@ struct not_guard<boost::sml::aux::zero_wrapper<boost::sml::front::not_<T>>> {
   using type = T;
 };
 
+template <typename T>
+concept is_and_guard = tfc::stx::is_specialization_v<T, boost::sml::aux::zero_wrapper> &&
+                       tfc::stx::is_specialization_v<typename T::type, boost::sml::front::and_>;
+
+template <typename... Ts>
+struct and_guard {};
+
+template <typename T>
+struct and_guard<boost::sml::aux::zero_wrapper<boost::sml::front::and_<T>>>;
+
+template <typename T, typename... Ts>
+struct and_guard<boost::sml::aux::zero_wrapper<boost::sml::front::and_<T, Ts...>>>;
+
+template <typename T>
+concept is_or_guard = tfc::stx::is_specialization_v<T, boost::sml::aux::zero_wrapper> &&
+                      tfc::stx::is_specialization_v<typename T::type, boost::sml::front::or_>;
+
+template <typename... Ts>
+struct or_guard {};
+
+template <typename T>
+struct or_guard<boost::sml::aux::zero_wrapper<boost::sml::front::or_<T>>>;
+
+template <typename T, typename... Ts>
+struct or_guard<boost::sml::aux::zero_wrapper<boost::sml::front::or_<T, Ts...>>>;
+
 template <typename type_t>
 auto get_guard_name() -> std::string {
-  if constexpr (is_not_guard<typename type_t::guard>) {
-    using guard_info = not_guard<typename type_t::guard>;
-    return fmt::format("[!{}]", get_name<typename guard_info::type>());
+  if constexpr (is_not_guard<type_t>) {
+    using guard_info = not_guard<type_t>;
+    return fmt::format("!{}", get_name<typename guard_info::type>());
+  } else if constexpr (is_and_guard<type_t>) {
+    return and_guard<type_t>::get_name();
+  } else if constexpr (is_or_guard<type_t>) {
+    return or_guard<type_t>::get_name();
   }
-  return fmt::format("[{}]", get_filtered_name<typename type_t::guard>());
+  return get_filtered_name<type_t>();
 }
+
+template <typename T>
+struct and_guard<boost::sml::aux::zero_wrapper<boost::sml::front::and_<T>>> {
+  static std::string get_name() { return get_guard_name<T>(); }
+};
+
+template <typename T, typename... Ts>
+struct and_guard<boost::sml::aux::zero_wrapper<boost::sml::front::and_<T, Ts...>>> {
+  static std::string get_name() {
+    return fmt::format("{} && {}", get_guard_name<T>(),
+                       and_guard<boost::sml::aux::zero_wrapper<boost::sml::front::and_<Ts...>>>::get_name());
+  }
+};
+
+template <typename T>
+struct or_guard<boost::sml::aux::zero_wrapper<boost::sml::front::or_<T>>> {
+  static std::string get_name() { return get_guard_name<T>(); }
+};
+
+template <typename T, typename... Ts>
+struct or_guard<boost::sml::aux::zero_wrapper<boost::sml::front::or_<T, Ts...>>> {
+  static std::string get_name() {
+    return fmt::format("{} || {}", get_guard_name<T>(),
+                       or_guard<boost::sml::aux::zero_wrapper<boost::sml::front::or_<Ts...>>>::get_name());
+  }
+};
 
 template <class type_t, class source_state_t, class destination_state_t>
 auto get_color(bool has_event, std::string_view last_event) -> std::string {
@@ -327,7 +383,7 @@ auto dump_transition([[maybe_unused]] source_state_t const& src,
 
   if (!is_entry && !is_exit) {
     std::string color{ get_color<type_t, source_state_t, destination_state_t>(has_event, last_event) };
-    std::string guard{ has_guard ? get_guard_name<type_t>() : "" };
+    std::string guard{ has_guard ? fmt::format("[{}]", get_guard_name<typename type_t::guard>()) : "" };
     std::string color_attr{ color.empty() ? "" : fmt::format(", color=\"{}\"", color) };
 
     std::string event_label{};

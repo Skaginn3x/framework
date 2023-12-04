@@ -9,6 +9,7 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
+  AlertVariant,
 } from '@patternfly/react-core';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -45,7 +46,6 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
       const filteredNames = allNames.filter(
         (name: string) => name.includes('config')
           && !name.includes('ipc_ruler'),
-        // && !name.includes('_filters_'),
       );
       setNames(filteredNames);
     });
@@ -88,7 +88,7 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
     return name;
   }
 
-  const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
+  const [activeItem, setActiveItem] = React.useState<string | undefined>(Object.keys(schemas)[0]);
   const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
   const [form, setForm] = React.useState<React.JSX.Element>(<div />);
 
@@ -100,6 +100,9 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
       setActiveItem(selectedItem.itemId as string);
       setIsDrawerExpanded(false);
     } else if (selectedItem.groupId) {
+      if (selectedItem.groupId !== activeItemFilter || !selectedItem.groupId || !activeItemFilter) {
+        setActiveItem(undefined);
+      }
       setActiveItemFilter(selectedItem.groupId as string);
     } else {
       setActiveItemFilter(undefined);
@@ -111,6 +114,10 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
    * @param data Configuration values
    */
   function handleSubmit(data: any) {
+    if (!activeItem) {
+      addAlert('Internal error, No item active', AlertVariant.danger);
+      return;
+    }
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
     console.log('data: ', data);
@@ -152,7 +159,11 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
   }
 
   useEffect(() => {
-    if (!schemas || !activeItem) return;
+    if (!schemas || !activeItem) {
+      // eslint-disable-next-line react/jsx-no-useless-fragment
+      setForm(<></>);
+      return;
+    }
     setForm(
       <div style={{ minWidth: '350px', width: '40vw', maxWidth: '500px' }}>
         <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>

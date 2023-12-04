@@ -34,4 +34,6 @@ target_link_libraries(sparkplug_proto
 target_include_directories(sparkplug_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate(TARGET sparkplug_proto LANGUAGE cpp)
 
-add_subdirectory(example)
+if(BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()

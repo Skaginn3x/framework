@@ -79,6 +79,10 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     storeValue = undefined;
   }
 
+  if (!storeValue) {
+    storeValue = schema.get('default');
+  }
+
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
   const [stringValue, setStringValue] = React.useState<string>(storeValue?.toString() ?? '');
   const [value, setValue] = React.useState<Qty | undefined>(

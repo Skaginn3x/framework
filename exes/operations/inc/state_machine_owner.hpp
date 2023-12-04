@@ -93,6 +93,9 @@ public:
   void cleaning_new_state(bool);
   void maintenance_new_state(bool);
 
+  void emergency(bool);
+  void fault(bool);
+
 private:
   std::function<void(new_mode, old_mode)> on_new_state_{};
   asio::io_context& ctx_;
@@ -108,6 +111,7 @@ private:
   bool_signal_t running_{ ctx_, mclient_, "running" };
   bool_signal_t stopping_{ ctx_, mclient_, "stopping" };
   bool_signal_t cleaning_{ ctx_, mclient_, "cleaning" };
+  bool_signal_t fault_out_{ ctx_, mclient_, "fault" };
   uint_signal_t mode_{ ctx_, mclient_, "mode" };
   string_signal_t mode_str_{ ctx_, mclient_, "mode" };
   bool_slot_t starting_finished_{ ctx_, mclient_, "starting_finished",
@@ -119,6 +123,10 @@ private:
                                 std::bind_front(&state_machine_owner::cleaning_new_state, this) };
   bool_slot_t maintenance_button_{ ctx_, mclient_, "maintenance_button",
                                    std::bind_front(&state_machine_owner::maintenance_new_state, this) };
+  bool_slot_t emergency_{ ctx_, mclient_, "emergency", "Emergency active input",
+                          std::bind_front(&state_machine_owner::emergency, this) };
+  bool_slot_t fault_{ ctx_, mclient_, "fault", "Fault active, like trip signal from motor driver",
+                      std::bind_front(&state_machine_owner::fault, this) };
   tfc::logger::logger logger_{ "state_machine" };
   tfc::confman::config<detail::storage> config_{ ctx_, "state_machine",
                                                  detail::storage{ .startup_time = std::chrono::milliseconds{ 0 },
