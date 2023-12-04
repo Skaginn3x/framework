@@ -97,24 +97,19 @@ auto main(int argc, char** argv) -> int {
 
   asio::io_context ctx;
 
-  if (list_signals) {
+  if (list_signals || list_slots) {
     auto client{ tfc::ipc::make_manager_client(ctx) };
-    client.signals([&logger](std::vector<tfc::ipc_ruler::signal> const& signals) {
-      for (const auto& sig : signals) {
-        logger.trace("{}", sig.name);
+    constexpr auto print_names{ [](auto const& instances) {
+      for (const auto& instance : instances) {
+        fmt::println("{}", instance.name);
       }
-    });
-    ctx.run_for(std::chrono::milliseconds(100));
-    return 0;
-  }
-
-  if (list_slots) {
-    auto client{ tfc::ipc::make_manager_client(ctx) };
-    client.slots([&logger](std::vector<tfc::ipc_ruler::slot> const& slots) {
-      for (const auto& sl : slots) {
-        logger.trace("{}", sl.name);
-      }
-    });
+    } };
+    if (list_signals) {
+      client.signals(print_names);
+    }
+    if (list_slots) {
+      client.slots(print_names);
+    }
     ctx.run_for(std::chrono::milliseconds(100));
     return 0;
   }
