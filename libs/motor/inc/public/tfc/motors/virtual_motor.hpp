@@ -64,9 +64,7 @@ public:
       return motor_error(errors::err_enum::motor_missing_speed_reference);
     }
     [[maybe_unused]] auto frequency = tfc::motor::impl::nominal_at_50Hz_to_frequency(config_.nominal.value(), vel);
-    std::stringstream ss;
-    ss << frequency;
-    logger_.info("convey running at {}", ss.str());
+    logger_.info("convey running at {}", frequency);
     return {};
   }
 
@@ -97,10 +95,35 @@ public:
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto) {
     logger_.trace("convey({});", time);
+    //TODO: Implement
+  }
+
+  void move(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
+    logger_.trace("move({});", length);
+    if (!config_.nominal) {
+      cb(motor_error(errors::err_enum::motor_missing_speed_reference));
+    }
+    //TODO: Implement
+  }
+  void move_home(std::invocable<std::error_code> auto cb) {
+    logger_.trace("move_home();");
+    has_reference_ = true;
+    cb({});
+  }
+
+  auto needs_homing() const -> std::expected<bool, std::error_code> {
+    logger_.trace("needs_homing();");
+    return !has_reference_;
+  }
+
+  auto stop() -> std::error_code {
+    logger_.trace("stop();");
+    return {};
   }
 
 private:
   const config_t& config_;
   tfc::logger::logger logger_;
+  bool has_reference_{ false };
 };
 }  // namespace tfc::motor::types
