@@ -55,7 +55,9 @@ using any_signal_imc_mock =
                  tfc::ipc::signal<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock&>,    //
                  tfc::ipc::signal<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock&>,  //
                  tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock&>,  //
-                 tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock&>>;
+                 tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock&>,
+                 tfc::ipc::signal<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&>
+>;
 
 extern template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client_mock,
                                       tfc::mqtt::config::writeable_signals_mock,

@@ -268,6 +268,8 @@ auto spark_plug_interface<config_t, mqtt_client_t>::type_enum_convert(tfc::ipc::
     case _string:
     case _json:
       return DataType::String;
+    case _mass:
+      return DataType::Template;
   }
   return DataType::Unknown;
 }
