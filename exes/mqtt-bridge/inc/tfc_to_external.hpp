@@ -46,7 +46,9 @@ public:
     signals_.reserve(signals.size());
 
     for (const auto& signal : signals) {
-      signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
+      signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name, signal.description));
+
+      logger_.trace("description of signal: {}", signal.description);
 
       logger_.trace("Connecting: {}", signal.name);
 

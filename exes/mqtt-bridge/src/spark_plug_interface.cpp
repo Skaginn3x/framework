@@ -178,12 +178,15 @@ auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> voi
       std::string name;
       ipc::details::type_e type;
 
+      auto* metadata = variable_metric->mutable_metadata();
+
       std::visit(
-          [&name, &type](auto&& receiver) {
+          [&name, &type, &metadata](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<receiver_t, std::monostate>) {
               name = format_signal_name(receiver->name().data());
               type = receiver->type().value_e;
+              metadata->set_description(receiver->description().data());
             }
           },
           signal_data);
