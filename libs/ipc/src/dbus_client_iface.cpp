@@ -4,6 +4,7 @@
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/property.hpp>
 #include <sdbusplus/bus/match.hpp>
+#include <fmt/core.h>
 
 #include <tfc/dbus/match_rules.hpp>
 #include <tfc/dbus/sd_bus.hpp>
