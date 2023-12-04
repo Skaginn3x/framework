@@ -9,11 +9,12 @@
     "boost-asio",
     "boost-program-options",
     "boost-stacktrace",
+    "boost-lexical-cast",
     "date",
     "fmt",
     {
       "name": "glaze",
-      "version>=": "1.8.0"
+      "version>=": "1.8.4"
     },
     "gtest",
     {

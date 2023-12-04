@@ -49,17 +49,19 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
     static constexpr auto send{ [](std::string_view input, auto& in_sender, auto& in_logger) -> void {
       try {
         using value_t = typename std::remove_reference_t<decltype(in_sender)>::value_t;
-        static constexpr auto extract_value{ [](auto& inp) -> typename get_lexi_type<value_t>::type {
+        static constexpr auto extract_value{ []([[maybe_unused]] auto& inp) -> typename get_lexi_type<value_t>::type {
           if constexpr (ipc::details::concepts::is_expected_quantity<value_t>) {
-            using rep_t = typename value_t::value_type::rep;
-            return boost::lexical_cast<rep_t>(inp);
+            // using rep_t = typename value_t::value_type::rep;
+            return {};
+            // return boost::lexical_cast<rep_t>(inp);
           }
           else {
-            return boost::lexical_cast<value_t>(inp);
+            return {};
+            // return boost::lexical_cast<value_t>(inp);
           }
         } };
 
-        static constexpr auto try_make_expected_quantity{ [](auto& value) -> value_t {
+        [[maybe_unused]] static constexpr auto try_make_expected_quantity{ [](auto& value) -> value_t {
           if constexpr (ipc::details::concepts::is_expected_quantity<value_t>) {
             return { value * value_t::value_type::reference };
           }
@@ -68,7 +70,7 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
           }
         } };
 
-        auto value = extract_value(input);
+        [[maybe_unused]] auto value = extract_value(input);
         in_sender.async_send(try_make_expected_quantity(value), [&, value](std::error_code code, size_t bytes) {
           [[maybe_unused]] auto foo {value}; // hacky way to silence unused warning
           if (code) {

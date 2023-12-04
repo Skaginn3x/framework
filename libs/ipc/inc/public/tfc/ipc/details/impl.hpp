@@ -12,6 +12,7 @@
 
 #include <fmt/format.h>
 #include <azmq/socket.hpp>
+#include <azmq/detail/send_op.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -97,11 +98,11 @@ public:
   /// @brief send value to subscriber
   /// @tparam completion_token_t a concept of type void(std::error_code, std::size_t)
   /// @param value is sent
-  template <typename completion_token_t>
+  template <asio::completion_token_for<void(std::error_code, std::size_t)> completion_token_t>
   auto async_send(value_t const& value, completion_token_t&& token)
-      -> asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
+      -> typename asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
     last_value_ = value;
-    std::unique_ptr<std::vector<std::byte>> send_buffer{ std::make_unique<std::vector<std::byte>>() };
+    auto send_buffer{ std::make_unique<std::vector<std::byte>>() };
     if (auto serialize_error{ packet_t::serialize(last_value_, *send_buffer) }) {
       return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
           [serialize_error](auto& self, std::error_code = {}, std::size_t = 0) { self.complete(serialize_error, 0); },
@@ -112,22 +113,19 @@ public:
 
     auto& socket{ socket_ };
     return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
-        [&socket, buffer = std::move(send_buffer), state = state_e::write](auto& self, std::error_code err = {},
+        [&socket, buffer = std::move(send_buffer), first_call = true](auto& self, std::error_code err = {},
                                                                            std::size_t bytes_sent = 0) mutable {
           if (err) {
             self.complete(err, bytes_sent);
             return;
           }
-          switch (state) {
-            case state_e::write: {
-              state = state_e::complete;
-              azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
-              break;
-            }
-            case state_e::complete: {
-              self.complete(err, bytes_sent);
-              break;
-            }
+          if (first_call) {
+            first_call = false;
+            [[maybe_unused]] auto& foo = socket;
+            azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
+          }
+          else {
+            self.complete(err, bytes_sent);
           }
         },
         token, socket_);

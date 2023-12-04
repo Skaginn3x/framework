@@ -1,6 +1,6 @@
 add_executable(tfcctl src/tfcctl.cpp)
 
-find_package(Boost REQUIRED COMPONENTS program_options system)
+find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(mp-units CONFIG REQUIRED)
 
 target_link_libraries(tfcctl
@@ -9,7 +9,6 @@ target_link_libraries(tfcctl
     tfc::base
     tfc::logger
     Boost::program_options
-    Boost::system
     mp-units::core
 )
 

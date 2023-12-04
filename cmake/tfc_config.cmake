@@ -6,8 +6,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # enable full llvm assembler, byte code gen, linking optimisations
-  add_compile_options( -fuse-ld=lld )
-  add_link_options( -fuse-ld=lld )
+#  add_compile_options( -fuse-ld=lld )
+#  add_link_options( -fuse-ld=lld )
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options( -flto=thin )
   endif()
