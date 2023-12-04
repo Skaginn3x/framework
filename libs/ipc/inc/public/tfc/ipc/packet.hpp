@@ -68,18 +68,21 @@ struct packet {
     if constexpr (std::is_fundamental_v<value_t>) {
       my_header.value_size = sizeof(value_t);
     } else if constexpr (concepts::is_expected_quantity<value_t>) {
-      // + 1 byte to indicate whether it is expoected or unexpected
-      static_assert(std::is_fundamental_v<typename value_t::value_type::rep>);
-      my_header.value_size = sizeof(typename value_t::value_type::rep{}) + 1;
-    }
-    // This would be ideal but std::error_code uses error_category which is virtual poly,
-    // the error category cannot be inferred when deserializing without some serious hacks
-    // until its resolved we forbid using unexpected
-    else if constexpr (std::same_as<std::unexpected<std::error_code>, value_t>) {
-      []<bool flag = false> {
-        static_assert(flag);
+      if constexpr (std::is_enum_v<typename value_t::error_type>) {
+        // + 1 byte to indicate whether it is expected or unexpected
+        static_assert(std::is_fundamental_v<typename value_t::value_type::rep>);
+        if (value.has_value()) {
+          my_header.value_size = sizeof(typename value_t::value_type::rep{}) + 1;
+        }
+        else {
+          my_header.value_size = sizeof(typename value_t::error_type{}) + 1;
+        }
+      } else {
+        []<bool flag = false> {
+          static_assert(flag, "Only std::expected<quantity, enum> is supported.");
+        }
+        ();
       }
-      ();
     } else {
       static_assert(std::is_member_function_pointer_v<decltype(&value_t::size)>, "Serialize for value type not supported");
       static_assert(std::is_same_v<decltype(value_t().size()), std::size_t>);
@@ -93,10 +96,16 @@ struct packet {
     if constexpr (std::is_fundamental_v<value_t>) {
       std::copy_n(reinterpret_cast<std::byte const*>(&value), my_header.value_size, std::back_inserter(buffer));
     } else if constexpr (concepts::is_expected_quantity<value_t>) {
-      buffer.push_back(std::byte{ static_cast<std::uint8_t>(true) }); // indicate this is expected
-      std::copy_n(reinterpret_cast<std::byte const*>(&value), sizeof(typename value_t::value_type::rep), std::back_inserter(buffer));
-    }
-    else {
+      if (value.has_value()) {
+        buffer.push_back(std::byte{ static_cast<std::uint8_t>(true) });  // indicate this is expected
+        std::copy_n(reinterpret_cast<std::byte const*>(&value.value()), sizeof(typename value_t::value_type::rep),
+                    std::back_inserter(buffer));
+      } else {
+        buffer.push_back(std::byte{ static_cast<std::uint8_t>(false) });  // indicate this is unexpected
+        std::copy_n(reinterpret_cast<std::byte const*>(&value.error()), sizeof(typename value_t::error_type),
+            std::back_inserter(buffer));
+      }
+    } else {
       // has member function data
       static_assert(std::is_pointer_v<decltype(value.data())>);
       // Todo why copy the data instead of creating a view into the data?
@@ -135,7 +144,16 @@ struct packet {
       bool expected_cond{};
       std::copy_n(buffer_iter, sizeof(bool), reinterpret_cast<std::byte*>(&expected_cond));
       buffer_iter += sizeof(bool);
-      std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&result.value));
+      if (expected_cond) {
+        typename value_t::value_type::rep substitute{};
+        std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
+        result.value = substitute * value_t::value_type::reference;
+      }
+      else {
+        typename value_t::error_type substitute{};
+        std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
+        result.value = std::unexpected{ substitute };
+      }
     } else {
       // has member function data
       result.value.resize(result.header.value_size);
