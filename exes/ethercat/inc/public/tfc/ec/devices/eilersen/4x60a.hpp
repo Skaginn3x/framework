@@ -337,7 +337,7 @@ template <typename manager_client_type,
 class e4x60a final : public base {
 public:
   e4x60a(asio::io_context& ctx, manager_client_type& client, std::uint16_t slave_index)
-    : base{ slave_index }, ctx_{ ctx } {
+    : base{ slave_index }, ctx_{ ctx }, client_{ client } {
     if (auto* itm{ std::get_if<calibration_config>(&config_->variations.at(0)) }) {
       itm->sealed.observe(std::bind_front(&e4x60a::make_seal, this, 0));
     }
@@ -358,6 +358,7 @@ public:
       return;
     }
     [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
+    mass_.async_send(input->weight_signals[0] * mp_units::si::gram, [](auto, auto) {});
 
     // for (auto const& section : config_->variations) {
     //   std::visit([](auto const& visitor) {
@@ -386,8 +387,10 @@ public:
   static constexpr uint32_t product_code = 0x1040;
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
+  ipc_ruler::ipc_manager_client& client_;
   confman::config<config> config_{
     ctx_, fmt::format("eilersen_weighing_module_{}", slave_index_)
   };
+  ipc::mass_signal mass_{ ctx_, client_, fmt::format("eilersen_weighing_module_{}.mass", slave_index_), "Mass" };
 };
 } // namespace tfc::ec::devices::eilersen::e4x60a
