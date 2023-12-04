@@ -9,7 +9,6 @@
     "boost-asio",
     "boost-program-options",
     "boost-stacktrace",
-    "boost-lexical-cast",
     "date",
     "fmt",
     {

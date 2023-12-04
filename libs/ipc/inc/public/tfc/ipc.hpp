@@ -141,6 +141,7 @@ template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc
 class signal {
 public:
   using value_t = typename details::signal<type_desc>::value_t;
+  static constexpr auto value_type{ type_desc::value_e };
   using dbus_signal_t = details::dbus_ipc<value_t, details::ipc_type_e::signal>;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::signal<type_desc>::direction_v;

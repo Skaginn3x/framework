@@ -17,15 +17,6 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
 
-template <typename typ>
-struct get_lexi_type {
-  using type = typ;
-};
-template <ipc::details::concepts::is_expected_quantity typ>
-struct get_lexi_type<typ> {
-  using type = typename typ::value_type::rep;
-};
-
 inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> asio::awaitable<void> {
   auto executor = co_await asio::this_coro::executor;
   asio::posix::stream_descriptor input_stream(executor, STDIN_FILENO);
@@ -47,34 +38,30 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
     std::visit(
         [buffer_str]<typename signal_t>(signal_t&& my_signal) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<signal_t>>) {
-            try {
-              using value_t = typename std::remove_reference_t<decltype(my_signal)>::value_t;
-              typename get_lexi_type<value_t>::type raw_value{};
-              if constexpr (ipc::details::concepts::is_expected_quantity<value_t>) {
-                using rep_t = typename value_t::value_type::rep;
-                raw_value = boost::lexical_cast<rep_t>(buffer_str);
-              } else {
-                raw_value = boost::lexical_cast<value_t>(buffer_str);
-              }
-
-              [[maybe_unused]] static constexpr auto try_make_expected_quantity{ [](auto& value) -> value_t {
-                if constexpr (ipc::details::concepts::is_expected_quantity<value_t>) {
-                  return { value * value_t::value_type::reference };
-                } else {
-                  return value;
-                }
-              } };
-
-              my_signal.async_send(try_make_expected_quantity(raw_value), [&, raw_value](std::error_code code, size_t bytes) {
-                if (code) {
-                  fmt::print("Error: {}", code.message());
-                } else {
-                  fmt::print("Sent value: {} size: {}", raw_value, bytes);
-                }
-              });
-            } catch (boost::bad_lexical_cast const& bad_lexical_cast) {
-              fmt::print("Invalid input {}, error: {}", buffer_str, bad_lexical_cast.what());
+            using signal_type = std::remove_cvref_t<signal_t>;
+            using value_t = typename signal_type::value_t;
+            std::string buff{ buffer_str };
+            if constexpr (signal_type::value_type == ipc::details::type_e::_string) {
+              buff = fmt::format("\"{}\"", buffer_str);
             }
+            auto value{ glz::read_json<value_t>(buff) };
+            if (!value.has_value()) {
+              fmt::print("Invalid input error: {}\n", glz::format_error(value.error(), buff));
+              return;
+            }
+
+            my_signal.async_send(value.value(), [&, actual_value = value.value()](std::error_code const& code, size_t bytes) {
+              if (code) {
+                fmt::print("Error: {}\n", code.message());
+              } else {
+                if constexpr (tfc::stx::is_expected_quantity<value_t>) {
+                  fmt::print("Sent value: {} size: {}\n", actual_value.value(), bytes);
+                }
+                else {
+                  fmt::print("Sent value: {} size: {}\n", actual_value, bytes);
+                }
+              }
+            });
           }
         },
         sender);
@@ -101,7 +88,7 @@ auto main(int argc, char** argv) -> int {
   if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
     std::stringstream out;
     description.print(out);
-    fmt::print("Usage: tfcctl [options] \n{}", out.str());
+    fmt::print("Usage: tfcctl [options] \n{}\n", out.str());
     std::exit(0);
   }
 
@@ -140,21 +127,21 @@ auto main(int argc, char** argv) -> int {
     std::visit(
         [signal_name]<typename receiver_t>(receiver_t&& receiver) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
-            fmt::print("Connecting to signal {}", signal_name);
+            fmt::print("Connecting to signal {}\n", signal_name);
             std::string sig{ signal_name };
             auto error = receiver->connect(signal_name, [sig]<typename val_t>(val_t const& val) {
               if constexpr (tfc::stx::is_specialization_v<std::remove_cvref_t<val_t>, std::expected>) {
                 if (val.has_value()) {
-                  fmt::print("{}: {}", sig, val.value());
+                  fmt::print("{}: {}\n", sig, val.value());
                 } else {
-                  fmt::print("{}: {}", sig, val.error());
+                  fmt::print("{}: {}\n", sig, val.error());
                 }
               } else {
-                fmt::print("{}: {}", sig, val);
+                fmt::print("{}: {}\n", sig, val);
               }
             });
             if (error) {
-              fmt::print("Failed to connect: {}", error.message());
+              fmt::print("Failed to connect: {}\n", error.message());
             }
           }
         },
@@ -178,9 +165,9 @@ auto main(int argc, char** argv) -> int {
   asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
   signal_set.async_wait([&](const std::error_code& error, int signal_number) {
     if (error) {
-      fmt::print(stderr, "Error waiting for signal. {}", error.message());
+      fmt::print(stderr, "Error waiting for signal. {}\n", error.message());
     }
-    fmt::print("Shutting down signal ({})", signal_number);
+    fmt::print("Shutting down signal ({})\n", signal_number);
     ctx.stop();
   });
 

@@ -120,8 +120,12 @@ struct glz::meta<std::expected<value_t, error_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view delimiter{ ", " };
   static constexpr std::string_view name{ tfc::stx::string_view_join_v<prefix, name_v<value_t>, delimiter, name_v<error_t>, postfix> };
-  // todo value should be exactly same as std::variant
+  static constexpr auto value{ [](auto&& self) -> auto& {
+    // todo this does not support error case
+    return self.value();
+  } };
 };
+// static_assert(glz::detail::nullable_t<std::expected<int, std::error_code>>);
 
 template <std::intmax_t num, std::intmax_t den>
 struct glz::meta<std::ratio<num, den>> {
