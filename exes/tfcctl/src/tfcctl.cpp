@@ -7,6 +7,7 @@
 #include <boost/asio/experimental/co_spawn.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
+#include <mp-units/format.h>
 
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
@@ -15,6 +16,16 @@
 namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
+
+template <typename typ>
+struct get_lexi_type {
+  using type = typ;
+};
+template <ipc::details::concepts::is_expected_quantity typ>
+struct get_lexi_type<typ> {
+  using type = typename typ::value_type::rep;
+};
+
 
 inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::string_view signal_name)
     -> asio::awaitable<void> {
@@ -38,12 +49,32 @@ inline auto stdin_coro(asio::io_context& ctx, tfc::logger::logger& logger, std::
     static constexpr auto send{ [](std::string_view input, auto& in_sender, auto& in_logger) -> void {
       try {
         using value_t = typename std::remove_reference_t<decltype(in_sender)>::value_t;
-        auto value = boost::lexical_cast<value_t>(input);
-        in_sender.async_send(value, [&, value](std::error_code code, size_t bytes) {
+        static constexpr auto extract_value{ [](auto& inp) -> typename get_lexi_type<value_t>::type {
+          if constexpr (ipc::details::concepts::is_expected_quantity<value_t>) {
+            using rep_t = typename value_t::value_type::rep;
+            return boost::lexical_cast<rep_t>(inp);
+          }
+          else {
+            return boost::lexical_cast<value_t>(inp);
+          }
+        } };
+
+        static constexpr auto try_make_expected_quantity{ [](auto& value) -> value_t {
+          if constexpr (ipc::details::concepts::is_expected_quantity<value_t>) {
+            return { value * value_t::value_type::reference };
+          }
+          else {
+            return value;
+          }
+        } };
+
+        auto value = extract_value(input);
+        in_sender.async_send(try_make_expected_quantity(value), [&, value](std::error_code code, size_t bytes) {
+          [[maybe_unused]] auto foo {value}; // hacky way to silence unused warning
           if (code) {
-            in_logger.template log<tfc::logger::lvl_e::error>("Error: {}", code.message());
+            in_logger.error("Error: {}", code.message());
           } else {
-            in_logger.template log<tfc::logger::lvl_e::info>("Sent value: {} size: {}", value, bytes);
+            in_logger.info("Sent value: {} size: {}", value, bytes);
           }
         });
       } catch (boost::bad_lexical_cast const& bad_lexical_cast) {

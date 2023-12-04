@@ -11,6 +11,8 @@
 #include <tfc/ipc/details/impl.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
+#include <tfc/ipc/glaze_meta.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {

@@ -69,8 +69,8 @@ struct packet {
       my_header.value_size = sizeof(value_t);
     } else if constexpr (concepts::is_expected_quantity<value_t>) {
       // + 1 byte to indicate whether it is expoected or unexpected
-      static_assert(std::is_fundamental_v<typename value_t::rep>);
-      my_header.value_size = sizeof(typename value_t::rep{}) + 1;
+      static_assert(std::is_fundamental_v<typename value_t::value_type::rep>);
+      my_header.value_size = sizeof(typename value_t::value_type::rep{}) + 1;
     }
     // This would be ideal but std::error_code uses error_category which is virtual poly,
     // the error category cannot be inferred when deserializing without some serious hacks
@@ -94,7 +94,7 @@ struct packet {
       std::copy_n(reinterpret_cast<std::byte const*>(&value), my_header.value_size, std::back_inserter(buffer));
     } else if constexpr (concepts::is_expected_quantity<value_t>) {
       buffer.push_back(std::byte{ static_cast<std::uint8_t>(true) }); // indicate this is expected
-      std::copy_n(reinterpret_cast<std::byte const*>(&value), sizeof(value_t::rep), std::back_inserter(buffer));
+      std::copy_n(reinterpret_cast<std::byte const*>(&value), sizeof(typename value_t::value_type::rep), std::back_inserter(buffer));
     }
     else {
       // has member function data

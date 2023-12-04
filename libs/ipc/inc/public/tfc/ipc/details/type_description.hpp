@@ -7,20 +7,14 @@
 
 #include <mp-units/systems/si/si.h>
 
+#include <tfc/stx/concepts.hpp>
 #include <tfc/ipc/enums.hpp>
 
 namespace tfc::ipc::details {
 
 namespace concepts {
-template <typename type>
-struct is_expected_quantity_impl : std::false_type {};
-template <mp_units::Quantity type, typename err>
-struct is_expected_quantity_impl<std::expected<type, err>> : std::true_type {};
-template <typename type>
-concept is_expected_quantity = is_expected_quantity_impl<type>::value;
-
-template <typename given_t, typename... supposed_t>
-concept is_any_of = (std::same_as<given_t, supposed_t> || ...);
+using stx::is_any_of;
+using stx::is_expected_quantity;
 template <typename given_t>
 concept is_supported_type = is_any_of<given_t, bool, std::int64_t, std::uint64_t, double, std::string> || is_expected_quantity<given_t>;
 }  // namespace concepts

@@ -42,4 +42,25 @@ struct meta<tfc::ipc::details::type_e> {
   // clang-format on
 };
 
+template <>
+struct meta<tfc::ipc::details::mass_error_e> {
+  using enum tfc::ipc::details::mass_error_e;
+  // clang-format off
+  static auto constexpr value{ glz::enumerate(
+    "no_error", no_error, "Not an error",
+    "cell_fault", cell_fault, "Load cell fault",
+    "module_fault", module_fault, "General weigher module fault",
+    "power_failure", power_failure, "Supply voltage too low",
+    "over_range", over_range, "Over max value, please take care of the load cell",
+    "under_range", under_range, "Will this be used? tbd",
+    "bad_connection", bad_connection, "Bad connection to module",
+    "zero_error", zero_error, "Zero error, something is probably stuck on the weigher",
+    "calibration_error", calibration_error, "Calibration error",
+    "not_calibrated", not_calibrated, "Not calibrated",
+    "unknown_error", unknown_error, "Unknown error"
+    ) };
+  // clang-format on
+  static constexpr std::string_view name{ "ipc::mass_error_e" };
+};
+
 }  // namespace glz
