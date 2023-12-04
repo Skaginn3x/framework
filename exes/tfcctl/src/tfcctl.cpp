@@ -87,8 +87,8 @@ auto main(int argc, char** argv) -> int {
       "list-slots", po::bool_switch(&list_slots), "List all available IPC slots");
   tfc::base::init(argc, argv, description);
 
-  // Must provide an argument
-  if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
+  bool at_least_one_choice{ !signal.empty() || !slot.empty() || !connect.empty() || list_signals || list_slots };
+  if (!at_least_one_choice) {
     std::stringstream out;
     description.print(out);
     fmt::println("Usage: tfcctl [options] \n{}", out.str());
@@ -96,22 +96,21 @@ auto main(int argc, char** argv) -> int {
   }
 
   asio::io_context ctx;
+  auto client{ tfc::ipc::make_manager_client(ctx) };
 
   if (list_signals || list_slots) {
-    auto client{ tfc::ipc::make_manager_client(ctx) };
-    constexpr auto print_names{ [](auto const& instances) {
+    const auto print_names{ [](std::string context, auto const& instances) {
+      fmt::println("{}", context);
       for (const auto& instance : instances) {
         fmt::println("{}", instance.name);
       }
     } };
     if (list_signals) {
-      client.signals(print_names);
+      client.signals(std::bind_front(print_names, "Signals:"));
     }
     if (list_slots) {
-      client.slots(print_names);
+      client.slots(std::bind_front(print_names, "Slots:"));
     }
-    ctx.run_for(std::chrono::milliseconds(100));
-    return 0;
   }
 
   // For sending a signal
@@ -159,15 +158,6 @@ auto main(int argc, char** argv) -> int {
       return ipc;
     }(signal_connect));
   }
-
-  asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
-  signal_set.async_wait([&](const std::error_code& error, int signal_number) {
-    if (error) {
-      fmt::println(stderr, "Error waiting for signal. {}", error.message());
-    }
-    fmt::println("Shutting down signal ({})", signal_number);
-    ctx.stop();
-  });
 
   ctx.run();
   return 0;
