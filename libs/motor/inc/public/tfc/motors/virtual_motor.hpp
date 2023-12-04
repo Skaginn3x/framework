@@ -16,6 +16,14 @@ using mp_units::QuantityOf;
 using tfc::confman::observable;
 using namespace mp_units::si::unit_symbols;
 
+
+/**
+ * @brief Virtual motor class
+ * @details This class is used to simulate a motor, it does not actually control a motor.
+ * for use in testing use mock_motor in mock_motor.hpp. That motor can not be selected
+ * as a output of a running program and exposes a greater deal of internals.
+ */
+
 class virtual_motor {
 private:
   struct config {

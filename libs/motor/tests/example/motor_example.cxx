@@ -52,6 +52,9 @@ auto main(int argc, char** argv) -> int {
   my_motor.move(10 * m, [](const std::error_code&) {});
   my_motor.move_home([](const std::error_code&) {});
 
+  // Can be used to ask the motor if he has a good reference to his home point.
+  my_motor.needs_homing();
+
   // Stop with deceleration specified
   // specifing a deceleration overloads
   // the configured deceleration but

@@ -10,7 +10,7 @@
 #include <tfc/confman/observable.hpp>
 #include <tfc/motors/errors.hpp>
 #include <tfc/motors/ethercat.hpp>
-#include <tfc/motors/mock.hpp>
+#include <tfc/motors/virtual_motor.hpp>
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -166,6 +166,10 @@ public:
   void move(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto) {}
 
   void move_home(std::invocable<std::error_code> auto) {}
+
+  [[nodiscard]] const bool needs_homing() const {
+    return true;
+  }
 
   void notify(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
