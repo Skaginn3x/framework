@@ -32,7 +32,7 @@ using type_uint = type_description<std::uint64_t, type_e::_uint64_t>;
 using type_double = type_description<double, type_e::_double_t>;
 using type_string = type_description<std::string, type_e::_string>;
 using type_json = type_description<std::string, type_e::_json>;
-using mass_t = std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::uint64_t>, mass_error_e>;
+using mass_t = std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::int64_t>, mass_error_e>;
 using type_mass = type_description<mass_t, type_e::_mass>;
 
 }  // namespace tfc::ipc::details

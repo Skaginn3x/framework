@@ -52,7 +52,7 @@ namespace tfc::ec::devices::eilersen::e4x60a {
 namespace asio = boost::asio;
 static constexpr std::size_t max_cells{ 4 };
 using signal_t = std::int32_t;
-using weight_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>>;
+using mass_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::int64_t>;
 
 struct used_cells {
   bool cell_1{};
@@ -89,7 +89,7 @@ struct calibration_zero {
 
 struct calibration_weight {
   confman::read_only<signal_t> read{};
-  weight_t weight{};
+  mass_t weight{};
   confman::observable<bool> do_calibrate{ false };
 };
 
@@ -98,13 +98,13 @@ struct calibration {
   static constexpr auto name{ glz::enum_name_v<mode> };
   calibration_zero calibration_zero{};
   calibration_weight calibration_weight{};
-  std::optional<weight_t> tare_weight{};
-  weight_t minimum_load{ 1 * mp_units::si::kilogram };
-  weight_t maximum_load{ 100 * mp_units::si::kilogram };
-  weight_t max_zero_drift{ 500 * mp_units::si::gram };
+  std::optional<mass_t> tare_weight{};
+  mass_t minimum_load{ 1 * mp_units::si::kilogram };
+  mass_t maximum_load{ 100 * mp_units::si::kilogram };
+  mass_t max_zero_drift{ 500 * mp_units::si::gram };
   bool track_zero_drift{ false };
   // https://adamequipment.co.uk/content/post/d-vs-e-values/?fbclid=IwAR3x2eF7m1RXF9VSk-uxb391Sh_JnK0tK53hBycqdAj5hNdl0KmmZoXgyvk
-  weight_t verification_scale_interval{ 10 * mp_units::si::gram }; // so called `e`
+  mass_t verification_scale_interval{ 10 * mp_units::si::gram }; // so called `e`
   get_used_cell_t<mode> this_cells{};
   std::string group_name{}; // this calibration group name
 };
@@ -143,8 +143,8 @@ struct calibration_interface {
       }
     }, static_cast<child_t*>(this)->get_calibration());
   }
-  auto get_calibration_weight() const noexcept -> std::optional<std::pair<signal_t, weight_t>> {
-    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::pair<signal_t, weight_t>> {
+  auto get_calibration_weight() const noexcept -> std::optional<std::pair<signal_t, mass_t>> {
+    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::pair<signal_t, mass_t>> {
       if constexpr (std::convertible_to<visitor_t, not_used>) {
         return std::nullopt;
       }
@@ -329,6 +329,9 @@ static_assert(sizeof(pdo_output) == 4);
 
 template <template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
 struct instance {
+  signal_t<ipc::details::mass_t, ipc_ruler::ipc_manager_client&> mass_;
+  mass_t zero;
+
 
 };
 
@@ -391,6 +394,5 @@ public:
   confman::config<config> config_{
     ctx_, fmt::format("eilersen_weighing_module_{}", slave_index_)
   };
-  ipc::mass_signal mass_{ ctx_, client_, fmt::format("eilersen_weighing_module_{}.mass", slave_index_), "Mass" };
 };
 } // namespace tfc::ec::devices::eilersen::e4x60a
