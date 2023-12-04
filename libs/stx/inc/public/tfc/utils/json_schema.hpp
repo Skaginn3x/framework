@@ -346,7 +346,7 @@ struct to_json_schema<T> {
           // enumeration.attributes.description = glz::tuplet::get<2>(item);
           enumeration.attributes.description = item[2];
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
-          //enumeration.attributes = glz::tuplet::get<2>(item);
+          // enumeration.attributes = glz::tuplet::get<2>(item);
           enumeration.attributes = item[2];
         }
       }
