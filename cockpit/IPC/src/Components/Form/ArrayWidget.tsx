@@ -10,6 +10,7 @@ import {
   StoreSchemaType,
   TransTitle, WidgetProps, WithValue, useUIStore,
 } from '@ui-schema/ui-schema';
+import { uid } from 'react-uid';
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 import { PlusIcon } from '@patternfly/react-icons';
 import { useDarkMode } from '../Simple/DarkModeContext';
@@ -86,12 +87,12 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
 
   const itemStyle = {
     backgroundColor: isDark ? '#1A1A1A' : '#F9F9F9',
-    padding: '1rem 2rem',
+    padding: '1rem',
     marginBottom: '1rem',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    borderRadius: '1rem',
+    borderRadius: '0.5rem',
     width: '100%',
   };
 
@@ -114,17 +115,17 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
         ? <Box mb={1}>{info}</Box> : null}
 
       <Grid container spacing={3} style={{ margin: '0rem' }}>
-        {value?.map((val, i) => (
-          <Box key={`${JSON.stringify(val)}-${i + 1}`} style={itemStyle}>
-            <Box style={{ marginRight: '2rem' }} key={`${val}-Box-${i + 1}`}>{i}</Box>
+        {value?.map((_, i) => (
+          <Box key={`${uid(i)}-${i + 1}`} style={itemStyle}>
+            <Box style={{ marginRight: '1rem', marginLeft: '0.5rem' }} key={`Box-${i + 1}`}>{i}</Box>
             <div
               style={{
                 width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                marginTop: '3rem',
+                marginTop: '1.2rem',
               }}
-              key={`${val}-div-${i + 1}`}
+              key={`div-${i + 1}`}
             >
               <PluginStack<{ schemaKeys: StoreKeys | undefined }>
                 showValidity={showValidity}
@@ -137,13 +138,13 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
               />
             </div>
             <Tooltip title="Remove Item">
-              <IconButton onClick={() => handleRemove(i)} style={{ marginLeft: '2rem' }}>
+              <IconButton onClick={() => handleRemove(i)} style={{ marginLeft: '1rem' }}>
                 <DeleteIcon />
               </IconButton>
             </Tooltip>
           </Box>
         ))}
-        <Box style={{ width: '100%' }}>
+        <Box style={{ width: '100%', textAlign: 'center' }}>
           <Tooltip title="Add Item">
             <IconButton
               disabled={(maxItems && value.length >= maxItems) as boolean}
