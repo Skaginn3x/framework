@@ -34,5 +34,4 @@ install(
   CONFIGURATIONS Debug
 )
 
-include(tfc_systemd)
 tfc_systemd_service_file(ipc-ruler "TFC Inter-process communication ruler")
