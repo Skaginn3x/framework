@@ -6,8 +6,6 @@
 #include <fmt/core.h>
 #include <mp-units/format.h>
 #include <boost/asio.hpp>
-#include <boost/asio/experimental/co_spawn.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 
 #include <tfc/ipc.hpp>
@@ -25,9 +23,14 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
 
   auto type{ ipc::details::enum_cast(signal_name) };
   if (type == ipc::details::type_e::unknown) {
-    throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", signal_name) };
+    throw std::runtime_error{ fmt::format("Unknown typename in: {}", signal_name) };
   }
   auto sender{ ipc::make_any_signal::make(type, ctx, client, signal_name) };
+  std::visit([]<typename signal_t>(signal_t& my_signal) {
+    if constexpr (!std::same_as<std::remove_cvref_t<signal_t>, std::monostate>) {
+      fmt::println("Registered signal with name: {}", my_signal.full_name());
+    }
+  }, sender);
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
@@ -46,19 +49,19 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
             }
             auto value{ glz::read_json<value_t>(buff) };
             if (!value.has_value()) {
-              fmt::print("Invalid input error: {}\n", glz::format_error(value.error(), buff));
+              fmt::println("Invalid input error: {}", glz::format_error(value.error(), buff));
               return;
             }
 
             my_signal.async_send(value.value(), [&, actual_value = value.value()](std::error_code const& code, size_t bytes) {
               if (code) {
-                fmt::print("Error: {}\n", code.message());
+                fmt::println("Error: {}", code.message());
               } else {
                 if constexpr (tfc::stx::is_expected_quantity<value_t>) {
-                  fmt::print("Sent value: {} size: {}\n", actual_value.value(), bytes);
+                  fmt::println("Sent value: {} size: {}", actual_value.value(), bytes);
                 }
                 else {
-                  fmt::print("Sent value: {} size: {}\n", actual_value, bytes);
+                  fmt::println("Sent value: {} size: {}", actual_value, bytes);
                 }
               }
             });
@@ -88,7 +91,7 @@ auto main(int argc, char** argv) -> int {
   if (tfc::base::get_map().find("signal") == tfc::base::get_map().end() && connect.empty()) {
     std::stringstream out;
     description.print(out);
-    fmt::print("Usage: tfcctl [options] \n{}\n", out.str());
+    fmt::println("Usage: tfcctl [options] \n{}", out.str());
     std::exit(0);
   }
 
@@ -127,21 +130,21 @@ auto main(int argc, char** argv) -> int {
     std::visit(
         [signal_name]<typename receiver_t>(receiver_t&& receiver) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
-            fmt::print("Connecting to signal {}\n", signal_name);
+            fmt::println("Connecting to signal {}", signal_name);
             std::string sig{ signal_name };
             auto error = receiver->connect(signal_name, [sig]<typename val_t>(val_t const& val) {
               if constexpr (tfc::stx::is_specialization_v<std::remove_cvref_t<val_t>, std::expected>) {
                 if (val.has_value()) {
-                  fmt::print("{}: {}\n", sig, val.value());
+                  fmt::println("{}: {}", sig, val.value());
                 } else {
-                  fmt::print("{}: {}\n", sig, val.error());
+                  fmt::println("{}: {}", sig, val.error());
                 }
               } else {
-                fmt::print("{}: {}\n", sig, val);
+                fmt::println("{}: {}", sig, val);
               }
             });
             if (error) {
-              fmt::print("Failed to connect: {}\n", error.message());
+              fmt::println("Failed to connect: {}", error.message());
             }
           }
         },
@@ -154,7 +157,7 @@ auto main(int argc, char** argv) -> int {
       std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
       auto const type{ ipc::details::enum_cast(sig) };
       if (type == ipc::details::type_e::unknown) {
-        throw std::runtime_error{ fmt::format("Unknown typename in: {}\n", sig) };
+        throw std::runtime_error{ fmt::format("Unknown typename in: {}", sig) };
       }
       auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name) };
       slot_connect(ipc, sig);
@@ -165,9 +168,9 @@ auto main(int argc, char** argv) -> int {
   asio::signal_set signal_set{ ctx, SIGINT, SIGTERM, SIGHUP };
   signal_set.async_wait([&](const std::error_code& error, int signal_number) {
     if (error) {
-      fmt::print(stderr, "Error waiting for signal. {}\n", error.message());
+      fmt::println(stderr, "Error waiting for signal. {}", error.message());
     }
-    fmt::print("Shutting down signal ({})\n", signal_number);
+    fmt::println("Shutting down signal ({})", signal_number);
     ctx.stop();
   });
 
