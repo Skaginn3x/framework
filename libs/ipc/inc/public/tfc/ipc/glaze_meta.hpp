@@ -38,7 +38,7 @@ struct meta<tfc::ipc::details::type_e> {
     tfc::ipc::details::type_e_iterable[std::to_underlying(_double_t)], _double_t, "Double",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_string)], _string, "String",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_json)], _json, "Json",
-    tfc::ipc::details::type_e_iterable[std::to_underlying(_mass)], _mass, "Mass in milli gramms"
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_mass)], _mass, "Mass in milligrams"
   ) };
   // clang-format on
 };
