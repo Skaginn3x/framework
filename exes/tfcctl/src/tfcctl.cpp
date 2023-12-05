@@ -130,7 +130,7 @@ auto main(int argc, char** argv) -> int {
             fmt::println("Connecting to signal {}", signal_name);
             std::string sig{ signal_name };
             auto error = receiver->connect(signal_name, [sig]<typename val_t>(val_t const& val) {
-              if constexpr (tfc::stx::is_specialization_v<std::remove_cvref_t<val_t>, std::expected>) {
+              if constexpr (tfc::stx::is_expected<std::remove_cvref_t<val_t>>) {
                 if (val.has_value()) {
                   fmt::println("{}: {}", sig, val.value());
                 } else {
