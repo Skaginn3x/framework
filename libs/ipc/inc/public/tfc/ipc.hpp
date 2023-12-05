@@ -186,7 +186,7 @@ public:
 
   template <asio::completion_token_for<void(std::error_code, std::size_t)> completion_token_t>
   auto async_send(value_t const& value, completion_token_t&& token) -> auto {
-    // dbus_signal_.emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
+    dbus_signal_.emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
