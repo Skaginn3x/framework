@@ -1,7 +1,7 @@
 #pragma once
+#include <chrono>
 #include <expected>
 #include <optional>
-#include <chrono>
 #include <ratio>
 #include <sstream>
 #include <string_view>
@@ -55,9 +55,9 @@ inline constexpr auto make_ratio_symbol() -> std::string_view {
     return "E";
   } else {
     []<bool flag = false>() {
-          static_assert(flag, "Missing ratio symbol, please add it to the list.");
-        }
-        ();
+      static_assert(flag, "Missing ratio symbol, please add it to the list.");
+    }
+    ();
   }
 }
 
@@ -101,9 +101,9 @@ static constexpr auto make_name() -> std::string_view {
     return "none";
   } else {
     []<bool flag = false>() {
-          static_assert(flag, "Missing ratio name, please add it to the list.");
-        }
-        ();
+      static_assert(flag, "Missing ratio name, please add it to the list.");
+    }
+    ();
   }
 }
 
@@ -111,14 +111,16 @@ template <typename rep_t, typename period_t>
 struct duration_hack {
   rep_t rep{};
 };
-} // namespace tfc::detail
+}  // namespace tfc::detail
 
 template <typename value_t, typename error_t>
 struct glz::meta<std::expected<value_t, error_t>> {
   static constexpr std::string_view prefix{ "std::expected<" };
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view delimiter{ ", " };
-  static constexpr std::string_view name{ tfc::stx::string_view_join_v<prefix, name_v<value_t>, delimiter, name_v<error_t>, postfix> };
+  static constexpr std::string_view name{
+    tfc::stx::string_view_join_v<prefix, name_v<value_t>, delimiter, name_v<error_t>, postfix>
+  };
   static constexpr auto value{ [](auto&& self) -> auto& {
     // todo this does not support error case
     return self.value();
@@ -259,7 +261,7 @@ struct to_json<tfc::stx::basic_fixed_string<char_type, len>> {
     write<json>::op<opts>(value.view(), std::forward<decltype(args)>(args)...);
   }
 };
-} // namespace glz::detail
+}  // namespace glz::detail
 
 namespace tfc::json::detail {
 template <typename value_t>
@@ -317,4 +319,4 @@ struct to_json_schema<std::expected<value_t, error_t>> {
   }
 };
 
-} // namespace tfc::json::detail
+}  // namespace tfc::json::detail

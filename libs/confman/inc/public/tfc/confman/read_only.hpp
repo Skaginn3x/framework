@@ -7,8 +7,8 @@
 
 #include <glaze/util/parse.hpp>
 
-#include <tfc/utils/json_schema.hpp>
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::confman {
 

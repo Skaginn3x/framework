@@ -26,11 +26,13 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
     throw std::runtime_error{ fmt::format("Unknown typename in: {}", signal_name) };
   }
   auto sender{ ipc::make_any_signal::make(type, ctx, client, signal_name) };
-  std::visit([]<typename signal_t>(signal_t& my_signal) {
-    if constexpr (!std::same_as<std::remove_cvref_t<signal_t>, std::monostate>) {
-      fmt::println("Registered signal with name: {}", my_signal.full_name());
-    }
-  }, sender);
+  std::visit(
+      []<typename signal_t>(signal_t& my_signal) {
+        if constexpr (!std::same_as<std::remove_cvref_t<signal_t>, std::monostate>) {
+          fmt::println("Registered signal with name: {}", my_signal.full_name());
+        }
+      },
+      sender);
 
   while (true) {
     co_await input_stream.async_wait(asio::posix::stream_descriptor::wait_read, asio::use_awaitable);
@@ -53,18 +55,18 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
               return;
             }
 
-            my_signal.async_send(value.value(), [&, actual_value = value.value()](std::error_code const& code, size_t bytes) {
-              if (code) {
-                fmt::println("Error: {}", code.message());
-              } else {
-                if constexpr (tfc::stx::is_expected_quantity<value_t>) {
-                  fmt::println("Sent value: {} size: {}", actual_value.value(), bytes);
-                }
-                else {
-                  fmt::println("Sent value: {} size: {}", actual_value, bytes);
-                }
-              }
-            });
+            my_signal.async_send(value.value(),
+                                 [&, actual_value = value.value()](std::error_code const& code, size_t bytes) {
+                                   if (code) {
+                                     fmt::println("Error: {}", code.message());
+                                   } else {
+                                     if constexpr (tfc::stx::is_expected_quantity<value_t>) {
+                                       fmt::println("Sent value: {} size: {}", actual_value.value(), bytes);
+                                     } else {
+                                       fmt::println("Sent value: {} size: {}", actual_value, bytes);
+                                     }
+                                   }
+                                 });
           }
         },
         sender);

@@ -73,8 +73,7 @@ struct packet {
         static_assert(std::is_fundamental_v<typename value_t::value_type::rep>);
         if (value.has_value()) {
           my_header.value_size = sizeof(typename value_t::value_type::rep{}) + 1;
-        }
-        else {
+        } else {
           my_header.value_size = sizeof(typename value_t::error_type{}) + 1;
         }
       } else {
@@ -103,7 +102,7 @@ struct packet {
       } else {
         buffer.push_back(std::byte{ static_cast<std::uint8_t>(false) });  // indicate this is unexpected
         std::copy_n(reinterpret_cast<std::byte const*>(&value.error()), sizeof(typename value_t::error_type),
-            std::back_inserter(buffer));
+                    std::back_inserter(buffer));
       }
     } else {
       // has member function data
@@ -148,8 +147,7 @@ struct packet {
         typename value_t::value_type::rep substitute{};
         std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
         result.value = substitute * value_t::value_type::reference;
-      }
-      else {
+      } else {
         typename value_t::error_type substitute{};
         std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
         result.value = std::unexpected{ substitute };

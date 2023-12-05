@@ -1,9 +1,9 @@
 #pragma once
 
 #include <concepts>
-#include <type_traits>
 #include <expected>
 #include <system_error>
+#include <type_traits>
 
 // todo should we split to concepts/mp-units.hpp and concepts/stx.hpp
 #include <mp-units/systems/si/si.h>
@@ -49,10 +49,11 @@ inline constexpr bool is_specialization_v<type<args...>, type> = true;
 
 namespace test {
 
-static_assert(is_expected_quantity<std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::uint64_t>, std::error_code>>);
+static_assert(is_expected_quantity<
+              std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::uint64_t>, std::error_code>>);
 static_assert(!is_expected_quantity<std::expected<std::uint64_t, std::error_code>>);
 static_assert(!is_expected_quantity<std::uint16_t>);
 
-}
+}  // namespace test
 
 }  // namespace tfc::stx

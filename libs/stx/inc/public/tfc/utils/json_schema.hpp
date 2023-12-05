@@ -367,7 +367,7 @@ struct is_std_array<std::array<T, N>> {
 
 template <typename T>
 concept has_fixed_size = requires {
-  requires is_std_array<T>::value; // todo something else with fixed T::size
+  requires is_std_array<T>::value;  // todo something else with fixed T::size
 };
 static_assert(has_fixed_size<std::array<int, 3>>);
 static_assert(!has_fixed_size<std::vector<int>>);

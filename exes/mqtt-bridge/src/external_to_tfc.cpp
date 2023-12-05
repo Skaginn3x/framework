@@ -44,11 +44,9 @@ auto external_to_tfc<ipc_client_t, config_t, signal_v>::receive_new_value(
           // to the signal
           if constexpr (std::is_same_v<value_t, int64_t>) {
             signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
-          }
-          else if constexpr (tfc::stx::is_expected_quantity<value_t>) {
+          } else if constexpr (tfc::stx::is_expected_quantity<value_t>) {
             // todo
-          }
-          else {
+          } else {
             signal.send(std::get<value_t>(value));
           }
         }

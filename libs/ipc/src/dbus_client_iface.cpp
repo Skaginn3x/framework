@@ -1,10 +1,10 @@
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 
+#include <fmt/core.h>
 #include <glaze/glaze.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/property.hpp>
 #include <sdbusplus/bus/match.hpp>
-#include <fmt/core.h>
 
 #include <tfc/dbus/match_rules.hpp>
 #include <tfc/dbus/sd_bus.hpp>
@@ -70,8 +70,7 @@ auto ipc_manager_client::signals(std::function<void(std::vector<signal> const&)>
         auto signals = glz::read_json<std::vector<signal>>(response);
         if (signals) {
           captured_handler(signals.value());
-        }
-        else {
+        } else {
           fmt::println(stderr, "Get property signals parse error: {}", glz::format_error(signals.error(), response));
         }
       });

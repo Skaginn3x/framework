@@ -98,8 +98,8 @@ public:
   /// @tparam completion_token_t a concept of type void(std::error_code, std::size_t)
   /// @param value is sent
   template <asio::completion_token_for<void(std::error_code, std::size_t)> completion_token_t>
-  auto async_send(value_t const& value, completion_token_t&& token)
-      -> typename asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
+  auto async_send(value_t const& value, completion_token_t&& token) ->
+      typename asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
     last_value_ = value;
     auto send_buffer{ std::make_unique<std::vector<std::byte>>() };
     if (auto serialize_error{ packet_t::serialize(last_value_, *send_buffer) }) {
@@ -113,7 +113,7 @@ public:
     auto& socket{ socket_ };
     return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
         [&socket, buffer = std::move(send_buffer), first_call = true](auto& self, std::error_code err = {},
-                                                                           std::size_t bytes_sent = 0) mutable {
+                                                                      std::size_t bytes_sent = 0) mutable {
           if (err) {
             self.complete(err, bytes_sent);
             return;
@@ -121,8 +121,7 @@ public:
           if (first_call) {
             first_call = false;
             azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
-          }
-          else {
+          } else {
             self.complete(err, bytes_sent);
           }
         },
