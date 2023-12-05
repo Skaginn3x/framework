@@ -103,6 +103,7 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
         InputProps={{
           readOnly: schema.get('readOnly') as boolean || isConst,
         }}
+        disabled={schema.get('readOnly') as boolean || isConst}
       />
     </Tooltip>
   );
