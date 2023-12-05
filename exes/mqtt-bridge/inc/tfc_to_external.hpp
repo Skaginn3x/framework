@@ -85,8 +85,8 @@ public:
     for (const auto& signal : signals) {
       signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
 
-      spb_variables_.emplace_back(format_signal_name(signal.name.data()),
-                                  type_enum_convert(signal.type), std::nullopt, signal.description.data());
+      spb_variables_.emplace_back(format_signal_name(signal.name.data()), type_enum_convert(signal.type), std::nullopt,
+                                  signal.description.data());
 
       logger_.trace("Connecting: {}", signal.name);
 
