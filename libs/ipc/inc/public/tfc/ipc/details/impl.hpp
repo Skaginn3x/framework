@@ -97,11 +97,11 @@ public:
   /// @brief send value to subscriber
   /// @tparam completion_token_t a concept of type void(std::error_code, std::size_t)
   /// @param value is sent
-  template <typename completion_token_t>
-  auto async_send(value_t const& value, completion_token_t&& token)
-      -> asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
+  template <asio::completion_token_for<void(std::error_code, std::size_t)> completion_token_t>
+  auto async_send(value_t const& value, completion_token_t&& token) ->
+      typename asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
     last_value_ = value;
-    std::unique_ptr<std::vector<std::byte>> send_buffer{ std::make_unique<std::vector<std::byte>>() };
+    auto send_buffer{ std::make_unique<std::vector<std::byte>>() };
     if (auto serialize_error{ packet_t::serialize(last_value_, *send_buffer) }) {
       return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
           [serialize_error](auto& self, std::error_code = {}, std::size_t = 0) { self.complete(serialize_error, 0); },
@@ -385,6 +385,8 @@ struct make_any_ptr {
         return ipc_base_t<type_string>::create(std::forward<decltype(args)>(args)...);
       case type_e::_json:
         return ipc_base_t<type_json>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_mass:
+        return ipc_base_t<type_mass>::create(std::forward<decltype(args)>(args)...);
       case type_e::unknown:
         return std::monostate{};
     }
@@ -398,13 +400,15 @@ using uint_signal_ptr = std::shared_ptr<signal<type_uint>>;
 using double_signal_ptr = std::shared_ptr<signal<type_double>>;
 using string_signal_ptr = std::shared_ptr<signal<type_string>>;
 using json_signal_ptr = std::shared_ptr<signal<type_json>>;
+using mass_signal_ptr = std::shared_ptr<signal<type_mass>>;
 using any_signal = std::variant<std::monostate,     //
                                 bool_signal_ptr,    //
                                 int_signal_ptr,     //
                                 uint_signal_ptr,    //
                                 double_signal_ptr,  //
                                 string_signal_ptr,  //
-                                json_signal_ptr>;
+                                json_signal_ptr,
+                                mass_signal_ptr>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, "name");
 using make_any_signal = make_any_ptr<any_signal, signal>;
 
@@ -414,13 +418,15 @@ using uint_slot_ptr = std::shared_ptr<slot<type_uint>>;
 using double_slot_ptr = std::shared_ptr<slot<type_double>>;
 using string_slot_ptr = std::shared_ptr<slot<type_string>>;
 using json_slot_ptr = std::shared_ptr<slot<type_json>>;
+using mass_slot_ptr = std::shared_ptr<slot<type_mass>>;
 using any_slot = std::variant<std::monostate,   //
                               bool_slot_ptr,    //
                               int_slot_ptr,     //
                               uint_slot_ptr,    //
                               double_slot_ptr,  //
                               string_slot_ptr,  //
-                              json_slot_ptr>;
+                              json_slot_ptr,
+                              mass_slot_ptr>;
 /// \brief any_slot foo = make_any_slot::make(type_e::bool, ctx, "name");
 using make_any_slot = make_any_ptr<any_slot, slot>;
 
@@ -430,13 +436,15 @@ using uint_slot_cb_ptr = std::shared_ptr<slot_callback<type_uint>>;
 using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
 using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
 using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
+using mass_slot_cb_ptr = std::shared_ptr<slot_callback<type_mass>>;
 using any_slot_cb = std::variant<std::monostate,      //
                                  bool_slot_cb_ptr,    //
                                  int_slot_cb_ptr,     //
                                  uint_slot_cb_ptr,    //
                                  double_slot_cb_ptr,  //
                                  string_slot_cb_ptr,  //
-                                 json_slot_cb_ptr>;
+                                 json_slot_cb_ptr,
+                                 mass_slot_cb_ptr>;
 /// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
 using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 

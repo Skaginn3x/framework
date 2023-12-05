@@ -7,6 +7,7 @@
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
+#include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ipc/details/dbus_ipc.hpp>
 #include <tfc/stx/concepts.hpp>

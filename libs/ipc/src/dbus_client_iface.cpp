@@ -1,5 +1,6 @@
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 
+#include <fmt/core.h>
 #include <glaze/glaze.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/property.hpp>
@@ -63,11 +64,14 @@ auto ipc_manager_client::signals(std::function<void(std::vector<signal> const&)>
       consts::signals_property.data(),
       [captured_handler = std::move(handler)](const boost::system::error_code& error, const std::string& response) {
         if (error) {
+          fmt::println(stderr, "Get property signals handler error: {}", error.message());
           return;
         }
         auto signals = glz::read_json<std::vector<signal>>(response);
         if (signals) {
           captured_handler(signals.value());
+        } else {
+          fmt::println(stderr, "Get property signals parse error: {}", glz::format_error(signals.error(), response));
         }
       });
 }

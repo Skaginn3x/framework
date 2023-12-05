@@ -332,16 +332,16 @@ struct to_json_schema<T> {
     // });
     s.oneOf = std::vector<schematic>(N);
     glz::for_each<N>([&](auto I) {
-      static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
+      static constexpr auto item = glz::get<I>(glz::meta_v<V>);
       auto& enumeration = (*s.oneOf)[I.value];
-      enumeration.attributes.constant = glz::tuplet::get<0>(item);
-      enumeration.attributes.title = glz::tuplet::get<0>(item);
+      enumeration.attributes.constant = glz::get<0>(item);
+      enumeration.attributes.title = glz::get<0>(item);
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
-        using additional_data_type = decltype(glz::tuplet::get<2>(item));
+        using additional_data_type = decltype(glz::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
-          enumeration.attributes.description = glz::tuplet::get<2>(item);
+          enumeration.attributes.description = glz::get<2>(item);
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
-          enumeration.attributes = glz::tuplet::get<2>(item);
+          enumeration.attributes = glz::get<2>(item);
         }
       }
     });
@@ -356,12 +356,44 @@ struct to_json_schema<glz::basic_raw_json<T>> {
   }
 };
 
+template <class T>
+struct is_std_array {
+  static constexpr auto value{ false };
+};
+template <class T, std::size_t N>
+struct is_std_array<std::array<T, N>> {
+  static constexpr auto value{ true };
+};
+
+template <typename T>
+concept has_fixed_size = requires {
+  requires is_std_array<T>::value;  // todo something else with fixed T::size
+};
+static_assert(has_fixed_size<std::array<int, 3>>);
+static_assert(!has_fixed_size<std::vector<int>>);
+
+template <typename T>
+struct get_size {
+  static constexpr auto value{ T::size };
+};
+
+template <typename T, std::size_t siz>
+struct get_size<std::array<T, siz>> {
+  static constexpr auto value{ siz };
+};
+template <typename T>
+static constexpr auto get_size_v{ get_size<T>::value };
+
 template <glz::detail::array_t T>
 struct to_json_schema<T> {
   template <auto Opts>
   static void op(auto& s, auto& defs) noexcept {
     using V = std::decay_t<glz::range_value_t<std::decay_t<T>>>;
     s.type = { "array" };
+    if constexpr (has_fixed_size<T>) {
+      s.attributes.min_items = get_size_v<T>;
+      s.attributes.max_items = get_size_v<T>;
+    }
     auto& def = defs[glz::name_v<V>];
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
@@ -444,23 +476,23 @@ struct to_json_schema<T> {
     static constexpr auto N = std::tuple_size_v<glz::meta_t<V>>;
     s.properties = std::map<std::string_view, schema, std::less<>>();
     glz::for_each<N>([&](auto I) {
-      static constexpr auto item = glz::tuplet::get<I>(glz::meta_v<V>);
-      using mptr_t = decltype(glz::tuplet::get<1>(item));
+      static constexpr auto item = glz::get<I>(glz::meta_v<V>);
+      using mptr_t = decltype(glz::get<1>(item));
       using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
       auto& def = defs[glz::name_v<val_t>];
       auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
         // clang-format on
-        using additional_data_type = decltype(glz::tuplet::get<2>(item));
+        using additional_data_type = decltype(glz::get<2>(item));
         if constexpr (std::is_convertible_v<additional_data_type, std::string_view>) {
-          ref_val.description = glz::tuplet::get<2>(item);
+          ref_val.description = glz::get<2>(item);
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
-          ref_val = glz::tuplet::get<2>(item);
+          ref_val = glz::get<2>(item);
           ref_val.ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>>;
         }
       }
-      (*s.properties)[glz::tuplet::get<0>(item)] = ref_val;
+      (*s.properties)[glz::get<0>(item)] = ref_val;
 
       if (!def.type) {
         to_json_schema<val_t>::template op<Opts>(def, defs);

@@ -1,6 +1,7 @@
 add_executable(tfcctl src/tfcctl.cpp)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(mp-units CONFIG REQUIRED)
 
 target_link_libraries(tfcctl
   PUBLIC
@@ -8,6 +9,7 @@ target_link_libraries(tfcctl
     tfc::base
     tfc::logger
     Boost::program_options
+    mp-units::core
 )
 
 include(GNUInstallDirs)
