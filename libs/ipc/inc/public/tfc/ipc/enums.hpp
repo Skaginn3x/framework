@@ -58,7 +58,7 @@ enum struct mass_error_e : std::uint8_t {
   module_fault,
   power_failure,  // Supply voltage too low
   over_range,     // Over max value
-  under_range,    // Under min value, probably not used
+  under_range,    // Under min value, used for example with ADC values less than 4 mA
   bad_connection,
   zero_error,
   calibration_error,
