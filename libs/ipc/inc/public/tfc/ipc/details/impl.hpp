@@ -12,7 +12,6 @@
 
 #include <fmt/format.h>
 #include <azmq/socket.hpp>
-#include <azmq/detail/send_op.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/steady_timer.hpp>
