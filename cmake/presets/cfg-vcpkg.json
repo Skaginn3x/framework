@@ -16,7 +16,6 @@
       "hidden": true,
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-linux-dynamic",
-        "VCPKG_INSTALLED_DIR": "${fileDir}/build/${presetName}/vcpkg-sysroot-dynamic",
         "BUILD_SHARED_LIBS": "ON",
         "LINK_SHARED_LIBS": "ON"
       },
@@ -33,7 +32,6 @@
       "description": "vcpkg clang compiled with libc++.",
       "cacheVariables": {
         "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/x64-linux-clang.cmake",
-        "VCPKG_INSTALLED_DIR": "${fileDir}/build/${presetName}/vcpkg-sysroot-clang",
         "VCPKG_TARGET_TRIPLET": "x64-linux-clang"
       }
     },
@@ -44,7 +42,6 @@
         "cfg-vcpkg-clang"
       ],
       "cacheVariables": {
-        "VCPKG_INSTALLED_DIR": "${fileDir}/build/${presetName}/vcpkg-sysroot-clang-dynamic",
         "VCPKG_TARGET_TRIPLET": "x64-linux-clang-dynamic",
         "BUILD_SHARED_LIBS": "ON",
         "LINK_SHARED_LIBS": "ON"
@@ -57,7 +54,6 @@
         "cfg-vcpkg"
       ],
       "cacheVariables": {
-        "VCPKG_INSTALLED_DIR": "${fileDir}/build/${presetName}/vcpkg-sysroot-gcc-dynamic",
         "VCPKG_TARGET_TRIPLET": "x64-linux-gcc-dynamic"
       }
     },
@@ -68,7 +64,6 @@
         "cfg-vcpkg"
       ],
       "cacheVariables": {
-        "VCPKG_INSTALLED_DIR": "${fileDir}/build/${presetName}/vcpkg-sysroot-aarch64",
         "VCPKG_TARGET_TRIPLET": "arm64-linux",
         "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${fileDir}/cmake/toolchains/aarch64-linux-gcc.cmake"
       }
