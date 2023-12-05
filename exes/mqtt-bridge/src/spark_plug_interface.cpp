@@ -17,7 +17,6 @@
 #include <constants.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
-// #include <tfc/ipc.hpp>
 
 namespace tfc::mqtt {
 
@@ -129,10 +128,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(std::vect
   variables_ = metrics;
 }
 
-// name
-// datatype
-// value
-// description??
 template <class config_t, class mqtt_client_t>
 auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> void {
   if (mqtt_client_) {

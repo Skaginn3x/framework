@@ -12,7 +12,6 @@
 #include <vector>
 
 #include <tfc/confman.hpp>
-// #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 
@@ -49,8 +48,6 @@ enum struct type_e : std::uint8_t;
 using org::eclipse::tahu::protobuf::DataType;
 using org::eclipse::tahu::protobuf::Payload;
 using org::eclipse::tahu::protobuf::Payload_Metric;
-
-// struct spark_plug_b_variable;
 
 template <class config_t, class mqtt_client_t>
 class spark_plug_interface {
