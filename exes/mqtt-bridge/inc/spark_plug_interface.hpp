@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <tfc/confman.hpp>
-#include <tfc/ipc.hpp>
+// #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 
@@ -20,6 +20,7 @@
 #include <config/broker.hpp>
 #include <config/spark_plug_b.hpp>
 #include <config/spark_plug_b_mock.hpp>
+#include <structs.hpp>
 
 namespace async_mqtt {
 class buffer;
@@ -49,6 +50,8 @@ using org::eclipse::tahu::protobuf::DataType;
 using org::eclipse::tahu::protobuf::Payload;
 using org::eclipse::tahu::protobuf::Payload_Metric;
 
+// struct spark_plug_b_variable;
+
 template <class config_t, class mqtt_client_t>
 class spark_plug_interface {
 public:
@@ -60,15 +63,15 @@ public:
 
   static auto timestamp_milliseconds() -> std::chrono::milliseconds;
 
-  auto set_current_values(std::vector<tfc::ipc::details::any_slot_cb> const& metrics) -> void;
+  auto set_current_values(std::vector<spark_plug_b_variable> const& variables) -> void;
 
   auto send_current_values() -> void;
 
   auto make_payload() -> Payload;
 
-  auto update_value(tfc::ipc::details::any_slot_cb& signal_data) -> void;
+  auto update_value(spark_plug_b_variable& variable) -> void;
 
-  auto update_value_impl(tfc::ipc::details::any_slot_cb& signal_data) -> asio::awaitable<void>;
+  auto update_value_impl(spark_plug_b_variable& variable) -> asio::awaitable<void>;
 
   auto set_value_change_callback(
       std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)> const& callback) -> void;
@@ -79,7 +82,6 @@ public:
 
   auto strand() -> asio::strand<asio::any_io_executor>;
 
-  static auto type_enum_convert(tfc::ipc::details::type_e type) -> DataType;
 
   static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, tfc::logger::logger const&) -> void;
 
@@ -99,7 +101,7 @@ private:
   asio::io_context& io_ctx_;
   config_t config_{ io_ctx_, "spark_plug_b_config" };
   std::unique_ptr<mqtt_client_t> mqtt_client_;
-  std::vector<tfc::ipc::details::any_slot_cb> nbirth_;
+  std::vector<spark_plug_b_variable> variables_;
   uint64_t seq_ = 1;
   tfc::logger::logger logger_{ "spark_plug_interface" };
   std::optional<std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)>>

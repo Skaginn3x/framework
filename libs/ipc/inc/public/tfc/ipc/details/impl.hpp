@@ -43,13 +43,10 @@ template <typename type_desc>
 class transmission_base {
 public:
   explicit transmission_base(std::string_view name) : name_(name) {}
-  explicit transmission_base(std::string_view name, std::string_view description) : name_(name), description_(description) {}
 
   [[nodiscard]] auto endpoint() const -> std::string { return utils::socket::zmq::ipc_endpoint_str(full_name()); }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return name_; }
-
-  [[nodiscard]] auto description() const noexcept -> std::string_view { return description_; }
 
   /// \return <type>.<name>
   [[nodiscard]] auto full_name() const -> std::string {
@@ -60,7 +57,6 @@ public:
 
 private:
   std::string name_;  // name of signal/slot
-  std::string description_;
 };
 
 /**@brief
@@ -207,7 +203,6 @@ public:
     return std::shared_ptr<slot<type_desc>>(new slot(ctx, name));
   }
   slot(asio::io_context& ctx, std::string_view name) : transmission_base<type_desc>(name), socket_(ctx) {}
-  slot(asio::io_context& ctx, std::string_view name, std::string_view description) : transmission_base<type_desc>(name, description), socket_(ctx) {}
   /**
    * @brief
    * connect to the signal indicated by name
@@ -304,21 +299,9 @@ public:
   using value_t = type_desc::value_t;
   static auto constexpr direction_v = slot<type_desc>::direction_v;
 
-  auto type() const -> const type_desc& {
-    static type_desc type;
-    return type;
-  }
-
-  auto description() const -> std::string_view { return slot_.description(); }
-
   [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name)
       -> std::shared_ptr<slot_callback<type_desc>> {
     return std::shared_ptr<slot_callback<type_desc>>(new slot_callback<type_desc>{ ctx, name });
-  }
-
-  [[nodiscard]] static auto create(asio::io_context& ctx, std::string_view name, std::string_view description)
-  -> std::shared_ptr<slot_callback<type_desc>> {
-    return std::shared_ptr<slot_callback<type_desc>>(new slot_callback<type_desc>{ ctx, name, description });
   }
 
   auto connect(std::string_view signal_name, tfc::stx::invocable<value_t> auto&& callback) -> std::error_code {
@@ -342,7 +325,6 @@ public:
 
 private:
   slot_callback(asio::io_context& ctx, std::string_view name) : slot_{ ctx, name } {}
-  slot_callback(asio::io_context& ctx, std::string_view name, std::string_view description) : slot_{ ctx, name, description } {}
   void async_new_state(std::expected<value_t, std::error_code> new_value, tfc::stx::invocable<value_t> auto&& callback) {
     if (!new_value) {
       return;

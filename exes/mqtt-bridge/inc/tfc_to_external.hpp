@@ -14,6 +14,7 @@
 #include <tfc/logger.hpp>
 
 #include <spark_plug_interface.hpp>
+#include <structs.hpp>
 
 namespace tfc::mqtt {
 
@@ -33,6 +34,29 @@ public:
     static_assert(std::is_lvalue_reference<ipc_client_t>::value);
   }
 
+  /// This function converts tfc types to Spark Plug B types
+  /// More information can be found (page 76) in the spec under section 6.4.16 data types:
+  /// https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf
+  static auto type_enum_convert(tfc::ipc::details::type_e type) -> DataType {
+    using enum tfc::ipc::details::type_e;
+    switch (type) {
+      case unknown:
+        return DataType::Unknown;
+      case _bool:
+        return DataType::Boolean;
+      case _int64_t:
+        return DataType::Int64;
+      case _uint64_t:
+        return DataType::UInt64;
+      case _double_t:
+        return DataType::Double;
+      case _string:
+      case _json:
+        return DataType::String;
+    }
+    return DataType::Unknown;
+  }
+
   auto set_signals() -> void {
     logger_.trace("Starting to add new signals...");
     ipc_client_.signals(
@@ -43,23 +67,30 @@ public:
     logger_.trace("Received {} new signals to add.", signals.size());
 
     signals_.clear();
+    spb_variables_.clear();
+
     signals_.reserve(signals.size());
+    spb_variables_.reserve(signals.size());
 
     for (const auto& signal : signals) {
-      signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name, signal.description));
+      signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
 
-      logger_.trace("description of signal: {}", signal.description);
+      spb_variables_.emplace_back(spark_plug_interface_.format_signal_name(signal.name.data()),
+                                  type_enum_convert(signal.type), std::nullopt, signal.description.data());
 
       logger_.trace("Connecting: {}", signal.name);
 
       auto& slot = signals_.back();
+      auto& variable = spb_variables_.back();
 
       std::visit(
-          [this, &slot](auto&& receiver) {
+          [this, &variable](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<receiver_t, std::monostate>) {
-              auto error_code =
-                  receiver->connect(receiver->name(), [this, &slot](auto&&) { spark_plug_interface_.update_value(slot); });
+              auto error_code = receiver->connect(receiver->name(), [this, &variable](auto&& value) {
+                variable.value = value;
+                spark_plug_interface_.update_value(variable);
+              });
               if (error_code) {
                 logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
               }
@@ -76,7 +107,7 @@ public:
   auto set_current_values() -> void {
     logger_.info("Setting current values to interface");
 
-    spark_plug_interface_.set_current_values(signals_);
+    spark_plug_interface_.set_current_values(spb_variables_);
     spark_plug_interface_.send_current_values();
   }
 
@@ -90,6 +121,7 @@ private:
   ipc_client_t ipc_client_;
   tfc::logger::logger logger_{ "tfc_to_external" };
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
+  std::vector<spark_plug_b_variable> spb_variables_;
 
   friend class test_tfc_to_external;
 };

@@ -16,7 +16,8 @@
 
 #include <constants.hpp>
 #include <spark_plug_interface.hpp>
-#include <tfc/ipc.hpp>
+#include <structs.hpp>
+// #include <tfc/ipc.hpp>
 
 namespace tfc::mqtt {
 
@@ -54,55 +55,35 @@ auto spark_plug_interface<config_t, mqtt_client_t>::make_payload() -> Payload {
 }
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::update_value(tfc::ipc::details::any_slot_cb& signal_data) -> void {
-  asio::co_spawn(strand(), update_value_impl(signal_data), asio::detached);
+auto spark_plug_interface<config_t, mqtt_client_t>::update_value(spark_plug_b_variable& variable) -> void {
+  asio::co_spawn(strand(), update_value_impl(variable), asio::detached);
 };
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(tfc::ipc::details::any_slot_cb& signal_data)
+auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(spark_plug_b_variable& variable)
     -> asio::awaitable<void> {
-  std::string variable;
-  ipc::details::type_e type;
-
-  std::visit(
-      [&variable, &type]<typename recv_t>(recv_t&& receiver) {
-        using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-        if constexpr (!std::same_as<receiver_t, std::monostate>) {
-          variable = format_signal_name(receiver->name().data());
-          type = receiver->type().value_e;
-        }
-      },
-      signal_data);
-
   Payload payload = make_payload();
   Payload_Metric* metric = payload.add_metrics();
 
   if (metric == nullptr) {
-    logger_.error("Failed to add metric to payload for variable: {}", variable);
+    logger_.error("Failed to add metric to payload for variable: {}", variable.name);
     co_return;
   }
 
-  metric->set_name(variable);
+  metric->set_name(variable.name);
   metric->set_timestamp(timestamp_milliseconds().count());
-  metric->set_datatype(type_enum_convert(type));
+  metric->set_datatype(variable.datatype);
 
-  std::visit(
-      [this, &metric]<typename recv_t>(recv_t&& receiver) {
-        using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-        if constexpr (std::same_as<receiver_t, ipc::details::bool_slot_cb_ptr>) {
-          set_value_payload(metric, receiver->value().value_or(false), logger_);
-        } else if constexpr (std::same_as<receiver_t, ipc::details::int_slot_cb_ptr> ||
-                             std::same_as<receiver_t, ipc::details::uint_slot_cb_ptr> ||
-                             std::same_as<receiver_t, ipc::details::double_slot_cb_ptr>) {
-          set_value_payload(metric, receiver->value().value_or(0), logger_);
-        } else if constexpr (std::same_as<receiver_t, ipc::details::string_slot_cb_ptr> ||
-                             std::same_as<receiver_t, ipc::details::json_slot_cb_ptr>) {
-          set_value_payload(metric, receiver->value().value_or(""), logger_);
-        }
-      },
-      signal_data);
+  if (variable.value.has_value()) {
+    set_value_payload(metric, variable.value.value(), logger_);
+  } else {
+    metric->set_is_null(true);
+  }
 
-  logger_.trace("Updating variable: {}", variable);
+  auto* metadata = metric->mutable_metadata();
+  metadata->set_description(variable.description);
+
+  logger_.trace("Updating variable: {}", variable.name);
   logger_.trace("Payload: {}", payload.DebugString());
 
   std::string payload_string;
@@ -143,11 +124,15 @@ auto spark_plug_interface<config_t, mqtt_client_t>::timestamp_milliseconds() -> 
 }
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(
-    std::vector<tfc::ipc::details::any_slot_cb> const& metrics) -> void {
-  nbirth_ = metrics;
+auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(std::vector<spark_plug_b_variable> const& metrics)
+    -> void {
+  variables_ = metrics;
 }
 
+// name
+// datatype
+// value
+// description??
 template <class config_t, class mqtt_client_t>
 auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> void {
   if (mqtt_client_) {
@@ -172,44 +157,16 @@ auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> voi
     bd_seq_metric->set_datatype(8);
     bd_seq_metric->set_long_value(0);
 
-    for (auto const& signal_data : nbirth_) {
+    for (auto const& variable : variables_) {
       auto* variable_metric = payload.add_metrics();
 
-      std::string name;
-      ipc::details::type_e type;
-
       auto* metadata = variable_metric->mutable_metadata();
+      metadata->set_description(variable.description);
 
-      std::visit(
-          [&name, &type, &metadata](auto&& receiver) {
-            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-            if constexpr (!std::same_as<receiver_t, std::monostate>) {
-              name = format_signal_name(receiver->name().data());
-              type = receiver->type().value_e;
-              metadata->set_description(receiver->description().data());
-            }
-          },
-          signal_data);
-
-      variable_metric->set_name(name);
+      variable_metric->set_name(variable.name);
+      variable_metric->set_datatype(variable.datatype);
       variable_metric->set_timestamp(timestamp_milliseconds().count());
-      variable_metric->set_datatype(type_enum_convert(type));
-
-      std::visit(
-          [this, &variable_metric]<typename recv_t>(recv_t&& receiver) {
-            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
-            if constexpr (std::same_as<receiver_t, ipc::details::bool_slot_cb_ptr>) {
-              set_value_payload(variable_metric, receiver->value().value_or(false), logger_);
-            } else if constexpr (std::same_as<receiver_t, ipc::details::int_slot_cb_ptr> ||
-                                 std::same_as<receiver_t, ipc::details::uint_slot_cb_ptr> ||
-                                 std::same_as<receiver_t, ipc::details::double_slot_cb_ptr>) {
-              set_value_payload(variable_metric, receiver->value().value_or(0), logger_);
-            } else if constexpr (std::same_as<receiver_t, ipc::details::string_slot_cb_ptr> ||
-                                 std::same_as<receiver_t, ipc::details::json_slot_cb_ptr>) {
-              set_value_payload(variable_metric, receiver->value().value_or(""), logger_);
-            }
-          },
-          signal_data);
+      set_value_payload(variable_metric, variable.value, logger_);
 
       variable_metric->set_is_transient(false);
       variable_metric->set_is_historical(false);
@@ -306,30 +263,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::set_metric_callback(Payload_
 template <class config_t, class mqtt_client_t>
 auto spark_plug_interface<config_t, mqtt_client_t>::strand() -> asio::strand<asio::any_io_executor> {
   return mqtt_client_->strand();
-}
-
-/// This function converts tfc types to Spark Plug B types
-/// More information can be found (page 76) in the spec under section 6.4.16 data types:
-/// https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf
-template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::type_enum_convert(tfc::ipc::details::type_e type) -> DataType {
-  using enum tfc::ipc::details::type_e;
-  switch (type) {
-    case unknown:
-      return DataType::Unknown;
-    case _bool:
-      return DataType::Boolean;
-    case _int64_t:
-      return DataType::Int64;
-    case _uint64_t:
-      return DataType::UInt64;
-    case _double_t:
-      return DataType::Double;
-    case _string:
-    case _json:
-      return DataType::String;
-  }
-  return DataType::Unknown;
 }
 
 template <class config_t, class mqtt_client_t>
