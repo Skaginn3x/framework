@@ -120,7 +120,6 @@ public:
           }
           if (first_call) {
             first_call = false;
-            [[maybe_unused]] auto& foo = socket;
             azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
           }
           else {
