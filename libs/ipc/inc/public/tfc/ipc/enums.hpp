@@ -68,7 +68,7 @@ enum struct mass_error_e : std::uint8_t {
   unknown_error,
 };
 
-auto constexpr enum_name(mass_error_e err) -> std::string_view{
+auto constexpr enum_name(mass_error_e err) -> std::string_view {
   return magic_enum::enum_name(err);
 }
 constexpr auto format_as(mass_error_e err) -> std::string_view {  // for fmt
