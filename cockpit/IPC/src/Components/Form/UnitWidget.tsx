@@ -41,7 +41,7 @@ export interface UnitWidgetBaseProps {
 
 export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({ // NOSONAR
   storeKeys, schema, onChange,
-  style, onClick, onFocus, onBlur, onKeyUp, onKeyDown,
+  style, onClick, onFocus, onBlur, onKeyUp, onKeyDown, parentSchema,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   inputProps = {}, InputProps = {}, inputRef: customInputRef,
   steps = 'any',
@@ -260,6 +260,8 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     handleUnitValue(parseFloat(val));
   };
 
+  const disabled = schema.get('readOnly') as boolean || (parentSchema && parentSchema.get('readOnly') as boolean);
+
   return (
     <>
       <Tooltip title={schema.get('description') as string} placement="top" disableInteractive>
@@ -268,7 +270,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
           aria-label={hideTitle ? <TransTitle schema={schema} storeKeys={storeKeys} /> as unknown as string : undefined}
           // changing `type` to `text`, to be able to change invalid data
           type="string"
-          disabled={schema.get('readOnly') as boolean | undefined}
+          disabled={disabled}
           multiline={false}
           required={required}
           error={isWarning()}
@@ -304,7 +306,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
         initialUnit={initialUnit}
         handleUnitChange={handleUnitChange}
         unit={unit}
-        disabled={schema.get('readOnly') as boolean | undefined}
+        disabled={disabled}
       />
 
       {isWarning() ? <h2 className="RequiredText">{errText}</h2>

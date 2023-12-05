@@ -163,7 +163,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   return (
     <>
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
-        <InputLabel>Choose Variant</InputLabel> {/* Might want to change to actual title */}
+        <InputLabel>{schema.get('title') as string ?? 'Choose Variant'}</InputLabel>
         <Select
           value={selectedTitle ?? ''}
           onChange={handleSelectChange}
@@ -181,6 +181,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
           style={textStyle}
+          label={schema.get('title') as string ?? 'Choose Variant'}
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (

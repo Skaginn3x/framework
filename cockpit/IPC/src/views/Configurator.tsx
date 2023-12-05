@@ -18,7 +18,7 @@ import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import {
   fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
 } from 'src/Components/Form/WidgetFunctions';
-import { DarkModeType } from 'src/App';
+import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 import FormGenerator from '../Components/Form/Form';
 import { useAlertContext } from '../Components/Alert/AlertContext';
 
@@ -27,8 +27,9 @@ declare global {
 }
 
 // eslint-disable-next-line react/function-component-definition
-const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
+const Configurator: React.FC = () => {
   const { addAlert } = useAlertContext();
+  const { isDark } = useDarkMode();
   const [names, setNames] = useState<string[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
 
@@ -151,7 +152,7 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
   useEffect(() => {
     if (!schemas || !activeItem) return;
     setForm(
-      <div style={{ minWidth: '350px', width: '40vw', maxWidth: '500px' }}>
+      <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }}>
         <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
           {removeOrg(activeItem) || 'Error - Unknown name'}
         </Title>

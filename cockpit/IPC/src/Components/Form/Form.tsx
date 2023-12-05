@@ -30,6 +30,7 @@ import { BooleanWidget } from './BoolWidget';
 import { VariantWidget } from './VariantWidget';
 import { useAlertContext } from '../Alert/AlertContext';
 import { StringWidget } from './StringWidget';
+import { ArrayWidget } from './ArrayWidget';
 
 const GridStack = injectPluginStack(GridContainer);
 
@@ -56,6 +57,7 @@ export default function FormGenerator(
       Variant: VariantWidget as React.FunctionComponent<ExtendedWidgetProps>,
       Boolean: BooleanWidget as React.FunctionComponent<ExtendedWidgetProps>,
       String: StringWidget as React.FunctionComponent<ExtendedWidgetProps>,
+      Array: ArrayWidget as React.FunctionComponent<ExtendedWidgetProps>,
     } as CustomWidgetBinding,
     pluginSimpleStack: validators,
   };
@@ -90,10 +92,6 @@ export default function FormGenerator(
       });
     }
 
-    if ('const' in json[key] && json[key].const !== undefined) {
-      json[key].widget = 'String';
-    }
-
     if ('enum' in json[key]) {
       json[key].widget = 'Select';
     } else if ('oneOf' in json[key]) {
@@ -105,7 +103,7 @@ export default function FormGenerator(
     } else if (type.includes('boolean')) {
       json[key].widget = 'Boolean';
     } else if (type.includes('array')) {
-      json[key].widget = 'GenericList';
+      json[key].widget = 'Array';
       json[key].notSortable = true;
     }
   }
@@ -121,11 +119,6 @@ export default function FormGenerator(
     if (Array.isArray(json.type) && json.type.length === 1) {
       // eslint-disable-next-line prefer-destructuring
       json.type = json.type[0];
-    }
-
-    if (json.type === 'array') {
-      json.widget = 'GenericList';
-      json.notSortable = true;
     }
 
     // eslint-disable-next-line guard-for-in, no-restricted-syntax

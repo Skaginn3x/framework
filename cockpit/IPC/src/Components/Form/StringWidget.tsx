@@ -8,7 +8,7 @@ import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 import { useUID } from 'react-uid';
 
 export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
-  storeKeys, schema, onChange,
+  storeKeys, schema, onChange, parentSchema,
 }: P & WithValue): React.ReactElement {
   const uid = useUID();
   const { store } = useUIStore();
@@ -89,6 +89,8 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
     });
   };
 
+  const disabled = schema.get('readOnly') as boolean || (parentSchema && parentSchema.get('readOnly') as boolean) || isConst;
+
   return (
     <Tooltip title={description || ''}>
       <TextField
@@ -101,8 +103,9 @@ export function StringWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPro
         helperText={!isValid ? getHelperText() : undefined}
         margin="normal"
         InputProps={{
-          readOnly: schema.get('readOnly') as boolean || isConst,
+          readOnly: disabled,
         }}
+        disabled={disabled}
       />
     </Tooltip>
   );

@@ -19,9 +19,9 @@ import {
   DrawerPanelContent, Nav, NavGroup, NavItem, Spinner, Title, Tooltip,
 } from '@patternfly/react-core';
 import parse from 'html-react-parser';
-import { DarkModeType } from 'src/App';
 import Hamburger from 'hamburger-react';
 import { removeOrg } from 'src/Components/Form/WidgetFunctions';
+import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 
 declare global {
   interface Window { cockpit: any; }
@@ -49,7 +49,8 @@ const parseXMLInterfaces = (xml: string): string[] => {
 };
 
 // eslint-disable-next-line react/function-component-definition
-const StateMachine: React.FC<DarkModeType> = ({ isDark }) => {
+const StateMachine: React.FC = () => {
+  const { isDark } = useDarkMode();
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
   const [processes, setProcesses] = useState<string[]>();
   const [svg, setSVG] = useState<string>();
