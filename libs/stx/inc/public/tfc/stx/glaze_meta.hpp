@@ -10,7 +10,6 @@
 #include <date/date.h>
 #include <fmt/chrono.h>
 
-#include <boost/bind/bind.hpp>
 #include <glaze/glaze.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
