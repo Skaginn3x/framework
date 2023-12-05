@@ -1,8 +1,9 @@
+set(CMAKE_SYSTEMD_FILE_PATH ${CMAKE_CURRENT_LIST_DIR}/systemd)
 function(tfc_systemd_service_file EXE_TARGET DESCRIPTION)
   set(EXE_NAME ${EXE_TARGET})
   set(INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
 
-  configure_file("${CMAKE_SOURCE_DIR}/cmake/systemd/tfc@.service" "${CMAKE_BINARY_DIR}/systemd/${EXE_TARGET}@.service")
+  configure_file("${CMAKE_SYSTEMD_FILE_PATH}/tfc@.service" "${CMAKE_BINARY_DIR}/systemd/${EXE_TARGET}@.service")
 
   install(
     FILES "${CMAKE_BINARY_DIR}/systemd/${EXE_TARGET}@.service"
