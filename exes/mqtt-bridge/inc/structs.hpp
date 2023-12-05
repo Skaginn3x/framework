@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <optional>
 #include <any>
 #include <cstdint>
+#include <optional>
+#include <string>
 
 #include <sparkplug_b/sparkplug_b.pb.h>
 

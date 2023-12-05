@@ -82,7 +82,6 @@ public:
 
   auto strand() -> asio::strand<asio::any_io_executor>;
 
-
   static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, tfc::logger::logger const&) -> void;
 
   static auto format_signal_name(std::string signal_name_to_format) -> std::string;
