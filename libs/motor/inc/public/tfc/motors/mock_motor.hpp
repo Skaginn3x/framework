@@ -16,7 +16,6 @@ using mp_units::QuantityOf;
 using tfc::confman::observable;
 using namespace mp_units::si::unit_symbols;
 
-
 /**
  * @brief mock motor class
  * @details This struct is only used for testing purposes.
@@ -25,38 +24,32 @@ using namespace mp_units::si::unit_symbols;
  * default.
  */
 
-template<typename clock_t>
+template <typename clock_t>
 struct mock_motor {
-
-  explicit virtual_motor(boost::asio::io_context&){}
+  explicit virtual_motor(boost::asio::io_context&) {}
 
   ~virtual_motor() {}
 
-  auto convey() -> std::error_code {
-  }
+  auto convey() -> std::error_code {}
 
-  auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {
-  }
+  auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {}
 
   void convey(QuantityOf<mp_units::isq::velocity> auto vel,
               QuantityOf<mp_units::isq::length> auto length,
-              std::invocable<std::error_code> auto cb) {
-  }
+              std::invocable<std::error_code> auto cb) {}
 
   void convey(QuantityOf<mp_units::isq::velocity> auto vel,
               QuantityOf<mp_units::isq::time> auto time,
-              std::invocable<std::error_code> auto cb) {
-  }
+              std::invocable<std::error_code> auto cb) {}
 
-  void convey(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
-  }
+  void convey(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {}
 
-  void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto) {
-  }
-
+  void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto) {}
 };
-  bool needs_homing{false};
-  bool motor_failure{false};
-  std::optional<mp_units::quantity<mp_units::si::milli<mp_units::si::metre> / mp_units::si::second>> nominal{10 * (mp_units::si::milli<mp_units::si::metre> / mp_units::si::second)};
-  bool in_action{false};
+bool needs_homing{ false };
+bool motor_failure{ false };
+std::optional<mp_units::quantity<mp_units::si::milli<mp_units::si::metre> / mp_units::si::second>> nominal{
+  10 * (mp_units::si::milli<mp_units::si::metre> / mp_units::si::second)
+};
+bool in_action{ false };
 }  // namespace tfc::motor::types

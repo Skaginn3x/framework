@@ -27,7 +27,8 @@ using SpeedRatio = mp_units::ratio;
 
 class interface {
 public:
-  using config_t = confman::observable<std::variant<std::monostate, types::virtual_motor::config_t>>;  // , types::ethercat_motor::config_t>;
+  using config_t = confman::observable<
+      std::variant<std::monostate, types::virtual_motor::config_t>>;  // , types::ethercat_motor::config_t>;
   // Default initialize the motor as a printing motor
   explicit interface(asio::io_context& ctx, std::string_view name, config_t default_config = {})
       : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
@@ -228,7 +229,7 @@ private:
   asio::io_context& ctx_;
 
   // TODO(omarhogni): Implement convey and move over ethercat motor
-  using implementations = std::variant<std::monostate, types::virtual_motor>;     //, types::ethercat_motor>;
+  using implementations = std::variant<std::monostate, types::virtual_motor>;  //, types::ethercat_motor>;
   implementations impl_;
   confman::config<config_t> config_;
   logger::logger logger_;
