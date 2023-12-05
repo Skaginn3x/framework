@@ -1,16 +1,16 @@
 #include <string_view>
 
-#include <boost/ut.hpp>
-#include <boost/asio.hpp>
 #include <mp-units/systems/si/si.h>
+#include <boost/asio.hpp>
+#include <boost/ut.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/asio/property.hpp>
 
-#include <tfc/progbase.hpp>
 #include <tfc/dbus/exception.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
+#include <tfc/progbase.hpp>
 
 using std::string_view_literals::operator""sv;
 namespace ut = boost::ut;
@@ -39,17 +39,14 @@ auto main(int argc, char** argv) -> int {
     conn->request_name("com.skaginn3x.test");
     sdbusplus::asio::dbus_interface iface{ conn, "/com/skaginn3x/test", "com.skaginn3x.test" };
     using hello_t = decltype(hello);
-    iface.register_property_rw<hello_t>("name", sdbusplus::vtable::property_::emits_change,
-                                        []([[maybe_unused]] hello_t const& req, [[maybe_unused]] hello_t const& old) -> int {
-                                          return 1;
-                                        }, [&hello]([[maybe_unused]] hello_t const& foo) -> hello_t {
-                                          return hello;
-                                        });
+    iface.register_property_rw<hello_t>(
+        "name", sdbusplus::vtable::property_::emits_change,
+        []([[maybe_unused]] hello_t const& req, [[maybe_unused]] hello_t const& old) -> int { return 1; },
+        [&hello]([[maybe_unused]] hello_t const& foo) -> hello_t { return hello; });
     iface.initialize();
 
     bool ran{};
-    sdbusplus::asio::getProperty<hello_t>(*conn, "com.skaginn3x.test", "/com/skaginn3x/test",
-                                          "com.skaginn3x.test", "name",
+    sdbusplus::asio::getProperty<hello_t>(*conn, "com.skaginn3x.test", "/com/skaginn3x/test", "com.skaginn3x.test", "name",
                                           [&ctx, &hello, &ran](auto err, [[maybe_unused]] hello_t const& value) {
                                             if (err) {
                                               fmt::println("Error from getter: {}", err.message());
