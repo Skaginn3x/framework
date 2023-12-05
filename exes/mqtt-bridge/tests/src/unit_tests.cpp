@@ -17,7 +17,6 @@ namespace ut = boost::ut;
 namespace asio = boost::asio;
 
 using ut::operator""_test;
-using ut::operator>>;
 using ut::expect;
 
 auto main(int argc, char* argv[]) -> int {
