@@ -81,8 +81,6 @@ public:
 
   static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, tfc::logger::logger const&) -> void;
 
-  static auto format_signal_name(std::string signal_name_to_format) -> std::string;
-
   static auto topic_formatter(std::vector<std::string_view> const& topic_vector) -> std::string;
 
   auto connect_mqtt_client() -> asio::awaitable<bool>;
@@ -111,9 +109,9 @@ private:
 using spark_plug = spark_plug_interface<tfc::confman::config<config::spark_plug_b>, client_n>;
 using spark_plug_mock = spark_plug_interface<config::spark_plug_b_mock, client_mock>;
 
-extern template class tfc::mqtt::spark_plug_interface<
-    tfc::mqtt::config::spark_plug_b_mock,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
+ extern template class tfc::mqtt::spark_plug_interface<
+     tfc::mqtt::config::spark_plug_b_mock,
+     tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
 
 extern template class tfc::mqtt::spark_plug_interface<
     tfc::confman::config<tfc::mqtt::config::spark_plug_b>,

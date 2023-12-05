@@ -57,6 +57,16 @@ public:
     return DataType::Unknown;
   }
 
+  /// Spark Plug B disallows the use of some special characters in the signal name.
+  static auto format_signal_name(std::string signal_name_to_format) -> std::string {
+    for (const auto& forbidden_char : { '+', '#', '-', '/' }) {
+      std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), forbidden_char, '_');
+    }
+
+    std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), '.', '/');
+    return signal_name_to_format;
+  }
+
   auto set_signals() -> void {
     logger_.trace("Starting to add new signals...");
     ipc_client_.signals(
@@ -75,7 +85,7 @@ public:
     for (const auto& signal : signals) {
       signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
 
-      spb_variables_.emplace_back(spark_plug_interface_.format_signal_name(signal.name.data()),
+      spb_variables_.emplace_back(format_signal_name(signal.name.data()),
                                   type_enum_convert(signal.type), std::nullopt, signal.description.data());
 
       logger_.trace("Connecting: {}", signal.name);

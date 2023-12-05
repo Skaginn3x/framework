@@ -71,5 +71,4 @@ public:
         first_signal);
   }
 };
-
 }  // namespace tfc::mqtt

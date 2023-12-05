@@ -287,17 +287,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::set_value_payload(Payload_Me
   }
 }
 
-/// Spark Plug B disallows the use of some special characters in the signal name.
-template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::format_signal_name(std::string signal_name_to_format) -> std::string {
-  for (const auto& forbidden_char : { '+', '#', '-', '/' }) {
-    std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), forbidden_char, '_');
-  }
-
-  std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), '.', '/');
-  return signal_name_to_format;
-}
-
 template <class config_t, class mqtt_client_t>
 auto spark_plug_interface<config_t, mqtt_client_t>::topic_formatter(std::vector<std::string_view> const& topic_vector)
     -> std::string {
