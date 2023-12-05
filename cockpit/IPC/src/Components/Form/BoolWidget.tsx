@@ -8,7 +8,7 @@ import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 import { useUID } from 'react-uid';
 
 export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
-  storeKeys, schema, onChange,
+  storeKeys, schema, onChange, parentSchema,
 }: P & WithValue): React.ReactElement {
   const uid = useUID();
   const { store } = useUIStore();
@@ -50,6 +50,8 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const description = schema.get('description') as string;
 
+  const disabled = schema.get('readOnly') as boolean || (parentSchema && parentSchema.get('readOnly') as boolean) || isConst;
+
   return (
   // eslint-disable-next-line react/jsx-no-useless-fragment
     <Tooltip title={description || ''}>
@@ -59,7 +61,7 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
             checked={value}
             onChange={handleToggle}
             color="primary"
-            disabled={schema.get('readOnly') as boolean || isConst}
+            disabled={disabled}
             id={`uis-${uid}`}
           />
         )}
