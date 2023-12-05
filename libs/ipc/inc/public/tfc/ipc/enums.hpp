@@ -5,6 +5,8 @@
 #include <string_view>
 #include <utility>
 
+#include <magic_enum.hpp>
+
 // Common enums, ipc/glaze_meta.hpp provides glaze specific conversions
 
 namespace tfc::ipc::details {
@@ -66,7 +68,9 @@ enum struct mass_error_e : std::uint8_t {
   unknown_error,
 };
 
-auto enum_name(mass_error_e) -> std::string_view;
+auto constexpr enum_name(mass_error_e err) -> std::string_view{
+  return magic_enum::enum_name(err);
+}
 constexpr auto format_as(mass_error_e err) -> std::string_view {  // for fmt
   return enum_name(err);
 }
