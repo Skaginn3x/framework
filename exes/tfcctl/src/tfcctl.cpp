@@ -96,20 +96,21 @@ auto main(int argc, char** argv) -> int {
   }
 
   asio::io_context ctx;
-  auto client{ tfc::ipc::make_manager_client(ctx) };
 
   if (list_signals || list_slots) {
-    const auto print_names{ [](std::string context, auto const& instances) {
+    auto client{ std::make_shared<tfc::ipc_ruler::ipc_manager_client>(ctx) };
+    const auto print_names{ [client](std::string context, auto const& instances) {
+      [[maybe_unused]] auto foo{ client };  // prevent warnings
       fmt::println("{}", context);
       for (const auto& instance : instances) {
         fmt::println("{}", instance.name);
       }
     } };
     if (list_signals) {
-      client.signals(std::bind_front(print_names, "Signals:"));
+      client->signals(std::bind_front(print_names, "Signals:"));
     }
     if (list_slots) {
-      client.slots(std::bind_front(print_names, "Slots:"));
+      client->slots(std::bind_front(print_names, "Slots:"));
     }
   }
 
