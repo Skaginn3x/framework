@@ -87,11 +87,9 @@ export const updateFormData = (
     // eslint-disable-next-line no-param-reassign
     newData = newData.config;
   }
-
-  // eslint-disable-next-line no-param-reassign
   setFormData((prevState: any) => ({
     ...prevState,
-    [name]: newData,
+    [name]: { config: newData },
   }));
 
   // set dbus property config to data

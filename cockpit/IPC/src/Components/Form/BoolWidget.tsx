@@ -17,12 +17,22 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     return path.reduce((xs: any, x: any) => (xs && xs[x] ? xs[x] : false), obj);
   }
 
-  const [value, setValue] = useState<boolean>(getNestedValue(store?.toJS().values, storeKeys.toJS()));
-  const isConst = schema.get('const') as boolean ?? false;
+  const constValue = schema.get('const') as string;
+  const isConst = constValue !== undefined;
+  const [value, setValue] = useState<boolean>(isConst ? constValue : getNestedValue(store?.toJS().values, storeKeys.toJS()));
 
   useEffect(() => {
-    if (isConst) {
+    if (!isConst) {
       setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
+    } else {
+      onChange({
+        storeKeys,
+        scopes: ['value'],
+        type: 'set',
+        schema,
+        required: schema.get('required') as boolean,
+        data: { value: constValue },
+      });
     }
   }, [store]);
 
@@ -41,22 +51,20 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   const description = schema.get('description') as string;
 
   return (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
-    isConst ? <></>
-      : (
-        <Tooltip title={description || ''}>
-          <FormControlLabel
-            control={(
-              <Switch
-                checked={value}
-                onChange={handleToggle}
-                color="primary"
-                id={`uis-${uid}`}
-              />
-        )}
-            label={schema.get('title') as string ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
+  // eslint-disable-next-line react/jsx-no-useless-fragment
+    <Tooltip title={description || ''}>
+      <FormControlLabel
+        control={(
+          <Switch
+            checked={value}
+            onChange={handleToggle}
+            color="primary"
+            disabled={schema.get('readOnly') as boolean || isConst}
+            id={`uis-${uid}`}
           />
-        </Tooltip>
-      )
+        )}
+        label={schema.get('title') as string ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
+      />
+    </Tooltip>
   );
 }
