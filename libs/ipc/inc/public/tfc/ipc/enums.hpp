@@ -25,7 +25,7 @@ enum struct type_e : std::uint8_t {
   _double_t = 4,  // NOLINT
   _string = 5,    // NOLINT
   _json = 6,      // NOLINT
-  _mass = 7,    // NOLINT
+  _mass = 7,      // NOLINT
   // TODO: Add
   //  Standard units
   //  _duration = 7,
