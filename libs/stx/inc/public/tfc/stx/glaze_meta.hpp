@@ -126,7 +126,6 @@ struct glz::meta<std::expected<value_t, error_t>> {
     return self.value();
   } };
 };
-// static_assert(glz::detail::nullable_t<std::expected<int, std::error_code>>);
 
 template <std::intmax_t num, std::intmax_t den>
 struct glz::meta<std::ratio<num, den>> {
