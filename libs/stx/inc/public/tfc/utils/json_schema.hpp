@@ -437,6 +437,9 @@ struct to_json_schema<T> {
       using V = std::decay_t<std::variant_alternative_t<I, T>>;
       auto& schema_val = (*s.oneOf)[I.value];
       schema_val.attributes.title = glz::name_v<V, true>;  // please MAKE sure you declare name within variants
+      if (s.attributes.read_only.has_value()) {
+        schema_val.attributes.read_only = s.attributes.read_only;
+      }
       // TODO use ref to avoid duplication in schema
       to_json_schema<V>::template op<Opts>(schema_val, defs);
       constexpr bool glaze_object = glz::detail::glaze_object_t<V>;
@@ -491,6 +494,9 @@ struct to_json_schema<T> {
           ref_val = glz::get<2>(item);
           ref_val.ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>>;
         }
+      }
+      if (s.attributes.read_only.has_value()) {
+        ref_val.read_only = s.attributes.read_only;  // propagate read only to childrens
       }
       (*s.properties)[glz::get<0>(item)] = ref_val;
 
