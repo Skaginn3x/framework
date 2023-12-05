@@ -112,17 +112,22 @@ public:
 
     auto& socket{ socket_ };
     return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
-        [&socket, buffer = std::move(send_buffer), first_call = true](auto& self, std::error_code err = {},
-                                                                      std::size_t bytes_sent = 0) mutable {
+        [&socket, buffer = std::move(send_buffer), state = state_e::write](auto& self, std::error_code err = {},
+                                                                           std::size_t bytes_sent = 0) mutable {
           if (err) {
             self.complete(err, bytes_sent);
             return;
           }
-          if (first_call) {
-            first_call = false;
-            azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
-          } else {
-            self.complete(err, bytes_sent);
+          switch (state) {
+            case state_e::write: {
+              state = state_e::complete;
+              azmq::async_send(socket, asio::buffer(*buffer), std::move(self));
+              break;
+            }
+            case state_e::complete: {
+              self.complete(err, bytes_sent);
+              break;
+            }
           }
         },
         token, socket_);
