@@ -156,7 +156,7 @@ public:
     // for each confman::observer type
     auto const error{ glz::read_json<storage_t>(storage_.make_change().value(), value) };
     if (error) {
-      logger_.warn("Error reading json: {}", glz::format_error(error, value));
+      logger_.error("Error reading json: {}", glz::format_error(error, value));
       return std::make_error_code(std::errc::io_error);  // todo make glz to std::error_code
     }
     return {};
