@@ -1,19 +1,19 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <new>
 #include <span>
-#include <array>
 #include <variant>
-#include <functional>
 
 #include <mp-units/systems/si/si.h>
 #include <boost/asio/io_context.hpp>
 
-#include <tfc/utils/units_glaze_meta.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/confman/read_only.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 #include "tfc/ec/devices/base.hpp"
 
@@ -27,7 +27,7 @@ enum struct cell_mode_e : std::uint8_t {
   group_1_non_symmetrical,
   group_2_non_symmetrical
 };
-} // namespace tfc::ec::devices::eilersen::e4x60a
+}  // namespace tfc::ec::devices::eilersen::e4x60a
 
 // used to generate the enum meta conversions for use in members of config
 template <>
@@ -55,10 +55,7 @@ using signal_t = std::int32_t;
 using mass_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::int64_t>;
 
 struct used_cells {
-  bool cell_1{};
-  bool cell_2{};
-  bool cell_3{};
-  bool cell_4{};
+  std::array<bool, max_cells> cells{};
 };
 
 struct used_cell {
@@ -70,8 +67,7 @@ struct get_used_cell {
   static consteval auto impl() {
     if constexpr (mode == cell_mode_e::single) {
       return used_cell{};
-    }
-    else {
+    } else {
       return used_cells{};
     }
   }
@@ -104,9 +100,9 @@ struct calibration {
   mass_t max_zero_drift{ 500 * mp_units::si::gram };
   bool track_zero_drift{ false };
   // https://adamequipment.co.uk/content/post/d-vs-e-values/?fbclid=IwAR3x2eF7m1RXF9VSk-uxb391Sh_JnK0tK53hBycqdAj5hNdl0KmmZoXgyvk
-  mass_t verification_scale_interval{ 10 * mp_units::si::gram }; // so called `e`
+  mass_t verification_scale_interval{ 10 * mp_units::si::gram };  // so called `e`
   get_used_cell_t<mode> this_cells{};
-  std::string group_name{}; // this calibration group name
+  std::string group_name{};  // this calibration group name
 };
 
 template <>
@@ -124,61 +120,82 @@ struct calibration<cell_mode_e::group_2_non_symmetrical> : std::false_type {
   // todo implement
 };
 
-struct not_used : std::monostate {
-};
+struct not_used : std::monostate {};
 
-using calibration_types =
-std::variant<not_used, calibration<cell_mode_e::single>, calibration<cell_mode_e::group_1>, calibration<
-               cell_mode_e::group_2>>;
+using calibration_types = std::variant<not_used,
+                                       calibration<cell_mode_e::single>,
+                                       calibration<cell_mode_e::group_1>,
+                                       calibration<cell_mode_e::group_2>>;
 
 template <typename child_t>
 struct calibration_interface {
   auto get_zero() const noexcept -> std::optional<signal_t> {
-    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<signal_t> {
-      if constexpr (std::convertible_to<visitor_t, not_used>) {
-        return std::nullopt;
-      }
-      else {
-        return visitor.calibration_zero.read.value();
-      }
-    }, static_cast<child_t*>(this)->get_calibration());
+    return std::visit(
+        []<typename visitor_t>(visitor_t&& visitor) -> std::optional<signal_t> {
+          if constexpr (std::convertible_to<visitor_t, not_used>) {
+            return std::nullopt;
+          } else {
+            return visitor.calibration_zero.read.value();
+          }
+        },
+        static_cast<child_t const*>(this)->get_calibration());
   }
   auto get_calibration_weight() const noexcept -> std::optional<std::pair<signal_t, mass_t>> {
-    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::pair<signal_t, mass_t>> {
-      if constexpr (std::convertible_to<visitor_t, not_used>) {
-        return std::nullopt;
-      }
-      else {
-        return std::make_pair(visitor.calibration_weight.read.value(), visitor.calibration_weight.weight);
-      }
-    }, static_cast<child_t*>(this)->get_calibration());
+    return std::visit(
+        []<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::pair<signal_t, mass_t>> {
+          if constexpr (std::convertible_to<visitor_t, not_used>) {
+            return std::nullopt;
+          } else {
+            return std::make_pair(visitor.calibration_weight.read.value(), visitor.calibration_weight.weight);
+          }
+        },
+        static_cast<child_t const*>(this)->get_calibration());
+  }
+  auto get_cells() const noexcept -> std::array<bool, max_cells> {
+    std::array<bool, max_cells> result{};
+    std::visit(
+        [&result]<typename visitor_t>(visitor_t&& visitor) {
+          if constexpr (std::convertible_to<visitor_t, not_used>) {
+            return;
+          } else if constexpr (std::same_as<used_cells, std::remove_cvref_t<decltype(visitor.this_cells)>>) {
+            result = visitor.this_cells.cells;
+          } else if constexpr (std::same_as<used_cell, std::remove_cvref_t<decltype(visitor.this_cells)>>) {
+            if (visitor.this_cells.cell_nr > 0 && visitor.this_cells.cell_nr <= max_cells) {
+              result.at(visitor.this_cells.cell_nr - 1) = true;
+            }
+          } else {
+            []<bool flag = false> {
+              static_assert(flag, "Unsupported type");
+            }
+            ();
+          }
+        },
+        static_cast<child_t const*>(this)->get_calibration());
+    return result;
   }
   auto get_group_name() const noexcept -> std::optional<std::string_view> {
-    return std::visit([]<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::string_view> {
-      if constexpr (std::convertible_to<visitor_t, not_used>) {
-        return std::nullopt;
-      }
-      else {
-        return visitor.group_name;
-      }
-    }, static_cast<child_t*>(this)->get_calibration());
+    return std::visit(
+        []<typename visitor_t>(visitor_t&& visitor) -> std::optional<std::string_view> {
+          if constexpr (std::convertible_to<visitor_t, not_used>) {
+            return std::nullopt;
+          } else {
+            return visitor.group_name;
+          }
+        },
+        static_cast<child_t const*>(this)->get_calibration());
   }
 };
 
 struct calibration_config : calibration_interface<calibration_config> {
   calibration_types calibration_v{ not_used{} };
   confman::observable<bool> sealed{ false };
-  auto get_calibration() const noexcept -> calibration_types const& {
-    return calibration_v;
-  }
+  auto get_calibration() const noexcept -> calibration_types const& { return calibration_v; }
 };
 
 struct calibration_sealed_config : calibration_interface<calibration_sealed_config> {
   confman::read_only<calibration_types> calibration_v{ not_used{} };
   static constexpr bool sealed{ true };
-  auto get_calibration() const noexcept -> calibration_types const& {
-    return calibration_v.value();
-  }
+  auto get_calibration() const noexcept -> calibration_types const& { return calibration_v.value(); }
 };
 
 using calibration_config_t = std::variant<calibration_config, calibration_sealed_config>;
@@ -189,7 +206,7 @@ struct config {
   variations_t variations{ calibration_config{}, calibration_config{}, calibration_config{}, calibration_config{} };
   // any related config parameters that apply to the whole device can be added here
 };
-} // namespace tfc::ec::devices::eilersen::e4x60a
+}  // namespace tfc::ec::devices::eilersen::e4x60a
 
 namespace glz {
 using glz::operator""_c;
@@ -199,7 +216,10 @@ template <>
 struct meta<e4x60a::used_cell> {
   using type = e4x60a::used_cell;
   static constexpr std::string_view name{ "4x60a::used_cell" };
-  static constexpr auto value{ glz::object("cell_nr", &type::cell_nr, tfc::json::schema{ .description = "Pick the cell to be used, 1-4", .minimum = 1LU, .maximum = e4x60a::max_cells }) };
+  static constexpr auto value{ glz::object(
+      "cell_nr",
+      &type::cell_nr,
+      tfc::json::schema{ .description = "Pick the cell to be used, 1-4", .minimum = 1LU, .maximum = e4x60a::max_cells }) };
 };
 
 template <>
@@ -208,10 +228,7 @@ struct meta<e4x60a::used_cells> {
   static constexpr std::string_view name{ "4x60a::used_cells" };
   // clang-format off
   static constexpr auto value{ glz::object(
-    "cell_1", &type::cell_1, "Use cell 1 in this group",
-    "cell_2", &type::cell_2, "Use cell 2 in this group",
-    "cell_3", &type::cell_3, "Use cell 3 in this group",
-    "cell_4", &type::cell_4, "Use cell 4 in this group"
+    "cells", &type::cells, "Cells associated to this group"
     ) };
   // clang-format on
 };
@@ -275,17 +292,22 @@ struct meta<e4x60a::calibration_config> {
   using type = e4x60a::calibration_config;
   static constexpr std::string_view name{ "Calibration Config" };
   // distingusing keys for the two variants, required for glaze
-  static constexpr auto value{ glz::object("calibration", &type::calibration_v, "make_seal", &type::sealed) };
+  static constexpr auto value{ glz::object("calibration",
+                                           &type::calibration_v,  // todo json schema set as hidden
+                                           "make_seal",
+                                           &type::sealed) };
 };
 
 template <>
 struct meta<e4x60a::calibration_sealed_config> {
   using type = e4x60a::calibration_sealed_config;
   static constexpr std::string_view name{ "Sealed Calibration Config" };
-  static constexpr auto value{ glz::object(
-    "calibration", &type::calibration_v, tfc::json::schema{ .read_only = true },
-    "sealed", &type::sealed, tfc::json::schema{ .constant = true }
-    ) };
+  static constexpr auto value{ glz::object("calibration",
+                                           &type::calibration_v,
+                                           tfc::json::schema{ .read_only = true },
+                                           "sealed",
+                                           &type::sealed,
+                                           tfc::json::schema{ .constant = true }) };
 };
 
 template <>
@@ -294,8 +316,7 @@ struct meta<e4x60a::config> {
   static constexpr std::string_view name{ "e4x60a::config" };
   static constexpr auto value{ glz::object("variations", &type::variations) };
 };
-} // namespace glz
-
+}  // namespace glz
 
 namespace tfc::ec::devices::eilersen::e4x60a {
 
@@ -326,32 +347,24 @@ struct pdo_output {
 #pragma pack(pop)
 static_assert(sizeof(pdo_output) == 4);
 
-
-template <template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
-struct instance {
-  signal_t<ipc::details::mass_t, ipc_ruler::ipc_manager_client&> mass_;
-  mass_t zero;
-
-
-};
-
 template <typename manager_client_type,
-          template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
+          template <typename description_t, typename manager_client_t> typename ipc_signal_t = ipc::signal>
 class e4x60a final : public base {
 public:
   e4x60a(asio::io_context& ctx, manager_client_type& client, std::uint16_t slave_index)
-    : base{ slave_index }, ctx_{ ctx }, client_{ client } {
+      : base{ slave_index }, ctx_{ ctx }, client_{ client } {
     if (auto* itm{ std::get_if<calibration_config>(&config_->variations.at(0)) }) {
       itm->sealed.observe(std::bind_front(&e4x60a::make_seal, this, 0));
     }
   }
 
-  void make_seal(std::size_t idx, [[maybe_unused]] bool new_value,[[maybe_unused]] bool old_value) noexcept {
+  void make_seal(std::size_t idx, [[maybe_unused]] bool new_value, [[maybe_unused]] bool old_value) noexcept {
     if (new_value) {
       auto change{ config_.make_change() };
       if (auto* itm{ std::get_if<calibration_config>(&change->variations.at(idx)) }) {
         auto calibration_params{ std::move(itm->calibration_v) };
-        change->variations.at(idx) = calibration_sealed_config{ .calibration_v = confman::read_only<calibration_types>{ std::move(calibration_params) } };
+        change->variations.at(idx) = calibration_sealed_config{ .calibration_v = confman::read_only<calibration_types>{
+                                                                    std::move(calibration_params) } };
       }
     }
   }
@@ -361,6 +374,32 @@ public:
       return;
     }
     [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
+
+    auto& group_1{ config_->variations.at(0) };
+    std::visit(
+        [input](auto& group_1_cal) {
+          signal_t cumilated_cells_mass{};
+          std::size_t idx{};
+          for (auto using_cell : group_1_cal.get_cells()) {
+            if (using_cell) {
+// clang-format off
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+              cumilated_cells_mass += input->weight_signals[idx];
+PRAGMA_CLANG_WARNING_POP
+// clang-format on
+            }
+            idx++;
+          }
+          if (auto zero{ group_1_cal.get_zero() }) {
+            cumilated_cells_mass -= *zero;
+          }
+          if (auto calibration{ group_1_cal.get_calibration_weight() }) {
+            auto [calibration_signal, calibration_mass]{ calibration.value() };
+            auto foo = cumilated_cells_mass
+            // cumilated_cells_mass -= calibration_weight->second;
+          }
+        },
+        group_1);
     // mass_.async_send(input->weight_signals[0] * mp_units::si::gram, [](auto, auto) {});
 
     // for (auto const& section : config_->variations) {
@@ -391,8 +430,9 @@ public:
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
-  confman::config<config> config_{
-    ctx_, fmt::format("eilersen_weighing_module_{}", slave_index_)
-  };
+  confman::config<config> config_{ ctx_, fmt::format("eilersen_weighing_module_{}", slave_index_) };
+  // todo make section struct to cover the config, for now only one output is generated
+  ipc_signal_t<ipc::details::type_mass, ipc_ruler::ipc_manager_client&> mass_{ ctx_, client_, "group_1",
+                                                                           "Weigher output for group 1" };
 };
-} // namespace tfc::ec::devices::eilersen::e4x60a
+}  // namespace tfc::ec::devices::eilersen::e4x60a
