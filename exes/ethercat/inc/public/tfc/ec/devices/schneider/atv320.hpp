@@ -17,133 +17,12 @@
 #include "tfc/ipc.hpp"
 #include "tfc/utils/units_glaze_meta.hpp"
 
-#include "tfc/ec/devices/schneider/atv320/enums.hpp"
+#include <tfc/ec/devices/schneider/atv320/enums.hpp>
+#include <tfc/ec/devices/schneider/atv320/settings.hpp>
+#include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
-
-using analog_input_3_range =
-    setting<ecx::index_t{ 0x200E, 0x55 }, "AI3L", "Analog input 3 range", aiol_e, aiol_e::positive_only>;
-
-using configuration_of_AI1 =
-    setting<ecx::index_t{ 0x2010, 0x02 }, "AI1", "Configuration of Analog input 1", aiot_e, aiot_e::current>;
-using configuration_of_AI3 =
-    setting<ecx::index_t{ 0x200E, 0x05 }, "AI3", "Configuration of Analog input 3", aiot_e, aiot_e::current>;
-using configuration_reference_frequency_1_FR1 = setting<ecx::index_t{ 0x2036, 0xE },
-                                                        "FR1",
-                                                        "Configuration reference frequency 1",
-                                                        psa_e,
-                                                        psa_e::reference_frequency_via_com_module>;
-
-using assignment_AQ1 = setting<ecx::index_t{ 0x2014, 0x16 }, "AO1", "AQ1 assignment", psa_e, psa_e::not_configured>;
-
-using assignment_R1 = setting<ecx::index_t{ 0x2014, 0x02 }, "AO1", "AQ1 assignment", psl_e, psl_e::not_assigned>;
-
-// ATV320 specific data type and multiplier for unit
-using decifrequency = mp_units::quantity<mp_units::si::deci<mp_units::si::hertz>, uint16_t>;
-using decawatt = mp_units::quantity<mp_units::si::deca<mp_units::si::watt>, uint16_t>;
-using atv_deciampere_rep = mp_units::quantity<mp_units::si::deci<mp_units::si::ampere>, uint16_t>;
-
-using namespace mp_units::si::unit_symbols;
-
-// Units 0.01 KW / 10W
-using nominal_motor_power_NPR = setting<ecx::index_t{ 0x2042, 0x0E }, "NPR", "Nominal motor power", decawatt, 15 * hW>;
-using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
-                                          "UNS",
-                                          "Nominal motor voltage",
-                                          mp_units::quantity<mp_units::si::volt, uint16_t>,
-                                          400 * V>;
-
-using nominal_motor_frequency_FRS =
-    setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500 * dHz>;
-
-using nominal_motor_current_NCR =
-    setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20 * dA>;
-
-using nominal_motor_speed_NSP = setting<ecx::index_t{ 0x2042, 0x05 }, "NSP", "Nominal motor speed", uint16_t, 1500>;
-
-// Units 0.01
-using motor_1_cos_phi_COS = setting<ecx::index_t{ 0x2042, 0x07 }, "COS", "Motor 1 cosinus phi", uint16_t, 80>;
-
-using motor_thermal_current_ITH =
-    setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20 * dA>;
-
-//  Units 0.1 Hz, Range 10Hz - 500Hz
-
-using max_frequency_TFR = setting<ecx::index_t{ 0x2001, 0x04 }, "TFR", "Max frequency", decifrequency, 800 * dHz>;
-using high_speed_HSP = setting<ecx::index_t{ 0x2001, 0x05 }, "HSP", "High speed", decifrequency, 800 * dHz>;
-using low_speed_LSP = setting<ecx::index_t{ 0x2001, 0x06 }, "LSP", "Low speed", decifrequency, 200 * dHz>;
-
-using deciseconds = std::chrono::duration<uint16_t, std::deci>;
-// 100 = 10 seconds
-// 10 = 1 second
-using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", "Acceleration ramp time", deciseconds, 1>;
-
-// 100 = 10 seconds
-// 10 = 1 second
-using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", deciseconds, 1>;
-
-namespace detail {
-struct speed {
-  decifrequency value{ 0 * dHz };
-  bool reverse{ false };
-  constexpr auto operator==(speed const& other) const noexcept -> bool = default;
-};
-constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, double> percentage,
-                                       [[maybe_unused]] low_speed_LSP min_freq,
-                                       [[maybe_unused]] high_speed_HSP max_freq) noexcept -> speed {
-  if (mp_units::abs(percentage) < 1 * mp_units::percent) {
-    return { .value = 0 * dHz, .reverse = false };
-  }
-  bool const reverse{ percentage <= -1 * mp_units::percent };
-  mp_units::Quantity auto mapped{ ec::util::map(mp_units::abs(percentage), (1.0 * mp_units::percent),
-                                                (100.0 * mp_units::percent), min_freq.value, max_freq.value) };
-  return { .value = mapped, .reverse = reverse };
-}
-// gcc only supports constexpr std::abs and there is no feature flag
-#ifndef __clang__
-// stop test
-static_assert(percentage_to_deci_freq(0 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 0 * dHz, .reverse = false });
-// min test forward
-static_assert(percentage_to_deci_freq(1 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 200 * dHz, .reverse = false });
-// max test forward
-static_assert(percentage_to_deci_freq(100 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 500 * dHz, .reverse = false });
-// 50% test forward
-static_assert(percentage_to_deci_freq(50 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 348 * dHz, .reverse = false });
-// max test reverse
-static_assert(percentage_to_deci_freq(-100 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz, .reverse = true });
-// min test reverse
-static_assert(percentage_to_deci_freq(-1 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 200 * dHz, .reverse = true });
-// 50% test reverse
-static_assert(percentage_to_deci_freq(-50 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 348 * dHz, .reverse = true });
-// outside bounds reverse
-static_assert(percentage_to_deci_freq(-10000 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz, .reverse = true });
-// outside bounds forward
-static_assert(percentage_to_deci_freq(10000 * mp_units::percent,
-                                      low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 500 * dHz, .reverse = false });
-#endif
-}  // namespace detail
 
 template <typename manager_client_type>
 class device final : public base {
@@ -254,8 +133,9 @@ public:
     // All registers in the ATV320 ar uint16, create a pointer to this memory
     // With the same size
     // these sizes are in bytes not uint16_t
-    if (input.size() != sizeof(input_t) || output.size() != sizeof(output_t))
+    if (input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) {
       return;
+    }
     const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
     output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
 
@@ -293,14 +173,13 @@ public:
     }
 
     last_frequency_ = frequency;
-    using tfc::ec::cia_402::commands_e;
     using tfc::ec::cia_402::states_e;
     bool const quick_stop = !running_ || reference_frequency_.value == 0 * dHz;
 
     auto state = in->status_word.parse_state();
     auto command = tfc::ec::cia_402::transition(state, quick_stop);
 
-    out->control = cia_402::control_word::from_uint(std::to_underlying(command));
+    out->control = cia_402::control_word::from_uint(command);
     // Reverse bit is bit 11 of control word from
     // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
     out->control.reserved_1 = reference_frequency_.reverse;

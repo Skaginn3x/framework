@@ -151,7 +151,7 @@ struct input_pdo {
 };
 
 struct output_pdo {
-  cia_402::commands_e command{};
+  cia_402::control_word ctrl_word{};
   operation_mode mode{};
   operation_mode placeholder{};
   target_velocity velocity{};
@@ -189,7 +189,7 @@ public:
 
     [[maybe_unused]] auto state = in->status.parse_state();
 
-    out->command = cia_402::transition(state, false);
+    out->ctrl_word = cia_402::transition(state, false);
 
     out->velocity.value = 100;  // todo
   }
