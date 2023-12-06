@@ -13,7 +13,6 @@ import {
   AlertVariant,
 } from '@patternfly/react-core';
 import './IODebug.css';
-import { DarkModeType } from 'src/App';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import loadExternalScript from 'src/Components/Interface/ScriptLoader';
 import ListItem from 'src/Components/IOList/ListItem';
@@ -21,6 +20,7 @@ import { useAlertContext } from 'src/Components/Alert/AlertContext';
 import TextboxAttribute from 'src/Components/Table/ToolbarItems/TextBoxAttribute';
 import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
 import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
+import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 
 /**
  * Parses DBUS XML strings to extract interfaces
@@ -45,7 +45,7 @@ const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] 
 };
 
 // eslint-disable-next-line react/function-component-definition
-const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
+const IODebug: React.FC = () => {
   const [processDBUS, setProcessDBUS] = useState<any>();
   const [processes, setProcesses] = useState<string[]>();
   const [dbusInterfaces, setDbusInterfaces] = useState<any[]>([]);
@@ -55,6 +55,7 @@ const IODebug: React.FC<DarkModeType> = ({ isDark }) => {
   const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
 
   const { addAlert } = useAlertContext();
+  const { isDark } = useDarkMode();
 
   const dbusInterfaceRef = useRef<any[]>([]);
 

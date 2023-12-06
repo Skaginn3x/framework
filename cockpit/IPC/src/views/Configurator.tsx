@@ -9,7 +9,6 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
-  AlertVariant,
 } from '@patternfly/react-core';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -19,7 +18,7 @@ import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import {
   fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
 } from 'src/Components/Form/WidgetFunctions';
-import { DarkModeType } from 'src/App';
+import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 import FormGenerator from '../Components/Form/Form';
 import { useAlertContext } from '../Components/Alert/AlertContext';
 
@@ -28,8 +27,9 @@ declare global {
 }
 
 // eslint-disable-next-line react/function-component-definition
-const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
+const Configurator: React.FC = () => {
   const { addAlert } = useAlertContext();
+  const { isDark } = useDarkMode();
   const [names, setNames] = useState<string[]>([]);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
 
@@ -88,7 +88,7 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
     return name;
   }
 
-  const [activeItem, setActiveItem] = React.useState<string | undefined>(Object.keys(schemas)[0]);
+  const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
   const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
   const [form, setForm] = React.useState<React.JSX.Element>(<div />);
 
@@ -100,9 +100,6 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
       setActiveItem(selectedItem.itemId as string);
       setIsDrawerExpanded(false);
     } else if (selectedItem.groupId) {
-      if (selectedItem.groupId !== activeItemFilter || !selectedItem.groupId || !activeItemFilter) {
-        setActiveItem(undefined);
-      }
       setActiveItemFilter(selectedItem.groupId as string);
     } else {
       setActiveItemFilter(undefined);
@@ -114,14 +111,8 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
    * @param data Configuration values
    */
   function handleSubmit(data: any) {
-    if (!activeItem) {
-      addAlert('Internal error, No item active', AlertVariant.danger);
-      return;
-    }
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
-    console.log('data: ', data);
-    console.log('data: ', JSON.stringify(data));
     updateFormData(
       activeItem, // Process name
       activeItem, // Interface name
@@ -159,13 +150,9 @@ const Configurator: React.FC<DarkModeType> = ({ isDark }) => {
   }
 
   useEffect(() => {
-    if (!schemas || !activeItem) {
-      // eslint-disable-next-line react/jsx-no-useless-fragment
-      setForm(<></>);
-      return;
-    }
+    if (!schemas || !activeItem) return;
     setForm(
-      <div style={{ minWidth: '350px', width: '40vw', maxWidth: '500px' }}>
+      <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }}>
         <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
           {removeOrg(activeItem) || 'Error - Unknown name'}
         </Title>

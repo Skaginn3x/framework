@@ -75,7 +75,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
       return null;
     }
 
-    console.log('vals: ', vals);
     const oneOfJS = oneOf.toJS();
 
     // eslint-disable-next-line no-restricted-syntax
@@ -86,7 +85,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
       // Check if element.properties is defined
       if (element.properties) {
-        console.log('element.properties: ', element.properties);
         const allPropsMatch = Object.keys(vals).every((key) => (Object.keys(element.properties ?? {}).includes(key)));
         if (allPropsMatch) {
           return element.title;
@@ -99,10 +97,6 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const required = schema.toJS()['x-tfc'] ? schema.toJS()['x-tfc'].required : false;
   const oneOfSchema = schema.get('oneOf');
-
-  console.log('storeValue', storeValues);
-  console.log('storeKeys', storeKeys.toJS());
-
   const storeValue = getNestedValue(storeValues, storeKeys.toJS());
   const [selectedTitle, setSelectedTitle] = useState<string | null>(findSelectedTitle(oneOfSchema, storeValue));
 
@@ -122,11 +116,11 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     if ((Array.isArray(type) && type.includes('null')) || (!Array.isArray(type) && type === 'null')) {
       onChange({
         storeKeys,
-        scopes: ['value'],
+        scopes: ['value', 'valid'],
         type: 'set',
         schema,
         required,
-        data: { value: { internal_null_value_do_not_use: null } },
+        data: { value: { internal_null_value_do_not_use: null }, valid: true },
       });
     } else {
       onChange({
@@ -169,7 +163,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   return (
     <>
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
-        <InputLabel>Choose Variant</InputLabel> {/* Might want to change to actual title */}
+        <InputLabel>{schema.get('title') as string ?? 'Choose Variant'}</InputLabel>
         <Select
           value={selectedTitle ?? ''}
           onChange={handleSelectChange}
@@ -187,6 +181,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
           style={textStyle}
+          label={schema.get('title') as string ?? 'Choose Variant'}
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (

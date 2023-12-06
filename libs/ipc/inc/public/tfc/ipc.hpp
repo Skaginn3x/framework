@@ -11,7 +11,9 @@
 #include <tfc/ipc/details/impl.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc/enums.hpp>
+#include <tfc/ipc/glaze_meta.hpp>
 #include <tfc/stx/concepts.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::ipc {
 
@@ -139,6 +141,7 @@ template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc
 class signal {
 public:
   using value_t = typename details::signal<type_desc>::value_t;
+  static constexpr auto value_type{ type_desc::value_e };
   using dbus_signal_t = details::dbus_ipc<value_t, details::ipc_type_e::signal>;
   static constexpr std::string_view type_name{ type_desc::type_name };
   static auto constexpr direction_v = details::signal<type_desc>::direction_v;
@@ -181,7 +184,7 @@ public:
     return err;
   }
 
-  template <typename completion_token_t>
+  template <asio::completion_token_for<void(std::error_code, std::size_t)> completion_token_t>
   auto async_send(value_t const& value, completion_token_t&& token) -> auto {
     dbus_signal_.emit_value(value);  // Todo: we should wrap the token and embed this into the completion_token handle
     return signal_->async_send(value, std::forward<completion_token_t>(token));
@@ -216,13 +219,15 @@ using uint_slot = slot<details::type_uint>;
 using double_slot = slot<details::type_double>;
 using string_slot = slot<details::type_string>;
 using json_slot = slot<details::type_json>;
+using mass_slot = slot<details::type_mass>;
 using any_slot = std::variant<std::monostate,  //
                               bool_slot,       //
                               int_slot,        //
                               uint_slot,       //
                               double_slot,     //
                               string_slot,     //
-                              json_slot>;
+                              json_slot,
+                              mass_slot>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
 using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client&, slot>;
 
@@ -232,13 +237,15 @@ using uint_signal = signal<details::type_uint>;
 using double_signal = signal<details::type_double>;
 using string_signal = signal<details::type_string>;
 using json_signal = signal<details::type_json>;
+using mass_signal = signal<details::type_mass>;
 using any_signal = std::variant<std::monostate,  //
                                 bool_signal,     //
                                 int_signal,      //
                                 uint_signal,     //
                                 double_signal,   //
                                 string_signal,   //
-                                json_signal>;
+                                json_signal,
+                                mass_signal>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, signal>;
 
@@ -260,6 +267,8 @@ struct make_any {
         return ipc_base_t<details::type_string, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case _json:
         return ipc_base_t<details::type_json, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _mass:
+        return ipc_base_t<details::type_mass, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case unknown:
         return std::monostate{};
     }

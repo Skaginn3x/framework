@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -66,6 +67,21 @@ struct packet {
 
     if constexpr (std::is_fundamental_v<value_t>) {
       my_header.value_size = sizeof(value_t);
+    } else if constexpr (concepts::is_expected_quantity<value_t>) {
+      if constexpr (std::is_enum_v<typename value_t::error_type>) {
+        // + 1 byte to indicate whether it is expected or unexpected
+        static_assert(std::is_fundamental_v<typename value_t::value_type::rep>);
+        if (value.has_value()) {
+          my_header.value_size = sizeof(typename value_t::value_type::rep{}) + 1;
+        } else {
+          my_header.value_size = sizeof(typename value_t::error_type{}) + 1;
+        }
+      } else {
+        []<bool flag = false> {
+          static_assert(flag, "Only std::expected<quantity, enum> is supported.");
+        }
+        ();
+      }
     } else {
       static_assert(std::is_member_function_pointer_v<decltype(&value_t::size)>, "Serialize for value type not supported");
       static_assert(std::is_same_v<decltype(value_t().size()), std::size_t>);
@@ -78,6 +94,16 @@ struct packet {
 
     if constexpr (std::is_fundamental_v<value_t>) {
       std::copy_n(reinterpret_cast<std::byte const*>(&value), my_header.value_size, std::back_inserter(buffer));
+    } else if constexpr (concepts::is_expected_quantity<value_t>) {
+      if (value.has_value()) {
+        buffer.push_back(std::byte{ static_cast<std::uint8_t>(true) });  // indicate this is expected
+        std::copy_n(reinterpret_cast<std::byte const*>(&value.value()), sizeof(typename value_t::value_type::rep),
+                    std::back_inserter(buffer));
+      } else {
+        buffer.push_back(std::byte{ static_cast<std::uint8_t>(false) });  // indicate this is unexpected
+        std::copy_n(reinterpret_cast<std::byte const*>(&value.error()), sizeof(typename value_t::error_type),
+                    std::back_inserter(buffer));
+      }
     } else {
       // has member function data
       static_assert(std::is_pointer_v<decltype(value.data())>);
@@ -101,6 +127,10 @@ struct packet {
     auto buffer_iter{ std::begin(buffer) };
     header_t<type_enum>::deserialize(result.header, buffer_iter);
 
+    if (result.header.type != type_v) {
+      return std::unexpected{ std::make_error_code(std::errc::bad_message) };
+    }
+
     // todo partial buffer?
     if (buffer.size() != header_t<type_enum>::size() + result.header.value_size) {
       return std::unexpected(std::make_error_code(std::errc::message_size));
@@ -109,6 +139,19 @@ struct packet {
     if constexpr (std::is_fundamental_v<value_t>) {
       static_assert(sizeof(value_t) <= 8);
       std::copy_n(buffer_iter, result.header.value_size, reinterpret_cast<std::byte*>(&result.value));
+    } else if constexpr (concepts::is_expected_quantity<value_t>) {
+      bool expected_cond{};
+      std::copy_n(buffer_iter, sizeof(bool), reinterpret_cast<std::byte*>(&expected_cond));
+      buffer_iter += sizeof(bool);
+      if (expected_cond) {
+        typename value_t::value_type::rep substitute{};
+        std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
+        result.value = substitute * value_t::value_type::reference;
+      } else {
+        typename value_t::error_type substitute{};
+        std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
+        result.value = std::unexpected{ substitute };
+      }
     } else {
       // has member function data
       result.value.resize(result.header.value_size);

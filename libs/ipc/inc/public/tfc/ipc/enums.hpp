@@ -25,7 +25,7 @@ enum struct type_e : std::uint8_t {
   _double_t = 4,  // NOLINT
   _string = 5,    // NOLINT
   _json = 6,      // NOLINT
-
+  _mass = 7,      // NOLINT
   // TODO: Add
   //  Standard units
   //  _duration = 7,
@@ -36,8 +36,8 @@ enum struct type_e : std::uint8_t {
 
 };
 
-static constexpr std::array<std::string_view, 7> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
-                                                                  "double",  "string", "json" };
+static constexpr std::array<std::string_view, 8> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
+                                                                  "double",  "string", "json",    "mass" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];
@@ -50,6 +50,25 @@ auto constexpr enum_cast(std::string_view name) -> type_e {
     }
   }
   return type_e::unknown;
+}
+
+enum struct mass_error_e : std::uint8_t {
+  no_error = 0,
+  cell_fault,
+  module_fault,
+  power_failure,  // Supply voltage too low
+  over_range,     // Over max value
+  under_range,    // Under min value, used for example with ADC values less than 4 mA
+  bad_connection,
+  zero_error,
+  calibration_error,
+  not_calibrated,
+  unknown_error,
+};
+
+auto enum_name(mass_error_e) -> std::string_view;
+inline auto format_as(mass_error_e err) -> std::string_view {  // for fmt
+  return enum_name(err);
 }
 
 static_assert(enum_cast("blabb") == type_e::unknown);

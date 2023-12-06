@@ -8,7 +8,7 @@ import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
 import { useUID } from 'react-uid';
 
 export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps<MuiWidgetBinding>>({
-  storeKeys, schema, onChange,
+  storeKeys, schema, onChange, parentSchema,
 }: P & WithValue): React.ReactElement {
   const uid = useUID();
   const { store } = useUIStore();
@@ -17,12 +17,22 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     return path.reduce((xs: any, x: any) => (xs && xs[x] ? xs[x] : false), obj);
   }
 
-  const [value, setValue] = useState<boolean>(getNestedValue(store?.toJS().values, storeKeys.toJS()));
-  const isConst = schema.get('const') as boolean ?? false;
+  const constValue = schema.get('const') as string;
+  const isConst = constValue !== undefined;
+  const [value, setValue] = useState<boolean>(isConst ? constValue : getNestedValue(store?.toJS().values, storeKeys.toJS()));
 
   useEffect(() => {
-    if (isConst) {
+    if (!isConst) {
       setValue(getNestedValue(store?.toJS().values, storeKeys.toJS()));
+    } else {
+      onChange({
+        storeKeys,
+        scopes: ['value'],
+        type: 'set',
+        schema,
+        required: schema.get('required') as boolean,
+        data: { value: constValue },
+      });
     }
   }, [store]);
 
@@ -40,23 +50,23 @@ export function BooleanWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const description = schema.get('description') as string;
 
+  const disabled = schema.get('readOnly') as boolean || (parentSchema && parentSchema.get('readOnly') as boolean) || isConst;
+
   return (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
-    isConst ? <></>
-      : (
-        <Tooltip title={description || ''}>
-          <FormControlLabel
-            control={(
-              <Switch
-                checked={value}
-                onChange={handleToggle}
-                color="primary"
-                id={`uis-${uid}`}
-              />
-        )}
-            label={schema.get('title') as string ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
+  // eslint-disable-next-line react/jsx-no-useless-fragment
+    <Tooltip title={description || ''}>
+      <FormControlLabel
+        control={(
+          <Switch
+            checked={value}
+            onChange={handleToggle}
+            color="primary"
+            disabled={disabled}
+            id={`uis-${uid}`}
           />
-        </Tooltip>
-      )
+        )}
+        label={schema.get('title') as string ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
+      />
+    </Tooltip>
   );
 }

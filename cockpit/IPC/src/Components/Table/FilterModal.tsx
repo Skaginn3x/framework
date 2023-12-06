@@ -66,7 +66,7 @@ export default function FilterModal({
 
   return (
     <div style={{
-      minWidth: '350px', width: '40vw', maxWidth: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+      width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 2rem',
     }}
     >
       {!isLoading && schema && slot && !error
