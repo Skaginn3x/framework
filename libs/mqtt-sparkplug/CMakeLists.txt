@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(mqtt-sparkplug)
 
-find_package(protobuf CONFIG REQUIRED)
+find_package(Protobuf CONFIG REQUIRED)
 
 add_library(sparkplug_proto
   ${CMAKE_CURRENT_SOURCE_DIR}/sparkplug_b/sparkplug_b.proto
