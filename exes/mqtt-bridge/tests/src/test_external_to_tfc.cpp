@@ -39,7 +39,7 @@ auto test_external_to_tfc::test() -> bool {
   isolated_ctx.run_for(milliseconds{ 1 });
 
   ext_test.ipc_client_.connect(ext_test.ipc_client_.slots_[0].name, ext_test.ipc_client_.signals_[0].name,
-                               [&](std::error_code) { });
+                               [&](std::error_code) {});
 
   isolated_ctx.run_for(milliseconds{ 1 });
 

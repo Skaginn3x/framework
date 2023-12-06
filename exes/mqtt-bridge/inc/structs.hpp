@@ -18,4 +18,4 @@ struct spark_plug_b_variable {
   std::string description;
 };
 
-}
+}  // namespace tfc::mqtt::structs

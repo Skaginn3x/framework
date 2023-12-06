@@ -123,8 +123,8 @@ auto spark_plug_interface<config_t, mqtt_client_t>::timestamp_milliseconds() -> 
 }
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(std::vector<structs::spark_plug_b_variable> const& metrics)
-    -> void {
+auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(
+    std::vector<structs::spark_plug_b_variable> const& metrics) -> void {
   variables_ = metrics;
 }
 
