@@ -398,7 +398,8 @@ struct to_json_schema<T> {
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
     }
-    s.items = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
+    s.items =
+        schema{ .ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>>, .read_only = s.attributes.read_only };
   }
 };
 
@@ -412,7 +413,8 @@ struct to_json_schema<T> {
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
     }
-    s.additionalProperties = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
+    s.additionalProperties =
+        schema{ .ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>>, .read_only = s.attributes.read_only };
   }
 };
 
