@@ -133,13 +133,13 @@ auto main(int argc, char** argv) -> int {
               if constexpr (tfc::stx::is_expected<std::remove_cvref_t<val_t>>) {
                 if (val.has_value()) {
                   fmt::println("{}: {}", sig, val.value());
-                  fflush(stdout);
                 } else {
                   fmt::println("{}: {}", sig, val.error());
                 }
               } else {
                 fmt::println("{}: {}", sig, val);
               }
+              fflush(stdout);
             });
             if (error) {
               fmt::println("Failed to connect: {}", error.message());
