@@ -62,8 +62,6 @@ using boost::asio::experimental::awaitable_operators::operator||;
 
 class endpoint_client_mock {
 public:
-  // enum struct ssl_active_e { yes, no };
-
   explicit endpoint_client_mock(asio::io_context& ctx, structs::ssl_active_e) : strand_(asio::make_strand(ctx)) {}
 
   auto strand() -> asio::strand<asio::io_context::executor_type>& { return strand_; }

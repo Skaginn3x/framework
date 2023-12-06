@@ -36,7 +36,6 @@ auto main(int argc, char* argv[]) -> int {
         },
         asio::detached);
     io_ctx.run_for(std::chrono::seconds{ 10 });
-    // io_ctx.run_for(std::chrono::milliseconds{ 100 });
     expect(set_signals);
   };
 

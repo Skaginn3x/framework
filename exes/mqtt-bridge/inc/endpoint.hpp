@@ -25,8 +25,6 @@ using boost::asio::experimental::awaitable_operators::operator||;
 
 class endpoint_client {
 public:
-  // enum struct ssl_active_e { yes, no };
-
   explicit endpoint_client(asio::io_context& ctx, structs::ssl_active_e ssl_active) : io_ctx_(ctx) {
     if (ssl_active == structs::ssl_active_e::yes) {
       mqtts_client_.emplace(async_mqtt::protocol_version::v5, ctx.get_executor(), tls_ctx_);
