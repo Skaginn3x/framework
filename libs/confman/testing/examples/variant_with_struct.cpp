@@ -1,6 +1,6 @@
+#include <iostream>
 #include <string_view>
 #include <variant>
-#include <iostream>
 
 #include <boost/asio.hpp>
 #include <glaze/core/common.hpp>
@@ -19,8 +19,9 @@ struct glz::meta<port_e> {
 };
 
 struct broker {
-  // std::variant<port_e, uint16_t> port{};
-  port_e port{};
+  std::variant<port_e, uint16_t> port{};
+  // std::variant<std::string, uint16_t> port{};
+  // port_e port{};
 
   struct glaze {
     static constexpr auto value{ glz::object("port", &broker::port) };
@@ -37,14 +38,20 @@ int main(int argc, char** argv) {
 
   ctx.run_for(std::chrono::seconds{ 1 });
 
-  switch (config.value().port) {
-    case port_e::mqtt:
-      std::cout << "mqtt" << std::endl;
-      break;
-    case port_e::mqtts:
-      std::cout << "mqtts" << std::endl;
-      break;
-  }
+  // std::visit the conf variable and print out the result
+  std::visit(
+      [](auto&& arg) {
+        if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::string>) {
+          std::cout << "string" << std::endl;
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, uint16_t>) {
+          std::cout << "uint16_t" << std::endl;
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, port_e>) {
+          std::cout << "port_e" << std::endl;
+        } else {
+          std::cout << "unknown" << std::endl;
+        }
+      },
+      config.value().port);
 
   ctx.run();
   return 0;
