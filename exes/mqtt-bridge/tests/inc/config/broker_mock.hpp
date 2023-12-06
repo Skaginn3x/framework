@@ -13,10 +13,8 @@ namespace asio = boost::asio;
 
 struct broker_owner_mock {
   std::string address{};
-  std::variant<tfc::mqtt::config::port_e, uint16_t> port{};
-  // uint16_t port{};
+  uint16_t port{};
   structs::ssl_active_e ssl_active{};
-  // bool ssl_active{};
   std::string username{};
   std::string password{};
   std::string client_id{};
