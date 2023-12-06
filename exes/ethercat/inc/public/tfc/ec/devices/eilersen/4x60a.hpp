@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mp-units/math.h>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -100,7 +102,7 @@ struct calibration {
   mass_t max_zero_drift{ 500 * mp_units::si::gram };
   bool track_zero_drift{ false };
   // https://adamequipment.co.uk/content/post/d-vs-e-values/?fbclid=IwAR3x2eF7m1RXF9VSk-uxb391Sh_JnK0tK53hBycqdAj5hNdl0KmmZoXgyvk
-  mass_t verification_scale_interval{ 10 * mp_units::si::gram };  // so called `e`
+  mass_t resolution{ 10 * mp_units::si::gram };  // so called `e`
   get_used_cell_t<mode> this_cells{};
   std::string group_name{};  // this calibration group name
 };
@@ -129,6 +131,17 @@ using calibration_types = std::variant<not_used,
 
 template <typename child_t>
 struct calibration_interface {
+  auto get_resolution() const noexcept -> std::optional<mass_t> {
+    return std::visit(
+        []<typename visitor_t>(visitor_t&& visitor) -> std::optional<mass_t> {
+          if constexpr (std::convertible_to<visitor_t, not_used>) {
+            return std::nullopt;
+          } else {
+            return visitor.resolution;
+          }
+        },
+        static_cast<child_t const*>(this)->get_calibration());
+  }
   auto get_zero() const noexcept -> std::optional<signal_t> {
     return std::visit(
         []<typename visitor_t>(visitor_t&& visitor) -> std::optional<signal_t> {
@@ -228,7 +241,7 @@ struct meta<e4x60a::used_cells> {
   static constexpr std::string_view name{ "4x60a::used_cells" };
   // clang-format off
   static constexpr auto value{ glz::object(
-    "cells", &type::cells, "Cells associated to this group"
+    "cells", &type::cells, tfc::json::schema{.description="Cells associated to this group", .default_value = {} }
     ) };
   // clang-format on
 };
@@ -273,7 +286,7 @@ struct meta<e4x60a::calibration<mode>> {
       "maximum_load", &type::maximum_load, "The maximum load weight, won't report values above this and load cells could get damaged.",
       "max_zero_drift", &type::max_zero_drift, "The maximum zero drift, if zero has drifted greater than this value the weigher will be in errorous state.",
       "track_zero_drift", &type::track_zero_drift, "If true the zero drift will be tracked when stable for 1 sec zero reading. Will update zero but not change the config.",
-      "scale_resolution", &type::verification_scale_interval, "The smallest scale increment that can be used to determine price by weight in commercial transactions known as `e`.",
+      "scale_resolution", &type::resolution, "The smallest scale increment that can be used to determine price by weight in commercial transactions known as `e`.",
       "cell/cells", &type::this_cells, "The cells to use for this calibration.",
       "group_name", &type::group_name, tfc::json::schema{
         .description= "The name of this calibration group, used for naming IPC signal. Requires restart of the process.",
@@ -432,6 +445,7 @@ public:
         [this, input](auto& group_1_cal) -> ipc::details::mass_t {
           last_cumilated_signal_ = 0;
           std::size_t idx{};
+          ipc::details::mass_t result{};
           for (auto using_cell : group_1_cal.get_cells()) {
             if (using_cell) {
               if (input->status.broken(idx)) {
@@ -445,26 +459,43 @@ PRAGMA_CLANG_WARNING_POP
             }
             idx++;
           }
-
-          if (auto zero{ group_1_cal.get_zero() }) {
-            last_cumilated_signal_ -= *zero;
+          auto calculated_signal{ last_cumilated_signal_ };
+          auto zero{ group_1_cal.get_zero() };
+          if (zero) {
+            calculated_signal -= *zero;
+          }
+          else {
+            return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
           }
           if (auto calibration{ group_1_cal.get_calibration_weight() }) {
             auto [calibration_signal, calibration_mass] = calibration.value();
             if (calibration_signal == 0) {
               return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
             }
-            mass_t actual_mass{ ((last_cumilated_signal_ * calibration_mass.numerical_value_) / calibration_signal) * mass_t::reference };
-            return actual_mass;
+            auto normalized_calibration_signal{ calibration_signal - *zero };
+            result = ((calculated_signal * calibration_mass.numerical_value_) / normalized_calibration_signal) * mass_t::reference;
+            // at this point we have result with full resolution
+            if (auto resolution{ group_1_cal.get_resolution() }) {
+              // the below will floor the value, but it is in milligrams so it is bearable but incorrect though
+              result = resolution.value() * ( result.value() / resolution.value() );
+            }
+            else [[unlikely]] {
+              return std::unexpected{ ipc::details::mass_error_e::unknown_error };
+            }
           }
-          return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
+          else {
+            return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
+          }
+          return result;
         },
         group_1) };
-    mass_.async_send(value, [this](std::error_code const& err, auto) {
-      if (err) {
-        logger_.warn("Unable to send mass signal: {}", err.message());
-      }
-    });
+    if (value != mass_.value()) {
+      mass_.async_send(value, [this](std::error_code const& err, auto) {
+        if (err) {
+          logger_.warn("Unable to send mass signal: {}", err.message());
+        }
+      });
+    }
   }
 
   static constexpr uint32_t product_code = 0x1040;
