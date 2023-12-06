@@ -22,6 +22,8 @@ public:
   explicit test_tfc_to_external() = default;
 
   auto test() -> asio::awaitable<bool> {
+    using std::chrono::milliseconds;
+
     asio::io_context isolated_ctx{};
 
     tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{ isolated_ctx };
@@ -29,24 +31,24 @@ public:
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, ipc_mock,
                                                                                                  "bool_signal");
 
-    isolated_ctx.run_for(std::chrono::milliseconds(5));
+    isolated_ctx.run_for(milliseconds{ 1 });
 
     sig.send(true);
 
-    isolated_ctx.run_for(std::chrono::milliseconds(5));
+    isolated_ctx.run_for(milliseconds{ 1 });
 
     spark_plug_mock sp_mock{ isolated_ctx };
     tfc_to_ext_mock tfc_ext_mock{ isolated_ctx, sp_mock, ipc_mock };
 
-    isolated_ctx.run_for(std::chrono::milliseconds(5));
+    isolated_ctx.run_for(milliseconds{ 1 });
 
     tfc_ext_mock.set_signals();
 
-    isolated_ctx.run_for(std::chrono::milliseconds(5));
+    isolated_ctx.run_for(milliseconds{ 1 });
 
     auto& first_signal = tfc_ext_mock.get_signals()[0];
 
-    isolated_ctx.run_for(std::chrono::milliseconds(5));
+    isolated_ctx.run_for(milliseconds{ 1 });
 
     if (!co_await std::visit(
             [](auto&& receiver) -> asio::awaitable<bool> {

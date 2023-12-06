@@ -60,15 +60,15 @@ public:
 
   static auto timestamp_milliseconds() -> std::chrono::milliseconds;
 
-  auto set_current_values(std::vector<spark_plug_b_variable> const& variables) -> void;
+  auto set_current_values(std::vector<structs::spark_plug_b_variable> const& variables) -> void;
 
   auto send_current_values() -> void;
 
   auto make_payload() -> Payload;
 
-  auto update_value(spark_plug_b_variable& variable) -> void;
+  auto update_value(structs::spark_plug_b_variable& variable) -> void;
 
-  auto update_value_impl(spark_plug_b_variable& variable) -> asio::awaitable<void>;
+  auto update_value_impl(structs::spark_plug_b_variable& variable) -> asio::awaitable<void>;
 
   auto set_value_change_callback(
       std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)> const& callback) -> void;
@@ -95,7 +95,7 @@ private:
   asio::io_context& io_ctx_;
   config_t config_{ io_ctx_, "spark_plug_b_config" };
   std::unique_ptr<mqtt_client_t> mqtt_client_;
-  std::vector<spark_plug_b_variable> variables_;
+  std::vector<structs::spark_plug_b_variable> variables_;
   uint64_t seq_ = 1;
   tfc::logger::logger logger_{ "spark_plug_interface" };
   std::optional<std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)>>

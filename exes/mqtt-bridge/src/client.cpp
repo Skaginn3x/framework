@@ -20,6 +20,7 @@
 
 #include <endpoint.hpp>
 #include <endpoint_mock.hpp>
+#include <structs.hpp>
 
 namespace tfc::mqtt {
 
@@ -28,11 +29,32 @@ client<client_t, config_t>::client(asio::io_context& io_ctx,
                                    std::string_view mqtt_will_topic,
                                    std::string_view mqtt_will_payload)
     : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload) {
-  if (config_.value().ssl_active) {
-    endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::yes);
-  } else {
-    endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::no);
-  }
+  // using enum structs::ssl_active_e;
+  //  switch (config_.value().ssl_active) {
+  //    case structs::ssl_active_e::yes: {
+  //      endpoint_client_ = std::make_unique<client_t>(io_ctx_, structs::ssl_active_e::yes);
+  //      break;
+  //    }
+  //    case structs::ssl_active_e::no: {
+  endpoint_client_ = std::make_unique<client_t>(io_ctx_, config_.value().ssl_active);
+  //   break;
+  // }
+  // default: {
+  //   std::runtime_error("Creating client with invalid SSL state");
+  //   break;
+  // }
+  // }
+  // if (config_.value().ssl_active == structs::ssl_active_e::yes) {
+  //   endpoint_client_ = std::make_unique<client_t>(io_ctx_, yes);
+  // } else if (config_.value().ssl_active == structs::ssl_active_e::no) {
+  //   endpoint_client_ = std::make_unique<client_t>(io_ctx_, no);
+  // }
+
+  // if (config_.value().ssl_active) {
+  //   endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::yes);
+  // } else {
+  //   endpoint_client_ = std::make_unique<client_t>(io_ctx_, client_t::ssl_active_e::no);
+  // }
 }
 
 template <class client_t, class config_t>

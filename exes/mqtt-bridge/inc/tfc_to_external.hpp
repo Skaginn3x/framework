@@ -131,7 +131,7 @@ private:
   ipc_client_t ipc_client_;
   tfc::logger::logger logger_{ "tfc_to_external" };
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
-  std::vector<spark_plug_b_variable> spb_variables_;
+  std::vector<structs::spark_plug_b_variable> spb_variables_;
 
   friend class test_tfc_to_external;
 };

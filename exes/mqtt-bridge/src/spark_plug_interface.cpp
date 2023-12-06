@@ -54,12 +54,12 @@ auto spark_plug_interface<config_t, mqtt_client_t>::make_payload() -> Payload {
 }
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::update_value(spark_plug_b_variable& variable) -> void {
+auto spark_plug_interface<config_t, mqtt_client_t>::update_value(structs::spark_plug_b_variable& variable) -> void {
   asio::co_spawn(strand(), update_value_impl(variable), asio::detached);
 };
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(spark_plug_b_variable& variable)
+auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(structs::spark_plug_b_variable& variable)
     -> asio::awaitable<void> {
   Payload payload = make_payload();
   Payload_Metric* metric = payload.add_metrics();
@@ -123,7 +123,7 @@ auto spark_plug_interface<config_t, mqtt_client_t>::timestamp_milliseconds() -> 
 }
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(std::vector<spark_plug_b_variable> const& metrics)
+auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(std::vector<structs::spark_plug_b_variable> const& metrics)
     -> void {
   variables_ = metrics;
 }

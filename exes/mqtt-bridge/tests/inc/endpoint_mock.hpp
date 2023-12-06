@@ -13,6 +13,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
+#include <structs.hpp>
+
 template <typename... types>
 class package_v {
   std::type_index type_index_t = typeid(void);
@@ -60,9 +62,9 @@ using boost::asio::experimental::awaitable_operators::operator||;
 
 class endpoint_client_mock {
 public:
-  enum struct ssl_active_e { yes, no };
+  // enum struct ssl_active_e { yes, no };
 
-  explicit endpoint_client_mock(asio::io_context& ctx, ssl_active_e) : strand_(asio::make_strand(ctx)) {}
+  explicit endpoint_client_mock(asio::io_context& ctx, structs::ssl_active_e) : strand_(asio::make_strand(ctx)) {}
 
   auto strand() -> asio::strand<asio::io_context::executor_type>& { return strand_; }
 

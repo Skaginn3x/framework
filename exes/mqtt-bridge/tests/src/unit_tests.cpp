@@ -29,8 +29,14 @@ auto main(int argc, char* argv[]) -> int {
 
     bool set_signals;
     asio::co_spawn(
-        io_ctx, [&]() -> asio::awaitable<void> { set_signals = co_await test_ext.test(); }, asio::detached);
-    io_ctx.run_for(std::chrono::milliseconds(10));
+        io_ctx,
+        [&]() -> asio::awaitable<void> {
+          set_signals = co_await test_ext.test();
+          io_ctx.stop();
+        },
+        asio::detached);
+    io_ctx.run_for(std::chrono::seconds{ 10 });
+    // io_ctx.run_for(std::chrono::milliseconds{ 100 });
     expect(set_signals);
   };
 
