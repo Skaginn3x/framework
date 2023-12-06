@@ -12,6 +12,9 @@
 
 namespace tfc::confman {
 
+// Todo this ideaology is broken, when reading from file we would need to populate this type
+// Don't use until resolved
+
 /// \brief Represent read only parameter.
 /// Read only parameter can be written by owning process but not via confman interface.
 /// If an request is made to change read_only parameter, the changes are discarded and an
