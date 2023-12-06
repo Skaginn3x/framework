@@ -80,13 +80,13 @@ using get_used_cell_t = typename get_used_cell<mode>::type;
 static_assert(std::same_as<get_used_cell_t<cell_mode_e::single>, used_cell>);
 static_assert(std::same_as<get_used_cell_t<cell_mode_e::group_1>, used_cells>);
 
-struct calibration_zero {
-  std::int64_t read{};  // read_only
+struct calibration_zero_t {
+  std::int64_t read{}; // read_only
   confman::observable<bool> do_calibrate{ false };
 };
 
-struct calibration_weight {
-  std::int64_t read{};  // read_only
+struct calibration_weight_t {
+  std::int64_t read{}; // read_only
   mass_t weight{};
   confman::observable<bool> do_calibrate{ false };
 };
@@ -94,8 +94,8 @@ struct calibration_weight {
 template <cell_mode_e mode>
 struct calibration {
   static constexpr auto name{ glz::enum_name_v<mode> };
-  calibration_zero calibration_zero{};
-  calibration_weight calibration_weight{};
+  calibration_zero_t calibration_zero{};
+  calibration_weight_t calibration_weight{};
   std::optional<mass_t> tare_weight{};
   mass_t minimum_load{ 1 * mp_units::si::kilogram };
   mass_t maximum_load{ 100 * mp_units::si::kilogram };
@@ -206,7 +206,7 @@ struct calibration_config : calibration_interface<calibration_config> {
 };
 
 struct calibration_sealed_config : calibration_interface<calibration_sealed_config> {
-  calibration_types calibration_v{ not_used{} };  // read_only
+  calibration_types calibration_v{ not_used{} }; // read_only
   static constexpr bool sealed{ true };
   auto get_calibration() const noexcept -> calibration_types const& { return calibration_v; }
 };
@@ -247,8 +247,8 @@ struct meta<e4x60a::used_cells> {
 };
 
 template <>
-struct meta<e4x60a::calibration_zero> {
-  using type = e4x60a::calibration_zero;
+struct meta<e4x60a::calibration_zero_t> {
+  using type = e4x60a::calibration_zero_t;
   static constexpr std::string_view name{ "4x60a::calibration_zero" };
   // clang-format off
   static constexpr auto value{ glz::object(
@@ -259,8 +259,8 @@ struct meta<e4x60a::calibration_zero> {
 };
 
 template <>
-struct meta<e4x60a::calibration_weight> {
-  using type = e4x60a::calibration_weight;
+struct meta<e4x60a::calibration_weight_t> {
+  using type = e4x60a::calibration_weight_t;
   static constexpr std::string_view name{ "4x60a::calibration_weight" };
   // clang-format off
   static constexpr auto value{ glz::object(
@@ -305,7 +305,10 @@ struct meta<e4x60a::calibration_config> {
   using type = e4x60a::calibration_config;
   static constexpr std::string_view name{ "Calibration Config" };
   // distingusing keys for the two variants, required for glaze
-  static constexpr auto value{ glz::object("calibration", &type::calibration_v, "make_seal", &type::sealed) };
+  static constexpr auto value{ glz::object("calibration",
+                                           &type::calibration_v,
+                                           "make_seal",
+                                           &type::sealed) };
 };
 
 template <>
@@ -325,7 +328,7 @@ struct meta<e4x60a::config> {
   using type = e4x60a::config;
   static constexpr std::string_view name{ "e4x60a::config" };
   static constexpr auto value{ glz::object("variations", &type::variations  // todo json schema set as hidden
-                                           ) };
+    ) };
 };
 }  // namespace glz
 
@@ -339,16 +342,11 @@ struct lc_status {
   std::uint8_t unused : 4 {};
   bool broken(std::size_t idx) const noexcept {
     switch (idx) {
-      case 0:
-        return cell_1_broken;
-      case 1:
-        return cell_2_broken;
-      case 2:
-        return cell_3_broken;
-      case 3:
-        return cell_4_broken;
-      default:
-        return true;  // invalid index
+      case 0: return cell_1_broken;
+      case 1: return cell_2_broken;
+      case 2: return cell_3_broken;
+      case 3: return cell_4_broken;
+      default: return true; // invalid index
     }
   }
 };
@@ -378,17 +376,15 @@ class e4x60a final : public base {
 public:
   e4x60a(asio::io_context& ctx, manager_client_type& client, std::uint16_t slave_index)
       : base{ slave_index }, ctx_{ ctx }, client_{ client } {
-    std::size_t idx{ 0 };  // todo support multiple
+    std::size_t idx{ 0 }; // todo support multiple
     if (auto* itm{ std::get_if<calibration_config>(&config_->variations.at(idx)) }) {
       itm->sealed.observe(std::bind_front(&e4x60a::make_seal, this, idx));
-      std::visit(
-          [this, idx]<typename cal_t>(cal_t& cal) {
-            if constexpr (!std::convertible_to<not_used, cal_t>) {
-              cal.calibration_zero.do_calibrate.observe(std::bind_front(&e4x60a::calibrate_zero, this, idx));
-              cal.calibration_weight.do_calibrate.observe(std::bind_front(&e4x60a::calibrate_weight, this, idx));
-            }
-          },
-          itm->calibration_v);
+      std::visit([this, idx]<typename cal_t>(cal_t& cal){
+        if constexpr (!std::convertible_to<not_used, cal_t>) {
+          cal.calibration_zero.do_calibrate.observe(std::bind_front(&e4x60a::calibrate_zero, this, idx));
+          cal.calibration_weight.do_calibrate.observe(std::bind_front(&e4x60a::calibrate_weight, this, idx));
+        }
+      }, itm->calibration_v);
     }
   }
 
@@ -402,13 +398,11 @@ public:
       if (std::holds_alternative<calibration_config>(config_->variations.at(idx))) {
         auto change{ config_.make_change() };
         auto& itm{ std::get<calibration_config>(change->variations.at(idx)) };
-        std::visit(
-            [this]<typename cal_t>(cal_t& cal) {
-              if constexpr (!std::convertible_to<not_used, cal_t>) {
-                this->do_calibration(cal.calibration_zero);
-              }
-            },
-            itm.calibration_v);
+        std::visit([this]<typename cal_t>(cal_t& cal) {
+          if constexpr (!std::convertible_to<not_used, cal_t>) {
+            this->do_calibration(cal.calibration_zero);
+          }
+        }, itm.calibration_v);
       }
     }
   }
@@ -418,13 +412,11 @@ public:
       if (std::holds_alternative<calibration_config>(config_->variations.at(idx))) {
         auto change{ config_.make_change() };
         auto& itm{ std::get<calibration_config>(change->variations.at(idx)) };
-        std::visit(
-            [this]<typename cal_t>(cal_t& cal) {
-              if constexpr (!std::convertible_to<not_used, cal_t>) {
-                this->do_calibration(cal.calibration_weight);
-              }
-            },
-            itm.calibration_v);
+        std::visit([this]<typename cal_t>(cal_t& cal) {
+          if constexpr (!std::convertible_to<not_used, cal_t>) {
+            this->do_calibration(cal.calibration_weight);
+          }
+        }, itm.calibration_v);
       }
     }
   }
@@ -435,12 +427,16 @@ public:
         auto change{ config_.make_change() };
         auto& itm{ std::get<calibration_config>(change->variations.at(idx)) };
         auto calibration_params{ std::move(itm.calibration_v) };
+// clang-format off
+PRAGMA_GCC_WARNING_PUSH_OFF(-Wmissing-field-initializers)
         change->variations.at(idx) = calibration_sealed_config{ .calibration_v = std::move(calibration_params) };
+PRAGMA_GCC_WARNING_POP
+// clang-format on
       }
     }
   }
 
-  void process_data(std::span<std::byte> in, std::span<std::byte> out) final {
+  void process_data(std::span<std::byte> in, [[maybe_unused]] std::span<std::byte> out) final {
     if (in.size() != sizeof(pdo_input)) {
       this->logger_.warn("Invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
       return;
@@ -459,11 +455,11 @@ public:
               if (input->status.broken(idx)) {
                 return std::unexpected{ ipc::details::mass_error_e::cell_fault };
               }
-              // clang-format off
+// clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
               last_cumilated_signal_ += input->weight_signals[idx];
 PRAGMA_CLANG_WARNING_POP
-              // clang-format on
+// clang-format on
             }
             idx++;
           }
@@ -471,7 +467,8 @@ PRAGMA_CLANG_WARNING_POP
           auto zero{ group_1_cal.get_zero() };
           if (zero) {
             calculated_signal -= *zero;
-          } else {
+          }
+          else {
             return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
           }
           if (auto calibration{ group_1_cal.get_calibration_weight() }) {
@@ -480,16 +477,17 @@ PRAGMA_CLANG_WARNING_POP
               return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
             }
             auto normalized_calibration_signal{ calibration_signal - *zero };
-            result = ((calculated_signal * calibration_mass.numerical_value_) / normalized_calibration_signal) *
-                     mass_t::reference;
+            result = ((calculated_signal * calibration_mass.numerical_value_) / normalized_calibration_signal) * mass_t::reference;
             // at this point we have result with full resolution
             if (auto resolution{ group_1_cal.get_resolution() }) {
               // the below will floor the value, but it is in milligrams so it is bearable but incorrect though
-              result = resolution.value() * (result.value() / resolution.value());
-            } else [[unlikely]] {
+              result = resolution.value() * ( result.value() / resolution.value() );
+            }
+            else [[unlikely]] {
               return std::unexpected{ ipc::details::mass_error_e::unknown_error };
             }
-          } else {
+          }
+          else {
             return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
           }
           return result;
@@ -512,6 +510,6 @@ PRAGMA_CLANG_WARNING_POP
   // todo make section struct to cover the config, for now only one output is generated
   std::int64_t last_cumilated_signal_{};
   ipc_signal_t<ipc::details::type_mass, ipc_ruler::ipc_manager_client&> mass_{ ctx_, client_, "group_1",
-                                                                               "Weigher output for group 1" };
+                                                                           "Weigher output for group 1" };
 };
 }  // namespace tfc::ec::devices::eilersen::e4x60a
