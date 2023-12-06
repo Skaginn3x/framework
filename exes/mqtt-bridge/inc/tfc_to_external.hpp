@@ -53,6 +53,8 @@ public:
       case _string:
       case _json:
         return DataType::String;
+      case _mass:
+        return DataType::Template;
     }
     return DataType::Unknown;
   }
