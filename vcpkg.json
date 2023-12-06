@@ -10,6 +10,7 @@
     "boost-program-options",
     "boost-stacktrace",
     "date",
+    "ftxui",
     "fmt",
     {
       "name": "glaze",
