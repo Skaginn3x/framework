@@ -3,12 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <functional>
-#include <optional>
 #include <string_view>
 #include <type_traits>  // required by mp-units
+#include <variant>
+#include <vector>
 
 #include <fmt/format.h>
+#include <mp-units/math.h>
 #include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
 #include <glaze/core/common.hpp>
@@ -16,10 +17,12 @@
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
+#include <tfc/stx/concepts.hpp>
+#include <tfc/utils/asio_condition_variable.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::detail {
-enum struct tacho_config : std::uint8_t { not_used = 0, one_tacho, two_tacho };
+enum struct tacho_config : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
 }
 
 template <>
@@ -27,13 +30,22 @@ struct glz::meta<tfc::motor::detail::tacho_config> {
   static constexpr std::string_view name{ "tacho_config" };
   using enum tfc::motor::detail::tacho_config;
   static constexpr auto value{
-    glz::enumerate("Not used", not_used, "One tachometer", one_tacho, "Two tachometers", two_tacho)
+    glz::enumerate("Not used", not_used, "Tachometer", tachometer, "Encoder", encoder, "Frequency", frequency)
   };
 };
 
 namespace tfc::motor {
 
 namespace asio = boost::asio;
+using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+
+// to be added to `notify_at` , the completion token
+enum struct position_error_code : std::uint8_t {
+  no_error = 0,
+  unstable,       // could be one event missing per cycle or similar
+  missing_event,  // missing event from encoder
+  unknown,        // cause not explicitly known
+};
 
 namespace detail {
 template <typename storage_t, std::size_t len>
@@ -57,39 +69,57 @@ struct circular_buffer {
   typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) };
 };
 
-template <typename time_point_t = asio::steady_timer::time_point, std::size_t circular_buffer_len = 1024>
-struct single_tachometer {
-  explicit single_tachometer(std::function<void(std::int64_t)> position_update_callback) noexcept
-      : position_update_callback_{ std::move(position_update_callback) } {}
+template <typename bool_slot_t = ipc::bool_slot,
+          typename clock_t = asio::steady_timer::time_point::clock,
+          std::size_t circular_buffer_len = 1024>
+struct tachometer {
+  explicit tachometer(asio::io_context& ctx,
+                      ipc_ruler::ipc_manager_client& client,
+                      std::string_view name,
+                      std::function<void(std::int64_t)>&& position_update_callback)
+      : position_update_callback_{ std::move(position_update_callback) }, induction_sensor_{
+          ctx, client, fmt::format("tacho_{}", name),
+          "Tachometer input, usually induction sensor directed to rotational metal star or plastic ring with metal bolts.",
+          std::bind_front(&tachometer::update, this)
+        } {}
 
-  void first_tacho_update(bool first_new_val) noexcept {
+  void update(bool first_new_val) noexcept {
+    auto now{ clock_t::now() };
     if (first_new_val) {
-      increment();
+      position_ += 1;
+      std::invoke(position_update_callback_, position_);
     }
-
-    auto now{ time_point_t::clock::now() };
     buffer_.emplace(first_new_val, now);
-  }
-
-  auto increment() noexcept -> void {
-    position_ += 1;
-    position_update_callback_(position_);
   }
 
   struct storage {
     bool tacho_state{};
-    time_point_t time_point{};
+    typename clock_t::time_point time_point{};
   };
 
-  circular_buffer<storage, circular_buffer_len> buffer_{};
   std::int64_t position_{};
-  std::function<void(std::int64_t)> position_update_callback_ = [](std::int64_t) {};
+  circular_buffer<storage, circular_buffer_len> buffer_{};
+  std::function<void(std::int64_t)> position_update_callback_{ [](std::int64_t) {} };
+  bool_slot_t induction_sensor_;
 };
 
-template <typename time_point_t = asio::steady_timer::time_point, std::size_t circular_buffer_len = 1024>
-struct double_tachometer {
-  explicit double_tachometer(std::function<void(std::int64_t)> position_update_callback) noexcept
-      : position_update_callback_{ std::move(position_update_callback) } {}
+template <typename bool_slot_t = ipc::bool_slot,
+          typename clock_t = asio::steady_timer::time_point::clock,
+          std::size_t circular_buffer_len = 1024>
+struct encoder {
+  explicit encoder(asio::io_context& ctx,
+                   ipc_ruler::ipc_manager_client& client,
+                   std::string_view name,
+                   std::function<void(std::int64_t)>&& position_update_callback)
+      : position_update_callback_{ std::move(position_update_callback) },
+        sensor_a_{ ctx, client, fmt::format("tacho_a_{}", name),
+                   "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
+                   "star or plastic ring of metal bolts.",
+                   std::bind_front(&encoder::first_tacho_update, this) },
+        sensor_b_{ ctx, client, fmt::format("tacho_b_{}", name),
+                   "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
+                   "star or plastic ring of metal bolts.",
+                   std::bind_front(&encoder::second_tacho_update, this) } {}
 
   // https://github.com/PaulStoffregen/Encoder/blob/master/Encoder.h#L303
   //                           _______         _______
@@ -101,21 +131,21 @@ struct double_tachometer {
   //	pin2	pin1	pin2	pin1	Result
   //	----	----	----	----	------
   //	0	0	0	0	no movement
-  //	0	0	0	1	+1
-  //	0	0	1	0	-1
-  //	0	0	1	1	+2  (assume pin1 edges only)
-  //	0	1	0	0	-1
   //	0	1	0	1	no movement
-  //	0	1	1	0	-2  (assume pin1 edges only)
-  //	0	1	1	1	+1
-  //	1	0	0	0	+1
-  //	1	0	0	1	-2  (assume pin1 edges only)
   //	1	0	1	0	no movement
-  //	1	0	1	1	-1
-  //	1	1	0	0	+2  (assume pin1 edges only)
-  //	1	1	0	1	-1
-  //	1	1	1	0	+1
   //	1	1	1	1	no movement
+  //	1	0	0	0	+1
+  //	0	0	0	1	+1
+  //	0	1	1	1	+1
+  //	1	1	1	0	+1
+  //	0	1	0	0	-1
+  //	0	0	1	0	-1
+  //	1	0	1	1	-1
+  //	1	1	0	1	-1
+  //	0	0	1	1	+2  (assume pin1 edges only)
+  //	0	1	1	0	-2  (assume pin1 edges only)
+  //	1	0	0	1	-2  (assume pin1 edges only)
+  //	1	1	0	0	+2  (assume pin1 edges only)
   /*
           // Simple, easy-to-read "documentation" version :-)
           //
@@ -140,183 +170,256 @@ struct double_tachometer {
   */
 
   void first_tacho_update(bool first_new_val) noexcept {
-    auto now{ time_point_t::clock::now() };
-    buffer_.emplace(first_new_val, buffer_.front().second_tacho_state, now);
-    update();
+    update({ .new_first = first_new_val,
+             .new_second = buffer_.front().second_tacho_state,
+             .old_first = buffer_.front().first_tacho_state,
+             .old_second = buffer_.front().second_tacho_state });
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
-    auto now{ time_point_t::clock::now() };
-    buffer_.emplace(buffer_.front().first_tacho_state, second_new_val, now);
-    update();
+    update({ .new_first = buffer_.front().first_tacho_state,
+             .new_second = second_new_val,
+             .old_first = buffer_.front().first_tacho_state,
+             .old_second = buffer_.front().second_tacho_state });
   }
 
-  auto update() noexcept -> void {
-    uint8_t s = state & 3;
-
-    if (buffer_.front().first_tacho_state) {
-      s |= 4;
+  struct update_params {
+    bool new_first : 1 {};
+    bool new_second : 1 {};
+    bool old_first : 1 {};
+    bool old_second : 1 {};
+    std::uint8_t not_used : 4 {};
+    constexpr auto operator==(update_params const& other) const noexcept -> bool = default;
+    constexpr explicit(false) operator std::uint8_t() const noexcept {
+      // The below is not constexpr yet, let's keep this comment here until it is
+      // return std::bit_cast<std::uint8_t>(*this);
+      return static_cast<std::uint8_t>((old_second << 3) | (old_first << 2) | (new_second << 1) | new_first);
     }
+  };
 
-    if (buffer_.front().second_tacho_state) {
-      s |= 8;
+  constexpr auto update(update_params params) noexcept -> void {
+    auto const now{ clock_t::now() };
+    buffer_.emplace(bool{ params.new_first }, bool{ params.new_second }, now);
+    auto const increment{ update_impl(params) };  // todo error cases
+    if (increment != 0) {
+      position_ += increment;
+      std::invoke(position_update_callback_, position_);
     }
+  }
 
+  static constexpr auto update_impl(update_params params) noexcept -> std::int64_t {
+    // please note that this assumes the duty cycle being 50%
+    // if the duty cycle is not 50% then the position will be off by maximum of the skewed cycle
+    // example, if 10% ON and 90% OFF, then the position will be off by 40% of the resolution (90% - 50%) or (50% - 10%)
+    // todo, determine duty cycle and increase resolution with timer between triggers
     // clang-format off
-    switch (s) {
-      case 0: case 5: case 10: case 15:
-        break;
-      case 1: case 7: case 8: case 14:
-        increment(1);
-        break;
-      case 2: case 4: case 11: case 13:
-        decrement(1);
-        break;
-      case 3: case 12:
-        increment(2);
-        break;
-      default:
-        decrement(2);
-        break;
-    }
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wimplicit-fallthrough) // todo why do I need this?
     // clang-format on
-    state = (s >> 2);
-  }
-
-  auto increment(std::int64_t pos) noexcept -> void {
-    position_ += pos;
-    position_update_callback_(position_);
-  }
-
-  auto decrement(std::int64_t pos) noexcept -> void {
-    position_ -= pos;
-    position_update_callback_(position_);
+    switch (params) {
+      [[unlikely]] case update_params{}:
+      [[unlikely]] case update_params{ .new_second = true, .old_second = true }:
+      [[unlikely]] case update_params{ .new_first = true, .old_first = true }:
+      [[unlikely]] case update_params{ .new_first = true, .new_second = true, .old_first = true, .old_second = true }:
+        return 0;
+      case update_params{ .new_second = true }:
+      case update_params{ .old_first = true }:
+      case update_params{ .new_first = true, .old_first = true, .old_second = true }:
+      case update_params{ .new_first = true, .new_second = true, .old_second = true }:
+        return 1;
+      case update_params{ .new_first = true }:
+      case update_params{ .old_second = true }:
+      case update_params{ .new_second = true, .old_first = true, .old_second = true }:
+      case update_params{ .new_first = true, .new_second = true, .old_first = true }:
+        return -1;
+      [[unlikely]] case update_params{ .new_first = true, .new_second = true }:
+      [[unlikely]] case update_params{ .old_first = true, .old_second = true }:
+        return 2;  // this is impossible in the using codepath, because new states are distinct between a and b
+      [[unlikely]] case update_params{ .new_second = true, .old_first = true }:
+      [[unlikely]] case update_params{ .new_first = true, .old_second = true }:
+        return -2;  // this is impossible in the using codepath, because new states are distinct between a and b
+                    // clang-format off
+      [[unlikely]] default:  // theoretically should never be called
+        return 0;
+                    // clang-format on
+    }
+    PRAGMA_CLANG_WARNING_POP
   }
 
   struct storage {
     bool first_tacho_state{};
     bool second_tacho_state{};
-    time_point_t time_point{};
+    typename clock_t::time_point time_point{};
   };
 
-  circular_buffer<storage, circular_buffer_len> buffer_{};
   std::int64_t position_{};
+  circular_buffer<storage, circular_buffer_len> buffer_{};
   std::function<void(std::int64_t)> position_update_callback_ = [](std::int64_t) {};
-  uint8_t state = 0;
+  bool_slot_t sensor_a_;
+  bool_slot_t sensor_b_;
+};
+
+template <mp_units::Quantity dimension_t,
+          typename time_point_t = asio::steady_timer::time_point,
+          std::size_t circular_buffer_len = 1024>
+struct frequency {
+  explicit frequency(std::function<void(dimension_t)>&& position_update_callback) noexcept
+      : position_update_callback_{ std::move(position_update_callback) } {}
+
+  void on_freq(mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>) {
+    // todo
+  }
+  std::function<void(dimension_t)> position_update_callback_{ [](dimension_t) {} };
 };
 
 }  // namespace detail
 
-template <mp_units::Quantity dimension_t = mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>>
-struct config {
-  detail::tacho_config tacho{ detail::tacho_config::not_used };
-  dimension_t displacement_per_pulse{ 1 * mp_units::si::unit_symbols::mm };
-  struct glaze {
-    static constexpr std::string_view name{ "positioner_config" };
-    static constexpr auto value{
-      glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse)
-    };
-  };
-};
-
-template <mp_units::Quantity dimension_t = mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>,
-          typename ipc_client_t = tfc::ipc_ruler::ipc_manager_client&,
-          typename config_t = tfc::confman::config<config<dimension_t>>>
+template <mp_units::Quantity dimension_t = position_t>
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
 
-  explicit positioner(asio::io_context& ctx, ipc_client_t client, std::string_view name)
-      : name_{ name }, ctx_{ ctx }, client_{ client } {
+  /// \param ctx boost asio context
+  /// \param client ipc client
+  /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
+  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
+      : name_{ name }, ctx_{ ctx } {
     switch (config_->tacho) {
       using enum detail::tacho_config;
       case not_used:
         break;
-      case one_tacho: {
-        single_tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
-        tacho_a_.emplace(ctx_, client_, fmt::format("tacho_{}", name_),
-                         "Tachometer input, usually induction sensor directed to rotational metal star og ring of screws.",
-                         [this](bool val) { this->single_tacho_->first_tacho_update(val); });
+      case tachometer: {
+        impl_.template emplace<detail::tachometer<>>(ctx_, client, name_, std::bind_front(&positioner::tick, this));
         break;
       }
-      case two_tacho: {
-        double_tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
-        tacho_a_.emplace(
-            ctx_, client_, fmt::format("tacho_a_{}", name_),
-            "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
-            "star og ring of screws.",
-            [this](bool val) { this->double_tacho_->first_tacho_update(val); });
-        tacho_b_.emplace(ctx_, client_, fmt::format("tacho_b_{}", name_),
-                         "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
-                         "metal star og ring of screws.",
-                         [this](bool val) { this->double_tacho_->second_tacho_update(val); });
+      case encoder: {
+        impl_.template emplace<detail::encoder<>>(ctx_, client, name_, std::bind_front(&positioner::tick, this));
+        break;
+      }
+      case frequency: {
+        impl_.template emplace<detail::frequency<dimension_t>>(std::bind_front(&positioner::increment_position, this));
         break;
       }
     }
   }
 
-  /// Tachometer should call this function every time it increments/decrements its position
-  void tick(std::int64_t tachometer_counts) {
-    absolute_position_ = config_->displacement_per_pulse * tachometer_counts;
-    notify();
-  }
-
-  /// Check if any notifiers need to be notified
-  /// If their position is equal to or further than the current absolute position then notify
-  auto notify() -> void {
-    while (true) {
-      if (notifications_.empty()) {
-        return;
-      }
-      auto& notification = notifications_.front();
-
-      if (absolute_position_ < notification.absolute_notification_position_) {
-        break;
-      }
-
-      notification.completion_handler();
-      notifications_.erase(notifications_.begin());
-      std::ranges::sort(notifications_.begin(), notifications_.end(), sort_notifications);
+  /// \param position absolute position
+  /// \param token completion token to trigger when get passed the given position
+  auto notify_at(dimension_t const& position, asio::completion_token_for<void(std::error_code)> auto&& token)
+      -> decltype(auto) {
+    using return_t = typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+    auto const sort_by_nearest{ [abs_pos = absolute_position_](notification const& lhs, notification const& rhs) {
+      auto const lhs_diff{ mp_units::abs(abs_pos - lhs.absolute_notification_position_) };
+      auto const rhs_diff{ mp_units::abs(abs_pos - rhs.absolute_notification_position_) };
+      return lhs_diff < rhs_diff;  // returns true if left hand side is nearer to current position
+    } };
+    using cv = tfc::asio::condition_variable<asio::any_io_executor>;
+    auto& notifications{ position < absolute_position_ ? notifications_backward_ : notifications_forward_ };
+    notifications.emplace_back(position, cv{ ctx_.get_executor() });
+    if constexpr (std::same_as<return_t, void>) {
+      notifications.back().cv_.async_wait(std::forward<decltype(token)>(token));
+      std::ranges::sort(notifications, sort_by_nearest);
+      return;
+    } else {
+      return_t result{ notifications.back().cv_.async_wait(std::forward<decltype(token)>(token)) };
+      std::ranges::sort(notifications, sort_by_nearest);
+      return std::move(result);
     }
   }
 
-  /// Maintain information about when notifiers should be notified and their respective callbacks
-  struct notification {
-    dimension_t absolute_notification_position_{};
-    std::function<void()> completion_handler;
-
-    notification(dimension_t pos, std::function<void()> handler)
-        : absolute_notification_position_{ pos }, completion_handler{ std::move(handler) } {}
-  };
-
-  auto notify_after(dimension_t displacement, std::function<void()> callback) -> void {
-    notifications_.emplace_back(displacement + absolute_position_, std::move(callback));
-    /// Sort by absolute position so that we can easily check if we need to notify
-    std::sort(notifications_.begin(), notifications_.end(), sort_notifications);
+  /// \param displacement from current position
+  /// \param token completion token to trigger when get passed the given displacement
+  auto notify_after(dimension_t const& displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+      -> decltype(auto) {
+    return notify_at(displacement + absolute_position_, std::forward<decltype(token)>(token));
   }
 
-  static auto sort_notifications(const notification& lhs, const notification& rhs) {
-    return lhs.absolute_notification_position_ < rhs.absolute_notification_position_;
+  /// \param displacement from home
+  /// \param token completion token to trigger when get passed the given displacement
+  auto notify_from_home(dimension_t const& displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+      -> decltype(auto) {
+    return notify_at(displacement + home_, std::forward<decltype(token)>(token));
   }
 
-  // Might be useful for homing sequences to grab the current position
-  // Please note the resolution
+  /// \return Current position since last restart
   [[nodiscard]] dimension_t position() const noexcept { return absolute_position_; }
+
+  /// \return Resolution of the absolute position
   [[nodiscard]] dimension_t resolution() const noexcept { return config_->displacement_per_pulse; }
 
+  /// \brief home is used in method notify_from_home to determine the notification position
+  /// \relates notify_from_home
+  /// \param new_home_position store this position as home
+  void home(dimension_t const& new_home_position) noexcept { home_ = new_home_position; }
+
+  void increment_position(dimension_t const& increment) {
+    auto const old_position{ absolute_position_ };
+    absolute_position_ += increment;
+    notify_if_applicable(old_position);
+  }
+
+  void tick(std::int64_t tachometer_counts) {
+    auto const old_position{ absolute_position_ };
+    absolute_position_ = config_->displacement_per_pulse * tachometer_counts;
+    notify_if_applicable(old_position);
+  }
+
 private:
-  std::string name_;
-  asio::io_context& ctx_;
-  ipc_client_t client_;
-  logger::logger logger_{ name_ };
-  config_t config_{ ctx_, fmt::format("positioner_{}", name_) };
-  std::optional<detail::single_tachometer<>> single_tacho_{};
-  std::optional<detail::double_tachometer<>> double_tacho_{};
-  std::optional<ipc::slot<ipc::details::type_bool, ipc_client_t>> tacho_a_{};
-  std::optional<ipc::slot<ipc::details::type_bool, ipc_client_t>> tacho_b_{};
-  /// In terms of conveyors, mm resolution, this would overflow when you have gone 1800 trips to Pluto back and forth
+  void notify_if_applicable(dimension_t const& old_position) {
+    constexpr auto iterate_notifications{ [](auto& notifications, auto const& current_position, auto const& last_position) {
+      for (auto it{ std::begin(notifications) }; it != std::end(notifications); ++it) {
+        auto const pos{ it->absolute_notification_position_ };
+        // check if pos is in range of last position and current position
+        if (pos >= std::min(last_position, current_position) && pos <= std::max(last_position, current_position)) {
+          it->cv_.notify_all();
+          // it would be nice to pop_front here, but we need the event loop to be able to call the notification before we
+          // erase it todo discuss, move iterator to discard vector Condition variable can expose whether there is
+          // outstanding completion call
+          asio::post([&notifications, it] {  // Think it is safe to capture by reference here
+            notifications.erase(it);
+          });
+        } else {
+          return;
+        }
+      }
+    } };
+    iterate_notifications(notifications_forward_, absolute_position_, old_position);
+    iterate_notifications(notifications_backward_, old_position, absolute_position_);
+    // todo make a timer and call the notification when timer expires
+    // remember to determine duty cycle for encoder
+  }
+
+  struct notification {
+    dimension_t absolute_notification_position_{};
+    tfc::asio::condition_variable<asio::any_io_executor> cv_;
+    auto operator<=>(notification const& other) const noexcept {
+      return absolute_notification_position_ <=> other.absolute_notification_position_;
+    }
+  };
+  struct config {
+    detail::tacho_config tacho{ detail::tacho_config::not_used };
+    dimension_t
+        displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
+    struct glaze {
+      static constexpr std::string_view name{ "positioner_config" };
+      static constexpr auto value{
+        glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse)
+      };
+    };
+  };
+
   dimension_t absolute_position_{};
-  std::vector<notification> notifications_{};
+  dimension_t home_{};
+  std::string name_{};
+  asio::io_context& ctx_;
+  logger::logger logger_{ name_ };
+  confman::config<config> config_{ ctx_, fmt::format("positioner_{}", name_) };
+  std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
+    detail::frequency<dimension_t>{ std::bind_front(&positioner::increment_position, this) }
+  };
+  // todo overflow
+  // in terms of conveyors, mm resolution, this would overflow when you have gone 1800 trips to Pluto back and forth
+  std::vector<notification> notifications_forward_{};
+  std::vector<notification> notifications_backward_{};
 };
 
 }  // namespace tfc::motor
