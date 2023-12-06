@@ -54,10 +54,12 @@ auto match_callback(sdbusplus::message_t& msg) -> void {
   // std::cout << msg.get_interface() << std::endl;
   // std::cout << msg.get_path() << std::endl;
   if (msg.get_member() && std::string(msg.get_member()) == "PropertiesChanged") {
-    std::tuple<std::string, std::vector<std::pair<std::string, std::variant<bool, uint64_t>>>, std::vector<std::string>> container{};
+    std::tuple<std::string, std::vector<std::pair<std::string, std::variant<bool, uint64_t>>>, std::vector<std::string>>
+        container{};
     if (sdbusplus::utility::read_into_tuple(container, msg)) {
       std::string const& interface = std::get<0>(container);
-      std::visit([&interface](auto& value) { std::cout << interface << ": " << value << std::endl; }, std::get<1>(container)[0].second);
+      std::visit([&interface](auto& value) { std::cout << interface << ": " << value << std::endl; },
+                 std::get<1>(container)[0].second);
     }
   }
 }
