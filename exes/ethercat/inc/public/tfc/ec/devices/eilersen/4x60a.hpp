@@ -22,12 +22,8 @@
 namespace tfc::ec::devices::eilersen::e4x60a {
 enum struct cell_mode_e : std::uint8_t {
   not_used = 0,
-  single,
+  normal,
   reference,
-  group_1,
-  group_2,
-  group_1_non_symmetrical,
-  group_2_non_symmetrical
 };
 }  // namespace tfc::ec::devices::eilersen::e4x60a
 
@@ -39,12 +35,8 @@ struct glz::meta<tfc::ec::devices::eilersen::e4x60a::cell_mode_e> {
   // clang-format off
   static constexpr auto value{ glz::enumerate(
     "Not used", not_used,
-    "Single", single,
-    "Regerence", reference,
-    "Group 1", group_1,
-    "Group 2", group_2,
-    "Group 1 non symmetrical", group_1_non_symmetrical,
-    "Group 2 non symmetrical", group_2_non_symmetrical
+    "Normal", normal,
+    "Reference", reference
   ) };
   // clang-format on
 };
@@ -55,30 +47,6 @@ namespace asio = boost::asio;
 static constexpr std::size_t max_cells{ 4 };
 using signal_t = std::int32_t;
 using mass_t = mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::int64_t>;
-
-struct used_cells {
-  std::array<bool, max_cells> cells{};
-};
-
-struct used_cell {
-  std::uint8_t cell_nr{};
-};
-
-template <cell_mode_e mode>
-struct get_used_cell {
-  static consteval auto impl() {
-    if constexpr (mode == cell_mode_e::single) {
-      return used_cell{};
-    } else {
-      return used_cells{};
-    }
-  }
-  using type = decltype(impl());
-};
-template <cell_mode_e mode>
-using get_used_cell_t = typename get_used_cell<mode>::type;
-static_assert(std::same_as<get_used_cell_t<cell_mode_e::single>, used_cell>);
-static_assert(std::same_as<get_used_cell_t<cell_mode_e::group_1>, used_cells>);
 
 struct calibration_zero_t {
   std::int64_t read{};  // read_only
@@ -91,7 +59,7 @@ struct calibration_weight_t {
   confman::observable<bool> do_calibrate{ false };
 };
 
-template <cell_mode_e mode>
+template <cell_mode_e mode, std::size_t cell_count = max_cells>
 struct calibration {
   static constexpr auto name{ glz::enum_name_v<mode> };
   calibration_zero_t calibration_zero{};
@@ -103,7 +71,7 @@ struct calibration {
   bool track_zero_drift{ false };
   // https://adamequipment.co.uk/content/post/d-vs-e-values/?fbclid=IwAR3x2eF7m1RXF9VSk-uxb391Sh_JnK0tK53hBycqdAj5hNdl0KmmZoXgyvk
   mass_t resolution{ 10 * mp_units::si::gram };  // so called `e`
-  get_used_cell_t<mode> this_cells{};
+  std::array<bool, cell_count> this_cells{};
   std::string group_name{};  // this calibration group name
 };
 
@@ -112,22 +80,9 @@ struct calibration<cell_mode_e::reference> : std::false_type {
   // todo implement
 };
 
-template <>
-struct calibration<cell_mode_e::group_1_non_symmetrical> : std::false_type {
-  // todo implement
-};
-
-template <>
-struct calibration<cell_mode_e::group_2_non_symmetrical> : std::false_type {
-  // todo implement
-};
-
 struct not_used : std::monostate {};
 
-using calibration_types = std::variant<not_used,
-                                       calibration<cell_mode_e::single>,
-                                       calibration<cell_mode_e::group_1>,
-                                       calibration<cell_mode_e::group_2>>;
+using calibration_types = std::variant<not_used, calibration<cell_mode_e::normal>>;
 
 template <typename child_t>
 struct calibration_interface {
@@ -170,17 +125,8 @@ struct calibration_interface {
         [&result]<typename visitor_t>(visitor_t&& visitor) {
           if constexpr (std::convertible_to<visitor_t, not_used>) {
             return;
-          } else if constexpr (std::same_as<used_cells, std::remove_cvref_t<decltype(visitor.this_cells)>>) {
-            result = visitor.this_cells.cells;
-          } else if constexpr (std::same_as<used_cell, std::remove_cvref_t<decltype(visitor.this_cells)>>) {
-            if (visitor.this_cells.cell_nr > 0 && visitor.this_cells.cell_nr <= max_cells) {
-              result.at(visitor.this_cells.cell_nr - 1) = true;
-            }
           } else {
-            []<bool flag = false> {
-              static_assert(flag, "Unsupported type");
-            }
-            ();
+            result = visitor.this_cells;
           }
         },
         static_cast<child_t const*>(this)->get_calibration());
@@ -224,27 +170,6 @@ struct config {
 namespace glz {
 using glz::operator""_c;
 namespace e4x60a = tfc::ec::devices::eilersen::e4x60a;
-
-template <>
-struct meta<e4x60a::used_cell> {
-  using type = e4x60a::used_cell;
-  static constexpr std::string_view name{ "4x60a::used_cell" };
-  static constexpr auto value{ glz::object(
-      "cell_nr",
-      &type::cell_nr,
-      tfc::json::schema{ .description = "Pick the cell to be used, 1-4", .minimum = 1LU, .maximum = e4x60a::max_cells }) };
-};
-
-template <>
-struct meta<e4x60a::used_cells> {
-  using type = e4x60a::used_cells;
-  static constexpr std::string_view name{ "4x60a::used_cells" };
-  // clang-format off
-  static constexpr auto value{ glz::object(
-    "cells", &type::cells, tfc::json::schema{.description="Cells associated to this group", .default_value = {} }
-    ) };
-  // clang-format on
-};
 
 template <>
 struct meta<e4x60a::calibration_zero_t> {
