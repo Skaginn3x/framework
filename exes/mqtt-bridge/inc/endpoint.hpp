@@ -25,8 +25,8 @@ using boost::asio::experimental::awaitable_operators::operator||;
 
 class endpoint_client {
 public:
-  explicit endpoint_client(asio::io_context& ctx, structs::ssl_active_e ssl_active) : io_ctx_(ctx) {
-    if (ssl_active == structs::ssl_active_e::yes) {
+  explicit endpoint_client(asio::io_context& ctx, structs::ssl_active_e input_ssl) : io_ctx_(ctx) {
+    if (input_ssl == structs::ssl_active_e::yes) {
       mqtts_client_.emplace(async_mqtt::protocol_version::v5, ctx.get_executor(), tls_ctx_);
     } else {
       mqtt_client_.emplace(async_mqtt::protocol_version::v5, ctx.get_executor());
@@ -101,6 +101,7 @@ public:
     if (mqtts_client_) {
       co_await mqtts_client_->next_layer().async_handshake(async_mqtt::tls::stream_base::client, asio::use_awaitable);
     }
+    co_return;
   }
 
 private:

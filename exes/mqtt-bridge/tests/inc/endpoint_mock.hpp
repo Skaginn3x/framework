@@ -88,7 +88,7 @@ public:
 
   template <typename... args_t>
   auto send(args_t&&...) -> asio::awaitable<bool> {
-    co_return true;
+    co_return false;
   }
 
   template <typename... args_t>
