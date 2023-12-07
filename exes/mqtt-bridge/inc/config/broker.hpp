@@ -39,7 +39,7 @@ struct broker {
     static constexpr std::string_view name{ "broker" };
   };
 
-  [[nodiscard]] auto get_port() const -> std::string { return std::to_string(static_cast<int>(port)); }
+  // [[nodiscard]] auto get_port() const -> std::string { return std::to_string(static_cast<int>(port)); }
 };
 
 }  // namespace tfc::mqtt::config
