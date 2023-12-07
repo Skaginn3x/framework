@@ -11,13 +11,15 @@
 #include <variant>
 #include <vector>
 
+#include <tfc/confman.hpp>
+#include <tfc/logger.hpp>
+#include <tfc/utils/asio_fwd.hpp>
+
 #include <client.hpp>
 #include <config/broker.hpp>
 #include <config/spark_plug_b.hpp>
 #include <config/spark_plug_b_mock.hpp>
-#include <tfc/confman.hpp>
-#include <tfc/logger.hpp>
-#include <tfc/utils/asio_fwd.hpp>
+#include <structs.hpp>
 
 namespace async_mqtt {
 class buffer;
@@ -41,10 +43,6 @@ namespace tfc::mqtt {
 
 namespace asio = boost::asio;
 
-namespace structs {
-struct signal_data;
-}
-
 enum struct type_e : std::uint8_t;
 
 using org::eclipse::tahu::protobuf::DataType;
@@ -62,13 +60,15 @@ public:
 
   static auto timestamp_milliseconds() -> std::chrono::milliseconds;
 
-  auto set_current_values(std::vector<structs::signal_data> const& metrics) -> void;
+  auto set_current_values(std::vector<structs::spark_plug_b_variable> const& variables) -> void;
 
   auto send_current_values() -> void;
 
-  auto update_value(structs::signal_data& signal) -> asio::awaitable<void>;
-
   auto make_payload() -> Payload;
+
+  auto update_value(structs::spark_plug_b_variable& variable) -> void;
+
+  auto update_value_impl(structs::spark_plug_b_variable& variable) -> asio::awaitable<void>;
 
   auto set_value_change_callback(
       std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)> const& callback) -> void;
@@ -79,11 +79,7 @@ public:
 
   auto strand() -> asio::strand<asio::any_io_executor>;
 
-  static auto type_enum_convert(tfc::ipc::details::type_e type) -> DataType;
-
   static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, tfc::logger::logger const&) -> void;
-
-  static auto format_signal_name(std::string signal_name_to_format) -> std::string;
 
   static auto topic_formatter(std::vector<std::string_view> const& topic_vector) -> std::string;
 
@@ -99,7 +95,7 @@ private:
   asio::io_context& io_ctx_;
   config_t config_{ io_ctx_, "spark_plug_b_config" };
   std::unique_ptr<mqtt_client_t> mqtt_client_;
-  std::vector<structs::signal_data> nbirth_;
+  std::vector<structs::spark_plug_b_variable> variables_;
   uint64_t seq_ = 1;
   tfc::logger::logger logger_{ "spark_plug_interface" };
   std::optional<std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)>>

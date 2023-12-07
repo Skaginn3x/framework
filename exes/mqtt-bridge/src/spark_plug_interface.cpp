@@ -7,6 +7,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include <sparkplug_b/sparkplug_b.pb.h>
@@ -16,7 +17,6 @@
 #include <constants.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
-#include <tfc/ipc.hpp>
 
 namespace tfc::mqtt {
 
@@ -38,6 +38,59 @@ spark_plug_interface<config_t, mqtt_client_t>::spark_plug_interface(asio::io_con
 template <class config_t, class mqtt_client_t>
 auto spark_plug_interface<config_t, mqtt_client_t>::get_bd_seq() -> int64_t {
   return bdSeq_++ % 256;
+}
+
+template <class config_t, class mqtt_client_t>
+auto spark_plug_interface<config_t, mqtt_client_t>::make_payload() -> Payload {
+  Payload payload;
+  payload.set_timestamp(timestamp_milliseconds().count());
+  if (seq_ == 255) {
+    seq_ = 0;
+  } else {
+    seq_++;
+  }
+  payload.set_seq(seq_);
+  return payload;
+}
+
+template <class config_t, class mqtt_client_t>
+auto spark_plug_interface<config_t, mqtt_client_t>::update_value(structs::spark_plug_b_variable& variable) -> void {
+  asio::co_spawn(strand(), update_value_impl(variable), asio::detached);
+};
+
+template <class config_t, class mqtt_client_t>
+auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(structs::spark_plug_b_variable& variable)
+    -> asio::awaitable<void> {
+  Payload payload = make_payload();
+  Payload_Metric* metric = payload.add_metrics();
+
+  if (metric == nullptr) {
+    logger_.error("Failed to add metric to payload for variable: {}", variable.name);
+    co_return;
+  }
+
+  metric->set_name(variable.name);
+  metric->set_timestamp(timestamp_milliseconds().count());
+  metric->set_datatype(variable.datatype);
+
+  if (variable.value.has_value()) {
+    set_value_payload(metric, variable.value.value(), logger_);
+  } else {
+    metric->set_is_null(true);
+  }
+
+  auto* metadata = metric->mutable_metadata();
+  metadata->set_description(variable.description);
+
+  logger_.trace("Updating variable: {}", variable.name);
+  logger_.trace("Payload: {}", payload.DebugString());
+
+  std::string payload_string;
+  payload.SerializeToString(&payload_string);
+
+  logger_.trace("Sending message on topic: {}", ndata_topic_);
+
+  co_await mqtt_client_->send_message(ndata_topic_, payload_string, async_mqtt::qos::at_most_once);
 }
 
 template <class config_t, class mqtt_client_t>
@@ -70,9 +123,9 @@ auto spark_plug_interface<config_t, mqtt_client_t>::timestamp_milliseconds() -> 
 }
 
 template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(std::vector<structs::signal_data> const& metrics)
-    -> void {
-  nbirth_ = metrics;
+auto spark_plug_interface<config_t, mqtt_client_t>::set_current_values(
+    std::vector<structs::spark_plug_b_variable> const& metrics) -> void {
+  variables_ = metrics;
 }
 
 template <class config_t, class mqtt_client_t>
@@ -99,13 +152,16 @@ auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> voi
     bd_seq_metric->set_datatype(8);
     bd_seq_metric->set_long_value(0);
 
-    for (auto const& signal_data : nbirth_) {
+    for (auto const& variable : variables_) {
       auto* variable_metric = payload.add_metrics();
-      variable_metric->set_name(format_signal_name(signal_data.information.name));
-      variable_metric->set_timestamp(timestamp_milliseconds().count());
-      variable_metric->set_datatype(type_enum_convert(signal_data.information.type));
 
-      set_value_payload(variable_metric, signal_data.current_value, logger_);
+      auto* metadata = variable_metric->mutable_metadata();
+      metadata->set_description(variable.description);
+
+      variable_metric->set_name(variable.name);
+      variable_metric->set_datatype(variable.datatype);
+      variable_metric->set_timestamp(timestamp_milliseconds().count());
+      set_value_payload(variable_metric, variable.value, logger_);
 
       variable_metric->set_is_transient(false);
       variable_metric->set_is_historical(false);
@@ -124,50 +180,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::send_current_values() -> voi
     asio::co_spawn(mqtt_client_->strand(), mqtt_client_->send_message(topic, payload_string, async_mqtt::qos::at_most_once),
                    asio::detached);
   }
-}
-
-template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::update_value(structs::signal_data& signal) -> asio::awaitable<void> {
-  const std::string variable = format_signal_name(signal.information.name);
-
-  Payload payload = make_payload();
-  Payload_Metric* metric = payload.add_metrics();
-
-  if (metric == nullptr) {
-    logger_.error("Failed to add metric to payload for variable: {}", variable);
-    co_return;
-  }
-
-  metric->set_name(variable);
-  metric->set_timestamp(timestamp_milliseconds().count());
-  metric->set_datatype(type_enum_convert(signal.information.type));
-
-  set_value_payload(metric, signal.current_value.value(), logger_);
-
-  logger_.trace("Updating variable: {}", variable);
-  logger_.trace("Payload: {}", payload.DebugString());
-
-  std::string payload_string;
-  payload.SerializeToString(&payload_string);
-
-  logger_.trace("Sending message on topic: {}", ndata_topic_);
-
-  co_await mqtt_client_->send_message(ndata_topic_, payload_string, async_mqtt::qos::at_most_once);
-}
-
-template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::make_payload() -> Payload {
-  Payload payload;
-  payload.set_timestamp(timestamp_milliseconds().count());
-  if (seq_ == 255) {
-    seq_ = 0;
-  } else {
-    seq_++;
-  }
-
-  payload.set_seq(seq_);
-
-  return payload;
 }
 
 template <class config_t, class mqtt_client_t>
@@ -248,32 +260,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::strand() -> asio::strand<asi
   return mqtt_client_->strand();
 }
 
-/// This function converts tfc types to Spark Plug B types
-/// More information can be found (page 76) in the spec under section 6.4.16 data types:
-/// https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf
-template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::type_enum_convert(tfc::ipc::details::type_e type) -> DataType {
-  using enum tfc::ipc::details::type_e;
-  switch (type) {
-    case unknown:
-      return DataType::Unknown;
-    case _bool:
-      return DataType::Boolean;
-    case _int64_t:
-      return DataType::Int64;
-    case _uint64_t:
-      return DataType::UInt64;
-    case _double_t:
-      return DataType::Double;
-    case _string:
-    case _json:
-      return DataType::String;
-    case _mass:
-      return DataType::Template;
-  }
-  return DataType::Unknown;
-}
-
 template <class config_t, class mqtt_client_t>
 auto spark_plug_interface<config_t, mqtt_client_t>::set_value_payload(Payload_Metric* metric,
                                                                       std::optional<std::any> const& value,
@@ -299,17 +285,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::set_value_payload(Payload_Me
   } else {
     metric->set_is_null(true);
   }
-}
-
-/// Spark Plug B disallows the use of some special characters in the signal name.
-template <class config_t, class mqtt_client_t>
-auto spark_plug_interface<config_t, mqtt_client_t>::format_signal_name(std::string signal_name_to_format) -> std::string {
-  for (const auto& forbidden_char : { '+', '#', '-', '/' }) {
-    std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), forbidden_char, '_');
-  }
-
-  std::ranges::replace(signal_name_to_format.begin(), signal_name_to_format.end(), '.', '/');
-  return signal_name_to_format;
 }
 
 template <class config_t, class mqtt_client_t>

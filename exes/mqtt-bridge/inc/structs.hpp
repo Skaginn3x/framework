@@ -1,18 +1,21 @@
 #pragma once
 
 #include <any>
+#include <cstdint>
 #include <optional>
+#include <string>
 
-#include <tfc/ipc.hpp>
+#include <sparkplug_b/sparkplug_b.pb.h>
 
 namespace tfc::mqtt::structs {
 
 enum struct ssl_active_e { yes, no };
 
-struct signal_data {
-  tfc::ipc_ruler::signal information;
-  tfc::ipc::details::any_slot receiver;
-  std::optional<std::any> current_value;
+struct spark_plug_b_variable {
+  std::string name;
+  org::eclipse::tahu::protobuf::DataType datatype;
+  std::optional<std::any> value;
+  std::string description;
 };
 
 }  // namespace tfc::mqtt::structs

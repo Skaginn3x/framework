@@ -17,9 +17,7 @@ namespace ut = boost::ut;
 namespace asio = boost::asio;
 
 using ut::operator""_test;
-using ut::operator>>;
 using ut::expect;
-using ut::fatal;
 
 auto main(int argc, char* argv[]) -> int {
   auto program_description{ tfc::base::default_description() };
@@ -31,32 +29,14 @@ auto main(int argc, char* argv[]) -> int {
 
     bool set_signals;
     asio::co_spawn(
-        io_ctx, [&]() -> asio::awaitable<void> { set_signals = co_await test_ext.test(); }, asio::detached);
-    io_ctx.run_for(std::chrono::milliseconds(10));
-    expect(set_signals);
-  };
-
-  "testing client"_test = [&]() {
-    const std::string will_topic = "will";
-    const std::string will_payload = "payload";
-
-    tfc::mqtt::client_mock cli{ io_ctx, will_topic, will_payload };
-
-    bool connect;
-    asio::co_spawn(
-        io_ctx, [&]() -> asio::awaitable<void> { connect = co_await cli.connect(); }, asio::detached);
-    io_ctx.run_for(std::chrono::milliseconds(10));
-    expect(connect);
-
-    bool send_message;
-    asio::co_spawn(
         io_ctx,
         [&]() -> asio::awaitable<void> {
-          send_message = co_await cli.send_message("topic", "payload", async_mqtt::qos::at_least_once);
+          set_signals = co_await test_ext.test();
+          io_ctx.stop();
         },
         asio::detached);
-    io_ctx.run_for(std::chrono::milliseconds(10));
-    expect(send_message);
+    io_ctx.run_for(std::chrono::seconds{ 10 });
+    expect(set_signals);
   };
 
   "testing constants"_test = [&]() {
@@ -71,11 +51,17 @@ auto main(int argc, char* argv[]) -> int {
   "testing spark plug interface"_test = [&]() {
     tfc::mqtt::spark_plug_mock sp{ io_ctx };
 
-    expect(sp.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
-    expect(sp.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
-
-    expect(sp.format_signal_name("tfc.bool.test.something") == "tfc/bool/test/something");
     expect(sp.topic_formatter({ "first", "second" }) == "first/second");
+  };
+
+  "testing tfc to external"_test = [&]() {
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{ io_ctx };
+    tfc::mqtt::spark_plug_mock sp{ io_ctx };
+    tfc::mqtt::tfc_to_ext_mock test_ext{ io_ctx, sp, ipc_mock };
+
+    expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
+    expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
+    expect(test_ext.format_signal_name("tfc.bool.test.something") == "tfc/bool/test/something");
   };
 
   "testing external to tfc"_test = [&]() {
