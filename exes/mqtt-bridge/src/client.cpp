@@ -162,7 +162,7 @@ auto client<client_t, config_t>::subscribe_to_topic(std::string topic) -> asio::
   auto* suback_packet_ptr = suback_received.template get_if<async_mqtt::v5::suback_packet>();
 
   if (suback_packet_ptr == nullptr) {
-    logger_.error "Received packet is not a SUBACK packet");
+    logger_.error("Received packet is not a SUBACK packet");
     co_return false;
   }
 
