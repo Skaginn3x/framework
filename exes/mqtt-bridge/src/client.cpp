@@ -98,14 +98,14 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
 
 template <class client_t, class config_t>
 auto client<client_t, config_t>::receive_connack() -> asio::awaitable<bool> {
-  logger_.trace( "Waiting for CONNACK");
+  logger_.trace("Waiting for CONNACK");
 
   auto connack_received = co_await endpoint_client_->recv(async_mqtt::control_packet_type::connack);
 
   logger_.trace("CONNACK received");
   auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
 
-  logger_.trace( "Checking if CONNACK is valid or not");
+  logger_.trace("Checking if CONNACK is valid or not");
   co_return connack_packet.code() == async_mqtt::connect_reason_code::success;
 }
 
@@ -133,8 +133,8 @@ auto client<client_t, config_t>::send_message(std::string topic, std::string pay
 
 template <class client_t, class config_t>
 auto client<client_t, config_t>::subscribe_to_topic(std::string topic) -> asio::awaitable<bool> {
-  logger_.trace( "Subscribing to topic: {}", topic);
-  logger_.trace( "Sending subscription packet...");
+  logger_.trace("Subscribing to topic: {}", topic);
+  logger_.trace("Sending subscription packet...");
 
   std::optional<uint16_t> p_id;
 
@@ -152,10 +152,10 @@ auto client<client_t, config_t>::subscribe_to_topic(std::string topic) -> asio::
     co_return !send_error;
   }
 
-  logger_.trace( "Subscription packet sent. Waiting for SUBACK...");
+  logger_.trace("Subscription packet sent. Waiting for SUBACK...");
 
   auto suback_received = co_await endpoint_client_->recv(async_mqtt::control_packet_type::suback);
-  logger_.trace( "SUBACK received. Checking for errors...");
+  logger_.trace("SUBACK received. Checking for errors...");
 
   auto suback_packet = suback_received.template get<async_mqtt::v5::suback_packet>();
 
@@ -168,8 +168,8 @@ auto client<client_t, config_t>::subscribe_to_topic(std::string topic) -> asio::
 
   for (auto const& entry : suback_packet.entries()) {
     if (entry != async_mqtt::suback_reason_code::granted_qos_0) {
-      logger_.error( "Error subscribing to topic: {}, reason code: {}",
-          topic.data(), async_mqtt::suback_reason_code_to_str(entry));
+      logger_.error("Error subscribing to topic: {}, reason code: {}", topic.data(),
+                    async_mqtt::suback_reason_code_to_str(entry));
       co_return false;
     }
   }
@@ -182,21 +182,21 @@ auto client<client_t, config_t>::wait_for_payloads(
     std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload,
     bool& restart_needed) -> asio::awaitable<void> {
   while (true) {
-    logger_.trace( "Waiting for Publish packets");
+    logger_.trace("Waiting for Publish packets");
 
     auto publish_recv = co_await endpoint_client_->recv(async_mqtt::control_packet_type::publish);
 
-    logger_.trace( "Publish packet received, parsing...");
+    logger_.trace("Publish packet received, parsing...");
 
     auto* publish_packet = publish_recv.template get_if<async_mqtt::v5::publish_packet>();
 
     if (publish_packet == nullptr) {
-      logger_.error( "Received packet is not a PUBLISH packet");
+      logger_.error("Received packet is not a PUBLISH packet");
       restart_needed = true;
       co_return;
     }
 
-    logger_.trace( "Received  PUBLISH packet. Parsing payload...");
+    logger_.trace("Received  PUBLISH packet. Parsing payload...");
 
     for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
       process_payload(publish_packet->payload()[i], *publish_packet);
