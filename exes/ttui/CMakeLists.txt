@@ -1,4 +1,6 @@
-add_executable(ttui src/ttui.cpp)
+add_executable(ttui src/ttui.cpp
+        src/dbus_screen_manager.hpp
+        src/dbus_screen_manager.cpp)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(mp-units CONFIG REQUIRED)
