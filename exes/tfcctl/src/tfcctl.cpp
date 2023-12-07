@@ -139,6 +139,7 @@ auto main(int argc, char** argv) -> int {
               } else {
                 fmt::println("{}: {}", sig, val);
               }
+              fflush(stdout);
             });
             if (error) {
               fmt::println("Failed to connect: {}", error.message());
