@@ -1,5 +1,6 @@
 function(tfc_install_lib TARGET)
   include(GNUInstallDirs)
+  set_target_properties(${TARGET} PROPERTIES CXX_VISIBILITY_PRESET default)
   install(TARGETS ${TARGET}
     EXPORT tfcTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

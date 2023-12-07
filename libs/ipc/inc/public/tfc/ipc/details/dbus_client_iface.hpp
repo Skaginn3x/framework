@@ -11,13 +11,14 @@
 #include <tfc/ipc/details/dbus_constants.hpp>
 #include <tfc/ipc/details/dbus_structs.hpp>
 #include <tfc/ipc/enums.hpp>
+#include <tfc/progbase.hpp>
 #include <tfc/utils/asio_fwd.hpp>
 
 namespace tfc::ipc_ruler {
 
 namespace asio = boost::asio;
 
-class ipc_manager_client {
+class TFC_VISIBILITY ipc_manager_client {
 public:
   explicit ipc_manager_client(asio::io_context& ctx);
 
