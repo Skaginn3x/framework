@@ -4,7 +4,6 @@
 #include <mp-units/math.h>
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
-#include <bitset>
 #include <memory>
 #include <optional>
 
@@ -17,18 +16,38 @@
 #include "tfc/ipc.hpp"
 #include "tfc/utils/units_glaze_meta.hpp"
 
+#include <tfc/ec/devices/schneider/atv320/dbus-iface.hpp>
 #include <tfc/ec/devices/schneider/atv320/enums.hpp>
 #include <tfc/ec/devices/schneider/atv320/settings.hpp>
 #include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
+#include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
+
+namespace details {
+template <typename signal_t, typename variable_t, typename logger_t>
+inline variable_t async_send_if_new(signal_t& signal,
+                                    const variable_t& old_var,
+                                    const variable_t& new_var,
+                                    logger_t& logger) {
+  if (old_var != new_var) {
+    signal.async_send(new_var, [&logger](const std::error_code& err, size_t) {
+      if (err) {
+        logger.error("ATV failed to send");
+      }
+    });
+  }
+  return new_var;
+}
+};  // namespace details
 
 template <typename manager_client_type>
 class device final : public base {
 public:
   static constexpr uint32_t vendor_id = 0x0800005a;
   static constexpr uint32_t product_code = 0x389;
+  static constexpr size_t atv320_di_count = 6;
 
   struct atv_config {
     nominal_motor_power_NPR nominal_motor_power;
@@ -82,7 +101,7 @@ public:
                                 client,
                                 fmt::format("atv320.s{}.run", slave_index),
                                 "Turn on motor",
-                                [this](bool value) { running_ = value; }),
+                                [this](bool value) { ipc_running_ = value; }),
         ratio_(ctx,
                client,
                fmt::format("atv320.s{}.ratio", slave_index),
@@ -94,12 +113,12 @@ public:
                }),
         frequency_transmit_(ctx, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
         hmis_transmitter_(ctx, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ ctx, fmt::format("atv320_i{}", slave_index) } {
+        config_{ ctx, fmt::format("atv320_i{}", slave_index) }, dbus_iface_(ctx) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
     });
-    for (size_t i = 0; i < 6; i++) {
+    for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(
           tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
     }
@@ -110,24 +129,18 @@ public:
     // }
   }
 
-  struct input_t {
-    tfc::ec::cia_402::status_word status_word{};
-    uint16_t frequency{};
-    uint16_t current{};
-    uint16_t digital_inputs{};
-    int16_t analog_input{};
-    uint16_t drive_state{};
-  };
-  static_assert(sizeof(input_t) == 12);
-  struct output_t {
-    cia_402::control_word control{};
-    decifrequency frequency{};
-    uint16_t digital_outputs{};
-  };
-  static_assert(sizeof(output_t) == 6);
 
-  static_assert(sizeof(input_t) == 12);
-  static_assert(sizeof(output_t) == 6);
+  // Update signals of the current status of the drive
+  void transmit_status(const input_t& input) {
+    std::bitset<atv320_di_count> const value(input.digital_inputs);
+    for (size_t i = 0; i < atv320_di_count; i++) {
+      last_bool_values_.set(
+          i, details::async_send_if_new(di_transmitters_[i], last_bool_values_.test(i), value.test(i), logger_));
+    }
+    last_hmis_ = details::async_send_if_new(hmis_transmitter_, last_hmis_, input.drive_state, logger_);
+    double frequency = static_cast<double>(input.frequency) / 10.0;
+    last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
+  }
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     // All registers in the ATV320 ar uint16, create a pointer to this memory
@@ -139,56 +152,27 @@ public:
     const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
     output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
 
-    std::bitset<6> const value(in->digital_inputs);
-    for (size_t i = 0; i < 6; i++) {
-      if (value.test(i) != last_bool_values_.test(i)) {
-        di_transmitters_[i].async_send(value.test(i), [this](auto&& PH1, size_t bytes_transfered) {
-          async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-        });
-      }
-    }
-    last_bool_values_ = value;
+    transmit_status(*in);
 
-    if (in->drive_state != last_hmis_) {
-      hmis_transmitter_.async_send(in->drive_state, [this](auto&& PH1, size_t bytes_transfered) {
-        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-      });
-      last_hmis_ = in->drive_state;
-    }
+    dbus_iface_.update_status(*in);
+    if (!dbus_iface_.has_peer()) {
+      // Quick stop if frequncy set to 0
+      const bool quick_stop = reference_frequency_.value == 0 * dHz;
 
-    // TODO: Design a sane method for transmitting analog signals in event based environments
-    // for (size_t i = 0; i < 2; i++) {
-    //   if (last_analog_inputs_[i] != in->analog_inputs[i]) {
-    //     ai_transmitters_[i].async_send(in->analog_inputs[i], [this](auto&& PH1, size_t const bytes_transfered) {
-    //       async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-    //     });
-    //   }
-    //   last_analog_inputs_[i] = in->analog_inputs[i];
-    // }
-    auto frequency = static_cast<int16_t>(in->frequency);
-    if (last_frequency_ != frequency) {
-      frequency_transmit_.async_send(static_cast<double>(frequency) / 10, [this](auto&& PH1, size_t const bytes_transfered) {
-        async_send_callback(std::forward<decltype(PH1)>(PH1), bytes_transfered);
-      });
-    }
+      auto state = in->status_word.parse_state();
+      out->control = tfc::ec::cia_402::transition(state, ipc_running_, quick_stop);
 
-    last_frequency_ = frequency;
-    using tfc::ec::cia_402::states_e;
-    bool const quick_stop = !running_ || reference_frequency_.value == 0 * dHz;
+      // Reverse bit is bit 11 of control word from
+      // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
+      out->control.reserved_1 = reference_frequency_.reverse;
+      out->frequency = reference_frequency_.value;
+    } else {
+      out->frequency = dbus_iface_.freq();
+      out->control = dbus_iface_.ctrl();
 
-    auto state = in->status_word.parse_state();
-    auto command = tfc::ec::cia_402::transition(state, quick_stop);
-
-    out->control = cia_402::control_word::from_uint(command);
-    // Reverse bit is bit 11 of control word from
-    // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
-    out->control.reserved_1 = reference_frequency_.reverse;
-    out->frequency = running_ ? reference_frequency_.value : 0 * mp_units::quantity<mp_units::si::hertz, uint16_t>{};
-  }
-
-  auto async_send_callback(std::error_code const& error, size_t) -> void {
-    if (error) {
-      logger_.error("Ethercat ATV320 error: {}", error.message());
+      // Set running to false. Will need to be set high before the motor starts on ipc
+      // after dbus disconnect
+      ipc_running_ = false;
     }
   }
 
@@ -257,18 +241,17 @@ public:
   }
 
 private:
-  // int16_t last_analog_inputs_;
-  // tfc::ipc::int_signal ai_transmitter_;
-  std::bitset<6> last_bool_values_;
+  std::bitset<atv320_di_count> last_bool_values_;
   std::vector<tfc::ipc::bool_signal> di_transmitters_;
-  bool running_{};
+  bool ipc_running_{};
   tfc::ipc::bool_slot run_;
   detail::speed reference_frequency_{ .value = 0 * dHz, .reverse = false };
   tfc::ipc::double_slot ratio_;
-  int16_t last_frequency_;
+  double last_frequency_;
   tfc::ipc::double_signal frequency_transmit_;
   uint16_t last_hmis_{};
   tfc::ipc::uint_signal hmis_transmitter_;
   config_t config_;
+  dbus_iface dbus_iface_;
 };
 }  // namespace tfc::ec::devices::schneider::atv320

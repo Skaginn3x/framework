@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tfc/ec/devices/schneider/atv320/enums.hpp>
 namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
 

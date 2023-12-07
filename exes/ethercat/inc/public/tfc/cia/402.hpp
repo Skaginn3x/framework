@@ -174,26 +174,28 @@ static_assert(sizeof(status_word) == 2);
  * @param quick_stop if the drive should be placed in quick_stop mode.
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-inline auto transition(states_e current_state, bool quick_stop) -> control_word {
+inline auto transition(states_e current_state, bool run, bool quick_stop) -> control_word {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands::shutdown();
+    case states_e::switched_on:
     case states_e::ready_to_switch_on:
-      return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
+      if (run) {
+        return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
+      }
+      return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
     case states_e::operation_enabled:
       if (quick_stop) {
         return commands::quick_stop();
       }
-      return commands::enable_operation();
-    case states_e::switched_on:
+      if (!run) {
+        return commands::disable_voltage();  // Freewheel stop
+      }
       return commands::enable_operation();
     case states_e::fault:
       return commands::fault_reset();
+
     case states_e::quick_stop_active:
-      if (quick_stop) {
-        return commands::quick_stop();
-      }
-      return commands::disable_voltage();
     case states_e::not_ready_to_switch_on:
     case states_e::fault_reaction_active:
       return commands::disable_voltage();
