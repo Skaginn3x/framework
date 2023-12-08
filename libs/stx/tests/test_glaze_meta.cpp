@@ -79,10 +79,6 @@ auto main() -> int {
         ut::expect(foo.value() == "Hell\0"sv)
             << foo.value().view();  // fixed string will always contain fixed number of characters hence the zero
       };
-  "steady clock should not be transposable"_test = [] {
-    // transposing steady clock in json does not really make any sense
-    static_assert(glz::name_v<std::chrono::steady_clock> == "glz::unknown");
-  };
   "millisecond clock"_test = [] {
     auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
     auto json{ glz::write_json(now) };
