@@ -1,4 +1,4 @@
-function(tfc_install_lib TARGET)
+function(tfc_install_lib_impl TARGET INCLUDE_DIR)
   include(GNUInstallDirs)
   install(TARGETS ${TARGET}
     EXPORT tfcTargets
@@ -8,5 +8,10 @@ function(tfc_install_lib TARGET)
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/inc/public/ DESTINATION include)
+  install(DIRECTORY ${INCLUDE_DIR} DESTINATION include)
 endfunction()
+
+function(tfc_install_lib TARGET)
+  tfc_install_lib_impl(${TARGET} ${CMAKE_CURRENT_SOURCE_DIR}/inc/public/)
+endfunction()
+

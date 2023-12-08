@@ -73,7 +73,11 @@
         "ci-gcc-debug",
         "cfg-enable-docs",
         "cfg-enable-static"
-      ]
+      ],
+      "cacheVariables": {
+        "BUILD_TESTING": "OFF",
+        "BUILD_EXAMPLES": "OFF"
+      }
     },
     {
       "name": "pack-gcc-release",
@@ -81,7 +85,11 @@
         "ci-gcc-release",
         "cfg-enable-docs",
         "cfg-enable-static"
-      ]
+      ],
+      "cacheVariables": {
+        "BUILD_TESTING": "OFF",
+        "BUILD_EXAMPLES": "OFF"
+      }
     },
     {
       "name": "pack-aarch64-gcc-debug",
