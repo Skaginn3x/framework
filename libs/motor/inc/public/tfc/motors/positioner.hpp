@@ -8,15 +8,25 @@ struct circular_buffer {
   circular_buffer() = default;
   template <typename... args_t>
   constexpr auto emplace(args_t&&... args) {
-    std::construct_at(pos_, std::forward<args_t>(args)...);
-    if (++pos_ == std::end(buffer_)) {
-      pos_ = std::begin(buffer_);
+    front_ = insert_pos_;
+    std::construct_at(insert_pos_, std::forward<args_t>(args)...);
+    std::advance(insert_pos_, 1);
+    if (insert_pos_ == std::end(buffer_)) {
+      insert_pos_ = std::begin(buffer_);
     }
+  }
+  constexpr auto front() noexcept -> storage_t& {
+    return *front_;
+  }
+  constexpr auto front() const noexcept -> storage_t const& {
+    return *front_;
   }
 
   // todo use static_vector, https://github.com/arturbac/small_vectors/blob/master/include/coll/static_vector.h
   std::array<storage_t, len> buffer_{};
-  typename std::array<storage_t, len>::iterator pos_{ std::begin(buffer_) };
+  // front is invalid when there has no item been inserted yet, but should not matter much
+  typename std::array<storage_t, len>::iterator front_{ std::begin(buffer_) };
+  typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) };
 };
 }  // namespace detail
 
