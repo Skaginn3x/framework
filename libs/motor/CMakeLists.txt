@@ -25,6 +25,7 @@ target_link_libraries(motor
     tfc::stx
     tfc::dbus_util
     tfc::confman
+    tfc::ipc
     magic_enum::magic_enum
     mp-units::mp-units
 )

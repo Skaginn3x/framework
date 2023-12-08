@@ -2,15 +2,28 @@
 
 #include <array>
 #include <cstddef>
-#include <variant>
 #include <string_view>
 
 #include <fmt/format.h>
 #include <boost/asio.hpp>
 #include <glaze/core/common.hpp>
 
-#include <tfc/logger.hpp>
 #include <tfc/confman.hpp>
+#include <tfc/ipc.hpp>
+#include <tfc/logger.hpp>
+
+namespace tfc::motor::detail {
+enum struct tacho_config : std::uint8_t { not_used = 0, one_tacho, two_tacho };
+}
+
+template <>
+struct glz::meta<tfc::motor::detail::tacho_config> {
+  static constexpr std::string_view name{ "tacho_config" };
+  using enum tfc::motor::detail::tacho_config;
+  static constexpr auto value{
+    glz::enumerate("Not used", not_used, "One tachometer", one_tacho, "Two tachometers", two_tacho)
+  };
+};
 
 namespace tfc::motor {
 
@@ -48,7 +61,6 @@ struct tachometer {
     auto now{ time_point_t::clock::now() };
     buffer_.emplace(buffer_.front().first_tacho_state, state, now);
   }
-  
 
   struct storage {
     bool first_tacho_state{};
@@ -62,38 +74,51 @@ struct tachometer {
 
 class positioner {
 public:
-  positioner(asio::io_context& ctx, std::string_view name) : ctx_{ ctx }, name_{ name } {}
-  struct positioner_config {
-    struct tacho_not_used : std::monostate {
-      struct glaze {
-        static constexpr std::string_view name{ "Tachometer not used" };
-      };
-    };
-    struct one_tacho_used {
-      struct glaze {
-        static constexpr std::string_view value{ "One tachometer" };
-        static constexpr std::string_view name{ value };
-      };
-    };
-    struct two_tacho_used {
-      struct glaze {
-        static constexpr std::string_view value{ "Two tachometers" };
-        static constexpr std::string_view name{ value };
-      };
-    };
-    std::variant<tacho_not_used, one_tacho_used, two_tacho_used> tacho{ tacho_not_used{} };
+  struct config {
+    detail::tacho_config tacho{ detail::tacho_config::not_used };
     struct glaze {
-      using self = positioner_config;
       static constexpr std::string_view name{ "positioner_config" };
-      static constexpr auto value{ glz::object(&self::tacho) };
+      static constexpr auto value{ glz::object("tacho", &config::tacho) };
     };
   };
 
+  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
+      : name_{ name }, ctx_{ ctx }, client_{ client } {
+    switch (config_->tacho) {
+      using enum detail::tacho_config;
+      case not_used:
+        break;
+      case one_tacho: {
+        tacho_.emplace();
+        tacho_a.emplace(ctx_, client_, fmt::format("tacho_{}", name_),
+                        "Tachometer input, usually induction sensor directed to rotational metal star og ring of screws.",
+                        [this](bool val) { this->tacho_->first_tacho_update(val); });
+        break;
+      }
+      case two_tacho: {
+        tacho_.emplace();
+        tacho_a.emplace(ctx_, client_, fmt::format("tacho_a_{}", name_),
+                        "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
+                        "star og ring of screws.",
+                        [this](bool val) { this->tacho_->first_tacho_update(val); });
+        tacho_b.emplace(ctx_, client_, fmt::format("tacho_b_{}", name_),
+                        "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
+                        "metal star og ring of screws.",
+                        [this](bool val) { this->tacho_->second_tacho_update(val); });
+        break;
+      }
+    }
+  }
+
 private:
-  asio ::io_context& ctx_;
   std::string name_;
+  asio::io_context& ctx_;
+  ipc_ruler::ipc_manager_client& client_;
   logger::logger logger_{ name_ };
-  confman::config<positioner_config> config_{ ctx_, fmt::format("positioner_{}", name_) };
+  confman::config<config> config_{ ctx_, fmt::format("positioner_{}", name_) };
+  std::optional<detail::tachometer<>> tacho_{};
+  std::optional<ipc::bool_slot> tacho_a{};
+  std::optional<ipc::bool_slot> tacho_b{};
 };
 
 }  // namespace tfc::motor
