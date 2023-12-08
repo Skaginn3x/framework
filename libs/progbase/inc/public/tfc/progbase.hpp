@@ -4,10 +4,6 @@
 #include <optional>
 #include <string_view>
 
-#ifndef TFC_VISIBILITY
-#define TFC_VISIBILITY __attribute__((visibility("default")))
-#endif
-
 namespace boost {
 namespace program_options {
 class options_description;
@@ -29,47 +25,46 @@ namespace tfc::base {
 
 /// \brief Description of command line arguments for the program
 /// \return Default description for tfc applications
-[[nodiscard]] TFC_VISIBILITY auto default_description() -> boost::program_options::options_description;
+[[nodiscard]] auto default_description() -> boost::program_options::options_description;
 
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
 /// \example example_base.cpp
-TFC_VISIBILITY void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);
-TFC_VISIBILITY void init(int argc, char const* const* argv);
+void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);
+void init(int argc, char const* const* argv);
 
 /// \return stripped executable name
-[[nodiscard]] TFC_VISIBILITY auto get_exe_name() noexcept -> std::string_view;
+[[nodiscard]] auto get_exe_name() noexcept -> std::string_view;
 
 /// \brief default value is "def"
 /// \return stripped process identification name provided by the command line argument
-[[nodiscard]] TFC_VISIBILITY auto get_proc_name() noexcept -> std::string_view;
+[[nodiscard]] auto get_proc_name() noexcept -> std::string_view;
 
 /// \brief default value is tfc::logger::lvl_e::info
 /// \return log level
-[[nodiscard]] TFC_VISIBILITY auto get_log_lvl() noexcept -> tfc::logger::lvl_e;
+[[nodiscard]] auto get_log_lvl() noexcept -> tfc::logger::lvl_e;
 
 /// \return boost variables map if needed to get custom parameters from description
-[[nodiscard]] TFC_VISIBILITY auto get_map() noexcept -> boost::program_options::variables_map const&;
+[[nodiscard]] auto get_map() noexcept -> boost::program_options::variables_map const&;
 
 /// \return Configuration directory path
 /// default return value is /etc/tfc/
 /// \note can be changed by providing environment variable CONFIGURATION_DIRECTORY
 /// Refer to https://www.freedesktop.org/software/systemd/man/systemd.exec.html#%24RUNTIME_DIRECTORY
-[[nodiscard]] TFC_VISIBILITY auto get_config_directory() -> std::filesystem::path;
+[[nodiscard]] auto get_config_directory() -> std::filesystem::path;
 
 /// \return <config_directory><exe_name>/<proc_name>/<filename>.<file_extension>
-[[nodiscard]] TFC_VISIBILITY auto make_config_file_name(std::string_view filename, std::string_view extension)
-    -> std::filesystem::path;
+[[nodiscard]] auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path;
 
 /// \brief supposed to be used by logger library to indicate log to terminal is enabled
-[[nodiscard]] TFC_VISIBILITY auto is_stdout_enabled() noexcept -> bool;
+[[nodiscard]] auto is_stdout_enabled() noexcept -> bool;
 
 /// \brief supposed to be used by IPC layer to indicate that signals/publishers should not do anything
-[[nodiscard]] TFC_VISIBILITY auto is_noeffect_enabled() noexcept -> bool;
+[[nodiscard]] auto is_noeffect_enabled() noexcept -> bool;
 
 /// \brief print stacktrace to stderr and terminate program
-[[noreturn]] TFC_VISIBILITY void terminate();
+[[noreturn]] void terminate();
 
 /// \brief stop context for predefined exit signals
-TFC_VISIBILITY auto exit_signals(boost::asio::io_context&) -> boost::asio::awaitable<void, boost::asio::any_io_executor>;
+auto exit_signals(boost::asio::io_context&) -> boost::asio::awaitable<void, boost::asio::any_io_executor>;
 
 }  // namespace tfc::base

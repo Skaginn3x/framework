@@ -4,7 +4,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(Boost_NO_WARN_NEW_VERSIONS 1)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_CXX_VISIBILITY_PRESET default)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -18,7 +17,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
       -fvisibility-inlines-hidden
   )
 else()
-  add_compile_options("-fvisibility=default")
+  add_compile_options(-fvisibility=default)
 endif()
 
 if(ENABLE_STATIC_LINKING)
