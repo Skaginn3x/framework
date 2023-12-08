@@ -34,6 +34,8 @@ private:
   int left_menu_selected = 0;
   int right_menu_selected = 0;
   asio::io_context ctx{};
+  std::shared_ptr<sdbusplus::asio::connection> connection;
+  std::__detail::__unique_ptr_t<sdbusplus::bus::match::match> match;
 
   void SetupComponents();
   void SetupDBusConnection();

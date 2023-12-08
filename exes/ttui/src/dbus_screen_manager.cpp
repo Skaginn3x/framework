@@ -47,12 +47,13 @@ void DBusScreenManager::SetupComponents() {
 }
 
 void DBusScreenManager::SetupDBusConnection() {
-  auto connection = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system_mon());
-  auto match = std::make_unique<sdbusplus::bus::match::match>(
-      *connection,
-      "",
-      std::bind(&DBusScreenManager::match_callback, this, std::placeholders::_1)
-  );
+  connection =
+     std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system_mon());
+  match = std::make_unique<sdbusplus::bus::match::match>(
+    *connection,
+    "",
+    [this](sdbusplus::message_t& msg) { this->match_callback(msg); }
+);
   auto mc = connection->new_method_call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus.Monitoring",
                                         "BecomeMonitor");
   mc.append<std::vector<std::string>, uint32_t>({ "path=/com/skaginn3x/Signals" }, 0);
@@ -96,7 +97,7 @@ void DBusScreenManager::match_callback(sdbusplus::message_t& msg) {
   }
 }
 
-ftxui::Component DBusScreenManager::left_menu() {
+auto DBusScreenManager::left_menu() -> ftxui::Component {
     auto option = ftxui::MenuOption::Vertical();
 
     option.on_enter = [this] {
@@ -109,8 +110,8 @@ ftxui::Component DBusScreenManager::left_menu() {
     return ftxui::Menu(&noticed_interfaces, &left_menu_selected, option);
 }
 
-ftxui::Component DBusScreenManager::right_menu() {
+auto DBusScreenManager::right_menu() -> ftxui::Component {
   auto option = ftxui::MenuOption::Vertical();
-  option.on_enter = screen.ExitLoopClosure();
+  // option.on_enter = screen.ExitLoopClosure();
   return ftxui::Menu(&entries, &right_menu_selected, option);
 }
