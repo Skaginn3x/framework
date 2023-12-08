@@ -1,9 +1,9 @@
 #pragma once
 
-#include <type_traits> // required by mp-units
 #include <array>
 #include <cstddef>
 #include <string_view>
+#include <type_traits>  // required by mp-units
 
 #include <fmt/format.h>
 #include <mp-units/systems/si/si.h>
@@ -143,10 +143,13 @@ public:
   static constexpr auto reference{ dimension_t::reference };
   struct config {
     detail::tacho_config tacho{ detail::tacho_config::not_used };
-    dimension_t displacement_per_pulse{}; // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
+    dimension_t
+        displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
-      static constexpr auto value{ glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse) };
+      static constexpr auto value{
+        glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse)
+      };
     };
   };
 
@@ -194,23 +197,20 @@ public:
     dimension_t absolute_notification_position_{};
   };
 
-  auto notify_after([[maybe_unused]] dimension_t displacement, asio::completion_token_for<void()> auto&& token) -> decltype(auto) {
+  auto notify_after([[maybe_unused]] dimension_t displacement, asio::completion_token_for<void()> auto&& token)
+      -> decltype(auto) {
     // still yet to be implemented
     // I would suggest making a struct instead of the lambda below, to store extra stuff if needed
     // needs to be embedded into the notifications vector so the vector can complete the async operation
-    notifications_.emplace_back({ displacement + absolute_position_ }); // todo
+    notifications_.emplace_back({ displacement + absolute_position_ });  // todo
     // std::sort(notifications_); // sort by absolute position
-    return asio::async_compose<decltype(token), void()>([](auto& self){}, std::forward<decltype(token)>(token), ctx_);
+    return asio::async_compose<decltype(token), void()>([](auto& self) {}, std::forward<decltype(token)>(token), ctx_);
   }
 
   // Might be useful for homing sequences to grab the current position
   // Please note the resolution
-  [[nodiscard]] dimension_t position() const noexcept {
-    return absolute_position_;
-  }
-  [[nodiscard]] dimension_t resolution() const noexcept {
-    return config_->displacement_per_pulse;
-  }
+  [[nodiscard]] dimension_t position() const noexcept { return absolute_position_; }
+  [[nodiscard]] dimension_t resolution() const noexcept { return config_->displacement_per_pulse; }
 
 private:
   std::string name_;
