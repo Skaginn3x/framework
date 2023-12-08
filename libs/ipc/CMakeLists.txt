@@ -43,9 +43,7 @@ target_include_directories(ipc PRIVATE ${PCG_INCLUDE_DIRS})
 
 add_library_to_docs(tfc::ipc)
 
-if (BUILD_TESTING)
-  add_subdirectory(testing)
-endif ()
+add_subdirectory(testing)
 
 include(tfc_install)
 tfc_install_lib(ipc)
