@@ -16,7 +16,7 @@ target_include_directories(configure_options
 configure_file(${CMAKE_CURRENT_LIST_DIR}/dbus-tfc.conf.in ${CMAKE_CURRENT_BINARY_DIR}/generated/tfc.conf)
 
 include(tfc_install)
-tfc_install_lib(configure_options)
+tfc_install_lib_impl(configure_options ${CMAKE_CURRENT_BINARY_DIR}/inc/public/)
 
 if (${CMAKE_INSTALL_PREFIX} MATCHES "^\/usr")
   include(GNUInstallDirs)
