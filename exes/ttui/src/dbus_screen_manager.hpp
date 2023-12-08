@@ -2,22 +2,21 @@
 
 #pragma once
 
-#include "ftxui/component/captured_mouse.hpp" // for ftxui
-#include "ftxui/component/component.hpp"      // for Menu, Renderer, ScreenInteractive
-#include "ftxui/component/component_options.hpp" // for MenuOption
-#include "ftxui/component/loop.hpp"           // for Loop
-#include "ftxui/component/screen_interactive.hpp" // for ScreenInteractive
+#include <boost/asio.hpp>
+#include <boost/program_options.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/bus/match.hpp>
-#include <boost/program_options.hpp>
-#include <boost/asio.hpp>
-#include <vector>
-#include <variant>
 #include <string>
+#include <variant>
+#include <vector>
+#include "ftxui/component/captured_mouse.hpp"      // for ftxui
+#include "ftxui/component/component.hpp"           // for Menu, Renderer, ScreenInteractive
+#include "ftxui/component/component_options.hpp"   // for MenuOption
+#include "ftxui/component/loop.hpp"                // for Loop
+#include "ftxui/component/screen_interactive.hpp"  // for ScreenInteractive
 
 namespace asio = boost::asio;
 namespace po = boost::program_options;
-
 
 class DBusScreenManager {
 public:
@@ -52,7 +51,7 @@ private:
       std::string result;
       for (const auto& elem : v) {
         if (!result.empty()) {
-          result += ", "; // Delimiter between elements
+          result += ", ";  // Delimiter between elements
         }
         result += elem;
       }

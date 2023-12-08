@@ -5,8 +5,7 @@
 #include <sdbusplus/bus/match.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 
-DBusScreenManager::DBusScreenManager() : screen(ftxui::ScreenInteractive::TerminalOutput()) {
-}
+DBusScreenManager::DBusScreenManager() : screen(ftxui::ScreenInteractive::TerminalOutput()) {}
 
 void DBusScreenManager::Run() {
   SetupComponents();
@@ -21,39 +20,35 @@ void DBusScreenManager::Run() {
 void DBusScreenManager::SetupComponents() {
   right_menuz = right_menu();
   left_menuz = left_menu();
-  container = ftxui::Container::Horizontal({left_menuz, right_menuz});
+  container = ftxui::Container::Horizontal({ left_menuz, right_menuz });
   renderer = Renderer(container, [&] {
     return ftxui::vbox({
-        // -------- Top panel --------------
-        ftxui::hbox({
-            // -------- Left Menu --------------
-            ftxui::vbox({
-                ftxui::hcenter(ftxui::bold(ftxui::text("Percentage by 10%"))),
-                ftxui::separator(),
-                left_menuz->Render(),
-            }),
-            ftxui::separator(),
-            // -------- Right Menu --------------
-            ftxui::vbox({
-                ftxui::hcenter(ftxui::bold(ftxui::text("Percentage by 1%"))),
-                ftxui::separator(),
-                right_menuz->Render(),
-            }) | ftxui::flex,
-            ftxui::separator(),
-        }),
-    }) |
-    ftxui::border | ftxui::flex;
+               // -------- Top panel --------------
+               ftxui::hbox({
+                   // -------- Left Menu --------------
+                   ftxui::vbox({
+                       ftxui::hcenter(ftxui::bold(ftxui::text("Percentage by 10%"))),
+                       ftxui::separator(),
+                       left_menuz->Render(),
+                   }),
+                   ftxui::separator(),
+                   // -------- Right Menu --------------
+                   ftxui::vbox({
+                       ftxui::hcenter(ftxui::bold(ftxui::text("Percentage by 1%"))),
+                       ftxui::separator(),
+                       right_menuz->Render(),
+                   }) | ftxui::flex,
+                   ftxui::separator(),
+               }),
+           }) |
+           ftxui::border | ftxui::flex;
   });
 }
 
 void DBusScreenManager::SetupDBusConnection() {
-  connection =
-     std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system_mon());
-  match = std::make_unique<sdbusplus::bus::match::match>(
-    *connection,
-    "",
-    [this](sdbusplus::message_t& msg) { this->match_callback(msg); }
-);
+  connection = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system_mon());
+  match = std::make_unique<sdbusplus::bus::match::match>(*connection, "",
+                                                         [this](sdbusplus::message_t& msg) { this->match_callback(msg); });
   auto mc = connection->new_method_call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus.Monitoring",
                                         "BecomeMonitor");
   mc.append<std::vector<std::string>, uint32_t>({ "path=/com/skaginn3x/Signals" }, 0);
@@ -63,7 +58,6 @@ void DBusScreenManager::SetupDBusConnection() {
       throw std::runtime_error(reply.get_error()->message);
     throw std::runtime_error("Unknown error");
   }
-
 }
 
 void DBusScreenManager::match_callback(sdbusplus::message_t& msg) {
@@ -98,16 +92,16 @@ void DBusScreenManager::match_callback(sdbusplus::message_t& msg) {
 }
 
 auto DBusScreenManager::left_menu() -> ftxui::Component {
-    auto option = ftxui::MenuOption::Vertical();
+  auto option = ftxui::MenuOption::Vertical();
 
-    option.on_enter = [this] {
-      std::string current_value = std::visit(VariantToString(), values[left_menu_selected]);
-      entries = { current_value };
-      right_menuz->TakeFocus();
-      screen.Post(ftxui::Event::Custom);
-    };
+  option.on_enter = [this] {
+    std::string current_value = std::visit(VariantToString(), values[left_menu_selected]);
+    entries = { current_value };
+    right_menuz->TakeFocus();
+    screen.Post(ftxui::Event::Custom);
+  };
 
-    return ftxui::Menu(&noticed_interfaces, &left_menu_selected, option);
+  return ftxui::Menu(&noticed_interfaces, &left_menu_selected, option);
 }
 
 auto DBusScreenManager::right_menu() -> ftxui::Component {
