@@ -188,9 +188,13 @@ inline auto transition(states_e current_state, bool run, bool quick_stop) -> con
       if (quick_stop) {
         return commands::quick_stop();
       }
-      if (!run) {
+      if (freewheel_stop) {
         return commands::disable_voltage();  // Freewheel stop
       }
+      if (!run) {
+        return commands::shutdown();
+      }
+
       return commands::enable_operation();
     case states_e::fault:
       return commands::fault_reset();
