@@ -45,7 +45,7 @@ struct dbus_iface {
           dbus_interface_->signal_property(connected_peer);
         }
         timeout_.cancel();
-        timeout_.expires_after(std::chrono::seconds(100));  // TODO: make this 750ms, send pings every 300ms
+        timeout_.expires_after(std::chrono::milliseconds(750));
         timeout_.async_wait([this](std::error_code err) {
           if (err)
             return;                             // The timer was canceled or deconstructed.
