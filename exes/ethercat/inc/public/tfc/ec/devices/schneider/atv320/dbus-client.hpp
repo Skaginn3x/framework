@@ -1,7 +1,4 @@
 /*
-  An interface to allow programs rpc control of the ATV320 drive.
-  This is a dbus interface and is more "in depth" then the simple
-  ipc-run and speed interface.
 */
 #pragma once
 
@@ -21,7 +18,7 @@ namespace asio = boost::asio;
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
-struct dbus_iface {
+struct dbus_client {
   // Properties
   static constexpr std::string connected_peer = "connected_peer";
   static constexpr std::string frequency = "frequency";

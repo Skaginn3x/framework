@@ -189,7 +189,7 @@ public:
 
     [[maybe_unused]] auto state = in->status.parse_state();
 
-    out->ctrl_word = cia_402::transition(state, true, false);
+    out->ctrl_word = cia_402::transition(state, true, false, false);
 
     out->velocity.value = 100;  // todo
   }

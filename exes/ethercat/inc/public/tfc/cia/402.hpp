@@ -174,7 +174,7 @@ static_assert(sizeof(status_word) == 2);
  * @param quick_stop if the drive should be placed in quick_stop mode.
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-inline auto transition(states_e current_state, bool run, bool quick_stop) -> control_word {
+inline auto transition(states_e current_state, bool run, bool quick_stop, bool freewheel_stop) -> control_word {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands::shutdown();

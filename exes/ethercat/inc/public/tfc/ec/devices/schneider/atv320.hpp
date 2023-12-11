@@ -160,7 +160,7 @@ public:
       const bool quick_stop = reference_frequency_.value == 0 * dHz;
 
       auto state = in->status_word.parse_state();
-      out->control = tfc::ec::cia_402::transition(state, ipc_running_, quick_stop);
+      out->control = cia_402::transition(state, ipc_running_, quick_stop, false);
 
       // Reverse bit is bit 11 of control word from
       // https://iportal2.schneider-electric.com/Contents/docs/SQD-ATV320U11N4C_USER%20GUIDE.PDF
