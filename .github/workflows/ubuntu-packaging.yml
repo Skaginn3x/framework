@@ -81,6 +81,7 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.deb
+          retention-days: 1
 
       - name: Upload Release deb file
         if: github.event_name == 'release' && github.event.action == 'created'
@@ -99,6 +100,8 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.rpm
+          retention-days: 1
+
 
       - name: Upload Release rpm file
         if: github.event_name == 'release' && github.event.action == 'created'
@@ -117,6 +120,8 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.tar.gz
+          retention-days: 1
+
 
       - name: Upload Release tar file
         if: github.event_name == 'release' && github.event.action == 'created'
