@@ -9,6 +9,8 @@
 #include <fmt/chrono.h>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/dbus/sd_bus.hpp>
+#include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -21,6 +23,7 @@ using std::chrono::nanoseconds;
 template <size_t pdo_buffer_size = 4096>
 class context_t {
 public:
+  static constexpr std::string_view dbus_name{ "ethercat" };
   // There is support in SOEM and ethercat to split
   // your network into groups. There can even be
   // Many processing loops operating on the same
@@ -33,6 +36,9 @@ public:
 
   explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
       : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
+    dbus_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
+    //dbus_->request_name(dbus::const_dbus_name<dbus_name>.data());
+    dbus_->request_name("com.skaginn3x.ethercat");
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -116,7 +122,7 @@ public:
     // Attach the callback to each slave
     for (size_t i = 1; i <= slave_count(); i++) {
       slaves_.emplace_back(
-          devices::get(ctx_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
+          devices::get(dbus_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
       slaves_.back()->set_sdo_write_cb([this, i](ecx::index_t idx, ecx::complete_access_t acc, std::span<std::byte> data,
                                                  std::chrono::microseconds microsec) -> ecx::working_counter_t {
         return ecx::sdo_write(&context_, static_cast<uint16_t>(i), idx, acc, data, microsec);
@@ -366,6 +372,7 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
+  std::shared_ptr<sdbusplus::asio::connection> dbus_;
 };
 
 // Template deduction guide

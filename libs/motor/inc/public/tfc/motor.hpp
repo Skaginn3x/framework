@@ -1,5 +1,6 @@
 #include <concepts>
 #include <type_traits>
+#include <experimental/type_traits>
 #include <variant>
 
 #include <mp-units/systems/isq/isq.h>
@@ -9,7 +10,7 @@
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/motors/errors.hpp>
-#include <tfc/motors/ethercat.hpp>
+#include <tfc/motors/atv320motor.hpp>
 #include <tfc/motors/virtual_motor.hpp>
 
 /**
@@ -28,7 +29,7 @@ using SpeedRatio = mp_units::ratio;
 class interface {
 public:
   using config_t = confman::observable<
-      std::variant<std::monostate, types::virtual_motor::config_t>>;  // , types::ethercat_motor::config_t>;
+      std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
   explicit interface(asio::io_context& ctx, std::string_view name, config_t default_config = {})
       : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
@@ -78,10 +79,10 @@ public:
   [[nodiscard]] auto convey() -> std::error_code {
     return std::visit(
         [](auto& motor_impl_) -> std::error_code {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.convey();
-          } else {
+          if constexpr (std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
             return motor_error(errors::err_enum::no_motor_configured);
+          } else if constexpr (!std::is_invocable_v<decltype(motor_impl_)>) {
+            return motor_impl_.convey();
           }
         },
         impl_);
@@ -229,7 +230,7 @@ private:
   asio::io_context& ctx_;
 
   // TODO(omarhogni): Implement convey and move over ethercat motor
-  using implementations = std::variant<std::monostate, types::virtual_motor>;  //, types::ethercat_motor>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>;
   implementations impl_;
   confman::config<config_t> config_;
   logger::logger logger_;

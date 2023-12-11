@@ -149,6 +149,7 @@ public:
     logger_.trace("move({});", length);
     if (!config_.nominal) {
       cb(motor_error(errors::err_enum::motor_missing_speed_reference));
+      return;
     }
     auto duration = length / config_.nominal.value();
     auto timer = std::make_shared<asio::steady_timer>(ctx_);

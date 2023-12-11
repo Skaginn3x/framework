@@ -96,13 +96,13 @@ public:
 
   using config_t = tfc::confman::config<confman::observable<atv_config>>;
 
-  explicit device(boost::asio::io_context& ctx, manager_client_type& client, uint16_t slave_index)
-      : base(slave_index), run_(ctx,
+  explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_type& client, uint16_t slave_index)
+      : base(slave_index), run_(connection->get_io_context(),
                                 client,
                                 fmt::format("atv320.s{}.run", slave_index),
                                 "Turn on motor",
                                 [this](bool value) { ipc_running_ = value; }),
-        ratio_(ctx,
+        ratio_(connection->get_io_context(),
                client,
                fmt::format("atv320.s{}.ratio", slave_index),
                "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
@@ -111,16 +111,16 @@ public:
                  reference_frequency_ = detail::percentage_to_deci_freq(
                      value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
                }),
-        frequency_transmit_(ctx, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
-        hmis_transmitter_(ctx, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ ctx, fmt::format("atv320_i{}", slave_index) }, dbus_iface_(ctx) {
+        frequency_transmit_(connection->get_io_context(), client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
+        hmis_transmitter_(connection->get_io_context(), client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
+        config_{ connection->get_io_context(), fmt::format("atv320_i{}", slave_index) }, dbus_iface_(connection, slave_index) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
     });
     for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(
-          tfc::ipc::bool_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
+          tfc::ipc::bool_signal(connection->get_io_context(), client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
     }
     // TODO: Design a sane method for transmitting analog signals in event based enviorments
     // for (size_t i = 0; i < 2; i++) {

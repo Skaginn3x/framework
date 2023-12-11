@@ -28,15 +28,13 @@ struct dbus_iface {
   static constexpr std::string state_402 = "state_402";
   static constexpr std::string hmis = "hmis";
 
-  dbus_iface(asio::io_context& ctx) : ctx_(ctx), timeout_(ctx_) {
+  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id) : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{slave_id} {
     sd_bus* bus = nullptr;
     if (sd_bus_open_system(&bus) < 0) {
       throw std::runtime_error(std::string{ "Unable to open sd-bus, error: " } + strerror(errno));
     }
-    connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, bus);
-    connection_->request_name("com.skaginn3x.atv320");
-    object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_, false);
-    dbus_interface_ = object_server_->add_unique_interface("/com/skaginn3x/atvmotor", "com.skaginn3x.atvmotor");
+    object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection, false);
+    dbus_interface_ = object_server_->add_unique_interface(fmt::format("/com/skaginn3x/atvmotor{}", slave_id), "com.skaginn3x.atvmotor");
     dbus_interface_->register_method("ping", [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
       bool new_peer = incoming_peer != peer_;
@@ -125,7 +123,6 @@ struct dbus_iface {
     return cia_402::transition(status_word_.parse_state(), op_enable_, quick_stop_, false);
   }
   asio::io_context& ctx_;
-  std::shared_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   asio::steady_timer timeout_;
@@ -136,6 +133,8 @@ struct dbus_iface {
   bool op_enable_{false};
   double speed_ratio_{0.0};
   cia_402::status_word status_word_{};
+
+  const uint16_t slave_id_;
 
   /**
    * \brief has_peer

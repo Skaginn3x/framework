@@ -25,6 +25,8 @@ class motor_error_category_t : public std::error_category{ [[nodiscard]] auto na
       return "Motor msing home reference";
     case motor_missing_speed_reference:
       return "Motor missing speed reference";
+    case motor_not_implemented:
+      return "Motor function not implemented";
   }
   return "unknown error: " + std::to_string(error);
 }
