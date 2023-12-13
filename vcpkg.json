@@ -2,12 +2,10 @@
   "name": "tfc-framework",
   "version": "2023.11.1",
   "dependencies": [
-
     {
       "name": "async-mqtt",
       "version>=": "4.0.0"
     },
-
     "azmq",
     "bext-sml",
     "bext-ut",
