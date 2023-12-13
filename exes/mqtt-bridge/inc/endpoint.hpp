@@ -27,9 +27,11 @@ class endpoint_client {
 public:
   explicit endpoint_client(asio::io_context& ctx, structs::ssl_active_e input_ssl) : io_ctx_(ctx) {
     if (input_ssl == structs::ssl_active_e::yes) {
-      mqtts_client_.emplace(async_mqtt::protocol_version::v5, ctx.get_executor(), tls_ctx_);
+      mqtts_client_ = async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>::create(
+          async_mqtt::protocol_version::v5, ctx.get_executor(), tls_ctx_);
     } else {
-      mqtt_client_.emplace(async_mqtt::protocol_version::v5, ctx.get_executor());
+      mqtt_client_ = async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>::create(
+          async_mqtt::protocol_version::v5, ctx.get_executor());
     }
   }
 
@@ -107,8 +109,8 @@ public:
 private:
   asio::io_context& io_ctx_;
   async_mqtt::tls::context tls_ctx_{ async_mqtt::tls::context::tlsv12 };
-  std::optional<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client_;
-  std::optional<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>> mqtts_client_;
+  std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>> mqtt_client_;
+  std::shared_ptr<async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>> mqtts_client_;
 };
 
 }  // namespace tfc::mqtt
