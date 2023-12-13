@@ -5,7 +5,7 @@
 
 using mp_units::quantity;
 using mp_units::si::unit_symbols::mm;
-using tfc::motor::detail::tacho_config;
+using tfc::motor::detail::tacho_config_e;
 
 namespace asio = boost::asio;
 
@@ -13,25 +13,25 @@ class single_tacho_config_mock {
 public:
   single_tacho_config_mock(asio::io_context&, std::string_view) {}
 
-  tacho_config tacho{ tacho_config::one_tacho };
+  tacho_config_e tacho{ tacho_config_e::one_tacho };
   quantity<mm> displacement_per_pulse{ 1 * mm };
 
   // Overload the dereference operator
-  single_tacho_config_mock* operator->() { return this; }
+  auto operator->() -> const single_tacho_config_mock* { return this; }
 };
 
 class double_tacho_config_mock {
 public:
   double_tacho_config_mock(asio::io_context&, std::string_view) {}
 
-  tacho_config tacho{ tacho_config::two_tacho };
+  tacho_config_e tacho{ tacho_config_e::two_tacho };
   quantity<mm> displacement_per_pulse{ 1 * mm };
 
   // Overload the dereference operator
-  double_tacho_config_mock* operator->() { return this; }
+  auto operator->() -> const double_tacho_config_mock* { return this; }
 };
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
   using boost::ut::operator""_test;
   using boost::ut::expect;
   using mp_units::si::unit_symbols::mm;
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
   "test callback function"_test = [] {
     std::int64_t callback_counter = 0;
 
-    std::function<void(std::int64_t)> callback{ [&callback_counter](std::int64_t) { callback_counter++; } };
+    std::function<void(std::int64_t)> const callback{ [&callback_counter](std::int64_t) { callback_counter++; } };
 
     double_tachometer tacho{ callback };
 
@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
   "test positioner"_test = [] {
     asio::io_context io_context{};
     tfc::ipc_ruler::ipc_manager_client_mock ipc_manager_client{ io_context };
-    single_tacho_positioner positioner{ io_context, ipc_manager_client, "positioner_name" };
+    single_tacho_positioner const positioner{ io_context, ipc_manager_client, "positioner_name" };
 
     expect(positioner.position() == 0 * mm);
 
@@ -241,9 +241,9 @@ int main(int argc, char** argv) {
 
     std::function<void(quantity<mm>)> callback{ [&callback_counter](quantity<mm>) { callback_counter++; } };
 
-    quantity<mm> position_1mm{ 1 * mm };
-    quantity<mm> position_2mm{ 2 * mm };
-    quantity<mm> position_3mm{ 3 * mm };
+    quantity<mm> const position_1mm{ 1 * mm };
+    quantity<mm> const position_2mm{ 2 * mm };
+    quantity<mm> const position_3mm{ 3 * mm };
 
     positioner.notify_after(position_3mm, callback);
     positioner.notify_after(position_2mm, callback);
@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
     asio::io_context io_context{};
     tfc::ipc_ruler::ipc_manager_client_mock ipc_manager_client{ io_context };
 
-    double_tacho_positioner positioner{ io_context, ipc_manager_client, "positioner_name" };
+    double_tacho_positioner const positioner{ io_context, ipc_manager_client, "positioner_name" };
 
     io_context.run_for(milliseconds(5));
 
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     mock_bool_signal signal_a{ io_context, ipc_manager_client, "tacho_signal_a" };
     io_context.run_for(milliseconds(5));
 
-    mock_bool_signal signal_b{ io_context, ipc_manager_client, "tacho_signal_b" };
+    mock_bool_signal const signal_b{ io_context, ipc_manager_client, "tacho_signal_b" };
     io_context.run_for(milliseconds(5));
 
     ipc_manager_client.connect(ipc_manager_client.slots_[0].name, signal_a.full_name(), [](std::error_code) {});
