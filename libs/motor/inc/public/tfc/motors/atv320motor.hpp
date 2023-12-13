@@ -127,24 +127,28 @@ public:
   }
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
+      logger_.trace("TIME: {}", time);
     auto sanity_check = motor_seems_valid();
     if(sanity_check) {
       cb(sanity_check);
       return;
     }
-    connection_->async_method_call([&](const std::error_code& err, bool response) {
+    connection_->async_method_call([this, time = time, cb = cb](const std::error_code& err, bool response) {
       if (err || !response) {
         logger_.error("connect_to_motor: {}", err.message());
         cb(motor_error(errors::err_enum::motor_general_error));
+        return;
       }
       auto timer = std::make_shared<asio::steady_timer>(ctx_);
       timer->expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
-      timer->async_wait([&, timer = timer](const std::error_code& err) {
+      logger_.trace("TIME: {}", time);
+      timer->async_wait([this, timer = timer, cb = cb](const std::error_code& err) {
         if (err) return;
         connection_->async_method_call([&](const std::error_code& err, bool response) {
           if (err || !response) {
             logger_.error("connect_to_motor: {}", err.message());
             cb(motor_error(errors::err_enum::motor_general_error));
+            return;
           }
           cb({});
         }, "com.skaginn3x.ethercat", fmt::format("/com/skaginn3x/atvmotor{}", slave_id_),"com.skaginn3x.atvmotor", "stop");
