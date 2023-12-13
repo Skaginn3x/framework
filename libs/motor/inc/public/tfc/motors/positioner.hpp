@@ -185,20 +185,21 @@ public:
       case one_tacho: {
         single_tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
         tacho_a_.emplace(ctx_, client_, fmt::format("tacho_{}", name_),
-                        "Tachometer input, usually induction sensor directed to rotational metal star or ring of screws.",
-                        [this](bool val) { this->single_tacho_->tacho_update(val); });
+                         "Tachometer input, usually induction sensor directed to rotational metal star or ring of screws.",
+                         [this](bool val) { this->single_tacho_->tacho_update(val); });
         break;
       }
       case two_tacho: {
         double_tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
-        tacho_a_.emplace(ctx_, client_, fmt::format("tacho_a_{}", name_),
-                        "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
-                        "star og ring of screws.",
-                        [this](bool val) { this->double_tacho_->first_tacho_update(val); });
+        tacho_a_.emplace(
+            ctx_, client_, fmt::format("tacho_a_{}", name_),
+            "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
+            "star og ring of screws.",
+            [this](bool val) { this->double_tacho_->first_tacho_update(val); });
         tacho_b_.emplace(ctx_, client_, fmt::format("tacho_b_{}", name_),
-                        "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
-                        "metal star og ring of screws.",
-                        [this](bool val) { this->double_tacho_->second_tacho_update(val); });
+                         "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
+                         "metal star og ring of screws.",
+                         [this](bool val) { this->double_tacho_->second_tacho_update(val); });
         break;
       }
     }
