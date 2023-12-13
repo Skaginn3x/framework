@@ -1,21 +1,21 @@
 #pragma once
 
-#include <array>
-#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <functional>
+#include <optional>
 #include <string_view>
-#include <type_traits>  // required by mp-units
+#include <utility>
+#include <algorithm>
+#include <vector>
 
 #include <fmt/format.h>
-#include <mp-units/quantity.h>
-#include <mp-units/systems/si/si.h>
 #include <mp-units/systems/si/unit_symbols.h>
 #include <boost/asio.hpp>
 #include <glaze/core/common.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
-#include <tfc/logger.hpp>
-#include <tfc/stx/concepts.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::detail {
@@ -158,8 +158,8 @@ struct double_tachometer {
 
 }  // namespace detail
 
-using namespace mp_units;
 using mp_units::si::unit_symbols::mm;
+using mp_units::quantity;
 
 struct config {
   detail::tacho_config tacho{ detail::tacho_config::not_used };
@@ -247,7 +247,6 @@ private:
   std::string name_;
   asio::io_context& ctx_;
   ipc_client_t& client_;
-  // logger::logger logger_{ name_ };
   config_t config_{ ctx_, fmt::format("positioner_{}", name_) };
   std::optional<detail::single_tachometer> single_tacho_{};
   std::optional<detail::double_tachometer> double_tacho_{};
