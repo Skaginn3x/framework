@@ -19,5 +19,42 @@ int main(int argc, char** argv) {
     expect(buff.front() == len + len - 1) << buff.front();
   };
 
+  /// These are the tests for the tachometer
+  /// Only one value can be updated at a time
+  ///	new	new	old	old
+  ///	pin1    pin2    pin1    pin2    Result
+  ///	----	----	----	----	------
+  ///	0       0	0       0	no movement
+  ///	1       0	0       0	-1
+  ///	0       1	0       0	+1
+  ///	0       0	1       0	+1
+  ///	0       0	0       1	-1
+  ///	1       0	1       0	no movement
+  ///	1       0	1       1	+1
+  ///	0       1	0       1	no movement
+  ///	0       1	1       1	-1
+  ///	1       1	1       0	-1
+  ///	1       1	0       1	+1
+  ///	1       1	1       1	no movement
+
+  ///	0   0   |   0   0   ->  no movement
+  "tachometer: 0"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    expect(tacho.position_ == 0);
+
+    tacho.first_tacho_update(false);
+    tacho.second_tacho_update(false);
+
+    expect(tacho.position_ == 0);
+  };
+
+  ///	0   1   |   0   0   ->  -1
+  "tachometer: -1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == -1);
+  };
+
   return EXIT_SUCCESS;
 }
