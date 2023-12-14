@@ -12,12 +12,8 @@ using mp_units::si::unit_symbols::mm;
 class double_tacho_config_mock {
 public:
   double_tacho_config_mock(asio::io_context&, std::string_view) {}
-
-  // using tfc::motor::detail::tacho_config;
   tfc::motor::detail::tacho_config tacho{ tfc::motor::detail::tacho_config::two_tacho };
   mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> displacement_per_pulse{ 1 * mm };
-  // quantity<mm>
-
   // Overload the dereference operator
   auto operator->() -> const double_tacho_config_mock* { return this; }
 };
@@ -195,7 +191,7 @@ int main(int argc, char** argv) {
     mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_2mm{ 2 * mm };
     mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_3mm{ 3 * mm };
 
-    std::function<void()> callback{ [&callback_counter]() { callback_counter++; } };
+    std::function<void()> const callback{ [&callback_counter]() { callback_counter++; } };
 
     positioner.notify_after(position_3mm, callback);
     positioner.notify_after(position_2mm, callback);

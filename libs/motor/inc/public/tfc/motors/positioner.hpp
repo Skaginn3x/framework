@@ -1,7 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <functional>
+#include <optional>
 #include <string_view>
 #include <type_traits>  // required by mp-units
 
@@ -219,9 +222,8 @@ struct double_tachometer {
 
 template <mp_units::Quantity dimension_t = mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>>
 struct config {
-  // detail::tacho_config tacho{ detail::tacho_config::not_used };
-  detail::tacho_config tacho{ detail::tacho_config::two_tacho };
-  dimension_t displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
+  detail::tacho_config tacho{ detail::tacho_config::not_used };
+  dimension_t displacement_per_pulse{ 1 * mp_units::si::unit_symbols::mm };
   struct glaze {
     static constexpr std::string_view name{ "positioner_config" };
     static constexpr auto value{
@@ -252,38 +254,28 @@ public:
       }
       case two_tacho: {
         double_tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
-
         tacho_a_.emplace(
             ctx_, client_, fmt::format("tacho_a_{}", name_),
             "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
             "star og ring of screws.",
-            [this](bool val) {
-          this->double_tacho_->first_tacho_update(val); });
+            [this](bool val) { this->double_tacho_->first_tacho_update(val); });
         tacho_b_.emplace(ctx_, client_, fmt::format("tacho_b_{}", name_),
                          "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
                          "metal star og ring of screws.",
-                         [this](bool val) {
-          this->double_tacho_->second_tacho_update(val); });
+                         [this](bool val) { this->double_tacho_->second_tacho_update(val); });
         break;
       }
     }
   }
 
+  /// Tachometer should call this function every time it increments/decrements its position
   void tick(std::int64_t tachometer_counts) {
-    // tachometer should call this function every time it increments/decrements its position
-    // this function should not do much work
     absolute_position_ = config_->displacement_per_pulse * tachometer_counts;
-    if (notifications_.empty()) {
-      return;
-    }
-    // recursive call to notifications to propagate events
-    // need to subtract notifications_.front().absolute_notification_position_ from absolute_position_
-    // and compare to displacement_per_pulse, if it is in range, call the notification
-    // or better yet make a timer and call the notification when timer expires
     notify();
   }
 
   /// Check if any notifiers need to be notified
+  /// If their position is equal to or further than the current absolute position then notify
   auto notify() -> void {
     while (true) {
       if (notifications_.empty()) {
@@ -301,6 +293,7 @@ public:
     }
   }
 
+  /// Maintain information about when notifiers should be notified and their respective callbacks
   struct notification {
     dimension_t absolute_notification_position_{};
     std::function<void()> completion_handler;
@@ -310,12 +303,8 @@ public:
   };
 
   auto notify_after(dimension_t displacement, std::function<void()> callback) -> void {
-    // auto handler = [callback, displacement]() { callback(displacement); };
-
-    // Store the handler in the notification struct
     notifications_.emplace_back(displacement + absolute_position_, std::move(callback));
-
-    // Sort notifications
+    /// Sort by absolute position so that we can easily check if we need to notify
     std::sort(notifications_.begin(), notifications_.end(), sort_notifications);
   }
 
@@ -338,8 +327,7 @@ private:
   std::optional<detail::double_tachometer<>> double_tacho_{};
   std::optional<ipc::slot<ipc::details::type_bool, ipc_client_t>> tacho_a_{};
   std::optional<ipc::slot<ipc::details::type_bool, ipc_client_t>> tacho_b_{};
-  // todo overflow
-  // in terms of conveyors, mm resolution, this would overflow when you have gone 1800 trips to Pluto back and forth
+  /// In terms of conveyors, mm resolution, this would overflow when you have gone 1800 trips to Pluto back and forth
   dimension_t absolute_position_{};
   std::vector<notification> notifications_{};
 };
