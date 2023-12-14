@@ -105,25 +105,57 @@ struct tachometer {
   */
 
   void first_tacho_update(bool first_new_val) noexcept {
+    if (buffer_.front().first_tacho_state) {
+      if (buffer_.front().second_tacho_state) {
+        if (!first_new_val) {
+          position_ -= 1;
+        }
+      } else {
+        if (!first_new_val) {
+          position_ += 1;
+        }
+      }
+    } else {
+      if (buffer_.front().second_tacho_state) {
+        if (first_new_val) {
+          position_ += 1;
+        }
+      } else {
+        if (first_new_val) {
+          position_ -= 1;
+        }
+      }
+    }
+
     auto now{ time_point_t::clock::now() };
     buffer_.emplace(first_new_val, buffer_.front().second_tacho_state, now);
-    if (!first_new_val) {
-      // let's only count rising edges
-      return;
-    }
-    position_ += (buffer_.front().second_tacho_state ? -1 : 1);
-    // asio::post call owner with updated position
   }
+
   void second_tacho_update(bool second_new_val) noexcept {
+    if (buffer_.front().first_tacho_state) {
+      if (buffer_.front().second_tacho_state) {
+        if (!second_new_val) {
+          position_ += 1;
+        }
+      } else {
+        if (second_new_val) {
+          position_ -= 1;
+        }
+      }
+    } else {
+      if (!buffer_.front().second_tacho_state) {
+        if (second_new_val) {
+          position_ += 1;
+        }
+      } else {
+        if (!second_new_val) {
+          position_ -= 1;
+        }
+      }
+    }
+
     auto now{ time_point_t::clock::now() };
     buffer_.emplace(buffer_.front().first_tacho_state, second_new_val, now);
-    if (!second_new_val) {
-      // let's only count rising edges
-      return;
-    }
-    // Needs testing !!!
-    position_ += (buffer_.front().first_tacho_state ? 1 : -1);
-    // asio::post call owner with updated position
   }
 
   struct storage {

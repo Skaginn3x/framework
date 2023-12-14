@@ -37,7 +37,6 @@ int main(int argc, char** argv) {
   ///	1       1	0       1	+1
   ///	1       1	1       1	no movement
 
-  ///	0   0   |   0   0   ->  no movement
   "tachometer: 0"_test = [] {
     tfc::motor::detail::tachometer<> tacho{};
 
@@ -54,6 +53,116 @@ int main(int argc, char** argv) {
     tfc::motor::detail::tachometer<> tacho{};
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
+  };
+
+  ///	1   0   |   0   0   ->   +1
+  "tachometer: +1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == 1);
+  };
+
+  ///	0   0   |   0   1   ->   +1
+  "tachometer: +1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == -1);
+
+    tacho.first_tacho_update(false);
+    expect(tacho.position_ == 0);
+  };
+
+  ///	0   0   |   1   0   ->   -1
+  "tachometer: -1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == 1);
+
+    tacho.second_tacho_update(false);
+    expect(tacho.position_ == 0);
+  };
+
+  ///	0   1   |   0   1   ->   no movement
+  "tachometer: 0"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == -1);
+
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == -1);
+  };
+
+  ///	0   1   |   1   1   ->   +1
+  "tachometer: +1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.first_tacho_update(true);
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == -2) << tacho.position_;
+
+    tacho.second_tacho_update(false);
+    expect(tacho.position_ == -1);
+  };
+
+  ///	1   0   |   1   0   ->   no movement
+  "tachometer: 0"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == 1);
+
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == 1);
+  };
+
+  ///	1   0   |   1   1   ->   -1
+  "tachometer: -1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.first_tacho_update(true);
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == -2) << tacho.position_;
+
+    tacho.first_tacho_update(false);
+    expect(tacho.position_ == -3);
+  };
+
+  ///   1   1   |   0   1   ->   -1
+  "tachometer: -1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == -1) << tacho.position_;
+
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == -2) << tacho.position_;
+  };
+
+  ///   1   1   |   1   0   ->   +1
+  "tachometer: +1"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == 1) << tacho.position_;
+
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == 2) << tacho.position_;
+  };
+
+  ///   1   1   |   1   1   ->   no movement
+  "tachometer: 0"_test = [] {
+    tfc::motor::detail::tachometer<> tacho{};
+
+    tacho.first_tacho_update(true);
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == -2) << tacho.position_;
+
+    tacho.first_tacho_update(true);
+    tacho.second_tacho_update(true);
+    expect(tacho.position_ == -2) << tacho.position_;
   };
 
   return EXIT_SUCCESS;
