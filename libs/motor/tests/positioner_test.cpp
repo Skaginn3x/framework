@@ -37,27 +37,22 @@ int main(int argc, char** argv) {
     expect(buff.front() == len + len - 1) << buff.front();
   };
 
-  /// These are the tests for the tachometer
-  /// Only one value can be updated at a time
-  ///	new	new	old	old
-  ///	pin1    pin2    pin1    pin2    Result
-  ///	----	----	----	----	------
-  ///	0       0	0       0	no movement
-  ///	1       0	0       0	-1
-  ///	0       1	0       0	+1
-  ///	0       0	1       0	+1
-  ///	0       0	0       1	-1
-  ///	1       0	1       0	no movement
-  ///	1       0	1       1	+1
-  ///	0       1	0       1	no movement
-  ///	0       1	1       1	-1
-  ///	1       1	1       0	-1
-  ///	1       1	0       1	+1
-  ///	1       1	1       1	no movement
+  std::function<void(std::int64_t)> const empty_callback{ [](std::int64_t) {} };
 
-  "tachometer: 0"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer with single sensor"_test = [&empty_callback] {
+    tfc::motor::detail::single_tachometer<> tacho{ empty_callback };
+
+    expect(tacho.position_ == 0);
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == 1);
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == 2);
+    tacho.first_tacho_update(true);
+    expect(tacho.position_ == 3);
+  };
+
+  "tachometer: 0"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     expect(tacho.position_ == 0);
 
@@ -68,25 +63,22 @@ int main(int argc, char** argv) {
   };
 
   ///	0   1   |   0   0   ->  -1
-  "tachometer: -1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: -1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
   };
 
   ///	1   0   |   0   0   ->   +1
-  "tachometer: +1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: +1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1);
   };
 
   ///	0   0   |   0   1   ->   +1
-  "tachometer: +1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: +1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
@@ -96,9 +88,8 @@ int main(int argc, char** argv) {
   };
 
   ///	0   0   |   1   0   ->   -1
-  "tachometer: -1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: -1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1);
@@ -108,9 +99,8 @@ int main(int argc, char** argv) {
   };
 
   ///	0   1   |   0   1   ->   no movement
-  "tachometer: 0"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: 0"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
@@ -120,9 +110,8 @@ int main(int argc, char** argv) {
   };
 
   ///	0   1   |   1   1   ->   +1
-  "tachometer: +1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: +1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
@@ -133,9 +122,8 @@ int main(int argc, char** argv) {
   };
 
   ///	1   0   |   1   0   ->   no movement
-  "tachometer: 0"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: 0"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1);
@@ -145,9 +133,8 @@ int main(int argc, char** argv) {
   };
 
   ///	1   0   |   1   1   ->   -1
-  "tachometer: -1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: -1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
@@ -158,9 +145,8 @@ int main(int argc, char** argv) {
   };
 
   ///   1   1   |   0   1   ->   -1
-  "tachometer: -1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: -1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1) << tacho.position_;
@@ -170,9 +156,8 @@ int main(int argc, char** argv) {
   };
 
   ///   1   1   |   1   0   ->   +1
-  "tachometer: +1"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: +1"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1) << tacho.position_;
@@ -182,9 +167,8 @@ int main(int argc, char** argv) {
   };
 
   ///   1   1   |   1   1   ->   no movement
-  "tachometer: 0"_test = [] {
-    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
-    tfc::motor::detail::tachometer<> tacho{ callback };
+  "tachometer: 0"_test = [&empty_callback] {
+    tfc::motor::detail::double_tachometer<> tacho{ empty_callback };
 
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
@@ -211,9 +195,11 @@ int main(int argc, char** argv) {
     mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_2mm{ 2 * mm };
     mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_3mm{ 3 * mm };
 
-    positioner.notify_after(position_3mm, [&callback_counter](quantity<mm>) { callback_counter++; });
-    positioner.notify_after(position_2mm, [&callback_counter](quantity<mm>) { callback_counter++; });
-    positioner.notify_after(position_1mm, [&callback_counter](quantity<mm>) { callback_counter++; });
+    std::function<void()> callback{ [&callback_counter]() { callback_counter++; } };
+
+    positioner.notify_after(position_3mm, callback);
+    positioner.notify_after(position_2mm, callback);
+    positioner.notify_after(position_1mm, callback);
 
     expect(positioner.position() == 0 * mm);
 
@@ -236,6 +222,24 @@ int main(int argc, char** argv) {
 
     expect(positioner.position() == 1 * mm) << positioner.position().numerical_value_;
     expect(callback_counter == 1);
+
+    signal_a.send(true);
+    io_context.run_for(milliseconds(5));
+
+    expect(positioner.position() == 2 * mm) << positioner.position().numerical_value_;
+    expect(callback_counter == 2);
+
+    signal_b.send(false);
+    io_context.run_for(milliseconds(5));
+
+    expect(positioner.position() == 3 * mm) << positioner.position().numerical_value_;
+    expect(callback_counter == 3);
+
+    signal_a.send(false);
+    io_context.run_for(milliseconds(5));
+
+    expect(positioner.position() == 4 * mm) << positioner.position().numerical_value_;
+    expect(callback_counter == 3);
   };
 
   return EXIT_SUCCESS;
