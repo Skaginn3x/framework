@@ -5,8 +5,12 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '.github/workflows/ubuntu-packaging.yml'
+      - 'cmake/tfc_cpack.cmake'
   release:
     types: [ "created" ]
+  workflow_dispatch:
 
 env:
   CONFIGURATION_DIRECTORY: ${{ github.workspace }}
@@ -39,7 +43,7 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '/opt/vcpkg'
-          vcpkgGitCommitId: 'b6e73bd3dc8a8d061ee601336b8f43d2570a7080'
+          vcpkgGitCommitId: 'c8696863d371ab7f46e213d8f5ca923c4aef2a00'
           vcpkgJsonGlob: 'vcpkg.json'
 
       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
@@ -81,6 +85,7 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.deb
+          retention-days: 1
 
       - name: Upload Release deb file
         if: github.event_name == 'release' && github.event.action == 'created'
@@ -99,6 +104,8 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.rpm
+          retention-days: 1
+
 
       - name: Upload Release rpm file
         if: github.event_name == 'release' && github.event.action == 'created'
@@ -117,6 +124,8 @@ jobs:
         with:
           name: tfc-framework-${{matrix.build_type}}
           path: build/pack-*/*.tar.gz
+          retention-days: 1
+
 
       - name: Upload Release tar file
         if: github.event_name == 'release' && github.event.action == 'created'

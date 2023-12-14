@@ -2,7 +2,10 @@
   "name": "tfc-framework",
   "version": "2023.11.1",
   "dependencies": [
-    "async-mqtt",
+    {
+      "name": "async-mqtt",
+      "version>=": "4.0.0"
+    },
     "azmq",
     "bext-sml",
     "bext-ut",
@@ -13,7 +16,7 @@
     "fmt",
     {
       "name": "glaze",
-      "version>=": "1.8.4"
+      "version>=": "1.9.3"
     },
     "gtest",
     {
