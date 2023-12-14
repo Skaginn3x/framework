@@ -1,8 +1,26 @@
 #include <boost/ut.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/motors/positioner.hpp>
 #include <tfc/progbase.hpp>
 
 using namespace mp_units::si::unit_symbols;
+namespace asio = boost::asio;
+
+using mp_units::quantity;
+using mp_units::si::unit_symbols::mm;
+
+class double_tacho_config_mock {
+public:
+  double_tacho_config_mock(asio::io_context&, std::string_view) {}
+
+  // using tfc::motor::detail::tacho_config;
+  tfc::motor::detail::tacho_config tacho{ tfc::motor::detail::tacho_config::two_tacho };
+  mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> displacement_per_pulse{ 1 * mm };
+  // quantity<mm>
+
+  // Overload the dereference operator
+  auto operator->() -> const double_tacho_config_mock* { return this; }
+};
 
 int main(int argc, char** argv) {
   using boost::ut::operator""_test;
@@ -38,7 +56,8 @@ int main(int argc, char** argv) {
   ///	1       1	1       1	no movement
 
   "tachometer: 0"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     expect(tacho.position_ == 0);
 
@@ -50,21 +69,24 @@ int main(int argc, char** argv) {
 
   ///	0   1   |   0   0   ->  -1
   "tachometer: -1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
   };
 
   ///	1   0   |   0   0   ->   +1
   "tachometer: +1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1);
   };
 
   ///	0   0   |   0   1   ->   +1
   "tachometer: +1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
@@ -75,7 +97,8 @@ int main(int argc, char** argv) {
 
   ///	0   0   |   1   0   ->   -1
   "tachometer: -1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1);
@@ -86,7 +109,8 @@ int main(int argc, char** argv) {
 
   ///	0   1   |   0   1   ->   no movement
   "tachometer: 0"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1);
@@ -97,7 +121,8 @@ int main(int argc, char** argv) {
 
   ///	0   1   |   1   1   ->   +1
   "tachometer: +1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
@@ -109,7 +134,8 @@ int main(int argc, char** argv) {
 
   ///	1   0   |   1   0   ->   no movement
   "tachometer: 0"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1);
@@ -120,7 +146,8 @@ int main(int argc, char** argv) {
 
   ///	1   0   |   1   1   ->   -1
   "tachometer: -1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
@@ -132,7 +159,8 @@ int main(int argc, char** argv) {
 
   ///   1   1   |   0   1   ->   -1
   "tachometer: -1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.first_tacho_update(true);
     expect(tacho.position_ == -1) << tacho.position_;
@@ -143,7 +171,8 @@ int main(int argc, char** argv) {
 
   ///   1   1   |   1   0   ->   +1
   "tachometer: +1"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.second_tacho_update(true);
     expect(tacho.position_ == 1) << tacho.position_;
@@ -154,7 +183,8 @@ int main(int argc, char** argv) {
 
   ///   1   1   |   1   1   ->   no movement
   "tachometer: 0"_test = [] {
-    tfc::motor::detail::tachometer<> tacho{};
+    std::function<void(std::int64_t)> callback{ [](std::int64_t) {} };
+    tfc::motor::detail::tachometer<> tacho{ callback };
 
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
@@ -163,6 +193,49 @@ int main(int argc, char** argv) {
     tacho.first_tacho_update(true);
     tacho.second_tacho_update(true);
     expect(tacho.position_ == -2) << tacho.position_;
+  };
+
+  "test notifications and single tacho"_test = [] {
+    using mp_units::si::unit_symbols::mm;
+    using mp_units::quantity;
+
+    boost::asio::io_context io_context{};
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_manager_client{ io_context };
+    tfc::motor::positioner<mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>,
+                           tfc::ipc_ruler::ipc_manager_client_mock&, double_tacho_config_mock>
+        positioner{ io_context, ipc_manager_client, "positioner_name" };
+
+    std::int64_t callback_counter = 0;
+
+    mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_1mm{ 1 * mm };
+    mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_2mm{ 2 * mm };
+    mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t> const position_3mm{ 3 * mm };
+
+    positioner.notify_after(position_3mm, [&callback_counter](quantity<mm>) { callback_counter++; });
+    positioner.notify_after(position_2mm, [&callback_counter](quantity<mm>) { callback_counter++; });
+    positioner.notify_after(position_1mm, [&callback_counter](quantity<mm>) { callback_counter++; });
+
+    expect(positioner.position() == 0 * mm);
+
+    using mock_bool_signal = tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
+    using std::chrono::milliseconds;
+
+    mock_bool_signal signal_a{ io_context, ipc_manager_client, "tacho_signal_a" };
+    io_context.run_for(milliseconds(5));
+
+    mock_bool_signal signal_b{ io_context, ipc_manager_client, "tacho_signal_b" };
+    io_context.run_for(milliseconds(5));
+
+    ipc_manager_client.connect(ipc_manager_client.slots_[0].name, signal_a.full_name(), [](std::error_code) {});
+    ipc_manager_client.connect(ipc_manager_client.slots_[1].name, signal_b.full_name(), [](std::error_code) {});
+
+    io_context.run_for(milliseconds(5));
+
+    signal_b.send(true);
+    io_context.run_for(milliseconds(5));
+
+    expect(positioner.position() == 1 * mm) << positioner.position().numerical_value_;
+    expect(callback_counter == 1);
   };
 
   return EXIT_SUCCESS;

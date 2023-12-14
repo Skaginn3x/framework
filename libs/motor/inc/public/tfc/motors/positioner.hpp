@@ -56,6 +56,9 @@ struct circular_buffer {
 
 template <typename time_point_t = asio::steady_timer::time_point, std::size_t circular_buffer_len = 1024>
 struct tachometer {
+  explicit tachometer(std::function<void(std::int64_t)> position_update_callback) noexcept
+      : position_update_callback_{ std::move(position_update_callback) } {}
+
   // https://github.com/PaulStoffregen/Encoder/blob/master/Encoder.h#L303
   //                           _______         _______
   //               Pin1 ______|       |_______|       |______ Pin1
@@ -108,21 +111,21 @@ struct tachometer {
     if (buffer_.front().first_tacho_state) {
       if (buffer_.front().second_tacho_state) {
         if (!first_new_val) {
-          position_ -= 1;
+          decrement();
         }
       } else {
         if (!first_new_val) {
-          position_ += 1;
+          increment();
         }
       }
     } else {
       if (buffer_.front().second_tacho_state) {
         if (first_new_val) {
-          position_ += 1;
+          increment();
         }
       } else {
         if (first_new_val) {
-          position_ -= 1;
+          decrement();
         }
       }
     }
@@ -135,27 +138,41 @@ struct tachometer {
     if (buffer_.front().first_tacho_state) {
       if (buffer_.front().second_tacho_state) {
         if (!second_new_val) {
-          position_ += 1;
+          increment();
         }
       } else {
         if (second_new_val) {
-          position_ -= 1;
+          decrement();
         }
       }
     } else {
       if (!buffer_.front().second_tacho_state) {
         if (second_new_val) {
-          position_ += 1;
+          increment();
         }
       } else {
         if (!second_new_val) {
-          position_ -= 1;
+          decrement();
         }
       }
     }
 
     auto now{ time_point_t::clock::now() };
     buffer_.emplace(buffer_.front().first_tacho_state, second_new_val, now);
+  }
+
+  auto increment() noexcept -> void {
+    position_ += 1;
+    if (position_update_callback_) {
+      (*position_update_callback_)(position_);
+    }
+  }
+
+  auto decrement() noexcept -> void {
+    position_ -= 1;
+    if (position_update_callback_) {
+      (*position_update_callback_)(position_);
+    }
   }
 
   struct storage {
@@ -165,53 +182,60 @@ struct tachometer {
   };
   circular_buffer<storage, circular_buffer_len> buffer_{};
   std::int64_t position_{};
+  std::optional<std::function<void(std::int64_t)>> position_update_callback_;
 };
 
 }  // namespace detail
 
 template <mp_units::Quantity dimension_t = mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>>
+struct config {
+  // detail::tacho_config tacho{ detail::tacho_config::not_used };
+  detail::tacho_config tacho{ detail::tacho_config::two_tacho };
+  dimension_t displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
+  struct glaze {
+    static constexpr std::string_view name{ "positioner_config" };
+    static constexpr auto value{
+      glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse)
+    };
+  };
+};
+
+template <mp_units::Quantity dimension_t = mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>,
+          typename ipc_client_t = tfc::ipc_ruler::ipc_manager_client&,
+          typename config_t = tfc::confman::config<config<dimension_t>>>
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
-  struct config {
-    detail::tacho_config tacho{ detail::tacho_config::not_used };
-    dimension_t
-        displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
-    struct glaze {
-      static constexpr std::string_view name{ "positioner_config" };
-      static constexpr auto value{
-        glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse)
-      };
-    };
-  };
 
-  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
+  explicit positioner(asio::io_context& ctx, ipc_client_t client, std::string_view name)
       : name_{ name }, ctx_{ ctx }, client_{ client } {
     switch (config_->tacho) {
       using enum detail::tacho_config;
       case not_used:
         break;
       case one_tacho: {
-        tacho_.emplace();
-        tacho_a.emplace(ctx_, client_, fmt::format("tacho_{}", name_),
-                        "Tachometer input, usually induction sensor directed to rotational metal star og ring of screws.",
-                        [this](bool val) { this->tacho_->first_tacho_update(val); });
+        tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
+        tacho_a_.emplace(ctx_, client_, fmt::format("tacho_{}", name_),
+                         "Tachometer input, usually induction sensor directed to rotational metal star og ring of screws.",
+                         [this](bool val) { this->tacho_->first_tacho_update(val); });
         break;
       }
       case two_tacho: {
-        tacho_.emplace();
-        tacho_a.emplace(ctx_, client_, fmt::format("tacho_a_{}", name_),
-                        "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
-                        "star og ring of screws.",
-                        [this](bool val) { this->tacho_->first_tacho_update(val); });
-        tacho_b.emplace(ctx_, client_, fmt::format("tacho_b_{}", name_),
-                        "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
-                        "metal star og ring of screws.",
-                        [this](bool val) { this->tacho_->second_tacho_update(val); });
+        tacho_.emplace([this](std::int64_t counts) { this->tick(counts); });
+        tacho_a_.emplace(
+            ctx_, client_, fmt::format("tacho_a_{}", name_),
+            "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
+            "star og ring of screws.",
+            [this](bool val) { this->tacho_->first_tacho_update(val); });
+        tacho_b_.emplace(ctx_, client_, fmt::format("tacho_b_{}", name_),
+                         "Second input of tachometer, with two sensors, usually induction sensor directed to rotational "
+                         "metal star og ring of screws.",
+                         [this](bool val) { this->tacho_->second_tacho_update(val); });
         break;
       }
     }
   }
+
   void tick(std::int64_t tachometer_counts) {
     // tachometer should call this function every time it increments/decrements its position
     // this function should not do much work
@@ -223,20 +247,48 @@ public:
     // need to subtract notifications_.front().absolute_notification_position_ from absolute_position_
     // and compare to displacement_per_pulse, if it is in range, call the notification
     // or better yet make a timer and call the notification when timer expires
+    notify();
+  }
+
+  /// Check if any notifiers need to be notified
+  auto notify() -> void {
+    while (true) {
+      if (notifications_.empty()) {
+        return;
+      }
+      auto& notification = notifications_.front();
+
+      if (absolute_position_ < notification.absolute_notification_position_) {
+        break;
+      }
+
+      notification.completion_handler();
+      notifications_.erase(notifications_.begin());
+      std::ranges::sort(notifications_.begin(), notifications_.end(), sort_notifications);
+    }
   }
 
   struct notification {
     dimension_t absolute_notification_position_{};
+    std::function<void()> completion_handler;  // Store the completion handler
+
+    // Constructor to initialize fields
+    notification(dimension_t pos, std::function<void()> handler)
+        : absolute_notification_position_{ pos }, completion_handler{ std::move(handler) } {}
   };
 
-  auto notify_after([[maybe_unused]] dimension_t displacement, asio::completion_token_for<void()> auto&& token)
-      -> decltype(auto) {
-    // still yet to be implemented
-    // I would suggest making a struct instead of the lambda below, to store extra stuff if needed
-    // needs to be embedded into the notifications vector so the vector can complete the async operation
-    notifications_.emplace_back({ displacement + absolute_position_ });  // todo
-    // std::sort(notifications_); // sort by absolute position
-    return asio::async_compose<decltype(token), void()>([](auto& self) {}, std::forward<decltype(token)>(token), ctx_);
+  auto notify_after([[maybe_unused]] dimension_t displacement, std::function<void(dimension_t)> callback) -> void {
+    auto handler = [callback, displacement]() { callback(displacement); };
+
+    // Store the handler in the notification struct
+    notifications_.emplace_back(displacement + absolute_position_, std::move(handler));
+
+    // Sort notifications
+    std::sort(notifications_.begin(), notifications_.end(), sort_notifications);
+  }
+
+  static auto sort_notifications(const notification& lhs, const notification& rhs) {
+    return lhs.absolute_notification_position_ < rhs.absolute_notification_position_;
   }
 
   // Might be useful for homing sequences to grab the current position
@@ -247,12 +299,16 @@ public:
 private:
   std::string name_;
   asio::io_context& ctx_;
-  ipc_ruler::ipc_manager_client& client_;
+  // ipc_ruler::ipc_manager_client& client_;
+  ipc_client_t client_;
   logger::logger logger_{ name_ };
-  confman::config<config> config_{ ctx_, fmt::format("positioner_{}", name_) };
+  // confman::config<config<dimension_t>> config_{ ctx_, fmt::format("positioner_{}", name_) };
+  config_t config_{ ctx_, fmt::format("positioner_{}", name_) };
   std::optional<detail::tachometer<>> tacho_{};
-  std::optional<ipc::bool_slot> tacho_a{};
-  std::optional<ipc::bool_slot> tacho_b{};
+  // std::optional<ipc::bool_slot> tacho_a{};
+  std::optional<ipc::slot<ipc::details::type_bool, ipc_client_t>> tacho_a_{};
+  std::optional<ipc::slot<ipc::details::type_bool, ipc_client_t>> tacho_b_{};
+  // std::optional<ipc::bool_slot> tacho_b{};
   // todo overflow
   // in terms of conveyors, mm resolution, this would overflow when you have gone 1800 trips to Pluto back and forth
   dimension_t absolute_position_{};
