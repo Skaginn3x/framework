@@ -73,18 +73,17 @@ struct single_tachometer {
 
   auto increment() noexcept -> void {
     position_ += 1;
-    if (position_update_callback_) {
-      (*position_update_callback_)(position_);
-    }
+    position_update_callback_(position_);
   }
 
   struct storage {
     bool tacho_state{};
     time_point_t time_point{};
   };
+
   circular_buffer<storage, circular_buffer_len> buffer_{};
   std::int64_t position_{};
-  std::optional<std::function<void(std::int64_t)>> position_update_callback_;
+  std::function<void(std::int64_t)> position_update_callback_ = [](std::int64_t) {};
 };
 
 template <typename time_point_t = asio::steady_timer::time_point, std::size_t circular_buffer_len = 1024>
@@ -141,71 +140,65 @@ struct double_tachometer {
   */
 
   void first_tacho_update(bool first_new_val) noexcept {
-    if (buffer_.front().first_tacho_state) {
-      if (buffer_.front().second_tacho_state) {
-        if (!first_new_val) {
-          decrement();
-        }
-      } else {
-        if (!first_new_val) {
-          increment();
-        }
-      }
-    } else {
-      if (buffer_.front().second_tacho_state) {
-        if (first_new_val) {
-          increment();
-        }
-      } else {
-        if (first_new_val) {
-          decrement();
-        }
-      }
-    }
-
     auto now{ time_point_t::clock::now() };
     buffer_.emplace(first_new_val, buffer_.front().second_tacho_state, now);
+    update();
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
-    if (buffer_.front().first_tacho_state) {
-      if (buffer_.front().second_tacho_state) {
-        if (!second_new_val) {
-          increment();
-        }
-      } else {
-        if (second_new_val) {
-          decrement();
-        }
-      }
-    } else {
-      if (!buffer_.front().second_tacho_state) {
-        if (second_new_val) {
-          increment();
-        }
-      } else {
-        if (!second_new_val) {
-          decrement();
-        }
-      }
-    }
-
     auto now{ time_point_t::clock::now() };
     buffer_.emplace(buffer_.front().first_tacho_state, second_new_val, now);
+    update();
   }
 
-  auto increment() noexcept -> void {
-    position_ += 1;
-    if (position_update_callback_) {
-      (*position_update_callback_)(position_);
+  auto update() noexcept -> void {
+    uint8_t s = state & 3;
+
+    if (buffer_.front().first_tacho_state) {
+      s |= 4;
     }
+
+    if (buffer_.front().second_tacho_state) {
+      s |= 8;
+    }
+
+    switch (s) {
+      case 0:
+      case 5:
+      case 10:
+      case 15:
+        break;
+      case 1:
+      case 7:
+      case 8:
+      case 14:
+        increment(1);
+        break;
+      case 2:
+      case 4:
+      case 11:
+      case 13:
+        decrement(1);
+        break;
+      case 3:
+      case 12:
+        increment(2);
+        break;
+      default:
+        decrement(2);
+        break;
+    }
+    state = (s >> 2);
   }
 
-  auto decrement() noexcept -> void {
-    position_ -= 1;
-    if (position_update_callback_) {
-      (*position_update_callback_)(position_);
-    }
+  auto increment(std::int64_t pos) noexcept -> void {
+    position_ += pos;
+    position_update_callback_(position_);
+  }
+
+  auto decrement(std::int64_t pos) noexcept -> void {
+    position_ -= pos;
+    position_update_callback_(position_);
   }
 
   struct storage {
@@ -213,9 +206,11 @@ struct double_tachometer {
     bool second_tacho_state{};
     time_point_t time_point{};
   };
+
   circular_buffer<storage, circular_buffer_len> buffer_{};
   std::int64_t position_{};
-  std::optional<std::function<void(std::int64_t)>> position_update_callback_;
+  std::function<void(std::int64_t)> position_update_callback_ = [](std::int64_t) {};
+  uint8_t state = 0;
 };
 
 }  // namespace detail
