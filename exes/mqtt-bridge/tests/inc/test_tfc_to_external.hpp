@@ -10,6 +10,7 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 
+#include <config/publish_signals_mock.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
 
@@ -38,6 +39,11 @@ public:
     isolated_ctx.run_for(milliseconds{ 1 });
 
     spark_plug_mock sp_mock{ isolated_ctx };
+
+    using tfc_to_ext_mock =
+        tfc_to_external<config::publish_signals_mock, config::spark_plug_b_mock,
+                        client<endpoint_client_mock, config::broker_mock>, tfc::ipc_ruler::ipc_manager_client_mock&>;
+
     tfc_to_ext_mock tfc_ext_mock{ isolated_ctx, sp_mock, ipc_mock };
 
     isolated_ctx.run_for(milliseconds{ 1 });

@@ -19,14 +19,9 @@
 
 namespace tfc::mqtt {
 
-namespace config {
-class publish_signals_mock;
-}
-
 namespace asio = boost::asio;
 
-// template <class publish_signals_config_t, class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
-template <class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
+template <class publish_signals_config_t, class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
 class tfc_to_external {
 public:
   explicit tfc_to_external(asio::io_context& io_ctx,
@@ -155,21 +150,17 @@ private:
   tfc::logger::logger logger_{ "tfc_to_external" };
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
-  tfc::confman::config<config::publish_signals> config_{ io_ctx_, "publish_signals_config" };
+  // tfc::confman::config<config::publish_signals> config_{ io_ctx_, "publish_signals_config" };
+  publish_signals_config_t config_{ io_ctx_, "publish_signals_config" };
 
   friend class test_tfc_to_external;
 };
 
 using tfc_to_ext = tfc_to_external<
-    // tfc::confman::config<config::publish_signals>,
+    tfc::confman::config<config::publish_signals>,
     tfc::confman::config<config::spark_plug_b>,
     client<endpoint_client, tfc::confman::config<config::broker>>,
     tfc::ipc_ruler::ipc_manager_client>;
 
-using tfc_to_ext_mock = tfc_to_external<
-    // config::publish_signals_mock,
-    config::spark_plug_b_mock,
-    client<endpoint_client_mock, config::broker_mock>,
-    tfc::ipc_ruler::ipc_manager_client_mock&>;
 
 }  // namespace tfc::mqtt

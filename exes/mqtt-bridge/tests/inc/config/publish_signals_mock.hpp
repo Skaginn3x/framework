@@ -22,7 +22,7 @@ class publish_signals_mock {
 
 public:
   publish_signals_mock(asio::io_context const&, std::string const&) {
-    owner_.publish_signals = { "first", "second", "third" };
+    owner_.publish_signals = { "test_mqtt_bridge.def.bool.bool_signal", "second", "third" };
   }
 
   [[nodiscard]] auto value() const -> publish_signals_owner_mock const& { return owner_; }
