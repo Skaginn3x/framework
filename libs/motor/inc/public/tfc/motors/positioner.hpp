@@ -162,32 +162,24 @@ struct double_tachometer {
       s |= 8;
     }
 
+    // clang-format off
     switch (s) {
-      case 0:
-      case 5:
-      case 10:
-      case 15:
+      case 0: case 5: case 10: case 15:
         break;
-      case 1:
-      case 7:
-      case 8:
-      case 14:
+      case 1: case 7: case 8: case 14:
         increment(1);
         break;
-      case 2:
-      case 4:
-      case 11:
-      case 13:
+      case 2: case 4: case 11: case 13:
         decrement(1);
         break;
-      case 3:
-      case 12:
+      case 3: case 12:
         increment(2);
         break;
       default:
         decrement(2);
         break;
     }
+    // clang-format on
     state = (s >> 2);
   }
 
