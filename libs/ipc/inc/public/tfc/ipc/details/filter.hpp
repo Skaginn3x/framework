@@ -11,6 +11,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <glaze/core/common.hpp>
 
+#include <tfc/ipc/details/type_description.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/stx/glaze_meta.hpp>
@@ -245,6 +246,11 @@ struct any_filter_decl<std::double_t> {
 template <>
 struct any_filter_decl<std::string> {
   using value_t = std::string;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+};
+template <>
+struct any_filter_decl<ipc::details::mass_t> {
+  using value_t = ipc::details::mass_t;
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
 // json?
