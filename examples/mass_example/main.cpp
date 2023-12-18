@@ -1,13 +1,13 @@
+#include <chrono>
 #include <iostream>
 #include <system_error>
-#include <chrono>
 
-#include <tfc/progbase.hpp>
-#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
+#include <tfc/progbase.hpp>
 
-#include <boost/asio.hpp>
 #include <mp-units/systems/si/si.h>
+#include <boost/asio.hpp>
 
 namespace asio = boost::asio;
 
@@ -18,7 +18,9 @@ int main(int argc, char** argv) {
   tfc::ipc_ruler::ipc_manager_client_mock ipc_client_{ ctx };
 
   tfc::ipc::signal<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&> weight_signal{
-    ctx, ipc_client_, "weight",
+    ctx,
+    ipc_client_,
+    "weight",
   };
 
   tfc::ipc::slot<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&> weight_slot{
