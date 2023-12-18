@@ -1,5 +1,5 @@
-#include <boost/ut.hpp>
 #include <mp-units/format.h>
+#include <boost/ut.hpp>
 
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/motors/positioner.hpp>
