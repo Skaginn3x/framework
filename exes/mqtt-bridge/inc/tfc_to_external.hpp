@@ -156,11 +156,9 @@ private:
   friend class test_tfc_to_external;
 };
 
-using tfc_to_ext = tfc_to_external<
-    tfc::confman::config<config::publish_signals>,
-    tfc::confman::config<config::spark_plug_b>,
-    client<endpoint_client, tfc::confman::config<config::broker>>,
-    tfc::ipc_ruler::ipc_manager_client>;
-
+using tfc_to_ext = tfc_to_external<tfc::confman::config<config::publish_signals>,
+                                   tfc::confman::config<config::spark_plug_b>,
+                                   client<endpoint_client, tfc::confman::config<config::broker>>,
+                                   tfc::ipc_ruler::ipc_manager_client>;
 
 }  // namespace tfc::mqtt
