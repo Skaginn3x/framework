@@ -4,6 +4,8 @@
 #include <string_view>
 #include <vector>
 
+#include <glaze/core/common.hpp>
+
 namespace tfc::mqtt::config {
 
 struct publish_signals {
