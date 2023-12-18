@@ -150,7 +150,6 @@ private:
   tfc::logger::logger logger_{ "tfc_to_external" };
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
-  // tfc::confman::config<config::publish_signals> config_{ io_ctx_, "publish_signals_config" };
   publish_signals_config_t config_{ io_ctx_, "publish_signals_config" };
 
   friend class test_tfc_to_external;

@@ -5,13 +5,9 @@
 
 #include <boost/asio.hpp>
 
-#include <config/writeable_signals.hpp>
-#include <tfc/ipc/enums.hpp>
-
 namespace tfc::mqtt::config {
 
 namespace asio = boost::asio;
-using tfc::ipc::details::type_e;
 
 struct publish_signals_owner_mock {
   std::vector<std::string> publish_signals{};
