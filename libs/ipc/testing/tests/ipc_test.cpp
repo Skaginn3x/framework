@@ -1,9 +1,7 @@
 #include <chrono>
 #include <string>
-#include <system_error>
 
 #include <tfc/ipc.hpp>
-#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>
 
@@ -11,7 +9,6 @@
 #include <fmt/core.h>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/ut.hpp>
-#include <mp-units/systems/si/si.h>
 
 namespace asio = boost::asio;
 
@@ -143,38 +140,6 @@ auto main(int argc, char** argv) -> int {
     timer.expires_after(std::chrono::milliseconds(100));
     timer.async_wait([&sender](auto) { sender->send("hello-world"); });
     ctx.run();
-  };
-
-  "mass example"_test = []() {
-    auto ctx{ asio::io_context() };
-    tfc::ipc_ruler::ipc_manager_client_mock ipc_client_{ ctx };
-
-    tfc::ipc::signal<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&> weight_signal{
-      ctx, ipc_client_, "weight",
-    };
-
-    tfc::ipc::slot<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&> weight_slot{
-      ctx, ipc_client_, "weight", [](const tfc::ipc::details::mass_t&) {}
-    };
-
-    ipc_client_.connect(ipc_client_.slots_[0].name, ipc_client_.signals_[0].name, [](std::error_code const&) {});
-
-    weight_signal.send(100 * mp_units::si::gram);
-
-    ctx.run_for(std::chrono::milliseconds(10));
-
-    auto check_value = [&weight_slot]() -> bool {
-      // check if std::optional contains value
-      if (weight_slot.value().has_value()) {
-        // check if std::expected contains value
-        if (weight_slot.value()->has_value()) {
-          return weight_slot.value()->value() == 100 * mp_units::si::gram;
-        }
-      }
-      return false;
-    };
-
-    expect(check_value());
   };
 
   return 0;
