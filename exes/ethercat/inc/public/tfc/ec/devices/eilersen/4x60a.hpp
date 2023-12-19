@@ -409,7 +409,8 @@ PRAGMA_CLANG_WARNING_POP
               return std::unexpected{ ipc::details::mass_error_e::not_calibrated };
             }
             auto normalized_calibration_signal{ calibration_signal - *zero };
-            result = ((calculated_signal * calibration_mass.numerical_value_) / normalized_calibration_signal) *
+            result = ((calculated_signal * calibration_mass.numerical_value_ref_in(mass_t::unit)) /
+                      normalized_calibration_signal) *
                      mass_t::reference;
             // at this point we have result with full resolution
             if (auto resolution{ group_1_cal.get_resolution() }) {
