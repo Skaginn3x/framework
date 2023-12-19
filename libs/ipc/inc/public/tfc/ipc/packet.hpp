@@ -33,8 +33,7 @@ struct header_t {
     std::copy_n(reinterpret_cast<std::byte*>(&header.value_size), sizeof(value_size), std::back_inserter(buffer));
   }
 
-  template <typename error_t = std::error_code>
-  static auto deserialize(header_t& result, auto&& buffer_iter) -> error_t {
+  static auto deserialize(header_t& result, auto&& buffer_iter) -> std::error_code {
     std::copy_n(buffer_iter, sizeof(version), reinterpret_cast<std::byte*>(&result.version));
     buffer_iter += sizeof(version);
     std::copy_n(buffer_iter, sizeof(type), reinterpret_cast<std::byte*>(&result.type));
@@ -120,8 +119,7 @@ struct packet {
     return {};
   }
 
-  template <typename error_t = std::error_code>
-  static constexpr auto deserialize(std::ranges::view auto&& buffer) -> std::expected<value_t, error_t> {
+  static constexpr auto deserialize(std::ranges::view auto&& buffer) -> std::expected<value_t, std::error_code> {
     if (buffer.size() < header_t<type_enum>::size()) {
       return std::unexpected(std::make_error_code(std::errc::message_size));
     }
@@ -158,6 +156,10 @@ struct packet {
           std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
           result.value = std::unexpected{ substitute };
         }
+
+        // typename value_t::error_type substitute{};
+        // std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
+        // result.value = std::unexpected{ substitute };
       }
     } else {
       // has member function data

@@ -1,5 +1,5 @@
 #include <chrono>
-#include <iostream>
+#include <fmt/core.h>
 #include <system_error>
 
 #include <tfc/ipc.hpp>
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     return false;
   };
 
-  std::cout << "Value arrived on slot: " << (check_value() ? "true" : "false") << std::endl;
+  fmt::println("Value arrived on slot: {}\n", check_value());
 
   return EXIT_SUCCESS;
 }
