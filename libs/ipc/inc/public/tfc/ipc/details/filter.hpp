@@ -140,7 +140,10 @@ public:
 };
 
 template <typename value_t>
-  requires requires { requires(std::integral<value_t> || std::floating_point<value_t>) && !std::same_as<value_t, bool>; }
+  requires requires {
+    requires(std::integral<value_t> || std::floating_point<value_t> || std::is_same_v<ipc::details::mass_t, value_t>) &&
+                !std::same_as<value_t, bool>;
+  }
 struct filter<filter_e::offset, value_t> {
   value_t offset{};
   static constexpr filter_e type{ filter_e::offset };
@@ -150,7 +153,11 @@ struct filter<filter_e::offset, value_t> {
     auto exe = asio::get_associated_executor(completion_token);
     return asio::async_compose<decltype(completion_token), void(std::expected<value_t, std::error_code>)>(
         [this, copy = value](auto& self) {
-          self.complete(copy + offset);  //
+          if constexpr (std::is_same_v<value_t, ipc::details::mass_t>) {
+            self.complete(copy.value() + offset.value());  //
+          } else {
+            self.complete(copy + offset);                  //
+          }
         },
         completion_token, exe);
   }
@@ -251,7 +258,7 @@ struct any_filter_decl<std::string> {
 template <>
 struct any_filter_decl<ipc::details::mass_t> {
   using value_t = ipc::details::mass_t;
-  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+  using type = std::variant<filter<filter_e::filter_out, value_t>, filter<filter_e::offset, value_t>>;
 };
 // json?
 template <typename value_t>
