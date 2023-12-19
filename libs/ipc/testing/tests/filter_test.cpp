@@ -246,7 +246,8 @@ auto main(int, char**) -> int {
     asio::co_spawn(
         ctx,
         []() -> asio::awaitable<void> {
-          filter<filter_e::offset, tfc::ipc::details::mass_t> filter_offset_test{ .filter_offset = 100 * mp_units::si::gram };
+          filter<filter_e::offset, tfc::ipc::details::mass_t> filter_offset_test{ .filter_offset =
+                                                                                      100 * mp_units::si::gram };
           auto return_value = co_await filter_offset_test.async_process(100 * mp_units::si::gram, asio::use_awaitable);
           expect(return_value.has_value());
           expect(return_value.value().value() == 200 * mp_units::si::gram);
