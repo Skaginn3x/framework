@@ -1,4 +1,6 @@
+#include <mp-units/format.h>
 #include <boost/ut.hpp>
+
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/motors/positioner.hpp>
 #include <tfc/progbase.hpp>
@@ -216,25 +218,25 @@ int main(int argc, char** argv) {
     signal_b.send(true);
     io_context.run_for(milliseconds(5));
 
-    expect(positioner.position() == 1 * mm) << positioner.position().numerical_value_;
+    expect(positioner.position() == 1 * mm) << fmt::format("{}", positioner.position());
     expect(callback_counter == 1);
 
     signal_a.send(true);
     io_context.run_for(milliseconds(5));
 
-    expect(positioner.position() == 2 * mm) << positioner.position().numerical_value_;
+    expect(positioner.position() == 2 * mm) << fmt::format("{}", positioner.position());
     expect(callback_counter == 2);
 
     signal_b.send(false);
     io_context.run_for(milliseconds(5));
 
-    expect(positioner.position() == 3 * mm) << positioner.position().numerical_value_;
+    expect(positioner.position() == 3 * mm) << fmt::format("{}", positioner.position());
     expect(callback_counter == 3);
 
     signal_a.send(false);
     io_context.run_for(milliseconds(5));
 
-    expect(positioner.position() == 4 * mm) << positioner.position().numerical_value_;
+    expect(positioner.position() == 4 * mm) << fmt::format("{}", positioner.position());
     expect(callback_counter == 3);
   };
 

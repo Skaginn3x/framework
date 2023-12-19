@@ -95,7 +95,7 @@ constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, dou
   if (mp_units::abs(percentage) < 1 * mp_units::percent) {
     return { .value = 0 * dHz, .reverse = false };
   }
-  bool reverse = percentage.numerical_value_ <= -1;
+  bool const reverse{ percentage <= -1 * mp_units::percent };
   mp_units::Quantity auto mapped{ ec::util::map(mp_units::abs(percentage), (1.0 * mp_units::percent),
                                                 (100.0 * mp_units::percent), min_freq.value, max_freq.value) };
   return { .value = mapped, .reverse = reverse };

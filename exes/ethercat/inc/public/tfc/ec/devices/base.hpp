@@ -94,7 +94,7 @@ public:
 
   template <mp_units_quantity_setting_c setting_t>
   auto sdo_write(setting_t&& in) const {
-    return base::sdo_write(in.index, in.value.numerical_value_);
+    return base::sdo_write(in.index, in.value.numerical_value_ref_in(decltype(in.value)::unit));
   }
 
 protected:
