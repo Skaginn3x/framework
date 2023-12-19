@@ -160,7 +160,11 @@ auto main(int argc, char** argv) -> int {
         bool value_received;
         tfc::ipc::slot<type_description, tfc::ipc_ruler::ipc_manager_client_mock&> receiver{
           ctx, ipc_client, "name", "desc",
-          [&value_received, &data](auto const& new_val) { value_received = (new_val == data.value); }
+          [&value_received, &data](auto const& new_val) {
+            PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat - equal)
+            value_received = (new_val == data.value);
+            PRAGMA_CLANG_WARNING_POP
+          }
         };
         ipc_client.connect(ipc_client.slots_[0].name, ipc_client.signals_[0].name, [](std::error_code const&) {});
         ctx.run_for(std::chrono::milliseconds(5));
