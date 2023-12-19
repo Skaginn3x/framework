@@ -152,6 +152,7 @@ private:
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
   publish_signals_config_t config_{ io_ctx_, "publish_signals_config" };
+  tfc::json::detail::to_json_schema<signal_name> signal_name_schema_{};
 
   friend class test_tfc_to_external;
 };
