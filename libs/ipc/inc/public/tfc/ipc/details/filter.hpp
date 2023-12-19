@@ -156,7 +156,7 @@ struct filter<filter_e::offset, value_t> {
           if constexpr (std::is_same_v<value_t, ipc::details::mass_t>) {
             self.complete(copy.value() + offset.value());  //
           } else {
-            self.complete(copy + offset);                  //
+            self.complete(copy + offset);  //
           }
         },
         completion_token, exe);
