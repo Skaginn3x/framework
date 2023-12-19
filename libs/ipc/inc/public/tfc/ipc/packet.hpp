@@ -32,7 +32,6 @@ struct header_t {
     std::copy_n(reinterpret_cast<std::byte*>(&header.type), sizeof(type), std::back_inserter(buffer));
     std::copy_n(reinterpret_cast<std::byte*>(&header.value_size), sizeof(value_size), std::back_inserter(buffer));
   }
-
   static auto deserialize(header_t& result, auto&& buffer_iter) -> std::error_code {
     std::copy_n(buffer_iter, sizeof(version), reinterpret_cast<std::byte*>(&result.version));
     buffer_iter += sizeof(version);
