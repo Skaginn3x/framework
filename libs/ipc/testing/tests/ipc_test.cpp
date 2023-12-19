@@ -161,7 +161,7 @@ auto main(int argc, char** argv) -> int {
         tfc::ipc::slot<type_description, tfc::ipc_ruler::ipc_manager_client_mock&> receiver{
           ctx, ipc_client, "name", "desc",
           [&value_received, &data](auto const& new_val) {
-            PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+            PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat - equal)
             value_received = (new_val == data.value);
             PRAGMA_CLANG_WARNING_POP
           }
