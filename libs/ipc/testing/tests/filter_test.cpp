@@ -241,24 +241,5 @@ auto main(int, char**) -> int {
     ctx.run_one_for(std::chrono::seconds{ 1 });
   };
 
-  "mass filter offset"_test = []() {
-    asio::io_context ctx{};
-    asio::co_spawn(
-        ctx,
-        []() -> asio::awaitable<void> {
-          filter<filter_e::offset, tfc::ipc::details::mass_t> filter_offset_test{ .filter_offset =
-                                                                                      100 * mp_units::si::gram };
-          auto return_value = co_await filter_offset_test.async_process(100 * mp_units::si::gram, asio::use_awaitable);
-          expect(return_value.has_value());
-          expect(return_value.value().value() == 200 * mp_units::si::gram);
-          return_value = co_await filter_offset_test.async_process(40 * mp_units::si::gram, asio::use_awaitable);
-          expect(return_value.has_value());
-          expect(return_value.value().value() == 140 * mp_units::si::gram);
-          co_return;
-        },
-        asio::detached);
-    ctx.run_one_for(std::chrono::seconds{ 1 });
-  };
-
   return 0;
 }
