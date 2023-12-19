@@ -24,35 +24,14 @@ struct glz::meta<mp_units::ratio> {
   static constexpr auto name{ "units::ratio" };
 };
 
-template <typename CharT, mp_units::Unit U, mp_units::unit_symbol_formatting fmt>
-struct const_unit_symbol {
-  static consteval auto unit_symbol_len() -> std::size_t { return unit_symbol(U{}, fmt).size(); }
-  static constexpr auto impl() noexcept {
-    std::array<CharT, unit_symbol_len() + 1> buffer{};
-    auto foo = unit_symbol(U{}, fmt);
-    std::ranges::copy(std::begin(foo), std::end(foo), std::begin(buffer));
-    return buffer;
-  }
-  // Give the joined string static storage
-  static constexpr auto arr = impl();
-  // View as a std::string_view
-  static constexpr std::basic_string_view<CharT> value{ arr.data(), arr.size() - 1 };
-};
-
-template <typename CharT = char, mp_units::Unit U, mp_units::unit_symbol_formatting fmt = mp_units::unit_symbol_formatting{}>
-[[nodiscard]] constexpr std::basic_string_view<CharT> unit_symbol_view(U) {
-  return const_unit_symbol<CharT, U, fmt>::value;
-}
-
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   using type = mp_units::quantity<ref_t, rep_t>;
   static constexpr std::string_view unit{
-    unit_symbol_view<char, decltype(ref_t), mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(
-        ref_t)
+    mp_units::unit_symbol<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(ref_t)
   };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
-  static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_; } };
+  static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_ref_in(type::unit); } };
   static std::string_view constexpr prefix{ "units::quantity<" };
   static std::string_view constexpr postfix{ ">" };
   static std::string_view constexpr separator{ "," };
@@ -69,13 +48,10 @@ struct to_json_schema;
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
   static constexpr std::string_view unit_ascii{
-    unit_symbol_view<char, decltype(ref_t), mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(
-        ref_t)
+    mp_units::unit_symbol<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(ref_t)
   };
   static constexpr std::string_view unit_unicode{
-    unit_symbol_view<char,
-                     decltype(ref_t),
-                     mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::unicode }>(ref_t)
+    mp_units::unit_symbol<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::unicode }>(ref_t)
   };
   static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
