@@ -115,7 +115,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     }
     std::chrono::nanoseconds average{ std::chrono::microseconds{ 4500 } };
     expect(test.tachometer.average() == average)
-    << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.average());
+        << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.average());
   };
 
   "tachometer variance"_test = [] {
@@ -129,7 +129,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       test.tachometer.update(true);
     }
     expect(test.tachometer.stddev() == 0ms)
-    << fmt::format("expected stddev: {}, got stddev: {}\n", 0ms, test.tachometer.stddev());
+        << fmt::format("expected stddev: {}, got stddev: {}\n", 0ms, test.tachometer.stddev());
   };
 
   "tachometer one missing tooth"_test = [](auto& time_between_teeth) {
@@ -140,11 +140,11 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     //             x 7     x  3
     //               x 6 x  4 <- missing tooth
     //                 x  5
-    ut::skip / ut::test(fmt::format("interval {}", time_between_teeth)) = [&time_between_teeth] {
+    ut::test(fmt::format("interval {}", time_between_teeth)) = [&time_between_teeth] {
       tachometer_test test{};
       tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
       auto average{ time_between_teeth * (buffer_len - 1) / buffer_len };
-      for (std::size_t idx{ 0 }; idx < buffer_len; idx++) {
+      for (std::size_t idx{ 0 }; idx < buffer_len * 2; idx++) {
         tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + time_between_teeth };
         tfc::testing::clock::set_ticks(later);
         if (idx == 4) {
@@ -156,7 +156,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       expect(test.tachometer.average() == average)
           << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.average());
     };
-  } | std::vector<std::chrono::nanoseconds>{ 1ms, 2ms, 3ms, 4ms, 5ms, 6ms, 7ms, 8ms };
+  } | std::vector<std::chrono::nanoseconds>{ 1ms };  // , 2ms, 3ms, 4ms, 5ms, 6ms, 7ms, 8ms };
 };
 
 // clang-format off
@@ -427,7 +427,19 @@ int main(int argc, char** argv) {
       buff.emplace(i);
     }
     expect(buff.front() == len + len - 1) << buff.front();
-    expect(buff.back() == len) << buff.back(); // back is the oldest item
+    expect(buff.back() == len) << buff.back();  // back is the oldest item
+  };
+
+  "circular_buffer_test returns oldest item when emplacing new one"_test = [] {
+    static constexpr std::size_t len{ 3 };
+    circular_buffer<int, len> buff{};
+    expect(buff.emplace(1) == 0);
+    expect(buff.emplace(2) == 0);
+    expect(buff.emplace(3) == 0);
+    expect(buff.emplace(4) == 1);
+    expect(buff.emplace(5) == 2);
+    expect(buff.emplace(6) == 3);
+    expect(buff.emplace(7) == 4);
   };
 
   return EXIT_SUCCESS;

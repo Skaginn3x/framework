@@ -2,12 +2,13 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
+#include <functional>
 #include <string_view>
 #include <type_traits>  // required by mp-units
 #include <variant>
 #include <vector>
-#include <cassert>
 
 #include <fmt/format.h>
 #include <mp-units/math.h>
@@ -52,14 +53,18 @@ namespace detail {
 template <typename storage_t, std::size_t len>
 struct circular_buffer {
   circular_buffer() = default;
-  template <typename... args_t>
-  constexpr auto emplace(args_t&&... args) {
+
+  /// \param args arguments to forward to constructor of storage_t
+  /// \return removed item, the oldest item
+  constexpr auto emplace(auto&&... args) -> storage_t {
+    storage_t removed_item{ std::move(*insert_pos_) };
     front_ = insert_pos_;
-    std::construct_at(insert_pos_, std::forward<args_t>(args)...);
+    std::construct_at(insert_pos_, std::forward<decltype(args)>(args)...);
     std::advance(insert_pos_, 1);
     if (insert_pos_ == std::end(buffer_)) {
       insert_pos_ = std::begin(buffer_);
     }
+    return std::move(removed_item);
   }
   /// \return reference to most recently inserted item
   constexpr auto front() noexcept -> storage_t& { return *front_; }
@@ -73,7 +78,7 @@ struct circular_buffer {
   std::array<storage_t, len> buffer_{};
   // front is invalid when there has no item been inserted yet, but should not matter much
   typename std::array<storage_t, len>::iterator front_{ std::begin(buffer_) };
-  typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) + 1 }; // this is front + 1
+  typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) + 1 };  // this is front + 1
 };
 
 template <typename bool_slot_t = ipc::bool_slot,
@@ -97,20 +102,19 @@ struct tachometer {
     if (first_new_val) {
       position_ += 1;
       std::invoke(position_update_callback_, position_);
-      // now let's calculate the average interval
-      auto intvl_to_be_removed { interval_buffer_.back().interval_duration };
-      auto variance_increment_to_be_removed{ variance_increment_buffer_.back().variance_increment };
+      // now let's calculate the average interval and variance
       auto intvl_current{ now - buffer_.front().time_point };
-      interval_buffer_.emplace(intvl_current);
-      buffer_.emplace(now);
-      auto intvl_front_back_diff{ intvl_current.count() -
-                                  intvl_to_be_removed.count() };
-      static constexpr auto len{ static_cast<double>(circular_buffer_len) };
-      average_ += static_cast<double>(intvl_front_back_diff) / len;
-      // now let's calculate the variance
       auto current_variance_increment{ std::pow(static_cast<double>(intvl_current.count()) - average_, 2) };
-      variance_increment_buffer_.emplace(current_variance_increment);
-      variance_ += (current_variance_increment - variance_increment_to_be_removed) / len;
+
+      auto removed{ buffer_.emplace(now, intvl_current, current_variance_increment) };
+
+      average_ += static_cast<double>(intvl_current.count() - removed.interval_duration.count()) / circular_buffer_len;
+      // Note the variance is actually incorrect but it serves the purpose of detecting if the variance is increasing or not.
+      // It is incorrect because it uses mean of values that have already been removed from the buffer to determine the
+      // incremental variance of the older items in the buffer. I think it is impossible to calculate the correct variance in
+      // constant time. For reference, see
+      // https://math.stackexchange.com/questions/102978/incremental-computation-of-standard-deviation
+      variance_ += (current_variance_increment - removed.variance_increment) / circular_buffer_len;
     }
   }
 
@@ -125,11 +129,7 @@ struct tachometer {
 
   struct event_storage {
     time_point_t time_point{};
-  };
-  struct interval_storage {
     duration_t interval_duration{};
-  };
-  struct variance_increment_storage {
     double variance_increment{};
   };
 
@@ -137,8 +137,6 @@ struct tachometer {
   double average_{};
   double variance_{};
   circular_buffer<event_storage, circular_buffer_len> buffer_{};
-  circular_buffer<interval_storage, circular_buffer_len> interval_buffer_{};
-  circular_buffer<variance_increment_storage, circular_buffer_len> variance_increment_buffer_{};
   std::function<void(std::int64_t)> position_update_callback_{ [](std::int64_t) {} };
   bool_slot_t induction_sensor_;
 };
