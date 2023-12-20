@@ -117,6 +117,7 @@ struct packet {
     }
     return {};
   }
+
   static constexpr auto deserialize(std::ranges::view auto&& buffer) -> std::expected<value_t, std::error_code> {
     if (buffer.size() < header_t<type_enum>::size()) {
       return std::unexpected(std::make_error_code(std::errc::message_size));
@@ -147,13 +148,16 @@ struct packet {
         std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
         result.value = substitute * value_t::value_type::reference;
       } else {
-        if constexpr (std::is_same_v<typename value_t::error_type, mass_error_e>) {
-          result.value = std::unexpected{ static_cast<mass_error_e>(*buffer_iter) };
-        } else {
-          typename value_t::error_type substitute{};
-          std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
-          result.value = std::unexpected{ substitute };
+        using error_type = typename value_t::error_type;
+        error_type substitute{};
+        if constexpr (std::is_trivial_v<error_type>) {
+          std::copy_n(buffer_iter, sizeof(error_type), reinterpret_cast<std::byte*>(&substitute));
         }
+        else {
+          substitute.resize(result.header.value_size);
+          std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(substitute.data()));
+        }
+        result.value = std::unexpected{ substitute };
       }
     } else {
       // has member function data
