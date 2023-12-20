@@ -7,6 +7,7 @@
 #include <type_traits>  // required by mp-units
 #include <variant>
 #include <vector>
+#include <cassert>
 
 #include <fmt/format.h>
 #include <mp-units/math.h>
@@ -98,12 +99,17 @@ struct tachometer {
       std::invoke(position_update_callback_, position_);
       // now let's calculate the average interval
       auto intvl_to_be_removed { interval_buffer_.back().interval_duration };
+      auto variance_increment_to_be_removed{ variance_increment_buffer_.back().variance_increment };
       interval_buffer_.emplace(now - buffer_.front().time_point);
       buffer_.emplace(now);
       auto intvl_front_back_diff{ interval_buffer_.front().interval_duration.count() -
                                   intvl_to_be_removed.count() };
       static constexpr auto len{ static_cast<double>(circular_buffer_len) };
       average_ += static_cast<double>(intvl_front_back_diff) / len;
+      // now let's calculate the variance
+      auto current_variance_increment{ std::pow(static_cast<double>(intvl_front_back_diff) - average_, 2) };
+      variance_increment_buffer_.emplace(current_variance_increment);
+      variance_ += (current_variance_increment - variance_increment_to_be_removed) / len;
     }
   }
 
@@ -111,17 +117,27 @@ struct tachometer {
 
   auto average() const noexcept -> duration_t { return duration_t{ static_cast<typename duration_t::rep>(average_) }; }
 
+  auto stddev() const noexcept -> duration_t {
+    // assert(variance_ >= 0, "Variance is squared so it should be positive.");
+    return duration_t{ static_cast<typename duration_t::rep>(std::sqrt(variance_)) };
+  }
+
   struct event_storage {
     time_point_t time_point{};
   };
   struct interval_storage {
     duration_t interval_duration{};
   };
+  struct variance_increment_storage {
+    double variance_increment{};
+  };
 
   std::int64_t position_{};
   double average_{};
+  double variance_{};
   circular_buffer<event_storage, circular_buffer_len> buffer_{};
   circular_buffer<interval_storage, circular_buffer_len> interval_buffer_{};
+  circular_buffer<variance_increment_storage, circular_buffer_len> variance_increment_buffer_{};
   std::function<void(std::int64_t)> position_update_callback_{ [](std::int64_t) {} };
   bool_slot_t induction_sensor_;
 };
