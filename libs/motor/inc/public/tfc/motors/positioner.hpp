@@ -100,14 +100,15 @@ struct tachometer {
       // now let's calculate the average interval
       auto intvl_to_be_removed { interval_buffer_.back().interval_duration };
       auto variance_increment_to_be_removed{ variance_increment_buffer_.back().variance_increment };
-      interval_buffer_.emplace(now - buffer_.front().time_point);
+      auto intvl_current{ now - buffer_.front().time_point };
+      interval_buffer_.emplace(intvl_current);
       buffer_.emplace(now);
-      auto intvl_front_back_diff{ interval_buffer_.front().interval_duration.count() -
+      auto intvl_front_back_diff{ intvl_current.count() -
                                   intvl_to_be_removed.count() };
       static constexpr auto len{ static_cast<double>(circular_buffer_len) };
       average_ += static_cast<double>(intvl_front_back_diff) / len;
       // now let's calculate the variance
-      auto current_variance_increment{ std::pow(static_cast<double>(intvl_front_back_diff) - average_, 2) };
+      auto current_variance_increment{ std::pow(static_cast<double>(intvl_current.count()) - average_, 2) };
       variance_increment_buffer_.emplace(current_variance_increment);
       variance_ += (current_variance_increment - variance_increment_to_be_removed) / len;
     }
