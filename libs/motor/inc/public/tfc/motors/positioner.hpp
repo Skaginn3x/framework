@@ -88,12 +88,11 @@ struct tachometer {
     if (first_new_val) {
       position_ += 1;
       std::invoke(position_update_callback_, position_);
+      buffer_.emplace(now);
     }
-    buffer_.emplace(first_new_val, now);
   }
 
   struct storage {
-    bool tacho_state{};
     typename clock_t::time_point time_point{};
   };
 

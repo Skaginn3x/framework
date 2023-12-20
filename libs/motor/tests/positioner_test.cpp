@@ -7,7 +7,6 @@
 #include <tfc/testing/asio_clock.hpp>
 
 namespace compile_tests {
-
 using update_params = tfc::motor::detail::encoder<>::update_params;
 static_assert(sizeof(update_params) == 1, "update_params should be 1 byte");
 static_assert(update_params{} == 0U);
@@ -34,8 +33,7 @@ static_assert(update_impl({ .new_first = true, .new_second = true }) == 2);
 static_assert(update_impl({ .old_first = true, .old_second = true }) == 2);
 static_assert(update_impl({ .new_second = true, .old_first = true }) == -2);
 static_assert(update_impl({ .new_first = true, .old_second = true }) == -2);
-
-}  // namespace compile_tests
+} // namespace compile_tests
 
 using namespace mp_units::si::unit_symbols;
 namespace asio = boost::asio;
@@ -59,57 +57,67 @@ struct test_instance {
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"tachometer"> tachometer_test = [] {
-PRAGMA_CLANG_WARNING_POP
+  PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using tachometer = tfc::motor::detail::tachometer<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using tachometer_t = tfc::motor::detail::tachometer<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+
+  struct tachometer_test {
+    test_instance inst{};
+    // ability to populate, but will be moved into implementation
+    std::function<void(std::int64_t)> cb{ [](std::int64_t) {
+    } };
+    tachometer_t tachometer{ inst.ctx, inst.client, "name", std::move(cb) };
+  };
 
   "tachometer with single sensor updates internal state"_test = [] {
-    test_instance inst{};
-    tachometer tacho{ inst.ctx, inst.client, "name", [](std::int64_t) {} };
+    tachometer_test test{};
     for (std::int64_t idx{ 0 }; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
-      expect(tacho.position_ == idx);
-      tacho.update(true);
-      tacho.update(false);
+      expect(test.tachometer.position_ == idx);
+      test.tachometer.update(true);
+      test.tachometer.update(false);
     }
   };
 
   "tachometer with single sensor calls owner"_test = [] {
-    test_instance inst{};
     std::int64_t idx{ 1 };
-    tachometer tacho{ inst.ctx, inst.client, "name", [&idx](std::int64_t new_value) {
-                       expect(idx == new_value) << fmt::format("got {} expected {}", new_value, idx);
-                     } };
+    bool called{};
+    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value) {
+      expect(idx == new_value) << fmt::format("got {} expected {}", new_value, idx);
+      called = true;
+    } };
     for (; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
-      tacho.update(true);
-      tacho.update(false);
+      test.tachometer.update(true);
+      test.tachometer.update(false);
     }
   };
 
-  "tachometer with single sensor stores new values to buffer"_test = [] {
-    test_instance inst{};
-    tachometer tacho{ inst.ctx, inst.client, "name", [](std::int64_t) {} };
-    bool new_state{ true };
+  "tachometer with single sensor stores new values to buffer on rising edge"_test = [] {
+    tachometer_test test{};
     for (std::int64_t idx{ 0 }; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
       tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + std::chrono::milliseconds{ 1 } };
       tfc::testing::clock::set_ticks(later);
-      tacho.update(new_state);
-      expect(tacho.buffer_.front().tacho_state == new_state);
-      expect(tacho.buffer_.front().time_point == later);
-      new_state = !new_state;
+      test.tachometer.update(false);
+      test.tachometer.update(true);
+      expect(test.tachometer.buffer_.front().time_point == later);
     }
+  };
+
+  "tachometer one missing tooth"_test = [] {
+    tachometer_test test{};
+
   };
 };
 
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"encoder"> enc_test = [] {
-PRAGMA_CLANG_WARNING_POP
+  PRAGMA_CLANG_WARNING_POP
   // clang-format on
   using encoder_t = tfc::motor::detail::encoder<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
   struct encoder_test {
     test_instance inst{};
     std::function<void(std::int64_t)> cb{ [](std::int64_t) {
-    } };  // ability to populate, but will be moved into implementation
+    } }; // ability to populate, but will be moved into implementation
     encoder_t encoder{ inst.ctx, inst.client, "name", std::move(cb) };
   };
 
@@ -255,7 +263,7 @@ PRAGMA_CLANG_WARNING_POP
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"notifications"> notify_tests = [] {
-PRAGMA_CLANG_WARNING_POP
+  PRAGMA_CLANG_WARNING_POP
   // clang-format on
   struct notification_test {
     test_instance inst{};
@@ -352,7 +360,7 @@ PRAGMA_CLANG_WARNING_POP
     test.positioner.increment_position(increment);
     test.inst.ctx.run_for(1ms);
     expect(called);
-  } | std::vector{ 1 * mm, -1 * mm };  // it can go either forward or backwards from current position
+  } | std::vector{ 1 * mm, -1 * mm }; // it can go either forward or backwards from current position
 };
 #endif
 
@@ -363,7 +371,8 @@ int main(int argc, char** argv) {
   "circular_buffer_test moves pointer front when inserted to last item"_test = [] {
     static constexpr std::size_t len{ 10 };
     circular_buffer<int, 10> buff{};
-    for (std::size_t i = 0; i < len + len; ++i) {  // try two rounds
+    for (std::size_t i = 0; i < len + len; ++i) {
+      // try two rounds
       buff.emplace(i);
     }
     expect(buff.front() == len + len - 1) << buff.front();
