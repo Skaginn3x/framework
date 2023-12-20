@@ -22,3 +22,17 @@ add_test(
   COMMAND
     test_glaze_meta
 )
+
+add_executable(test_json_schema test_json_schema.cpp)
+target_link_libraries(test_json_schema
+  PRIVATE
+    tfc::stx
+    Boost::ut
+    glaze::glaze
+)
+add_test(
+  NAME
+    test_json_schema
+  COMMAND
+    test_json_schema
+)
