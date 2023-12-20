@@ -152,8 +152,7 @@ struct packet {
         error_type substitute{};
         if constexpr (std::is_trivial_v<error_type>) {
           std::copy_n(buffer_iter, sizeof(error_type), reinterpret_cast<std::byte*>(&substitute));
-        }
-        else {
+        } else {
           substitute.resize(result.header.value_size);
           std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(substitute.data()));
         }
