@@ -19,6 +19,10 @@ add_test(
   COMMAND
     positioner_test
 )
+# todo remove when sdbusplus starts behaving
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_definitions(positioner_test PRIVATE DEBUG)
+endif()
 if(BUILD_EXAMPLES)
   add_subdirectory(example)
 endif()

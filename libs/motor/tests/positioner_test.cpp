@@ -49,6 +49,8 @@ using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::
 using mp_units::quantity;
 using mp_units::si::unit_symbols::mm;
 
+#if (!(__GNUC__ && defined(DEBUG) && !__clang__))
+
 struct test_instance {
   asio::io_context ctx{};
   tfc::ipc_ruler::ipc_manager_client client{ ctx };
@@ -352,6 +354,7 @@ PRAGMA_CLANG_WARNING_POP
     expect(called);
   } | std::vector{ 1 * mm, -1 * mm };  // it can go either forward or backwards from current position
 };
+#endif
 
 int main(int argc, char** argv) {
   using tfc::motor::detail::circular_buffer;
