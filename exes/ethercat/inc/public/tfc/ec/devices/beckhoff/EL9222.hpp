@@ -39,13 +39,13 @@ public:
     sdo_write({ 0x8000, 11 }, std::uint8_t{ 0x1 });
     sdo_write({ 0x8010, 11 }, std::uint8_t{ 0x1 });
 
-   // sdo_write(ecx::rx_pdo_assign<0x00>, uint8_t{ 0 });
+    // sdo_write(ecx::rx_pdo_assign<0x00>, uint8_t{ 0 });
 
-   //  for (uint8_t i = 0; i < size; i++) {
-   //    sdo_write({ 0x1C13, i + 1 }, static_cast<uint16_t>(0x1A00 + (i * 2) + 1));
-   //  }
+    //  for (uint8_t i = 0; i < size; i++) {
+    //    sdo_write({ 0x1C13, i + 1 }, static_cast<uint16_t>(0x1A00 + (i * 2) + 1));
+    //  }
 
-   //  sdo_write({ 0x1C13, 0 }, 2);
+    //  sdo_write({ 0x1C13, 0 }, 2);
 
     return 1;
   }
