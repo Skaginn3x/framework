@@ -40,7 +40,7 @@ namespace asio = boost::asio;
 using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
 
 // to be added to `notify_at` , the completion token
-enum struct position_error_code : std::uint8_t {
+enum struct position_error_code_e : std::uint8_t {
   no_error = 0,
   unstable,       // could be one event missing per cycle or similar
   missing_event,  // missing event from encoder
@@ -60,19 +60,27 @@ struct circular_buffer {
       insert_pos_ = std::begin(buffer_);
     }
   }
+  /// \return reference to most recently inserted item
   constexpr auto front() noexcept -> storage_t& { return *front_; }
+  /// \return const reference to most recently inserted item
   constexpr auto front() const noexcept -> storage_t const& { return *front_; }
+  /// \return reference to oldest inserted item
+  constexpr auto back() noexcept -> storage_t& { return *insert_pos_; }
+  /// \return const reference to oldest inserted item
+  constexpr auto back() const noexcept -> storage_t const& { return *insert_pos_; }
 
   std::array<storage_t, len> buffer_{};
   // front is invalid when there has no item been inserted yet, but should not matter much
   typename std::array<storage_t, len>::iterator front_{ std::begin(buffer_) };
-  typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) };
+  typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) + 1 }; // this is front + 1
 };
 
 template <typename bool_slot_t = ipc::bool_slot,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 1024>
 struct tachometer {
+  using duration_t = typename clock_t::duration;
+  using time_point_t = typename clock_t::time_point;
   explicit tachometer(asio::io_context& ctx,
                       ipc_ruler::ipc_manager_client& client,
                       std::string_view name,
@@ -88,16 +96,32 @@ struct tachometer {
     if (first_new_val) {
       position_ += 1;
       std::invoke(position_update_callback_, position_);
+      // now let's calculate the average interval
+      auto intvl_to_be_removed { interval_buffer_.back().interval_duration };
+      interval_buffer_.emplace(now - buffer_.front().time_point);
       buffer_.emplace(now);
+      auto intvl_front_back_diff{ interval_buffer_.front().interval_duration.count() -
+                                  intvl_to_be_removed.count() };
+      static constexpr auto len{ static_cast<double>(circular_buffer_len) };
+      average_ += static_cast<double>(intvl_front_back_diff) / len;
     }
   }
 
-  struct storage {
-    typename clock_t::time_point time_point{};
+  duration_t interval() const noexcept { return std::chrono::milliseconds{ 1 }; }
+
+  auto average() const noexcept -> duration_t { return duration_t{ static_cast<typename duration_t::rep>(average_) }; }
+
+  struct event_storage {
+    time_point_t time_point{};
+  };
+  struct interval_storage {
+    duration_t interval_duration{};
   };
 
   std::int64_t position_{};
-  circular_buffer<storage, circular_buffer_len> buffer_{};
+  double average_{};
+  circular_buffer<event_storage, circular_buffer_len> buffer_{};
+  circular_buffer<interval_storage, circular_buffer_len> interval_buffer_{};
   std::function<void(std::int64_t)> position_update_callback_{ [](std::int64_t) {} };
   bool_slot_t induction_sensor_;
 };

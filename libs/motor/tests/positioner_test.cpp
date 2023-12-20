@@ -33,7 +33,7 @@ static_assert(update_impl({ .new_first = true, .new_second = true }) == 2);
 static_assert(update_impl({ .old_first = true, .old_second = true }) == 2);
 static_assert(update_impl({ .new_second = true, .old_first = true }) == -2);
 static_assert(update_impl({ .new_first = true, .old_second = true }) == -2);
-} // namespace compile_tests
+}  // namespace compile_tests
 
 using namespace mp_units::si::unit_symbols;
 namespace asio = boost::asio;
@@ -41,6 +41,7 @@ namespace ut = boost::ut;
 using ut::expect;
 using ut::operator""_test;
 using ut::operator|;
+using ut::operator/;
 static constexpr std::size_t buffer_len{ 10 };
 
 using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client&>;
@@ -60,12 +61,12 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
   using tachometer_t = tfc::motor::detail::tachometer<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using std::chrono_literals::operator""ms;
 
   struct tachometer_test {
     test_instance inst{};
     // ability to populate, but will be moved into implementation
-    std::function<void(std::int64_t)> cb{ [](std::int64_t) {
-    } };
+    std::function<void(std::int64_t)> cb{ [](std::int64_t) {} };
     tachometer_t tachometer{ inst.ctx, inst.client, "name", std::move(cb) };
   };
 
@@ -93,8 +94,9 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 
   "tachometer with single sensor stores new values to buffer on rising edge"_test = [] {
     tachometer_test test{};
+    tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
     for (std::int64_t idx{ 0 }; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
-      tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + std::chrono::milliseconds{ 1 } };
+      tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + 1ms };
       tfc::testing::clock::set_ticks(later);
       test.tachometer.update(false);
       test.tachometer.update(true);
@@ -102,10 +104,45 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     }
   };
 
-  "tachometer one missing tooth"_test = [] {
+  "tachometer average"_test = [] {
     tachometer_test test{};
-
+    tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
+    for (std::size_t idx{ 0 }; idx < buffer_len; idx++) {
+      tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + std::chrono::milliseconds{ idx } };
+      tfc::testing::clock::set_ticks(later);
+      test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+      test.tachometer.update(true);
+    }
+    std::chrono::nanoseconds average{ std::chrono::microseconds{ 4500 } };
+    expect(test.tachometer.average() == average)
+    << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.average());
   };
+
+  "tachometer one missing tooth"_test = [](auto& time_between_teeth) {
+    // let's say we have 10 teeth
+    //                 x  0
+    //               x 9 x  1
+    //             x 8     x  2
+    //             x 7     x  3
+    //               x 6 x  4 <- missing tooth
+    //                 x  5
+    ut::test(fmt::format("interval {}", time_between_teeth)) = [&time_between_teeth] {
+      tachometer_test test{};
+      tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
+      auto average{ time_between_teeth * (buffer_len - 1) / buffer_len };
+      for (std::size_t idx{ 0 }; idx < buffer_len; idx++) {
+        tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + time_between_teeth };
+        tfc::testing::clock::set_ticks(later);
+        if (idx == 4) {
+          continue;
+        }
+        test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+        test.tachometer.update(true);
+      }
+      expect(test.tachometer.average() == average)
+          << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.average());
+    };
+  } | std::vector<std::chrono::nanoseconds>{ 1ms, 2ms, 3ms, 4ms, 5ms, 6ms, 7ms, 8ms };
 };
 
 // clang-format off
@@ -117,7 +154,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   struct encoder_test {
     test_instance inst{};
     std::function<void(std::int64_t)> cb{ [](std::int64_t) {
-    } }; // ability to populate, but will be moved into implementation
+    } };  // ability to populate, but will be moved into implementation
     encoder_t encoder{ inst.ctx, inst.client, "name", std::move(cb) };
   };
 
@@ -360,7 +397,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.positioner.increment_position(increment);
     test.inst.ctx.run_for(1ms);
     expect(called);
-  } | std::vector{ 1 * mm, -1 * mm }; // it can go either forward or backwards from current position
+  } | std::vector{ 1 * mm, -1 * mm };  // it can go either forward or backwards from current position
 };
 #endif
 
@@ -376,6 +413,7 @@ int main(int argc, char** argv) {
       buff.emplace(i);
     }
     expect(buff.front() == len + len - 1) << buff.front();
+    expect(buff.back() == len) << buff.back(); // back is the oldest item
   };
 
   return EXIT_SUCCESS;
