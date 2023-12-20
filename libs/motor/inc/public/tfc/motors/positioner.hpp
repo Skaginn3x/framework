@@ -22,13 +22,13 @@
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::detail {
-enum struct tacho_config : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
+enum struct position_mode : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
 }
 
 template <>
-struct glz::meta<tfc::motor::detail::tacho_config> {
+struct glz::meta<tfc::motor::detail::position_mode> {
   static constexpr std::string_view name{ "tacho_config" };
-  using enum tfc::motor::detail::tacho_config;
+  using enum tfc::motor::detail::position_mode;
   static constexpr auto value{
     glz::enumerate("Not used", not_used, "Tachometer", tachometer, "Encoder", encoder, "Frequency", frequency)
   };
@@ -284,7 +284,7 @@ public:
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
       : name_{ name }, ctx_{ ctx } {
     switch (config_->tacho) {
-      using enum detail::tacho_config;
+      using enum detail::position_mode;
       case not_used:
         break;
       case tachometer: {
@@ -396,7 +396,7 @@ private:
     }
   };
   struct config {
-    detail::tacho_config tacho{ detail::tacho_config::not_used };
+    detail::position_mode tacho{ detail::position_mode::not_used };
     dimension_t
         displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
     struct glaze {
