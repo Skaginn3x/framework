@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <iostream>
 
 #include <tfc/ec/devices/beckhoff/EL1xxx.hpp>
 #include <tfc/ipc.hpp>
@@ -35,6 +36,8 @@ template <typename manager_client_type,
 void el1xxx<manager_client_type, size, entries, pc, name, signal_t>::process_data(std::span<std::byte> input,
                                                                                   std::span<std::byte>) noexcept {
   constexpr size_t minimum_byte_count = (size / 9) + 1;
+  std::cout << "input size: " << input.size() << std::endl;
+  std::cout << "minimum_byte_count: " << minimum_byte_count << std::endl;
   assert(input.size() == minimum_byte_count && "EL1XXX Size mismatch between process data and expected");
 
   // Loop bytes
