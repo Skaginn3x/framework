@@ -8,7 +8,6 @@ using ut::operator""_test;
 using ut::fatal;
 using ut::operator>>;
 
-
 struct read_only_map_obj {
   std::map<int, int> map{};
 
