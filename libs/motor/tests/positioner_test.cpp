@@ -137,31 +137,36 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     std::chrono::nanoseconds time_between_teeth{};
     std::chrono::nanoseconds stddev{};
   };
-  "tachometer one missing tooth"_test = [](auto& data) {
-    // let's say we have 10 teeth
-    //                 x  0
-    //               x 9 x  1
-    //             x 8     x  2
-    //             x 7     x  3
-    //               x 6 x  4 <- missing tooth
-    //                 x  5
-    ut::test(fmt::format("interval {}", data.time_between_teeth)) = [&data] {
-      tachometer_test test{};
-      tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
-      for (std::size_t idx{ 0 }; idx < buffer_len * 2; idx++) {
-        tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + data.time_between_teeth };
-        tfc::testing::clock::set_ticks(later);
-        if (idx == 4 || idx == 14) {
-          continue;
-        }
-        test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
-        test.tachometer.update(true);
-      }
-      expect(test.tachometer.stddev() == data.stddev)
-          << fmt::format("expected stddev: {}, got stddev: {}\n", data.stddev, test.tachometer.stddev());
-    };
-  } | std::vector{ data_t{ .time_between_teeth = 1ms, .stddev = 303315ns } };  // , 2ms, 3ms, 4ms, 5ms, 6ms, 7ms, 8ms };
-  // todo verify by hand the calculation is correct
+  "tachometer one missing tooth"_test =
+      [](auto& data) {
+        // let's say we have 10 teeth
+        //                 x  0
+        //               x 9 x  1
+        //             x 8     x  2
+        //             x 7     x  3
+        //               x 6 x  4 <- missing tooth
+        //                 x  5
+        ut::test(fmt::format("interval {}", data.time_between_teeth)) = [&data] {
+          tachometer_test test{};
+          tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
+          for (std::size_t idx{ 0 }; idx < buffer_len * 2; idx++) {
+            tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + data.time_between_teeth };
+            tfc::testing::clock::set_ticks(later);
+            if (idx == 4 || idx == 14) {
+              continue;
+            }
+            test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+            test.tachometer.update(true);
+          }
+          expect(test.tachometer.stddev() == data.stddev)
+              << fmt::format("expected stddev: {}, got stddev: {}\n", data.stddev, test.tachometer.stddev());
+        };
+      } |
+      // todo verify by hand the calculation is correct
+      std::vector{ data_t{ .time_between_teeth = 1ms, .stddev = 303315ns },
+                   data_t{ .time_between_teeth = 3ms, .stddev = 909945ns },
+                   data_t{ .time_between_teeth = 7ms, .stddev = 2123205ns },
+                   data_t{ .time_between_teeth = 17ms, .stddev = 5156355ns } };
 };
 
 // clang-format off
