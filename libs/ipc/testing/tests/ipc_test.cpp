@@ -177,7 +177,7 @@ auto main(int argc, char** argv) -> int {
         expect(value_received);
       } |
       std::tuple{ data_t<type_mass>{ .value = 100 * mp_units::si::gram },
-                  data_t<type_mass>{ .value = std::unexpected(tfc::ipc::details::mass_error_e::cell_fault) },
+                  data_t<type_mass>{ .value = std::unexpected(mass_error_e::cell_fault) },
                   data_t<type_bool>{ .value = true },
                   data_t<type_double>{ .value = 3.14 },
                   data_t<type_int>{ .value = 3 },
