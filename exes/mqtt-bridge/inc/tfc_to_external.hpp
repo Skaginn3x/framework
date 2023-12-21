@@ -15,6 +15,7 @@
 #include <tfc/logger.hpp>
 
 #include <config/publish_signals.hpp>
+#include <global_header.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 
@@ -89,6 +90,7 @@ public:
   }
 
   auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal> const& signals) -> void {
+    tfc::global::set_signals(signals);
     logger_.trace("Received {} new signals to add.", signals.size());
 
     signals_.clear();
@@ -152,7 +154,6 @@ private:
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
   publish_signals_config_t config_{ io_ctx_, "publish_signals_config" };
-  tfc::json::detail::to_json_schema<signal_name> signal_name_schema_{};
 
   friend class test_tfc_to_external;
 };
