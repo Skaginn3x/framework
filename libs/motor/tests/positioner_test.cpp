@@ -67,7 +67,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   struct tachometer_test {
     test_instance inst{};
     // ability to populate, but will be moved into implementation
-    std::function<void(std::int64_t)> cb{ [](std::int64_t) {} };
+    std::function<tfc::motor::tick_signature_t> cb{ [](auto, auto, auto) {} };
     tachometer_t tachometer{ inst.ctx, inst.client, "name", std::move(cb) };
   };
 
@@ -83,7 +83,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "tachometer with single sensor calls owner"_test = [] {
     std::int64_t idx{ 1 };
     bool called{};
-    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value) {
+    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value, auto, auto) {
       expect(idx == new_value) << fmt::format("got {} expected {}", new_value, idx);
       called = true;
     } };
@@ -177,7 +177,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   using encoder_t = tfc::motor::detail::encoder<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
   struct encoder_test {
     test_instance inst{};
-    std::function<void(std::int64_t)> cb{ [](std::int64_t) {
+    std::function<tfc::motor::tick_signature_t> cb{ [](std::int64_t, auto, auto) {
     } };  // ability to populate, but will be moved into implementation
     encoder_t encoder{ inst.ctx, inst.client, "name", std::move(cb) };
   };
@@ -196,7 +196,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   //	0   1   |   0   0   ->  -1
   "encoder: -1"_test = [] {
     bool called{};
-    encoder_test test{ .cb = [&called](std::int64_t pos) {
+    encoder_test test{ .cb = [&called](std::int64_t pos, auto, auto) {
       expect(pos == -1) << fmt::format("expected -1, got {}\n", pos);
       called = true;
     } };
@@ -208,7 +208,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   //	1   0   |   0   0   ->   +1
   "encoder: +1"_test = [] {
     bool called{};
-    encoder_test test{ .cb = [&called](std::int64_t pos) {
+    encoder_test test{ .cb = [&called](std::int64_t pos, auto, auto) {
       expect(pos == 1) << fmt::format("expected 1, got {}\n", pos);
       called = true;
     } };

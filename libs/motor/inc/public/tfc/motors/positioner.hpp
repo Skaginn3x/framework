@@ -40,6 +40,7 @@ namespace tfc::motor {
 
 namespace asio = boost::asio;
 using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds);
 
 // to be added to `notify_at` , the completion token
 enum struct position_error_code_e : std::uint8_t {
@@ -130,7 +131,7 @@ struct tachometer {
   explicit tachometer(asio::io_context& ctx,
                       ipc_ruler::ipc_manager_client& client,
                       std::string_view name,
-                      std::function<void(std::int64_t)>&& position_update_callback)
+                      std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) }, induction_sensor_{
           ctx, client, fmt::format("tacho_{}", name),
           "Tachometer input, usually induction sensor directed to rotational metal star or plastic ring with metal bolts.",
@@ -142,15 +143,15 @@ struct tachometer {
       return;
     }
     auto now{ clock_t::now() };
-    std::invoke(position_update_callback_, ++position_);
     statistics_.update(now);
+    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev());
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
 
   std::int64_t position_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
-  std::function<void(std::int64_t)> position_update_callback_{ [](std::int64_t) {} };
+  std::function<tick_signature_t> position_update_callback_{ [](auto, auto, auto) {} };
   bool_slot_t induction_sensor_;
 };
 
@@ -161,7 +162,7 @@ struct encoder {
   explicit encoder(asio::io_context& ctx,
                    ipc_ruler::ipc_manager_client& client,
                    std::string_view name,
-                   std::function<void(std::int64_t)>&& position_update_callback)
+                   std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) },
         sensor_a_{ ctx, client, fmt::format("tacho_a_{}", name),
                    "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
@@ -250,11 +251,12 @@ struct encoder {
 
   constexpr auto update(update_params params) noexcept -> void {
     auto const now{ clock_t::now() };
-    buffer_.emplace(bool{ params.new_first }, bool{ params.new_second }, now);
     auto const increment{ update_impl(params) };  // todo error cases
     if (increment != 0) {
+      buffer_.emplace(bool{ params.new_first }, bool{ params.new_second });
+      statistics_.update(now);
       position_ += increment;
-      std::invoke(position_update_callback_, position_);
+      std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev());
     }
   }
 
@@ -299,12 +301,12 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wimplicit-fallthrough) // todo why do I need this
   struct storage {
     bool first_tacho_state{};
     bool second_tacho_state{};
-    typename clock_t::time_point time_point{};
   };
 
   std::int64_t position_{};
   circular_buffer<storage, circular_buffer_len> buffer_{};
-  std::function<void(std::int64_t)> position_update_callback_ = [](std::int64_t) {};
+  time_series_statistics<clock_t, circular_buffer_len> statistics_{};
+  std::function<tick_signature_t> position_update_callback_{ [](auto, auto, auto) {} };
   bool_slot_t sensor_a_;
   bool_slot_t sensor_b_;
 };
@@ -392,10 +394,10 @@ public:
   }
 
   /// \return Current position since last restart
-  [[nodiscard]] dimension_t position() const noexcept { return absolute_position_; }
+  [[nodiscard]] auto position() const noexcept -> dimension_t { return absolute_position_; }
 
   /// \return Resolution of the absolute position
-  [[nodiscard]] dimension_t resolution() const noexcept { return config_->displacement_per_pulse; }
+  [[nodiscard]] auto resolution() const noexcept -> dimension_t { return config_->displacement_per_pulse; }
 
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
@@ -408,7 +410,7 @@ public:
     notify_if_applicable(old_position);
   }
 
-  void tick(std::int64_t tachometer_counts) {
+  void tick(std::int64_t tachometer_counts, [[maybe_unused]] std::chrono::nanoseconds const& average, [[maybe_unused]] std::chrono::nanoseconds const& stddev) {
     auto const old_position{ absolute_position_ };
     absolute_position_ = config_->displacement_per_pulse * tachometer_counts;
     notify_if_applicable(old_position);
