@@ -150,6 +150,8 @@ auto main(int argc, char** argv) -> int {
     ctx.run();
   };
 
+  using namespace tfc::ipc::details;
+
   // make signal and slot connect and send and receive and expect upon its value
   "ping pong"_test =
       [](auto& data) {
@@ -174,14 +176,14 @@ auto main(int argc, char** argv) -> int {
         ctx.run_for(std::chrono::milliseconds(5));
         expect(value_received);
       } |
-      std::tuple{ data_t<tfc::ipc::details::type_mass>{ .value = 100 * mp_units::si::gram },
-                  data_t<tfc::ipc::details::type_bool>{ .value = true },
-                  data_t<tfc::ipc::details::type_double>{ .value = 3.14 },
-                  data_t<tfc::ipc::details::type_int>{ .value = 3 },
-                  data_t<tfc::ipc::details::type_json>{ .value =
-                                                            R"({"i":287,"d":3.14,"hello":"Hello World","arr":[1,2,3])" },
-                  data_t<tfc::ipc::details::type_string>{ .value = "hello world from another world" },
-                  data_t<tfc::ipc::details::type_uint>{ .value = std::numeric_limits<std::uint64_t>::max() } };
+      std::tuple{ data_t<type_mass>{ .value = 100 * mp_units::si::gram },
+                  data_t<type_mass>{ .value = std::unexpected(tfc::ipc::details::mass_error_e::cell_fault) },
+                  data_t<type_bool>{ .value = true },
+                  data_t<type_double>{ .value = 3.14 },
+                  data_t<type_int>{ .value = 3 },
+                  data_t<type_json>{ .value = R"({"i":287,"d":3.14,"hello":"Hello World","arr":[1,2,3])" },
+                  data_t<type_string>{ .value = "hello world from another world" },
+                  data_t<type_uint>{ .value = std::numeric_limits<std::uint64_t>::max() } };
 
   return 0;
 }
