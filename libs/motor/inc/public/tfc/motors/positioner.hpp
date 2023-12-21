@@ -341,6 +341,7 @@ public:
     detail::position_mode_e mode{ detail::position_mode_e::not_used };
     static constexpr dimension_t inch{ 1 * mp_units::international::inch };
     dimension_t displacement_per_increment{ inch };
+    std::chrono::microseconds standard_deviation_threshold{ 100 };
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
       // clang-format off
@@ -352,6 +353,11 @@ public:
                            "Mode: tachometer, displacement per pulse or distance between two teeths\n"
                            "Mode: encoder, displacement per edge, distance between two teeths divided by 4",
             .default_value = inch.numerical_value_ref_in(dimension_t::reference),
+            .minimum = 1,
+          },
+          "standard_deviation_threshold", &config::standard_deviation_threshold, json::schema{
+            .description = "Standard deviation between increments, used to determine if signal is stable",
+            .default_value = 100,
             .minimum = 1,
           }
         )
@@ -443,6 +449,16 @@ public:
   /// \param new_home_position store this position as home
   void home(dimension_t const& new_home_position) noexcept { home_ = new_home_position; }
 
+  /// \brief return current error state
+  /// \return error code
+  [[nodiscard]] auto error() const noexcept -> position_error_code_e {
+    using enum position_error_code_e;
+    if (stddev_ >= config_->standard_deviation_threshold) {
+      return unstable;
+    }
+    return no_error;
+  }
+
   void increment_position(dimension_t const& increment) {
     auto const old_position{ absolute_position_ };
     absolute_position_ += increment;
@@ -454,6 +470,7 @@ public:
             [[maybe_unused]] std::chrono::nanoseconds const& stddev) {
     auto const old_position{ absolute_position_ };
     absolute_position_ = config_->displacement_per_increment * tachometer_counts;
+    stddev_ = stddev;
     // Important the resolution below needs to match
     static constexpr auto nanometer_reference{ mp_units::si::nano<mp_units::si::metre> };
     static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
@@ -502,6 +519,7 @@ private:
   dimension_t absolute_position_{};
   dimension_t home_{};
   velocity_t velocity_{};
+  std::chrono::nanoseconds stddev_{};
   std::string name_{};
   asio::io_context& ctx_;
   logger::logger logger_{ name_ };

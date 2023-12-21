@@ -442,6 +442,13 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     expect(expected_velocity == 100 * mm / ms) << fmt::format("expected: {}, got: {}\n", 100 * mm / ms, expected_velocity);
     expect(test.positioner.velocity() == expected_velocity) << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
   };
+
+  "standard deviation error"_test = [] {
+    auto stddev{ 1ms };
+    notification_test test{ .config = {.standard_deviation_threshold = stddev } };
+    test.positioner.tick(1, {}, stddev);
+    expect(test.positioner.error() == tfc::motor::position_error_code_e::unstable);
+  };
 };
 #endif
 
