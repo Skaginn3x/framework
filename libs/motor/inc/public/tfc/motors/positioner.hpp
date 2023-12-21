@@ -25,8 +25,8 @@
 #include <tfc/logger.hpp>
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_condition_variable.hpp>
-#include <tfc/utils/units_glaze_meta.hpp>
 #include <tfc/utils/json_schema.hpp>
+#include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::detail {
 enum struct position_mode_e : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
@@ -338,11 +338,38 @@ public:
   static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
   using velocity_t = mp_units::quantity<reference / nanosec_reference, std::int64_t>;
 
+  struct config {
+    detail::position_mode_e mode{ detail::position_mode_e::not_used };
+    static constexpr dimension_t inch{ 1 * mp_units::international::inch };
+    dimension_t displacement_per_pulse{ inch };
+    struct glaze {
+      static constexpr std::string_view name{ "positioner_config" };
+      // clang-format off
+      static constexpr auto value{
+        glz::object(
+          "mode", &config::mode,
+          "displacement_per_tacho_pulse", &config::displacement_per_pulse, json::schema{
+            .default_value = inch.numerical_value_ref_in(dimension_t::reference),
+            .minimum = 1,
+          }
+        )
+      };
+      // clang-format on
+    };
+  };
+
   /// \param ctx boost asio context
   /// \param client ipc client
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
-      : name_{ name }, ctx_{ ctx } {
+      : positioner(ctx, client, name, config{}) {}
+
+  /// \param ctx boost asio context
+  /// \param client ipc client
+  /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
+  /// \param default_value configuration default, useful for special cases and testing
+  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name, config&& default_value)
+    : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_) } {
     switch (config_->mode) {
       using enum detail::position_mode_e;
       case not_used:
@@ -462,25 +489,6 @@ private:
       return absolute_notification_position_ <=> other.absolute_notification_position_;
     }
   };
-  struct config {
-    detail::position_mode_e mode{ detail::position_mode_e::not_used };
-    static constexpr dimension_t inch{ 1 * mp_units::international::inch };
-    dimension_t displacement_per_pulse{ inch };
-    struct glaze {
-      static constexpr std::string_view name{ "positioner_config" };
-      // clang-format off
-      static constexpr auto value{
-        glz::object(
-          "mode", &config::mode,
-          "displacement_per_tacho_pulse", &config::displacement_per_pulse, json::schema{
-            .default_value = inch.numerical_value_ref_in(dimension_t::reference),
-            .minimum = 1,
-          }
-          )
-      };
-      // clang-format on
-    };
-  };
 
   dimension_t absolute_position_{};
   dimension_t home_{};
@@ -488,7 +496,7 @@ private:
   std::string name_{};
   asio::io_context& ctx_;
   logger::logger logger_{ name_ };
-  confman::config<config> config_{ ctx_, fmt::format("positioner_{}", name_) };
+  confman::config<config> config_;
   std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
     detail::frequency<dimension_t>{ std::bind_front(&positioner::increment_position, this) }
   };
