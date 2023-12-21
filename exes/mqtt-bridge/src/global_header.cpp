@@ -14,4 +14,4 @@ void set_signals(std::vector<tfc::ipc_ruler::signal> const& names) {
 std::vector<tfc::ipc_ruler::signal> const& get_signals() {
   return signals;
 }
-}  // namespace global
+}  // namespace tfc::global
