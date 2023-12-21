@@ -331,24 +331,26 @@ struct frequency {
 
 }  // namespace detail
 
-template <mp_units::Quantity dimension_t = position_t>
+template <mp_units::Quantity dimension_t = position_t, template <typename> typename confman_t = confman::config>
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
-  static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
-  using velocity_t = mp_units::quantity<reference / nanosec_reference, std::int64_t>;
+  using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
 
   struct config {
     detail::position_mode_e mode{ detail::position_mode_e::not_used };
     static constexpr dimension_t inch{ 1 * mp_units::international::inch };
-    dimension_t displacement_per_pulse{ inch };
+    dimension_t displacement_per_increment{ inch };
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
       // clang-format off
       static constexpr auto value{
         glz::object(
           "mode", &config::mode,
-          "displacement_per_tacho_pulse", &config::displacement_per_pulse, json::schema{
+          "displacement_per_increment", &config::displacement_per_increment, json::schema{
+            .description = "Displacement per increment\n"
+                           "Mode: tachometer, displacement per pulse or distance between two teeths\n"
+                           "Mode: encoder, displacement per edge, distance between two teeths divided by 4",
             .default_value = inch.numerical_value_ref_in(dimension_t::reference),
             .minimum = 1,
           }
@@ -369,7 +371,7 @@ public:
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param default_value configuration default, useful for special cases and testing
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name, config&& default_value)
-    : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_) } {
+    : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     switch (config_->mode) {
       using enum detail::position_mode_e;
       case not_used:
@@ -431,7 +433,10 @@ public:
   [[nodiscard]] auto position() const noexcept -> dimension_t { return absolute_position_; }
 
   /// \return Resolution of the absolute position
-  [[nodiscard]] auto resolution() const noexcept -> dimension_t { return config_->displacement_per_pulse; }
+  [[nodiscard]] auto resolution() const noexcept -> dimension_t { return config_->displacement_per_increment; }
+
+  /// \return Current velocity
+  [[nodiscard]] auto velocity() const noexcept -> velocity_t { return velocity_; }
 
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
@@ -448,9 +453,13 @@ public:
             [[maybe_unused]] std::chrono::nanoseconds const& average,
             [[maybe_unused]] std::chrono::nanoseconds const& stddev) {
     auto const old_position{ absolute_position_ };
-    absolute_position_ = config_->displacement_per_pulse * tachometer_counts;
+    absolute_position_ = config_->displacement_per_increment * tachometer_counts;
+    // Important the resolution below needs to match
+    static constexpr auto nanometer_reference{ mp_units::si::nano<mp_units::si::metre> };
+    static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
     if (average.count() > 0) {
-      velocity_ = (absolute_position_ - old_position) / (average.count() * nanosec_reference);
+      auto const displacement{ (absolute_position_ - old_position).in(nanometer_reference) };
+      velocity_ = displacement / (average.count() * nanosec_reference);
     } else {
       velocity_ = 0 * (reference / nanosec_reference);
     }
@@ -496,12 +505,12 @@ private:
   std::string name_{};
   asio::io_context& ctx_;
   logger::logger logger_{ name_ };
-  confman::config<config> config_;
+  confman_t<config> config_;
   std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
     detail::frequency<dimension_t>{ std::bind_front(&positioner::increment_position, this) }
   };
   // todo overflow
-  // in terms of conveyors, mm resolution, this would overflow when you have gone 1800 trips to Pluto back and forth
+  // in terms of conveyors, mm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
   std::vector<notification> notifications_forward_{};
   std::vector<notification> notifications_backward_{};
 };

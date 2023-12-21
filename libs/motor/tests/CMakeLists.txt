@@ -12,7 +12,7 @@ add_test(
 )
 
 add_executable(positioner_test positioner_test.cpp)
-target_link_libraries(positioner_test PRIVATE Boost::ut tfc::motor tfc::base tfc::mock_ipc tfc::testing)
+target_link_libraries(positioner_test PRIVATE Boost::ut tfc::motor tfc::base tfc::mock_ipc tfc::testing tfc::stub_confman)
 add_test(
   NAME
     positioner_test

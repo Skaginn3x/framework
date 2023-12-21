@@ -1,7 +1,9 @@
 #include <boost/ut.hpp>
+#include <mp-units/format.h>
 
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/mocks/ipc.hpp>
+#include <tfc/stubs/confman.hpp>
 #include <tfc/motors/positioner.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/testing/asio_clock.hpp>
@@ -327,8 +329,10 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
   struct notification_test {
+    using positioner_t = tfc::motor::positioner<tfc::motor::position_t, tfc::confman::stub_config>;
     test_instance inst{};
-    tfc::motor::positioner<> positioner{ inst.ctx, inst.client, "name" };
+    positioner_t::config config{}; // to be moved to implementation
+    positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
   };
   using mp_units::si::unit_symbols::mm;
 
@@ -421,6 +425,23 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.inst.ctx.run_for(1ms);
     expect(called);
   } | std::vector{ 1 * mm, -1 * mm };  // it can go either forward or backwards from current position
+
+  "position per tick"_test = [] {
+    auto const displacement{ 100 * mm };
+    notification_test test{.config = {.displacement_per_increment = displacement }};
+    test.positioner.tick(1, {}, {});
+    expect(test.positioner.position() == displacement) << fmt::format("expected: {}, got: {}\n", displacement, test.positioner.position());
+  };
+
+  "velocity per tick"_test = [] {
+    auto const displacement{ 100 * mm };
+    notification_test test{.config = {.displacement_per_increment = displacement }};
+    auto const tick_duration{ 1ms };
+    test.positioner.tick(1, tick_duration, {});
+    auto expected_velocity{ displacement / (tick_duration.count() * mp_units::si::milli<mp_units::si::second>) };
+    expect(expected_velocity == 100 * mm / ms) << fmt::format("expected: {}, got: {}\n", 100 * mm / ms, expected_velocity);
+    expect(test.positioner.velocity() == expected_velocity) << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
+  };
 };
 #endif
 
