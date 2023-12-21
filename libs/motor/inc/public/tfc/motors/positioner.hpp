@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <string_view>
@@ -11,8 +12,11 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <mp-units/chrono.h>
 #include <mp-units/math.h>
+#include <mp-units/systems/international/international.h>
 #include <mp-units/systems/si/si.h>
+
 #include <boost/asio.hpp>
 #include <glaze/core/common.hpp>
 
@@ -22,15 +26,16 @@
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_condition_variable.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::motor::detail {
-enum struct position_mode : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
+enum struct position_mode_e : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
 }
 
 template <>
-struct glz::meta<tfc::motor::detail::position_mode> {
+struct glz::meta<tfc::motor::detail::position_mode_e> {
   static constexpr std::string_view name{ "tacho_config" };
-  using enum tfc::motor::detail::position_mode;
+  using enum tfc::motor::detail::position_mode_e;
   static constexpr auto value{
     glz::enumerate("Not used", not_used, "Tachometer", tachometer, "Encoder", encoder, "Frequency", frequency)
   };
@@ -330,14 +335,16 @@ template <mp_units::Quantity dimension_t = position_t>
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
+  static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
+  using velocity_t = mp_units::quantity<reference / nanosec_reference, std::int64_t>;
 
   /// \param ctx boost asio context
   /// \param client ipc client
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
       : name_{ name }, ctx_{ ctx } {
-    switch (config_->tacho) {
-      using enum detail::position_mode;
+    switch (config_->mode) {
+      using enum detail::position_mode_e;
       case not_used:
         break;
       case tachometer: {
@@ -410,9 +417,16 @@ public:
     notify_if_applicable(old_position);
   }
 
-  void tick(std::int64_t tachometer_counts, [[maybe_unused]] std::chrono::nanoseconds const& average, [[maybe_unused]] std::chrono::nanoseconds const& stddev) {
+  void tick(std::int64_t tachometer_counts,
+            [[maybe_unused]] std::chrono::nanoseconds const& average,
+            [[maybe_unused]] std::chrono::nanoseconds const& stddev) {
     auto const old_position{ absolute_position_ };
     absolute_position_ = config_->displacement_per_pulse * tachometer_counts;
+    if (average.count() > 0) {
+      velocity_ = (absolute_position_ - old_position) / (average.count() * nanosec_reference);
+    } else {
+      velocity_ = 0 * (reference / nanosec_reference);
+    }
     notify_if_applicable(old_position);
   }
 
@@ -449,19 +463,28 @@ private:
     }
   };
   struct config {
-    detail::position_mode tacho{ detail::position_mode::not_used };
-    dimension_t
-        displacement_per_pulse{};  // I would suggest default value as 2.54 cm (one inch) and ban 0 and negative values
+    detail::position_mode_e mode{ detail::position_mode_e::not_used };
+    static constexpr dimension_t inch{ 1 * mp_units::international::inch };
+    dimension_t displacement_per_pulse{ inch };
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
+      // clang-format off
       static constexpr auto value{
-        glz::object("tacho", &config::tacho, "displacement_per_tacho_pulse", &config::displacement_per_pulse)
+        glz::object(
+          "mode", &config::mode,
+          "displacement_per_tacho_pulse", &config::displacement_per_pulse, json::schema{
+            .default_value = inch.numerical_value_ref_in(dimension_t::reference),
+            .minimum = 1,
+          }
+          )
       };
+      // clang-format on
     };
   };
 
   dimension_t absolute_position_{};
   dimension_t home_{};
+  velocity_t velocity_{};
   std::string name_{};
   asio::io_context& ctx_;
   logger::logger logger_{ name_ };
