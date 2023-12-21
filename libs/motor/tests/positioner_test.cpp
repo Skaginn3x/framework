@@ -101,7 +101,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       tfc::testing::clock::set_ticks(later);
       test.tachometer.update(false);
       test.tachometer.update(true);
-      expect(test.tachometer.buffer_.front().time_point == later);
+      expect(test.tachometer.statistics().buffer().front().time_point == later);
     }
   };
 
@@ -115,8 +115,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       test.tachometer.update(true);
     }
     std::chrono::nanoseconds average{ std::chrono::microseconds{ 4500 } };
-    expect(test.tachometer.average() == average)
-        << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.average());
+    expect(test.tachometer.statistics().average() == average)
+        << fmt::format("expected average: {}, got average: {}\n", average, test.tachometer.statistics().average());
   };
 
   "tachometer variance"_test = [] {
@@ -129,8 +129,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
       test.tachometer.update(true);
     }
-    expect(test.tachometer.stddev() == 0ms)
-        << fmt::format("expected stddev: {}, got stddev: {}\n", 0ms, test.tachometer.stddev());
+    expect(test.tachometer.statistics().stddev() == 0ms)
+        << fmt::format("expected stddev: {}, got stddev: {}\n", 0ms, test.tachometer.statistics().stddev());
   };
 
   struct data_t {
@@ -158,8 +158,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
             test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
             test.tachometer.update(true);
           }
-          expect(test.tachometer.stddev() == data.stddev)
-              << fmt::format("expected stddev: {}, got stddev: {}\n", data.stddev, test.tachometer.stddev());
+          expect(test.tachometer.statistics().stddev() == data.stddev)
+              << fmt::format("expected stddev: {}, got stddev: {}\n", data.stddev, test.tachometer.statistics().stddev());
         };
       } |
       // todo verify by hand the calculation is correct

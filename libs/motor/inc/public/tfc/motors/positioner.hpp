@@ -81,6 +81,46 @@ struct circular_buffer {
   typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) + 1 };  // this is front + 1
 };
 
+template <typename clock_t = asio::steady_timer::time_point::clock, std::size_t circular_buffer_len = 1024>
+struct time_series_statistics {
+  using duration_t = typename clock_t::duration;
+  using time_point_t = typename clock_t::time_point;
+
+  void update(time_point_t const& now) noexcept {
+    // now let's calculate the average interval and variance
+    auto const intvl_current{ now - buffer_.front().time_point };
+    auto const current_variance_increment{ std::pow(static_cast<double>(intvl_current.count()) - average_, 2) };
+
+    auto const removed{ buffer_.emplace(now, intvl_current, current_variance_increment) };
+
+    average_ += static_cast<double>(intvl_current.count() - removed.interval_duration.count()) / circular_buffer_len;
+    // Note the variance is actually incorrect but it serves the purpose of detecting if the variance is increasing or not.
+    // It is incorrect because it uses mean of values that have already been removed from the buffer to determine the
+    // incremental variance of the older items in the buffer. I think it is impossible to calculate the correct variance in
+    // constant time. For reference, see
+    // https://math.stackexchange.com/questions/102978/incremental-computation-of-standard-deviation
+    variance_ += (current_variance_increment - removed.variance_increment) / circular_buffer_len;
+  }
+
+  auto buffer() const noexcept -> auto const& { return buffer_; }
+
+  auto average() const noexcept -> duration_t { return duration_t{ static_cast<typename duration_t::rep>(average_) }; }
+
+  auto stddev() const noexcept -> duration_t {
+    // assert(variance_ >= 0, "Variance is squared so it should be positive.");
+    return duration_t{ static_cast<typename duration_t::rep>(std::sqrt(variance_)) };
+  }
+
+  struct event_storage {
+    time_point_t time_point{};
+    duration_t interval_duration{};
+    double variance_increment{};
+  };
+  double average_{};
+  double variance_{};
+  circular_buffer<event_storage, circular_buffer_len> buffer_{};
+};
+
 template <typename bool_slot_t = ipc::bool_slot,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 1024>
@@ -98,45 +138,18 @@ struct tachometer {
         } {}
 
   void update(bool first_new_val) noexcept {
-    auto now{ clock_t::now() };
-    if (first_new_val) {
-      position_ += 1;
-      std::invoke(position_update_callback_, position_);
-      // now let's calculate the average interval and variance
-      auto intvl_current{ now - buffer_.front().time_point };
-      auto current_variance_increment{ std::pow(static_cast<double>(intvl_current.count()) - average_, 2) };
-
-      auto removed{ buffer_.emplace(now, intvl_current, current_variance_increment) };
-
-      average_ += static_cast<double>(intvl_current.count() - removed.interval_duration.count()) / circular_buffer_len;
-      // Note the variance is actually incorrect but it serves the purpose of detecting if the variance is increasing or not.
-      // It is incorrect because it uses mean of values that have already been removed from the buffer to determine the
-      // incremental variance of the older items in the buffer. I think it is impossible to calculate the correct variance in
-      // constant time. For reference, see
-      // https://math.stackexchange.com/questions/102978/incremental-computation-of-standard-deviation
-      variance_ += (current_variance_increment - removed.variance_increment) / circular_buffer_len;
+    if (!first_new_val) {
+      return;
     }
+    auto now{ clock_t::now() };
+    std::invoke(position_update_callback_, ++position_);
+    statistics_.update(now);
   }
 
-  duration_t interval() const noexcept { return std::chrono::milliseconds{ 1 }; }
-
-  auto average() const noexcept -> duration_t { return duration_t{ static_cast<typename duration_t::rep>(average_) }; }
-
-  auto stddev() const noexcept -> duration_t {
-    // assert(variance_ >= 0, "Variance is squared so it should be positive.");
-    return duration_t{ static_cast<typename duration_t::rep>(std::sqrt(variance_)) };
-  }
-
-  struct event_storage {
-    time_point_t time_point{};
-    duration_t interval_duration{};
-    double variance_increment{};
-  };
+  auto statistics() const noexcept -> auto const& { return statistics_; }
 
   std::int64_t position_{};
-  double average_{};
-  double variance_{};
-  circular_buffer<event_storage, circular_buffer_len> buffer_{};
+  time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<void(std::int64_t)> position_update_callback_{ [](std::int64_t) {} };
   bool_slot_t induction_sensor_;
 };
