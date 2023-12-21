@@ -15,7 +15,7 @@
 #include <tfc/logger.hpp>
 
 #include <config/publish_signals.hpp>
-#include <global_header.hpp>
+#include <signal_names.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 

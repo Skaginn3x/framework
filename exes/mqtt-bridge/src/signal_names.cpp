@@ -1,4 +1,4 @@
-#include <global_header.hpp>
+#include <signal_names.hpp>
 
 namespace {
 // clang-format off

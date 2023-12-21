@@ -7,7 +7,7 @@
 #include <glaze/core/common.hpp>
 #include <tfc/utils/json_schema.hpp>
 
-#include <global_header.hpp>
+#include <signal_names.hpp>
 
 namespace tfc::mqtt::config {
 
