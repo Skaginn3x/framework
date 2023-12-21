@@ -2,6 +2,7 @@
 #include <string>
 
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/ipc/packet.hpp>
 #include <tfc/progbase.hpp>
 
@@ -12,6 +13,12 @@
 
 namespace asio = boost::asio;
 
+template <typename type_decl>
+struct data_t {
+  using type_description = type_decl;
+  type_decl::value_t value{};
+};
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
@@ -20,6 +27,7 @@ auto main(int argc, char** argv) -> int {
   using boost::ut::bdd::given;
   using boost::ut::bdd::when;
   using boost::ut::operator>>;
+  using boost::ut::operator|;
   using boost::ut::fatal;
   using tfc::ipc::details::packet;
   using tfc::ipc::details::type_e;
@@ -141,6 +149,41 @@ auto main(int argc, char** argv) -> int {
     timer.async_wait([&sender](auto) { sender->send("hello-world"); });
     ctx.run();
   };
+
+  using namespace tfc::ipc::details;
+
+  // make signal and slot connect and send and receive and expect upon its value
+  "ping pong"_test =
+      [](auto& data) {
+        using type_description = std::remove_cvref_t<decltype(data)>::type_description;
+        auto ctx{ asio::io_context() };
+        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ ctx };
+        tfc::ipc::signal<type_description, tfc::ipc_ruler::ipc_manager_client_mock&> sender{ ctx, ipc_client, "name" };
+        bool value_received;
+        tfc::ipc::slot<type_description, tfc::ipc_ruler::ipc_manager_client_mock&> receiver{
+          ctx, ipc_client, "name", "desc",
+          [&value_received, &data](auto const& new_val) {
+            // clang-format off
+            PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+            // clang-format on
+            value_received = (new_val == data.value);
+            PRAGMA_CLANG_WARNING_POP
+          }
+        };
+        ipc_client.connect(ipc_client.slots_[0].name, ipc_client.signals_[0].name, [](std::error_code const&) {});
+        ctx.run_for(std::chrono::milliseconds(5));
+        sender.send(data.value);
+        ctx.run_for(std::chrono::milliseconds(5));
+        expect(value_received);
+      } |
+      std::tuple{ data_t<type_mass>{ .value = 100 * mp_units::si::gram },
+                  data_t<type_mass>{ .value = std::unexpected(mass_error_e::cell_fault) },
+                  data_t<type_bool>{ .value = true },
+                  data_t<type_double>{ .value = 3.14 },
+                  data_t<type_int>{ .value = 3 },
+                  data_t<type_json>{ .value = R"({"i":287,"d":3.14,"hello":"Hello World","arr":[1,2,3])" },
+                  data_t<type_string>{ .value = "hello world from another world" },
+                  data_t<type_uint>{ .value = std::numeric_limits<std::uint64_t>::max() } };
 
   return 0;
 }

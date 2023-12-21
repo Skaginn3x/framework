@@ -148,8 +148,14 @@ struct packet {
         std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
         result.value = substitute * value_t::value_type::reference;
       } else {
-        typename value_t::error_type substitute{};
-        std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(&substitute));
+        using error_type = typename value_t::error_type;
+        error_type substitute{};
+        if constexpr (std::is_trivial_v<error_type>) {
+          std::copy_n(buffer_iter, sizeof(error_type), reinterpret_cast<std::byte*>(&substitute));
+        } else {
+          substitute.resize(result.header.value_size);
+          std::copy_n(buffer_iter, result.header.value_size - 1, reinterpret_cast<std::byte*>(substitute.data()));
+        }
         result.value = std::unexpected{ substitute };
       }
     } else {
