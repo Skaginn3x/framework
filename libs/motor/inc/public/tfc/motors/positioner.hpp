@@ -43,17 +43,16 @@ struct glz::meta<tfc::motor::detail::position_mode_e> {
 
 namespace tfc::motor {
 
-namespace asio = boost::asio;
-using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
-using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds);
-
-// to be added to `notify_at` , the completion token
 enum struct position_error_code_e : std::uint8_t {
-  no_error = 0,
+  none = 0,
   unstable,       // could be one event missing per cycle or similar
   missing_event,  // missing event from encoder
   unknown,        // cause not explicitly known
 };
+
+namespace asio = boost::asio;
+using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, position_error_code_e);
 
 namespace detail {
 template <typename storage_t, std::size_t len>
@@ -149,7 +148,7 @@ struct tachometer {
     }
     auto now{ clock_t::now() };
     statistics_.update(now);
-    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev());
+    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev(), position_error_code_e::none);
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
@@ -178,6 +177,12 @@ struct encoder {
                    "star or plastic ring of metal bolts.",
                    std::bind_front(&encoder::second_tacho_update, this) } {}
 
+  struct storage {
+    enum struct last_event_e : std::uint8_t { unknown = 0, first, second };
+    bool first_tacho_state{};
+    bool second_tacho_state{};
+    last_event_e last_event{ last_event_e::unknown };
+  };
   // https://github.com/PaulStoffregen/Encoder/blob/master/Encoder.h#L303
   //                           _______         _______
   //               Pin1 ______|       |_______|       |______ Pin1
@@ -227,17 +232,19 @@ struct encoder {
   */
 
   void first_tacho_update(bool first_new_val) noexcept {
+    using last_event_e = typename storage::last_event_e;
     update({ .new_first = first_new_val,
              .new_second = buffer_.front().second_tacho_state,
              .old_first = buffer_.front().first_tacho_state,
-             .old_second = buffer_.front().second_tacho_state });
+             .old_second = buffer_.front().second_tacho_state }, last_event_e::first);
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
+    using last_event_e = typename storage::last_event_e;
     update({ .new_first = buffer_.front().first_tacho_state,
              .new_second = second_new_val,
              .old_first = buffer_.front().first_tacho_state,
-             .old_second = buffer_.front().second_tacho_state });
+             .old_second = buffer_.front().second_tacho_state }, last_event_e::second);
   }
 
   struct update_params {
@@ -254,14 +261,18 @@ struct encoder {
     }
   };
 
-  constexpr auto update(update_params params) noexcept -> void {
+  constexpr auto update(update_params params, typename storage::last_event_e event) noexcept -> void {
     auto const now{ clock_t::now() };
     auto const increment{ update_impl(params) };  // todo error cases
     if (increment != 0) {
-      buffer_.emplace(bool{ params.new_first }, bool{ params.new_second });
+      position_error_code_e err{ position_error_code_e::none };
+      if (buffer_.front().last_event == event) {
+        err = position_error_code_e::missing_event;
+      }
+      buffer_.emplace(bool{ params.new_first }, bool{ params.new_second }, event);
       statistics_.update(now);
       position_ += increment;
-      std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev());
+      std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), err);
     }
   }
 
@@ -303,15 +314,10 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wimplicit-fallthrough) // todo why do I need this
     PRAGMA_CLANG_WARNING_POP
   }
 
-  struct storage {
-    bool first_tacho_state{};
-    bool second_tacho_state{};
-  };
-
   std::int64_t position_{};
   circular_buffer<storage, circular_buffer_len> buffer_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
-  std::function<tick_signature_t> position_update_callback_{ [](auto, auto, auto) {} };
+  std::function<tick_signature_t> position_update_callback_{ [](auto, auto, auto, auto) {} };
   bool_slot_t sensor_a_;
   bool_slot_t sensor_b_;
 };
@@ -456,7 +462,7 @@ public:
     if (stddev_ >= config_->standard_deviation_threshold) {
       return unstable;
     }
-    return no_error;
+    return none;
   }
 
   void increment_position(dimension_t const& increment) {
@@ -466,8 +472,9 @@ public:
   }
 
   void tick(std::int64_t tachometer_counts,
-            [[maybe_unused]] std::chrono::nanoseconds const& average,
-            [[maybe_unused]] std::chrono::nanoseconds const& stddev) {
+            std::chrono::nanoseconds const& average,
+            std::chrono::nanoseconds const& stddev,
+            [[maybe_unused]] position_error_code_e err) {
     auto const old_position{ absolute_position_ };
     absolute_position_ = config_->displacement_per_increment * tachometer_counts;
     stddev_ = stddev;

@@ -69,7 +69,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   struct tachometer_test {
     test_instance inst{};
     // ability to populate, but will be moved into implementation
-    std::function<tfc::motor::tick_signature_t> cb{ [](auto, auto, auto) {} };
+    std::function<tfc::motor::tick_signature_t> cb{ [](auto, auto, auto, auto) {} };
     tachometer_t tachometer{ inst.ctx, inst.client, "name", std::move(cb) };
   };
 
@@ -85,7 +85,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "tachometer with single sensor calls owner"_test = [] {
     std::int64_t idx{ 1 };
     bool called{};
-    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value, auto, auto) {
+    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value, auto, auto, auto) {
       expect(idx == new_value) << fmt::format("got {} expected {}", new_value, idx);
       called = true;
     } };
@@ -179,7 +179,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   using encoder_t = tfc::motor::detail::encoder<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
   struct encoder_test {
     test_instance inst{};
-    std::function<tfc::motor::tick_signature_t> cb{ [](std::int64_t, auto, auto) {
+    std::function<tfc::motor::tick_signature_t> cb{ [](std::int64_t, auto, auto, auto) {
     } };  // ability to populate, but will be moved into implementation
     encoder_t encoder{ inst.ctx, inst.client, "name", std::move(cb) };
   };
@@ -198,7 +198,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   //	0   1   |   0   0   ->  -1
   "encoder: -1"_test = [] {
     bool called{};
-    encoder_test test{ .cb = [&called](std::int64_t pos, auto, auto) {
+    encoder_test test{ .cb = [&called](std::int64_t pos, auto, auto, auto) {
       expect(pos == -1) << fmt::format("expected -1, got {}\n", pos);
       called = true;
     } };
@@ -210,7 +210,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   //	1   0   |   0   0   ->   +1
   "encoder: +1"_test = [] {
     bool called{};
-    encoder_test test{ .cb = [&called](std::int64_t pos, auto, auto) {
+    encoder_test test{ .cb = [&called](std::int64_t pos, auto, auto, auto) {
       expect(pos == 1) << fmt::format("expected 1, got {}\n", pos);
       called = true;
     } };
@@ -429,7 +429,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "position per tick"_test = [] {
     auto const displacement{ 100 * mm };
     notification_test test{.config = {.displacement_per_increment = displacement }};
-    test.positioner.tick(1, {}, {});
+    test.positioner.tick(1, {}, {}, {});
     expect(test.positioner.position() == displacement) << fmt::format("expected: {}, got: {}\n", displacement, test.positioner.position());
   };
 
@@ -437,7 +437,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     auto const displacement{ 100 * mm };
     notification_test test{.config = {.displacement_per_increment = displacement }};
     auto const tick_duration{ 1ms };
-    test.positioner.tick(1, tick_duration, {});
+    test.positioner.tick(1, tick_duration, {}, {});
     auto expected_velocity{ displacement / (tick_duration.count() * mp_units::si::milli<mp_units::si::second>) };
     expect(expected_velocity == 100 * mm / ms) << fmt::format("expected: {}, got: {}\n", 100 * mm / ms, expected_velocity);
     expect(test.positioner.velocity() == expected_velocity) << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
@@ -446,7 +446,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "standard deviation error"_test = [] {
     auto stddev{ 1ms };
     notification_test test{ .config = {.standard_deviation_threshold = stddev } };
-    test.positioner.tick(1, {}, stddev);
+    test.positioner.tick(1, {}, stddev, {});
     expect(test.positioner.error() == tfc::motor::position_error_code_e::unstable);
   };
 };
