@@ -80,7 +80,7 @@ public:
 
   auto is_publish_signal(std::string signal_name) -> bool {
     for (const auto& publish_signal : config_.value().publish_signals) {
-      if (publish_signal == signal_name) {
+      if (publish_signal.value == signal_name) {
         logger_.trace("Signal {} is in the list of signals to publish", signal_name);
         return true;
       }
