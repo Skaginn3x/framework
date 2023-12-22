@@ -371,8 +371,8 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
-  tfc::confman::config<tfc::ec::config::network_interfaces> config_{ ctx_, "network_interface_config" };
-  tfc::logger::logger logger_{ fmt::format("Ethercat Context iface: ({})", config_.value().interfaces.value) };
+  tfc::confman::config<config::network_interfaces> config_{ ctx_, "ethercat" };
+  tfc::logger::logger logger_{ "ethercat" };
 };
 
 // Template deduction guide

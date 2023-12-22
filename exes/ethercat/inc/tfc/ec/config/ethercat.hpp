@@ -41,28 +41,18 @@ template <>
 struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
-    if (!s.oneOf.has_value()) {
-      s.oneOf = std::vector<tfc::json::detail::schematic>{};
-    }
+    s.oneOf = std::vector<tfc::json::detail::schematic>{};
 
     struct ifaddrs* addrs;
     getifaddrs(&addrs);
 
     for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
       if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
-        // interfaces.emplace_back(addr->ifa_name);
-        // for (auto const& interface : tfc::ec::config::get_network_interfaces()) {
-        //   s.oneOf.value().push_back(tfc::json::detail::schematic{
-        s.oneOf.value().push_back(tfc::json::detail::schematic{ .attributes{
+        s.oneOf.value().emplace_back(tfc::json::detail::schematic{ .attributes{
             tfc::json::schema{ .title = addr->ifa_name, .description = addr->ifa_name, .constant = addr->ifa_name } } });
       }
     }
     freeifaddrs(addrs);
-
-    // for (auto const& interface : tfc::ec::config::get_network_interfaces()) {
-    //   s.oneOf.value().push_back(tfc::json::detail::schematic{
-    //       .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
-    // }
   }
 };
 
