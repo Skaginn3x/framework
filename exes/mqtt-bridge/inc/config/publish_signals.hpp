@@ -15,14 +15,14 @@ struct signal_name {
   std::string value{};
 
   struct glaze {
-    static constexpr auto value = glz::object("signal_name", &signal_name::value, "Name of the signal to publish");
+    static constexpr auto value = &signal_name::value;
     static constexpr std::string_view name{ "signal_name" };
   };
 };
 }  // namespace tfc::mqtt::config
 
 template <>
-struct tfc::json::detail::to_json_schema<std::vector<tfc::mqtt::config::signal_name>> {
+struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
     if (!s.oneOf.has_value()) {
