@@ -3,6 +3,7 @@
 #include <chrono>
 #include <concepts>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -13,6 +14,8 @@
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 
+#include <config/publish_signals.hpp>
+#include <signal_names.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 
@@ -20,7 +23,7 @@ namespace tfc::mqtt {
 
 namespace asio = boost::asio;
 
-template <class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
+template <class publish_signals_config_t, class spark_plug_config_t, class mqtt_client_t, class ipc_client_t>
 class tfc_to_external {
 public:
   explicit tfc_to_external(asio::io_context& io_ctx,
@@ -75,7 +78,19 @@ public:
         [this](std::vector<ipc_ruler::signal> const& signals) { handle_incoming_signals_from_ipc_client(signals); });
   }
 
+  auto is_publish_signal(std::string signal_name) -> bool {
+    for (const auto& publish_signal : config_.value().publish_signals) {
+      if (publish_signal.value == signal_name) {
+        logger_.trace("Signal {} is in the list of signals to publish", signal_name);
+        return true;
+      }
+    }
+    logger_.trace("Signal {} is not in the list of signals to publish", signal_name);
+    return false;
+  }
+
   auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal> const& signals) -> void {
+    tfc::global::set_signals(signals);
     logger_.trace("Received {} new signals to add.", signals.size());
 
     signals_.clear();
@@ -85,6 +100,10 @@ public:
     spb_variables_.reserve(signals.size());
 
     for (const auto& signal : signals) {
+      if (!is_publish_signal(signal.name)) {
+        continue;
+      }
+
       signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
 
       spb_variables_.emplace_back(format_signal_name(signal.name.data()), type_enum_convert(signal.type), std::nullopt,
@@ -134,16 +153,14 @@ private:
   tfc::logger::logger logger_{ "tfc_to_external" };
   std::vector<tfc::ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
+  publish_signals_config_t config_{ io_ctx_, "publish_signals_config" };
 
   friend class test_tfc_to_external;
 };
 
-using tfc_to_ext = tfc_to_external<tfc::confman::config<config::spark_plug_b>,
+using tfc_to_ext = tfc_to_external<tfc::confman::config<config::publish_signals>,
+                                   tfc::confman::config<config::spark_plug_b>,
                                    client<endpoint_client, tfc::confman::config<config::broker>>,
                                    tfc::ipc_ruler::ipc_manager_client>;
-
-using tfc_to_ext_mock = tfc_to_external<config::spark_plug_b_mock,
-                                        client<endpoint_client_mock, config::broker_mock>,
-                                        tfc::ipc_ruler::ipc_manager_client_mock&>;
 
 }  // namespace tfc::mqtt

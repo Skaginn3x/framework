@@ -6,12 +6,15 @@
 #include <boost/program_options.hpp>
 #include <boost/ut.hpp>
 
+#include <tfc/progbase.hpp>
+
 #include <client.hpp>
+#include <config/publish_signals_mock.hpp>
+#include <config/spark_plug_b_mock.hpp>
 #include <constants.hpp>
 #include <spark_plug_interface.hpp>
 #include <test_external_to_tfc.hpp>
 #include <test_tfc_to_external.hpp>
-#include <tfc/progbase.hpp>
 
 namespace ut = boost::ut;
 namespace asio = boost::asio;
@@ -57,7 +60,14 @@ auto main(int argc, char* argv[]) -> int {
   "testing tfc to external"_test = [&]() {
     tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{ io_ctx };
     tfc::mqtt::spark_plug_mock sp{ io_ctx };
-    tfc::mqtt::tfc_to_ext_mock test_ext{ io_ctx, sp, ipc_mock };
+
+    using namespace tfc::mqtt;
+
+    using tfc_to_ext_mock =
+        tfc_to_external<config::publish_signals_mock, config::spark_plug_b_mock,
+                        client<endpoint_client_mock, config::broker_mock>, tfc::ipc_ruler::ipc_manager_client_mock&>;
+
+    tfc_to_ext_mock test_ext{ io_ctx, sp, ipc_mock };
 
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
