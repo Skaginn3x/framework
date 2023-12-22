@@ -52,6 +52,7 @@ enum struct position_error_code_e : std::uint8_t {
 
 namespace asio = boost::asio;
 using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+using hertz_t = mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>;
 using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, position_error_code_e);
 
 namespace detail {
@@ -156,7 +157,7 @@ struct tachometer {
 
   std::int64_t position_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
-  std::function<tick_signature_t> position_update_callback_{ [](auto, auto, auto) {} };
+  std::function<tick_signature_t> position_update_callback_;
   bool_slot_t induction_sensor_;
 };
 
@@ -209,22 +210,31 @@ struct encoder {
   std::int64_t position_{};
   circular_buffer<storage, circular_buffer_len> buffer_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
-  std::function<tick_signature_t> position_update_callback_{ [](auto, auto, auto, auto) {} };
+  std::function<tick_signature_t> position_update_callback_;
   bool_slot_t sensor_a_;
   bool_slot_t sensor_b_;
 };
 
 template <mp_units::Quantity dimension_t,
-          typename time_point_t = asio::steady_timer::time_point,
+          typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 1024>
 struct frequency {
-  explicit frequency(std::function<void(dimension_t)>&& position_update_callback) noexcept
-      : position_update_callback_{ std::move(position_update_callback) } {}
+  static constexpr auto reference{ dimension_t::reference };
+  using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
+  using time_point_t = typename clock_t::time_point;
 
-  void on_freq(mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>) {
+  explicit frequency(velocity_t velocity_at_frequency, hertz_t reference_frequency, std::function<void(dimension_t)>&& position_update_callback) noexcept
+      : velocity_at_frequency_{ velocity_at_frequency }, reference_frequency_{ reference_frequency }, position_update_callback_{ std::move(position_update_callback) } {}
+
+  void on_freq(hertz_t hertz) {
+
     // todo
   }
+
+  velocity_t velocity_at_frequency_{};
+  hertz_t reference_frequency_{};
   std::function<void(dimension_t)> position_update_callback_{ [](dimension_t) {} };
+  time_point_t time_point{ clock_t::now() };
 };
 
 }  // namespace detail
@@ -236,10 +246,13 @@ public:
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
 
   struct config {
-    detail::position_mode_e mode{ detail::position_mode_e::not_used };
+    detail::position_mode_e mode{ detail::position_mode_e::not_used }; // todo observable
     static constexpr dimension_t inch{ 1 * mp_units::international::inch };
     dimension_t displacement_per_increment{ inch };
     std::chrono::microseconds standard_deviation_threshold{ 100 };
+    mp_units::quantity<mp_units::percent, std::uint8_t> tick_average_deviation_threshold{ 180 * mp_units::percent }; // todo
+    velocity_t velocity_at_frequency{ 0 * (reference / mp_units::si::second) }; // todo observable
+    hertz_t reference_frequency{ 0 * mp_units::si::hertz }; // todo observable
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
       // clang-format off
@@ -251,12 +264,25 @@ public:
                            "Mode: tachometer, displacement per pulse or distance between two teeths\n"
                            "Mode: encoder, displacement per edge, distance between two teeths divided by 4",
             .default_value = inch.numerical_value_ref_in(dimension_t::reference),
-            .minimum = 1,
+            .minimum = 1UL,
           },
           "standard_deviation_threshold", &config::standard_deviation_threshold, json::schema{
             .description = "Standard deviation between increments, used to determine if signal is stable",
-            .default_value = 100,
-            .minimum = 1,
+            .default_value = 100UL,
+            .minimum = 1UL,
+          },
+          "tick_average_deviation_threshold", &config::tick_average_deviation_threshold, json::schema{
+            .description = "Threshold of deviation from average per increment, used to determine if signal is stable",
+            .default_value = 80UL,
+            .minimum = 1UL,
+          },
+          "velocity_at_frequency", &config::velocity_at_frequency, json::schema{
+            .description = "Velocity at the given frequency",
+            .default_value = 0UL,
+          },
+          "reference_frequency", &config::reference_frequency, json::schema{
+            .description = "Reference frequency for the given velocity",
+            .default_value = 0UL,
           }
         )
       };
@@ -289,7 +315,7 @@ public:
         break;
       }
       case frequency: {
-        impl_.template emplace<detail::frequency<dimension_t>>(std::bind_front(&positioner::increment_position, this));
+        impl_.template emplace<detail::frequency<dimension_t>>(config_->velocity_at_frequency, config_->reference_frequency, std::bind_front(&positioner::increment_position, this));
         break;
       }
     }
@@ -355,6 +381,14 @@ public:
       return unstable;
     }
     return none;
+  }
+
+  void freq_update(hertz_t hertz) {
+    std::visit([hertz]<typename impl_t>(impl_t& impl) {
+      if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
+        impl.on_freq(hertz);
+      }
+    }, impl_);
   }
 
   void increment_position(dimension_t const& increment) {
@@ -424,10 +458,10 @@ private:
   logger::logger logger_{ name_ };
   confman_t<config> config_;
   std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
-    detail::frequency<dimension_t>{ std::bind_front(&positioner::increment_position, this) }
+    detail::frequency<dimension_t>{ config_->velocity_at_frequency, config_->reference_frequency, std::bind_front(&positioner::increment_position, this) }
   };
   // todo overflow
-  // in terms of conveyors, mm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
+  // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
   std::vector<notification> notifications_forward_{};
   std::vector<notification> notifications_backward_{};
 };
