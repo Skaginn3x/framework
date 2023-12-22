@@ -1,6 +1,6 @@
 #include <concepts>
-#include <type_traits>
 #include <experimental/type_traits>
+#include <type_traits>
 #include <variant>
 
 #include <mp-units/systems/isq/isq.h>
@@ -9,8 +9,8 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/motors/errors.hpp>
 #include <tfc/motors/atv320motor.hpp>
+#include <tfc/motors/errors.hpp>
 #include <tfc/motors/virtual_motor.hpp>
 
 /**
@@ -28,8 +28,8 @@ using SpeedRatio = mp_units::ratio;
 
 class interface {
 public:
-  using config_t = confman::observable<
-      std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
+  using config_t =
+      confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
   explicit interface(asio::io_context& ctx, std::string_view name, config_t default_config = {})
       : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {

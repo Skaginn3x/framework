@@ -58,7 +58,8 @@ auto get_impl(std::shared_ptr<sdbusplus::asio::connection>& connection,
               auto product_code,
               std::unique_ptr<base>& output) -> bool {
   if (devices_equal<device_t>(vendor_id, product_code)) {
-    if constexpr (std::is_constructible_v<device_t, std::shared_ptr<sdbusplus::asio::connection>, manager_client_type&, uint16_t>) {
+    if constexpr (std::is_constructible_v<device_t, std::shared_ptr<sdbusplus::asio::connection>, manager_client_type&,
+                                          uint16_t>) {
       output = std::make_unique<device_t>(connection, client, slave_index);
     } else if constexpr (std::is_constructible_v<device_t, boost::asio::io_context&, manager_client_type&, uint16_t>) {
       output = std::make_unique<device_t>(connection->get_io_context(), client, slave_index);

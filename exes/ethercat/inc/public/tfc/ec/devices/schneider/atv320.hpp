@@ -18,9 +18,9 @@
 
 #include <tfc/ec/devices/schneider/atv320/dbus-iface.hpp>
 #include <tfc/ec/devices/schneider/atv320/enums.hpp>
+#include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/ec/devices/schneider/atv320/settings.hpp>
 #include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
-#include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
@@ -111,16 +111,20 @@ public:
                  reference_frequency_ = detail::percentage_to_deci_freq(
                      value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
                }),
-        frequency_transmit_(connection->get_io_context(), client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
+        frequency_transmit_(connection->get_io_context(),
+                            client,
+                            fmt::format("atv320.s{}.in.freq", slave_index),
+                            "Current Frequency"),
         hmis_transmitter_(connection->get_io_context(), client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ connection->get_io_context(), fmt::format("atv320_i{}", slave_index) }, dbus_iface_(connection, slave_index) {
+        config_{ connection->get_io_context(), fmt::format("atv320_i{}", slave_index) },
+        dbus_iface_(connection, slave_index) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
     });
     for (size_t i = 0; i < atv320_di_count; i++) {
-      di_transmitters_.emplace_back(
-          tfc::ipc::bool_signal(connection->get_io_context(), client, fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
+      di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
+                                                          fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
     }
     // TODO: Design a sane method for transmitting analog signals in event based enviorments
     // for (size_t i = 0; i < 2; i++) {
@@ -128,7 +132,6 @@ public:
     //       tfc::ipc::int_signal(ctx, client, fmt::format("atv320.s{}.in{}", slave_index, i), "Analog input"));
     // }
   }
-
 
   // Update signals of the current status of the drive
   void transmit_status(const input_t& input) {
@@ -167,9 +170,8 @@ public:
       out->control.reserved_1 = reference_frequency_.reverse;
       out->frequency = reference_frequency_.value;
     } else {
-      auto freq = detail::percentage_to_deci_freq(dbus_iface_.speed_ratio(),
-                                       config_.value().value().low_speed,
-                                       config_.value().value().high_speed);
+      auto freq = detail::percentage_to_deci_freq(dbus_iface_.speed_ratio(), config_.value().value().low_speed,
+                                                  config_.value().value().high_speed);
       out->frequency = freq.value;
       out->control.reserved_1 = freq.reverse;
       out->control = dbus_iface_.ctrl();

@@ -7,10 +7,10 @@
 #include <vector>
 
 #include <fmt/chrono.h>
-#include <tfc/ec/devices/device.hpp>
-#include <tfc/ec/soem_interface.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/ec/devices/device.hpp>
+#include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -37,7 +37,7 @@ public:
   explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
       : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
     dbus_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
-    //dbus_->request_name(dbus::const_dbus_name<dbus_name>.data());
+    // dbus_->request_name(dbus::const_dbus_name<dbus_name>.data());
     dbus_->request_name("com.skaginn3x.ethercat");
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
