@@ -8,35 +8,6 @@
 #include <tfc/stubs/confman.hpp>
 #include <tfc/testing/asio_clock.hpp>
 
-namespace compile_tests {
-using update_params = tfc::motor::detail::encoder<>::update_params;
-static_assert(sizeof(update_params) == 1, "update_params should be 1 byte");
-static_assert(update_params{} == 0U);
-static_assert(update_params{ .new_first = true } == 1U);
-static_assert(update_params{ .new_second = true } == 2U);
-static_assert(update_params{ .new_first = true, .new_second = true } == 3U);
-static_assert(update_params{ .old_first = true } == 4U);
-static_assert(update_params{ .old_second = true } == 8U);
-
-static constexpr auto update_impl{ tfc::motor::detail::encoder<>::update_impl };
-static_assert(update_impl({}) == 0);
-static_assert(update_impl({ .new_first = true, .new_second = true, .old_first = true, .old_second = true }) == 0);
-static_assert(update_impl({ .new_second = true, .old_second = true }) == 0);
-static_assert(update_impl({ .new_first = true, .old_first = true }) == 0);
-static_assert(update_impl({ .new_second = true }) == 1);
-static_assert(update_impl({ .old_first = true }) == 1);
-static_assert(update_impl({ .new_first = true, .old_first = true, .old_second = true }) == 1);
-static_assert(update_impl({ .new_first = true, .new_second = true, .old_second = true }) == 1);
-static_assert(update_impl({ .new_first = true }) == -1);
-static_assert(update_impl({ .old_second = true }) == -1);
-static_assert(update_impl({ .new_second = true, .old_first = true, .old_second = true }) == -1);
-static_assert(update_impl({ .new_first = true, .new_second = true, .old_first = true }) == -1);
-static_assert(update_impl({ .new_first = true, .new_second = true }) == 2);
-static_assert(update_impl({ .old_first = true, .old_second = true }) == 2);
-static_assert(update_impl({ .new_second = true, .old_first = true }) == -2);
-static_assert(update_impl({ .new_first = true, .old_second = true }) == -2);
-}  // namespace compile_tests
-
 using namespace mp_units::si::unit_symbols;
 namespace asio = boost::asio;
 namespace ut = boost::ut;

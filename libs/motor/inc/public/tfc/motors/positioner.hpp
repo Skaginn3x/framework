@@ -184,138 +184,27 @@ struct encoder {
     bool second_tacho_state{};
     last_event_e last_event{ last_event_e::unknown };
   };
-  // https://github.com/PaulStoffregen/Encoder/blob/master/Encoder.h#L303
-  //                           _______         _______
-  //               Pin1 ______|       |_______|       |______ Pin1
-  // negative <---         _______         _______         __      --> positive
-  //               Pin2 __|       |_______|       |_______|   Pin2
-
-  //	new 	new	    old 	old
-  //	pin2	pin1	pin2	pin1	Result
-  //	----	----	----	----	------
-  //	0	0	0	0	no movement
-  //	0	1	0	1	no movement
-  //	1	0	1	0	no movement
-  //	1	1	1	1	no movement
-  //	1	0	0	0	+1
-  //	0	0	0	1	+1
-  //	0	1	1	1	+1
-  //	1	1	1	0	+1
-  //	0	1	0	0	-1
-  //	0	0	1	0	-1
-  //	1	0	1	1	-1
-  //	1	1	0	1	-1
-  //	0	0	1	1	+2  (assume pin1 edges only)
-  //	0	1	1	0	-2  (assume pin1 edges only)
-  //	1	0	0	1	-2  (assume pin1 edges only)
-  //	1	1	0	0	+2  (assume pin1 edges only)
-  /*
-          // Simple, easy-to-read "documentation" version :-)
-          //
-          void update(void) {
-                  uint8_t s = state & 3;
-                  if (digitalRead(pin1)) s |= 4;
-                  if (digitalRead(pin2)) s |= 8;
-                  switch (s) {
-                          case 0: case 5: case 10: case 15:
-                                  break;
-                          case 1: case 7: case 8: case 14:
-                                  position++; break;
-                          case 2: case 4: case 11: case 13:
-                                  position--; break;
-                          case 3: case 12:
-                                  position += 2; break;
-                          default:
-                                  position -= 2; break;
-                  }
-                  state = (s >> 2);
-          }
-  */
 
   void first_tacho_update(bool first_new_val) noexcept {
     position_ += first_new_val ? buffer_.front().second_tacho_state ? 1 : -1 : buffer_.front().second_tacho_state ? -1 : 1;
-    jhonny(first_new_val, buffer_.front().second_tacho_state, true);
+    update(first_new_val, buffer_.front().second_tacho_state, storage::last_event_e::first);
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
     position_ += second_new_val ? buffer_.front().first_tacho_state ? -1 : 1 : buffer_.front().first_tacho_state ? 1 : -1;
-    jhonny(buffer_.front().first_tacho_state, second_new_val, false);
+    update(buffer_.front().first_tacho_state, second_new_val, storage::last_event_e::second);
   }
 
-  void jhonny(bool first, bool second, bool is_first) {
+  void update(bool first, bool second, typename storage::last_event_e event) noexcept {
     auto const now{ clock_t::now() };
+    position_error_code_e err{ position_error_code_e::none };
+    if (buffer_.front().last_event == event) {
+      err = position_error_code_e::missing_event;
+    }
     statistics_.update(now);
-    using last_event_e = typename storage::last_event_e;
-    buffer_.emplace(first, second, is_first ? last_event_e::first : last_event_e::second);
+    buffer_.emplace(first, second, event);
     std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(),
-                position_error_code_e::none);
-  }
-
-  struct update_params {
-    bool new_first : 1 {};
-    bool new_second : 1 {};
-    bool old_first : 1 {};
-    bool old_second : 1 {};
-    std::uint8_t not_used : 4 {};
-    constexpr auto operator==(update_params const& other) const noexcept -> bool = default;
-    constexpr explicit(false) operator std::uint8_t() const noexcept {
-      // The below is not constexpr yet, let's keep this comment here until it is
-      // return std::bit_cast<std::uint8_t>(*this);
-      return static_cast<std::uint8_t>((old_second << 3) | (old_first << 2) | (new_second << 1) | new_first);
-    }
-  };
-
-  constexpr auto update(update_params params, typename storage::last_event_e event) noexcept -> void {
-    auto const now{ clock_t::now() };
-    auto const increment{ update_impl(params) };  // todo error cases
-    if (increment != 0) {
-      position_error_code_e err{ position_error_code_e::none };
-      if (buffer_.front().last_event == event) {
-        err = position_error_code_e::missing_event;
-      }
-      buffer_.emplace(bool{ params.new_first }, bool{ params.new_second }, event);
-      statistics_.update(now);
-      position_ += increment;
-      std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), err);
-    }
-  }
-
-  static constexpr auto update_impl(update_params params) noexcept -> std::int64_t {
-    // please note that this assumes the duty cycle being 50%
-    // if the duty cycle is not 50% then the position will be off by maximum of the skewed cycle
-    // example, if 10% ON and 90% OFF, then the position will be off by 40% of the resolution (90% - 50%) or (50% - 10%)
-    // todo, determine duty cycle and increase resolution with timer between triggers
-    // clang-format off
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wimplicit-fallthrough) // todo why do I need this?
-    // clang-format on
-    switch (params) {
-      [[unlikely]] case update_params{}:
-      [[unlikely]] case update_params{ .new_second = true, .old_second = true }:
-      [[unlikely]] case update_params{ .new_first = true, .old_first = true }:
-      [[unlikely]] case update_params{ .new_first = true, .new_second = true, .old_first = true, .old_second = true }:
-        return 0;
-      case update_params{ .new_second = true }:
-      case update_params{ .old_first = true }:
-      case update_params{ .new_first = true, .old_first = true, .old_second = true }:
-      case update_params{ .new_first = true, .new_second = true, .old_second = true }:
-        return 1;
-      case update_params{ .new_first = true }:
-      case update_params{ .old_second = true }:
-      case update_params{ .new_second = true, .old_first = true, .old_second = true }:
-      case update_params{ .new_first = true, .new_second = true, .old_first = true }:
-        return -1;
-      [[unlikely]] case update_params{ .new_first = true, .new_second = true }:
-      [[unlikely]] case update_params{ .old_first = true, .old_second = true }:
-        return 2;  // this is impossible in the using codepath, because new states are distinct between a and b
-      [[unlikely]] case update_params{ .new_second = true, .old_first = true }:
-      [[unlikely]] case update_params{ .new_first = true, .old_second = true }:
-        return -2;  // this is impossible in the using codepath, because new states are distinct between a and b
-                    // clang-format off
-      [[unlikely]] default:  // theoretically should never be called
-        return 0;
-                    // clang-format on
-    }
-    PRAGMA_CLANG_WARNING_POP
+                err);
   }
 
   std::int64_t position_{};
