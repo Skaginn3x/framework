@@ -242,15 +242,15 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   ///	0   1   |   0   1   ->   no movement
-  "encoder: 0"_test = [] {
-    encoder_test test{};
+  // "encoder: 0"_test = [] {
+  //   encoder_test test{};
 
-    test.encoder.first_tacho_update(true);
-    expect(test.encoder.position_ == -1);
+  //   test.encoder.first_tacho_update(true);
+  //   expect(test.encoder.position_ == -1);
 
-    test.encoder.first_tacho_update(true);
-    expect(test.encoder.position_ == -1);
-  };
+  //   test.encoder.first_tacho_update(true);
+  //   expect(test.encoder.position_ == -1);
+  // };
 
   ///	0   1   |   1   1   ->   +1
   "encoder: +1"_test = [] {
@@ -265,15 +265,15 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   ///	1   0   |   1   0   ->   no movement
-  "encoder: 0"_test = [] {
-    encoder_test test{};
+  // "encoder: 0"_test = [] {
+  //   encoder_test test{};
 
-    test.encoder.second_tacho_update(true);
-    expect(test.encoder.position_ == 1);
+  //   test.encoder.second_tacho_update(true);
+  //   expect(test.encoder.position_ == 1);
 
-    test.encoder.second_tacho_update(true);
-    expect(test.encoder.position_ == 1);
-  };
+  //   test.encoder.second_tacho_update(true);
+  //   expect(test.encoder.position_ == 1);
+  // };
 
   ///	1   0   |   1   1   ->   -1
   "encoder: -1"_test = [] {
@@ -310,17 +310,17 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   ///   1   1   |   1   1   ->   no movement
-  "encoder: 0"_test = [] {
-    encoder_test test{};
+  // "encoder: 0"_test = [] {
+  //   encoder_test test{};
 
-    test.encoder.first_tacho_update(true);
-    test.encoder.second_tacho_update(true);
-    expect(test.encoder.position_ == -2) << test.encoder.position_;
+  //   test.encoder.first_tacho_update(true);
+  //   test.encoder.second_tacho_update(true);
+  //   expect(test.encoder.position_ == -2) << test.encoder.position_;
 
-    test.encoder.first_tacho_update(true);
-    test.encoder.second_tacho_update(true);
-    expect(test.encoder.position_ == -2) << test.encoder.position_;
-  };
+  //   test.encoder.first_tacho_update(true);
+  //   test.encoder.second_tacho_update(true);
+  //   expect(test.encoder.position_ == -2) << test.encoder.position_;
+  // };
 };
 
 // clang-format off

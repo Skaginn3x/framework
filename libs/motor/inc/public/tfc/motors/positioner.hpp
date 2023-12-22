@@ -232,19 +232,21 @@ struct encoder {
   */
 
   void first_tacho_update(bool first_new_val) noexcept {
-    using last_event_e = typename storage::last_event_e;
-    update({ .new_first = first_new_val,
-             .new_second = buffer_.front().second_tacho_state,
-             .old_first = buffer_.front().first_tacho_state,
-             .old_second = buffer_.front().second_tacho_state }, last_event_e::first);
+    position_ += first_new_val ? buffer_.front().second_tacho_state ? 1 : -1 : buffer_.front().second_tacho_state ? -1 : 1;
+    jhonny(first_new_val, buffer_.front().second_tacho_state, true);
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
+    position_ += second_new_val ? buffer_.front().first_tacho_state ? -1 : 1 : buffer_.front().first_tacho_state ? 1 : -1;
+    jhonny(buffer_.front().first_tacho_state, second_new_val, false);
+  }
+
+  void jhonny(bool first, bool second, bool is_first) {
+    auto const now{ clock_t::now() };
+    statistics_.update(now);
     using last_event_e = typename storage::last_event_e;
-    update({ .new_first = buffer_.front().first_tacho_state,
-             .new_second = second_new_val,
-             .old_first = buffer_.front().first_tacho_state,
-             .old_second = buffer_.front().second_tacho_state }, last_event_e::second);
+    buffer_.emplace(first, second, is_first ? last_event_e::first : last_event_e::second);
+    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), position_error_code_e::none);
   }
 
   struct update_params {
