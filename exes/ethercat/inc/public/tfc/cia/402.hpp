@@ -180,7 +180,7 @@ inline auto transition(states_e current_state, bool run, bool quick_stop, bool f
       return commands::shutdown();
     case states_e::switched_on:
     case states_e::ready_to_switch_on:
-      if (run) {
+      if (run && !freewheel_stop && !quick_stop) {
         return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
       }
       return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
@@ -192,7 +192,7 @@ inline auto transition(states_e current_state, bool run, bool quick_stop, bool f
         return commands::disable_voltage();  // Freewheel stop
       }
       if (!run) {
-        return commands::shutdown();
+        return commands::disable_operation();
       }
 
       return commands::enable_operation();

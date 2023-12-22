@@ -64,6 +64,9 @@ public:
     high_speed_HSP high_speed;
     low_speed_LSP low_speed;
     motor_1_cos_phi_COS motor_1_cos_phi;
+    // It looks like acc and dec configure the time from 0 to nominal
+    // f.e. a configuration of 3.5 seconds for a nominal drive of 50Hz
+    // takes approx 5 seconds to reach 80Hz
     acceleration_ramp_time_ACC acceleration;
     deceleration_ramp_time_DEC deceleration;
     // write a glaze json converter

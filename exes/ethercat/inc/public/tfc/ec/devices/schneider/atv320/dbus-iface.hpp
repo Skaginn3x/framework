@@ -13,6 +13,7 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
+#include <tfc/motors/>
 
 namespace tfc::ec::devices::schneider::atv320 {
 

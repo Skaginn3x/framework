@@ -25,6 +25,7 @@ target_link_libraries(ec
     tfc::confman
     tfc::soem_interface
     tfc::stx
+    tfc::motors
     mp-units::si
     fmt::fmt
 )
