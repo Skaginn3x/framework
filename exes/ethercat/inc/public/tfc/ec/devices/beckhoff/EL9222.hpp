@@ -32,7 +32,14 @@ public:
 
   auto setup() -> int final {
     // 1C12:0 -> 0x02
-    auto work_counter = sdo_write({ 0x1C12, 0 }, static_cast<uint8_t>(0x2));
+    //auto work_counter = sdo_write({ 0x1C12, 0 }, true);
+
+    int work_counter = 0;
+    work_counter = sdo_write({ 0x8010, 1 }, static_cast<uint8_t>(0x1));
+    std::cout << "work_counter: " << work_counter << std::endl;
+    work_counter = sdo_write({ 0x8021, 1 }, static_cast<uint8_t>(0x0));
+    std::cout << "work_counter: " << work_counter << std::endl;
+    work_counter = sdo_write({ 0x8031, 1 }, static_cast<uint8_t>(0x1));
     std::cout << "work_counter: " << work_counter << std::endl;
 
     //   // output 1
@@ -67,35 +74,36 @@ public:
   }
 
   void process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept override {
+    return;
     // bool button_on = input[0] && 0x01;
 
     // bool button_on = input[0] & 0x01;
-    first_output = static_cast<uint8_t>(input[0]) & 0x01;
+    //first_output = static_cast<uint8_t>(input[0]) & 0x01;
 
     std::cout << "button on : " << (first_output ? "true" : "false") << std::endl;
 
-    std::cout << "input : " << static_cast<int>(input[0]) << std::endl;
-    std::cout << "input : " << static_cast<int>(input[1]) << std::endl;
+   //  std::cout << "input : " << static_cast<int>(input[0]) << std::endl;
+   //  std::cout << "input : " << static_cast<int>(input[1]) << std::endl;
 
     output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
 
-    std::cout << "output : " << static_cast<int>(output[0]) << std::endl;
-    std::cout << "output : " << static_cast<int>(output[1]) << std::endl;
+   //  std::cout << "output : " << static_cast<int>(output[0]) << std::endl;
+   //  std::cout << "output : " << static_cast<int>(output[1]) << std::endl;
 
-    std::cout << "flip: " << flip << std::endl;
+   //  std::cout << "flip: " << flip << std::endl;
 
-    if (flip > 2000) {
-      // set output to 1
-      output[0] = static_cast<std::byte>(0x01);
-      output[1] = static_cast<std::byte>(0x01);
-      flip = 0;
-    } else {
-      // set output to 0
-      output[0] = static_cast<std::byte>(0x00);
-      output[1] = static_cast<std::byte>(0x00);
-    }
+   //  if (flip > 2000) {
+   //    // set output to 1
+   //    output[0] = static_cast<std::byte>(0x01);
+   //    output[1] = static_cast<std::byte>(0x01);
+   //    flip = 0;
+   //  } else {
+   //    // set output to 0
+   //    output[0] = static_cast<std::byte>(0x00);
+   //    output[1] = static_cast<std::byte>(0x00);
+   //  }
 
-    flip++;
+   //  flip++;
 
     //  std::cout << "------------------------------------------------------------" << std::endl;
     //  std::cout << "output : " << static_cast<int>(output[0]) << std::endl;
