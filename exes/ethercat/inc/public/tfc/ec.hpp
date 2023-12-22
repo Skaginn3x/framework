@@ -7,8 +7,10 @@
 #include <vector>
 
 #include <fmt/chrono.h>
+#include <tfc/confman.hpp>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include "../../tfc/ec/config/ethercat.hpp"
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -31,8 +33,12 @@ public:
   // are to be addressed when our code is
   // interacting with groups.
 
-  explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
-      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
+  // explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
+  explicit context_t(boost::asio::io_context& ctx)
+      // : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", config_.value().interfaces.value)),
+      // client_(ctx_) {
+      // : ctx_(ctx), logger_(fmt::format("Ethercat Context iface: ({})", config_.value().interfaces.value)), client_(ctx_) {
+      : ctx_(ctx), client_(ctx_) {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
@@ -57,10 +63,11 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    if (!ecx::init(&context_, iface_)) {
+    if (!ecx::init(&context_, config_.value().interfaces.value)) {
       // TODO: swith for error_code
       throw std::runtime_error("Failed to init, no socket connection");
     }
+    logger_.trace("Network interface used: {}", config_.value().interfaces.value);
   }
 
   context_t(const context_t&) = delete;
@@ -328,7 +335,6 @@ private:
 
   boost::asio::io_context& ctx_;
   std::string iface_;
-  tfc::logger::logger logger_;
   ecx_contextt context_{};
   std::vector<std::unique_ptr<devices::base>> slaves_;
 
@@ -366,6 +372,8 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
+  tfc::confman::config<tfc::ec::config::network_interfaces> config_{ ctx_, "network_interface_config" };
+  tfc::logger::logger logger_{ fmt::format("Ethercat Context iface: ({})", config_.value().interfaces.value) };
 };
 
 // Template deduction guide
