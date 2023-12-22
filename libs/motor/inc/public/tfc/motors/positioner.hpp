@@ -203,8 +203,7 @@ struct encoder {
     }
     statistics_.update(now);
     buffer_.emplace(first, second, event);
-    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(),
-                err);
+    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), err);
   }
 
   std::int64_t position_{};
