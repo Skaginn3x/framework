@@ -24,7 +24,7 @@ struct signal_name {
 template <>
 struct tfc::json::detail::to_json_schema<std::vector<tfc::mqtt::config::signal_name>> {
   template <auto Opts>
-  static void op(auto& s, auto& defs) noexcept {
+  static void op(auto& s, auto&) noexcept {
     if (!s.oneOf.has_value()) {
       s.oneOf = std::vector<tfc::json::detail::schematic>{};
     }
