@@ -58,7 +58,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
     // network_interface interfaces{ get_network_interfaces()[0] };
 
     /// TODO: move to source file
-    auto interf =  tfc::ec::config::get_network_interfaces();
+    auto interf = tfc::ec::config::get_network_interfaces();
     for (auto const& interface : interf) {
       s.oneOf.value().emplace_back(tfc::json::detail::schematic{
           .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
