@@ -1,11 +1,11 @@
-#include <boost/ut.hpp>
 #include <mp-units/format.h>
+#include <boost/ut.hpp>
 
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/mocks/ipc.hpp>
-#include <tfc/stubs/confman.hpp>
 #include <tfc/motors/positioner.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/stubs/confman.hpp>
 #include <tfc/testing/asio_clock.hpp>
 
 namespace compile_tests {
@@ -331,7 +331,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   struct notification_test {
     using positioner_t = tfc::motor::positioner<tfc::motor::position_t, tfc::confman::stub_config>;
     test_instance inst{};
-    positioner_t::config config{}; // to be moved to implementation
+    positioner_t::config config{};  // to be moved to implementation
     positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
   };
   using mp_units::si::unit_symbols::mm;
@@ -428,24 +428,26 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 
   "position per tick"_test = [] {
     auto const displacement{ 100 * mm };
-    notification_test test{.config = {.displacement_per_increment = displacement }};
+    notification_test test{ .config = { .displacement_per_increment = displacement } };
     test.positioner.tick(1, {}, {}, {});
-    expect(test.positioner.position() == displacement) << fmt::format("expected: {}, got: {}\n", displacement, test.positioner.position());
+    expect(test.positioner.position() == displacement)
+        << fmt::format("expected: {}, got: {}\n", displacement, test.positioner.position());
   };
 
   "velocity per tick"_test = [] {
     auto const displacement{ 100 * mm };
-    notification_test test{.config = {.displacement_per_increment = displacement }};
+    notification_test test{ .config = { .displacement_per_increment = displacement } };
     auto const tick_duration{ 1ms };
     test.positioner.tick(1, tick_duration, {}, {});
-    auto expected_velocity{ displacement / (tick_duration.count() * mp_units::si::milli<mp_units::si::second>) };
+    auto expected_velocity{ displacement / (tick_duration.count() * mp_units::si::milli<mp_units::si::second>)};
     expect(expected_velocity == 100 * mm / ms) << fmt::format("expected: {}, got: {}\n", 100 * mm / ms, expected_velocity);
-    expect(test.positioner.velocity() == expected_velocity) << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
+    expect(test.positioner.velocity() == expected_velocity)
+        << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
   };
 
   "standard deviation error"_test = [] {
     auto stddev{ 1ms };
-    notification_test test{ .config = {.standard_deviation_threshold = stddev } };
+    notification_test test{ .config = { .standard_deviation_threshold = stddev } };
     test.positioner.tick(1, {}, stddev, {});
     expect(test.positioner.error() == tfc::motor::position_error_code_e::unstable);
   };

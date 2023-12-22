@@ -148,7 +148,8 @@ struct tachometer {
     }
     auto now{ clock_t::now() };
     statistics_.update(now);
-    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev(), position_error_code_e::none);
+    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev(),
+                position_error_code_e::none);
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
@@ -246,7 +247,8 @@ struct encoder {
     statistics_.update(now);
     using last_event_e = typename storage::last_event_e;
     buffer_.emplace(first, second, is_first ? last_event_e::first : last_event_e::second);
-    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), position_error_code_e::none);
+    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(),
+                position_error_code_e::none);
   }
 
   struct update_params {
@@ -385,7 +387,7 @@ public:
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param default_value configuration default, useful for special cases and testing
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name, config&& default_value)
-    : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
+      : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     switch (config_->mode) {
       using enum detail::position_mode_e;
       case not_used:
