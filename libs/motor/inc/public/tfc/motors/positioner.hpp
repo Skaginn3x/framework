@@ -223,11 +223,13 @@ struct frequency {
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
   using time_point_t = typename clock_t::time_point;
 
-  explicit frequency(velocity_t velocity_at_frequency, hertz_t reference_frequency, std::function<void(dimension_t)>&& position_update_callback) noexcept
-      : velocity_at_frequency_{ velocity_at_frequency }, reference_frequency_{ reference_frequency }, position_update_callback_{ std::move(position_update_callback) } {}
+  explicit frequency(velocity_t velocity_at_frequency,
+                     hertz_t reference_frequency,
+                     std::function<void(dimension_t)>&& position_update_callback) noexcept
+      : velocity_at_frequency_{ velocity_at_frequency }, reference_frequency_{ reference_frequency },
+        position_update_callback_{ std::move(position_update_callback) } {}
 
   void on_freq(hertz_t hertz) {
-
     // todo
   }
 
@@ -246,13 +248,13 @@ public:
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
 
   struct config {
-    detail::position_mode_e mode{ detail::position_mode_e::not_used }; // todo observable
+    detail::position_mode_e mode{ detail::position_mode_e::not_used };  // todo observable
     static constexpr dimension_t inch{ 1 * mp_units::international::inch };
     dimension_t displacement_per_increment{ inch };
     std::chrono::microseconds standard_deviation_threshold{ 100 };
-    mp_units::quantity<mp_units::percent, std::uint8_t> tick_average_deviation_threshold{ 180 * mp_units::percent }; // todo
-    velocity_t velocity_at_frequency{ 0 * (reference / mp_units::si::second) }; // todo observable
-    hertz_t reference_frequency{ 0 * mp_units::si::hertz }; // todo observable
+    mp_units::quantity<mp_units::percent, std::uint8_t> tick_average_deviation_threshold{ 180 * mp_units::percent };  // todo
+    velocity_t velocity_at_frequency{ 0 * (reference / mp_units::si::second) };  // todo observable
+    hertz_t reference_frequency{ 0 * mp_units::si::hertz };                      // todo observable
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
       // clang-format off
@@ -315,7 +317,8 @@ public:
         break;
       }
       case frequency: {
-        impl_.template emplace<detail::frequency<dimension_t>>(config_->velocity_at_frequency, config_->reference_frequency, std::bind_front(&positioner::increment_position, this));
+        impl_.template emplace<detail::frequency<dimension_t>>(config_->velocity_at_frequency, config_->reference_frequency,
+                                                               std::bind_front(&positioner::increment_position, this));
         break;
       }
     }
@@ -384,11 +387,13 @@ public:
   }
 
   void freq_update(hertz_t hertz) {
-    std::visit([hertz]<typename impl_t>(impl_t& impl) {
-      if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
-        impl.on_freq(hertz);
-      }
-    }, impl_);
+    std::visit(
+        [hertz]<typename impl_t>(impl_t& impl) {
+          if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
+            impl.on_freq(hertz);
+          }
+        },
+        impl_);
   }
 
   void increment_position(dimension_t const& increment) {
@@ -458,7 +463,8 @@ private:
   logger::logger logger_{ name_ };
   confman_t<config> config_;
   std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
-    detail::frequency<dimension_t>{ config_->velocity_at_frequency, config_->reference_frequency, std::bind_front(&positioner::increment_position, this) }
+    detail::frequency<dimension_t>{ config_->velocity_at_frequency, config_->reference_frequency,
+                                    std::bind_front(&positioner::increment_position, this) }
   };
   // todo overflow
   // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
