@@ -28,7 +28,7 @@ static auto get_network_interfaces() -> std::vector<std::string> {
 
   for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
     if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
-      interfaces.emplace_back(addr->ifa_name);
+      interfaces.push_back(addr->ifa_name);
     }
   }
   freeifaddrs(addrs);
@@ -43,21 +43,30 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   static void op(auto& s, auto&) noexcept {
     s.oneOf = std::vector<tfc::json::detail::schematic>{};
 
-    struct ifaddrs* addrs;
-    getifaddrs(&addrs);
+    //     struct ifaddrs* addrs;
+    //     getifaddrs(&addrs);
+    //
+    //     for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
+    //       if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
+    //         s.oneOf.value().emplace_back(tfc::json::detail::schematic{ .attributes{
+    //             tfc::json::schema{ .title = addr->ifa_name, .description = addr->ifa_name, .constant = addr->ifa_name } }
+    //             });
+    //       }
+    //     }
+    //     freeifaddrs(addrs);
 
-    for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
-      if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
-        s.oneOf.value().emplace_back(tfc::json::detail::schematic{ .attributes{
-            tfc::json::schema{ .title = addr->ifa_name, .description = addr->ifa_name, .constant = addr->ifa_name } } });
-      }
+    // network_interface interfaces{ get_network_interfaces()[0] };
+
+    /// TODO: move to source file
+    auto interf =  tfc::ec::config::get_network_interfaces();
+    for (auto const& interface : interf) {
+      s.oneOf.value().emplace_back(tfc::json::detail::schematic{
+          .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
     }
-    freeifaddrs(addrs);
   }
 };
 
 namespace tfc::ec::config {
-
 struct network_interfaces {
   network_interface interfaces{ get_network_interfaces()[0] };
 
