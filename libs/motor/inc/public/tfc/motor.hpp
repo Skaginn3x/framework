@@ -9,9 +9,9 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/motors/atv320motor.hpp>
-#include <tfc/motors/errors.hpp>
-#include <tfc/motors/virtual_motor.hpp>
+#include <tfc/motor/atv320motor.hpp>
+#include <tfc/motor/errors.hpp>
+#include <tfc/motor/virtual_motor.hpp>
 
 /**
  * This files contains a top level wrappers for motor abstractions.

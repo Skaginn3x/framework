@@ -42,7 +42,7 @@ struct glz::meta<tfc::motor::detail::position_mode_e> {
 };
 
 namespace tfc::motor {
-
+using namespace mp_units::si::unit_symbols;
 enum struct position_error_code_e : std::uint8_t {
   none = 0,
   unstable,       // could be one event missing per cycle or similar
@@ -222,26 +222,34 @@ struct frequency {
   static constexpr auto reference{ dimension_t::reference };
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
   using time_point_t = typename clock_t::time_point;
+  static constexpr hertz_t reference_frequency_{50 * Hz};
 
   explicit frequency(velocity_t velocity_at_frequency,
-                     hertz_t reference_frequency,
+                     hertz_t,
                      std::function<void(dimension_t)>&& position_update_callback) noexcept
-      : velocity_at_frequency_{ velocity_at_frequency }, reference_frequency_{ reference_frequency },
+      : velocity_at_frequency_{ velocity_at_frequency },
         position_update_callback_{ std::move(position_update_callback) } {}
 
-  void on_freq(hertz_t hertz) {
-    // todo
+  void freq_update(hertz_t hertz) {
+    // Update our traveled distance from the new frequency
+    // Calculate the distance the motor would have traveled on the old speed
+    auto now = clock_t::now();
+    mp_units::quantity<mp_units::si::nano<mp_units::si::second>, int64_t> const intvl_current{ now - time_point };
+    time_point = now;
+    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_frequency_ * last_measured_ / reference_frequency_);
+    last_measured_ = hertz;
+    position_update_callback_(displacement);
   }
 
   velocity_t velocity_at_frequency_{};
-  hertz_t reference_frequency_{};
+  hertz_t last_measured_{0 * Hz};
   std::function<void(dimension_t)> position_update_callback_{ [](dimension_t) {} };
   time_point_t time_point{ clock_t::now() };
 };
 
 }  // namespace detail
 
-template <mp_units::Quantity dimension_t = position_t, template <typename> typename confman_t = confman::config>
+template <mp_units::Quantity dimension_t = position_t, template <typename, typename, typename> typename confman_t = confman::config>
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
@@ -344,7 +352,7 @@ public:
     } else {
       return_t result{ notifications.back().cv_.async_wait(std::forward<decltype(token)>(token)) };
       std::ranges::sort(notifications, sort_by_nearest);
-      return std::move(result);
+      return result;
     }
   }
 
@@ -390,7 +398,7 @@ public:
     std::visit(
         [hertz]<typename impl_t>(impl_t& impl) {
           if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
-            impl.on_freq(hertz);
+            impl.freq_update(hertz);
           }
         },
         impl_);
@@ -426,22 +434,22 @@ private:
     constexpr auto iterate_notifications{ [](auto& notifications, auto const& current_position, auto const& last_position) {
       for (auto it{ std::begin(notifications) }; it != std::end(notifications); ++it) {
         auto const pos{ it->absolute_notification_position_ };
-        // check if pos is in range of last position and current position
+        // Check wether we have passed the notification position
+        // If the minimum of the two points is less than the position and the position is less than the maximum of the two
+        // the points must be on opposite sides of the notification point
         if (pos >= std::min(last_position, current_position) && pos <= std::max(last_position, current_position)) {
           it->cv_.notify_all();
           // it would be nice to pop_front here, but we need the event loop to be able to call the notification before we
           // erase it todo discuss, move iterator to discard vector Condition variable can expose whether there is
           // outstanding completion call
-          asio::post([&notifications, it] {  // Think it is safe to capture by reference here
-            notifications.erase(it);
-          });
+          notifications.erase(it);
         } else {
           return;
         }
       }
     } };
     iterate_notifications(notifications_forward_, absolute_position_, old_position);
-    iterate_notifications(notifications_backward_, old_position, absolute_position_);
+    iterate_notifications(notifications_backward_, absolute_position_, old_position);
     // todo make a timer and call the notification when timer expires
     // remember to determine duty cycle for encoder
   }
@@ -461,7 +469,7 @@ private:
   std::string name_{};
   asio::io_context& ctx_;
   logger::logger logger_{ name_ };
-  confman_t<config> config_;
+  confman_t<config, confman::file_storage<config>, confman::detail::config_dbus_client> config_;
   std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
     detail::frequency<dimension_t>{ config_->velocity_at_frequency, config_->reference_frequency,
                                     std::bind_front(&positioner::increment_position, this) }

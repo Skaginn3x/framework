@@ -7,8 +7,8 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/motors/errors.hpp>
-#include <tfc/motors/impl.hpp>
+#include <tfc/motor/errors.hpp>
+#include <tfc/motor/impl.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::types {

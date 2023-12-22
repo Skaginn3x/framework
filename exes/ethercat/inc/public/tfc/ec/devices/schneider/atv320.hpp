@@ -46,7 +46,7 @@ inline variable_t async_send_if_new(signal_t& signal,
 }
 };  // namespace details
 
-template <typename manager_client_type>
+template <typename manager_client_t>
 class device final : public base {
 public:
   static constexpr uint32_t vendor_id = 0x0800005a;
@@ -103,7 +103,7 @@ public:
 
   using config_t = tfc::confman::config<confman::observable<atv_config>>;
 
-  explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_type& client, uint16_t slave_index)
+  explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& client, uint16_t slave_index)
       : base(slave_index), run_(connection->get_io_context(),
                                 client,
                                 fmt::format("atv320.s{}.run", slave_index),
@@ -124,7 +124,7 @@ public:
                             "Current Frequency"),
         hmis_transmitter_(connection->get_io_context(), client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
         config_{ connection->get_io_context(), fmt::format("atv320_i{}", slave_index) },
-        dbus_iface_(connection, slave_index) {
+        dbus_iface_(connection, slave_index, client) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
@@ -148,7 +148,7 @@ public:
           i, details::async_send_if_new(di_transmitters_[i], last_bool_values_.test(i), value.test(i), logger_));
     }
     last_hmis_ = details::async_send_if_new(hmis_transmitter_, last_hmis_, input.drive_state, logger_);
-    double frequency = static_cast<double>(input.frequency) / 10.0;
+    double frequency = static_cast<double>(input.frequency.numerical_value_is_an_implementation_detail_) / 10.0;
     last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
   }
 
@@ -265,6 +265,6 @@ private:
   uint16_t last_hmis_{};
   tfc::ipc::uint_signal hmis_transmitter_;
   config_t config_;
-  dbus_iface dbus_iface_;
+  dbus_iface<manager_client_t> dbus_iface_;
 };
 }  // namespace tfc::ec::devices::schneider::atv320

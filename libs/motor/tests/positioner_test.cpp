@@ -3,7 +3,7 @@
 
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/mocks/ipc.hpp>
-#include <tfc/motors/positioner.hpp>
+#include <tfc/motor/positioner.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stubs/confman.hpp>
 #include <tfc/testing/asio_clock.hpp>
@@ -349,17 +349,27 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "notify_at go forward then backwards"_test = [] {
     notification_test test{};
     test.positioner.increment_position(100 * mm);
-    test.positioner.notify_at(80 * mm, [](std::error_code) { expect(false); });
+    bool called_80{};
+    test.positioner.notify_at(80 * mm, [&](std::error_code){ called_80 = true; });
     test.positioner.notify_at(101 * mm, [](std::error_code) { expect(false); });
     test.positioner.notify_at(102 * mm, [](std::error_code) { expect(false); });
     bool called{};
+    test.positioner.notify_after(1000 * mm, [&](std::error_code err) {
+      expect(false);
+    });
+    bool called_neg1000{};
+    test.positioner.notify_after(-1000 * mm, [&](std::error_code) {
+      called_neg1000 = true;
+    });
     test.positioner.notify_at(90 * mm, [&called](std::error_code err) {
       expect(!err) << err.message();
       called = true;
     });
-    test.positioner.increment_position(-11 * mm);
+    test.positioner.increment_position(-11000 * mm);
     test.inst.ctx.run_for(1ms);
     expect(called);
+    expect(called_80);
+    expect(called_neg1000);
   };
 
   "notify_at go backwards notification on same place"_test = [] {

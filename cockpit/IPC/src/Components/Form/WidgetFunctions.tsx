@@ -139,7 +139,7 @@ export async function fetchDataFromDBus(name: string, iface: string, path: strin
     parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
     parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
   } catch (error) {
-    console.error('Error parsing data:', error);
+    console.error('Error parsing data:', error, data[property][0], data[property][1]);
     return {};
   }
 

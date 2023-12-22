@@ -1,5 +1,5 @@
 #include <string>
-#include <tfc/motors/errors.hpp>
+#include <tfc/motor/errors.hpp>
 #include <tfc/utils/pragmas.hpp>
 
 namespace tfc::motor {

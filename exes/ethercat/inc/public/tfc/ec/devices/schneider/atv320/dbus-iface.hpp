@@ -13,7 +13,7 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
-#include <tfc/motors/>
+#include <tfc/motor/positioner.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 
@@ -22,6 +22,7 @@ namespace asio = boost::asio;
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
+template<typename manager_client_t>
 struct dbus_iface {
   // Properties
   static constexpr std::string_view connected_peer{ "connected_peer" };
@@ -29,8 +30,10 @@ struct dbus_iface {
   static constexpr std::string_view state_402{ "state_402" };
   static constexpr std::string_view hmis{ "hmis" };
 
-  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
-      : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{ slave_id } {
+  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id, manager_client_t& manager_client)
+      : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{ slave_id }
+  , pos_ { ctx_, manager_client, fmt::format("atv320_{}", slave_id_)}
+  {
     sd_bus* bus = nullptr;
     if (sd_bus_open_system(&bus) < 0) {
       throw std::runtime_error(std::string{ "Unable to open sd-bus, error: " } + strerror(errno));
@@ -81,6 +84,11 @@ struct dbus_iface {
                                        speed_ratio_ = speedratio;
                                        return true;
                                      });
+    dbus_interface_->register_method("notify_after",
+                                     [this](boost::asio::yield_context yield, const sdbusplus::message_t& msg, const mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>& distance) {
+                                       std::string incoming_peer = msg.get_sender();
+                                       pos_.notify_after(distance, yield);
+                                     });
 
     dbus_interface_->register_method("stop", [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
@@ -115,7 +123,10 @@ struct dbus_iface {
     dbus_interface_->initialize();
   }
   // Set properties with new status values
-  void update_status(const input_t& in) { status_word_ = in.status_word; }
+  void update_status(const input_t& in) {
+    status_word_ = in.status_word;
+    pos_.freq_update(in.frequency);
+  }
   //
   mp_units::quantity<mp_units::percent, double> speed_ratio() { return speed_ratio_ * mp_units::percent; }
   cia_402::control_word ctrl() { return cia_402::transition(status_word_.parse_state(), op_enable_, quick_stop_, false); }
@@ -132,6 +143,8 @@ struct dbus_iface {
   cia_402::status_word status_word_{};
 
   const uint16_t slave_id_;
+
+  tfc::motor::positioner<> pos_;
 
   /**
    * \brief has_peer

@@ -23,6 +23,7 @@ using assignment_R1 = setting<ecx::index_t{ 0x2014, 0x02 }, "AO1", "AQ1 assignme
 
 // ATV320 specific data type and multiplier for unit
 using decifrequency = mp_units::quantity<mp_units::si::deci<mp_units::si::hertz>, uint16_t>;
+using decifrequency_signed = mp_units::quantity<mp_units::si::deci<mp_units::si::hertz>, int16_t>;
 using decawatt = mp_units::quantity<mp_units::si::deca<mp_units::si::watt>, uint16_t>;
 using atv_deciampere_rep = mp_units::quantity<mp_units::si::deci<mp_units::si::ampere>, uint16_t>;
 

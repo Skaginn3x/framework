@@ -10,7 +10,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
-#include <tfc/motors/errors.hpp>
+#include <tfc/motor/errors.hpp>
 
 namespace tfc::motor::types {
 

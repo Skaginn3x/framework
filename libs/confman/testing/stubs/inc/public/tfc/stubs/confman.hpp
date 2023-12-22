@@ -18,7 +18,7 @@ template <typename config_storage_t>
 using stubbed_config = config<config_storage_t, stub_file_storage<config_storage_t>, stub_config_dbus_client>;
 }
 
-template <typename config_storage_t>
+template <typename config_storage_t, typename, typename>
 class stub_config : public detail::stubbed_config<config_storage_t> {
 public:
   using type = config_storage_t;
