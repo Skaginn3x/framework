@@ -35,7 +35,7 @@ inline variable_t async_send_if_new(signal_t& signal,
   PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
   if (old_var != new_var) {
   PRAGMA_CLANG_WARNING_POP
-  // clang-format on
+    // clang-format on
     signal.async_send(new_var, [&logger](const std::error_code& err, size_t) {
       if (err) {
         logger.error("ATV failed to send");

@@ -105,7 +105,8 @@ struct dbus_iface {
       return true;
     });
 
-    dbus_interface_->register_property_r<std::string>(std::string{ connected_peer }, sdbusplus::vtable::property_::emits_change,
+    dbus_interface_->register_property_r<std::string>(std::string{ connected_peer },
+                                                      sdbusplus::vtable::property_::emits_change,
                                                       [this](const auto&) -> std::string { return peer_; });
     dbus_interface_->register_property_r<std::uint16_t>(std::string{ hmis }, sdbusplus::vtable::property_::emits_change,
                                                         [](const auto&) -> std::uint16_t { return 0; });
