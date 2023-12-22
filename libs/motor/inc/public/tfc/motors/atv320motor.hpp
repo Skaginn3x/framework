@@ -10,6 +10,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/motors/errors.hpp>
 
 namespace tfc::motor::types {
 
@@ -40,7 +41,7 @@ private:
   // and it is returning true. Indicating we have control over the motor.
   void send_ping(uint16_t slave_id) {
     connection_->async_method_call(
-        [this, slave_id = slave_id](const std::error_code& err, bool response) {
+        [this, slave_id](const std::error_code& err, bool response) {
           // It could be that we started before the ethercat network or a configuration
           // error has occured
           if (err) {
@@ -53,7 +54,7 @@ private:
           }
           connected_ = response;
           ping.expires_after(std::chrono::milliseconds(250));
-          ping.async_wait([this, slave_id = slave_id](const std::error_code& timer_fault) {
+          ping.async_wait([this, slave_id](const std::error_code& timer_fault) {
             // Deconstructed or canceled, either way we are done
             if (timer_fault) {
               return;
@@ -140,22 +141,22 @@ public:
       return;
     }
     connection_->async_method_call(
-        [this, time = time, cb = cb](const std::error_code& err, bool response) {
-          if (err || !response) {
-            logger_.error("connect_to_motor: {}", err.message());
+        [this, time, cb](const std::error_code& run_err, bool response) {
+          if (run_err || !response) {
+            logger_.error("connect_to_motor: {}", run_err.message());
             cb(motor_error(errors::err_enum::motor_general_error));
             return;
           }
           auto timer = std::make_shared<asio::steady_timer>(ctx_);
           timer->expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
           logger_.trace("TIME: {}", time);
-          timer->async_wait([this, timer = timer, cb = cb](const std::error_code& err) {
-            if (err)
+          timer->async_wait([this, timer, cb](const std::error_code& timer_err) {
+            if (timer_err)
               return;
             connection_->async_method_call(
-                [&](const std::error_code& err, bool response) {
-                  if (err || !response) {
-                    logger_.error("connect_to_motor: {}", err.message());
+                [&](const std::error_code& stop_err, bool stop_response) {
+                  if (stop_err || !stop_response) {
+                    logger_.error("connect_to_motor: {}", stop_err.message());
                     cb(motor_error(errors::err_enum::motor_general_error));
                     return;
                   }

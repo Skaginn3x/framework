@@ -23,10 +23,10 @@ namespace asio = boost::asio;
 //
 struct dbus_iface {
   // Properties
-  static constexpr std::string connected_peer = "connected_peer";
-  static constexpr std::string frequency = "frequency";
-  static constexpr std::string state_402 = "state_402";
-  static constexpr std::string hmis = "hmis";
+  static constexpr std::string_view connected_peer{ "connected_peer" };
+  static constexpr std::string_view frequency{ "frequency" };
+  static constexpr std::string_view state_402{ "state_402" };
+  static constexpr std::string_view hmis{ "hmis" };
 
   dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
       : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{ slave_id } {
@@ -44,7 +44,7 @@ struct dbus_iface {
       if (incoming_peer == peer_ || (new_peer && peer_ == "")) {
         if (new_peer) {
           peer_ = incoming_peer;
-          dbus_interface_->signal_property(connected_peer);
+          dbus_interface_->signal_property(std::string{ connected_peer });
         }
         timeout_.cancel();
         timeout_.expires_after(std::chrono::milliseconds(750));
@@ -55,7 +55,7 @@ struct dbus_iface {
           quick_stop_ = false;
           speed_ratio_ = 0.0;
           peer_ = "";
-          dbus_interface_->signal_property(connected_peer);
+          dbus_interface_->signal_property(std::string{ connected_peer });
         });
         return true;
       } else {
@@ -105,10 +105,10 @@ struct dbus_iface {
       return true;
     });
 
-    dbus_interface_->register_property_r<std::string>(connected_peer, sdbusplus::vtable::property_::emits_change,
+    dbus_interface_->register_property_r<std::string>(std::string{ connected_peer }, sdbusplus::vtable::property_::emits_change,
                                                       [this](const auto&) -> std::string { return peer_; });
-    dbus_interface_->register_property_r<std::uint16_t>(hmis, sdbusplus::vtable::property_::emits_change,
-                                                        [this](const auto&) -> std::uint16_t { return 0; });
+    dbus_interface_->register_property_r<std::uint16_t>(std::string{ hmis }, sdbusplus::vtable::property_::emits_change,
+                                                        [](const auto&) -> std::uint16_t { return 0; });
 
     dbus_interface_->initialize();
   }

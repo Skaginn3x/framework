@@ -85,7 +85,7 @@ public:
     auto timer = std::make_shared<asio::steady_timer>(ctx_);
     running_ = true;
     timer->expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
-    timer->async_wait([this, cb, timer = timer, vel, length, duration](auto ec) {
+    timer->async_wait([this, cb, timer, vel, length, duration](auto ec) {
       if (ec) {
         logger_.trace("convey({}, {}); canceled", vel, length);
         cb(ec);
@@ -107,7 +107,7 @@ public:
     auto timer = std::make_shared<asio::steady_timer>(ctx_);
     running_ = true;
     timer->expires_after(mp_units::to_chrono_duration(time));
-    timer->async_wait([this, cb, timer = timer, vel, time](auto ec) {
+    timer->async_wait([this, cb, timer, vel, time](auto ec) {
       if (ec) {
         logger_.trace("convey({}, {}); canceled", vel, time);
         cb(ec);
@@ -133,7 +133,7 @@ public:
     running_ = true;
     auto timer = std::make_shared<asio::steady_timer>(ctx_);
     timer->expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
-    timer->async_wait([this, cb, timer = timer, time](auto ec) {
+    timer->async_wait([this, cb, timer, time](auto ec) {
       if (ec) {
         logger_.trace("convey({}); canceled", time);
         cb(ec);
@@ -154,7 +154,7 @@ public:
     auto duration = length / config_.nominal.value();
     auto timer = std::make_shared<asio::steady_timer>(ctx_);
     timer->expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
-    timer->async_wait([this, cb, timer = timer, length](auto ec) {
+    timer->async_wait([this, cb, timer, length](auto ec) {
       if (ec) {
         logger_.trace("move({}); canceled", length);
         cb(ec);
