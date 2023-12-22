@@ -19,6 +19,22 @@ struct network_interface {
     static constexpr std::string_view name{ "network_interface" };
   };
 };
+
+static auto get_network_interfaces() -> std::vector<std::string> {
+  std::vector<std::string> interfaces{};
+
+  struct ifaddrs* addrs;
+  getifaddrs(&addrs);
+
+  for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
+    if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
+      interfaces.emplace_back(addr->ifa_name);
+    }
+  }
+  freeifaddrs(addrs);
+  return interfaces;
+}
+
 }  // namespace tfc::ec::config
 
 template <>
@@ -34,19 +50,26 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
 
     for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
       if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
+        // interfaces.emplace_back(addr->ifa_name);
+        // for (auto const& interface : tfc::ec::config::get_network_interfaces()) {
+        //   s.oneOf.value().push_back(tfc::json::detail::schematic{
         s.oneOf.value().push_back(tfc::json::detail::schematic{ .attributes{
             tfc::json::schema{ .title = addr->ifa_name, .description = addr->ifa_name, .constant = addr->ifa_name } } });
       }
     }
-
     freeifaddrs(addrs);
+
+    // for (auto const& interface : tfc::ec::config::get_network_interfaces()) {
+    //   s.oneOf.value().push_back(tfc::json::detail::schematic{
+    //       .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
+    // }
   }
 };
 
 namespace tfc::ec::config {
 
 struct network_interfaces {
-  network_interface interfaces{};
+  network_interface interfaces{ get_network_interfaces()[0] };
 
   struct glaze {
     static constexpr auto value{ glz::object("interfaces", &network_interfaces::interfaces, "Network interfaces") };

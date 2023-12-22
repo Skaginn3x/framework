@@ -58,10 +58,6 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    if (!ecx::init(&context_, config_.value().interfaces.value)) {
-      // TODO: swith for error_code
-      throw std::runtime_error("Failed to init, no socket connection");
-    }
     logger_.trace("Network interface used: {}", config_.value().interfaces.value);
   }
 
@@ -146,10 +142,21 @@ public:
    * and processing IO's
    */
   auto async_start() -> std::error_code {
-    if (!config_init(false)) {
-      // TODO: Switch for error_code
-      throw std::runtime_error("No slaves found!");
+    /// Config might have changed since last run
+    if (!ecx::init(&context_, config_.value().interfaces.value)) {
+      // TODO: switch for error_code
+      throw std::runtime_error("Failed to init, no socket connection");
     }
+
+    if (!config_init(false)) {
+      /// Since the network interface is in a config file which only lives as long as the program is running the user needs
+      /// time to configure another interface if this one fails
+      logger_.error("No slaves found for interface: {}", config_.value().interfaces.value);
+      logger_.error("Might need to configure another interface?");
+      ctx_.run_for(std::chrono::seconds{ 1 });
+      return async_start();
+    }
+
     ecx::config_overlap_map_group(&context_, std::span(io_.data(), io_.size()), 0);
 
     if (!configdc()) {
