@@ -24,7 +24,7 @@ struct network_interface {
 template <>
 struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   template <auto Opts>
-  static void op(auto& s, auto& def) noexcept {
+  static void op(auto& s, auto&) noexcept {
     if (!s.oneOf.has_value()) {
       s.oneOf = std::vector<tfc::json::detail::schematic>{};
     }

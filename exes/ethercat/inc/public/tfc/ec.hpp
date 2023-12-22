@@ -33,12 +33,7 @@ public:
   // are to be addressed when our code is
   // interacting with groups.
 
-  // explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
-  explicit context_t(boost::asio::io_context& ctx)
-      // : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", config_.value().interfaces.value)),
-      // client_(ctx_) {
-      // : ctx_(ctx), logger_(fmt::format("Ethercat Context iface: ({})", config_.value().interfaces.value)), client_(ctx_) {
-      : ctx_(ctx), client_(ctx_) {
+  explicit context_t(boost::asio::io_context& ctx) : ctx_(ctx), client_(ctx_) {
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
     context_.slavecount = &slave_count_;
