@@ -131,8 +131,6 @@ public:
     return lowest == EC_STATE_PRE_OP || lowest == (EC_STATE_ACK | EC_STATE_PRE_OP);
   }
 
-  [[nodiscard]] auto iface() -> std::string_view { return iface_; }
-
   [[nodiscard]] auto slave_count() const -> size_t { return static_cast<size_t>(slave_count_); }
 
   auto configdc() -> bool { return ecx::configdc(&context_); }
@@ -329,7 +327,6 @@ private:
   [[nodiscard]] auto group_list_as_span() -> std::span<ec_group> { return { context_.grouplist, 1 }; }
 
   boost::asio::io_context& ctx_;
-  std::string iface_;
   ecx_contextt context_{};
   std::vector<std::unique_ptr<devices::base>> slaves_;
 
