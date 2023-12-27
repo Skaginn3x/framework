@@ -4,12 +4,13 @@
 #include <ifaddrs.h>
 
 #include <tfc/ec/interfaces.hpp>
+#include <tfc/utils/pragmas.hpp>
 
 namespace {
 // clang-format off
-// PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
 thread_local std::vector<std::string> interfaces{};
-// PRAGMA_CLANG_WARNING_POP
+PRAGMA_CLANG_WARNING_POP
 // clang-format on
 }  // namespace
 
