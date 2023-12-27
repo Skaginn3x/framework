@@ -9,6 +9,8 @@
 #include <glaze/core/common.hpp>
 #include <tfc/utils/json_schema.hpp>
 
+#include <tfc/ec/interfaces.hpp>
+
 namespace tfc::ec::config {
 
 struct network_interface {
@@ -20,20 +22,20 @@ struct network_interface {
   };
 };
 
-static auto get_network_interfaces() -> std::vector<std::string> {
-  std::vector<std::string> interfaces{};
-
-  struct ifaddrs* addrs;
-  getifaddrs(&addrs);
-
-  for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
-    if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
-      interfaces.push_back(addr->ifa_name);
-    }
-  }
-  freeifaddrs(addrs);
-  return interfaces;
-}
+// static auto get_network_interfaces() -> std::vector<std::string> {
+//   std::vector<std::string> interfaces{};
+//
+//   struct ifaddrs* addrs;
+//   getifaddrs(&addrs);
+//
+//   for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
+//     if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
+//       interfaces.push_back(addr->ifa_name);
+//     }
+//   }
+//   freeifaddrs(addrs);
+//   return interfaces;
+// }
 
 }  // namespace tfc::ec::config
 
@@ -58,7 +60,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
     // network_interface interfaces{ get_network_interfaces()[0] };
 
     /// TODO: move to source file
-    auto interf = tfc::ec::config::get_network_interfaces();
+    auto interf = tfc::global::get_interfaces();
     for (auto const& interface : interf) {
       s.oneOf.value().emplace_back(tfc::json::detail::schematic{
           .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
@@ -67,12 +69,11 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
 };
 
 namespace tfc::ec::config {
-struct network_interfaces {
-  network_interface interfaces{ get_network_interfaces()[0] };
-
+struct bus {
+  network_interface primary_interface{ tfc::global::get_interfaces()[0] };
   struct glaze {
-    static constexpr auto value{ glz::object("interfaces", &network_interfaces::interfaces, "Network interfaces") };
-    static constexpr std::string_view name{ "network_interfaces" };
+    static constexpr auto value{ glz::object("primary_interface", &bus::primary_interface, "Primary interface") };
+    static constexpr std::string_view name{ "config::bus" };
   };
 };
 

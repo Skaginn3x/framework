@@ -58,7 +58,7 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    logger_.trace("Network interface used: {}", config_.value().interfaces.value);
+    logger_.trace("Network interface used: {}", config_.value().primary_interface.value);
   }
 
   context_t(const context_t&) = delete;
@@ -143,7 +143,7 @@ public:
    */
   auto async_start() -> std::error_code {
     /// Config might have changed since last run
-    if (!ecx::init(&context_, config_.value().interfaces.value)) {
+    if (!ecx::init(&context_, config_.value().primary_interface.value)) {
       // TODO: switch for error_code
       throw std::runtime_error("Failed to init, no socket connection");
     }
@@ -151,7 +151,7 @@ public:
     if (!config_init(false)) {
       /// Since the network interface is in a config file which only lives as long as the program is running the user needs
       /// time to configure another interface if this one fails
-      logger_.error("No slaves found for interface: {}", config_.value().interfaces.value);
+      logger_.error("No slaves found for interface: {}", config_.value().primary_interface.value);
       logger_.error("Might need to configure another interface?");
       ctx_.run_for(std::chrono::seconds{ 1 });
       return async_start();
@@ -371,7 +371,7 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
-  tfc::confman::config<config::network_interfaces> config_{ ctx_, "ethercat" };
+  tfc::confman::config<config::bus> config_{ ctx_, "ethercat" };
   tfc::logger::logger logger_{ "ethercat" };
 };
 

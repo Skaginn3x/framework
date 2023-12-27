@@ -6,7 +6,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(soem CONFIG REQUIRED)
 find_package(mp-units CONFIG REQUIRED)
 
-add_library(ec src/ec.cpp src/base.cpp src/devices/beckhoff.cpp)
+add_library(ec src/ec.cpp src/base.cpp src/devices/beckhoff.cpp src/interfaces.cpp)
 add_library(tfc::ec ALIAS ec)
 
 target_include_directories(ec
