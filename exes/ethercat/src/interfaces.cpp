@@ -23,7 +23,7 @@ auto set_interfaces() -> void {
 
   for (struct ifaddrs* addr = addrs; addr != nullptr; addr = addr->ifa_next) {
     if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
-      interfaces.push_back(addr->ifa_name);
+      interfaces.emplace_back(addr->ifa_name);
     }
   }
   freeifaddrs(addrs);
