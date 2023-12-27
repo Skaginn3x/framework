@@ -5,7 +5,6 @@
 #include <mp-units/ostream.h>
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
-#include <mp-units/math.h>
 #include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
@@ -47,14 +46,16 @@ private:
 public:
   using config_t = config;
 
-  explicit virtual_motor(asio::io_context& ctx, const config& config)
-      : ctx_(ctx), config_(config), logger_(config.name.value()), timer_{ ctx_ } {
+  explicit virtual_motor(boost::asio::io_context& ctx, const config& config)
+      : ctx_(ctx), config_(config), logger_(config.name.value()) {
     logger_.info("virtual_motor c-tor: {}", config.name.value());
     config_.name.observe([this](std::string const& new_v, std::string const& old_v) {
       logger_.warn("Printing motor name switched from: {}, to: {}! takes effect after this short message", old_v, new_v);
       logger_ = logger::logger(new_v);
     });
   }
+
+  ~virtual_motor() {}
 
   auto convey() -> std::error_code {
     logger_.info("convey!");
@@ -81,11 +82,10 @@ public:
       cb(motor_error(errors::err_enum::motor_missing_speed_reference));
     }
     auto duration = length / vel;
+    auto timer = std::make_shared<asio::steady_timer>(ctx_);
     running_ = true;
-    // Someone could already be moving or running the motor.
-    timer_.cancel();
-    timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
-    timer_.async_wait([this, cb, vel, length, duration](auto ec) {
+    timer->expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
+    timer->async_wait([this, cb, timer, vel, length, duration](auto ec) {
       if (ec) {
         logger_.trace("convey({}, {}); canceled", vel, length);
         cb(ec);
@@ -104,10 +104,10 @@ public:
     if (!config_.nominal) {
       cb(motor_error(errors::err_enum::motor_missing_speed_reference));
     }
+    auto timer = std::make_shared<asio::steady_timer>(ctx_);
     running_ = true;
-    timer_.cancel();
-    timer_.expires_after(mp_units::to_chrono_duration(time));
-    timer_.async_wait([this, cb, vel, time](auto ec) {
+    timer->expires_after(mp_units::to_chrono_duration(time));
+    timer->async_wait([this, cb, timer, vel, time](auto ec) {
       if (ec) {
         logger_.trace("convey({}, {}); canceled", vel, time);
         cb(ec);
@@ -131,9 +131,9 @@ public:
     logger_.trace("convey({});", time);
     // TODO: Implement
     running_ = true;
-    timer_.cancel();
-    timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
-    timer_.async_wait([this, cb, time](auto ec) {
+    auto timer = std::make_shared<asio::steady_timer>(ctx_);
+    timer->expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
+    timer->async_wait([this, cb, timer, time](auto ec) {
       if (ec) {
         logger_.trace("convey({}); canceled", time);
         cb(ec);
@@ -145,43 +145,31 @@ public:
     });
   }
 
-  void move(QuantityOf<mp_units::isq::length> auto position, std::invocable<std::error_code> auto cb) {
-    logger_.trace("move({});", position);
+  void move(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
+    logger_.trace("move({});", length);
     if (!config_.nominal) {
       cb(motor_error(errors::err_enum::motor_missing_speed_reference));
       return;
     }
-    auto length = mp_units::abs(pos_ - position);
     auto duration = length / config_.nominal.value();
-    timer_.cancel();
-    timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
-    timer_.async_wait([this, cb, position](auto ec) {
+    auto timer = std::make_shared<asio::steady_timer>(ctx_);
+    timer->expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
+    timer->async_wait([this, cb, timer, length](auto ec) {
       if (ec) {
-        logger_.trace("move({}); canceled", position);
+        logger_.trace("move({}); canceled", length);
         cb(ec);
         return;
       }
       running_ = false;
-      pos_ = position;
-      logger_.trace("move({}); complete!", position);
+      logger_.trace("move({}); complete!", length);
       cb({});
     });
   }
-
   void move_home(std::invocable<std::error_code> auto cb) {
     logger_.trace("move_home();");
-    timer_.cancel();
-    timer_.expires_after(chrono::seconds(1));
-    timer_.async_wait([&, cb](const std::error_code& err) {
-      if (err) {
-        logger_.trace("move_home(); canceled");
-        cb(err);
-        return;
-      }
-      has_reference_ = true;
-      logger_.trace("move_home(); complete!");
-      cb({});
-    });
+    has_reference_ = true;
+    logger_.trace("move_home(); complete!");
+    cb({});
   }
 
   auto needs_homing() const -> std::expected<bool, std::error_code> {
@@ -201,8 +189,6 @@ private:
   asio::io_context& ctx_;
   const config_t& config_;
   tfc::logger::logger logger_;
-  asio::steady_timer timer_;
-  mp_units::quantity<mp_units::si::milli<mp_units::si::metre>> pos_{ 0 * mm };
   bool has_reference_{ false };
   bool running_{ false };
 };

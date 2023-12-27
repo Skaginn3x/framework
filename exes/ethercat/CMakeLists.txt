@@ -46,11 +46,11 @@ endif ()
 
 include(GNUInstallDirs)
 
-configure_file("${CMAKE_CURRENT_LIST_DIR}/systemd/ethercat@.service" "${CMAKE_BINARY_DIR}/systemd/ethercat@.service")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/systemd/ethercat.service" "${CMAKE_BINARY_DIR}/systemd/ethercat.service")
 
 install(
   FILES
-    "${CMAKE_BINARY_DIR}/systemd/ethercat@.service"
+    "${CMAKE_BINARY_DIR}/systemd/ethercat.service"
   DESTINATION
     /usr/lib/systemd/system/
   CONFIGURATIONS

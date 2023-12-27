@@ -1,3 +1,5 @@
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
+
 type ScriptLoadCallback = (allNames: string[]) => void;
 
 export const loadExternalScript = (callback: ScriptLoadCallback) => {
@@ -25,6 +27,28 @@ export const loadExternalScript = (callback: ScriptLoadCallback) => {
     handleScriptLoad();
     script.addEventListener('error', (e) => { console.error('Error loading script', e); });
   }
+};
+
+/**
+ * Parses DBUS XML strings to extract interfaces
+ * @param xml XML string
+ * @returns Array of interfaces with name and value type { name: string, valueType: string}
+ */
+export const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] => {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, 'text/xml');
+  const interfaceElements = xmlDoc.querySelectorAll(`interface[name^="${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}."]`);
+  const interfaces: { name: string, valueType: string }[] = [];
+  interfaceElements.forEach((element) => {
+    const name = element.getAttribute('name');
+    const valueType = element.querySelector('property[name="Value"]')?.getAttribute('type') ?? 'unknown';
+
+    if (name) {
+      interfaces.push({ name, valueType });
+    }
+  });
+
+  return interfaces;
 };
 
 export default loadExternalScript;

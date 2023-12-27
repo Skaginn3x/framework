@@ -14,35 +14,13 @@ import {
 } from '@patternfly/react-core';
 import './IODebug.css';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-import loadExternalScript from 'src/Components/Interface/ScriptLoader';
+import { loadExternalScript, parseXMLInterfaces } from 'src/Components/Interface/ScriptLoader';
 import ListItem from 'src/Components/IOList/ListItem';
 import { useAlertContext } from 'src/Components/Alert/AlertContext';
 import TextboxAttribute from 'src/Components/Table/ToolbarItems/TextBoxAttribute';
 import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectAttribute';
 import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
 import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
-
-/**
- * Parses DBUS XML strings to extract interfaces
- * @param xml XML string
- * @returns Array of interfaces with name and value type { name: string, valueType: string}
- */
-const parseXMLInterfaces = (xml: string): { name: string, valueType: string }[] => {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xml, 'text/xml');
-  const interfaceElements = xmlDoc.querySelectorAll(`interface[name^="${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}."]`);
-  const interfaces: { name: string, valueType: string }[] = [];
-  interfaceElements.forEach((element) => {
-    const name = element.getAttribute('name');
-    const valueType = element.querySelector('property[name="Value"]')?.getAttribute('type') ?? 'unknown';
-
-    if (name) {
-      interfaces.push({ name, valueType });
-    }
-  });
-
-  return interfaces;
-};
 
 // eslint-disable-next-line react/function-component-definition
 const IODebug: React.FC = () => {

@@ -163,11 +163,11 @@ public:
   // void rotate(QuantityOf<mp_units::angular::angle> auto, std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
-  void move(QuantityOf<mp_units::isq::length> auto position, std::invocable<std::error_code> auto cb) {
+  void move(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
     std::visit(
         [&](auto& motor_impl_) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.move(position, cb);
+            return motor_impl_.move(length, cb);
           } else {
             cb(motor_error(errors::err_enum::no_motor_configured));
           }
