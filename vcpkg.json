@@ -11,12 +11,13 @@
     "bext-ut",
     "boost-asio",
     "boost-program-options",
+    "boost-coroutine2",
     "boost-stacktrace",
     "date",
     "fmt",
     {
       "name": "glaze",
-      "version>=": "1.9.3"
+      "version>=": "1.9.6"
     },
     "gtest",
     {

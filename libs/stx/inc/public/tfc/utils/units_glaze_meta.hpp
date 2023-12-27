@@ -24,11 +24,40 @@ struct glz::meta<mp_units::ratio> {
   static constexpr auto name{ "units::ratio" };
 };
 
+// The implementation of this inside mp-units has some issues with clang 17
+// At some point in the future it might be good to try and remove this
+// And see if it is resolved. The issue was that the returned string
+// would consist of null terminations only for the entire length
+// of the string. Unable to replicate inside of mp-units using clang 17
+// but it is a problem in this project. The method to use inside of mp-units
+// is unit_symbol.
+// MIX BEGIN
+template <typename CharT, mp_units::Unit U, mp_units::unit_symbol_formatting fmt>
+struct const_unit_symbol {
+  static consteval auto unit_symbol_len() -> std::size_t { return unit_symbol<fmt, CharT>(U{}).size(); }
+  static constexpr auto impl() noexcept {
+    std::array<CharT, unit_symbol_len() + 1> buffer{};
+    auto foo = mp_units::detail::get_symbol_buffer<CharT, unit_symbol_len(), fmt>(U{});
+    std::ranges::copy(std::begin(foo), std::end(foo), std::begin(buffer));
+    return buffer;
+  }
+  // Give the joined string static storage
+  static constexpr auto arr = impl();
+  // View as a std::string_view
+  static constexpr std::basic_string_view<CharT> value{ arr.data(), arr.size() - 1 };
+};
+
+template <mp_units::unit_symbol_formatting fmt = mp_units::unit_symbol_formatting{}, typename CharT = char, mp_units::Unit U>
+[[nodiscard]] constexpr std::basic_string_view<CharT> unit_symbol_view(U) {
+  return const_unit_symbol<CharT, U, fmt>::value;
+}
+// MIX END
+
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   using type = mp_units::quantity<ref_t, rep_t>;
   static constexpr std::string_view unit{
-    mp_units::unit_symbol<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(ref_t)
+    unit_symbol_view<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(ref_t)
   };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   static auto constexpr value{ [](auto&& self) -> auto& { return self.numerical_value_ref_in(type::unit); } };
@@ -48,11 +77,16 @@ struct to_json_schema;
 template <mp_units::Reference auto ref_t, typename rep_t>
 struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
   static constexpr std::string_view unit_ascii{
-    mp_units::unit_symbol<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(ref_t)
+    unit_symbol_view<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::ascii }>(ref_t)
   };
   static constexpr std::string_view unit_unicode{
-    mp_units::unit_symbol<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::unicode }>(ref_t)
+    unit_symbol_view<mp_units::unit_symbol_formatting{ .encoding = mp_units::text_encoding::unicode }>(ref_t)
   };
+  static_assert(unit_ascii.size() > 0);
+  static_assert(unit_unicode.size() > 0);
+  static_assert(unit_ascii[0] != 0);
+  static_assert(unit_unicode[0] != 0);
+
   static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   template <auto opts>

@@ -1,5 +1,5 @@
 #include <string>
-#include <tfc/motors/errors.hpp>
+#include <tfc/motor/errors.hpp>
 #include <tfc/utils/pragmas.hpp>
 
 namespace tfc::motor {
@@ -10,18 +10,23 @@ class motor_error_category_t : public std::error_category{ [[nodiscard]] auto na
 }
 [[nodiscard]] auto message(int error) const noexcept -> std::string override {
   switch (static_cast<err_enum>(error)) {
-    case err_enum::success:
+    using enum err_enum;
+    case success:
       return "Success";
-    case err_enum::no_motor_configured:
+    case no_motor_configured:
       return "No motor configured";
-    case err_enum::motor_not_connected:
+    case motor_not_connected:
       return "Motor not connected";
-    case err_enum::motor_general_error:
+    case motor_general_error:
       return "Motor general error";
-    case err_enum::motor_tripped:
+    case motor_tripped:
       return "Motor tripped";
-    case err_enum::motor_missing_speed_reference:
+    case motor_missing_home_reference:
+      return "Motor msing home reference";
+    case motor_missing_speed_reference:
       return "Motor missing speed reference";
+    case motor_not_implemented:
+      return "Motor function not implemented";
   }
   return "unknown error: " + std::to_string(error);
 }

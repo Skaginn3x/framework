@@ -24,6 +24,8 @@ enum struct err_enum : int {
   motor_general_error,
   motor_tripped,
   motor_missing_speed_reference,
+  motor_missing_home_reference,
+  motor_not_implemented,
 };
 }
 
