@@ -10,9 +10,9 @@
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/ec/config/ethercat.hpp>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
-#include <tfc/ec/config/ethercat.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
