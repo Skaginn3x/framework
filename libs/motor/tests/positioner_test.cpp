@@ -350,17 +350,13 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     notification_test test{};
     test.positioner.increment_position(100 * mm);
     bool called_80{};
-    test.positioner.notify_at(80 * mm, [&](std::error_code){ called_80 = true; });
+    test.positioner.notify_at(80 * mm, [&](std::error_code) { called_80 = true; });
     test.positioner.notify_at(101 * mm, [](std::error_code) { expect(false); });
     test.positioner.notify_at(102 * mm, [](std::error_code) { expect(false); });
     bool called{};
-    test.positioner.notify_after(1000 * mm, [&](std::error_code err) {
-      expect(false);
-    });
+    test.positioner.notify_after(1000 * mm, [&](std::error_code err) { expect(false); });
     bool called_neg1000{};
-    test.positioner.notify_after(-1000 * mm, [&](std::error_code) {
-      called_neg1000 = true;
-    });
+    test.positioner.notify_after(-1000 * mm, [&](std::error_code) { called_neg1000 = true; });
     test.positioner.notify_at(90 * mm, [&called](std::error_code err) {
       expect(!err) << err.message();
       called = true;
