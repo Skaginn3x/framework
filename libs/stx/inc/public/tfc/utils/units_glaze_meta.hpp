@@ -95,7 +95,6 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
     if (!data.has_value()) {
       data = tfc::json::schema_meta{};
     }
-    assert(unit_ascii[0] != '\0');
     data->unit = schema_meta::unit_meta{ .unit_ascii = unit_ascii, .unit_unicode = unit_unicode };
     data->dimension = dimension;
     if constexpr (mp_units::Magnitude<decltype(ref_t)>) {
