@@ -5,7 +5,7 @@ After=dbus.socket
 StartLimitBurst=5
 
 [Service]
-ExecStart=@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/ethercat --iface %i
+ExecStart=@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/ethercat
 StandardOutput=journal
 StandardError=journal
 LimitNOFILE=8192

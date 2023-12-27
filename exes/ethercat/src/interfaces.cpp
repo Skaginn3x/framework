@@ -32,9 +32,7 @@ auto set_interfaces() -> void {
 }
 
 auto get_interfaces() -> std::vector<std::string> {
-  if (interfaces.empty()) {
-    set_interfaces();
-  }
+  set_interfaces();
   return interfaces;
 }
 
