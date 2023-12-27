@@ -142,7 +142,7 @@ public:
     connection_->async_method_call(
         [this, time, cb](const std::error_code& run_err, bool response) {
           if (run_err || !response) {
-            logger_.error("connect_to_motor: {}", run_err.message());
+            logger_.error("failed to run motor: {}", run_err.message());
             cb(motor_error(errors::err_enum::motor_general_error));
             return;
           }
@@ -153,9 +153,9 @@ public:
             if (timer_err)
               return;
             connection_->async_method_call(
-                [&](const std::error_code& stop_err, bool stop_response) {
+                [&, cb](const std::error_code& stop_err, bool stop_response) {
                   if (stop_err || !stop_response) {
-                    logger_.error("connect_to_motor: {}", stop_err.message());
+                    logger_.error("failed to stop motor: {}", stop_err.message());
                     cb(motor_error(errors::err_enum::motor_general_error));
                     return;
                   }
