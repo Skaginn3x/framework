@@ -222,13 +222,12 @@ struct frequency {
   static constexpr auto reference{ dimension_t::reference };
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
   using time_point_t = typename clock_t::time_point;
-  static constexpr hertz_t reference_frequency_{50 * Hz};
+  static constexpr hertz_t reference_frequency_{ 50 * Hz };
 
   explicit frequency(velocity_t velocity_at_frequency,
                      hertz_t,
                      std::function<void(dimension_t)>&& position_update_callback) noexcept
-      : velocity_at_frequency_{ velocity_at_frequency },
-        position_update_callback_{ std::move(position_update_callback) } {}
+      : velocity_at_frequency_{ velocity_at_frequency }, position_update_callback_{ std::move(position_update_callback) } {}
 
   void freq_update(hertz_t hertz) {
     // Update our traveled distance from the new frequency
@@ -236,20 +235,22 @@ struct frequency {
     auto now = clock_t::now();
     mp_units::quantity<mp_units::si::nano<mp_units::si::second>, int64_t> const intvl_current{ now - time_point };
     time_point = now;
-    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_frequency_ * last_measured_ / reference_frequency_);
+    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_frequency_ *
+                                                                           last_measured_ / reference_frequency_);
     last_measured_ = hertz;
     position_update_callback_(displacement);
   }
 
   velocity_t velocity_at_frequency_{};
-  hertz_t last_measured_{0 * Hz};
+  hertz_t last_measured_{ 0 * Hz };
   std::function<void(dimension_t)> position_update_callback_{ [](dimension_t) {} };
   time_point_t time_point{ clock_t::now() };
 };
 
 }  // namespace detail
 
-template <mp_units::Quantity dimension_t = position_t, template <typename, typename, typename> typename confman_t = confman::config>
+template <mp_units::Quantity dimension_t = position_t,
+          template <typename, typename, typename> typename confman_t = confman::config>
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
@@ -337,21 +338,13 @@ public:
   auto notify_at(dimension_t const& position, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     using return_t = typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
-    auto const sort_by_nearest{ [abs_pos = absolute_position_](notification const& lhs, notification const& rhs) {
-      auto const lhs_diff{ mp_units::abs(abs_pos - lhs.absolute_notification_position_) };
-      auto const rhs_diff{ mp_units::abs(abs_pos - rhs.absolute_notification_position_) };
-      return lhs_diff < rhs_diff;  // returns true if left hand side is nearer to current position
-    } };
     using cv = tfc::asio::condition_variable<asio::any_io_executor>;
-    auto& notifications{ position < absolute_position_ ? notifications_backward_ : notifications_forward_ };
     notifications.emplace_back(position, cv{ ctx_.get_executor() });
     if constexpr (std::same_as<return_t, void>) {
       notifications.back().cv_.async_wait(std::forward<decltype(token)>(token));
-      std::ranges::sort(notifications, sort_by_nearest);
       return;
     } else {
       return_t result{ notifications.back().cv_.async_wait(std::forward<decltype(token)>(token)) };
-      std::ranges::sort(notifications, sort_by_nearest);
       return result;
     }
   }
@@ -431,35 +424,20 @@ public:
 
 private:
   void notify_if_applicable(dimension_t const& old_position) {
-    constexpr auto iterate_notifications{ [](auto& notifications, auto const& current_position, auto const& last_position) {
-      for (auto it{ std::begin(notifications) }; it != std::end(notifications); ++it) {
-        auto const pos{ it->absolute_notification_position_ };
-        // Check wether we have passed the notification position
-        // If the minimum of the two points is less than the position and the position is less than the maximum of the two
-        // the points must be on opposite sides of the notification point
-        if (pos >= std::min(last_position, current_position) && pos <= std::max(last_position, current_position)) {
-          it->cv_.notify_all();
-          // it would be nice to pop_front here, but we need the event loop to be able to call the notification before we
-          // erase it todo discuss, move iterator to discard vector Condition variable can expose whether there is
-          // outstanding completion call
-          notifications.erase(it);
-        } else {
-          return;
-        }
+    std::erase_if(notifications, [current_position = absolute_position_, last_position = old_position](notification& n) {
+      auto const pos{ n.abs_notify_pos_ };
+      if (pos >= std::min(last_position, current_position) && pos <= std::max(last_position, current_position)) {
+        n.cv_.notify_all();
+        return true;
       }
-    } };
-    iterate_notifications(notifications_forward_, absolute_position_, old_position);
-    iterate_notifications(notifications_backward_, absolute_position_, old_position);
-    // todo make a timer and call the notification when timer expires
-    // remember to determine duty cycle for encoder
+      return false;
+    });
   }
 
   struct notification {
-    dimension_t absolute_notification_position_{};
+    dimension_t abs_notify_pos_{};
     tfc::asio::condition_variable<asio::any_io_executor> cv_;
-    auto operator<=>(notification const& other) const noexcept {
-      return absolute_notification_position_ <=> other.absolute_notification_position_;
-    }
+    auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };
 
   dimension_t absolute_position_{};
@@ -476,8 +454,7 @@ private:
   };
   // todo overflow
   // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
-  std::vector<notification> notifications_forward_{};
-  std::vector<notification> notifications_backward_{};
+  std::vector<notification> notifications{};
 };
 
 }  // namespace tfc::motor

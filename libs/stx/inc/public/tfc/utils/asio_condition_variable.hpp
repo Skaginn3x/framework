@@ -52,7 +52,8 @@ public:
             // propagate unexpected errors like unintended cancels
             self.complete(err);
             return;  // prevent unintended underflow
-          } else if ((*handlers_to_be_notified)-- > 0) {
+          }
+          if ((*handlers_to_be_notified)-- > 0) {
             // if notify is active than it means the user has asked for a notification
             // for reference notifications are propagated as a cancellation of the endless timer
             self.complete(std::error_code{});
