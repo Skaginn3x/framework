@@ -25,17 +25,19 @@ target_link_libraries(ec
     tfc::confman
     tfc::soem_interface
     tfc::stx
+    tfc::motor
     mp-units::si
     fmt::fmt
 )
 
 add_executable(ethercat src/main.cpp)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Boost REQUIRED COMPONENTS program_options coroutine)
 target_link_libraries(ethercat
   PUBLIC
     tfc::ec
     Boost::program_options
+    Boost::coroutine
 )
 
 if (BUILD_TESTING)

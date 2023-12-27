@@ -8,9 +8,9 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
-#include <tfc/motors/errors.hpp>
-#include <tfc/motors/ethercat.hpp>
-#include <tfc/motors/mock.hpp>
+#include <tfc/motor/atv320motor.hpp>
+#include <tfc/motor/errors.hpp>
+#include <tfc/motor/virtual_motor.hpp>
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -27,9 +27,11 @@ using SpeedRatio = mp_units::ratio;
 
 class interface {
 public:
+  using config_t =
+      confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
-  explicit interface(asio::io_context& ctx, std::string_view name)
-      : ctx_{ ctx }, impl_(), config_{ ctx_, name }, logger_{ name } {
+  explicit interface(asio::io_context& ctx, std::string_view name, config_t default_config = {})
+      : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
     std::visit(
         [this](auto& conf) {
           using conf_t = std::remove_cvref_t<decltype(conf)>;
@@ -76,10 +78,10 @@ public:
   [[nodiscard]] auto convey() -> std::error_code {
     return std::visit(
         [](auto& motor_impl_) -> std::error_code {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.convey();
-          } else {
+          if constexpr (std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
             return motor_error(errors::err_enum::no_motor_configured);
+          } else if constexpr (!std::is_invocable_v<decltype(motor_impl_)>) {
+            return motor_impl_.convey();
           }
         },
         impl_);
@@ -161,11 +163,41 @@ public:
   // void rotate(QuantityOf<mp_units::angular::angle> auto, std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
-  void move(QuantityOf<mp_units::isq::length> auto) {}
+  void move(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
+    std::visit(
+        [&](auto& motor_impl_) {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.move(length, cb);
+          } else {
+            cb(motor_error(errors::err_enum::no_motor_configured));
+          }
+        },
+        impl_);
+  }
 
-  void move(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto) {}
+  void move_home(std::invocable<std::error_code> auto cb) {
+    std::visit(
+        [&](auto& motor_impl_) {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.move_home(cb);
+          } else {
+            cb(motor_error(errors::err_enum::no_motor_configured));
+          }
+        },
+        impl_);
+  }
 
-  void move_home(std::invocable<std::error_code> auto) {}
+  [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
+    return std::visit(
+        [&](auto& motor_impl_) -> std::expected<bool, std::error_code> {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.needs_homing();
+          } else {
+            return std::unexpected(motor_error(errors::err_enum::no_motor_configured));
+          }
+        },
+        impl_);
+  }
 
   void notify(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
@@ -173,7 +205,17 @@ public:
 
   void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
 
-  void stop() {}
+  std::error_code stop() {
+    return std::visit(
+        [&](auto& motor_impl_) -> std::error_code {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+            return motor_impl_.stop();
+          } else {
+            return motor_error(errors::err_enum::no_motor_configured);
+          }
+        },
+        impl_);
+  }
 
   void stop(QuantityOf<mp_units::isq::time> auto) {}
 
@@ -187,10 +229,9 @@ private:
   asio::io_context& ctx_;
 
   // TODO(omarhogni): Implement convey and move over ethercat motor
-  using implementations = std::variant<std::monostate, types::virtual_motor>;     //, types::ethercat_motor>;
-  using config_t = std::variant<std::monostate, types::virtual_motor::config_t>;  // , types::ethercat_motor::config_t>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>;
   implementations impl_;
-  confman::config<confman::observable<config_t>> config_;
+  confman::config<config_t> config_;
   logger::logger logger_;
 };
 }  // namespace tfc::motor

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <cstdint>
 #include <string>
 
@@ -11,9 +12,9 @@ using ecx::index_t;
 
 struct control_word {
   static constexpr index_t index{ 0x6040, 0x0 };
-  bool operating_state_switch_on : 1 {};
+  bool switch_on : 1 {};
   bool enable_voltage : 1 {};
-  bool operating_state_quick_stop : 1 {};
+  bool quick_stop : 1 {};  // FYI, enabled low
   bool enable_operation : 1 {};
   bool operating_mode_specific_0 : 1 {};
   bool operating_mode_specific_1 : 1 {};
@@ -28,66 +29,31 @@ struct control_word {
   bool reserved_4 : 1 {};
   bool reserved_5 : 1 {};
 
-  static constexpr auto from_uint(std::uint16_t word) noexcept -> control_word { return std::bit_cast<control_word>(word); }
-
-  constexpr explicit operator uint16_t() const noexcept {
-    std::bitset<16> output{};
-    output.set(0, operating_state_switch_on);
-    output.set(1, enable_voltage);
-    output.set(2, operating_state_quick_stop);
-    output.set(3, enable_operation);
-    output.set(4, operating_mode_specific_0);
-    output.set(5, operating_mode_specific_1);
-    output.set(6, operating_mode_specific_2);
-    output.set(7, fault_reset);
-    output.set(8, halt);
-    output.set(9, operating_mode_specific_3);
-    output.set(10, reserved_0);
-    output.set(11, reserved_1);
-    output.set(12, reserved_2);
-    output.set(13, reserved_3);
-    output.set(14, reserved_4);
-    output.set(15, reserved_5);
-    return static_cast<uint16_t>(output.to_ulong());
-  }
   auto constexpr operator==(control_word const&) const noexcept -> bool = default;
+
+  // Command factories
+  struct commands {
+    [[nodiscard]] static auto shutdown() -> control_word {
+      return control_word{ .switch_on = false, .enable_voltage = true, .quick_stop = true };
+    }
+    [[nodiscard]] static auto switch_on() -> control_word {
+      return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true };
+    }
+    [[nodiscard]] static auto enable_operation() -> control_word {
+      return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true, .enable_operation = true };
+    }
+    [[nodiscard]] static auto disable_operation() -> control_word {
+      return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true, .enable_operation = false };
+    }
+    [[nodiscard]] static auto disable_voltage() -> control_word { return control_word{ .enable_voltage = false }; }
+    [[nodiscard]] static auto quick_stop() -> control_word { return control_word{ .enable_voltage = true }; }
+    [[nodiscard]] static auto fault_reset() -> control_word { return control_word{ .fault_reset = true }; }
+  };
 };
+
+using commands = control_word::commands;
 
 static_assert(sizeof(control_word) == 2);
-
-enum struct commands_e : uint16_t {
-  disable_voltage = 0x0000,
-  shutdown = static_cast<uint16_t>(control_word{ .enable_voltage = true, .operating_state_quick_stop = true }),
-  quick_stop = static_cast<uint16_t>(control_word{ .enable_voltage = true }),
-  switch_on = static_cast<uint16_t>(
-      control_word{ .operating_state_switch_on = true, .enable_voltage = true, .operating_state_quick_stop = true }),
-  enable_operation = static_cast<uint16_t>(control_word{ .operating_state_switch_on = true,
-                                                         .enable_voltage = true,
-                                                         .operating_state_quick_stop = true,
-                                                         .enable_operation = true }),
-  fault_reset = static_cast<uint16_t>(control_word{ .fault_reset = true })
-};
-
-static_assert(sizeof(commands_e) == sizeof(control_word));
-
-[[maybe_unused]] static auto to_string(commands_e value) -> std::string {
-  using std::string_literals::operator""s;
-  switch (value) {
-    case commands_e::disable_voltage:
-      return "Disable voltage"s;
-    case commands_e::shutdown:
-      return "Shutdown"s;
-    case commands_e::quick_stop:
-      return "Quick stop"s;
-    case commands_e::switch_on:
-      return "Switch on"s;
-    case commands_e::enable_operation:
-      return "Enable operation"s;
-    case commands_e::fault_reset:
-      return "Fault reset"s;
-  }
-  return "Unknown"s;
-}
 
 enum struct states_e : uint16_t {
   not_ready_to_switch_on = 1,
@@ -119,27 +85,7 @@ struct status_word {
   bool application_specific_2 : 1 {};
   bool application_specific_3 : 1 {};
 
-  constexpr explicit operator uint16_t() const noexcept {
-    std::bitset<16> output{};
-    output[0] = state_ready_to_switch_on;
-    output[0] = state_ready_to_switch_on;
-    output[1] = state_switched_on;
-    output[2] = state_operation_enabled;
-    output[3] = state_fault;
-    output[4] = voltage_enabled;
-    output[5] = state_quick_stop;
-    output[6] = state_switch_on_disabled;
-    output[7] = warning;
-    output[8] = halt_request_active;
-    output[9] = remote;
-    output[10] = target_reached;
-    output[11] = internal_limit_active;
-    output[12] = application_specific_0;
-    output[13] = application_specific_1;
-    output[14] = application_specific_2;
-    output[15] = application_specific_3;
-    return static_cast<uint16_t>(output.to_ulong());
-  }
+  constexpr explicit operator uint16_t() const noexcept { return std::bit_cast<uint16_t>(*this); }
 
   [[nodiscard]] auto constexpr parse_state() const noexcept -> states_e {
     /*
@@ -225,32 +171,38 @@ static_assert(sizeof(status_word) == 2);
  * @param quick_stop if the drive should be placed in quick_stop mode.
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-inline auto transition(states_e current_state, bool quick_stop) -> commands_e {
+inline auto transition(states_e current_state, bool run, bool quick_stop, bool freewheel_stop) -> control_word {
   switch (current_state) {
     case states_e::switch_on_disabled:
-      return commands_e::shutdown;
+      return commands::shutdown();
+    case states_e::switched_on:
     case states_e::ready_to_switch_on:
-      return commands_e::enable_operation;  // This is a shortcut marked as 3B in ethercat manual for atv320
+      if (run && !freewheel_stop && !quick_stop) {
+        return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
+      }
+      return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
     case states_e::operation_enabled:
       if (quick_stop) {
-        return commands_e::quick_stop;
+        return commands::quick_stop();
       }
-      return commands_e::enable_operation;
-    case states_e::switched_on:
-      return commands_e::enable_operation;
+      if (freewheel_stop) {
+        return commands::disable_voltage();  // Freewheel stop
+      }
+      if (!run) {
+        return commands::disable_operation();
+      }
+
+      return commands::enable_operation();
     case states_e::fault:
-      return commands_e::fault_reset;
+      return commands::fault_reset();
+
     case states_e::quick_stop_active:
-      if (quick_stop) {
-        return commands_e::quick_stop;
-      }
-      return commands_e::disable_voltage;
     case states_e::not_ready_to_switch_on:
     case states_e::fault_reaction_active:
-      return commands_e::disable_voltage;
+      return commands::disable_voltage();
   }
   // Can only occur if someone casts an integer for state_e that is not defined in the enum
-  return commands_e::disable_voltage;
+  return commands::disable_voltage();
 }
 
 }  // namespace tfc::ec::cia_402

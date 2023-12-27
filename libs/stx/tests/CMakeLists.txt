@@ -22,3 +22,17 @@ add_test(
   COMMAND
     test_glaze_meta
 )
+
+add_executable(test_asio_condition_variable test_asio_condition_variable.cpp)
+target_link_libraries(test_asio_condition_variable
+  PRIVATE
+    tfc::stx
+    Boost::ut
+)
+
+add_test(
+  NAME
+    test_asio_condition_variable
+  COMMAND
+    test_asio_condition_variable
+)

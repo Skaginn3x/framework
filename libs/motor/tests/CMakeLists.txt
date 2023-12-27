@@ -12,13 +12,17 @@ add_test(
 )
 
 add_executable(positioner_test positioner_test.cpp)
-target_link_libraries(positioner_test PRIVATE Boost::ut tfc::motor tfc::base)
+target_link_libraries(positioner_test PRIVATE Boost::ut tfc::motor tfc::base tfc::mock_ipc tfc::testing tfc::stub_confman)
 add_test(
   NAME
     positioner_test
   COMMAND
     positioner_test
 )
+# todo remove when sdbusplus starts behaving
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_definitions(positioner_test PRIVATE DEBUG)
+endif()
 if(BUILD_EXAMPLES)
   add_subdirectory(example)
 endif()

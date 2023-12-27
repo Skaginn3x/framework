@@ -51,17 +51,20 @@ auto devices_equal(auto vendor_id, auto product_code) {
 }
 
 template <typename manager_client_type, typename device_t>
-auto get_impl(boost::asio::io_context& ctx,
+auto get_impl(std::shared_ptr<sdbusplus::asio::connection>& connection,
               manager_client_type& client,
               uint16_t const slave_index,
               auto vendor_id,
               auto product_code,
               std::unique_ptr<base>& output) -> bool {
   if (devices_equal<device_t>(vendor_id, product_code)) {
-    if constexpr (std::is_constructible_v<device_t, boost::asio::io_context&, manager_client_type&, uint16_t>) {
-      output = std::make_unique<device_t>(ctx, client, slave_index);
+    if constexpr (std::is_constructible_v<device_t, std::shared_ptr<sdbusplus::asio::connection>, manager_client_type&,
+                                          uint16_t>) {
+      output = std::make_unique<device_t>(connection, client, slave_index);
+    } else if constexpr (std::is_constructible_v<device_t, boost::asio::io_context&, manager_client_type&, uint16_t>) {
+      output = std::make_unique<device_t>(connection->get_io_context(), client, slave_index);
     } else if constexpr (std::is_constructible_v<device_t, boost::asio::io_context&, uint16_t>) {
-      output = std::make_unique<device_t>(ctx, slave_index);
+      output = std::make_unique<device_t>(connection->get_io_context(), slave_index);
     } else if constexpr (std::is_constructible_v<device_t, uint16_t>) {
       output = std::make_unique<device_t>(slave_index);
     } else {
@@ -75,14 +78,14 @@ auto get_impl(boost::asio::io_context& ctx,
 }
 
 template <typename manager_client_type, typename... devices_t>
-auto get_impl(boost::asio::io_context& ctx,
+auto get_impl(std::shared_ptr<sdbusplus::asio::connection>& connection,
               manager_client_type& client,
               uint16_t const slave_index,
               auto vendor_id,
               auto product_code,
               devices_type<devices_t...>) -> std::unique_ptr<base> {
   std::unique_ptr<base> result{};
-  (get_impl<manager_client_type, devices_t>(ctx, client, slave_index, vendor_id, product_code, result) || ...);
+  (get_impl<manager_client_type, devices_t>(connection, client, slave_index, vendor_id, product_code, result) || ...);
   if (result) {
     return result;
   }
@@ -92,11 +95,11 @@ auto get_impl(boost::asio::io_context& ctx,
 }
 
 template <typename manager_client_type>
-auto get(boost::asio::io_context& ctx,
+auto get(std::shared_ptr<sdbusplus::asio::connection>& connection,
          manager_client_type& client,
          uint16_t const slave_index,
          auto vendor_id,
          auto product_code) -> std::unique_ptr<base> {
-  return get_impl(ctx, client, slave_index, vendor_id, product_code, devices_list<manager_client_type>{});
+  return get_impl(connection, client, slave_index, vendor_id, product_code, devices_list<manager_client_type>{});
 }
 }  // namespace tfc::ec::devices
