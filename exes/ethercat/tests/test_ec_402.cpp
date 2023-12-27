@@ -28,12 +28,15 @@ auto main(int, char**) -> int {
   };
 
   "transition_to_operation"_test = []() {
-    // todo fix
-    // expect(transition(states_e::switch_on_disabled, false) == commands_e::shutdown);
-    // expect(transition(states_e::ready_to_switch_on, false) == commands_e::enable_operation);
-    // expect(transition(states_e::switched_on, false) == commands_e::enable_operation);
-    // expect(transition(states_e::fault, false) == commands_e::fault_reset);
-    // expect(transition(states_e::operation_enabled, false) == commands_e::enable_operation);
+    bool run = true;
+    bool quick_stop = false;
+    bool freewheel_stop = false;
+    using tfc::ec::cia_402::commands;
+    expect(transition(states_e::switch_on_disabled, run, quick_stop, freewheel_stop) == commands::shutdown());
+    expect(transition(states_e::ready_to_switch_on, run, quick_stop, freewheel_stop) == commands::enable_operation());
+    expect(transition(states_e::switched_on, run, quick_stop, freewheel_stop) == commands::enable_operation());
+    expect(transition(states_e::fault, run, quick_stop, freewheel_stop) == commands::fault_reset());
+    expect(transition(states_e::operation_enabled, run, quick_stop, freewheel_stop) == commands::enable_operation());
   };
 }
 
@@ -102,12 +105,4 @@ static_assert(states_e::fault == status_word{ .state_fault = 1, .voltage_enabled
 static_assert(states_e::fault == status_word{ .state_fault = 1, .state_quick_stop = 1 }.parse_state());
 static_assert(states_e::fault == status_word{ .state_fault = 1, .voltage_enabled = 1, .state_quick_stop = 1 }.parse_state());
 
-// bitcast is not completely constexpr in clang, memcpy is not constexpr, underlying behaviour of bitcast
-#ifndef __clang__
-// todo fix
-// static_assert(control_word::from_uint(static_cast<std::uint16_t>(
-//                   control_word{ .switch_on = true, .quick_stop = true, .halt = true })) ==
-//               control_word{ .switch_on = true, .quick_stop = true, .halt = true });
-
-#endif
 }  // namespace compile_tests

@@ -29,9 +29,6 @@ struct control_word {
   bool reserved_4 : 1 {};
   bool reserved_5 : 1 {};
 
-  static constexpr auto from_uint(control_word word) noexcept -> control_word { return std::bit_cast<control_word>(word); }
-
-  constexpr explicit operator uint16_t() const noexcept { return std::bit_cast<uint16_t>(*this); }
   auto constexpr operator==(control_word const&) const noexcept -> bool = default;
 
   // Command factories

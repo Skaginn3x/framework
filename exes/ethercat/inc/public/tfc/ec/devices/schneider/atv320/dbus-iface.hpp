@@ -5,7 +5,6 @@
 */
 #pragma once
 
-#include <iostream>  //TODO: Remove
 #include <string>
 
 #include <boost/asio.hpp>
@@ -22,7 +21,7 @@ namespace asio = boost::asio;
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
-template<typename manager_client_t>
+template <typename manager_client_t>
 struct dbus_iface {
   // Properties
   static constexpr std::string_view connected_peer{ "connected_peer" };
@@ -30,10 +29,11 @@ struct dbus_iface {
   static constexpr std::string_view state_402{ "state_402" };
   static constexpr std::string_view hmis{ "hmis" };
 
-  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id, manager_client_t& manager_client)
-      : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{ slave_id }
-  , pos_ { ctx_, manager_client, fmt::format("atv320_{}", slave_id_)}
-  {
+  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection,
+             const uint16_t slave_id,
+             manager_client_t& manager_client)
+      : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{ slave_id },
+        pos_{ ctx_, manager_client, fmt::format("atv320_{}", slave_id_) }, logger_(fmt::format("atv320_{}", slave_id_)) {
     sd_bus* bus = nullptr;
     if (sd_bus_open_system(&bus) < 0) {
       throw std::runtime_error(std::string{ "Unable to open sd-bus, error: " } + strerror(errno));
@@ -72,28 +72,29 @@ struct dbus_iface {
                                      [this](const sdbusplus::message_t& msg, const double& speedratio) -> bool {
                                        std::string incoming_peer = msg.get_sender();
                                        if (incoming_peer != peer_) {
-                                         std::cerr << "Peer rejected" << incoming_peer << std::endl;  // TODO: Remove
+                                         logger_.warn("Peer rejected: {}", incoming_peer);
                                          return false;
                                        }
                                        if (speedratio < -100 || speedratio > 100) {
                                          return false;
                                        }
-                                       std::cout << "run_motor " << speedratio << std::endl;  // TODO: Remove
+                                       logger_.trace("Run motor at speedratio: {}", speedratio);
                                        quick_stop_ = false;
                                        op_enable_ = true;
                                        speed_ratio_ = speedratio;
                                        return true;
                                      });
-    dbus_interface_->register_method("notify_after",
-                                     [this](boost::asio::yield_context yield, const sdbusplus::message_t& msg, const mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>& distance) {
-                                       std::string incoming_peer = msg.get_sender();
-                                       pos_.notify_after(distance, yield);
-                                     });
+    dbus_interface_->register_method(
+        "notify_after", [this](boost::asio::yield_context yield, const sdbusplus::message_t& msg,
+                               const mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>& distance) {
+          std::string incoming_peer = msg.get_sender();
+          pos_.notify_after(distance, yield);
+        });
 
     dbus_interface_->register_method("stop", [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
       if (incoming_peer != peer_) {
-        std::cerr << "Peer rejected" << incoming_peer << std::endl;  // TODO: Remove
+        logger_.warn("Peer rejected: {}", incoming_peer);
         return false;
       }
       quick_stop_ = false;
@@ -105,7 +106,7 @@ struct dbus_iface {
     dbus_interface_->register_method("quick_stop", [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
       if (incoming_peer != peer_) {
-        std::cerr << "Peer rejected" << incoming_peer << std::endl;  // TODO: Remove
+        logger_.warn("Peer rejected {}", incoming_peer);
         return false;
       }
       quick_stop_ = true;
@@ -145,6 +146,7 @@ struct dbus_iface {
   const uint16_t slave_id_;
 
   tfc::motor::positioner<> pos_;
+  tfc::logger::logger logger_;
 
   /**
    * \brief has_peer
