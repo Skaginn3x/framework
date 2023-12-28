@@ -37,7 +37,12 @@ private:
 
     struct glaze {
       using T = config;
-      static constexpr auto value = glz::object("name", &T::name, "Name of the motor", "nominal", &T::nominal, "Speed of virtual motor in physical quantities while at 50Hz");
+      static constexpr auto value = glz::object("name",
+                                                &T::name,
+                                                "Name of the motor",
+                                                "nominal",
+                                                &T::nominal,
+                                                "Speed of virtual motor in physical quantities while at 50Hz");
       static constexpr std::string_view name{ "printing_motor" };
     };
 
