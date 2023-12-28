@@ -145,7 +145,7 @@ struct dbus_iface {
 
   const uint16_t slave_id_;
 
-  tfc::motor::positioner<> pos_;
+  tfc::motor::positioner::positioner<> pos_;
   tfc::logger::logger logger_;
 
   /**
