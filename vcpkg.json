@@ -31,7 +31,8 @@
       "name": "mp-units",
       "features": [
         "use-libfmt"
-      ]
+      ],
+      "version>=": "2.1.0"
     },
     "openssl",
     "pcg",
