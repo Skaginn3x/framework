@@ -25,12 +25,12 @@ namespace asio = boost::asio;
 using mp_units::QuantityOf;
 using SpeedRatio = mp_units::ratio;
 
-class interface {
+class m_interface {
 public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
-  explicit interface(asio::io_context& ctx, std::string_view name, config_t default_config = {})
+  explicit m_interface(asio::io_context& ctx, std::string_view name, config_t default_config = {})
       : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
     std::visit(
         [this](auto& conf) {
@@ -56,8 +56,8 @@ public:
     });
   }
 
-  interface(interface&) = delete;
-  interface(interface&&) = delete;
+  m_interface(m_interface&) = delete;
+  m_interface(m_interface&&) = default;
 
   void pump() {}
 

@@ -9,7 +9,7 @@ using namespace mp_units::si::unit_symbols;  // NOLINT(*-build-using-namespace)
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
   boost::asio::io_context ctx;
-  motor::interface my_motor {
+  motor::m_interface my_motor {
     ctx, "my_motor"
   };
 
