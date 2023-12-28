@@ -101,6 +101,8 @@ public:
 
   auto operator->() const noexcept -> decltype(auto) { return std::addressof(value()); }
 
+  constexpr operator conf_param_t const&() const noexcept { return value_; }
+
 private:
   auto reference() noexcept -> conf_param_t& { return value_; }
 

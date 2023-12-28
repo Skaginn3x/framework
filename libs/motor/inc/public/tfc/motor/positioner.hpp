@@ -4,6 +4,7 @@
 #include <array>
 #include <cassert>
 #include <chrono>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <string_view>
@@ -21,6 +22,7 @@
 #include <glaze/core/common.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/stx/concepts.hpp>
@@ -222,29 +224,29 @@ struct frequency {
   static constexpr auto reference{ dimension_t::reference };
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
   using time_point_t = typename clock_t::time_point;
-  static constexpr hertz_t reference_frequency_{ 50 * Hz };
+  static constexpr hertz_t reference_frequency_50Hz{ 50 * Hz };
 
-  explicit frequency(velocity_t velocity_at_frequency,
-                     hertz_t,
-                     std::function<void(dimension_t)>&& position_update_callback) noexcept
-      : velocity_at_frequency_{ velocity_at_frequency }, position_update_callback_{ std::move(position_update_callback) } {}
+  explicit frequency(velocity_t velocity_at_50Hz, std::function<void(dimension_t)>&& position_update_callback) noexcept
+      : velocity_at_50Hz_{ velocity_at_50Hz }, position_update_callback_{ std::move(position_update_callback) } {}
+
+  void update_velocity_at_50Hz(velocity_t velocity_at_50Hz) noexcept { velocity_at_50Hz_ = velocity_at_50Hz; }
 
   void freq_update(hertz_t hertz) {
     // Update our traveled distance from the new frequency
     // Calculate the distance the motor would have traveled on the old speed
     auto now = clock_t::now();
-    mp_units::quantity<mp_units::si::nano<mp_units::si::second>, int64_t> const intvl_current{ now - time_point };
-    time_point = now;
-    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_frequency_ *
-                                                                           last_measured_ / reference_frequency_);
+    mp_units::quantity<mp_units::si::nano<mp_units::si::second>, int64_t> const intvl_current{ now - time_point_ };
+    time_point_ = now;
+    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_50Hz_ *
+                                                                           last_measured_ / reference_frequency_50Hz);
     last_measured_ = hertz;
     position_update_callback_(displacement);
   }
 
-  velocity_t velocity_at_frequency_{};
+  velocity_t velocity_at_50Hz_{};
   hertz_t last_measured_{ 0 * Hz };
   std::function<void(dimension_t)> position_update_callback_{ [](dimension_t) {} };
-  time_point_t time_point{ clock_t::now() };
+  time_point_t time_point_{ clock_t::now() };
 };
 
 }  // namespace detail
@@ -262,8 +264,7 @@ public:
     dimension_t displacement_per_increment{ inch };
     std::chrono::microseconds standard_deviation_threshold{ 100 };
     mp_units::quantity<mp_units::percent, std::uint8_t> tick_average_deviation_threshold{ 180 * mp_units::percent };  // todo
-    velocity_t velocity_at_frequency{ 0 * (reference / mp_units::si::second) };  // todo observable
-    hertz_t reference_frequency{ 0 * mp_units::si::hertz };                      // todo observable
+    confman::observable<velocity_t> velocity_at_50Hz{ 0 * (reference / mp_units::si::second) };
     struct glaze {
       static constexpr std::string_view name{ "positioner_config" };
       // clang-format off
@@ -287,12 +288,8 @@ public:
             .default_value = 80UL,
             .minimum = 1UL,
           },
-          "velocity_at_frequency", &config::velocity_at_frequency, json::schema{
-            .description = "Velocity at the given frequency",
-            .default_value = 0UL,
-          },
-          "reference_frequency", &config::reference_frequency, json::schema{
-            .description = "Reference frequency for the given velocity",
+          "velocity_at_50Hz", &config::velocity_at_50Hz, json::schema{
+            .description = "Velocity at 50Hz",
             .default_value = 0UL,
           }
         )
@@ -313,6 +310,15 @@ public:
   /// \param default_value configuration default, useful for special cases and testing
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name, config&& default_value)
       : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
+    config_->velocity_at_50Hz.observe([this](velocity_t const& new_v, auto&) {
+      std::visit(
+          [new_v]<typename impl_t>(impl_t& impl) {
+            if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
+              impl.update_velocity_at_50Hz(new_v);
+            }
+          },
+          impl_);
+    });
     switch (config_->mode) {
       using enum detail::position_mode_e;
       case not_used:
@@ -326,7 +332,7 @@ public:
         break;
       }
       case frequency: {
-        impl_.template emplace<detail::frequency<dimension_t>>(config_->velocity_at_frequency, config_->reference_frequency,
+        impl_.template emplace<detail::frequency<dimension_t>>(config_->velocity_at_50Hz,
                                                                std::bind_front(&positioner::increment_position, this));
         break;
       }
@@ -448,10 +454,7 @@ private:
   asio::io_context& ctx_;
   logger::logger logger_{ name_ };
   confman_t<config, confman::file_storage<config>, confman::detail::config_dbus_client> config_;
-  std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
-    detail::frequency<dimension_t>{ config_->velocity_at_frequency, config_->reference_frequency,
-                                    std::bind_front(&positioner::increment_position, this) }
-  };
+  std::variant<std::monostate, detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{};
   // todo overflow
   // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
   std::vector<notification> notifications{};
