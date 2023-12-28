@@ -44,7 +44,8 @@ private:
           // It could be that we started before the ethercat network or a configuration
           // error has occured
           if (err) {
-            logger_.error("connect_to_motor: {}", err.message());
+            // This error is returned, it is the users job to notify this failure and or deal with it.
+            // logger_.error("connect_to_motor: {}", err.message());
             response = false;
           }
           // New id our call chain is invalid
@@ -89,14 +90,14 @@ public:
 
   [[nodiscard]] auto convey() -> std::error_code {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check)
+    if (sanity_check)
       return sanity_check;
     return motor_error(errors::err_enum::motor_not_implemented);
   }
 
   [[nodiscard]] auto convey(QuantityOf<mp_units::isq::velocity> auto) -> std::error_code {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check)
+    if (sanity_check)
       return sanity_check;
     return motor_error(errors::err_enum::motor_not_implemented);
   }
@@ -105,7 +106,7 @@ public:
               QuantityOf<mp_units::isq::length> auto,
               std::invocable<std::error_code> auto cb) {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check) {
+    if (sanity_check) {
       cb(sanity_check);
       return;
     }
@@ -116,7 +117,7 @@ public:
               QuantityOf<mp_units::isq::time> auto,
               std::invocable<std::error_code> auto cb) {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check) {
+    if (sanity_check) {
       cb(sanity_check);
       return;
     }
@@ -125,7 +126,7 @@ public:
 
   void convey(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto cb) {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check) {
+    if (sanity_check) {
       cb(sanity_check);
       return;
     }
@@ -171,7 +172,7 @@ public:
 
   void move(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto cb) {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check) {
+    if (sanity_check) {
       cb(sanity_check);
       return;
     }
@@ -180,7 +181,7 @@ public:
 
   void move_home(std::invocable<std::error_code> auto cb) {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check) {
+    if (sanity_check) {
       cb(sanity_check);
       return;
     }
@@ -189,7 +190,7 @@ public:
 
   [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check)
+    if (sanity_check)
       return std::unexpected(sanity_check);
     return std::unexpected(motor_error(errors::err_enum::motor_not_implemented));
   }
@@ -202,7 +203,7 @@ public:
 
   std::error_code stop() {
     auto sanity_check = motor_seems_valid();
-    if (!sanity_check)
+    if (sanity_check)
       return sanity_check;
     return motor_error(errors::err_enum::motor_not_implemented);
   }

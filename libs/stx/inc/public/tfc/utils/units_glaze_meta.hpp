@@ -174,6 +174,8 @@ inline consteval auto dimension_name() -> std::string_view {
     return "acceleration";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::percent)) {
     return "ratio";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::second)) {
+    return "time";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");
