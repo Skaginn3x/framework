@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <chrono>
-#include <variant>
+#include <cstdint>
 #include <string_view>
+#include <variant>
 
 #include <mp-units/systems/international/international.h>
 #include <mp-units/systems/si/si.h>
@@ -47,7 +47,10 @@ struct freq_config {
 };
 
 template <mp_units::Quantity dimension_t>
-using position_mode_config = std::variant<std::monostate, tachometer_config<dimension_t>, encoder_config<dimension_t>, freq_config<deduce_velocity_t<dimension_t>>>;
+using position_mode_config = std::variant<std::monostate,
+                                          tachometer_config<dimension_t>,
+                                          encoder_config<dimension_t>,
+                                          freq_config<deduce_velocity_t<dimension_t>>>;
 
 template <mp_units::Quantity dimension_t>
 struct config {
