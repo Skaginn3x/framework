@@ -6,18 +6,11 @@
 #include <tfc/ec/interfaces.hpp>
 #include <tfc/utils/pragmas.hpp>
 
-namespace {
-// clang-format off
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
-thread_local std::vector<std::string> interfaces{};
-PRAGMA_CLANG_WARNING_POP
-PRAGMA_CLANG_WARNING_POP
-// clang-format on
-}  // namespace
-
 namespace tfc::global {
-auto set_interfaces() -> void {
+
+auto get_interfaces() -> std::vector<std::string> {
+  std::vector<std::string> interfaces{};
+
   struct ifaddrs* addrs;
   getifaddrs(&addrs);
 
@@ -29,10 +22,7 @@ auto set_interfaces() -> void {
     }
   }
   freeifaddrs(addrs);
-}
 
-auto get_interfaces() -> std::vector<std::string> {
-  set_interfaces();
   return interfaces;
 }
 
