@@ -4,7 +4,6 @@
 #include <ifaddrs.h>
 
 #include <tfc/ec/interfaces.hpp>
-#include <tfc/utils/pragmas.hpp>
 
 namespace tfc::global {
 
