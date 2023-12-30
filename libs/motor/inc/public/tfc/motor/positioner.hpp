@@ -116,7 +116,12 @@ public:
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
   /// \param new_home_position store this position as home
-  void home(dimension_t const& new_home_position) noexcept { home_ = new_home_position; }
+  void home(dimension_t new_home_position) noexcept { home_ = new_home_position; }
+
+  /// \brief home is used in method notify_from_home to determine the notification position
+  /// \relates notify_from_home
+  /// Will store current position as home
+  void home() noexcept { return home(position()); }
 
   /// \brief return current error state
   /// \return error code
@@ -233,6 +238,7 @@ private:
 
   errors::err_enum last_error_{ errors::err_enum::success };
   dimension_t absolute_position_{};
+  dimension_t absolute_travel_{}; // todo
   dimension_t home_{};
   dimension_t displacement_per_increment_{};
   velocity_t velocity_{};
