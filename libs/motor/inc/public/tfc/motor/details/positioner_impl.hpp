@@ -8,8 +8,8 @@
 #include <mp-units/systems/international/international.h>
 #include <mp-units/systems/si/si.h>
 
-#include <tfc/motor/errors.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/motor/errors.hpp>
 
 namespace tfc::motor::positioner {
 
@@ -134,7 +134,6 @@ auto detect_deviation_from_average(auto interval, auto average) {
   }
   return err;
 }
-
 
 template <typename bool_slot_t = ipc::bool_slot,
           typename clock_t = asio::steady_timer::time_point::clock,

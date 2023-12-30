@@ -6,8 +6,8 @@
 #include <chrono>
 #include <concepts>
 #include <cstddef>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <string_view>
 #include <type_traits>  // required by mp-units
 #include <variant>
@@ -238,7 +238,7 @@ private:
 
   errors::err_enum last_error_{ errors::err_enum::success };
   dimension_t absolute_position_{};
-  dimension_t absolute_travel_{}; // todo
+  dimension_t absolute_travel_{};  // todo
   dimension_t home_{};
   dimension_t displacement_per_increment_{};
   velocity_t velocity_{};
