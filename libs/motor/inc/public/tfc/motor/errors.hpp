@@ -17,8 +17,8 @@ namespace tfc::motor {
 // a dbus api for the hmi and scada or
 // inside some alarm manager.
 namespace errors {
-enum struct err_enum : int {
-  success = 0,
+enum struct err_enum : int {  // todo refactor to error_code_e ?
+  success = 0,                // todo refactor to none ?
   no_motor_configured,
   motor_not_connected,
   motor_general_error,
@@ -26,15 +26,22 @@ enum struct err_enum : int {
   motor_missing_speed_reference,
   motor_missing_home_reference,
   motor_not_implemented,
+  positioning_unstable,
+  positioning_missing_event,
+  positioning_request_out_of_range,
+  unknown,
 };
-}
 
-/// The error category for Modbus errors.
+auto enum_name(err_enum) noexcept -> std::string_view;
+
+}  // namespace errors
+
+/// The error category for Motor errors.
 std::error_category const& category();
 
-/// Get an error code for a Modbus error,
+/// Get an error code for a Motor error,
 inline std::error_code motor_error(errors::err_enum error) {
-  int error_int = static_cast<int>(error);
+  auto const error_int = static_cast<int>(error);
   return std::error_code(error_int, category());
 }
 }  // namespace tfc::motor

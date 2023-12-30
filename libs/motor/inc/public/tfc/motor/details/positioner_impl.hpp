@@ -8,30 +8,23 @@
 #include <mp-units/systems/international/international.h>
 #include <mp-units/systems/si/si.h>
 
+#include <tfc/motor/errors.hpp>
 #include <tfc/confman/observable.hpp>
 
 namespace tfc::motor::positioner {
-
-enum struct position_error_code_e : std::uint8_t {
-  none = 0,
-  unstable,       // could be one event missing per cycle or similar
-  missing_event,  // missing event from encoder
-  unknown,        // cause not explicitly known
-};
 
 template <mp_units::Quantity dimension_t>
 using deduce_velocity_t = mp_units::quantity<dimension_t::reference / mp_units::si::second, std::int64_t>;
 using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
 using hertz_t = mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>;
-using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, position_error_code_e);
+using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, errors::err_enum);
 namespace asio = boost::asio;
 
 template <mp_units::Quantity dimension_t>
 struct increment_config {
   static constexpr dimension_t inch{ 1 * mp_units::international::inch };
   confman::observable<dimension_t> displacement_per_increment{ dimension_t{ inch } };
-  std::chrono::microseconds standard_deviation_threshold{ 100 };
-  mp_units::quantity<mp_units::percent, std::uint8_t> tick_average_deviation_threshold{ 180 * mp_units::percent };  // todo
+  confman::observable<std::chrono::microseconds> standard_deviation_threshold{ std::chrono::microseconds{ 100 } };
   bool operator==(increment_config const&) const noexcept = default;
 };
 template <mp_units::Quantity dimension_t>
@@ -55,7 +48,7 @@ using position_mode_config = std::variant<std::monostate,
 template <mp_units::Quantity dimension_t>
 struct config {
   confman::observable<position_mode_config<dimension_t>> mode{ std::monostate{} };
-  dimension_t needs_homing_at{ 0 * dimension_t::reference };
+  dimension_t needs_homing_after{ 0 * dimension_t::reference };
 };
 
 namespace detail {
@@ -97,12 +90,12 @@ struct time_series_statistics {
 
   void update(time_point_t const& now) noexcept {
     // now let's calculate the average interval and variance
-    auto const intvl_current{ now - buffer_.front().time_point };
-    auto const current_variance_increment{ std::pow(static_cast<double>(intvl_current.count()) - average_, 2) };
+    last_interval_ = now - buffer_.front().time_point;
+    auto const current_variance_increment{ std::pow(static_cast<double>(last_interval_.count()) - average_, 2) };
 
-    auto const removed{ buffer_.emplace(now, intvl_current, current_variance_increment) };
+    auto const removed{ buffer_.emplace(now, last_interval_, current_variance_increment) };
 
-    average_ += static_cast<double>(intvl_current.count() - removed.interval_duration.count()) / circular_buffer_len;
+    average_ += static_cast<double>(last_interval_.count() - removed.interval_duration.count()) / circular_buffer_len;
     // Note the variance is actually incorrect but it serves the purpose of detecting if the variance is increasing or not.
     // It is incorrect because it uses mean of values that have already been removed from the buffer to determine the
     // incremental variance of the older items in the buffer. I think it is impossible to calculate the correct variance in
@@ -114,6 +107,8 @@ struct time_series_statistics {
   auto buffer() const noexcept -> auto const& { return buffer_; }
 
   auto average() const noexcept -> duration_t { return duration_t{ static_cast<typename duration_t::rep>(average_) }; }
+
+  auto last_interval() const noexcept -> duration_t { return last_interval_; }
 
   auto stddev() const noexcept -> duration_t {
     // assert(variance_ >= 0, "Variance is squared so it should be positive.");
@@ -127,8 +122,19 @@ struct time_series_statistics {
   };
   double average_{};
   double variance_{};
+  duration_t last_interval_{};
   circular_buffer<event_storage, circular_buffer_len> buffer_{};
 };
+
+auto detect_deviation_from_average(auto interval, auto average) {
+  auto err{ errors::err_enum::success };
+  // check if interval is greater than 180% of average
+  if (interval * 10 > average * 18) {
+    err = errors::err_enum::positioning_unstable;
+  }
+  return err;
+}
+
 
 template <typename bool_slot_t = ipc::bool_slot,
           typename clock_t = asio::steady_timer::time_point::clock,
@@ -153,7 +159,7 @@ struct tachometer {
     auto now{ clock_t::now() };
     statistics_.update(now);
     std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev(),
-                position_error_code_e::none);
+                detect_deviation_from_average(statistics_.last_interval(), statistics_.average()));
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
@@ -189,6 +195,8 @@ struct encoder {
     last_event_e last_event{ last_event_e::unknown };
   };
 
+  using last_event_t = typename storage::last_event_e;
+
   void first_tacho_update(bool first_new_val) noexcept {
     position_ += first_new_val ? buffer_.front().second_tacho_state ? 1 : -1 : buffer_.front().second_tacho_state ? -1 : 1;
     update(first_new_val, buffer_.front().second_tacho_state, storage::last_event_e::first);
@@ -199,11 +207,11 @@ struct encoder {
     update(buffer_.front().first_tacho_state, second_new_val, storage::last_event_e::second);
   }
 
-  void update(bool first, bool second, typename storage::last_event_e event) noexcept {
+  void update(bool first, bool second, last_event_t event) noexcept {
     auto const now{ clock_t::now() };
-    position_error_code_e err{ position_error_code_e::none };
+    auto err{ detect_deviation_from_average(statistics_.last_interval(), statistics_.average()) };
     if (buffer_.front().last_event == event) {
-      err = position_error_code_e::missing_event;
+      err = errors::err_enum::positioning_missing_event;
     }
     statistics_.update(now);
     buffer_.emplace(first, second, event);
@@ -274,11 +282,6 @@ struct glz::meta<tfc::motor::positioner::increment_config<dimension_t>> {
         .description = "Standard deviation between increments, used to determine if signal is stable",
         .default_value = 100UL,
         .minimum = 1UL,
-      },
-      "tick_average_deviation_threshold", &self::tick_average_deviation_threshold, tfc::json::schema{
-        .description = "Threshold of deviation from average per increment, used to determine if signal is stable",
-        .default_value = 80UL,
-        .minimum = 1UL,
       }
     )
   };
@@ -324,7 +327,7 @@ struct glz::meta<tfc::motor::positioner::config<dimension_t>> {
       "mode", &self::mode, tfc::json::schema{
         .description = "Selection of positioning mode",
       },
-      "needs_homing_at", &self::needs_homing_at, tfc::json::schema{
+      "needs_homing_after", &self::needs_homing_after, tfc::json::schema{
         .description = "Only used in when homing reference is used, "
                        "Require homing after the specified displacement",
         .default_value = 1000000000UL, // todo use explicit type, needs to handle at least µm/s and µL/s
