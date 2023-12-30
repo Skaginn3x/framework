@@ -140,6 +140,36 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
                    data_t{ .time_between_teeth = 3ms, .stddev = 909945ns },
                    data_t{ .time_between_teeth = 7ms, .stddev = 2123205ns },
                    data_t{ .time_between_teeth = 17ms, .stddev = 5156355ns } };
+
+  "tachometer average deviation threshold reached"_test = [] {
+    bool called{};
+    bool do_expect_error{};
+    tachometer_test test{ .cb = [&called, &do_expect_error](auto, auto, auto, tfc::motor::errors::err_enum err) {
+      if (do_expect_error) {
+        auto const expected{ tfc::motor::errors::err_enum::positioning_unstable };
+        expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+        called = true;
+      }
+    } };
+
+    tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
+    // lets go 2 rounds to make sure the average is correct
+    for (std::size_t idx{ 0 }; idx < buffer_len * 2; idx++) {
+      tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + 1ms };
+      tfc::testing::clock::set_ticks(later);
+      test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+      test.tachometer.update(true);
+    }
+
+    // let's get down to business
+    do_expect_error = true;
+    tfc::testing::clock::time_point const average_times_2{ tfc::testing::clock::now() +
+                                                           test.tachometer.statistics().average() * 2 };
+    tfc::testing::clock::set_ticks(average_times_2);
+    test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+    test.tachometer.update(true);
+    expect(called);
+  };
 };
 
 // clang-format off
@@ -257,6 +287,25 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.encoder.first_tacho_update(true);
     expect(test.encoder.position_ == 2) << test.encoder.position_;
   };
+
+  // we do expect that the encoder will receive event on first sensor than the second and so forth
+  "missing event"_test = [](auto event) {
+    bool called{};
+    encoder_test test{ .cb = [&called, first_call = true](auto, auto, auto, tfc::motor::errors::err_enum err) mutable {
+      if (first_call) {
+        first_call = false;
+        return;
+      }
+      called = true;
+      auto const expected{ tfc::motor::errors::err_enum::positioning_missing_event };
+      expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+    } };
+
+    test.encoder.update(true, false, event);
+    test.encoder.update(true, false, event);
+
+    expect(called);
+  } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };
 };
 
 // clang-format off
@@ -400,7 +449,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   // todo increase error coverage
-  ut::skip / "standard deviation error"_test = [] {
+  "standard deviation error"_test = [] {
     auto constexpr stddev{ 1ms };
     notification_test::positioner_t::config_t config{};
     using tachometer_config_t = tfc::motor::positioner::tachometer_config<tfc::motor::positioner::position_t>;
@@ -410,7 +459,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 
     notification_test test{ .config = config };
     test.positioner.tick(1, {}, stddev, {});
-    expect(test.positioner.error() == tfc::motor::positioner::position_error_code_e::unstable);
+    expect(test.positioner.error() == tfc::motor::errors::err_enum::positioning_unstable);
   };
 };
 #endif

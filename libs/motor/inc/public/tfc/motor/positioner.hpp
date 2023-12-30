@@ -6,6 +6,7 @@
 #include <chrono>
 #include <concepts>
 #include <cstddef>
+#include <memory>
 #include <functional>
 #include <string_view>
 #include <type_traits>  // required by mp-units
@@ -59,13 +60,34 @@ public:
     construct_implementation(config_->mode, {});
   }
 
+  positioner(positioner const&) = delete;
+  auto operator=(positioner const&) -> positioner& = delete;
+  positioner(positioner&&) noexcept = default;
+  auto operator=(positioner&&) noexcept -> positioner& = default;
+  ~positioner() = default;
+
   /// \param position absolute position
   /// \param token completion token to trigger when get passed the given position
+  /// \todo implicitly allow motor::errors::err_enum as param in token
   auto notify_at(dimension_t const& position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using cv = tfc::asio::condition_variable<asio::any_io_executor>;
-    notifications.emplace_back(position, cv{ ctx_.get_executor() });
-    return notifications.back().cv_.async_wait(std::forward<decltype(token)>(token));
+    auto new_notification = std::make_shared<notification>(position, cv{ ctx_.get_executor() });
+    notifications_.emplace_back(new_notification);
+    return asio::async_compose<decltype(token), void(std::error_code)>(
+        [first_call = true, new_notification](auto& self, std::error_code err = {}) mutable {
+          if (first_call) {
+            first_call = false;
+            new_notification->cv_.async_wait(std::move(self));
+            return;
+          }
+          if (err) {
+            self.complete(err);
+            return;
+          }
+          self.complete(motor_error(new_notification->err_));
+        },
+        token, ctx_);
   }
 
   /// \param displacement from current position
@@ -98,13 +120,7 @@ public:
 
   /// \brief return current error state
   /// \return error code
-  [[nodiscard]] auto error() const noexcept -> position_error_code_e {
-    using enum position_error_code_e;
-    // if (stddev_ >= config_->standard_deviation_threshold) {
-    // return unstable;
-    // }
-    return none;
-  }
+  [[nodiscard]] auto error() const noexcept -> errors::err_enum { return last_error_; }
 
   void freq_update(hertz_t hertz) {
     std::visit(
@@ -124,12 +140,16 @@ public:
   }
 
   void tick(std::int64_t tachometer_counts,
-            std::chrono::nanoseconds const& average,
-            std::chrono::nanoseconds const& stddev,
-            [[maybe_unused]] position_error_code_e err) {
+            std::chrono::nanoseconds average,
+            std::chrono::nanoseconds stddev,
+            errors::err_enum err) {
     auto const old_position{ absolute_position_ };
     absolute_position_ = displacement_per_increment_ * tachometer_counts;
     stddev_ = stddev;
+    last_error_ = err;
+    if (stddev_ >= standard_deviation_threshold_) {
+      last_error_ = errors::err_enum::positioning_unstable;
+    }
     // Important the resolution below needs to match
     static constexpr auto nanometer_reference{ mp_units::si::nano<mp_units::si::metre> };
     static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
@@ -155,15 +175,21 @@ private:
             impl_.template emplace<detail::tachometer<>>(ctx_, client_, name_, std::bind_front(&positioner::tick, this));
 
             displacement_per_increment_ = mode.displacement_per_increment.value();
+            standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
             mode.displacement_per_increment.observe(
                 [this](dimension_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
+            mode.standard_deviation_threshold.observe(
+                [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
             impl_.template emplace<detail::encoder<>>(ctx_, client_, name_, std::bind_front(&positioner::tick, this));
 
             // todo duplicate
             displacement_per_increment_ = mode.displacement_per_increment.value();
+            standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
             mode.displacement_per_increment.observe(
                 [this](dimension_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
+            mode.standard_deviation_threshold.observe(
+                [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, freq_config_t>) {
             impl_.template emplace<detail::frequency<dimension_t>>(mode.velocity_at_50Hz,
                                                                    std::bind_front(&positioner::increment_position, this));
@@ -185,10 +211,13 @@ private:
   }
 
   void notify_if_applicable(dimension_t const& old_position) {
-    std::erase_if(notifications, [current_position = absolute_position_, last_position = old_position](notification& n) {
-      auto const pos{ n.abs_notify_pos_ };
-      if (pos >= std::min(last_position, current_position) && pos <= std::max(last_position, current_position)) {
-        n.cv_.notify_all();
+    auto const min{ std::min(absolute_position_, old_position) };
+    auto const max{ std::max(absolute_position_, old_position) };
+    std::erase_if(notifications_, [this, min, max](auto& n) {
+      auto const pos{ n->abs_notify_pos_ };
+      if (pos >= min && pos <= max) {
+        n->err_ = last_error_;
+        n->cv_.notify_all();
         return true;
       }
       return false;
@@ -198,14 +227,17 @@ private:
   struct notification {
     dimension_t abs_notify_pos_{};
     tfc::asio::condition_variable<asio::any_io_executor> cv_;
+    errors::err_enum err_{ errors::err_enum::success };
     auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };
 
+  errors::err_enum last_error_{ errors::err_enum::success };
   dimension_t absolute_position_{};
   dimension_t home_{};
   dimension_t displacement_per_increment_{};
   velocity_t velocity_{};
   std::chrono::nanoseconds stddev_{};
+  std::chrono::nanoseconds standard_deviation_threshold_{};
   std::string name_{};
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
@@ -214,7 +246,7 @@ private:
   std::variant<std::monostate, detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{};
   // todo overflow
   // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
-  std::vector<notification> notifications{};
+  std::vector<std::shared_ptr<notification>> notifications_{};
 };
 
 }  // namespace tfc::motor::positioner
