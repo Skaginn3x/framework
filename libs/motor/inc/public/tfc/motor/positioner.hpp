@@ -58,6 +58,8 @@ public:
         config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
+    config_->needs_homing_after.observe(
+        [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
   }
 
   positioner(positioner const&) = delete;
@@ -116,7 +118,14 @@ public:
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
   /// \param new_home_position store this position as home
-  void home(dimension_t new_home_position) noexcept { home_ = new_home_position; }
+  void home(dimension_t new_home_position) noexcept {
+    home_ = new_home_position;
+    travel_since_homed_ = 0 * reference;
+    missing_home_ = false;
+    if (last_error_ == errors::err_enum::motor_missing_home_reference) {
+      last_error_ = errors::err_enum::success;
+    }
+  }
 
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
@@ -125,7 +134,15 @@ public:
 
   /// \brief return current error state
   /// \return error code
-  [[nodiscard]] auto error() const noexcept -> errors::err_enum { return last_error_; }
+  [[nodiscard]] auto error() const noexcept -> errors::err_enum {
+    using enum errors::err_enum;
+    // special case when we have not yet homed and we recovered from some other error
+    // it might be beneficial to refactor error to being bitset struct of error bool flags
+    if (config_->needs_homing_after->has_value() && last_error_ == success && missing_home_) {
+      return motor_missing_home_reference;
+    }
+    return last_error_;
+  }
 
   void freq_update(hertz_t hertz) {
     std::visit(
@@ -141,6 +158,11 @@ public:
     auto const old_position{ absolute_position_ };
     absolute_position_ += increment;
     velocity_ = velocity;
+    if (needs_homing(increment)) {
+      if (last_error_ == errors::err_enum::success) {
+        last_error_ = errors::err_enum::motor_missing_home_reference;
+      }
+    }
     notify_if_applicable(old_position);
   }
 
@@ -148,8 +170,9 @@ public:
             std::chrono::nanoseconds average,
             std::chrono::nanoseconds stddev,
             errors::err_enum err) {
+    auto const new_position{ displacement_per_increment_ * tachometer_counts };
     auto const old_position{ absolute_position_ };
-    absolute_position_ = displacement_per_increment_ * tachometer_counts;
+    auto const increment{ new_position - old_position };
     stddev_ = stddev;
     last_error_ = err;
     if (stddev_ >= standard_deviation_threshold_) {
@@ -158,16 +181,29 @@ public:
     // Important the resolution below needs to match
     static constexpr auto nanometer_reference{ mp_units::si::nano<mp_units::si::metre> };
     static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
+    velocity_t velocity{};
     if (average > std::chrono::seconds{ 0 }) {
-      auto const displacement{ (absolute_position_ - old_position).in(nanometer_reference) };
-      velocity_ = displacement / (average.count() * nanosec_reference);
+      velocity = increment.in(nanometer_reference) / (average.count() * nanosec_reference);
     } else {
-      velocity_ = 0 * (reference / nanosec_reference);
+      velocity = 0 * velocity_t::reference;
     }
-    notify_if_applicable(old_position);
+    increment_position(increment, velocity);
   }
 
 private:
+  auto needs_homing(dimension_t increment) -> bool {
+    if (!config_->needs_homing_after->has_value()) {
+      return false;
+    }
+    auto const old_travel_since_homed{ travel_since_homed_ };
+    travel_since_homed_ += mp_units::abs(increment);
+    auto const pos{ config_->needs_homing_after->value() };
+    if (pos >= old_travel_since_homed && pos <= travel_since_homed_) {
+      missing_home_ = true;
+    }
+    return missing_home_;
+  }
+
   auto construct_implementation(position_mode_config<dimension_t> const& mode_to_construct,
                                 [[maybe_unused]] position_mode_config<dimension_t> const& old_mode) noexcept {
     using tachometer_config_t = tachometer_config<dimension_t>;
@@ -238,7 +274,7 @@ private:
 
   errors::err_enum last_error_{ errors::err_enum::success };
   dimension_t absolute_position_{};
-  dimension_t absolute_travel_{};  // todo
+  dimension_t travel_since_homed_{};  // todo
   dimension_t home_{};
   dimension_t displacement_per_increment_{};
   velocity_t velocity_{};
@@ -253,6 +289,8 @@ private:
   // todo overflow
   // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
   std::vector<std::shared_ptr<notification>> notifications_{};
+
+  bool missing_home_{ config_->needs_homing_after->has_value() };
 };
 
 }  // namespace tfc::motor::positioner
