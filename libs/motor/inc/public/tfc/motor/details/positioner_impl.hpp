@@ -262,7 +262,8 @@ struct frequency {
 };
 
 template <typename unsigned_t>
-constexpr auto make_between_callable(unsigned_t before, unsigned_t now, bool forward = true) -> stx::function<bool(unsigned_t)> {
+constexpr auto make_between_callable(unsigned_t before, unsigned_t now, bool forward = true)
+    -> stx::function<bool(unsigned_t)> {
   if (forward) {
     // detect overflow
     if (now < before) {
