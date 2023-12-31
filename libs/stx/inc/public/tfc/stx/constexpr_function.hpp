@@ -14,7 +14,7 @@ struct function;
 template <class R, class... Args>
 struct function<R(Args...)> {
   template <class F>
-  constexpr function(F f) : ptr_{std::make_unique<implementation<F>>(f)} {}
+  constexpr function(F f) : ptr_{ std::make_unique<implementation<F>>(f) } {}
 
   constexpr auto operator()(Args... args) const -> R {
     // todo can we get rid of this warning suppression?
@@ -33,7 +33,7 @@ private:
 
   template <class F>
   struct implementation final : interface {
-    constexpr explicit(true) implementation(F f) : f_{f} {}
+    constexpr explicit(true) implementation(F f) : f_{ f } {}
     constexpr auto get(Args... args) -> R override { return f_(args...); }
 
   private:
