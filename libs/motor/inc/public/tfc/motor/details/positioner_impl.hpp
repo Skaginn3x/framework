@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string_view>
 #include <variant>
+#include <optional>
 
 #include <mp-units/systems/international/international.h>
 #include <mp-units/systems/si/si.h>
@@ -48,7 +49,7 @@ using position_mode_config = std::variant<std::monostate,
 template <mp_units::Quantity dimension_t>
 struct config {
   confman::observable<position_mode_config<dimension_t>> mode{ std::monostate{} };
-  dimension_t needs_homing_after{ 0 * dimension_t::reference };
+  confman::observable<std::optional<dimension_t>> needs_homing_after{ std::nullopt };
 };
 
 namespace detail {
@@ -328,8 +329,8 @@ struct glz::meta<tfc::motor::positioner::config<dimension_t>> {
       },
       "needs_homing_after", &self::needs_homing_after, tfc::json::schema{
         .description = "Only used in when homing reference is used, "
-                       "Require homing after the specified displacement",
-        .default_value = 1000000000UL, // todo use explicit type, needs to handle at least µm/s and µL/s
+                       "Require homing after the specified displacement, try 1 kilometre.",
+        // .default_value = 1000000000UL, // todo use explicit type, needs to handle at least µm/s and µL/s
       }
     )
   };

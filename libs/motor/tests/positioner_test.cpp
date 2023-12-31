@@ -315,6 +315,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   // clang-format on
   struct notification_test {
     using positioner_t = tfc::motor::positioner::positioner<tfc::motor::positioner::position_t, tfc::confman::stub_config>;
+    using home_travel_t = tfc::confman::observable<std::optional<tfc::motor::positioner::position_t>>;
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
     positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
@@ -448,7 +449,6 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
         << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
   };
 
-  // todo increase error coverage
   "standard deviation error"_test = [] {
     auto constexpr stddev{ 1ms };
     notification_test::positioner_t::config_t config{};
@@ -460,6 +460,33 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     notification_test test{ .config = config };
     test.positioner.tick(1, {}, stddev, {});
     expect(test.positioner.error() == tfc::motor::errors::err_enum::positioning_unstable);
+  };
+
+  "homing required not normally"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{};
+    expect(test.positioner.error() == success);
+  };
+
+  "homing required on construction if homing travel is configured"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 1 * mm } } };
+    expect(test.positioner.error() == motor_missing_home_reference);
+  };
+
+  "homing not required if homed"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 1 * mm } } };
+    test.positioner.home();
+    expect(test.positioner.error() == success);
+  };
+
+  "homing required if homed and exceeded config param"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 1 * mm } } };
+    test.positioner.home();
+    test.positioner.increment_position(2 * mm);
+    expect(test.positioner.error() == motor_missing_home_reference);
   };
 };
 #endif
