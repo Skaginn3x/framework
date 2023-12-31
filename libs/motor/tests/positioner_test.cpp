@@ -23,6 +23,89 @@ using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::
 using mp_units::quantity;
 using mp_units::si::unit_symbols::mm;
 
+namespace compile_tests {
+
+using tfc::motor::positioner::detail::make_between_callable;
+// overflow tests
+// numbers from 245 -> 255 and 0 -> 11
+// is 244 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 244 }));
+// is 12 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 12 }));
+// is 246 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 246 }));
+// is 1 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 1 }));
+// is 1 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 0 }));
+// is 255 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 255 }));
+// is 245 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 245 }));
+// is 11 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 11 }));
+
+// normal incremental tests
+// numbers from 11 -> 245
+// is 11 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 11 }));
+// is 245 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 245 }));
+// is 12 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 12 }));
+// is 244 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 244 }));
+// is 0 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 0 }));
+// is 1 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 1 }));
+// is 255 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 255 }));
+// is 10 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 10 }));
+// is 246 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 246 }));
+
+// underflow tests now we go backwards
+// numbers from 11 -> 0 and 255 -> 245
+// is 11 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 11 }));
+// is 245 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 245 }));
+// is 0 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 0 }));
+// is 1 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 1 }));
+// is 255 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 255 }));
+// is 10 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 10 }));
+// is 246 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 246 }));
+// is 12 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 12 }));
+// is 244 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 244 }));
+
+// normal decrement tests
+// numbers from 245 -> 11
+// is 245 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 245 }));
+// is 11 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 11 }));
+// is 12 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 12 }));
+// is 244 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 244 }));
+// is 0 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 0 }));
+// is 10 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 10 }));
+// is 246 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 246 }));
+
+}  // namespace compile_tests
+
 #if (!(__GNUC__ && defined(DEBUG) && !__clang__))
 
 struct test_instance {
@@ -313,9 +396,10 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"notifications"> notify_tests = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
+  using tfc::motor::positioner::position_t;
   struct notification_test {
-    using positioner_t = tfc::motor::positioner::positioner<tfc::motor::positioner::position_t, tfc::confman::stub_config>;
-    using home_travel_t = tfc::confman::observable<std::optional<tfc::motor::positioner::position_t>>;
+    using positioner_t = tfc::motor::positioner::positioner<position_t, tfc::confman::stub_config>;
+    using home_travel_t = tfc::confman::observable<std::optional<position_t>>;
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
     positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
@@ -452,7 +536,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "standard deviation error"_test = [] {
     auto constexpr stddev{ 1ms };
     notification_test::positioner_t::config_t config{};
-    using tachometer_config_t = tfc::motor::positioner::tachometer_config<tfc::motor::positioner::position_t>;
+    using tachometer_config_t = tfc::motor::positioner::tachometer_config<position_t>;
     tachometer_config_t tachometer_config{};
     tachometer_config.standard_deviation_threshold = stddev;
     config.mode = tachometer_config;
@@ -488,6 +572,29 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.positioner.increment_position(2 * mm);
     expect(test.positioner.error() == motor_missing_home_reference);
   };
+
+  struct flow_test {
+    position_t value{};
+    std::int64_t ticks{};
+  };
+  "under or overflow"_test =
+      [](flow_test const& data) {
+        notification_test test{};
+        test.positioner.increment_position(data.value);
+        bool called{};
+        test.positioner.notify_after(data.ticks * 2 * mm, [&called](std::error_code err) {
+          expect(!err) << err.message();
+          called = true;
+        });
+        test.positioner.increment_position(data.ticks * mm);
+        test.inst.ctx.run_for(1ms);
+        expect(!called);
+        test.positioner.increment_position(data.ticks * mm);
+        test.inst.ctx.run_for(1ms);
+        expect(called);
+      } |
+      std::vector{ flow_test{ .value = position_t::max(), .ticks = 1 },
+                   flow_test{ .value = position_t::min(), .ticks = -1 } };
 };
 #endif
 

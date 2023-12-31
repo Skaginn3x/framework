@@ -40,6 +40,9 @@ template <mp_units::Quantity dimension_t = position_t,
 class positioner {
 public:
   static constexpr auto reference{ dimension_t::reference };
+  // using unsigned integer to get detirmistic overflow/underflow
+  using absolute_position_t = mp_units::quantity<reference, std::uint64_t>;
+  using displacement_t = mp_units::quantity<reference, std::int64_t>;
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
   using config_t = config<dimension_t>;
 
@@ -71,7 +74,7 @@ public:
   /// \param position absolute position
   /// \param token completion token to trigger when get passed the given position
   /// \todo implicitly allow motor::errors::err_enum as param in token
-  auto notify_at(dimension_t const& position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  auto notify_at(absolute_position_t position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using cv = tfc::asio::condition_variable<asio::any_io_executor>;
     auto new_notification = std::make_shared<notification>(position, cv{ ctx_.get_executor() });
@@ -94,23 +97,23 @@ public:
 
   /// \param displacement from current position
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_after(dimension_t const& displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+  auto notify_after(dimension_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     return notify_at(displacement + absolute_position_, std::forward<decltype(token)>(token));
   }
 
   /// \param displacement from home
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_from_home(dimension_t const& displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+  auto notify_from_home(dimension_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     return notify_at(displacement + home_, std::forward<decltype(token)>(token));
   }
 
   /// \return Current position since last restart
-  [[nodiscard]] auto position() const noexcept -> dimension_t { return absolute_position_; }
+  [[nodiscard]] auto position() const noexcept -> absolute_position_t { return absolute_position_; }
 
   /// \return Resolution of the absolute position
-  [[nodiscard]] auto resolution() const noexcept -> dimension_t { return config_->displacement_per_increment; }
+  [[nodiscard]] auto resolution() const noexcept -> displacement_t { return config_->displacement_per_increment; }
 
   /// \return Current velocity
   [[nodiscard]] auto velocity() const noexcept -> velocity_t { return velocity_; }
@@ -118,7 +121,7 @@ public:
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
   /// \param new_home_position store this position as home
-  void home(dimension_t new_home_position) noexcept {
+  void home(absolute_position_t new_home_position) noexcept {
     home_ = new_home_position;
     travel_since_homed_ = 0 * reference;
     missing_home_ = false;
@@ -156,6 +159,7 @@ public:
 
   void increment_position(dimension_t increment, velocity_t velocity = 0 * velocity_t::reference) {
     auto const old_position{ absolute_position_ };
+    auto const forward{ increment > 0 * decltype(increment)::reference };
     absolute_position_ += increment;
     velocity_ = velocity;
     if (needs_homing(increment)) {
@@ -163,7 +167,7 @@ public:
         last_error_ = errors::err_enum::motor_missing_home_reference;
       }
     }
-    notify_if_applicable(old_position);
+    notify_if_applicable(old_position, forward);
   }
 
   void tick(std::int64_t tachometer_counts,
@@ -172,7 +176,7 @@ public:
             errors::err_enum err) {
     auto const new_position{ displacement_per_increment_ * tachometer_counts };
     auto const old_position{ absolute_position_ };
-    auto const increment{ new_position - old_position };
+    auto const increment{ new_position - old_position };  // todo underflow
     stddev_ = stddev;
     last_error_ = err;
     if (stddev_ >= standard_deviation_threshold_) {
@@ -251,12 +255,11 @@ private:
         mode_to_construct);
   }
 
-  void notify_if_applicable(dimension_t const& old_position) {
-    auto const min{ std::min(absolute_position_, old_position) };
-    auto const max{ std::max(absolute_position_, old_position) };
-    std::erase_if(notifications_, [this, min, max](auto& n) {
+  void notify_if_applicable(absolute_position_t old_position, bool forward) {
+    auto const comparator{ detail::make_between_callable(old_position, absolute_position_, forward) };
+    std::erase_if(notifications_, [this, &comparator](auto& n) {
       auto const pos{ n->abs_notify_pos_ };
-      if (pos >= min && pos <= max) {
+      if (comparator(pos)) {
         n->err_ = last_error_;
         n->cv_.notify_all();
         return true;
@@ -266,16 +269,16 @@ private:
   }
 
   struct notification {
-    dimension_t abs_notify_pos_{};
+    absolute_position_t abs_notify_pos_{};
     tfc::asio::condition_variable<asio::any_io_executor> cv_;
     errors::err_enum err_{ errors::err_enum::success };
     auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };
 
   errors::err_enum last_error_{ errors::err_enum::success };
-  dimension_t absolute_position_{};
-  dimension_t travel_since_homed_{};  // todo
-  dimension_t home_{};
+  absolute_position_t absolute_position_{};
+  absolute_position_t travel_since_homed_{};
+  absolute_position_t home_{};
   dimension_t displacement_per_increment_{};
   velocity_t velocity_{};
   std::chrono::nanoseconds stddev_{};

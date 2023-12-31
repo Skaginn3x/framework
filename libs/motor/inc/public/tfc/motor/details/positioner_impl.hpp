@@ -11,6 +11,7 @@
 
 #include <tfc/confman/observable.hpp>
 #include <tfc/motor/errors.hpp>
+#include <tfc/stx/constexpr_function.hpp>
 
 namespace tfc::motor::positioner {
 
@@ -259,6 +260,24 @@ struct frequency {
   callback_t position_update_callback_;
   time_point_t time_point_{ clock_t::now() };
 };
+
+template <typename unsigned_t>
+constexpr auto make_between_callable(unsigned_t before, unsigned_t now, bool forward = true) -> stx::function<bool(unsigned_t)> {
+  if (forward) {
+    // detect overflow
+    if (now < before) {
+      return [before, now](unsigned_t x) -> bool { return x >= before || x <= now; };
+    }
+    // this is the default increment case
+    return [before, now](unsigned_t x) -> bool { return x >= before && x <= now; };
+  }
+  // detect underflow
+  if (before < now) {
+    return [before, now](unsigned_t x) -> bool { return x >= now || x <= before; };
+  }
+  // this is the default decrement case
+  return [before, now](unsigned_t x) -> bool { return x >= now && x <= before; };
+}
 
 }  // namespace detail
 
