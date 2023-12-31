@@ -2,9 +2,9 @@
 
 #include <chrono>
 #include <cstdint>
+#include <optional>
 #include <string_view>
 #include <variant>
-#include <optional>
 
 #include <mp-units/systems/international/international.h>
 #include <mp-units/systems/si/si.h>
