@@ -12,11 +12,13 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
+#include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/positioner.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 
 namespace asio = boost::asio;
+namespace method = motor::dbus::method;
 
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
@@ -27,21 +29,23 @@ struct dbus_iface {
   static constexpr std::string_view connected_peer{ "connected_peer" };
   static constexpr std::string_view frequency{ "frequency" };
   static constexpr std::string_view state_402{ "state_402" };
-  static constexpr std::string_view hmis{ "hmis" };
+  static constexpr std::string_view hmis{ "hmis" };  // todo change to more readable form
+  static constexpr std::string_view impl_name{ "atv320" };
 
   dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection,
              const uint16_t slave_id,
              manager_client_t& manager_client)
       : ctx_(connection->get_io_context()), timeout_(ctx_), slave_id_{ slave_id },
-        pos_{ ctx_, manager_client, fmt::format("atv320_{}", slave_id_) }, logger_(fmt::format("atv320_{}", slave_id_)) {
+        pos_{ ctx_, manager_client, fmt::format("{}_{}", impl_name, slave_id_) },
+        logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
     sd_bus* bus = nullptr;
     if (sd_bus_open_system(&bus) < 0) {
       throw std::runtime_error(std::string{ "Unable to open sd-bus, error: " } + strerror(errno));
     }
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection, false);
-    dbus_interface_ =
-        object_server_->add_unique_interface(fmt::format("/com/skaginn3x/atvmotor{}", slave_id), "com.skaginn3x.atvmotor");
-    dbus_interface_->register_method("ping", [this](const sdbusplus::message_t& msg) -> bool {
+    dbus_interface_ = object_server_->add_unique_interface(std::string{ motor::dbus::path },
+                                                           motor::dbus::make_interface_name(impl_name, slave_id_));
+    dbus_interface_->register_method(std::string{ method::ping }, [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
       bool new_peer = incoming_peer != peer_;
       // This is the same peer or we have no peer
@@ -68,7 +72,7 @@ struct dbus_iface {
       }
     });
 
-    dbus_interface_->register_method("run_at_speedratio",
+    dbus_interface_->register_method(std::string{ method::run_at_speedratio },
                                      [this](const sdbusplus::message_t& msg, const double& speedratio) -> bool {
                                        std::string incoming_peer = msg.get_sender();
                                        if (incoming_peer != peer_) {
@@ -85,13 +89,14 @@ struct dbus_iface {
                                        return true;
                                      });
     dbus_interface_->register_method(
-        "notify_after", [this](boost::asio::yield_context yield, const sdbusplus::message_t& msg,
-                               const mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>& distance) {
+        std::string{ method::notify_after_nanometre },
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg,
+               const mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>& distance) {
           std::string incoming_peer = msg.get_sender();
           pos_.notify_after(distance, yield);
         });
 
-    dbus_interface_->register_method("stop", [this](const sdbusplus::message_t& msg) -> bool {
+    dbus_interface_->register_method(std::string{ method::stop }, [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
       if (incoming_peer != peer_) {
         logger_.warn("Peer rejected: {}", incoming_peer);
@@ -103,7 +108,7 @@ struct dbus_iface {
       return true;
     });
 
-    dbus_interface_->register_method("quick_stop", [this](const sdbusplus::message_t& msg) -> bool {
+    dbus_interface_->register_method(std::string{ method::quick_stop }, [this](const sdbusplus::message_t& msg) -> bool {
       std::string incoming_peer = msg.get_sender();
       if (incoming_peer != peer_) {
         logger_.warn("Peer rejected {}", incoming_peer);

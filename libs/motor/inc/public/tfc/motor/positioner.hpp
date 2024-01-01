@@ -289,8 +289,6 @@ private:
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
   std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<>> impl_{};
-  // todo overflow
-  // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
   std::vector<std::shared_ptr<notification>> notifications_{};
 
   bool missing_home_{ config_->needs_homing_after->has_value() };

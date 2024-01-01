@@ -25,7 +25,7 @@ using std::chrono::nanoseconds;
 template <size_t pdo_buffer_size = 4096>
 class context_t {
 public:
-  static constexpr std::string_view dbus_name{ "ethercat" };
+  static constexpr std::string_view dbus_name{ "Ethercat" };  // needs to match the name in motor/dbus_tags.hpp
   // There is support in SOEM and ethercat to split
   // your network into groups. There can even be
   // Many processing loops operating on the same
@@ -37,7 +37,6 @@ public:
   // interacting with groups.
 
   explicit context_t(boost::asio::io_context& ctx) : ctx_(ctx), client_(ctx_) {
-    dbus_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     dbus_->request_name(dbus::make_dbus_name(dbus_name).c_str());
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
@@ -378,7 +377,7 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
-  std::shared_ptr<sdbusplus::asio::connection> dbus_;
+  std::shared_ptr<sdbusplus::asio::connection> dbus_{ std::make_shared<sdbusplus::asio::connection>(ctx_, dbus::sd_bus_open_system()) };
   std::shared_ptr<tfc::confman::config<config::bus>> config_;
   tfc::logger::logger logger_{ "ethercat" };
 };
