@@ -18,7 +18,7 @@ namespace tfc::motor::positioner {
 template <mp_units::Reference auto reference>
 using deduce_velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
 using hertz_t = mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>;
-using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, errors::err_enum);
+using tick_signature_t = void(std::int8_t, std::chrono::nanoseconds, std::chrono::nanoseconds, errors::err_enum);
 namespace asio = boost::asio;
 
 template <mp_units::Reference auto reference>
@@ -86,7 +86,7 @@ struct circular_buffer {
   typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) + 1 };  // this is front + 1
 };
 
-template <typename clock_t = asio::steady_timer::time_point::clock, std::size_t circular_buffer_len = 1024>
+template <typename clock_t = asio::steady_timer::time_point::clock, std::size_t circular_buffer_len = 128>
 struct time_series_statistics {
   using duration_t = typename clock_t::duration;
   using time_point_t = typename clock_t::time_point;
@@ -140,7 +140,7 @@ auto detect_deviation_from_average(auto interval, auto average) {
 
 template <typename bool_slot_t = ipc::bool_slot,
           typename clock_t = asio::steady_timer::time_point::clock,
-          std::size_t circular_buffer_len = 1024>
+          std::size_t circular_buffer_len = 128>
 struct tachometer {
   using duration_t = typename clock_t::duration;
   using time_point_t = typename clock_t::time_point;
@@ -160,13 +160,15 @@ struct tachometer {
     }
     auto now{ clock_t::now() };
     statistics_.update(now);
-    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev(),
+    auto constexpr increment{ 1 };
+    position_ += increment;
+    std::invoke(position_update_callback_, increment, statistics().average(), statistics().stddev(),
                 detect_deviation_from_average(statistics_.last_interval(), statistics_.average()));
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
 
-  std::int64_t position_{};
+  std::int64_t position_{}; // todo now this is only for testing purposes
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<tick_signature_t> position_update_callback_;
   bool_slot_t induction_sensor_;
@@ -174,7 +176,7 @@ struct tachometer {
 
 template <typename bool_slot_t = ipc::bool_slot,
           typename clock_t = asio::steady_timer::time_point::clock,
-          std::size_t circular_buffer_len = 1024>
+          std::size_t circular_buffer_len = 128>
 struct encoder {
   explicit encoder(asio::io_context& ctx,
                    ipc_ruler::ipc_manager_client& client,
@@ -200,27 +202,28 @@ struct encoder {
   using last_event_t = typename storage::last_event_e;
 
   void first_tacho_update(bool first_new_val) noexcept {
-    position_ += first_new_val ? buffer_.front().second_tacho_state ? 1 : -1 : buffer_.front().second_tacho_state ? -1 : 1;
-    update(first_new_val, buffer_.front().second_tacho_state, storage::last_event_e::first);
+    auto const increment{ first_new_val ? buffer_.front().second_tacho_state ? std::int8_t{ 1 } : std::int8_t{ -1 } : buffer_.front().second_tacho_state ? std::int8_t{ -1 } : std::int8_t{ 1 } };
+    update(increment, first_new_val, buffer_.front().second_tacho_state, storage::last_event_e::first);
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
-    position_ += second_new_val ? buffer_.front().first_tacho_state ? -1 : 1 : buffer_.front().first_tacho_state ? 1 : -1;
-    update(buffer_.front().first_tacho_state, second_new_val, storage::last_event_e::second);
+    auto const increment{ second_new_val ? buffer_.front().first_tacho_state ? std::int8_t{ -1 } : std::int8_t{ 1 } : buffer_.front().first_tacho_state ? std::int8_t{ 1 } : std::int8_t{ -1 } };
+    update(increment, buffer_.front().first_tacho_state, second_new_val, storage::last_event_e::second);
   }
 
-  void update(bool first, bool second, last_event_t event) noexcept {
+  void update(std::int8_t increment, bool first, bool second, last_event_t event) noexcept {
     auto const now{ clock_t::now() };
+    position_ += increment;
     auto err{ detect_deviation_from_average(statistics_.last_interval(), statistics_.average()) };
     if (buffer_.front().last_event == event) {
       err = errors::err_enum::positioning_missing_event;
     }
     statistics_.update(now);
     buffer_.emplace(first, second, event);
-    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), err);
+    std::invoke(position_update_callback_, increment, statistics_.average(), statistics_.stddev(), err);
   }
 
-  std::int64_t position_{};
+  std::int64_t position_{}; // todo now this is only for testing purposes, need to refactor tests
   circular_buffer<storage, circular_buffer_len> buffer_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<tick_signature_t> position_update_callback_;
@@ -230,7 +233,7 @@ struct encoder {
 
 template <mp_units::Quantity dimension_t,
           typename clock_t = asio::steady_timer::time_point::clock,
-          std::size_t circular_buffer_len = 1024>
+          std::size_t circular_buffer_len = 128>
 struct frequency {
   static constexpr auto reference{ dimension_t::reference };
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
