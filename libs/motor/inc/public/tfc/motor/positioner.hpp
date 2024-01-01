@@ -120,6 +120,9 @@ public:
   /// \return Current velocity
   [[nodiscard]] auto velocity() const noexcept -> velocity_t { return velocity_; }
 
+  /// \return whether homing sequence is needed and therefore movable
+  [[nodiscard]] auto movable() const noexcept -> bool { return config_->needs_homing_after->has_value(); }
+
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
   /// \param new_home_position store this position as home

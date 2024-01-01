@@ -8,10 +8,12 @@
 #include <string>
 
 #include <boost/asio.hpp>
+
 #include <tfc/cia/402.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/ec/devices/schneider/atv320/speedratio.hpp>
+#include <tfc/ipc.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/positioner.hpp>
 
@@ -137,9 +139,10 @@ struct dbus_iface {
   mp_units::quantity<mp_units::percent, double> speed_ratio() { return speed_ratio_ * mp_units::percent; }
   cia_402::control_word ctrl() { return cia_402::transition(status_word_.parse_state(), op_enable_, quick_stop_, false); }
   asio::io_context& ctx_;
-  std::unique_ptr<sdbusplus::asio::object_server> object_server_;
+  std::unique_ptr<sdbusplus::asio::object_server> object_server_;  // todo is this needed, if so why, I am curious
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   asio::steady_timer timeout_;
+  std::optional<ipc::slot<ipc::details::type_bool, manager_client_t>> homing_sensor_{};
   std::string peer_{ "" };
 
   // Motor control parameters
