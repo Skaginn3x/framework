@@ -567,9 +567,10 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 
   "homing required if homed and exceeded config param"_test = [] {
     using enum tfc::motor::errors::err_enum;
-    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 1 * mm } } };
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 2 * mm } } };
     test.positioner.home();
-    test.positioner.increment_position(2 * mm);
+    test.positioner.increment_position(1 * mm);
+    test.positioner.increment_position(-1 * mm);
     expect(test.positioner.error() == motor_missing_home_reference);
   };
 

@@ -9,13 +9,15 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
 
 namespace tfc::motor::types {
 
 namespace asio = boost::asio;
+namespace method = dbus::method;
 using mp_units::QuantityOf;
-using SpeedRatio = mp_units::ratio;
+using SpeedRatio = mp_units::ratio;  // todo revert to mp_units quantity of percent?
 
 class atv320motor {
 private:
@@ -30,11 +32,19 @@ private:
     auto operator==(const config&) const noexcept -> bool = default;
   };
 
+  static constexpr std::string_view impl_name{ "atv320" };
+
   asio::io_context& ctx_;
   asio::steady_timer ping{ ctx_ };
-  std::shared_ptr<sdbusplus::asio::connection> connection_;
+  std::shared_ptr<sdbusplus::asio::connection> connection_{
+    std::make_shared<sdbusplus::asio::connection>(ctx_, tfc::dbus::sd_bus_open_system())
+  };
   logger::logger logger_{ "atv320motor" };
   uint16_t slave_id_{ 0 };
+  std::string const service_name_{ dbus::service_name };
+  std::string const path_{ dbus::path };
+  std::string interface_name_{ dbus::make_interface_name(impl_name, slave_id_) };
+
   // Assemble the interface string and start ping-pong sequence.
   // Only set connected to true if there is an answer on the interface
   // and it is returning true. Indicating we have control over the motor.
@@ -62,7 +72,7 @@ private:
             send_ping(slave_id);
           });
         },
-        "com.skaginn3x.ethercat", fmt::format("/com/skaginn3x/atvmotor{}", slave_id), "com.skaginn3x.atvmotor", "ping");
+        service_name_, path_, interface_name_, std::string{ method::ping });
   }
   bool connected_{ false };
   [[nodiscard]] std::error_code motor_seems_valid() const noexcept {
@@ -74,8 +84,7 @@ private:
 
 public:
   using config_t = config;
-  explicit atv320motor(boost::asio::io_context& ctx, const config_t& conf) : ctx_{ ctx } {
-    connection_ = std::make_shared<sdbusplus::asio::connection>(ctx_, dbus::sd_bus_open_system());
+  atv320motor(asio::io_context& ctx, const config_t& conf) : ctx_{ ctx } {
     slave_id_ = conf.slave_id.value();
     send_ping(slave_id_);
     conf.slave_id.observe([this](const std::uint16_t new_id, const std::uint16_t old_id) {
@@ -84,6 +93,7 @@ public:
       connected_ = false;
       ping.cancel();
       slave_id_ = new_id;
+      interface_name_ = dbus::make_interface_name(impl_name, slave_id_);
       send_ping(new_id);
     });
   }
@@ -162,12 +172,10 @@ public:
                   }
                   cb({});
                 },
-                "com.skaginn3x.ethercat", fmt::format("/com/skaginn3x/atvmotor{}", slave_id_), "com.skaginn3x.atvmotor",
-                "stop");
+                service_name_, path_, interface_name_, std::string{ method::stop });
           });
         },
-        "com.skaginn3x.ethercat", fmt::format("/com/skaginn3x/atvmotor{}", slave_id_), "com.skaginn3x.atvmotor",
-        "run_at_speedratio", 100.0);
+        service_name_, path_, interface_name_, std::string{ method::run_at_speedratio }, 100.0);
   }
 
   void move(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto cb) {
