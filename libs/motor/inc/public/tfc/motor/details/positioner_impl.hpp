@@ -168,7 +168,7 @@ struct tachometer {
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
 
-  std::int64_t position_{}; // todo now this is only for testing purposes
+  std::int64_t position_{};  // todo now this is only for testing purposes
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<tick_signature_t> position_update_callback_;
   bool_slot_t induction_sensor_;
@@ -202,12 +202,16 @@ struct encoder {
   using last_event_t = typename storage::last_event_e;
 
   void first_tacho_update(bool first_new_val) noexcept {
-    auto const increment{ first_new_val ? buffer_.front().second_tacho_state ? std::int8_t{ 1 } : std::int8_t{ -1 } : buffer_.front().second_tacho_state ? std::int8_t{ -1 } : std::int8_t{ 1 } };
+    auto const increment{ first_new_val ? buffer_.front().second_tacho_state ? std::int8_t{ 1 } : std::int8_t{ -1 }
+                          : buffer_.front().second_tacho_state ? std::int8_t{ -1 }
+                                                               : std::int8_t{ 1 } };
     update(increment, first_new_val, buffer_.front().second_tacho_state, storage::last_event_e::first);
   }
 
   void second_tacho_update(bool second_new_val) noexcept {
-    auto const increment{ second_new_val ? buffer_.front().first_tacho_state ? std::int8_t{ -1 } : std::int8_t{ 1 } : buffer_.front().first_tacho_state ? std::int8_t{ 1 } : std::int8_t{ -1 } };
+    auto const increment{ second_new_val ? buffer_.front().first_tacho_state ? std::int8_t{ -1 } : std::int8_t{ 1 }
+                          : buffer_.front().first_tacho_state ? std::int8_t{ 1 }
+                                                              : std::int8_t{ -1 } };
     update(increment, buffer_.front().first_tacho_state, second_new_val, storage::last_event_e::second);
   }
 
@@ -223,7 +227,7 @@ struct encoder {
     std::invoke(position_update_callback_, increment, statistics_.average(), statistics_.stddev(), err);
   }
 
-  std::int64_t position_{}; // todo now this is only for testing purposes, need to refactor tests
+  std::int64_t position_{};  // todo now this is only for testing purposes, need to refactor tests
   circular_buffer<storage, circular_buffer_len> buffer_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<tick_signature_t> position_update_callback_;
