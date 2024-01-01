@@ -10,8 +10,8 @@ namespace tfc::motor::dbus {
 
 namespace detail {
 static constexpr std::string_view path_postfix{ "Motors" };
-static constexpr std::string_view service{ "Ethercat" }; // needs to match the name in ec.hpp (ethercat exe)
-}
+static constexpr std::string_view service{ "Ethercat" };  // needs to match the name in ec.hpp (ethercat exe)
+}  // namespace detail
 
 static constexpr std::string_view service_name{ tfc::dbus::const_dbus_name<detail::service> };
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<detail::path_postfix> };
@@ -28,6 +28,6 @@ static constexpr std::string_view quick_stop{ "QuickStop" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
 static constexpr std::string_view notify_after_nanometre{ "NotifyAfterNanometre" };
-}
+}  // namespace method
 
 }  // namespace tfc::motor::dbus
