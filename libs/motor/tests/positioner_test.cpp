@@ -396,10 +396,13 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"notifications"> notify_tests = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using tfc::motor::positioner::position_t;
+  static constexpr auto unit{ mp_units::si::metre };
+  static constexpr auto reference{ mp_units::si::nano<unit> };
   struct notification_test {
-    using positioner_t = tfc::motor::positioner::positioner<position_t, tfc::confman::stub_config>;
-    using home_travel_t = tfc::confman::observable<std::optional<position_t>>;
+    using positioner_t = tfc::motor::positioner::positioner<unit, tfc::confman::stub_config>;
+    using position_t = positioner_t::absolute_position_t;
+    using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
+    using tachometer_config_t = tfc::motor::positioner::tachometer_config<reference>;
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
     positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
@@ -505,7 +508,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "position per tick"_test = [] {
     auto constexpr displacement{ 100 * mm };
     notification_test::positioner_t::config_t config{};
-    using tachometer_config_t = tfc::motor::positioner::tachometer_config<tfc::motor::positioner::position_t>;
+    using tachometer_config_t = tfc::motor::positioner::tachometer_config<mp_units::si::nano<mp_units::si::metre>>;
     tachometer_config_t tachometer_config{};
     tachometer_config.displacement_per_increment = displacement;
     config.mode = tachometer_config;
@@ -519,8 +522,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "velocity per tick"_test = [] {
     auto constexpr displacement{ 100 * mm };
     notification_test::positioner_t::config_t config{};
-    using tachometer_config_t = tfc::motor::positioner::tachometer_config<tfc::motor::positioner::position_t>;
-    tachometer_config_t tachometer_config{};
+    notification_test::tachometer_config_t tachometer_config{};
     tachometer_config.displacement_per_increment = displacement;
     config.mode = tachometer_config;
 
@@ -536,8 +538,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "standard deviation error"_test = [] {
     auto constexpr stddev{ 1ms };
     notification_test::positioner_t::config_t config{};
-    using tachometer_config_t = tfc::motor::positioner::tachometer_config<position_t>;
-    tachometer_config_t tachometer_config{};
+    notification_test::tachometer_config_t tachometer_config{};
     tachometer_config.standard_deviation_threshold = stddev;
     config.mode = tachometer_config;
 
@@ -574,7 +575,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   struct flow_test {
-    position_t value{};
+    notification_test::position_t value{};
     std::int64_t ticks{};
   };
   "under or overflow"_test =
@@ -593,8 +594,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
         test.inst.ctx.run_for(1ms);
         expect(called);
       } |
-      std::vector{ flow_test{ .value = position_t::max(), .ticks = 1 },
-                   flow_test{ .value = position_t::min(), .ticks = -1 } };
+      std::vector{ flow_test{ .value = notification_test::position_t::max(), .ticks = 1 },
+                   flow_test{ .value = notification_test::position_t::min(), .ticks = -1 } };
 };
 #endif
 

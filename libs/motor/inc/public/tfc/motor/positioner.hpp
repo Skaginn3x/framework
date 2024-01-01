@@ -35,16 +35,18 @@
 
 namespace tfc::motor::positioner {
 
-template <mp_units::Quantity dimension_t = position_t,
+template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
           template <typename, typename, typename> typename confman_t = confman::config>
 class positioner {
 public:
-  static constexpr auto reference{ dimension_t::reference };
+  static constexpr auto unit{ unit_v };
+  static constexpr auto reference{ mp_units::si::nano<unit> };
   // using unsigned integer to get detirmistic overflow/underflow
   using absolute_position_t = mp_units::quantity<reference, std::uint64_t>;
+  // easier to use signed integer to represent displacement
   using displacement_t = mp_units::quantity<reference, std::int64_t>;
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
-  using config_t = config<dimension_t>;
+  using config_t = config<reference>;
 
   /// \param ctx boost asio context
   /// \param client ipc client
@@ -97,14 +99,14 @@ public:
 
   /// \param displacement from current position
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_after(dimension_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+  auto notify_after(displacement_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     return notify_at(displacement + absolute_position_, std::forward<decltype(token)>(token));
   }
 
   /// \param displacement from home
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_from_home(dimension_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+  auto notify_from_home(displacement_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     return notify_at(displacement + home_, std::forward<decltype(token)>(token));
   }
@@ -150,14 +152,14 @@ public:
   void freq_update(hertz_t hertz) {
     std::visit(
         [hertz]<typename impl_t>(impl_t& impl) {
-          if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
+          if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<displacement_t>>) {
             impl.freq_update(hertz);
           }
         },
         impl_);
   }
 
-  void increment_position(dimension_t increment, velocity_t velocity = 0 * velocity_t::reference) {
+  void increment_position(displacement_t increment, velocity_t velocity = 0 * velocity_t::reference) {
     auto const old_position{ absolute_position_ };
     auto const forward{ increment > 0 * decltype(increment)::reference };
     absolute_position_ += increment;
@@ -195,7 +197,7 @@ public:
   }
 
 private:
-  auto needs_homing(dimension_t increment) -> bool {
+  auto needs_homing(displacement_t increment) -> bool {
     if (!config_->needs_homing_after->has_value()) {
       return false;
     }
@@ -208,11 +210,11 @@ private:
     return missing_home_;
   }
 
-  auto construct_implementation(position_mode_config<dimension_t> const& mode_to_construct,
-                                [[maybe_unused]] position_mode_config<dimension_t> const& old_mode) noexcept {
-    using tachometer_config_t = tachometer_config<dimension_t>;
-    using encoder_config_t = encoder_config<dimension_t>;
-    using freq_config_t = freq_config<dimension_t>;
+  auto construct_implementation(position_mode_config<reference> const& mode_to_construct,
+                                [[maybe_unused]] position_mode_config<reference> const& old_mode) noexcept {
+    using tachometer_config_t = tachometer_config<reference>;
+    using encoder_config_t = encoder_config<reference>;
+    using freq_config_t = freq_config<deduce_velocity_t<reference>>;
     std::visit(
         [this]<typename mode_t>(mode_t const& mode) {
           using mode_raw_t = std::remove_cvref_t<mode_t>;
@@ -221,8 +223,9 @@ private:
 
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
-            mode.displacement_per_increment.observe(
-                [this](dimension_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
+            // mode.displacement_per_increment.observe(
+            //     [this](mp_units::QuantityOf<reference> auto const& new_v, auto&) { displacement_per_increment_ = new_v;
+            //     });
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
@@ -231,23 +234,24 @@ private:
             // todo duplicate
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
-            mode.displacement_per_increment.observe(
-                [this](dimension_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
+            // mode.displacement_per_increment.observe(
+            //     [this](mp_units::QuantityOf<reference> auto const& new_v, auto&) { displacement_per_increment_ = new_v;
+            //     });
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, freq_config_t>) {
-            impl_.template emplace<detail::frequency<dimension_t>>(mode.velocity_at_50Hz,
-                                                                   std::bind_front(&positioner::increment_position, this));
+            impl_.template emplace<detail::frequency<displacement_t>>(
+                mode.velocity_at_50Hz, std::bind_front(&positioner::increment_position, this));
 
-            mode.velocity_at_50Hz.observe(
-                [](velocity_t const& new_v, auto&) {
-                  std::visit([new_v]<typename impl_t>(impl_t& impl) {
-                    if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
-                      impl.update_velocity_at_50Hz(new_v);
-                    }
-                  });
-                },
-                impl_);
+            // mode.velocity_at_50Hz.observe(
+            //     [](auto const& new_v, auto&) {
+            //       std::visit([new_v]<typename impl_t>(impl_t& impl) {
+            //         if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<displacement_t>>) {
+            //           impl.update_velocity_at_50Hz(new_v);
+            //         }
+            //       });
+            //     },
+            //     impl_);
           } else {
             impl_ = std::monostate{};
           }
@@ -279,7 +283,7 @@ private:
   absolute_position_t absolute_position_{};
   absolute_position_t travel_since_homed_{};
   absolute_position_t home_{};
-  dimension_t displacement_per_increment_{};
+  displacement_t displacement_per_increment_{};
   velocity_t velocity_{};
   std::chrono::nanoseconds stddev_{};
   std::chrono::nanoseconds standard_deviation_threshold_{};
@@ -288,7 +292,7 @@ private:
   ipc_ruler::ipc_manager_client& client_;
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
-  std::variant<std::monostate, detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{};
+  std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<>> impl_{};
   // todo overflow
   // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
   std::vector<std::shared_ptr<notification>> notifications_{};

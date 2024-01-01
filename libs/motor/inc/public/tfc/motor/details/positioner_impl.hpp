@@ -15,25 +15,25 @@
 
 namespace tfc::motor::positioner {
 
-template <mp_units::Quantity dimension_t>
-using deduce_velocity_t = mp_units::quantity<dimension_t::reference / mp_units::si::second, std::int64_t>;
-using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+template <mp_units::Reference auto reference>
+using deduce_velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
 using hertz_t = mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>;
 using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, errors::err_enum);
 namespace asio = boost::asio;
 
-template <mp_units::Quantity dimension_t>
+template <mp_units::Reference auto reference>
 struct increment_config {
-  static constexpr dimension_t inch{ 1 * mp_units::international::inch };
-  confman::observable<dimension_t> displacement_per_increment{ dimension_t{ inch } };
+  using signed_dimension_t = mp_units::quantity<reference, std::int64_t>;
+  static constexpr signed_dimension_t inch{ 1 * mp_units::international::inch };
+  confman::observable<signed_dimension_t> displacement_per_increment{ signed_dimension_t{ inch } };
   confman::observable<std::chrono::microseconds> standard_deviation_threshold{ std::chrono::microseconds{ 100 } };
   bool operator==(increment_config const&) const noexcept = default;
 };
-template <mp_units::Quantity dimension_t>
-struct tachometer_config : increment_config<dimension_t> {};
+template <mp_units::Reference auto reference>
+struct tachometer_config : increment_config<reference> {};
 
-template <mp_units::Quantity dimension_t>
-struct encoder_config : increment_config<dimension_t> {};
+template <mp_units::Reference auto reference>
+struct encoder_config : increment_config<reference> {};
 
 template <mp_units::Quantity velocity_t>
 struct freq_config {
@@ -41,16 +41,17 @@ struct freq_config {
   bool operator==(freq_config const&) const noexcept = default;
 };
 
-template <mp_units::Quantity dimension_t>
+template <mp_units::Reference auto reference>
 using position_mode_config = std::variant<std::monostate,
-                                          tachometer_config<dimension_t>,
-                                          encoder_config<dimension_t>,
-                                          freq_config<deduce_velocity_t<dimension_t>>>;
+                                          tachometer_config<reference>,
+                                          encoder_config<reference>,
+                                          freq_config<deduce_velocity_t<reference>>>;
 
-template <mp_units::Quantity dimension_t>
+template <mp_units::Reference auto reference>
 struct config {
-  confman::observable<position_mode_config<dimension_t>> mode{ std::monostate{} };
-  confman::observable<std::optional<dimension_t>> needs_homing_after{ std::nullopt };
+  using unsigned_dimension_t = mp_units::quantity<reference, std::uint64_t>;
+  confman::observable<position_mode_config<reference>> mode{ std::monostate{} };
+  confman::observable<std::optional<unsigned_dimension_t>> needs_homing_after{ std::nullopt };
 };
 
 namespace detail {
@@ -284,10 +285,10 @@ constexpr auto make_between_callable(unsigned_t before, unsigned_t now, bool for
 
 }  // namespace tfc::motor::positioner
 
-template <mp_units::Quantity dimension_t>
-struct glz::meta<tfc::motor::positioner::increment_config<dimension_t>> {
+template <mp_units::Reference auto reference>
+struct glz::meta<tfc::motor::positioner::increment_config<reference>> {
   static constexpr std::string_view name{ "tfc::motor::positioner::increment_config" };
-  using self = tfc::motor::positioner::increment_config<dimension_t>;
+  using self = tfc::motor::positioner::increment_config<reference>;
   // clang-format off
   static constexpr auto value{
     glz::object(
@@ -295,7 +296,7 @@ struct glz::meta<tfc::motor::positioner::increment_config<dimension_t>> {
         .description = "Displacement per increment\n"
                        "Mode: tachometer, displacement per pulse or distance between two teeths\n"
                        "Mode: encoder, displacement per edge, distance between two teeths divided by 4",
-        .default_value = self::inch.numerical_value_ref_in(dimension_t::reference),
+        .default_value = self::inch.numerical_value_ref_in(reference),
         .minimum = 1UL,
       },
       "standard_deviation_threshold", &self::standard_deviation_threshold, tfc::json::schema{
@@ -307,15 +308,15 @@ struct glz::meta<tfc::motor::positioner::increment_config<dimension_t>> {
   };
   // clang-format on
 };
-template <mp_units::Quantity dimension_t>
-struct glz::meta<tfc::motor::positioner::tachometer_config<dimension_t>> {
+template <mp_units::Reference auto reference>
+struct glz::meta<tfc::motor::positioner::tachometer_config<reference>> {
   static constexpr std::string_view name{ "Tachometer" };
-  static constexpr auto value{ glz::meta<tfc::motor::positioner::increment_config<dimension_t>>::value };
+  static constexpr auto value{ glz::meta<tfc::motor::positioner::increment_config<reference>>::value };
 };
-template <mp_units::Quantity dimension_t>
-struct glz::meta<tfc::motor::positioner::encoder_config<dimension_t>> {
+template <mp_units::Reference auto reference>
+struct glz::meta<tfc::motor::positioner::encoder_config<reference>> {
   static constexpr std::string_view name{ "Encoder" };
-  static constexpr auto value{ glz::meta<tfc::motor::positioner::increment_config<dimension_t>>::value };
+  static constexpr auto value{ glz::meta<tfc::motor::positioner::increment_config<reference>>::value };
 };
 template <mp_units::Quantity velocity_t>
 struct glz::meta<tfc::motor::positioner::freq_config<velocity_t>> {
@@ -332,15 +333,15 @@ struct glz::meta<tfc::motor::positioner::freq_config<velocity_t>> {
   };
   // clang-format on
 };
-template <mp_units::Quantity dimension_t>
-struct glz::meta<tfc::motor::positioner::position_mode_config<dimension_t>> {
+template <mp_units::Reference auto reference>
+struct glz::meta<tfc::motor::positioner::position_mode_config<reference>> {
   static constexpr std::string_view tag{ "mode" };
 };
 
-template <mp_units::Quantity dimension_t>
-struct glz::meta<tfc::motor::positioner::config<dimension_t>> {
+template <mp_units::Reference auto reference>
+struct glz::meta<tfc::motor::positioner::config<reference>> {
   static constexpr std::string_view name{ "tfc::motor::positioner::config" };
-  using self = tfc::motor::positioner::config<dimension_t>;
+  using self = tfc::motor::positioner::config<reference>;
   // clang-format off
   static constexpr auto value{
     glz::object(
