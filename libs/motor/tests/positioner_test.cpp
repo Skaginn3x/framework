@@ -137,13 +137,12 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   "tachometer with single sensor calls owner"_test = [] {
-    std::int64_t idx{ 1 };
     bool called{};
-    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value, auto, auto, auto) {
-      expect(idx == new_value) << fmt::format("got {} expected {}", new_value, idx);
+    tachometer_test test{ .cb = [&called](std::int64_t new_value, auto, auto, auto) {
+      expect(1 == new_value) << fmt::format("got {} expected {}", new_value, 1);
       called = true;
     } };
-    for (; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
+    for (std::size_t idx{}; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
       test.tachometer.update(true);
       test.tachometer.update(false);
     }
@@ -384,8 +383,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
     } };
 
-    test.encoder.update(true, false, event);
-    test.encoder.update(true, false, event);
+    test.encoder.update(1, true, false, event);
+    test.encoder.update(1, true, false, event);
 
     expect(called);
   } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };

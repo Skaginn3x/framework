@@ -172,13 +172,11 @@ public:
     notify_if_applicable(old_position, forward);
   }
 
-  void tick(std::int64_t tachometer_counts,
+  void tick(std::int8_t increment_counts,
             std::chrono::nanoseconds average,
             std::chrono::nanoseconds stddev,
             errors::err_enum err) {
-    auto const new_position{ displacement_per_increment_ * tachometer_counts };
-    auto const old_position{ absolute_position_ };
-    auto const increment{ new_position - old_position };  // todo underflow
+    auto const increment{ displacement_per_increment_ * increment_counts };
     stddev_ = stddev;
     last_error_ = err;
     if (stddev_ >= standard_deviation_threshold_) {
@@ -223,9 +221,8 @@ private:
 
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
-            // mode.displacement_per_increment.observe(
-            //     [this](mp_units::QuantityOf<reference> auto const& new_v, auto&) { displacement_per_increment_ = new_v;
-            //     });
+            mode.displacement_per_increment.observe(
+                [this](displacement_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
@@ -234,24 +231,23 @@ private:
             // todo duplicate
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
-            // mode.displacement_per_increment.observe(
-            //     [this](mp_units::QuantityOf<reference> auto const& new_v, auto&) { displacement_per_increment_ = new_v;
-            //     });
+            mode.displacement_per_increment.observe(
+                [this](displacement_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, freq_config_t>) {
             impl_.template emplace<detail::frequency<displacement_t>>(
                 mode.velocity_at_50Hz, std::bind_front(&positioner::increment_position, this));
 
-            // mode.velocity_at_50Hz.observe(
-            //     [](auto const& new_v, auto&) {
-            //       std::visit([new_v]<typename impl_t>(impl_t& impl) {
-            //         if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<displacement_t>>) {
-            //           impl.update_velocity_at_50Hz(new_v);
-            //         }
-            //       });
-            //     },
-            //     impl_);
+            mode.velocity_at_50Hz.observe([this](velocity_t const& new_v, auto&) {
+              std::visit(
+                  [new_v]<typename impl_t>(impl_t& impl) {
+                    if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<displacement_t>>) {
+                      impl.update_velocity_at_50Hz(new_v);
+                    }
+                  },
+                  impl_);
+            });
           } else {
             impl_ = std::monostate{};
           }
