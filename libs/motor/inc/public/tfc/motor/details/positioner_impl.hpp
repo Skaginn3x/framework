@@ -19,6 +19,7 @@ template <mp_units::Reference auto reference>
 using deduce_velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
 using hertz_t = mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>;
 using tick_signature_t = void(std::int8_t, std::chrono::nanoseconds, std::chrono::nanoseconds, errors::err_enum);
+using speedratio_t = mp_units::quantity<mp_units::percent, double>;  // todo extract to common place
 namespace asio = boost::asio;
 
 template <mp_units::Reference auto reference>
@@ -52,6 +53,9 @@ struct config {
   using unsigned_dimension_t = mp_units::quantity<reference, std::uint64_t>;
   confman::observable<position_mode_config<reference>> mode{ std::monostate{} };
   confman::observable<std::optional<unsigned_dimension_t>> needs_homing_after{ std::nullopt };
+  confman::observable<std::optional<speedratio_t>> homing_travel_speed{
+    std::nullopt
+  };  // todo should this be outside this config?
 };
 
 namespace detail {

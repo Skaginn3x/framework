@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <type_traits>  // required by mp-units
 #include <variant>
@@ -36,7 +37,8 @@
 namespace tfc::motor::positioner {
 
 template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
-          template <typename, typename, typename> typename confman_t = confman::config>
+          template <typename, typename, typename> typename confman_t = confman::config,
+          typename bool_slot_t = ipc::bool_slot>
 class positioner {
 public:
   static constexpr auto unit{ unit_v };
@@ -52,19 +54,49 @@ public:
   /// \param client ipc client
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
-      : positioner(ctx, client, name, {}) {}
+      : positioner(ctx, client, name, [this](bool new_v) {
+          if (new_v)
+            home();
+        }) {}
 
   /// \param ctx boost asio context
   /// \param client ipc client
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
+  /// \param home_cb callback to call when homing sensor is triggered
+  positioner(asio::io_context& ctx,
+             ipc_ruler::ipc_manager_client& client,
+             std::string_view name,
+             std::function<void(bool)>&& home_cb)
+      : positioner(ctx, client, name, home_cb, {}) {}
+
+  /// \param ctx boost asio context
+  /// \param client ipc client
+  /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
+  /// \param home_cb callback to call when homing sensor is triggered
   /// \param default_value configuration default, useful for special cases and testing
-  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name, config_t&& default_value)
-      : name_{ name }, ctx_{ ctx }, client_{ client },
+  positioner(asio::io_context& ctx,
+             ipc_ruler::ipc_manager_client& client,
+             std::string_view name,
+             std::function<void(bool)>&& home_cb,
+             config_t&& default_value)
+      : name_{ name }, ctx_{ ctx }, client_{ client }, home_cb_{ home_cb },
         config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
+    config_->homing_travel_speed.observe(
+        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const& old_v) {
+          if (new_v.has_value() && !old_v.has_value()) {
+            homing_sensor_.emplace(ctx_, client_, fmt::format("homing_sensor_{}", name_),
+                                   "Homing sensor for position management, consider adding time off delay", home_cb_);
+          }
+        });
+    if (config_->homing_travel_speed->has_value()) {
+      // todo duplicate
+      homing_sensor_.emplace(ctx_, client_, fmt::format("homing_sensor_{}", name_),
+                             "Homing sensor for position management, consider adding time off delay", home_cb_);
+    }
   }
 
   positioner(positioner const&) = delete;
@@ -197,6 +229,8 @@ public:
     increment_position(increment, velocity);
   }
 
+  auto homing_sensor() const noexcept -> auto const& { return homing_sensor_; }
+
 private:
   auto needs_homing(displacement_t increment) -> bool {
     if (!config_->needs_homing_after->has_value()) {
@@ -289,6 +323,11 @@ private:
   std::string name_{};
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
+  std::optional<bool_slot_t> homing_sensor_{};
+  std::function<void(bool)> home_cb_{ [this](bool new_v) {
+    if (new_v)
+      home();
+  } };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
   std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<>> impl_{};
