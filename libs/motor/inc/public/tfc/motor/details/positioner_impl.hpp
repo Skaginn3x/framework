@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -362,8 +363,12 @@ struct glz::meta<tfc::motor::positioner::config<reference>> {
       "needs_homing_after", &self::needs_homing_after, tfc::json::schema{
         .description = "Only used in when homing reference is used, "
                        "Require homing after the specified displacement, try 1 kilometre."
-                       "Requires restart if the value was no-value beforehand, afterwards, connect the appropriate homing sensor.",
         // .default_value = 1000000000UL, // todo use explicit type, needs to handle at least µm/s and µL/s
+      },
+      "homing_travel_speed", &self::homing_travel_speed, tfc::json::schema{
+        .description = "Speedratio (-100% to 100%) used when homing, sign indicates direction",
+        .minimum = -100L,
+        .maximum = 100L,
       }
     )
   };

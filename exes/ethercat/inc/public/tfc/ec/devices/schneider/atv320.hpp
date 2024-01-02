@@ -165,7 +165,7 @@ public:
     transmit_status(*in);
 
     dbus_iface_.update_status(*in);
-    if (!dbus_iface_.has_peer()) {
+    if (false) {
       // Quick stop if frequncy set to 0
       const bool quick_stop = reference_frequency_.value == 0 * dHz;
 
