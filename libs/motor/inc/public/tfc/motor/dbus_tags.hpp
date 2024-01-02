@@ -25,6 +25,7 @@ static constexpr std::string_view ping{ "Ping" };
 static constexpr std::string_view run_at_speedratio{ "RunAtSpeedratio" };
 static constexpr std::string_view stop{ "Stop" };
 static constexpr std::string_view quick_stop{ "QuickStop" };
+static constexpr std::string_view do_homing{ "DoHoming" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
 static constexpr std::string_view notify_after_nanometre{ "NotifyAfterNanometre" };

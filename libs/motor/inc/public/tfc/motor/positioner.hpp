@@ -54,10 +54,7 @@ public:
   /// \param client ipc client
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
-      : positioner(ctx, client, name, [this](bool new_v) {
-          if (new_v)
-            home();
-        }) {}
+      : positioner(ctx, client, name, [this](bool) {}) {}
 
   /// \param ctx boost asio context
   /// \param client ipc client
@@ -67,7 +64,7 @@ public:
              ipc_ruler::ipc_manager_client& client,
              std::string_view name,
              std::function<void(bool)>&& home_cb)
-      : positioner(ctx, client, name, home_cb, {}) {}
+      : positioner(ctx, client, name, std::move(home_cb), {}) {}
 
   /// \param ctx boost asio context
   /// \param client ipc client
@@ -86,8 +83,8 @@ public:
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
     config_->homing_travel_speed.observe(
-        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const& old_v) {
-          if (new_v.has_value() && !old_v.has_value()) {
+        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+          if (new_v.has_value() && !homing_sensor_.has_value()) {
             homing_sensor_.emplace(ctx_, client_, fmt::format("homing_sensor_{}", name_),
                                    "Homing sensor for position management, consider adding time off delay", home_cb_);
           }
@@ -231,6 +228,8 @@ public:
 
   auto homing_sensor() const noexcept -> auto const& { return homing_sensor_; }
 
+  auto homing_travel_speed() const noexcept -> auto const& { return config_->homing_travel_speed.value(); }
+
 private:
   auto needs_homing(displacement_t increment) -> bool {
     if (!config_->needs_homing_after->has_value()) {
@@ -324,10 +323,7 @@ private:
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
   std::optional<bool_slot_t> homing_sensor_{};
-  std::function<void(bool)> home_cb_{ [this](bool new_v) {
-    if (new_v)
-      home();
-  } };
+  std::function<void(bool)> home_cb_{ [this](bool) {} };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
   std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<>> impl_{};
