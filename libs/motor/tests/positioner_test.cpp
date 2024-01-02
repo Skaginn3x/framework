@@ -15,6 +15,7 @@ using ut::expect;
 using ut::operator""_test;
 using ut::operator|;
 using ut::operator/;
+using ut::operator>>;
 using std::chrono_literals::operator""ms;
 using std::chrono_literals::operator""ns;
 static constexpr std::size_t buffer_len{ 10 };
@@ -398,13 +399,14 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   static constexpr auto unit{ mp_units::si::metre };
   static constexpr auto reference{ mp_units::si::nano<unit> };
   struct notification_test {
-    using positioner_t = tfc::motor::positioner::positioner<unit, tfc::confman::stub_config>;
+    using positioner_t = tfc::motor::positioner::positioner<unit, tfc::confman::stub_config, mock_bool_slot_t>;
     using position_t = positioner_t::absolute_position_t;
     using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
     using tachometer_config_t = tfc::motor::positioner::tachometer_config<reference>;
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
-    positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
+    std::function<void(bool)> home_cb{ [](bool) {} };
+    positioner_t positioner{ inst.ctx, inst.client, "name", std::move(home_cb), std::move(config) };
   };
   using mp_units::si::unit_symbols::mm;
 
@@ -596,6 +598,18 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
       } |
       std::vector{ flow_test{ .value = notification_test::position_t::max(), .ticks = 1 },
                    flow_test{ .value = notification_test::position_t::min(), .ticks = -1 } };
+
+  "homing velocity enabled call home callback"_test = [] {
+    using tfc::confman::observable;
+    using tfc::motor::positioner::speedratio_t;
+    bool called{};
+    notification_test test{ .config = { .homing_travel_speed =
+                                            observable<std::optional<speedratio_t>>{ 2 * mp_units::percent } },
+                            .home_cb = [&called](bool new_v) { called = new_v; } };
+    expect(test.positioner.homing_sensor().has_value() >> ut::fatal);
+    test.positioner.homing_sensor()->callback(true);
+    expect(called);
+  };
 };
 #endif
 
