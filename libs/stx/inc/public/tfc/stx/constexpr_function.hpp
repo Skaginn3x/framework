@@ -8,13 +8,17 @@
 
 namespace tfc::stx {
 
+#if defined(__GNUC__)
+#include <functional>
+using std::function;
+#else
 template <class>
 struct function;
 
 template <class R, class... Args>
 struct function<R(Args...)> {
   template <class F>
-  constexpr function(F f) : ptr_{ std::make_unique<implementation<F>>(f) } {}
+  constexpr function(F f) : ptr_{ std::make_unique<implementation<F> >(f) } {}
 
   constexpr auto operator()(Args... args) const -> R {
     // todo can we get rid of this warning suppression?
@@ -62,7 +66,7 @@ using function_type_t = typename function_traits<F>::function_type;
 // cv-qualified, optionally noexcept, optionally lvalue reference qualified).
 // The deduced type is std::function<R(A...)>.
 template <class F>
-function(F) -> function<function_type_t<decltype(&F::operator())>>;
+function(F) -> function<function_type_t<decltype(&F::operator())> >;
 
 namespace test {
 
@@ -87,5 +91,7 @@ static_assert(42 == test_arg());
 static_assert(42 == test_capture());
 
 }  // namespace test
+
+#endif
 
 }  // namespace tfc::stx

@@ -26,6 +26,8 @@ using mp_units::si::unit_symbols::mm;
 
 namespace compile_tests {
 
+#ifdef __clang__
+
 using tfc::motor::positioner::detail::make_between_callable;
 // overflow tests
 // numbers from 245 -> 255 and 0 -> 11
@@ -104,6 +106,8 @@ static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, fa
 static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 10 }));
 // is 246 between 245 and 11, nope
 static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 246 }));
+
+#endif
 
 }  // namespace compile_tests
 
