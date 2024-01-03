@@ -66,6 +66,22 @@ public:
 
   /// \param err boost system error_code to be propagated to the handlers
   /// \return number of triggered handlers either 0 or 1
+  auto cancel_one(auto& err) -> std::size_t { return timer_->cancel_one(err); }
+
+  /// \throws boost::system::system_error Thrown on failure
+  /// \return number of triggered handlers either 0 or 1
+  auto cancel_one() -> std::size_t { return timer_->cancel_one(); }
+
+  /// \param err boost system error_code to be propagated to the handlers
+  /// \return number of triggered handlers
+  auto cancel(auto& err) -> std::size_t { return timer_->cancel(err); }
+
+  /// \throws boost::system::system_error Thrown on failure
+  /// \return number of triggered handlers
+  auto cancel() -> std::size_t { return timer_->cancel(); }
+
+  /// \param err boost system error_code to be propagated to the handlers
+  /// \return number of triggered handlers either 0 or 1
   auto notify_one(auto& err) -> std::size_t {
     auto const res{ timer_->cancel_one(err) };
     (*handlers_to_be_notified_) += res;

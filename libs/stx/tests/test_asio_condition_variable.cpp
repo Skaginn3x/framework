@@ -109,5 +109,21 @@ auto main() -> int {
     ut::expect(called);
   };
 
+  "coupled with cancellation slot"_test = [] {
+    asio::io_context ctx;
+    tfc::asio::condition_variable<asio::any_io_executor> cv{ ctx.get_executor() };
+    asio::cancellation_signal signal{};
+    bool called{};
+    cv.async_wait(bind_cancellation_slot(signal.slot(), [&called](std::error_code err) {
+      ut::expect(err == std::errc::operation_canceled);
+      called = true;
+    }));
+    ctx.run_for(1ms);
+    ut::expect(!called);
+    signal.emit(asio::cancellation_type::all);
+    ctx.run_for(1ms);
+    ut::expect(called);
+  };
+
   return EXIT_SUCCESS;
 }
