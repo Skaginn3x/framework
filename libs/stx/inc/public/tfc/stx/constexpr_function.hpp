@@ -8,7 +8,7 @@
 
 namespace tfc::stx {
 
-#if defined(__GNUC__)
+#ifndef __clang__
 #include <functional>
 using std::function;
 #else
