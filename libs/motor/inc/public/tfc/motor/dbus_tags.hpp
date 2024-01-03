@@ -28,7 +28,8 @@ static constexpr std::string_view quick_stop{ "QuickStop" };
 static constexpr std::string_view do_homing{ "DoHoming" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
-static constexpr std::string_view notify_after_nanometre{ "NotifyAfterNanometre" };
+static constexpr std::string_view notify_after_micrometre{ "NotifyAfterMicrometre" };
+
 }  // namespace method
 
 }  // namespace tfc::motor::dbus

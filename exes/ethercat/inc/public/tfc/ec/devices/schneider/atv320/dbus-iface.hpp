@@ -82,7 +82,7 @@ struct dbus_iface {
           return validate_peer(msg.get_sender()) && run_at_speedratio(speedratio);
         });
     dbus_interface_->register_method(
-        std::string{ method::notify_after_nanometre },
+        std::string{ method::notify_after_micrometre },
         [this](asio::yield_context yield, const sdbusplus::message_t& msg,
                const mp_units::quantity<mp_units::si::milli<mp_units::si::metre>, std::int64_t>& distance) {
           std::string incoming_peer = msg.get_sender();
