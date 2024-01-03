@@ -143,6 +143,17 @@ public:
   /// \return Current position since last restart
   [[nodiscard]] auto position() const noexcept -> absolute_position_t { return absolute_position_; }
 
+  /// \return Current position relative to home
+  [[nodiscard]] auto position_from_home() const noexcept -> displacement_t {
+    auto const pos{ position() };
+    // todo if difference is more than 2^63 we have a problem
+    if (home_ > pos) {
+      return -(home_ - pos).in(displacement_t::reference);
+    } else {
+      return pos - home_;
+    }
+  }
+
   /// \return Resolution of the absolute position
   [[nodiscard]] auto resolution() const noexcept -> displacement_t { return config_->displacement_per_increment; }
 

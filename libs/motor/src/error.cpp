@@ -29,12 +29,16 @@ class motor_error_category_t : public std::error_category {
         return "Motor missing speed reference";
       case motor_not_implemented:
         return "Motor function not implemented";
+      case speedratio_out_of_range:
+        return "Speed ratio out of range (-100% to 100%)";
       case positioning_unstable:
         return "Positioning unstable";
       case positioning_missing_event:
         return "Positioning missing event";
       case positioning_request_out_of_range:
         return "Positioning request out of range";
+      case permission_denied:
+        return "Permission to execute operation not allowed";
       case unknown:
         return "Unknown error";
     }
@@ -55,9 +59,12 @@ namespace tfc::motor::errors {
 auto enum_name(err_enum error) noexcept -> std::string_view {
   return magic_enum::enum_name(error);
 }
+auto enum_cast(std::underlying_type_t<err_enum> error) noexcept -> std::optional<err_enum> {
+  return magic_enum::enum_cast<err_enum>(error);
+}
 }  // namespace tfc::motor::errors
 
-namespace tfc::motor {
+namespace tfc::motor {  // todo place in error namespace ?
 /// The error category for modbus errors.
 auto category() -> std::error_category const& {
   return category_instance;

@@ -29,6 +29,9 @@ static constexpr std::string_view do_homing{ "DoHoming" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
 static constexpr std::string_view notify_after_micrometre{ "NotifyAfterMicrometre" };
+// static constexpr std::string_view convey_micrometrepersecond_micrometre{ "ConveyMicrometrepersecondMicrometre" };
+// static constexpr std::string_view convey_micrometre{ "ConveyMicrometre" };
+static constexpr std::string_view move_speedratio_micrometre{ "MoveSpeedratioMicrometre" };
 
 }  // namespace method
 
