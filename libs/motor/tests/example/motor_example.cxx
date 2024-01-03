@@ -47,7 +47,8 @@ auto main(int argc, char** argv) -> int {
   my_motor.run(50);  // Run with SpeedRatio
   my_motor.stop();   // Stop freewheel
 
-  // Absolute positioning
+  // Absolute positioning relative to home position
+  my_motor.move(10 * mp_units::percent, 10 * m, [](auto){});
   my_motor.move(10 * m, [](const std::error_code&) {});
   my_motor.move_home([](const std::error_code&) {});
 
