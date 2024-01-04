@@ -132,18 +132,33 @@ struct dbus_iface {
         [this](asio::yield_context yield, const sdbusplus::message_t& msg, speedratio_t speedratio,
                micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
           using enum motor::errors::err_enum;
+          micrometre_t pos{ pos_.position().force_in(micrometre_t::reference) };
           micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
+          logger_.trace("Target placement: {}, current position: {}, will move: {}", placement, pos, pos_from_home);
           if (!validate_peer(msg.get_sender())) {
             return std::make_tuple(permission_denied, pos_from_home);
           }
           if (pos_.error() == motor_missing_home_reference) {
             return std::make_tuple(motor_missing_home_reference, pos_from_home);
           }
-          if (!run_at_speedratio(speedratio)) {
+          if (pos_from_home == 0L * micrometre_t::reference) {
+            return std::make_tuple(success, pos_from_home);
+          }
+          // emit cancel to cancel any pending operation if any
+          cancel_signal_.emit(asio::cancellation_type::all);
+          bool const is_positive{ pos_from_home > 0L * micrometre_t::reference };
+          // I thought about using absolute of speedratio, but if normal operation is negative than
+          // it won't work, so it is better to making the user responsible to send correct sign.
+          // Todo how can we document dbus API method calls?, generically.
+          if (!run_at_speedratio(is_positive ? speedratio : -speedratio)) {
             return std::make_tuple(speedratio_out_of_range, pos_from_home);
           }
-          std::error_code err{ pos_.notify_from_home(placement, yield) };
+          std::error_code err{ pos_.notify_from_home(placement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+          // Todo this does not take into account the deceleration time, so it is configurably inaccurate.
+          stop();
           pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
+          logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
+                        pos_from_home, placement);
           if (err) {
             return std::make_tuple(motor::motor_error(err), pos_from_home);
           }
@@ -202,6 +217,7 @@ struct dbus_iface {
   asio::steady_timer timeout_{ ctx_ };
   std::string peer_{ "" };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
+  asio::cancellation_signal cancel_signal_{};
 
   // Motor control parameters
   bool quick_stop_{ false };
