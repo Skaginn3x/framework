@@ -143,18 +143,17 @@ auto detect_deviation_from_average(auto interval, auto average) {
   return err;
 }
 
-template <typename bool_slot_t = ipc::bool_slot,
+template <typename bool_slot_t = ipc::slot<ipc::details::type_bool, ipc_ruler::ipc_manager_client>,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 128>
 struct tachometer {
   using duration_t = typename clock_t::duration;
   using time_point_t = typename clock_t::time_point;
-  explicit tachometer(asio::io_context& ctx,
-                      ipc_ruler::ipc_manager_client& client,
+  explicit tachometer(std::shared_ptr<sdbusplus::asio::connection> conn,
                       std::string_view name,
                       std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) }, induction_sensor_{
-          ctx, client, fmt::format("tacho_{}", name),
+          conn->get_io_context(), conn, fmt::format("tacho_{}", name),
           "Tachometer input, usually induction sensor directed to rotational metal star or plastic ring with metal bolts.",
           std::bind_front(&tachometer::update, this)
         } {}
@@ -179,20 +178,19 @@ struct tachometer {
   bool_slot_t induction_sensor_;
 };
 
-template <typename bool_slot_t = ipc::bool_slot,
+template <typename bool_slot_t = ipc::slot<ipc::details::type_bool, ipc_ruler::ipc_manager_client>,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 128>
 struct encoder {
-  explicit encoder(asio::io_context& ctx,
-                   ipc_ruler::ipc_manager_client& client,
+  explicit encoder(std::shared_ptr<sdbusplus::asio::connection> conn,
                    std::string_view name,
                    std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) },
-        sensor_a_{ ctx, client, fmt::format("tacho_a_{}", name),
+        sensor_a_{ conn->get_io_context(), conn, fmt::format("tacho_a_{}", name),
                    "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
                    "star or plastic ring of metal bolts.",
                    std::bind_front(&encoder::first_tacho_update, this) },
-        sensor_b_{ ctx, client, fmt::format("tacho_b_{}", name),
+        sensor_b_{ conn->get_io_context(), conn, fmt::format("tacho_b_{}", name),
                    "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
                    "star or plastic ring of metal bolts.",
                    std::bind_front(&encoder::second_tacho_update, this) } {}

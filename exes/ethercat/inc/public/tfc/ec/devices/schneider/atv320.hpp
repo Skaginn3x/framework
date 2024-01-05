@@ -125,8 +125,7 @@ public:
                             fmt::format("atv320.s{}.in.freq", slave_index),
                             "Current Frequency"),
         hmis_transmitter_(connection->get_io_context(), client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ connection->get_io_context(), fmt::format("atv320_i{}", slave_index) },
-        dbus_iface_(connection, slave_index, client) {
+        config_{ connection, fmt::format("atv320_i{}", slave_index) }, dbus_iface_(connection, slave_index) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
@@ -272,6 +271,6 @@ private:
   uint16_t last_hmis_{};
   tfc::ipc::uint_signal hmis_transmitter_;
   config_t config_;
-  dbus_iface<manager_client_t> dbus_iface_;
+  dbus_iface dbus_iface_;
 };
 }  // namespace tfc::ec::devices::schneider::atv320

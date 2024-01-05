@@ -28,7 +28,6 @@ using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
-template <typename manager_client_t>
 struct dbus_iface {
   // Properties
   static constexpr std::string_view connected_peer{ "connected_peer" };
@@ -37,12 +36,9 @@ struct dbus_iface {
   static constexpr std::string_view hmis{ "hmis" };  // todo change to more readable form
   static constexpr std::string_view impl_name{ "atv320" };
 
-  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection,
-             const uint16_t slave_id,
-             manager_client_t& manager_client)
+  dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
       : ctx_(connection->get_io_context()), slave_id_{ slave_id },
-        pos_{ ctx_, manager_client, fmt::format("{}_{}", impl_name, slave_id_),
-              std::bind_front(&dbus_iface::on_homing_sensor, this) },
+        pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&dbus_iface::on_homing_sensor, this) },
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
     sd_bus* bus = nullptr;
     if (sd_bus_open_system(&bus) < 0) {

@@ -20,7 +20,7 @@ using std::chrono_literals::operator""ms;
 using std::chrono_literals::operator""ns;
 static constexpr std::size_t buffer_len{ 10 };
 
-using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client&>;
+using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client>;
 using mp_units::quantity;
 using mp_units::si::unit_symbols::mm;
 
@@ -115,7 +115,7 @@ static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, fa
 
 struct test_instance {
   asio::io_context ctx{};
-  tfc::ipc_ruler::ipc_manager_client client{ ctx };
+  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
 };
 
 // clang-format off
@@ -129,7 +129,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test_instance inst{};
     // ability to populate, but will be moved into implementation
     std::function<tfc::motor::positioner::tick_signature_t> cb{ [](auto, auto, auto, auto) {} };
-    tachometer_t tachometer{ inst.ctx, inst.client, "name", std::move(cb) };
+    tachometer_t tachometer{ inst.dbus, "name", std::move(cb) };
   };
 
   "tachometer with single sensor updates internal state"_test = [] {
@@ -269,7 +269,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test_instance inst{};
     std::function<tfc::motor::positioner::tick_signature_t> cb{ [](std::int64_t, auto, auto, auto) {
     } };  // ability to populate, but will be moved into implementation
-    encoder_t encoder{ inst.ctx, inst.client, "name", std::move(cb) };
+    encoder_t encoder{ inst.dbus, "name", std::move(cb) };
   };
 
   "encoder: 0"_test = [] {
@@ -410,7 +410,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
     std::function<void(bool)> home_cb{ [](bool) {} };
-    positioner_t positioner{ inst.ctx, inst.client, "name", std::move(home_cb), std::move(config) };
+    positioner_t positioner{ inst.dbus, "name", std::move(home_cb), std::move(config) };
   };
   using mp_units::si::unit_symbols::mm;
 
