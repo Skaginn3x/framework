@@ -38,7 +38,7 @@ namespace tfc::motor::positioner {
 
 template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
           template <typename, typename, typename> typename confman_t = confman::config,
-          typename bool_slot_t = ipc::bool_slot>
+          typename bool_slot_t = ipc::slot<ipc::details::type_bool, ipc_ruler::ipc_manager_client>>
 class positioner {
 public:
   static constexpr auto unit{ unit_v };
@@ -50,34 +50,29 @@ public:
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
   using config_t = config<reference>;
 
-  /// \param ctx boost asio context
-  /// \param client ipc client
+  /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
-  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
-      : positioner(ctx, client, name, [this](bool) {}) {}
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name)
+      : positioner(connection, name, [this](bool) {}) {}
 
-  /// \param ctx boost asio context
-  /// \param client ipc client
+  /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
-  positioner(asio::io_context& ctx,
-             ipc_ruler::ipc_manager_client& client,
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              std::string_view name,
              std::function<void(bool)>&& home_cb)
-      : positioner(ctx, client, name, std::move(home_cb), {}) {}
+      : positioner(connection, name, std::move(home_cb), {}) {}
 
-  /// \param ctx boost asio context
-  /// \param client ipc client
+  /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
   /// \param default_value configuration default, useful for special cases and testing
-  positioner(asio::io_context& ctx,
-             ipc_ruler::ipc_manager_client& client,
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              std::string_view name,
              std::function<void(bool)>&& home_cb,
              config_t&& default_value)
-      : name_{ name }, ctx_{ ctx }, client_{ client }, home_cb_{ home_cb },
-        config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
+      : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, home_cb_{ home_cb },
+        config_{ dbus_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
@@ -85,13 +80,13 @@ public:
     config_->homing_travel_speed.observe(
         [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
           if (new_v.has_value() && !homing_sensor_.has_value()) {
-            homing_sensor_.emplace(ctx_, client_, fmt::format("homing_sensor_{}", name_),
+            homing_sensor_.emplace(ctx_, dbus_, fmt::format("homing_sensor_{}", name_),
                                    "Homing sensor for position management, consider adding time off delay", home_cb_);
           }
         });
     if (config_->homing_travel_speed->has_value()) {
       // todo duplicate
-      homing_sensor_.emplace(ctx_, client_, fmt::format("homing_sensor_{}", name_),
+      homing_sensor_.emplace(ctx_, dbus_, fmt::format("homing_sensor_{}", name_),
                              "Homing sensor for position management, consider adding time off delay", home_cb_);
     }
   }
@@ -264,7 +259,7 @@ private:
         [this]<typename mode_t>(mode_t const& mode) {
           using mode_raw_t = std::remove_cvref_t<mode_t>;
           if constexpr (std::same_as<mode_raw_t, tachometer_config_t>) {
-            impl_.template emplace<detail::tachometer<>>(ctx_, client_, name_, std::bind_front(&positioner::tick, this));
+            impl_.template emplace<detail::tachometer<>>(dbus_, name_, std::bind_front(&positioner::tick, this));
 
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
@@ -273,7 +268,7 @@ private:
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
-            impl_.template emplace<detail::encoder<>>(ctx_, client_, name_, std::bind_front(&positioner::tick, this));
+            impl_.template emplace<detail::encoder<>>(dbus_, name_, std::bind_front(&positioner::tick, this));
 
             // todo duplicate
             displacement_per_increment_ = mode.displacement_per_increment.value();
@@ -332,7 +327,7 @@ private:
   std::chrono::nanoseconds standard_deviation_threshold_{};
   std::string name_{};
   asio::io_context& ctx_;
-  ipc_ruler::ipc_manager_client& client_;
+  std::shared_ptr<sdbusplus::asio::connection> dbus_;
   std::optional<bool_slot_t> homing_sensor_{};
   std::function<void(bool)> home_cb_{ [this](bool) {} };
   logger::logger logger_{ name_ };

@@ -19,7 +19,9 @@ namespace tfc::confman::detail {
 // busctl --system introspect com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config
 // clang-format on
 
-config_dbus_client::config_dbus_client(boost::asio::io_context&) {}
+config_dbus_client::config_dbus_client(asio::io_context&) {}
+
+config_dbus_client::config_dbus_client(std::shared_ptr<sdbusplus::asio::connection>) {}
 
 config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        std::string_view key,
