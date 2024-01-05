@@ -177,8 +177,8 @@ public:
       out->control.reserved_1 = reference_frequency_.reverse;
       out->frequency = reference_frequency_.value;
     } else {
-      auto freq = detail::percentage_to_deci_freq(dbus_iface_.speed_ratio(), config_.value().value().low_speed,
-                                                  config_.value().value().high_speed);
+      auto freq = detail::percentage_to_deci_freq(dbus_iface_.speed_ratio(), config_->value().low_speed,
+                                                  config_->value().high_speed);
       out->frequency = freq.value;
       out->control.reserved_1 = freq.reverse;
       out->control = dbus_iface_.ctrl();
