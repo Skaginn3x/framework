@@ -32,6 +32,7 @@ static constexpr std::string_view notify_after_micrometre{ "NotifyAfterMicrometr
 // static constexpr std::string_view convey_micrometrepersecond_micrometre{ "ConveyMicrometrepersecondMicrometre" };
 // static constexpr std::string_view convey_micrometre{ "ConveyMicrometre" };
 static constexpr std::string_view move_speedratio_micrometre{ "MoveSpeedratioMicrometre" };
+static constexpr std::string_view move_micrometre{ "MoveMicrometre" };
 
 }  // namespace method
 

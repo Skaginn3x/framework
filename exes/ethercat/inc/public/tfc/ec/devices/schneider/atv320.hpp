@@ -69,7 +69,7 @@ public:
     // takes approx 5 seconds to reach 80Hz
     acceleration_ramp_time_ACC acceleration;
     deceleration_ramp_time_DEC deceleration;
-    // write a glaze json converter
+    confman::observable<speedratio_t> default_speedratio{ 50 * speedratio_t::reference };
     struct glaze {
       using T = atv_config;
       static constexpr auto value = glz::object("nominal_motor_power",
@@ -95,7 +95,9 @@ public:
                                                 "acceleration",
                                                 &T::acceleration,
                                                 "deceleration",
-                                                &T::deceleration);
+                                                &T::deceleration,
+                                                "default_speedratio",
+                                                &T::default_speedratio);
       static constexpr std::string_view name{ "atv320" };
     };
     auto operator==(const atv_config&) const noexcept -> bool = default;
@@ -129,6 +131,11 @@ public:
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
     });
+
+    config_->value().default_speedratio.observe(
+        [this](speedratio_t new_v, auto) { dbus_iface_.set_configured_speedratio(new_v); });
+    dbus_iface_.set_configured_speedratio(config_->value().default_speedratio);
+
     for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
                                                           fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));

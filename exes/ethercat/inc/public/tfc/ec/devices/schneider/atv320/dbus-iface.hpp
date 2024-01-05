@@ -126,49 +126,20 @@ struct dbus_iface {
       pos_.home(pos);
     });
 
+    // returns error, absolute position relative to home
     dbus_interface_->register_method(
         std::string{ method::move_speedratio_micrometre },
-        // returns error, absolute position relative to home
-        [this](asio::yield_context yield, const sdbusplus::message_t& msg, speedratio_t speedratio,
+        [this](asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio,
                micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
-          using enum motor::errors::err_enum;
-          micrometre_t pos{ pos_.position().force_in(micrometre_t::reference) };
-          micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
-          logger_.trace("Target placement: {}, current position: {}, will move: {}", placement, pos, pos_from_home);
-          if (!validate_peer(msg.get_sender())) {
-            return std::make_tuple(permission_denied, pos_from_home);
-          }
-          if (pos_.error() == motor_missing_home_reference) {
-            return std::make_tuple(motor_missing_home_reference, pos_from_home);
-          }
-          if (pos_from_home == 0L * micrometre_t::reference) {
-            return std::make_tuple(success, pos_from_home);
-          }
-          // emit cancel to cancel any pending operation if any
-          cancel_signal_.emit(asio::cancellation_type::all);
-          bool const is_positive{ pos_from_home > 0L * micrometre_t::reference };
-          // I thought about using absolute of speedratio, but if normal operation is negative than
-          // it won't work, so it is better to making the user responsible to send correct sign.
-          // Todo how can we document dbus API method calls?, generically.
-          if (!run_at_speedratio(is_positive ? speedratio : -speedratio)) {
-            return std::make_tuple(speedratio_out_of_range, pos_from_home);
-          }
-          std::error_code err{ pos_.notify_from_home(placement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-          // Todo this stops quickly :-)
-          // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is
-          // going so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration
-          // time) to the API call when needed implementing deceleration would propably be best to be controlled by this code
-          // not the atv itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is
-          // reached next decrement will quick_stop? or stop?
-          quick_stop();
-          pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
-          logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
-                        pos_from_home, placement);
-          if (err) {
-            return std::make_tuple(motor::motor_error(err), pos_from_home);
-          }
-          return std::make_tuple(success, pos_from_home);
+          return move(std::move(yield), msg, speedratio, placement);
         });
+
+    // returns error, absolute position relative to home
+    dbus_interface_->register_method(std::string{ method::move_speedratio_micrometre },
+                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg,
+                                            micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
+                                       return move(std::move(yield), msg, config_speedratio_, placement);
+                                     });
 
     dbus_interface_->register_property_r<std::string>(std::string{ connected_peer },
                                                       sdbusplus::vtable::property_::emits_change,
@@ -177,6 +148,56 @@ struct dbus_iface {
                                                         [](const auto&) -> std::uint16_t { return 0; });
 
     dbus_interface_->initialize();
+  }
+
+  auto set_configured_speedratio(speedratio_t speedratio) {
+    auto old_config_speedratio{ config_speedratio_ };
+    config_speedratio_ = speedratio;
+    // this is not correct, but this operation is non frequent and this simplifies the logic
+    if (op_enable_ && !quick_stop_ && speed_ratio_ == old_config_speedratio) {
+      speed_ratio_ = config_speedratio_;
+    }
+  }
+
+  auto move(asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio, micrometre_t placement)
+      -> std::tuple<motor::errors::err_enum, micrometre_t> {
+    using enum motor::errors::err_enum;
+    micrometre_t pos{ pos_.position().force_in(micrometre_t::reference) };
+    micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
+    logger_.trace("Target placement: {}, current position: {}, will move: {}", placement, pos, pos_from_home);
+    if (!validate_peer(msg.get_sender())) {
+      return std::make_tuple(permission_denied, pos_from_home);
+    }
+    if (pos_.error() == motor_missing_home_reference) {
+      return std::make_tuple(motor_missing_home_reference, pos_from_home);
+    }
+    if (pos_from_home == 0L * micrometre_t::reference) {
+      return std::make_tuple(success, pos_from_home);
+    }
+    // emit cancel to cancel any pending operation if any
+    cancel_signal_.emit(asio::cancellation_type::all);
+    bool const is_positive{ pos_from_home > 0L * micrometre_t::reference };
+    // I thought about using absolute of speedratio, but if normal operation is negative than
+    // it won't work, so it is better to making the user responsible to send correct sign.
+    // Todo how can we document dbus API method calls?, generically.
+    if (!run_at_speedratio(is_positive ? speedratio : -speedratio)) {
+      return std::make_tuple(speedratio_out_of_range, pos_from_home);
+    }
+    std::error_code err{ pos_.notify_from_home(placement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+    // Todo this stops quickly :-)
+    // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is going
+    // so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration time) to the
+    // API call when needed implementing deceleration would propably be best to be controlled by this code not the atv
+    // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement
+    // will quick_stop? or stop?
+    quick_stop();
+    pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
+    logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
+                  pos_from_home, placement);
+    if (err) {
+      return std::make_tuple(motor::motor_error(err), pos_from_home);
+    }
+    return std::make_tuple(success, pos_from_home);
   }
 
   auto validate_peer(std::string_view incoming_peer) -> bool {
@@ -198,7 +219,7 @@ struct dbus_iface {
   }
   bool stop() {
     quick_stop_ = false;
-    op_enable_ = true;
+    op_enable_ = false;
     speed_ratio_ = 0 * mp_units::percent;
     return true;
   }
@@ -237,6 +258,7 @@ struct dbus_iface {
   cia_402::status_word status_word_{};
 
   const uint16_t slave_id_;
+  speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
 
   tfc::motor::positioner::positioner<> pos_;
   tfc::logger::logger logger_;
