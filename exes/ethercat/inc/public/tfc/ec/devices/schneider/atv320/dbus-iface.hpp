@@ -94,7 +94,7 @@ struct dbus_iface {
     });
 
     dbus_interface_->register_method(std::string{ method::quick_stop }, [this](const sdbusplus::message_t& msg) -> bool {
-      return validate_peer(msg.get_sender()) && stop();  // todo quick stop
+      return validate_peer(msg.get_sender()) && quick_stop();  // todo quick stop
     });
 
     dbus_interface_->register_method(std::string{ method::do_homing }, [this](asio::yield_context yield,
@@ -154,8 +154,12 @@ struct dbus_iface {
             return std::make_tuple(speedratio_out_of_range, pos_from_home);
           }
           std::error_code err{ pos_.notify_from_home(placement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-          // Todo this does not take into account the deceleration time, so it is configurably inaccurate.
-          stop();
+          // Todo this stops quickly :-)
+          // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is going
+          // so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration time) to the API call when needed
+          // implementing deceleration would propably be best to be controlled by this code not the atv itself,
+          // meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement will quick_stop? or stop?
+          quick_stop();
           pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
           logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
                         pos_from_home, placement);
@@ -192,6 +196,12 @@ struct dbus_iface {
     return true;
   }
   bool stop() {
+    quick_stop_ = false;
+    op_enable_ = true;
+    speed_ratio_ = 0 * mp_units::percent;
+    return true;
+  }
+  bool quick_stop() {
     quick_stop_ = true;
     op_enable_ = true;
     speed_ratio_ = 0 * mp_units::percent;
