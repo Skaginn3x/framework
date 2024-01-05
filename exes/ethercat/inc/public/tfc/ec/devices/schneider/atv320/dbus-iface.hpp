@@ -155,10 +155,11 @@ struct dbus_iface {
           }
           std::error_code err{ pos_.notify_from_home(placement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
           // Todo this stops quickly :-)
-          // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is going
-          // so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration time) to the API call when needed
-          // implementing deceleration would propably be best to be controlled by this code not the atv itself,
-          // meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement will quick_stop? or stop?
+          // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is
+          // going so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration
+          // time) to the API call when needed implementing deceleration would propably be best to be controlled by this code
+          // not the atv itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is
+          // reached next decrement will quick_stop? or stop?
           quick_stop();
           pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
           logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
