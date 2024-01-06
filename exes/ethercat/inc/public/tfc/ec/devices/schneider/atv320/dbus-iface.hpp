@@ -122,7 +122,43 @@ struct dbus_iface {
       pos_.home(pos);
     });
 
-    // returns error, absolute position relative to home
+    // returns { error_code, actual displacement }
+    dbus_interface_->register_method(
+        std::string{ method::convey_micrometre },
+        [this](asio::yield_context yield, sdbusplus::message_t const& msg,
+               micrometre_t displacement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
+          using enum motor::errors::err_enum;
+          auto const pos{ pos_.position() };
+          logger_.trace("Target displacement: {}, current position: {}", displacement, pos);
+          if (!validate_peer(msg.get_sender())) {
+            return std::make_tuple(permission_denied, 0L * micrometre_t::reference);
+          }
+          if (pos_.error() == motor_missing_home_reference) {
+            return std::make_tuple(motor_missing_home_reference, 0L * micrometre_t::reference);
+          }
+          if (displacement == 0L * micrometre_t::reference) {
+            return std::make_tuple(success, 0L * micrometre_t::reference);
+          }
+          // emit cancel to cancel any pending operation if any
+          cancel_signal_.emit(asio::cancellation_type::all);
+          bool const is_positive{ displacement > 0L * micrometre_t::reference };
+          if (!run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_)) {
+            return std::make_tuple(speedratio_out_of_range, 0L * micrometre_t::reference);
+          }
+          std::error_code err{ pos_.notify_after(displacement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+          auto const actual_displacement{ is_positive ? (-pos).force_in(micrometre_t::reference)
+                                                      : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+          if (err) {
+            logger_.warn("Convey failed: {}", err.message());
+            return std::make_tuple(motor::motor_error(err), actual_displacement);
+          }
+          // Todo this stops quickly :-)
+          quick_stop();
+          logger_.trace("Actual displacement: {}, where target was: {}", actual_displacement, displacement);
+          return std::make_tuple(success, actual_displacement);
+        });
+
+    // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(
         std::string{ method::move_speedratio_micrometre },
         [this](asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio,
@@ -130,7 +166,7 @@ struct dbus_iface {
           return move(std::move(yield), msg, speedratio, placement);
         });
 
-    // returns error, absolute position relative to home
+    // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(std::string{ method::move_speedratio_micrometre },
                                      [this](asio::yield_context yield, sdbusplus::message_t const& msg,
                                             micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
@@ -186,7 +222,7 @@ struct dbus_iface {
     // API call when needed implementing deceleration would propably be best to be controlled by this code not the atv
     // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement
     // will quick_stop? or stop?
-    quick_stop();
+    quick_stop();  // todo discuss, should we stop when the above call is returning an error??
     pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
     logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
                   pos_from_home, placement);
