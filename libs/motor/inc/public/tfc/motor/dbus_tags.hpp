@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
+#include <mp-units/systems/si/si.h>
 
 #include <tfc/dbus/string_maker.hpp>
 
@@ -35,5 +36,10 @@ static constexpr std::string_view move_speedratio_micrometre{ "MoveSpeedratioMic
 static constexpr std::string_view move_micrometre{ "MoveMicrometre" };
 
 }  // namespace method
+
+namespace types {
+using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+
+}
 
 }  // namespace tfc::motor::dbus
