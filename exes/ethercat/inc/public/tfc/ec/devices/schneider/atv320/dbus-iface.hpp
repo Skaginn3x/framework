@@ -23,7 +23,7 @@ namespace tfc::ec::devices::schneider::atv320 {
 namespace asio = boost::asio;
 namespace method = motor::dbus::method;
 using speedratio_t = mp_units::quantity<mp_units::percent, double>;
-using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+using micrometre_t = motor::dbus::types::micrometre_t;
 
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor

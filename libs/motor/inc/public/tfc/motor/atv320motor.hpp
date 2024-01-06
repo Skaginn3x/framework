@@ -18,6 +18,7 @@ namespace asio = boost::asio;
 namespace method = dbus::method;
 using mp_units::QuantityOf;
 using SpeedRatio = mp_units::ratio;  // todo revert to mp_units quantity of percent?
+using micrometre_t = dbus::types::micrometre_t;
 
 class atv320motor {
 private:
@@ -97,6 +98,11 @@ public:
       send_ping(new_id);
     });
   }
+  atv320motor(const atv320motor&) = delete;
+  atv320motor(atv320motor&&) = delete;
+  auto operator=(const atv320motor&) -> atv320motor& = delete;
+  auto operator=(atv320motor&&) -> atv320motor& = delete;
+  ~atv320motor() = default;
 
   [[nodiscard]] auto convey() -> std::error_code {
     auto sanity_check = motor_seems_valid();
@@ -134,13 +140,29 @@ public:
     cb(motor_error(errors::err_enum::motor_not_implemented));
   }
 
-  void convey(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto cb) {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check) {
+  template <QuantityOf<mp_units::isq::length> displacement_t>
+  void convey(displacement_t displacement, std::invocable<std::error_code, displacement_t> auto cb) {
+    if (auto const sanity_check{ motor_seems_valid() }) {
       cb(sanity_check);
       return;
     }
-    cb(motor_error(errors::err_enum::motor_not_implemented));
+    std::chrono::microseconds constexpr timeout{ std::chrono::hours{ 24 } };
+    connection_->async_method_call_timed(
+        [this, cb](std::error_code const& err, errors::err_enum motor_err, micrometre_t actual_displacement) {
+          if (err) {
+            logger_.warn("Convey failure: {}", err.message());
+            cb(err, actual_displacement);
+            return;
+          }
+          using enum errors::err_enum;
+          if (motor_err != success) {
+            logger_.warn("Convey failure: {}", motor_err);
+            cb(motor_error(motor_err), actual_displacement);
+            return;
+          }
+          cb({}, actual_displacement);
+        },
+        service_name_, path_, interface_name_, std::string{ method::run_at_speedratio }, timeout.count(), displacement);
   }
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {

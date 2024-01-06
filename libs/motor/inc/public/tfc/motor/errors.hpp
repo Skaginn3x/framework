@@ -37,6 +37,10 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
 auto enum_name(err_enum) noexcept -> std::string_view;
 auto enum_cast(std::underlying_type_t<err_enum>) noexcept -> std::optional<err_enum>;
 
+inline auto format_as(err_enum err) -> std::string_view {  // for fmt
+  return enum_name(err);
+}
+
 }  // namespace errors
 
 /// The error category for Motor errors.
