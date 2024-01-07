@@ -7,7 +7,6 @@
 
 #include <glaze/core/common.hpp>
 #include <tfc/utils/json_schema.hpp>
-#include <tfc/utils/pragmas.hpp>
 
 #include <tfc/ec/interfaces.hpp>
 
