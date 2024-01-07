@@ -140,7 +140,8 @@ public:
 
   /// \return Current position relative to home
   [[nodiscard]] auto position_from_home() const noexcept -> displacement_t {
-    return std::min((home_ - absolute_position_) % absolute_position_t::max(), (absolute_position_ - home_) % absolute_position_t::max());
+    return std::min((home_ - absolute_position_) % absolute_position_t::max(),
+                    (absolute_position_ - home_) % absolute_position_t::max());
   }
 
   /// \return Resolution of the absolute position
