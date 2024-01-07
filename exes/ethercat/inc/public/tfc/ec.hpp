@@ -7,8 +7,10 @@
 #include <vector>
 
 #include <fmt/chrono.h>
+#include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/ec/config/bus.hpp>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
@@ -34,8 +36,7 @@ public:
   // are to be addressed when our code is
   // interacting with groups.
 
-  explicit context_t(boost::asio::io_context& ctx, std::string_view iface)
-      : ctx_(ctx), iface_(iface), logger_(fmt::format("Ethercat Context iface: ({})", iface)), client_(ctx_) {
+  explicit context_t(boost::asio::io_context& ctx) : ctx_(ctx), client_(ctx_) {
     dbus_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     dbus_->request_name(dbus::make_dbus_name(dbus_name).c_str());
     context_.userdata = static_cast<void*>(this);
@@ -62,10 +63,9 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    if (!ecx::init(&context_, iface_)) {
-      // TODO: swith for error_code
-      throw std::runtime_error("Failed to init, no socket connection");
-    }
+    config_ = std::make_shared<tfc::confman::config<config::bus>>(ctx_, "ethercat");
+
+    logger_.trace("Network interface used: {}", config_->value().primary_interface.value);
   }
 
   context_t(const context_t&) = delete;
@@ -134,8 +134,6 @@ public:
     return lowest == EC_STATE_PRE_OP || lowest == (EC_STATE_ACK | EC_STATE_PRE_OP);
   }
 
-  [[nodiscard]] auto iface() -> std::string_view { return iface_; }
-
   [[nodiscard]] auto slave_count() const -> size_t { return static_cast<size_t>(slave_count_); }
 
   auto configdc() -> bool { return ecx::configdc(&context_); }
@@ -151,10 +149,21 @@ public:
    * and processing IO's
    */
   auto async_start() -> std::error_code {
-    if (!config_init(false)) {
-      // TODO: Switch for error_code
-      throw std::runtime_error("No slaves found!");
+    /// Config might have changed since last run
+    if (!ecx::init(&context_, config_->value().primary_interface.value)) {
+      // TODO: switch for error_code
+      throw std::runtime_error("Failed to init, no socket connection");
     }
+
+    if (!config_init(false)) {
+      /// Since the network interface is in a config file which only lives as long as the program is running the user needs
+      /// time to configure another interface if this one fails
+      logger_.error("No slaves found for interface: {}", config_->value().primary_interface.value);
+      logger_.error("Might need to configure another interface?");
+      ctx_.run_for(std::chrono::seconds{ 1 });
+      return async_start();
+    }
+
     ecx::config_overlap_map_group(&context_, std::span(io_.data(), io_.size()), 0);
 
     if (!configdc()) {
@@ -332,8 +341,6 @@ private:
   [[nodiscard]] auto group_list_as_span() -> std::span<ec_group> { return { context_.grouplist, 1 }; }
 
   boost::asio::io_context& ctx_;
-  std::string iface_;
-  tfc::logger::logger logger_;
   ecx_contextt context_{};
   std::vector<std::unique_ptr<devices::base>> slaves_;
 
@@ -372,6 +379,8 @@ private:
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
+  std::shared_ptr<tfc::confman::config<config::bus>> config_;
+  tfc::logger::logger logger_{ "ethercat" };
 };
 
 // Template deduction guide
