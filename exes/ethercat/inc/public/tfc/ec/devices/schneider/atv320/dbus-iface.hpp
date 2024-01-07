@@ -76,7 +76,7 @@ struct dbus_iface {
 
     dbus_interface_->register_method(std::string{ method::run_at_speedratio },
                                      [this](const sdbusplus::message_t& msg, speedratio_t speedratio) -> bool {
-                                       return validate_peer(msg.get_sender()) && run_at_speedratio(speedratio);
+                                       return validate_peer(msg.get_sender()) && cancel_pending_operation() && run_at_speedratio(speedratio);
                                      });
     dbus_interface_->register_method(
         std::string{ method::notify_after_micrometre },
@@ -86,11 +86,11 @@ struct dbus_iface {
         });
 
     dbus_interface_->register_method(std::string{ method::stop }, [this](const sdbusplus::message_t& msg) -> bool {
-      return validate_peer(msg.get_sender()) && stop();
+      return validate_peer(msg.get_sender()) && cancel_pending_operation() && stop();
     });
 
     dbus_interface_->register_method(std::string{ method::quick_stop }, [this](const sdbusplus::message_t& msg) -> bool {
-      return validate_peer(msg.get_sender()) && quick_stop();  // todo quick stop
+      return validate_peer(msg.get_sender()) && cancel_pending_operation() && quick_stop();  // todo quick stop
     });
 
     dbus_interface_->register_method(std::string{ method::do_homing }, [this](asio::yield_context yield,
@@ -98,6 +98,7 @@ struct dbus_iface {
       if (!validate_peer(msg.get_sender())) {
         return;
       }
+      cancel_pending_operation();
       auto const& travel_speed{ pos_.homing_travel_speed() };
       auto const& homing_sensor{ pos_.homing_sensor() };
       if (!travel_speed.has_value() || !homing_sensor.has_value()) {
@@ -140,8 +141,7 @@ struct dbus_iface {
           if (displacement == 0L * micrometre_t::reference) {
             return std::make_tuple(success, 0L * micrometre_t::reference);
           }
-          // emit cancel to cancel any pending operation if any
-          cancel_signal_.emit(asio::cancellation_type::all);
+          cancel_pending_operation();
           bool const is_positive{ displacement > 0L * micrometre_t::reference };
           if (!run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_)) {
             return std::make_tuple(speedratio_out_of_range, 0L * micrometre_t::reference);
@@ -207,8 +207,7 @@ struct dbus_iface {
     if (pos_from_home == 0L * micrometre_t::reference) {
       return std::make_tuple(success, pos_from_home);
     }
-    // emit cancel to cancel any pending operation if any
-    cancel_signal_.emit(asio::cancellation_type::all);
+    cancel_pending_operation();
     bool const is_positive{ pos_from_home < placement };
     // I thought about using absolute of speedratio, but if normal operation is negative than
     // it won't work, so it is better to making the user responsible to send correct sign.
@@ -259,6 +258,10 @@ struct dbus_iface {
     quick_stop_ = true;
     op_enable_ = true;
     speed_ratio_ = 0 * mp_units::percent;
+    return true;
+  }
+  bool cancel_pending_operation() {
+    cancel_signal_.emit(asio::cancellation_type::all);
     return true;
   }
   // Set properties with new status values

@@ -53,7 +53,7 @@ public:
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name)
-      : positioner(connection, name, [this](bool) {}) {}
+      : positioner(connection, name, [](bool) {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
