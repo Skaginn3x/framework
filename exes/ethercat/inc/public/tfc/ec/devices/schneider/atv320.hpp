@@ -186,8 +186,8 @@ public:
       auto freq = detail::percentage_to_deci_freq(dbus_iface_.speed_ratio(), config_->value().low_speed,
                                                   config_->value().high_speed);
       out->frequency = freq.value;
-      out->control.reserved_1 = freq.reverse;
       out->control = dbus_iface_.ctrl();
+      out->control.reserved_1 = freq.reverse;
 
       // Set running to false. Will need to be set high before the motor starts on ipc
       // after dbus disconnect
