@@ -1,9 +1,9 @@
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
-#include <tfc/progbase.hpp>
-#include <tfc/motor/positioner.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/motor/positioner.hpp>
+#include <tfc/progbase.hpp>
 
 namespace asio = boost::asio;
 
