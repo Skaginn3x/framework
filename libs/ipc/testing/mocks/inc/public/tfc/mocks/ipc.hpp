@@ -53,10 +53,10 @@ struct mock_slot {
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
   }
   mock_slot(asio::io_context const& ctx,
-            manager_client_type& client,
+            manager_client_type client,
             std::string_view,
             tfc::stx::invocable<value_t> auto&& cb)
-      : mock_slot(ctx, client, {}, std::forward<decltype(cb)>(cb)) {}
+      : mock_slot(ctx, client, {}, {}, std::forward<decltype(cb)>(cb)) {}
 
   mock_slot(asio::io_context const&,
             std::shared_ptr<sdbusplus::asio::connection>,
