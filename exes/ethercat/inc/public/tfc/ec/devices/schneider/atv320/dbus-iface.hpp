@@ -57,7 +57,7 @@ struct dbus_iface {
           dbus_interface_->signal_property(std::string{ connected_peer });
         }
         timeout_.cancel();
-        timeout_.expires_after(std::chrono::days(750)); // todo revert
+        timeout_.expires_after(std::chrono::days(750));  // todo revert
         timeout_.async_wait([this](std::error_code err) {
           if (err)
             return;  // The timer was canceled or deconstructed.
@@ -225,8 +225,7 @@ struct dbus_iface {
     // will quick_stop? or stop?
     quick_stop();  // todo discuss, should we stop when the above call is returning an error??
     pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
-    logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back",
-                  pos_from_home, placement);
+    logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
     if (err) {
       return std::make_tuple(motor::motor_error(err), pos_from_home);
     }
