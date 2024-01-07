@@ -377,7 +377,9 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
-  std::shared_ptr<sdbusplus::asio::connection> dbus_{ std::make_shared<sdbusplus::asio::connection>(ctx_, dbus::sd_bus_open_system()) };
+  std::shared_ptr<sdbusplus::asio::connection> dbus_{
+    std::make_shared<sdbusplus::asio::connection>(ctx_, dbus::sd_bus_open_system())
+  };
   std::shared_ptr<tfc::confman::config<config::bus>> config_;
   tfc::logger::logger logger_{ "ethercat" };
 };
