@@ -57,7 +57,7 @@ struct dbus_iface {
           dbus_interface_->signal_property(std::string{ connected_peer });
         }
         timeout_.cancel();
-        timeout_.expires_after(std::chrono::milliseconds(750));
+        timeout_.expires_after(std::chrono::days(750)); // todo revert
         timeout_.async_wait([this](std::error_code err) {
           if (err)
             return;  // The timer was canceled or deconstructed.
@@ -105,6 +105,7 @@ struct dbus_iface {
       }
       logger_.trace("Homing motor");
       if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
+        // todo move out of sensor and back to sensor
         auto const pos{ pos_.position() };
         logger_.info("Already at home, storing position: {}", pos);
         pos_.home(pos);
@@ -167,7 +168,7 @@ struct dbus_iface {
         });
 
     // returns { error_code, absolute position relative to home }
-    dbus_interface_->register_method(std::string{ method::move_speedratio_micrometre },
+    dbus_interface_->register_method(std::string{ method::move_micrometre },
                                      [this](asio::yield_context yield, sdbusplus::message_t const& msg,
                                             micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
                                        return move(std::move(yield), msg, config_speedratio_, placement);
@@ -194,9 +195,9 @@ struct dbus_iface {
   auto move(asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio, micrometre_t placement)
       -> std::tuple<motor::errors::err_enum, micrometre_t> {
     using enum motor::errors::err_enum;
-    micrometre_t pos{ pos_.position().force_in(micrometre_t::reference) };
+    // Get our distance from the homing reference
     micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
-    logger_.trace("Target placement: {}, current position: {}, will move: {}", placement, pos, pos_from_home);
+    logger_.trace("Target placement: {}, currently at: {}", placement, pos_from_home);
     if (!validate_peer(msg.get_sender())) {
       return std::make_tuple(permission_denied, pos_from_home);
     }
@@ -208,7 +209,7 @@ struct dbus_iface {
     }
     // emit cancel to cancel any pending operation if any
     cancel_signal_.emit(asio::cancellation_type::all);
-    bool const is_positive{ pos_from_home > 0L * micrometre_t::reference };
+    bool const is_positive{ pos_from_home < placement };
     // I thought about using absolute of speedratio, but if normal operation is negative than
     // it won't work, so it is better to making the user responsible to send correct sign.
     // Todo how can we document dbus API method calls?, generically.
@@ -224,7 +225,7 @@ struct dbus_iface {
     // will quick_stop? or stop?
     quick_stop();  // todo discuss, should we stop when the above call is returning an error??
     pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
-    logger_.trace("{} from position: {}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos,
+    logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back",
                   pos_from_home, placement);
     if (err) {
       return std::make_tuple(motor::motor_error(err), pos_from_home);

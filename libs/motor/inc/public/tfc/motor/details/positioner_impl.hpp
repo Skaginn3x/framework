@@ -221,6 +221,7 @@ struct encoder {
   void update(std::int8_t increment, bool first, bool second, last_event_t event) noexcept {
     auto const now{ clock_t::now() };
     position_ += increment;
+    fmt::println(stderr, "Encoder position: {}", position_); // todo remove
     auto err{ detect_deviation_from_average(statistics_.last_interval(), statistics_.average()) };
     if (buffer_.front().last_event == event) {
       err = errors::err_enum::positioning_missing_event;
