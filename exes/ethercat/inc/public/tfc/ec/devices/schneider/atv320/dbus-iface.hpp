@@ -74,10 +74,10 @@ struct dbus_iface {
       }
     });
 
-    dbus_interface_->register_method(std::string{ method::run_at_speedratio },
-                                     [this](const sdbusplus::message_t& msg, speedratio_t speedratio) -> bool {
-                                       return validate_peer(msg.get_sender()) && cancel_pending_operation() && run_at_speedratio(speedratio);
-                                     });
+    dbus_interface_->register_method(
+        std::string{ method::run_at_speedratio }, [this](const sdbusplus::message_t& msg, speedratio_t speedratio) -> bool {
+          return validate_peer(msg.get_sender()) && cancel_pending_operation() && run_at_speedratio(speedratio);
+        });
     dbus_interface_->register_method(
         std::string{ method::notify_after_micrometre },
         [this](asio::yield_context yield, const sdbusplus::message_t& msg, micrometre_t distance) {
