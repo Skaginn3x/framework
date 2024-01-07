@@ -5,6 +5,6 @@
 
 namespace tfc::global {
 
-auto get_interfaces() -> std::vector<std::string>;
+auto get_interfaces() -> std::vector<std::string> const&;
 
 }  // namespace tfc::global

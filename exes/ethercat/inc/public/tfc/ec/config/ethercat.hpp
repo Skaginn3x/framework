@@ -30,13 +30,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   static void op(auto& s, auto&) noexcept {
     s.oneOf = std::vector<tfc::json::detail::schematic>{};
 
-    // clang-format off
-        PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
-        PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
-        thread_local auto interfaces{tfc::global::get_interfaces()};
-        PRAGMA_CLANG_WARNING_POP
-        PRAGMA_CLANG_WARNING_POP
-    // clang-format on
+    auto interfaces{tfc::global::get_interfaces()};
 
     for (auto const& interface : interfaces) {
       s.oneOf->emplace_back(tfc::json::detail::schematic{
