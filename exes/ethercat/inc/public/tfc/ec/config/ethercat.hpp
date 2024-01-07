@@ -29,7 +29,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   static void op(auto& s, auto&) noexcept {
     s.oneOf = std::vector<tfc::json::detail::schematic>{};
 
-    auto interfaces{tfc::global::get_interfaces()};
+    auto interfaces{ tfc::global::get_interfaces() };
 
     for (auto const& interface : interfaces) {
       s.oneOf->emplace_back(tfc::json::detail::schematic{

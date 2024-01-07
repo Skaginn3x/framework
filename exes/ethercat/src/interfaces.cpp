@@ -3,8 +3,8 @@
 
 #include <ifaddrs.h>
 
-#include <tfc/utils/pragmas.hpp>
 #include <tfc/ec/interfaces.hpp>
+#include <tfc/utils/pragmas.hpp>
 
 namespace {
 // clang-format off
