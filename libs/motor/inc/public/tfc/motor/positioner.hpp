@@ -72,7 +72,8 @@ public:
              std::function<void(bool)>&& home_cb,
              config_t&& default_value)
       : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, home_cb_{ home_cb },
-        config_{ dbus_, fmt::format("positioner_{}", name_), std::move(default_value) } {
+        config_{ dbus_->get_io_context() /*todo revert to propagate dbus connection*/, fmt::format("positioner_{}", name_),
+                 std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
