@@ -125,7 +125,9 @@ public:
                             fmt::format("atv320.s{}.in.freq", slave_index),
                             "Current Frequency"),
         hmis_transmitter_(connection->get_io_context(), client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ connection->get_io_context()/*todo revert to propagate dbus connection*/, fmt::format("atv320_i{}", slave_index) }, dbus_iface_(connection, slave_index) {
+        config_{ connection->get_io_context() /*todo revert to propagate dbus connection*/,
+                 fmt::format("atv320_i{}", slave_index) },
+        dbus_iface_(connection, slave_index) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
