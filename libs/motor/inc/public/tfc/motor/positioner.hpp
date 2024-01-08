@@ -146,7 +146,19 @@ public:
   }
 
   /// \return Resolution of the absolute position
-  [[nodiscard]] auto resolution() const noexcept -> displacement_t { return config_->displacement_per_increment; }
+  [[nodiscard]] auto resolution() const noexcept -> displacement_t {
+    return std::visit([]<typename mode_t>(mode_t const& mode) ->displacement_t {
+      if constexpr (std::convertible_to<mode_t, increment_config<reference>>) {
+        return mode.displacement_per_increment.value();
+      }
+      else if constexpr (std::convertible_to<mode_t, freq_config<deduce_velocity_t<reference>>>) {
+        // TODO !!! this is dependent on ethercat cycle time !!!!
+        // Make this as template argument
+        return mode.velocity_at_50Hz.value() / 1 * mp_units::si::milli<mp_units::si::second>;
+      }
+      return {};
+    }, config_->mode.value());
+  }
 
   /// \return Current velocity
   [[nodiscard]] auto velocity() const noexcept -> velocity_t { return velocity_; }
