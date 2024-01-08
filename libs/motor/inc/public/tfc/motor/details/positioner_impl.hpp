@@ -138,7 +138,7 @@ auto detect_deviation_from_average(auto interval, auto average) {
   auto err{ errors::err_enum::success };
   // check if interval is greater than 180% of average
   if (interval * 10 > average * 18) {
-    err = errors::err_enum::positioning_unstable;
+    err = errors::err_enum::positioning_missing_event;
   }
   return err;
 }

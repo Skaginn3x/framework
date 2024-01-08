@@ -8,7 +8,7 @@
 #include <glaze/core/common.hpp>
 #include <tfc/utils/json_schema.hpp>
 
-#include <tfc/ec/interfaces.hpp>
+#include <tfc/ec/common.hpp>
 
 namespace tfc::ec::config {
 
@@ -29,7 +29,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   static void op(auto& s, auto&) noexcept {
     s.oneOf = std::vector<tfc::json::detail::schematic>{};
 
-    auto interfaces{ tfc::global::get_interfaces() };
+    auto interfaces{ tfc::ec::common::get_interfaces() };
 
     for (auto const& interface : interfaces) {
       s.oneOf->emplace_back(tfc::json::detail::schematic{
@@ -40,7 +40,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
 
 namespace tfc::ec::config {
 struct bus {
-  network_interface primary_interface{ tfc::global::get_interfaces()[0] };
+  network_interface primary_interface{ tfc::ec::common::get_interfaces().at(0) };
   struct glaze {
     static constexpr auto value{ glz::object("primary_interface", &bus::primary_interface, "Primary interface") };
     static constexpr std::string_view name{ "config::bus" };
