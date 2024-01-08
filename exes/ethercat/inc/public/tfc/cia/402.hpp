@@ -197,6 +197,10 @@ inline auto transition(states_e current_state, bool run, bool quick_stop, bool f
       return commands::fault_reset();
 
     case states_e::quick_stop_active:
+      if (quick_stop) {
+        return commands::quick_stop();
+      }
+      return commands::disable_voltage();
     case states_e::not_ready_to_switch_on:
     case states_e::fault_reaction_active:
       return commands::disable_voltage();

@@ -93,36 +93,37 @@ struct dbus_iface {
       return validate_peer(msg.get_sender()) && cancel_pending_operation() && quick_stop();  // todo quick stop
     });
 
-    dbus_interface_->register_method(std::string{ method::do_homing }, [this](asio::yield_context yield,
-                                                                              const sdbusplus::message_t& msg) {
-      if (!validate_peer(msg.get_sender())) {
-        return;
-      }
-      cancel_pending_operation();
-      auto const& travel_speed{ pos_.homing_travel_speed() };
-      auto const& homing_sensor{ pos_.homing_sensor() };
-      if (!travel_speed.has_value() || !homing_sensor.has_value()) {
-        return;
-      }
-      logger_.trace("Homing motor");
-      if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
-        // todo move out of sensor and back to sensor
-        auto const pos{ pos_.position() };
-        logger_.info("Already at home, storing position: {}", pos);
-        pos_.home(pos);
-        return;
-      }
-      run_at_speedratio(travel_speed.value());
-      std::error_code err{ homing_complete_.async_wait(yield) };  // todo if other action is executed need to cancel the wait
-      auto const pos{ pos_.position() };
-      stop();
-      if (err) {
-        logger_.warn("Homing failed: {}", err.message());
-        return;
-      }
-      logger_.trace("Storing home position: {}", pos);
-      pos_.home(pos);
-    });
+    dbus_interface_->register_method(
+        std::string{ method::do_homing }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) {
+          if (!validate_peer(msg.get_sender())) {
+            return;
+          }
+          cancel_pending_operation();
+          auto const& travel_speed{ pos_.homing_travel_speed() };
+          auto const& homing_sensor{ pos_.homing_sensor() };
+          if (!travel_speed.has_value() || !homing_sensor.has_value()) {
+            return;
+          }
+          logger_.trace("Homing motor");
+          if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
+            // todo move out of sensor and back to sensor
+            auto const pos{ pos_.position() };
+            logger_.info("Already at home, storing position: {}", pos);
+            pos_.home(pos);
+            return;
+          }
+          run_at_speedratio(travel_speed.value());
+          std::error_code err{ homing_complete_.async_wait(bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+          if (err != std::errc::operation_canceled) {
+            quick_stop();
+            auto const pos{ pos_.position() };
+            logger_.trace("Storing home position: {}", pos);
+            pos_.home(pos);
+          }
+          if (err) {
+            logger_.warn("Homing failed: {}", err.message());
+          }
+        });
 
     // returns { error_code, actual displacement }
     dbus_interface_->register_method(
@@ -135,9 +136,6 @@ struct dbus_iface {
           if (!validate_peer(msg.get_sender())) {
             return std::make_tuple(permission_denied, 0L * micrometre_t::reference);
           }
-          if (pos_.error() == motor_missing_home_reference) {
-            return std::make_tuple(motor_missing_home_reference, 0L * micrometre_t::reference);
-          }
           if (displacement == 0L * micrometre_t::reference) {
             return std::make_tuple(success, 0L * micrometre_t::reference);
           }
@@ -147,14 +145,18 @@ struct dbus_iface {
             return std::make_tuple(speedratio_out_of_range, 0L * micrometre_t::reference);
           }
           std::error_code err{ pos_.notify_after(displacement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-          auto const actual_displacement{ is_positive ? (-pos).force_in(micrometre_t::reference)
+          auto const actual_displacement{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
                                                       : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+          // This is only called if another invocation has taken control of the motor
+          // stopping the motor now would be counter productive as somebody is using it.
+          if (err != std::errc::operation_canceled) {
+            // Todo this stops quickly :-)
+            quick_stop();
+          }
           if (err) {
             logger_.warn("Convey failed: {}", err.message());
             return std::make_tuple(motor::motor_error(err), actual_displacement);
           }
-          // Todo this stops quickly :-)
-          quick_stop();
           logger_.trace("Actual displacement: {}, where target was: {}", actual_displacement, displacement);
           return std::make_tuple(success, actual_displacement);
         });
@@ -197,18 +199,20 @@ struct dbus_iface {
     using enum motor::errors::err_enum;
     // Get our distance from the homing reference
     micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
-    logger_.trace("Target placement: {}, currently at: {}", placement, pos_from_home);
     if (!validate_peer(msg.get_sender())) {
       return std::make_tuple(permission_denied, pos_from_home);
     }
-    if (pos_.error() == motor_missing_home_reference) {
+    logger_.trace("Target placement: {}, currently at: {}", placement, pos_from_home);
+    cancel_pending_operation();
+    if (!pos_.homing_enabled() || pos_.error() == motor_missing_home_reference) {
+      logger_.trace("{}", motor_missing_home_reference);
       return std::make_tuple(motor_missing_home_reference, pos_from_home);
     }
     auto const resolution{ pos_.resolution() };
     if (placement + resolution >= pos_from_home || placement < pos_from_home + resolution) {
+      logger_.trace("Currently within resolution of current position");
       return std::make_tuple(success, placement);
     }
-    cancel_pending_operation();
     bool const is_positive{ pos_from_home < placement };
     // I thought about using absolute of speedratio, but if normal operation is negative than
     // it won't work, so it is better to making the user responsible to send correct sign.
@@ -223,9 +227,11 @@ struct dbus_iface {
     // API call when needed implementing deceleration would propably be best to be controlled by this code not the atv
     // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement
     // will quick_stop? or stop?
-    quick_stop();  // todo discuss, should we stop when the above call is returning an error??
-    pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
-    logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
+    if (err != std::errc::operation_canceled) {
+      quick_stop();
+      pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
+      logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
+    }
     if (err) {
       return std::make_tuple(motor::motor_error(err), pos_from_home);
     }
@@ -241,6 +247,7 @@ struct dbus_iface {
   }
   auto run_at_speedratio(speedratio_t speedratio) -> bool {
     if (speedratio < -100 * mp_units::percent || speedratio > 100 * mp_units::percent) {
+      logger_.trace("Speedratio not within range [-100,100], value: {}", speedratio);
       return false;
     }
     logger_.trace("Run motor at speedratio: {}", speedratio);
@@ -257,7 +264,7 @@ struct dbus_iface {
   }
   bool quick_stop() {
     quick_stop_ = true;
-    op_enable_ = true;
+    op_enable_ = false;
     speed_ratio_ = 0 * mp_units::percent;
     return true;
   }
