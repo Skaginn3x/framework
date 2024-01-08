@@ -204,8 +204,9 @@ struct dbus_iface {
     if (pos_.error() == motor_missing_home_reference) {
       return std::make_tuple(motor_missing_home_reference, pos_from_home);
     }
-    if (pos_from_home == 0L * micrometre_t::reference) {
-      return std::make_tuple(success, pos_from_home);
+    auto const resolution{ pos_.resolution() };
+    if (placement + resolution >= pos_from_home || placement < pos_from_home + resolution) {
+      return std::make_tuple(success, placement);
     }
     cancel_pending_operation();
     bool const is_positive{ pos_from_home < placement };
