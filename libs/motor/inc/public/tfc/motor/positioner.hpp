@@ -185,6 +185,9 @@ public:
   /// Will store current position as home
   void home() noexcept { return home(position()); }
 
+  /// Slot was created and slot has received a value
+  bool homing_enabled() { return homing_sensor_.has_value() && homing_sensor_->value().has_value(); }
+
   /// \brief return current error state
   /// \return error code
   [[nodiscard]] auto error() const noexcept -> errors::err_enum {
@@ -227,9 +230,9 @@ public:
     auto const increment{ displacement_per_increment_ * increment_counts };
     stddev_ = stddev;
     last_error_ = err;
-    if (stddev_ >= standard_deviation_threshold_) {
-      last_error_ = errors::err_enum::positioning_unstable;
-    }
+    // if (stddev_ >= standard_deviation_threshold_) {
+    // last_error_ = errors::err_enum::positioning_unstable;
+    // }
     // Important the resolution below needs to match
     static constexpr auto nanometer_reference{ mp_units::si::nano<mp_units::si::metre> };
     static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
