@@ -1,3 +1,4 @@
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 /* eslint-disable no-continue */
 import React, { useEffect, useState } from 'react';
 import {
@@ -44,13 +45,16 @@ const Configurator: React.FC = () => {
   useEffect(() => {
     loadExternalScript(async (allNames) => {
       const filteredNames = allNames.filter(
-        (name: string) => (name.includes('com.skaginn3x.config') || name.includes('com.skaginn3x.tfc')) && !name.includes('ipc_ruler'),
+        (name: string) => (
+          name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.config`)
+            || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`))
+            && !name.includes('ipc_ruler'),
       );
 
       // eslint-disable-next-line no-restricted-syntax
       for (const name of filteredNames) {
         const dbus = window.cockpit.dbus(name);
-        const path = '/com/skaginn3x/Config';
+        const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
         const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
 
         try {
