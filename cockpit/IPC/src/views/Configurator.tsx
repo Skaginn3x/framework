@@ -1,3 +1,4 @@
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 /* eslint-disable no-continue */
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,7 +15,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import Hamburger from 'hamburger-react';
-import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
+import { loadExternalScript, parseXMLInterfaces } from 'src/Components/Interface/ScriptLoader';
 import {
   fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
 } from 'src/Components/Form/WidgetFunctions';
@@ -30,7 +31,7 @@ declare global {
 const Configurator: React.FC = () => {
   const { addAlert } = useAlertContext();
   const { isDark } = useDarkMode();
-  const [names, setNames] = useState<string[]>([]);
+  const [names, setNames] = useState<Map<string, string>>(new Map());
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
 
   const toggleDrawer = () => {
@@ -40,34 +41,47 @@ const Configurator: React.FC = () => {
   const [formData, setFormData] = useState<any>({});
   const [schemas, setSchemas] = useState<any>({});
 
-  // Load cockpit.js and get dbus names
   useEffect(() => {
     loadExternalScript((allNames) => {
       const filteredNames = allNames.filter(
-        (name: string) => name.includes('config')
-          && !name.includes('ipc_ruler'),
+        (name) => (
+          name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.config`)
+              || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`)
+        ) && !name.includes('ipc_ruler'),
       );
-      setNames(filteredNames);
+
+      // Process each name asynchronously
+      filteredNames.forEach((name) => {
+        const dbus = window.cockpit.dbus(name);
+        const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
+        const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
+
+        processProxy.call('Introspect').then((data: string) => {
+          const interfacesData = parseXMLInterfaces(data);
+          setNames((prevNames) => new Map(prevNames).set(name, interfacesData[0].name));
+        }).catch((e: any) => {
+          console.error('Error in getInterfaceData:', e);
+        });
+      });
     });
   }, []);
 
-  // Get data and schema for each name and store in states
   useEffect(() => {
-    if (names.length > 0) {
-      names.forEach((name: string) => {
+    if (names.size > 0) {
+      names.forEach((interfaceName, processName) => {
         fetchDataFromDBus(
-          name, // process name
-          name, // interface name
+          processName,
+          interfaceName,
           'Config', // path
           'config', // property
         ).then(({ parsedData, parsedSchema }) => {
           setSchemas((prevState: any) => ({
             ...prevState,
-            [name]: parsedSchema,
+            [processName]: parsedSchema,
           }));
           setFormData((prevState: any) => ({
             ...prevState,
-            [name]: parsedData,
+            [processName]: parsedData,
           }));
         });
       });
