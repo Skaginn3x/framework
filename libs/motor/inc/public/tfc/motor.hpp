@@ -158,30 +158,14 @@ public:
   //             std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::angular::angle> auto, std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
+  template <QuantityOf<mp_units::isq::length> position_t>
+  auto move(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type;
 
-  void move(QuantityOf<mp_units::isq::length> auto position, std::invocable<std::error_code> auto cb) {
-    std::visit(
-        [&](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.move(position, cb);
-          } else {
-            cb(motor_error(errors::err_enum::no_motor_configured));
-          }
-        },
-        impl_);
-  }
-
-  void move_home(std::invocable<std::error_code> auto cb) {
-    std::visit(
-        [&](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.move_home(cb);
-          } else {
-            cb(motor_error(errors::err_enum::no_motor_configured));
-          }
-        },
-        impl_);
-  }
+  /// \brief move motor towards the home sensor on the configured homing travel speedratio
+  /// \param token completion token to notify when homing is complete
+  auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
   [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
     return std::visit(
@@ -299,6 +283,29 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
   return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                                 [length, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
                                   return motor_impl.convey(length, std::forward<decltype(token)>(token_captured));
+                                } },
+                    impl_);
+}
+
+template <QuantityOf<mp_units::isq::length> position_t>
+auto api::move(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type {
+  using signature_t = void(std::error_code, position_t);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [position, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
+                                  return motor_impl.move(position, std::forward<decltype(token)>(token_captured));
+                                } },
+                    impl_);
+}
+
+auto api::move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
+                                  return motor_impl.move_home(std::forward<decltype(token)>(token_captured));
                                 } },
                     impl_);
 }

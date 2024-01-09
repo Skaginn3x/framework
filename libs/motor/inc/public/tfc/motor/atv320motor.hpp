@@ -207,22 +207,17 @@ public:
         service_name_, path_, interface_name_, std::string{ method::run_at_speedratio }, 100.0);
   }
 
-  void move(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto cb) {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check) {
-      cb(sanity_check);
-      return;
-    }
-    cb(motor_error(errors::err_enum::motor_not_implemented));
+  template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
+  auto move(position_t position, asio::completion_token_for<signature_t> auto&& token) {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
   }
 
-  void move_home(std::invocable<std::error_code> auto cb) {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check) {
-      cb(sanity_check);
-      return;
-    }
-    cb(motor_error(errors::err_enum::motor_not_implemented));
+  template <typename signature_t = void(std::error_code)>
+  auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
   [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
