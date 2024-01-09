@@ -234,12 +234,12 @@ private:
 };
 
 namespace detail {
-template <typename Signature>
+template <typename signature_t>
 struct function_traits;
 
-template <typename Ret, typename... Args>
-struct function_traits<Ret(Args...)> {
-  static constexpr std::size_t arity = sizeof...(Args);
+template <typename return_t, typename... args_t>
+struct function_traits<return_t(args_t...)> {
+  static constexpr std::size_t arity = sizeof...(args_t);
 };
 
 template <typename signature_t>
@@ -263,15 +263,12 @@ auto monostate_return(auto&& token) {
 }
 template <typename signature_t>
 auto return_monostate(auto&& token) {
-  return [token_captured = std::forward<decltype(token)>(token)](std::monostate) mutable {
-    return monostate_return<signature_t>(std::forward<decltype(token)>(token_captured));
-  };
+  return [&](std::monostate) mutable { return monostate_return<signature_t>(std::forward<decltype(token)>(token)); };
 }
 
-// helper type for the visitor #4
-template <class... Ts>
-struct overloaded : Ts... {
-  using Ts::operator()...;
+template <typename... types_t>
+struct overloaded : types_t... {
+  using types_t::operator()...;
 };
 }  // namespace detail
 
@@ -280,11 +277,10 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
   using signature_t = void(std::error_code, travel_t);
   using namespace detail;
-  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [length, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.convey(length, std::forward<decltype(token)>(token_captured));
-                                } },
-                    impl_);
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.convey(length, std::forward<decltype(token)>(token)); } },
+      impl_);
 }
 
 template <QuantityOf<mp_units::isq::length> position_t>
@@ -292,22 +288,20 @@ auto api::move(position_t position, asio::completion_token_for<void(std::error_c
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type {
   using signature_t = void(std::error_code, position_t);
   using namespace detail;
-  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [position, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.move(position, std::forward<decltype(token)>(token_captured));
-                                } },
-                    impl_);
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.move(position, std::forward<decltype(token)>(token)); } },
+      impl_);
 }
 
 auto api::move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
   using signature_t = void(std::error_code);
   using namespace detail;
-  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.move_home(std::forward<decltype(token)>(token_captured));
-                                } },
-                    impl_);
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.move_home(std::forward<decltype(token)>(token)); } },
+      impl_);
 }
 
 auto api::stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -315,9 +309,7 @@ auto api::stop(asio::completion_token_for<void(std::error_code)> auto&& token) -
   using signature_t = void(std::error_code);
   using namespace detail;
   return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.stop(std::forward<decltype(token)>(token_captured));
-                                } },
+                                [&](auto& motor_impl) { return motor_impl.stop(std::forward<decltype(token)>(token)); } },
                     impl_);
 }
 
@@ -326,12 +318,11 @@ auto api::stop(QuantityOf<mp_units::isq::time> auto deceleration_duration,
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
   using signature_t = void(std::error_code);
   using namespace detail;
-  return std::visit(
-      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                  [deceleration_duration, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                    return motor_impl.stop(deceleration_duration, std::forward<decltype(token)>(token_captured));
-                  } },
-      impl_);
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) {
+                                  return motor_impl.stop(deceleration_duration, std::forward<decltype(token)>(token));
+                                } },
+                    impl_);
 }
 
 auto api::quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -350,9 +341,7 @@ auto api::brake(asio::completion_token_for<void(std::error_code)> auto&& token) 
   using signature_t = void(std::error_code);
   using namespace detail;
   return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.brake(std::forward<decltype(token)>(token_captured));
-                                } },
+                                [&](auto& motor_impl) { return motor_impl.brake(std::forward<decltype(token)>(token)); } },
                     impl_);
 }
 
@@ -361,9 +350,7 @@ auto api::run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
   using signature_t = void(std::error_code);
   using namespace detail;
   return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.run(std::forward<decltype(token)>(token_captured));
-                                } },
+                                [&](auto& motor_impl) { return motor_impl.run(std::forward<decltype(token)>(token)); } },
                     impl_);
 }
 
@@ -373,9 +360,7 @@ auto api::run(speedratio_t speedratio, asio::completion_token_for<void(std::erro
   using namespace detail;
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                  [speedratio, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                    return motor_impl.run(speedratio, std::forward<decltype(token)>(token_captured));
-                  } },
+                  [&](auto& motor_impl) { return motor_impl.run(speedratio, std::forward<decltype(token)>(token)); } },
       impl_);
 }
 
