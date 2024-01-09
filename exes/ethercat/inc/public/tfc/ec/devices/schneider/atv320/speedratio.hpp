@@ -14,7 +14,7 @@ constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, dou
   }
   mp_units::Quantity auto mapped{ ec::util::map(mp_units::abs(percentage), (1.0 * mp_units::percent),
                                                 (100.0 * mp_units::percent), min_freq.value, max_freq.value) };
-  if (percentage <= -1 * mp_units::percent ){
+  if (percentage <= -1 * mp_units::percent) {
     mapped = -1 * mapped;
   }
   return { .value = mapped };
@@ -24,22 +24,19 @@ constexpr auto percentage_to_deci_freq(mp_units::quantity<mp_units::percent, dou
 // stop test
 static_assert(percentage_to_deci_freq(0 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 0 * dHz});
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 0 * dHz });
 // min test forward
 static_assert(percentage_to_deci_freq(1 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 200 * dHz });
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 200 * dHz });
 // max test forward
 static_assert(percentage_to_deci_freq(100 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 500 * dHz });
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz });
 // 50% test forward
 static_assert(percentage_to_deci_freq(50 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 348 * dHz });
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 348 * dHz });
 // max test reverse
 static_assert(percentage_to_deci_freq(-100 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
@@ -59,7 +56,6 @@ static_assert(percentage_to_deci_freq(-10000 * mp_units::percent,
 // outside bounds forward
 static_assert(percentage_to_deci_freq(10000 * mp_units::percent,
                                       low_speed_LSP{ .value = 200 * dHz },
-                                      high_speed_HSP{ .value = 500 * dHz }) ==
-              speed{ .value = 500 * dHz });
+                                      high_speed_HSP{ .value = 500 * dHz }) == speed{ .value = 500 * dHz });
 #endif
 }  // namespace tfc::ec::devices::schneider::atv320::detail

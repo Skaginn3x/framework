@@ -4,9 +4,9 @@
 #include <mp-units/math.h>
 #include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
+#include <algorithm>
 #include <memory>
 #include <optional>
-#include <algorithm>
 
 #include <tfc/cia/402.hpp>
 #include <tfc/confman.hpp>
@@ -45,7 +45,7 @@ inline variable_t async_send_if_new(signal_t& signal,
   }
   return new_var;
 }
-}; // namespace details
+};  // namespace details
 
 template <typename manager_client_t>
 class device final : public base {
@@ -109,33 +109,29 @@ public:
   using config_t = tfc::confman::config<confman::observable<atv_config>>;
 
   explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& client, uint16_t slave_index)
-    : base(slave_index), ctx_{connection->get_io_context()}, run_(ctx_,
-                              client,
-                              fmt::format("atv320.s{}.run", slave_index),
-                              "Turn on motor",
-                              [this](bool value) { ipc_running_ = value; }),
-      ratio_(ctx_,
-             client,
-             fmt::format("atv320.s{}.ratio", slave_index),
-             "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
-             "reverse min freq.",
-             [this](double value) {
-               reference_frequency_ = detail::percentage_to_deci_freq(
-                   value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
-             }),
-      frequency_transmit_(ctx_,
-                          client,
-                          fmt::format("atv320.s{}.in.freq", slave_index),
-                          "Current Frequency"),
-      hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-      config_{ ctx_ /*todo revert to propagate dbus connection*/,
-               fmt::format("atv320_i{}", slave_index) },
-      dbus_iface_(connection, slave_index),
-    reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
-      auto timer = std::make_shared<asio::steady_timer>(ctx_);
-      // A timer to reset the reset just in case
-      allow_reset_ = value;
-    }) {
+      : base(slave_index), ctx_{ connection->get_io_context() }, run_(ctx_,
+                                                                      client,
+                                                                      fmt::format("atv320.s{}.run", slave_index),
+                                                                      "Turn on motor",
+                                                                      [this](bool value) { ipc_running_ = value; }),
+        ratio_(ctx_,
+               client,
+               fmt::format("atv320.s{}.ratio", slave_index),
+               "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
+               "reverse min freq.",
+               [this](double value) {
+                 reference_frequency_ = detail::percentage_to_deci_freq(
+                     value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
+               }),
+        frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
+        hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
+        config_{ ctx_ /*todo revert to propagate dbus connection*/, fmt::format("atv320_i{}", slave_index) },
+        dbus_iface_(connection, slave_index),
+        reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
+          auto timer = std::make_shared<asio::steady_timer>(ctx_);
+          // A timer to reset the reset just in case
+          allow_reset_ = value;
+        }) {
     config_->observe([this](auto&, auto&) {
       logger_.warn(
           "Live motor configuration unsupported, config change registered will be applied next ethercat master restart");
@@ -169,10 +165,7 @@ public:
     last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
   }
 
-  static constexpr auto errors_to_auto_reset = std::array{
-    lft_e::no_fault,
-    lft_e::cnf
-  };
+  static constexpr auto errors_to_auto_reset = std::array{ lft_e::no_fault, lft_e::cnf };
 
   auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
     // All registers in the ATV320 ar uint16, create a pointer to this memory
@@ -181,8 +174,12 @@ public:
     if ((input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) && !no_data_) {
       // First pdo cycle with no data
       no_data_ = true;
-      input_t status{ .status_word = cia_402::status_word{ .state_fault = true }, .frequency = 0 * dHz, .current = 0,
-                      .digital_inputs = 0, .last_error = lft_e::cnf, .drive_state = hmis_e::fault };
+      input_t status{ .status_word = cia_402::status_word{ .state_fault = true },
+                      .frequency = 0 * dHz,
+                      .current = 0,
+                      .digital_inputs = 0,
+                      .last_error = lft_e::cnf,
+                      .drive_state = hmis_e::fault };
       transmit_status(status);
       dbus_iface_.update_status(status);
       return;
@@ -204,8 +201,8 @@ public:
       // We have a new fault on the drive
       std::shift_right(last_errors_.begin(), last_errors_.end(), 1);
       last_errors_[0] = in->last_error;
-      bool auto_reset = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) !=
-                        errors_to_auto_reset.end();
+      bool auto_reset =
+          std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end();
       logger_.error("New fault detected {}, will try to auto reset: {}", in->last_error, auto_reset);
     } else if (drive_in_fault_state && in->last_error == lft_e::no_fault) {
       logger_.warn("ATV reports error but last fault is not set");
@@ -218,8 +215,9 @@ public:
     transmit_status(*in);
     dbus_iface_.update_status(*in);
 
-    bool auto_reset_allowed = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) !=
-                              errors_to_auto_reset.end() || allow_reset_;
+    bool auto_reset_allowed =
+        std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end() ||
+        allow_reset_;
 
     if (!dbus_iface_.has_peer()) {
       // Quick stop if frequncy set to 0
@@ -252,24 +250,24 @@ public:
     sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);
     // Zero the size
     sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010); // ETA  - STATUS WORD
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310); // RFR  - CURRENT SPEED HZ
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>, 0x20020510); // LCR  - CURRENT USAGE ( A
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310); // 1LIR - DI1-DI6
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>, 0x20291610); // LFT  - Last error occured
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20022910); // HMIS - Drive state
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>, 0x20020510);  // LCR  - CURRENT USAGE ( A
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>, 0x20291610);  // LFT  - Last error occured
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20022910);  // HMIS - Drive state
     sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 6);
 
     // Zero the size
     sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
     // Assign tx variables
     sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x01>,
-                        ecx::make_mapping_value<cia_402::control_word>()); // CMD - CONTROL WORD
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);            // LFR - REFERENCE SPEED HZ
+                        ecx::make_mapping_value<cia_402::control_word>());  // CMD - CONTROL WORD
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);             // LFR - REFERENCE SPEED HZ
     sdo_write<uint32_t>(
         ecx::rx_pdo_mapping<0x03>,
-        0x20160D10); // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x03>, 0x20164810); // AO1C - AQ1 physical value
+        0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x03>, 0x20164810);  // AO1C - AQ1 physical value
 
     // Set tx size
     sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 3);
@@ -322,6 +320,6 @@ private:
   ipc::bool_slot reset_;
   std::array<lft_e, 10> last_errors_{};
   bool no_data_{ false };
-  bool allow_reset_ { false };
+  bool allow_reset_{ false };
 };
-} // namespace tfc::ec::devices::schneider::atv320
+}  // namespace tfc::ec::devices::schneider::atv320

@@ -13,7 +13,7 @@ struct control_word {
   static constexpr index_t index{ 0x6040, 0x0 };
   bool switch_on : 1 {};
   bool enable_voltage : 1 {};
-  bool quick_stop : 1 {}; // FYI, enabled low
+  bool quick_stop : 1 {};  // FYI, enabled low
   bool enable_operation : 1 {};
   bool operating_mode_specific_0 : 1 {};
   bool operating_mode_specific_1 : 1 {};
@@ -83,7 +83,7 @@ struct status_word {
   bool remote : 1 {};
   bool target_reached : 1 {};
   bool internal_limit_active : 1 {};
-  bool application_specific_0 : 1 {}; // 12th bit
+  bool application_specific_0 : 1 {};  // 12th bit
   bool application_specific_1 : 1 {};
   bool application_specific_2 : 1 {};
   bool application_specific_3 : 1 {};
@@ -191,15 +191,15 @@ inline auto transition(states_e current_state, transition_action action, bool au
     case states_e::switched_on:
     case states_e::ready_to_switch_on:
       if (transition_action::run == action) {
-        return commands::enable_operation(); // This is a shortcut marked as 3B in ethercat manual for atv320
+        return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
       }
-      return commands::disable_operation(); // Stay in this state if in ready to switch on else transition to switched on
+      return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
     case states_e::operation_enabled:
       if (transition_action::quick_stop == action) {
         return commands::quick_stop();
       }
       if (transition_action::freewheel_stop == action) {
-        return commands::disable_voltage(); // Freewheel stop
+        return commands::disable_voltage();  // Freewheel stop
       }
       if (transition_action::run != action) {
         return commands::disable_operation();
@@ -224,4 +224,4 @@ inline auto transition(states_e current_state, transition_action action, bool au
   // Can only occur if someone casts an integer for state_e that is not defined in the enum
   return commands::disable_voltage();
 }
-} // namespace tfc::ec::cia_402
+}  // namespace tfc::ec::cia_402

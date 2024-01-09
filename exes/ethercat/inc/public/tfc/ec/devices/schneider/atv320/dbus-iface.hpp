@@ -282,7 +282,9 @@ struct dbus_iface {
   }
   //
   speedratio_t speed_ratio() { return speed_ratio_; }
-  cia_402::control_word ctrl(bool allow_reset) { return cia_402::transition(status_word_.parse_state(), action, allow_reset); }
+  cia_402::control_word ctrl(bool allow_reset) {
+    return cia_402::transition(status_word_.parse_state(), action, allow_reset);
+  }
   asio::io_context& ctx_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;  // todo is this needed, if so why, I am curious
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
@@ -292,7 +294,7 @@ struct dbus_iface {
   asio::cancellation_signal cancel_signal_{};
 
   // Motor control parameters
-  cia_402::transition_action action{cia_402::transition_action::none};
+  cia_402::transition_action action{ cia_402::transition_action::none };
   speedratio_t speed_ratio_{ 0.0 * mp_units::percent };
   cia_402::status_word status_word_{};
 
