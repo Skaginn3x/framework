@@ -127,13 +127,14 @@ public:
         impl_);
   }
 
-  void convey(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
+  template <QuantityOf<mp_units::isq::length> travel_t>
+  void convey(travel_t length, std::invocable<std::error_code, travel_t> auto cb) {
     std::visit(
         [&](auto& motor_impl_) {
           if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
             motor_impl_.convey(length, cb);
           } else {
-            cb(motor_error(errors::err_enum::no_motor_configured));
+            cb(motor_error(errors::err_enum::no_motor_configured), 0 * travel_t::reference);
           }
         },
         impl_);
@@ -220,6 +221,8 @@ public:
   void stop(QuantityOf<mp_units::isq::time> auto) {}
 
   void quick_stop() {}
+
+  void brake() {}
 
   void run() {}
 

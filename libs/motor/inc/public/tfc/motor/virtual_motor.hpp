@@ -125,10 +125,11 @@ public:
     });
   }
 
-  void convey(QuantityOf<mp_units::isq::length> auto length, std::invocable<std::error_code> auto cb) {
+  template <QuantityOf<mp_units::isq::length> travel_t>
+  void convey(travel_t length, std::invocable<std::error_code, travel_t> auto cb) {
     logger_.trace("convey({});", length);
     if (!config_.nominal) {
-      cb(motor_error(errors::err_enum::motor_missing_speed_reference));
+      cb(motor_error(errors::err_enum::motor_missing_speed_reference), 0 * travel_t::reference);
     }
   }
 

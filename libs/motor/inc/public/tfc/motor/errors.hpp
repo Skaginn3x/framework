@@ -36,6 +36,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
 
 auto enum_name(err_enum) noexcept -> std::string_view;
 auto enum_cast(std::underlying_type_t<err_enum>) noexcept -> std::optional<err_enum>;
+auto enum_cast(std::string_view) noexcept -> std::optional<err_enum>;
 
 inline auto format_as(err_enum err) -> std::string_view {  // for fmt
   return enum_name(err);
@@ -59,3 +60,25 @@ inline errors::err_enum motor_error(std::error_code err) {
   return unknown;
 }
 }  // namespace tfc::motor
+
+namespace sdbusplus::message::details {
+template <typename value_t>
+struct convert_from_string;
+
+template <typename value_t>
+struct convert_to_string;
+
+template <>
+struct convert_from_string<tfc::motor::errors::err_enum> {
+  using enum_t = tfc::motor::errors::err_enum;
+  static auto op(const std::string& err_str) noexcept -> std::optional<enum_t> {
+    return tfc::motor::errors::enum_cast(err_str);
+  }
+};
+
+template <>
+struct convert_to_string<tfc::motor::errors::err_enum> {
+  using enum_t = tfc::motor::errors::err_enum;
+  static auto op(enum_t err) -> std::string { return std::string{ enum_name(err) }; }
+};
+}  // namespace sdbusplus::message::details

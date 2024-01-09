@@ -62,6 +62,9 @@ auto enum_name(err_enum error) noexcept -> std::string_view {
 auto enum_cast(std::underlying_type_t<err_enum> error) noexcept -> std::optional<err_enum> {
   return magic_enum::enum_cast<err_enum>(error);
 }
+auto enum_cast(std::string_view error) noexcept -> std::optional<err_enum> {
+  return magic_enum::enum_cast<err_enum>(error);
+}
 }  // namespace tfc::motor::errors
 
 namespace tfc::motor {  // todo place in error namespace ?

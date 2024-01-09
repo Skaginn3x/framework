@@ -35,7 +35,7 @@ auto main(int argc, char** argv) -> int {
 
   // Configured speed
   err =  my_motor.convey();
-  my_motor.convey(10 * m, [](const std::error_code&) {});
+  my_motor.convey(10 * m, [](const std::error_code&, [[maybe_unused]] decltype(10 * m) actual_travel) {});
   my_motor.convey(10 * min, [](const std::error_code&) {});
 
   /// Rotational transport
