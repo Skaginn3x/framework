@@ -143,29 +143,33 @@ public:
     cb(motor_error(errors::err_enum::motor_not_implemented));
   }
 
-  template <QuantityOf<mp_units::isq::length> travel_t>
-  void convey(travel_t travel, std::invocable<std::error_code, travel_t> auto cb) {
-    if (auto const sanity_check{ motor_seems_valid() }) {
-      cb(sanity_check, 0 * travel_t::reference);
-      return;
-    }
-    connection_->async_method_call_timed(
-        [this, cb](std::error_code const& err, errors::err_enum motor_err, micrometre_t actual_travel) {
-          if (err) {
-            logger_.warn("Convey failure: {}", err.message());
-            cb(err, actual_travel.force_in(travel_t::reference));
+  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  auto convey(travel_t travel, asio::completion_token_for<signature_t> auto&& token) {
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, travel](auto& self, std::error_code = {}, travel_t = 0 * travel_t::reference) {
+          if (auto const sanity_check{ motor_seems_valid() }) {
+            self.complete(sanity_check, 0 * travel_t::reference);
             return;
           }
-          using enum errors::err_enum;
-          if (motor_err != success) {
-            logger_.warn("Convey failure: {}", motor_err);
-            cb(motor_error(motor_err), actual_travel.force_in(travel_t::reference));
-            return;
-          }
-          cb({}, actual_travel.force_in(travel_t::reference));
+          connection_->async_method_call_timed(
+              [this, &self](std::error_code const& err, errors::err_enum motor_err, micrometre_t actual_travel) {
+                if (err) {
+                  logger_.warn("Convey failure: {}", err.message());
+                  self.complete(err, actual_travel.force_in(travel_t::reference));
+                  return;
+                }
+                using enum errors::err_enum;
+                if (motor_err != success) {
+                  logger_.warn("Convey failure: {}", motor_err);
+                  self.complete(motor_error(motor_err), actual_travel.force_in(travel_t::reference));
+                  return;
+                }
+                self.complete({}, actual_travel.force_in(travel_t::reference));
+              },
+              service_name_, path_, interface_name_, std::string{ method::convey_micrometre }, method_call_timeout.count(),
+              travel.force_in(micrometre_t::reference));
         },
-        service_name_, path_, interface_name_, std::string{ method::convey_micrometre }, method_call_timeout.count(),
-        travel.force_in(micrometre_t::reference));
+        token);
   }
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
