@@ -39,7 +39,7 @@ static constexpr std::string_view move_micrometre{ "MoveMicrometre" };
 
 namespace types {
 using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
-
-}
+using speedratio_t = mp_units::quantity<mp_units::percent, double>;
+}  // namespace types
 
 }  // namespace tfc::motor::dbus

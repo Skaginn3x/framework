@@ -23,7 +23,7 @@
 namespace tfc::motor {
 namespace asio = boost::asio;
 using mp_units::QuantityOf;
-using SpeedRatio = mp_units::ratio;
+using speedratio_t = dbus::types::speedratio_t;
 
 class api {
 public:
@@ -222,7 +222,11 @@ public:
 
   void run() {}
 
-  void run(SpeedRatio) {}
+  /// \brief Send run command to motor with specified speedratio
+  /// \param speedratio to run motor at [-100, 100]%
+  /// \param token completion token to notify when motor has executed the run command
+  auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
 private:
   asio::io_context& ctx_;
@@ -250,6 +254,23 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
                 self.complete(motor_error(errors::err_enum::no_motor_configured), 0 * travel_t::reference);
               },
               token_captured);
+        }
+      },
+      impl_);
+}
+
+auto api::run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  return std::visit(
+      // mutable allows move of token
+      [speedratio, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl_) mutable {
+        if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+          // Strictly forwarding by the inputting type
+          return motor_impl_.run(speedratio, std::forward<decltype(token)>(token_captured));
+        } else {
+          return asio::async_compose<decltype(token), signature_t>(
+              [](auto& self) { self.complete(motor_error(errors::err_enum::no_motor_configured)); }, token_captured);
         }
       },
       impl_);

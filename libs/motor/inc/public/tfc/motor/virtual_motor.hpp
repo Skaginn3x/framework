@@ -10,6 +10,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/impl.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
@@ -20,6 +21,7 @@ using tfc::confman::observable;
 using namespace mp_units::si::unit_symbols;
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
+using speedratio_t = dbus::types::speedratio_t;
 
 /**
  * @brief Virtual motor class
@@ -212,6 +214,13 @@ public:
   }
 
   auto is_running() const -> bool { return running_; }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
 
 private:
   asio::io_context& ctx_;

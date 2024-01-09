@@ -8,6 +8,7 @@
 namespace motor = tfc::motor;
 namespace asio = boost::asio;
 using namespace mp_units::si::unit_symbols;  // NOLINT(*-build-using-namespace)
+using mp_units::percent;
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
@@ -53,7 +54,7 @@ auto main(int argc, char** argv) -> int {
   // motor.rotate(1 * 360 * (deg / min), 10 * min, [](const std::error_code&) {});
 
   /// All types
-  my_motor.run(50);  // Run with SpeedRatio
+  my_motor.run(50 * percent, [](std::error_code){});  // Run with SpeedRatio
   my_motor.stop();   // Stop freewheel
 
   // Absolute positioning relative to home position
@@ -84,12 +85,12 @@ auto main(int argc, char** argv) -> int {
   // motor.notify(10 * rad, [](std::error_code const&) {});
 
   /// Special cases
-  my_motor.run(0);  // Stop the motor
+  my_motor.run(0 * percent, [](std::error_code){});  // Stop the motor
   my_motor.run();   // Start the motor at configured speed
 
   // Calling convey, rotate or move
-  my_motor.run(50);
-  my_motor.run(-50);
+  my_motor.run(50 * percent, [](std::error_code){});
+  my_motor.run(-50 * percent, [](std::error_code){});
 
   ctx.run();
 
