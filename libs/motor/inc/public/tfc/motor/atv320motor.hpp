@@ -249,7 +249,12 @@ public:
 
   void quick_stop() {}
 
-  void run() {}
+  template <typename signature_t = void(std::error_code)>
+  auto run(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
 
   template <typename signature_t = void(std::error_code)>
   auto run(speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->

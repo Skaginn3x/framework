@@ -220,7 +220,10 @@ public:
 
   void brake() {}
 
-  void run() {}
+  /// \brief Send run command to motor with default configured speedratio by the motor server
+  /// \param token completion token to notify when motor has executed the run command
+  auto run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
   /// \brief Send run command to motor with specified speedratio
   /// \param speedratio to run motor at [-100, 100]%
@@ -254,6 +257,23 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
                 self.complete(motor_error(errors::err_enum::no_motor_configured), 0 * travel_t::reference);
               },
               token_captured);
+        }
+      },
+      impl_);
+}
+
+auto api::run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  return std::visit(
+      // mutable allows move of token
+      [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl_) mutable {
+        if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+          // Strictly forwarding by the inputting type
+          return motor_impl_.run(std::forward<decltype(token)>(token_captured));
+        } else {
+          return asio::async_compose<decltype(token), signature_t>(
+              [](auto& self) { self.complete(motor_error(errors::err_enum::no_motor_configured)); }, token_captured);
         }
       },
       impl_);
