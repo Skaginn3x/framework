@@ -329,11 +329,10 @@ auto api::quick_stop(asio::completion_token_for<void(std::error_code)> auto&& to
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
   using signature_t = void(std::error_code);
   using namespace detail;
-  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [token_captured = std::forward<decltype(token)>(token)](auto& motor_impl) mutable {
-                                  return motor_impl.quick_stop(std::forward<decltype(token)>(token_captured));
-                                } },
-                    impl_);
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) mutable { return motor_impl.quick_stop(std::forward<decltype(token)>(token)); } },
+      impl_);
 }
 
 auto api::brake(asio::completion_token_for<void(std::error_code)> auto&& token) ->
