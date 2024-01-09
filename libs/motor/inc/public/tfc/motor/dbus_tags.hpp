@@ -11,7 +11,7 @@ namespace tfc::motor::dbus {
 
 namespace detail {
 static constexpr std::string_view path_postfix{ "Motors" };
-static constexpr std::string_view service{ "Ethercat" };  // needs to match the name in ec.hpp (ethercat exe)
+static constexpr std::string_view service{ "Ethercat" };
 }  // namespace detail
 
 static constexpr std::string_view service_name{ tfc::dbus::const_dbus_name<detail::service> };

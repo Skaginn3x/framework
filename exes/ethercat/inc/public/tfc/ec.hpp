@@ -16,6 +16,7 @@
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/interfaces.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/motor/dbus_tags.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -28,7 +29,9 @@ using std::chrono::nanoseconds;
 template <size_t pdo_buffer_size = 4096>
 class context_t {
 public:
-  static constexpr std::string_view dbus_name{ "Ethercat" };  // needs to match the name in motor/dbus_tags.hpp
+  static constexpr std::string_view dbus_name{
+    tfc::motor::dbus::detail::service
+  };  // needs to match the name in motor/dbus_tags.hpp
   // There is support in SOEM and ethercat to split
   // your network into groups. There can even be
   // Many processing loops operating on the same

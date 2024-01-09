@@ -70,7 +70,7 @@ public:
     // takes approx 5 seconds to reach 80Hz
     acceleration_ramp_time_ACC acceleration;
     deceleration_ramp_time_DEC deceleration;
-    confman::observable<speedratio_t> default_speedratio{ 50 * speedratio_t::reference };
+    confman::observable<speedratio_t> default_speedratio{ 1 * speedratio_t::reference };  // Run the motor at LSP by default
 
     struct glaze {
       using T = atv_config;
@@ -139,7 +139,11 @@ public:
 
     config_->value().default_speedratio.observe(
         [this](speedratio_t new_v, auto) { dbus_iface_.set_configured_speedratio(new_v); });
+
+    // Apply the default speedratio to both means of controlling the motor
     dbus_iface_.set_configured_speedratio(config_->value().default_speedratio);
+    reference_frequency_ = detail::percentage_to_deci_freq(config_->value().default_speedratio, config_->value().low_speed,
+                                                           config_->value().high_speed);
 
     for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
