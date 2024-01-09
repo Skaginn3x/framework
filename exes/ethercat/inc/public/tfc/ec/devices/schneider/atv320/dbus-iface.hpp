@@ -283,7 +283,7 @@ struct dbus_iface {
   //
   speedratio_t speed_ratio() { return speed_ratio_; }
   cia_402::control_word ctrl(bool allow_reset) {
-    if (speed_ratio_ < 1 * mp_units::percent && speed_ratio_ > -1 * mp_units::percent )
+    if (speed_ratio_ < 1 * mp_units::percent && speed_ratio_ > -1 * mp_units::percent)
       return cia_402::transition(status_word_.parse_state(), cia_402::transition_action::none, allow_reset);
     return cia_402::transition(status_word_.parse_state(), action, allow_reset);
   }

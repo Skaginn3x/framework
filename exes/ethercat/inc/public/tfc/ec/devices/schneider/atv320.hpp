@@ -241,10 +241,11 @@ public:
     }
 
     // Write the reset allowed bit down after it has been up for 5 seconds.
-    if (allow_reset_ && reset_timer_.expiry() < std::chrono::steady_clock::now()){
+    if (allow_reset_ && reset_timer_.expiry() < std::chrono::steady_clock::now()) {
       reset_timer_.expires_after(std::chrono::seconds(5));
-      reset_timer_.async_wait([this](const std::error_code& err){
-        if(err) return;
+      reset_timer_.async_wait([this](const std::error_code& err) {
+        if (err)
+          return;
         allow_reset_ = false;
       });
     }
@@ -326,7 +327,7 @@ private:
   dbus_iface dbus_iface_;
   ipc::bool_slot reset_;
   std::array<lft_e, 10> last_errors_{};
-  asio::steady_timer reset_timer_{ctx_};
+  asio::steady_timer reset_timer_{ ctx_ };
   bool no_data_{ false };
   bool allow_reset_{ false };
 };
