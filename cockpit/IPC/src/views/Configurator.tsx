@@ -41,31 +41,28 @@ const Configurator: React.FC = () => {
   const [formData, setFormData] = useState<any>({});
   const [schemas, setSchemas] = useState<any>({});
 
-  // Load cockpit.js and get dbus names
   useEffect(() => {
-    loadExternalScript(async (allNames) => {
+    loadExternalScript((allNames) => {
       const filteredNames = allNames.filter(
-        (name: string) => (
+        (name) => (
           name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.config`)
-            || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`))
-            && !name.includes('ipc_ruler'),
+              || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`)
+        ) && !name.includes('ipc_ruler'),
       );
 
-      // eslint-disable-next-line no-restricted-syntax
-      for (const name of filteredNames) {
+      // Process each name asynchronously
+      filteredNames.forEach((name) => {
         const dbus = window.cockpit.dbus(name);
         const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
         const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
 
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          const data = await processProxy.call('Introspect');
+        processProxy.call('Introspect').then((data: string) => {
           const interfacesData = parseXMLInterfaces(data);
           setNames((prevNames) => new Map(prevNames).set(name, interfacesData[0].name));
-        } catch (e) {
+        }).catch((e: any) => {
           console.error('Error in getInterfaceData:', e);
-        }
-      }
+        });
+      });
     });
   }, []);
 
