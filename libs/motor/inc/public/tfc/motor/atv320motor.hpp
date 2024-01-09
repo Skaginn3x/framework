@@ -9,6 +9,7 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
+#include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
 
@@ -85,6 +86,8 @@ private:
 
 public:
   using config_t = config;
+  std::chrono::microseconds static constexpr method_call_timeout{ std::chrono::hours{ 24 } };
+
   atv320motor(asio::io_context& ctx, const config_t& conf) : ctx_{ ctx } {
     slave_id_ = conf.slave_id.value();
     send_ping(slave_id_);
@@ -140,29 +143,29 @@ public:
     cb(motor_error(errors::err_enum::motor_not_implemented));
   }
 
-  template <QuantityOf<mp_units::isq::length> displacement_t>
-  void convey(displacement_t displacement, std::invocable<std::error_code, displacement_t> auto cb) {
+  template <QuantityOf<mp_units::isq::length> travel_t>
+  void convey(travel_t travel, std::invocable<std::error_code, travel_t> auto cb) {
     if (auto const sanity_check{ motor_seems_valid() }) {
-      cb(sanity_check);
+      cb(sanity_check, 0 * travel_t::reference);
       return;
     }
-    std::chrono::microseconds constexpr timeout{ std::chrono::hours{ 24 } };
     connection_->async_method_call_timed(
-        [this, cb](std::error_code const& err, errors::err_enum motor_err, micrometre_t actual_displacement) {
+        [this, cb](std::error_code const& err, errors::err_enum motor_err, micrometre_t actual_travel) {
           if (err) {
             logger_.warn("Convey failure: {}", err.message());
-            cb(err, actual_displacement);
+            cb(err, actual_travel.force_in(travel_t::reference));
             return;
           }
           using enum errors::err_enum;
           if (motor_err != success) {
             logger_.warn("Convey failure: {}", motor_err);
-            cb(motor_error(motor_err), actual_displacement);
+            cb(motor_error(motor_err), actual_travel.force_in(travel_t::reference));
             return;
           }
-          cb({}, actual_displacement);
+          cb({}, actual_travel.force_in(travel_t::reference));
         },
-        service_name_, path_, interface_name_, std::string{ method::run_at_speedratio }, timeout.count(), displacement);
+        service_name_, path_, interface_name_, std::string{ method::convey_micrometre }, method_call_timeout.count(),
+        travel.force_in(micrometre_t::reference));
   }
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
