@@ -51,6 +51,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
 
   let dimension: string | undefined;
   const storeValues = store ? store.toJS().values : {};
+
   let storeValue = getNestedValue(storeValues, storeKeys.toJS());
   dimension = schema.toJS()['x-tfc']?.dimension ? schema.toJS()['x-tfc'].dimension : undefined;
   const type = schema.get('type') as string | undefined;
@@ -143,8 +144,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    */
   const handleUnitChange = (event: any) => {
     const newUnit = event.target.value;
-    console.log(value);
-    console.log(newUnit);
     if (value !== null && value !== undefined && newUnit && initialUnit) {
       setValue(value.to(newUnit).toPrec(initialUnit));
       setStringValue(value.to(newUnit).toPrec(initialUnit).scalar.toString());

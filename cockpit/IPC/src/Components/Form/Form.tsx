@@ -92,6 +92,41 @@ export default function FormGenerator(
       });
     }
 
+    // type: number
+    // {
+    //   "type": "number",
+    //     "minimum": -1.7976931348623157e+308,
+    //     "maximum": 1.7976931348623157e+308,
+    //     "x-tfc": {
+    //   "unit": {
+    //     "unit_ascii": "m/s",
+    //         "unit_unicode": "m/s"
+    //   },
+    //   "dimension": "speed",
+    //       "required": true
+    // },
+    //   "widget": "Units"
+    // }
+
+    // first call
+    // type: undefined
+    //     {
+    //       "unit": {
+    //       "unit_ascii": "m/s",
+    //           "unit_unicode": "m/s"
+    //     },
+    //       "dimension": "speed",
+    //         "required": true
+    //     }
+
+    // last call
+    // type: undefined
+    // json[key]
+    // {
+    //   "unit_ascii": "m/s",
+    //     "unit_unicode": "m/s"
+    // }
+
     if ('enum' in json[key]) {
       json[key].widget = 'Select';
     } else if ('oneOf' in json[key]) {
@@ -115,11 +150,13 @@ export default function FormGenerator(
    * @returns Parsed Schema with widgets added
    */
   function parseJson(json: JsonType): JsonType {
-  // Unwrap single-item 'type' arrays for the root
+    // Unwrap single-item 'type' arrays for the root
     if (Array.isArray(json.type) && json.type.length === 1) {
       // eslint-disable-next-line prefer-destructuring
       json.type = json.type[0];
     }
+
+    console.log('type: ', json.type);
 
     // eslint-disable-next-line guard-for-in, no-restricted-syntax
     for (const key in json) {
