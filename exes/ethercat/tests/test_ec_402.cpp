@@ -34,7 +34,9 @@ auto main(int, char**) -> int {
     expect(transition(switch_on_disabled, run) == commands::shutdown());
     expect(transition(ready_to_switch_on, run) == commands::enable_operation());
     expect(transition(switched_on, run) == commands::enable_operation());
-    expect(transition(fault, run) == commands::fault_reset());
+    bool const allow_reset_fault{ true };
+    expect(transition(fault, run, allow_reset_fault) == commands::fault_reset());
+    expect(transition(fault, run) == commands::shutdown());
     expect(transition(operation_enabled, run) == commands::enable_operation());
   };
 }
