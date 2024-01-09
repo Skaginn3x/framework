@@ -1,9 +1,12 @@
-#include <tfc/progbase.hpp>
-#include <tfc/motor.hpp>
-#include <fmt/printf.h>
+#include <boost/asio.hpp>
+#include <fmt/core.h>
 #include <mp-units/systems/si/unit_symbols.h>
 
+#include <tfc/progbase.hpp>
+#include <tfc/motor.hpp>
+
 namespace motor = tfc::motor;
+namespace asio = boost::asio;
 using namespace mp_units::si::unit_symbols;  // NOLINT(*-build-using-namespace)
 
 auto main(int argc, char** argv) -> int {
@@ -35,8 +38,14 @@ auto main(int argc, char** argv) -> int {
 
   // Configured speed
   err =  my_motor.convey();
-  my_motor.convey(10 * m, [](const std::error_code&, [[maybe_unused]] decltype(10 * m) actual_travel) {});
+  my_motor.convey(10 * m, [](std::error_code, [[maybe_unused]] auto actual_travel) {});
   my_motor.convey(10 * min, [](const std::error_code&) {});
+
+  co_spawn(ctx, [&]() -> asio::awaitable<void> {
+    auto const ret{ my_motor.convey(10 * m, asio::use_awaitable) };
+    fmt::println("Travelled: {}", "todo");
+    co_return;
+  }, asio::detached);
 
   /// Rotational transport
   // motor.rotate(1 * 360 * (deg / min));

@@ -125,12 +125,22 @@ public:
     });
   }
 
-  template <QuantityOf<mp_units::isq::length> travel_t>
-  void convey(travel_t length, std::invocable<std::error_code, travel_t> auto cb) {
+  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  auto convey(travel_t length, asio::completion_token_for<signature_t> auto&& token) {
     logger_.trace("convey({});", length);
     if (!config_.nominal) {
-      cb(motor_error(errors::err_enum::motor_missing_speed_reference), 0 * travel_t::reference);
+      return asio::async_compose<decltype(token), signature_t>(
+          [](auto& self, std::error_code = {}, travel_t = 0 * travel_t::reference) {
+            self.complete(motor_error(errors::err_enum::motor_missing_speed_reference), 0 * travel_t::reference);
+          },
+          token);
     }
+    // todo
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self, std::error_code = {}, travel_t = 0 * travel_t::reference) {
+          self.complete(motor_error(errors::err_enum::motor_method_not_implemented), 0 * travel_t::reference);
+        },
+        token);
   }
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {

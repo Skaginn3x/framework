@@ -127,18 +127,14 @@ public:
         impl_);
   }
 
+  /// \brief Convey a specific distance at default speedratio and stop when done
+  /// \tparam travel_t deduced type of length to travel
+  /// \param length to travel
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// Note that when the motor sends the quick_stop command the motor is still moving
   template <QuantityOf<mp_units::isq::length> travel_t>
-  void convey(travel_t length, std::invocable<std::error_code, travel_t> auto cb) {
-    std::visit(
-        [&](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            motor_impl_.convey(length, cb);
-          } else {
-            cb(motor_error(errors::err_enum::no_motor_configured), 0 * travel_t::reference);
-          }
-        },
-        impl_);
-  }
+  auto convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
   void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
     std::visit(
@@ -237,4 +233,26 @@ private:
   confman::config<config_t> config_;
   logger::logger logger_;
 };
+
+template <QuantityOf<mp_units::isq::length> travel_t>
+auto api::convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
+  using signature_t = void(std::error_code, travel_t);
+  return std::visit(
+      // mutable allows move of token
+      [length, token_captured = std::forward<decltype(token)>(token)](auto& motor_impl_) mutable {
+        if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
+          // Strictly forwarding by the inputting type
+          return motor_impl_.convey(length, std::forward<decltype(token)>(token_captured));
+        } else {
+          return asio::async_compose<decltype(token), signature_t>(
+              [](auto& self, std::error_code = {}, travel_t = 0 * travel_t::reference) {
+                self.complete(motor_error(errors::err_enum::no_motor_configured), 0 * travel_t::reference);
+              },
+              token_captured);
+        }
+      },
+      impl_);
+}
+
 }  // namespace tfc::motor

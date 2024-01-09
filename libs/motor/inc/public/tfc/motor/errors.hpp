@@ -26,12 +26,13 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   motor_missing_speed_reference = 5,
   motor_missing_home_reference = 6,
   motor_not_implemented = 7,
-  speedratio_out_of_range = 8,
+  motor_method_not_implemented = 8,
+  speedratio_out_of_range = 11,
   positioning_unstable = 20,
   positioning_missing_event = 21,
   positioning_request_out_of_range = 22,
   permission_denied = 30,
-  unknown,
+  unknown = 100,
 };
 
 auto enum_name(err_enum) noexcept -> std::string_view;
