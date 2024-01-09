@@ -165,7 +165,7 @@ public:
   /// \brief move motor towards the home sensor on the configured homing travel speedratio
   /// \param token completion token to notify when homing is complete
   auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
   [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
     return std::visit(
