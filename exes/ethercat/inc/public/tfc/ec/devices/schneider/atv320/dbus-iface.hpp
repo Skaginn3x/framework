@@ -61,8 +61,8 @@ struct dbus_iface {
         timeout_.async_wait([this](std::error_code err) {
           if (err)
             return;  // The timer was canceled or deconstructed.
-          op_enable_ = false;
-          quick_stop_ = false;
+          // Stop the drive from running since the peer has disconnected
+          action = cia_402::transition_action::none;
           speed_ratio_ = 0.0 * mp_units::percent;
           peer_ = "";
           dbus_interface_->signal_property(std::string{ connected_peer });
@@ -189,7 +189,7 @@ struct dbus_iface {
     auto old_config_speedratio{ config_speedratio_ };
     config_speedratio_ = speedratio;
     // this is not correct, but this operation is non frequent and this simplifies the logic
-    if (op_enable_ && !quick_stop_ && speed_ratio_ == old_config_speedratio) {
+    if (action == cia_402::transition_action::run && speed_ratio_ == old_config_speedratio) {
       speed_ratio_ = config_speedratio_;
     }
   }
@@ -251,20 +251,17 @@ struct dbus_iface {
       return false;
     }
     logger_.trace("Run motor at speedratio: {}", speedratio);
-    quick_stop_ = false;
-    op_enable_ = true;
+    action = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
     return true;
   }
   bool stop() {
-    quick_stop_ = false;
-    op_enable_ = false;
+    action = cia_402::transition_action::stop;
     speed_ratio_ = 0 * mp_units::percent;
     return true;
   }
   bool quick_stop() {
-    quick_stop_ = true;
-    op_enable_ = false;
+    action = cia_402::transition_action::quick_stop;
     speed_ratio_ = 0 * mp_units::percent;
     return true;
   }
@@ -285,7 +282,7 @@ struct dbus_iface {
   }
   //
   speedratio_t speed_ratio() { return speed_ratio_; }
-  cia_402::control_word ctrl() { return cia_402::transition(status_word_.parse_state(), op_enable_, quick_stop_, false); }
+  cia_402::control_word ctrl(bool allow_reset) { return cia_402::transition(status_word_.parse_state(), action, allow_reset); }
   asio::io_context& ctx_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;  // todo is this needed, if so why, I am curious
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
@@ -295,8 +292,7 @@ struct dbus_iface {
   asio::cancellation_signal cancel_signal_{};
 
   // Motor control parameters
-  bool quick_stop_{ false };
-  bool op_enable_{ false };
+  cia_402::transition_action action{cia_402::transition_action::none};
   speedratio_t speed_ratio_{ 0.0 * mp_units::percent };
   cia_402::status_word status_word_{};
 

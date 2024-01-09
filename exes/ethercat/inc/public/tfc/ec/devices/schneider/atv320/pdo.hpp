@@ -7,8 +7,8 @@ struct input_t {
   decifrequency_signed frequency{};
   uint16_t current{};
   uint16_t digital_inputs{};
-  int16_t analog_input{};
-  uint16_t drive_state{};
+  lft_e last_error;
+  hmis_e drive_state{};
 };
 
 struct output_t {

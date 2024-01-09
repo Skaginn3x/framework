@@ -2596,7 +2596,7 @@ enum struct hmis_e : std::uint16_t {
   fa = 20,    ///< Autotest error ([Autotest error] (FA))
   ok = 21,    ///< Autotest OK ([Autotest OK] (OK))
   ep = 22,    ///< EEprom test ([EEprom test] (EP))
-  flt = 23,   ///< Operating state "Fault" ([Operating State "Fault" ] (FLT))
+  fault = 23,   ///< Operating state "Fault" ([Operating State "Fault" ] (FLT))
   dcp = 25,   ///< DCP Flashing mode ([DCP Flashing Mode] (DCP))
   sto = 30,   ///< STO active ([STO active] (STO))
   idle = 35,  ///< Energy Saving ([Energy Saving] (IDLE))
@@ -2643,7 +2643,7 @@ enum struct hmis_e : std::uint16_t {
       return "[Autotest OK] (OK), Autotest OK";
     case hmis_e::ep:
       return "[EEprom test] (EP), EEprom test";
-    case hmis_e::flt:
+    case hmis_e::fault:
       return "[Operating State Fault ] (FLT), Operating state Fault";
     case hmis_e::dcp:
       return "[DCP Flashing Mode] (DCP), DCP Flashing mode";
@@ -3137,7 +3137,7 @@ constexpr auto format_as(ldst_e const enum_value) -> std::string_view {
 
 // Begin of lft_e enum decleration
 enum struct lft_e : std::uint16_t {
-  nof = 0,     ///< No error detected ([No Error] (NOF))
+  no_fault = 0,     ///< No error detected ([No Error] (NOF))
   eef1 = 2,    ///< EEPROM control ([EEPROM Control] (EEF1))
   cff = 3,     ///< Incorrect configuration ([Incorrect Configuration] (CFF))
   cfi = 4,     ///< Invalid configuration ([Invalid Configuration] (CFI))
@@ -3270,7 +3270,7 @@ enum struct lft_e : std::uint16_t {
 };
 [[nodiscard]] constexpr auto enum_desc(lft_e const enum_value) -> std::string_view {
   switch (enum_value) {
-    case lft_e::nof:
+    case lft_e::no_fault:
       return "[No Error] (NOF), No error detected";
     case lft_e::eef1:
       return "[EEPROM Control] (EEF1), EEPROM control";

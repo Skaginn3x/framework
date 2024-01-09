@@ -7,14 +7,13 @@
 #include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::cia_402 {
-
 using ecx::index_t;
 
 struct control_word {
   static constexpr index_t index{ 0x6040, 0x0 };
   bool switch_on : 1 {};
   bool enable_voltage : 1 {};
-  bool quick_stop : 1 {};  // FYI, enabled low
+  bool quick_stop : 1 {}; // FYI, enabled low
   bool enable_operation : 1 {};
   bool operating_mode_specific_0 : 1 {};
   bool operating_mode_specific_1 : 1 {};
@@ -36,15 +35,19 @@ struct control_word {
     [[nodiscard]] static auto shutdown() -> control_word {
       return control_word{ .switch_on = false, .enable_voltage = true, .quick_stop = true };
     }
+
     [[nodiscard]] static auto switch_on() -> control_word {
       return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true };
     }
+
     [[nodiscard]] static auto enable_operation() -> control_word {
       return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true, .enable_operation = true };
     }
+
     [[nodiscard]] static auto disable_operation() -> control_word {
       return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true, .enable_operation = false };
     }
+
     [[nodiscard]] static auto disable_voltage() -> control_word { return control_word{ .enable_voltage = false }; }
     [[nodiscard]] static auto quick_stop() -> control_word { return control_word{ .enable_voltage = true }; }
     [[nodiscard]] static auto fault_reset() -> control_word { return control_word{ .fault_reset = true }; }
@@ -80,7 +83,7 @@ struct status_word {
   bool remote : 1 {};
   bool target_reached : 1 {};
   bool internal_limit_active : 1 {};
-  bool application_specific_0 : 1 {};  // 12th bit
+  bool application_specific_0 : 1 {}; // 12th bit
   bool application_specific_1 : 1 {};
   bool application_specific_2 : 1 {};
   bool application_specific_3 : 1 {};
@@ -165,39 +168,52 @@ static_assert(sizeof(status_word) == 2);
   return "unknown"s;
 }
 
+enum struct transition_action {
+  none = 0,
+  run,
+  stop,
+  // Note. For now this is not directly used but has the same effect as none as run is not set.
+  quick_stop,
+  freewheel_stop,
+  reset,
+};
+
 /**
  * Transition to operational mode
  * @param current_state State parsed from status word determined to be the current status of a drive
  * @param quick_stop if the drive should be placed in quick_stop mode.
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-inline auto transition(states_e current_state, bool run, bool quick_stop, bool freewheel_stop) -> control_word {
+inline auto transition(states_e current_state, transition_action action, bool auto_reset_allowed = false) -> control_word {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands::shutdown();
     case states_e::switched_on:
     case states_e::ready_to_switch_on:
-      if (run && !freewheel_stop && !quick_stop) {
-        return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
+      if (transition_action::run == action) {
+        return commands::enable_operation(); // This is a shortcut marked as 3B in ethercat manual for atv320
       }
-      return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
+      return commands::disable_operation(); // Stay in this state if in ready to switch on else transition to switched on
     case states_e::operation_enabled:
-      if (quick_stop) {
+      if (transition_action::quick_stop == action) {
         return commands::quick_stop();
       }
-      if (freewheel_stop) {
-        return commands::disable_voltage();  // Freewheel stop
+      if (transition_action::freewheel_stop == action) {
+        return commands::disable_voltage(); // Freewheel stop
       }
-      if (!run) {
+      if (transition_action::run != action) {
         return commands::disable_operation();
       }
 
       return commands::enable_operation();
     case states_e::fault:
-      return commands::fault_reset();
-
+      if (transition_action::reset == action || auto_reset_allowed) {
+        return commands::fault_reset();
+      }
+      // We are not allowed to reset the fault that has occured.
+      return commands::shutdown();
     case states_e::quick_stop_active:
-      if (quick_stop) {
+      if (transition_action::quick_stop == action) {
         return commands::quick_stop();
       }
       return commands::disable_voltage();
@@ -208,5 +224,4 @@ inline auto transition(states_e current_state, bool run, bool quick_stop, bool f
   // Can only occur if someone casts an integer for state_e that is not defined in the enum
   return commands::disable_voltage();
 }
-
-}  // namespace tfc::ec::cia_402
+} // namespace tfc::ec::cia_402
