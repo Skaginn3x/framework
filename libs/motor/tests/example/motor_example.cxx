@@ -86,7 +86,7 @@ auto main(int argc, char** argv) -> int {
 
   /// Special cases
   my_motor.run(0 * percent, [](std::error_code){});  // Stop the motor
-  my_motor.run();   // Start the motor at configured speed
+  my_motor.run([](std::error_code){});   // Start the motor at configured speed
 
   // Calling convey, rotate or move
   my_motor.run(50 * percent, [](std::error_code){});
