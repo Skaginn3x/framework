@@ -22,7 +22,7 @@ namespace tfc::ec::devices::schneider::atv320 {
 
 namespace asio = boost::asio;
 namespace method = motor::dbus::method;
-using speedratio_t = mp_units::quantity<mp_units::percent, double>;
+using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
 
 // Handy commands

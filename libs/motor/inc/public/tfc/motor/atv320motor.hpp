@@ -18,8 +18,8 @@ namespace tfc::motor::types {
 namespace asio = boost::asio;
 namespace method = dbus::method;
 using mp_units::QuantityOf;
-using SpeedRatio = mp_units::ratio;  // todo revert to mp_units quantity of percent?
 using micrometre_t = dbus::types::micrometre_t;
+using speedratio_t = dbus::types::speedratio_t;
 
 class atv320motor {
 private:
@@ -251,6 +251,11 @@ public:
 
   void run() {}
 
-  void run(SpeedRatio) {}
+  template <typename signature_t = void(std::error_code)>
+  auto run(speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
 };
 }  // namespace tfc::motor::types
