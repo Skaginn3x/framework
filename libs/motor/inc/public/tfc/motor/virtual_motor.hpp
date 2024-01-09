@@ -163,43 +163,50 @@ public:
     });
   }
 
-  void move(QuantityOf<mp_units::isq::length> auto position, std::invocable<std::error_code> auto cb) {
-    logger_.trace("move({});", position);
-    if (!config_.nominal) {
-      cb(motor_error(errors::err_enum::motor_missing_speed_reference));
-      return;
-    }
-    auto length = mp_units::abs(pos_ - position);
-    auto duration = length / config_.nominal.value();
-    timer_.cancel();
-    timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
-    timer_.async_wait([this, cb, position](auto ec) {
-      if (ec) {
-        logger_.trace("move({}); canceled", position);
-        cb(ec);
-        return;
-      }
-      running_ = false;
-      pos_ = position;
-      logger_.trace("move({}); complete!", position);
-      cb({});
-    });
+  template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
+  auto move(position_t position, asio::completion_token_for<signature_t> auto&& token) {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+    // logger_.trace("move({});", position);
+    // if (!config_.nominal) {
+    //   cb(motor_error(errors::err_enum::motor_missing_speed_reference));
+    //   return;
+    // }
+    // auto length = mp_units::abs(pos_ - position);
+    // auto duration = length / config_.nominal.value();
+    // timer_.cancel();
+    // timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
+    // timer_.async_wait([this, cb, position](auto ec) {
+    //   if (ec) {
+    //     logger_.trace("move({}); canceled", position);
+    //     cb(ec);
+    //     return;
+    //   }
+    //   running_ = false;
+    //   pos_ = position;
+    //   logger_.trace("move({}); complete!", position);
+    //   cb({});
+    // });
   }
 
-  void move_home(std::invocable<std::error_code> auto cb) {
-    logger_.trace("move_home();");
-    timer_.cancel();
-    timer_.expires_after(chrono::seconds(1));
-    timer_.async_wait([&, cb](const std::error_code& err) {
-      if (err) {
-        logger_.trace("move_home(); canceled");
-        cb(err);
-        return;
-      }
-      has_reference_ = true;
-      logger_.trace("move_home(); complete!");
-      cb({});
-    });
+  template <typename signature_t = void(std::error_code)>
+  auto move_home(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+    // logger_.trace("move_home();");
+    // timer_.cancel();
+    // timer_.expires_after(chrono::seconds(1));
+    // timer_.async_wait([&, cb](const std::error_code& err) {
+    //   if (err) {
+    //     logger_.trace("move_home(); canceled");
+    //     cb(err);
+    //     return;
+    //   }
+    //   has_reference_ = true;
+    //   logger_.trace("move_home(); complete!");
+    //   cb({});
+    // });
   }
 
   auto needs_homing() const -> std::expected<bool, std::error_code> {
