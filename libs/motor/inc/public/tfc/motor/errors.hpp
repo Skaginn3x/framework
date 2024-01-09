@@ -48,12 +48,14 @@ inline auto format_as(err_enum err) -> std::string_view {  // for fmt
 /// The error category for Motor errors.
 std::error_category const& category();
 
-/// Get an error code for a Motor error,
+/// Get an error code for a Motor error.
 inline std::error_code motor_error(errors::err_enum error) {
   auto const error_int = static_cast<int>(error);
   return std::error_code(error_int, category());
 }
-inline errors::err_enum motor_error(std::error_code err) {
+
+/// Get the motor error enum from a std::error_code.
+inline errors::err_enum motor_enum(std::error_code err) {
   using enum errors::err_enum;
   if (err.category() == category()) {
     return errors::enum_cast(err.value()).value_or(unknown);

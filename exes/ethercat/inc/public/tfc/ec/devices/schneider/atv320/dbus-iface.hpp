@@ -155,7 +155,7 @@ struct dbus_iface {
           }
           if (err) {
             logger_.warn("Convey failed: {}", err.message());
-            return std::make_tuple(motor::motor_error(err), actual_displacement);
+            return std::make_tuple(motor::motor_enum(err), actual_displacement);
           }
           logger_.trace("Actual displacement: {}, where target was: {}", actual_displacement, displacement);
           return std::make_tuple(success, actual_displacement);
@@ -233,7 +233,7 @@ struct dbus_iface {
       logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
     }
     if (err) {
-      return std::make_tuple(motor::motor_error(err), pos_from_home);
+      return std::make_tuple(motor::motor_enum(err), pos_from_home);
     }
     return std::make_tuple(success, pos_from_home);
   }
