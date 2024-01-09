@@ -181,7 +181,8 @@ enum struct transition_action {
 /**
  * Transition to operational mode
  * @param current_state State parsed from status word determined to be the current status of a drive
- * @param quick_stop if the drive should be placed in quick_stop mode.
+ * @param action the action to change to another state in cia402 state machine
+ * @param auto_reset_allowed allowance flag to indicate whether it is okay to move from fault state
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
 inline auto transition(states_e current_state, transition_action action, bool auto_reset_allowed = false) -> control_word {

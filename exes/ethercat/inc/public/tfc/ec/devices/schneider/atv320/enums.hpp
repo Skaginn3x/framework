@@ -8,7 +8,14 @@
 #include <cstdint>
 #include <string_view>
 
+#include <tfc/utils/pragmas.hpp>
+
 namespace tfc::ec::devices::schneider::atv320 {
+
+// todo remove
+// clang-format off
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wcovered-switch-default)
+// clang-format on
 
 /// ACT enum ATV320
 enum struct act_e : std::uint16_t {
@@ -6936,5 +6943,7 @@ enum struct wupm_e : std::uint16_t {
 constexpr auto format_as(wupm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
 }
+
+PRAGMA_CLANG_WARNING_POP
 
 }  // namespace tfc::ec::devices::schneider::atv320
