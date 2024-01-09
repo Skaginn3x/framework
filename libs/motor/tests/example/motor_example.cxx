@@ -55,7 +55,7 @@ auto main(int argc, char** argv) -> int {
 
   /// All types
   my_motor.run(50 * percent, [](std::error_code){});  // Run with SpeedRatio
-  my_motor.stop();   // Stop freewheel
+  my_motor.stop([](std::error_code){});   // Stop freewheel
 
   // Absolute positioning relative to home position
   // my_motor.move(10 * mp_units::percent, 10 * m, [](auto){});
@@ -75,8 +75,8 @@ auto main(int argc, char** argv) -> int {
   // m.stop(100ms);
   // m.run(50%);
   // m.stop(); <- This uses the configured deceleration
-  my_motor.stop(100 * ms);
-  my_motor.quick_stop();  // Stop the motor with quick stop
+  my_motor.stop(100 * ms, [](std::error_code){});
+  my_motor.quick_stop([](std::error_code){});  // Stop the motor with quick stop
 
   /// Getting notified of a continously running motor
   my_motor.notify(10 * min, [](std::error_code const&) {});

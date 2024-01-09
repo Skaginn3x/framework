@@ -238,16 +238,32 @@ public:
 
   void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
 
-  std::error_code stop() {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check)
-      return sanity_check;
-    return motor_error(errors::err_enum::motor_not_implemented);
+  template <typename signature_t = void(std::error_code)>
+  auto stop(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
+  template <typename signature_t = void(std::error_code)>
+  auto stop(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
-  void stop(QuantityOf<mp_units::isq::time> auto) {}
+  template <typename signature_t = void(std::error_code)>
+  auto quick_stop(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
 
-  void quick_stop() {}
+  template <typename signature_t = void(std::error_code)>
+  auto brake(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
 
   template <typename signature_t = void(std::error_code)>
   auto run(asio::completion_token_for<signature_t> auto&& token) ->
