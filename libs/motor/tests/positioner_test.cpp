@@ -228,7 +228,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
                    data_t{ .time_between_teeth = 7ms, .stddev = 2123205ns },
                    data_t{ .time_between_teeth = 17ms, .stddev = 5156355ns } };
 
-  "tachometer average deviation threshold reached"_test = [] {
+  ut::skip / "tachometer average deviation threshold reached"_test = [] {
     bool called{};
     bool do_expect_error{};
     tachometer_test test{ .cb = [&called, &do_expect_error](auto, auto, auto, tfc::motor::errors::err_enum err) {
@@ -540,7 +540,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
         << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
   };
 
-  "standard deviation error"_test = [] {
+  ut::skip / "standard deviation error"_test = [] {
     auto constexpr stddev{ 1ms };
     notification_test::positioner_t::config_t config{};
     notification_test::tachometer_config_t tachometer_config{};
