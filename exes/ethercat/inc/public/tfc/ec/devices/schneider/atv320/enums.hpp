@@ -12,11 +12,6 @@
 
 namespace tfc::ec::devices::schneider::atv320 {
 
-// todo remove
-// clang-format off
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wcovered-switch-default)
-// clang-format on
-
 /// ACT enum ATV320
 enum struct act_e : std::uint16_t {
   tab = 0,   ///< Not done ([Not Done] (TAB))
@@ -37,9 +32,8 @@ enum struct act_e : std::uint16_t {
       return "[Error] (FAIL), Error detected";
     case act_e::done:
       return "[Autotuning Done] (DONE), Autotuning Done";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(act_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -59,9 +53,8 @@ enum struct action_e : std::uint16_t {
       return "[Apply Autotuning] (YES), Apply autotuning";
     case action_e::clr:
       return "[Erase Autotuning] (CLR), Erase autotuning";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(action_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -81,9 +74,8 @@ enum struct adc_e : std::uint16_t {
       return "[Yes] (YES), DC injection";
     case adc_e::ct:
       return "[Continuous] (CT), Continuous DC injection";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(adc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -103,9 +95,8 @@ enum struct affl_e : std::uint16_t {
       return "[Channel 1] (CH1), ";
     case affl_e::ch2:
       return "[Channel 2] (CH2), ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(affl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -122,9 +113,8 @@ enum struct aiol_e : std::uint16_t {
       return "[0 - 100%] (POS), Positive only";
     case aiol_e::positive_bipolar:
       return "[+/- 100%] (POSNEG), Positive and negative";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(aiol_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -178,9 +168,8 @@ enum struct aiot_e : std::uint16_t {
       return "[3 PT1000 in 3 wires] (3PT33), 3 PT1000 in 3 wires";
     case aiot_e::pt100_3_wires_3:
       return "[3 PT100 in 3 wires] (3PT23), 3 PT100 in 3 wires";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(aiot_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -500,9 +489,8 @@ enum struct alr_e : std::uint16_t {
       return "[Cooling Pump Warn] (COPA), Cooling pump warning";
     case alr_e::moa:
       return "[Module Overheat] (MOA), Module overheat warning";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(alr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -558,9 +546,8 @@ enum struct apps_e : std::uint16_t {
       return "[InletPres Comp Active] (COMP), Inlet pressure Compensation is in progress";
     case apps_e::undef:
       return "[Undefined] (UNDEF), Undefined";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(apps_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -583,9 +570,8 @@ enum struct appt_e : std::uint16_t {
       return "[Pump Booster Control] (BOOST), Pump booster control application";
     case appt_e::fan:
       return "[Generic Fan Control] (FAN), Generic fan control application";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(appt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -608,9 +594,8 @@ enum struct ast_e : std::uint16_t {
       return "[Rotational Current Injection] (RCI), Rotational current injection";
     case ast_e::no:
       return "[No align.] (NO), NO alignment";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ast_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -627,9 +612,8 @@ enum struct aut_e : std::uint16_t {
       return "[No] (NO), No";
     case aut_e::yes:
       return "[Yes] (YES), Yes";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(aut_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -646,9 +630,8 @@ enum struct avot_e : std::uint16_t {
       return "[bipolar 8192] (INEG), +/- 8192";
     case avot_e::pneg:
       return "[bipolar 100] (PNEG), +/- 100%";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(avot_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -680,9 +663,8 @@ enum struct bcs_e : std::uint16_t {
       return "[Staging] (STG), Staging";
     case bcs_e::dstg:
       return "[Destaging] (DSTG), Destage in progress";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bcs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -708,9 +690,8 @@ enum struct bdco_e : std::uint16_t {
       return "[500 kbps] (500 ), ";
     case bdco_e::mbps_1:
       return "[1 Mbps] (1M), ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bdco_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -727,9 +708,8 @@ enum struct bfr_e : std::uint16_t {
       return "[50Hz IEC] (50Hz), 50Hz motor frequency";
     case bfr_e::nema:
       return "[60Hz NEMA] (60Hz), 60Hz motor frequency";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bfr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -749,9 +729,8 @@ enum struct bmp_e : std::uint16_t {
       return "[Bumpless] (BUMP), Cmd/ref copied on c/over";
     case bmp_e::dis:
       return "[Disabled] (DIS), Disabled";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bmp_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -774,9 +753,8 @@ enum struct boa_e : std::uint16_t {
       return "[Static] (STAT), Static";
     case boa_e::cste:
       return "[Constant] (CSTE), Constant";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(boa_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -796,9 +774,8 @@ enum struct bra_e : std::uint16_t {
       return "[Yes] (YES), Yes";
     case bra_e::dyna:
       return "[High Torque] (DYNA), High torque";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bra_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -824,9 +801,8 @@ enum struct bsdc_e : std::uint16_t {
       return "[Feedback+Flow] (FBFL), Feedback+Flow";
     case bsdc_e::opt:
       return "[Energy Optimized ] (OPT), Energy Optimized ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bsdc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -846,9 +822,8 @@ enum struct bsdm_e : std::uint16_t {
       return "[Feedback] (BFBK), ";
     case bsdm_e::advc:
       return "[Advanced] (ADVC), ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bsdm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -871,9 +846,8 @@ enum struct bsp_e : std::uint16_t {
       return "[Deadband] (BNS), Deadband at LSP";
     case bsp_e::bns0:
       return "[Deadband at 0%] (BNS0), Deadband at 0 speed";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(bsp_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -902,9 +876,8 @@ enum struct car_e : std::uint16_t {
       return "[Clear Event 4 Warning] (RA4), Clear Event 4 warning";
     case car_e::ra5:
       return "[Clear Event 5 Warning] (RA5), Clear Event 5 warning";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(car_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -942,9 +915,8 @@ enum struct cbs_e : std::uint16_t {
       return "[CB Closed] (CBCS), Circuit breaker closed";
     case cbs_e::cbsd:
       return "[CB stop disable] (CBSD), Circuit breaker stop is disable";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cbs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -961,9 +933,8 @@ enum struct cbsr_e : std::uint16_t {
       return "[Error] (FLT), Error";
     case cbsr_e::war:
       return "[Warning] (WAR), warning";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cbsr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -983,9 +954,8 @@ enum struct cca_e : std::uint16_t {
       return "[Counter] (CPT), Counter";
     case cca_e::dt:
       return "[Date and Time] (DT), Date and time";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cca_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1005,9 +975,8 @@ enum struct ccs_e : std::uint16_t {
       return "[Mains Supply ON] (1), Mains Supply ON";
     case ccs_e::drive_in_running_state:
       return "[Drive is Running] (2), Drive in running State";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ccs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1036,9 +1005,8 @@ enum struct cdx_e : std::uint16_t {
       return "[Com. Module] (NET), Ext. communication module";
     case cdx_e::eth:
       return "[Ethernet] (ETH), Ethernet";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cdx_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1061,9 +1029,8 @@ enum struct cfps_e : std::uint16_t {
       return "[Set No.2] (CFP2), Parameter set 2";
     case cfps_e::cfp3:
       return "[Set No.3] (CFP3), Parameter set 3";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cfps_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1083,9 +1050,8 @@ enum struct chcf_e : std::uint16_t {
       return "[Separate] (SEP), Separated channel mode";
     case chcf_e::io:
       return "[I/O profile] (IO), I/O mode";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(chcf_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1108,9 +1074,8 @@ enum struct chr_e : std::uint16_t {
       return "[Error] (FLT), Error";
     case chr_e::alflt:
       return "[None] (ALFLT), ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(chr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1136,9 +1101,8 @@ enum struct cinr_e : std::uint16_t {
       return "[1] (1), 1";
     case cinr_e::deka:
       return "[10] (10), 10";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cinr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1161,9 +1125,8 @@ enum struct cioa_e : std::uint16_t {
       return "[100/101] (100), 100/101";
     case cioa_e::uncg:
       return "[Unconfig.] (UNCG), Unconfigured";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cioa_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1189,9 +1152,8 @@ enum struct cmdt_e : std::uint16_t {
       return "[Inlet Pressure] (IPT), Inlet pressure trend view";
     case cmdt_e::ift:
       return "[Installation Flow] (IFT), Installation flow trend view";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cmdt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1208,9 +1170,8 @@ enum struct cnfs_e : std::uint16_t {
       return "[In progress] (NO), In progress";
     case cnfs_e::cnf0:
       return "[Config. No.0] (CNF0), Configuration 0 active";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cnfs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1242,9 +1203,8 @@ enum struct cnl_e : std::uint16_t {
       return "[Ethernet Module] (ETH), Ethernet option module";
     case cnl_e::pws:
       return "[PC tool] (PWS), PC tool";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cnl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1261,9 +1221,8 @@ enum struct cofm_e : std::uint16_t {
       return "[Measured] (HWCOF), Measured";
     case cofm_e::swcof:
       return "[Computed] (SWCOF), Computed";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cofm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1286,9 +1245,8 @@ enum struct com1_e : std::uint16_t {
       return "[R1T0] (R1T0), R1T0";
     case com1_e::r1t1:
       return "[R1T1] (R1T1), R1T1";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(com1_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1311,9 +1269,8 @@ enum struct cop_e : std::uint16_t {
       return "[Command] (CD), Copy command";
     case cop_e::all:
       return "[Cmd + Ref Frequency] (ALL), Copy command & reference frequency";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cop_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1399,9 +1356,8 @@ enum struct csa_e : std::uint16_t {
       return "[Pump Flow Sensor] (FS2A), Pump flow sensor source";
     case csa_e::lcsa:
       return "[LevelCtrl Sensor] (LCSA), Level Control sensor";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(csa_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1433,9 +1389,8 @@ enum struct cslfn_e : std::uint16_t {
       return "[+speed] (FNUSP), Increase speed";
     case cslfn_e::fndsp:
       return "[-speed] (FNDSP), Decrease speed";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cslfn_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1494,9 +1449,8 @@ enum struct cslout_e : std::uint16_t {
       return "[R65] (R65), Relay R65";
     case cslout_e::r66:
       return "[R66] (R66), Relay R66";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(cslout_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1525,9 +1479,8 @@ enum struct ctt_e : std::uint16_t {
       return "[U/F VC Energy Sav.] (ECO), U/F VC Energy Sav.";
     case ctt_e::srvc:
       return "[Reluctance Motor] (SRVC), Reluctance motor";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ctt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1547,9 +1500,8 @@ enum struct dcrc_e : std::uint16_t {
       return "[Warning] (WARN), Warning triggered";
     case dcrc_e::flt:
       return "[Error] (FLT), Error triggered";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(dcrc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1572,9 +1524,8 @@ enum struct dlr_e : std::uint16_t {
       return "[Not allowed] (DLR2), Download not allowed";
     case dlr_e::dlr3:
       return "[Lock/unlock] (DLR3), Combined Lock/Unlock";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(dlr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1591,9 +1542,8 @@ enum struct dotd_e : std::uint16_t {
       return "[Freewheel Stop] (NST), Drive freewheel stop";
     case dotd_e::rmp:
       return "[Ramp Stop] (RMP), Ramp stop";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(dotd_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1610,9 +1560,8 @@ enum struct dpma_e : std::uint16_t {
       return "[Master 1] (1), Master 1";
     case dpma_e::master_2:
       return "[Master 2] (2), Master 2";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(dpma_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1629,9 +1578,8 @@ enum struct drt_e : std::uint16_t {
       return "[Normal Duty] (NORMAL), Normal duty";
     case drt_e::high:
       return "[Heavy Duty] (HIGH), High duty";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(drt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1651,9 +1599,8 @@ enum struct drym_e : std::uint16_t {
       return "[Switch] (SWT), Switch";
     case drym_e::pwr:
       return "[Power] (PWR), Power";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(drym_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1685,9 +1632,8 @@ enum struct dur_e : std::uint16_t {
       return "[3 hours] (3H), 3 hours";
     case dur_e::ct:
       return "[Unlimited] (CT), Unlimited";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(dur_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1722,9 +1668,8 @@ enum struct ecfg_e : std::uint16_t {
       return "[Fast stop] (FST), Fast stop";
     case ecfg_e::dci:
       return "[DC injection] (DCI), DC injection";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ecfg_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1786,9 +1731,8 @@ enum struct efdr_e : std::uint16_t {
       return "[Drive Writing File] (HWF), Drive writing file";
     case efdr_e::swf:
       return "[Server Writing File] (SWF), Server writing file";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(efdr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -1817,9 +1761,8 @@ enum struct emdt_e : std::uint16_t {
       return "[Monthly kWh report] (HSM), Monthly kWh report";
     case emdt_e::hsy:
       return "[Yearly kWh report] (HSY), Yearly kWh report";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(emdt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2250,9 +2193,8 @@ enum struct fcs_e : std::uint16_t {
       return "[Recall default parameter set] (INI), Recall default parameter set";
     case fcs_e::ini1:
       return "[Recall OEM default parameter set] (INI1), Recall OEM default parameter set";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(fcs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2275,9 +2217,8 @@ enum struct fcsi_e : std::uint16_t {
       return "[Config 2] (CFG2), Configuration 2";
     case fcsi_e::cfg3:
       return "[Config 3] (CFG3), Config 3";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(fcsi_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2297,9 +2238,8 @@ enum struct fdra_e : std::uint16_t {
       return "[SAVE] (SAVE), SAVE";
     case fdra_e::rest:
       return "[REST] (REST), REST";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(fdra_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2319,9 +2259,8 @@ enum struct fem_e : std::uint16_t {
       return "[HQ] (HQ), Enable Head vs flow curve";
     case fem_e::pq:
       return "[PQ] (PQ), Activate power vs flow curve";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(fem_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2344,9 +2283,8 @@ enum struct ffm_e : std::uint16_t {
       return "[Never] (STP), Never";
     case ffm_e::eco:
       return "[Economy] (ECO), Economy";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ffm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2366,9 +2304,8 @@ enum struct flcm_e : std::uint16_t {
       return "[Display] (MON), Display";
     case flcm_e::comp:
       return "[Compensation] (COMP), Compensation";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(flcm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2388,9 +2325,8 @@ enum struct flr_e : std::uint16_t {
       return "[Yes On Freewheel] (YES), Yes on freewheel";
     case flr_e::all:
       return "[Yes Always] (ALL), Yes always";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(flr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2413,9 +2349,8 @@ enum struct for_e : std::uint16_t {
       return "[8-N-1] (8N1), 8bit no parity 1stop bit";
     case for_e::bits8_no_2stop:
       return "[8-N-2] (8N2), 8bit no parity 2stop bits";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(for_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2510,9 +2445,8 @@ enum struct fwer_e : std::uint16_t {
       return "[Package error] (IFO), Package error";
     case fwer_e::wait:
       return "[Wait] (WAIT), Wait";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(fwer_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2574,9 +2508,8 @@ enum struct fwst_e : std::uint16_t {
       return "[Saving conf] (SAVE), Saving current configuration";
     case fwst_e::post:
       return "[Post Script] (POST), Post Script";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(fwst_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2662,9 +2595,8 @@ enum struct hmis_e : std::uint16_t {
       return "[Firmware Update] (FWUP), Firmware Update";
     case hmis_e::ura:
       return "[AFE Mains Undervoltage ] (URA), AFE Mains undervoltage ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(hmis_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2684,9 +2616,8 @@ enum struct ifm_e : std::uint16_t {
       return "[Ready & Run State] (RRY), Ready and Run state";
     case ifm_e::run:
       return "[Run State] (RUN), Run state";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ifm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2706,9 +2637,8 @@ enum struct inhs_e : std::uint16_t {
       return "[Forced Run FW] (FRD), Forced Run in forward direction";
     case inhs_e::rrs:
       return "[Forced Run RV] (RRS), Forced  Run in reverse direction";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(inhs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2728,9 +2658,8 @@ enum struct inr_e : std::uint16_t {
       return "[0.1] (01), Tenths of seconds";
     case inr_e::second:
       return "[1] (1), seconds";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(inr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2762,9 +2691,8 @@ enum struct ipae_e : std::uint16_t {
       return "[Not Configured] (UCFG), Not Configured";
     case ipae_e::urec:
       return "[Unrecoverable Error] (UREC), Unrecoverable error";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ipae_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2787,9 +2715,8 @@ enum struct ipm_e : std::uint16_t {
       return "[DHCP] (DHCP), DHCP";
     case ipm_e::dcp:
       return "[DCP] (DCP), DCP";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ipm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2809,9 +2736,8 @@ enum struct ippm_e : std::uint16_t {
       return "[Warning] (ALARM), warning";
     case ippm_e::comp:
       return "[Compensation] (COMP), Compensation";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ippm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2834,9 +2760,8 @@ enum struct jatc_e : std::uint16_t {
       return "[Time] (TIME), Time";
     case jatc_e::torque:
       return "[Torque] (TORQUE), Torque";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(jatc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2859,9 +2784,8 @@ enum struct lac_e : std::uint16_t {
       return "[Expert] (EPR), Expert access";
     case lac_e::ser:
       return "[Services] (SER), Services";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lac_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2881,9 +2805,8 @@ enum struct lcm_e : std::uint16_t {
       return "[Filling] (FILL), Filling mode";
     case lcm_e::empty:
       return "[Emptying] (EMPTY), Emptying mode";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lcm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2903,9 +2826,8 @@ enum struct lcnt_e : std::uint16_t {
       return "[Level Sensor] (LEVEL), Level sensor";
     case lcnt_e::pres:
       return "[Pressure sensor] (PRES), Pressure sensor";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lcnt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2922,9 +2844,8 @@ enum struct lcpm_e : std::uint16_t {
       return "[Simultaneous Stop] (COMM), All pumps stopped simultaneously";
     case lcpm_e::indiv:
       return "[Individual Stop] (INDIV), Each pump stopped individually";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lcpm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2953,9 +2874,8 @@ enum struct lcs_e : std::uint16_t {
       return "[Low Level] (LOW), Low level";
     case lcs_e::high:
       return "[High Level] (HIGH), High level";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lcs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -2975,9 +2895,8 @@ enum struct lcst_e : std::uint16_t {
       return "[Standard] (BASIC), Standard";
     case lcst_e::adv:
       return "[Energy Optimized] (ADV), Energy Optimized";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lcst_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3078,9 +2997,8 @@ enum struct ldd_e : std::uint16_t {
       return "[AI1 Th Value] (TH1V), AI1 thermal value";
     case ldd_e::thb:
       return "[DBR Thermal State] (THB), DBR thermal state";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ldd_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3109,9 +3027,8 @@ enum struct lden_e : std::uint16_t {
       return "[Clear] (CLEAR), Clear";
     case lden_e::error:
       return "[Error] (ERROR), Error";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lden_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3134,9 +3051,8 @@ enum struct ldst_e : std::uint16_t {
       return "[2 seconds] (2S), 2 seconds";
     case ldst_e::seconds_5:
       return "[5 seconds] (5S), 5 seconds";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ldst_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3537,9 +3453,8 @@ enum struct lft_e : std::uint16_t {
       return "[Egy Saving Exit Error] (IDLF), Idle mode exit error";
     case lft_e::spfc:
       return "[Security Files Corrupt] (SPFC), Security files corrupt";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(lft_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3562,9 +3477,8 @@ enum struct mdt_e : std::uint16_t {
       return "[List] (LIST), List of values";
     case mdt_e::vumet:
       return "[Vu Meter] (VUMET), Vu Meter";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mdt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3581,9 +3495,8 @@ enum struct mpc_e : std::uint16_t {
       return "[Mot Power] (NPR), Nominal motor power";
     case mpc_e::cos:
       return "[Mot Cosinus] (COS), Nominal motor cosinus Phi";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mpc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3606,9 +3519,8 @@ enum struct mpdt_e : std::uint16_t {
       return "[Master Only] (MAST1), Master only";
     case mpdt_e::mast2:
       return "[Master or Slave] (MAST2), Master or slave";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mpdt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3628,9 +3540,8 @@ enum struct mpla_e : std::uint16_t {
       return "[Standard] (YES), Standard alternation";
     case mpla_e::red:
       return "[Redundancy] (RED), Redundancy mode";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mpla_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3653,9 +3564,8 @@ enum struct mppc_e : std::uint16_t {
       return "[Runtime] (RTIME), Pump runtime";
     case mppc_e::rtlf:
       return "[Runtime&LIFO] (RTLF), Runtime&Last In First Out";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mppc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3684,9 +3594,8 @@ enum struct mps_e : std::uint16_t {
       return "[Error] (FAULT), Error";
     case mps_e::navl:
       return "[Not Available] (NAVL), Not available";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mps_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3709,9 +3618,8 @@ enum struct mpsa_e : std::uint16_t {
       return "[Multi Drives] (NVSD), Multiple Drives";
     case mpsa_e::nvsdr:
       return "[Multi Masters] (NVSDR), Multiple Drives with Master redundancy";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mpsa_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3734,9 +3642,8 @@ enum struct mpst_e : std::uint16_t {
       return "[Advanced] (AMC), Advanced multipump speed control mode";
     case mpst_e::sync:
       return "[Synchronized] (SYNC), Synchronized multipump speed control mode";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(mpst_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3933,9 +3840,8 @@ enum struct ncv_e : std::uint16_t {
       return "[2500 kW / 3333 Hp] (M250), 2500 kW / 3333 Hp";
     case ncv_e::m260:
       return "[2600 kW / 3467 Hp] (M260), 2600 kW / 3467 Hp";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ncv_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3958,9 +3864,8 @@ enum struct nmts_e : std::uint16_t {
       return "[Operation] (OPE), Operational";
     case nmts_e::pope:
       return "[Pre-op] (POPE), Pre operation";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(nmts_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3977,9 +3882,8 @@ enum struct npl_e : std::uint16_t {
       return "[1] (POS), 1";
     case npl_e::neg:
       return "[0] (NEG), 0";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(npl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -3996,9 +3900,8 @@ enum struct n_y_e : std::uint16_t {
       return "[No] (NO), No";
     case n_y_e::yes:
       return "[Yes] (YES), Yes";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(n_y_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4018,9 +3921,8 @@ enum struct opl_e : std::uint16_t {
       return "[OPF Error Triggered] (YES), OPF error Triggered";
     case opl_e::oac:
       return "[No Error Triggered] (OAC), No error triggered";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(opl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4043,9 +3945,8 @@ enum struct oppm_e : std::uint16_t {
       return "[Sensor] (SNSR), Sensor";
     case oppm_e::both:
       return "[Both] (BOTH), Both";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(oppm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4062,9 +3963,8 @@ enum struct ovma_e : std::uint16_t {
       return "[Default] (DEFAULT), Default";
     case ovma_e::full:
       return "[Full] (FULL), Full";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ovma_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4087,9 +3987,8 @@ enum struct pcm_e : std::uint16_t {
       return "[PQ] (PQ), Enable power vs flow curve";
     case pcm_e::phq:
       return "[PHQ] (PHQ), Enable Head vs flow and power vs flow curves";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pcm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4109,9 +4008,8 @@ enum struct pcpm_e : std::uint16_t {
       return "[Mode 1] (NORM), Pump cycle monitoring mode 1 ";
     case pcpm_e::rtc:
       return "[Mode 2] (RTC), Pump cycle monitoring mode 2 ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pcpm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4134,9 +4032,8 @@ enum struct pcs_e : std::uint16_t {
       return "[Active] (ACTIVE), Active";
     case pcs_e::failed:
       return "[Failed] (FAILED), Failed";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pcs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4156,9 +4053,8 @@ enum struct pfm_e : std::uint16_t {
       return "[Feedback] (FBK), Pipe-Fill on PID feedback";
     case pfm_e::ps2:
       return "[Outlet Pressure] (PS2), Pipe-Fill on Outlet pressure";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pfm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4175,9 +4071,8 @@ enum struct phr_e : std::uint16_t {
       return "[ABC] (ABC), A  - B - C phase rotation";
     case phr_e::acb:
       return "[ACB] (ACB), A  - C - B phase rotation";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(phr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4203,9 +4098,8 @@ enum struct pktp_e : std::uint16_t {
       return "[Customized] (CUS), Customized package";
     case pktp_e::ind:
       return "[Indus] (IND), Indus package";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pktp_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4231,9 +4125,8 @@ enum struct plfm_e : std::uint16_t {
       return "[Flow vs Speed] (QN), QN";
     case plfm_e::nf:
       return "[No Flow Power] (NF), NF";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(plfm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4265,9 +4158,8 @@ enum struct pmdt_e : std::uint16_t {
       return "[Head vs Flow] (CHQ), Head vs flow curve";
     case pmdt_e::ceq:
       return "[Efficiency vs Flow] (CEQ), Efficiency vs flow curve";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pmdt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4299,9 +4191,8 @@ enum struct pnid_e : std::uint16_t {
       return "[Pump 5] (P05), Pump 5";
     case pnid_e::p06:
       return "[Pump 6] (P06), Pump 6";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pnid_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4333,9 +4224,8 @@ enum struct prfl_e : std::uint16_t {
       return "[106] (106), 106";
     case prfl_e::numeric_107:
       return "[107] (107), 107";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(prfl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -4469,9 +4359,8 @@ enum struct psa_e : uint16_t {
       return "[Est. System dP] (SLSD), Estimated pump system delta pressure";
     case psa_e::none:
       return "[None] (MVCO), ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(psa_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5231,9 +5120,8 @@ enum struct psl_e : std::uint16_t {
       return "[Cust Warning 3] (CAS3), Customer warning 3";
     case psl_e::customer_warning_4:
       return "[Cust Warning 4] (CAS4), Customer warning 4";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(psl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5655,9 +5543,8 @@ enum struct pslin_e : std::uint16_t {
       return "[DI58 (Low level)] (D58L), Digital input DI58 (low level)";
     case pslin_e::low_level_59:
       return "[DI59 (Low level)] (D59L), Digital input DI59 (low level)";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pslin_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5674,9 +5561,8 @@ enum struct pss_e : std::uint16_t {
       return "[Not locked] (NACT), Pre-settings not locked";
     case pss_e::act:
       return "[Locked] (ACT), Pre-settings locked";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pss_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5696,9 +5582,8 @@ enum struct psst_e : std::uint16_t {
       return "[Password is unlocked] (ULK), Password is unlocked";
     case psst_e::lock:
       return "[Password is locked] (LOCK), Password is locked";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(psst_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5718,9 +5603,8 @@ enum struct pst_e : std::uint16_t {
       return "[Stop Key Priority] (YES), Stop key priority";
     case pst_e::all:
       return "[Stop Key Priority All ] (ALL), Stop key priority all CMD channels";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pst_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5737,9 +5621,8 @@ enum struct pvis_e : std::uint16_t {
       return "[Active] (ACT), Active parameters";
     case pvis_e::all:
       return "[All] (ALL), All parameters";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pvis_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5771,9 +5654,8 @@ enum struct pxct_e : std::uint16_t {
       return "[Auxiliary Variable] (AUXV), Auxiliary variable speed pump";
     case pxct_e::err:
       return "[Error] (ERR), Error";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pxct_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5796,9 +5678,8 @@ enum struct pxs_e : std::uint16_t {
       return "[Ready] (RDY), Ready";
     case pxs_e::run:
       return "[Running] (RUN), Running";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(pxs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5815,9 +5696,8 @@ enum struct qstd_e : std::uint16_t {
       return "[Fast stop then disable voltage] (FST2), Fast stop then disable voltage";
     case qstd_e::fst6:
       return "[Fast stop then stay in quick stop state] (FST6), Fast stop then stay in quick stop state";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(qstd_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5843,9 +5723,8 @@ enum struct rds_e : std::uint16_t {
       return "[100M. full] (100F), 100Mbps full duplex";
     case rds_e::half_100M:
       return "[100M. half] (100H), 100Mbps half duplex";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(rds_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5940,9 +5819,8 @@ enum struct rpr_e : std::uint16_t {
       return "[Clear BLGI] (BLGI), Clear BLGI";
     case rpr_e::all:
       return "[Reset all ] (ALL), Reset all counters";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(rpr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5965,9 +5843,8 @@ enum struct rpt_e : std::uint16_t {
       return "[U-Ramp] (U), U-Ramp";
     case rpt_e::cus:
       return "[Customized] (CUS), Ramp customized";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(rpt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -5993,9 +5870,8 @@ enum struct scs_e : std::uint16_t {
       return "[Config 2] (STR2), Save configuration 2";
     case scs_e::str3:
       return "[Config 3] (STR3), Config 3";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(scs_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6033,9 +5909,8 @@ enum struct sfdr_e : std::uint16_t {
       return "[Writing Configuration] (SET), Writing configuration";
     case sfdr_e::app:
       return "[Applying Configuration] (APP), Applying configuration";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(sfdr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6052,9 +5927,8 @@ enum struct sft_e : std::uint16_t {
       return "[SFR type 1] (HF1), Switch.frequency type 1";
     case sft_e::hf2:
       return "[SFR type 2] (HF2), Switch.frequency type 2";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(sft_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6086,9 +5960,8 @@ enum struct slpm_e : std::uint16_t {
       return "[Pressure] (HP), Pressure";
     case slpm_e::multiple:
       return "[Multiple] (OR), Multiple";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(slpm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6111,9 +5984,8 @@ enum struct smot_e : std::uint16_t {
       return "[Med salient] (MLS), Medium saliency";
     case smot_e::hls:
       return "[High salient] (HLS), High saliency";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(smot_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6133,9 +6005,8 @@ enum struct sop_e : std::uint16_t {
       return "[8 µs] (8), 8 µs";
     case sop_e::microseconds_10:
       return "[10 µs] (10), 10 µs";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(sop_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6152,9 +6023,8 @@ enum struct ssl_e : std::uint16_t {
       return "[Standard] (STD), Standard";
     case ssl_e::hpf:
       return "[High Perf] (HPF), High performance";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ssl_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6174,9 +6044,8 @@ enum struct stos_e : std::uint16_t {
       return "[Active] (STO), Active";
     case stos_e::flt:
       return "[Error] (FLT), Error";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(stos_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6199,9 +6068,8 @@ enum struct stp_e : std::uint16_t {
       return "[Ramp Stop] (RMP), Ramp Stop";
     case stp_e::lnf:
       return "[Freewheel Stop] (LNF), Locked in freewheel stop without error";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(stp_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6221,9 +6089,8 @@ enum struct str_e : std::uint16_t {
       return "[Save to RAM] (RAM), Save to RAM";
     case str_e::eep:
       return "[Save to EEPROM] (EEP), Save to EEPROM";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(str_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6246,9 +6113,8 @@ enum struct stt_e : std::uint16_t {
       return "[Freewheel Stop] (NST), Freewheel stop";
     case stt_e::dci:
       return "[DC injection] (DCI), DC injection";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(stt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6268,9 +6134,8 @@ enum struct stun_e : std::uint16_t {
       return "[Measure] (MEAS), Measure";
     case stun_e::cus:
       return "[Custom] (CUS), Custom";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(stun_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6299,9 +6164,8 @@ enum struct sucu_e : std::uint16_t {
       return "[Renminbi] (RMB), Renminbi";
     case sucu_e::other:
       return "[Other] (OTHER), Other";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(sucu_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6390,9 +6254,8 @@ enum struct sufr_e : std::uint16_t {
       return "[0.1 %] (01PC), 0.1 %";
     case sufr_e::deciwo:
       return "[0.1] (01WO), 0.1";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(sufr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6475,9 +6338,8 @@ enum struct supr_e : std::uint16_t {
       return "[0.1 %] (01PC), 0.1 %";
     case supr_e::deciwo:
       return "[0.1] (01WO), 0.1";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(supr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6500,9 +6362,8 @@ enum struct sutp_e : std::uint16_t {
       return "[0.1 %] (01PC), 0.1 %";
     case sutp_e::deciwo:
       return "[0.1] (01WO), 0.1";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(sutp_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6627,9 +6488,8 @@ enum struct tbr_e : std::uint16_t {
       return "[12 Mbps] (12M), ";
     case tbr_e::mbps_100:
       return "[100 Mbps] (100M), ";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(tbr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6646,9 +6506,8 @@ enum struct tcc_e : std::uint16_t {
       return "[2-Wire Control] (2C), 2-wire control";
     case tcc_e::three_wire_ctrl:
       return "[3-Wire Control] (3C), 3-wire control";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(tcc_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6668,9 +6527,8 @@ enum struct tct_e : std::uint16_t {
       return "[Transition] (TRN), Transition";
     case tct_e::pfo:
       return "[Level With Fwd Priority] (PFO), Level with forward priority";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(tct_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6690,9 +6548,8 @@ enum struct tht_e : std::uint16_t {
       return "[Self cooled] (ACL), Self cooled motor";
     case tht_e::fcl:
       return "[Force-cool] (FCL), Force cooled motor";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(tht_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6715,9 +6572,8 @@ enum struct toct_e : std::uint16_t {
       return "[FLOW] (FLOW), FLOW";
     case toct_e::other:
       return "[OTHER] (OTHER), OTHER";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(toct_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6734,9 +6590,8 @@ enum struct tunt_e : std::uint16_t {
       return "[Standard] (STD), Standard";
     case tunt_e::rot:
       return "[Rotation] (ROT), Rotation";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(tunt_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6753,9 +6608,8 @@ enum struct tunu_e : std::uint16_t {
       return "[No] (NO), No";
     case tunu_e::tm:
       return "[Therm mot] (TM), Use the motor thermal evolution";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(tunu_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6772,9 +6626,8 @@ enum struct two_e : std::uint16_t {
       return "[OFF] (LOW), ModBus Word Order OFF";
     case two_e::high:
       return "[ON] (HIGH), Modbus Word Order ON";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(two_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6791,9 +6644,8 @@ enum struct ulr_e : std::uint16_t {
       return "[Permitted] (ULR0), Upload access allowed";
     case ulr_e::ulr1:
       return "[Not allowed] (ULR1), Upload access not allow";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ulr_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6846,9 +6698,8 @@ enum struct ures_e : std::uint16_t {
       return "[600 Vac] (600), 600 Vac";
     case ures_e::ac690V:
       return "[690 Vac] (690), 690 Vac";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(ures_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6868,9 +6719,8 @@ enum struct usb_e : std::uint16_t {
       return "[Error Triggered w/o Relay] (1), Error triggered w/o relay";
     case usb_e::warning_triggered:
       return "[Warning Triggered] (2), Warning Triggered";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(usb_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6914,9 +6764,8 @@ enum struct vcal_e : std::uint16_t {
       return "[600(1)] (600M), 600 V single phase";
     case vcal_e::three_phase_600:
       return "[600 V Three] (600T), 600 V three phase";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(vcal_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
@@ -6936,14 +6785,11 @@ enum struct wupm_e : std::uint16_t {
       return "[Error] (ERR), Error";
     case wupm_e::lp:
       return "[Pressure] (LP), Pressure";
-    default:
-      return "unknown";
   }
+  return "unknown";
 }
 constexpr auto format_as(wupm_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
 }
-
-PRAGMA_CLANG_WARNING_POP
 
 }  // namespace tfc::ec::devices::schneider::atv320
