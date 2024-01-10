@@ -31,21 +31,21 @@ struct ipc_manager_client_mock {
   void register_connection_change_callback(std::string_view slot_name,
                                            const std::function<void(std::string_view const)>& connection_change_callback);
 
-  void register_slot(std::string_view name, std::string_view description, ipc::details::type_e type);
+  void register_slot_retry(std::string_view name, std::string_view description, ipc::details::type_e type);
   void register_slot(std::string_view name,
                      std::string_view description,
                      ipc::details::type_e type,
                      tfc::stx::invocable<const std::error_code&> auto&& handler) {
-    register_slot(name, description, type);
+    register_slot_retry(name, description, type);
     handler(std::error_code());
   }
 
-  void register_signal(std::string_view name, std::string_view description, ipc::details::type_e type);
+  void register_signal_retry(std::string_view name, std::string_view description, ipc::details::type_e type);
   auto register_signal(std::string_view name,
                        std::string_view description,
                        ipc::details::type_e type,
                        tfc::stx::invocable<const std::error_code&> auto&& handler) -> void {
-    register_signal(name, description, type);
+    register_signal_retry(name, description, type);
     handler(std::error_code());
   }
 
