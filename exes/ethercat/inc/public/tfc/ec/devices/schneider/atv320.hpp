@@ -102,7 +102,7 @@ public:
                                                 &T::default_speedratio,
                                                 "fast_stop_ramp_divider",
                                                 &T::fast_stop_ramp_divider,
-                                                tfc::json::schema{.minimum = 0, .maximum = 10});
+                                                tfc::json::schema{ .minimum = 0, .maximum = 10 });
       static constexpr std::string_view name{ "atv320" };
     };
 
