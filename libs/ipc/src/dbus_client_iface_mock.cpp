@@ -16,7 +16,9 @@ void ipc_manager_client_mock::register_connection_change_callback(
     const std::function<void(const std::string_view)>& connection_change_callback) {
   slot_callbacks.emplace(std::string(slot_name), connection_change_callback);
 }
-void ipc_manager_client_mock::register_slot_retry(std::string_view name, std::string_view description, ipc::details::type_e type) {
+void ipc_manager_client_mock::register_slot_retry(std::string_view name,
+                                                  std::string_view description,
+                                                  ipc::details::type_e type) {
   auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
   slots_.emplace_back(slot{ .name = std::string(name),
                             .type = type,
@@ -29,8 +31,8 @@ void ipc_manager_client_mock::register_slot_retry(std::string_view name, std::st
                             .description = std::string(description) });
 }
 void ipc_manager_client_mock::register_signal_retry(std::string_view name,
-                                              std::string_view description,
-                                              ipc::details::type_e type) {
+                                                    std::string_view description,
+                                                    ipc::details::type_e type) {
   auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
   signals_.emplace_back(signal{ .name = std::string(name),
                                 .type = type,
