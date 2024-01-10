@@ -71,7 +71,7 @@ public:
     acceleration_ramp_time_ACC acceleration;
     deceleration_ramp_time_DEC deceleration;
     confman::observable<speedratio_t> default_speedratio{ 1 * speedratio_t::reference };  // Run the motor at LSP by default
-
+    fast_stop_ramp_divider_DCF fast_stop_ramp_divider;
     struct glaze {
       using T = atv_config;
       static constexpr auto value = glz::object("nominal_motor_power",
@@ -99,7 +99,10 @@ public:
                                                 "deceleration",
                                                 &T::deceleration,
                                                 "default_speedratio",
-                                                &T::default_speedratio);
+                                                &T::default_speedratio,
+                                                "fast_stop_ramp_divider",
+                                                &T::fast_stop_ramp_divider,
+                                                tfc::json::schema{.minimum = 0, .maximum = 10});
       static constexpr std::string_view name{ "atv320" };
     };
 
@@ -316,6 +319,7 @@ public:
     sdo_write(config_->value().high_speed);
     sdo_write(config_->value().low_speed);
     sdo_write(config_->value().motor_1_cos_phi);
+    sdo_write(config_->value().fast_stop_ramp_divider);
     return 1;
   }
 

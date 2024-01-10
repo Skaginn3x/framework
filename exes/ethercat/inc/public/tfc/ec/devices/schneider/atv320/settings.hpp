@@ -6,12 +6,12 @@ namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
 
 using analog_input_3_range =
-    setting<ecx::index_t{ 0x200E, 0x55 }, "AI3L", "Analog input 3 range", aiol_e, aiol_e::positive_only>;
+setting<ecx::index_t{ 0x200E, 0x55 }, "AI3L", "Analog input 3 range", aiol_e, aiol_e::positive_only>;
 
 using configuration_of_AI1 =
-    setting<ecx::index_t{ 0x2010, 0x02 }, "AI1", "Configuration of Analog input 1", aiot_e, aiot_e::current>;
+setting<ecx::index_t{ 0x2010, 0x02 }, "AI1", "Configuration of Analog input 1", aiot_e, aiot_e::current>;
 using configuration_of_AI3 =
-    setting<ecx::index_t{ 0x200E, 0x05 }, "AI3", "Configuration of Analog input 3", aiot_e, aiot_e::current>;
+setting<ecx::index_t{ 0x200E, 0x05 }, "AI3", "Configuration of Analog input 3", aiot_e, aiot_e::current>;
 using configuration_reference_frequency_1_FR1 = setting<ecx::index_t{ 0x2036, 0xE },
                                                         "FR1",
                                                         "Configuration reference frequency 1",
@@ -39,10 +39,13 @@ using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
                                           400 * V>;
 
 using nominal_motor_frequency_FRS =
-    setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500 * dHz>;
+setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500 * dHz>;
+
+using fast_stop_ramp_divider_DCF =
+setting<ecx::index_t{ 0x2052, 0x1F }, "DCF", "Fast stop ramp divider", uint16_t, 4>;
 
 using nominal_motor_current_NCR =
-    setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20 * dA>;
+setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20 * dA>;
 
 using nominal_motor_speed_NSP = setting<ecx::index_t{ 0x2042, 0x05 }, "NSP", "Nominal motor speed", uint16_t, 1500>;
 
@@ -50,7 +53,7 @@ using nominal_motor_speed_NSP = setting<ecx::index_t{ 0x2042, 0x05 }, "NSP", "No
 using motor_1_cos_phi_COS = setting<ecx::index_t{ 0x2042, 0x07 }, "COS", "Motor 1 cosinus phi", uint16_t, 80>;
 
 using motor_thermal_current_ITH =
-    setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20 * dA>;
+setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20 * dA>;
 
 //  Units 0.1 Hz, Range 10Hz - 500Hz
 
@@ -66,4 +69,4 @@ using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", 
 // 100 = 10 seconds
 // 10 = 1 second
 using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", deciseconds, 1>;
-}  // namespace tfc::ec::devices::schneider::atv320
+} // namespace tfc::ec::devices::schneider::atv320
