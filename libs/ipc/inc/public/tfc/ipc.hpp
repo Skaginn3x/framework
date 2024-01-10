@@ -19,20 +19,6 @@ namespace tfc::ipc {
 
 namespace asio = boost::asio;
 
-namespace details {
-auto constexpr register_cb(std::string const& ipc_name) {
-  return [ipc_name](std::error_code error_code) {
-    if (error_code == std::errc::host_unreachable) {
-      throw std::runtime_error(fmt::format("Error registering: '{}', error: '{}'. Maybe forgot to run ipc-ruler", ipc_name,
-                                           error_code.message()));
-    }
-    if (error_code) {
-      throw std::runtime_error(fmt::format("Error registering: '{}', error: '{}'", ipc_name, error_code.message()));
-    }
-  };
-}
-}  // namespace details
-
 /// \brief make manager client for the types(signal, slot) below
 [[maybe_unused]] static auto make_manager_client(asio::io_context& ctx) {
   return tfc::ipc_ruler::ipc_manager_client{ ctx };
@@ -119,7 +105,7 @@ private:
     client_.register_connection_change_callback(
         full_name(), [this](std::string_view signal_name) { slot_->connect(signal_name, filters_); });
 
-    client_.register_slot(full_name(), description, type_desc::value_e, details::register_cb(full_name()));
+    client_.register_slot_retry(full_name(), description, type_desc::value_e);
 
     dbus_slot_.on_set([this](value_t&& set_value) { this->filters_.set(std::move(set_value)); });
 
@@ -154,8 +140,7 @@ public:
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
       : client_{ client }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
-    client_.register_signal(signal_->full_name(), description, type_desc::value_e,
-                            details::register_cb(signal_->full_name()));
+    client_.register_signal_retry(signal_->full_name(), description, type_desc::value_e);
     dbus_signal_.initialize();
   }
 
@@ -165,8 +150,7 @@ public:
          std::string_view description = "")
     requires(!std::is_lvalue_reference_v<manager_client_type>)
       : client_{ connection }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
-    client_.register_signal(signal_->full_name(), description, type_desc::value_e,
-                            details::register_cb(signal_->full_name()));
+    client_.register_signal_retry(signal_->full_name(), description, type_desc::value_e);
     dbus_signal_.initialize();
   }
 
