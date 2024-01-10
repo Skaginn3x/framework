@@ -142,7 +142,21 @@ public:
   // void rotate(QuantityOf<mp_units::angular::angle> auto, std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
+  // TODO FINISH !!!!!!!!!! JBB
   /// \brief Move motor to the given absolute position relative to home position
+  /// \param speedratio to move motor at [-100, 100]%
+  /// \param position target to reach
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// notification supplies position_t with the actual position relative to home where the motor is positioned
+  /// \note Requires the motor being homed beforehand
+  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
+  template <QuantityOf<mp_units::isq::length> position_t>
+  auto move(speedratio_t speedratio,
+            position_t position,
+            asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type;
+
+  /// \brief Move motor to the given absolute position relative to home position at default configured speedratio
   /// \param position target to reach
   /// \param token completion token to notify when motor sends quick_stop command
   /// notification supplies position_t with the actual position relative to home where the motor is positioned
