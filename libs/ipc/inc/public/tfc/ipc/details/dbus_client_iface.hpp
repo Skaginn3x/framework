@@ -43,6 +43,13 @@ public:
                        std::function<void(std::error_code const&)>&& handler) -> void;
 
   /**
+   * Register a signal with the ipc_manager service running on dbus, retry indefinetly on error
+   * @param name the name of the signal to be registered
+   * @param type  the type enum of the signal to be registered
+   */
+  auto register_signal_retry(std::string_view name, std::string_view description, ipc::details::type_e type) -> void;
+
+  /**
    * Register a slot with the ipc_manager service running on dbus
    * @param name the name of the slot to be registered
    * @param type  the type enum of the slot to be registered
@@ -52,6 +59,13 @@ public:
                      std::string_view description,
                      ipc::details::type_e type,
                      std::function<void(std::error_code const&)>&& handler) -> void;
+
+  /**
+   * Register a slot with the ipc_manager service running on dbus, retry indefinetly on error
+   * @param name the name of the slot to be registered
+   * @param type  the type enum of the slot to be registered
+   */
+  auto register_slot_retry(std::string_view name, std::string_view description, ipc::details::type_e type) -> void;
 
   /**
    * Async function to get the signals property from the ipc manager
