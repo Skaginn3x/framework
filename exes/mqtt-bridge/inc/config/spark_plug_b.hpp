@@ -13,8 +13,8 @@ namespace tfc::mqtt::config {
 namespace asio = boost::asio;
 
 struct spark_plug_b {
-  std::string node_id{ "default_node_id" };
-  std::string group_id{ "default_group_id" };
+  std::string node_id{ "tfc_unconfigured_node_id" };
+  std::string group_id{ "tfc_unconfigured_group_id" };
 
   struct glaze {
     // clang-format off
