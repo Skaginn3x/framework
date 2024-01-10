@@ -15,9 +15,11 @@ struct output_t {
   cia_402::control_word control{};
   decifrequency_signed frequency{};
   uint16_t digital_outputs{};
+  deciseconds acc{};
+  deciseconds dec{};
 };
 
 static_assert(sizeof(input_t) == 12);
-static_assert(sizeof(output_t) == 6);
+static_assert(sizeof(output_t) == 10);
 
 }  // namespace tfc::ec::devices::schneider::atv320

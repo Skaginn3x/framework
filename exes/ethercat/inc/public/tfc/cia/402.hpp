@@ -145,7 +145,7 @@ struct status_word {
 
 static_assert(sizeof(status_word) == 2);
 
-[[maybe_unused]] static auto to_string(states_e value) -> std::string {
+[[maybe_unused]] static auto format_as(states_e value) -> std::string_view {
   using std::string_literals::operator""s;
   switch (value) {
     case states_e::not_ready_to_switch_on:
@@ -167,6 +167,7 @@ static_assert(sizeof(status_word) == 2);
   }
   return "unknown"s;
 }
+[[maybe_unused]] static auto to_string(states_e value) -> std::string { return std::string(format_as(value)); }
 
 enum struct transition_action {
   none = 0,
