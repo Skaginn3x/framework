@@ -41,8 +41,7 @@ public:
   using signal_name = std::string_view;
 
   explicit ipc_manager(bool in_memory = false)
-      // TODO: Generate location string
-      : logger_("ipc_manager"), db_(in_memory ? ":memory:" : "/etc/tfc/ipc-ruler/database.db") {
+      : db_(in_memory ? ":memory:" : base::make_config_file_name("ipc-ruler", "db")) {
     db_ << R"(
           CREATE TABLE IF NOT EXISTS signals(
               name TEXT,
@@ -225,7 +224,7 @@ public:
   }
 
 private:
-  logger::logger logger_;
+  logger::logger logger_{"ipc-manager"};
   sqlite::database db_;
   std::function<void(std::string_view, std::string_view)> on_connect_cb_;
 };
