@@ -40,9 +40,9 @@ public:
   using slot_name = std::string_view;
   using signal_name = std::string_view;
 
-  explicit ipc_manager()
-  // TODO: Generate location string
-    : logger_("ipc_manager"), db_("/etc/tfc/ipc-ruler/database.db") {
+  explicit ipc_manager(bool in_memory = false)
+      // TODO: Generate location string
+      : logger_("ipc_manager"), db_(in_memory ? ":memory:" : "/etc/tfc/ipc-ruler/database.db") {
     db_ << R"(
           CREATE TABLE IF NOT EXISTS signals(
               name TEXT,
@@ -134,12 +134,8 @@ public:
     logger_.trace("get_all_signals called");
     std::vector<signal> ret;
     db_ << "select name, type, last_registered, description, created_at, created_by from signals" >>
-        [&](std::string name,
-            std::string description,
-            std::string created_by,
-            int type,
-            std::uint64_t last_registered,
-            std::uint64_t created_at) {
+        [&](std::string name, int type, std::uint64_t last_registered, std::string description, std::uint64_t created_at,
+            std::string created_by) {
           time_point_t last_reg = time_point_t(std::chrono::milliseconds(last_registered));
           time_point_t cre_at = time_point_t(std::chrono::milliseconds(created_at));
           ret.emplace_back(signal{ name, static_cast<type_e>(type), created_by, cre_at, last_reg, description });
@@ -150,20 +146,10 @@ public:
   auto get_all_slots() -> std::vector<slot> {
     logger_.trace("get_all_slots called");
     std::vector<slot> ret;
-    time_point_t last_modified;
-    std::string modified_by;
-    std::string connected_to;
     db_ << "select name, type, last_registered, description, created_at, created_by, last_modified, modified_by, "
-        "connected_to from slots" >>
-        [&](std::string name,
-            std::string description,
-            std::string created_by,
-            int type,
-            std::uint64_t last_registered,
-            std::uint64_t created_at,
-            std::uint64_t last_modified,
-            std::string modified_by,
-            std::string connected_to) {
+           "connected_to from slots" >>
+        [&](std::string name, int type, std::uint64_t last_registered, std::string description, std::uint64_t created_at,
+            std::string created_by, std::uint64_t last_modified, std::string modified_by, std::string connected_to) {
           time_point_t last_reg = time_point_t(std::chrono::milliseconds(last_registered));
           time_point_t cre_at = time_point_t(std::chrono::milliseconds(created_at));
           time_point_t last_mod = time_point_t(std::chrono::milliseconds(last_modified));
@@ -175,10 +161,8 @@ public:
 
   auto get_all_connections() -> std::map<std::string, std::vector<std::string>> {
     std::map<std::string, std::vector<std::string>> connections;
-    db_ << "SELECT signals.name, slots.name FROM signals JOIN slots on signals.name = slots.connected_to;" >> [&
-        ](std::string signal_name, std::string slot_name) {
-          connections[signal_name].emplace_back(slot_name);
-        };
+    db_ << "SELECT signals.name, slots.name FROM signals JOIN slots on signals.name = slots.connected_to;" >>
+        [&](std::string signal_name, std::string slot_name) { connections[signal_name].emplace_back(slot_name); };
     return connections;
   }
 
@@ -193,7 +177,7 @@ public:
         throw dbus_error(err_msg);
       }
       int signal_count = 0;
-      db_ << "select count(*) from signals where name = ?;" << std::string(slot_name) >> signal_count;
+      db_ << "select count(*) from signals where name = ?;" << std::string(signal_name) >> signal_count;
       if (signal_count == 0) {
         std::string const err_msg = fmt::format("Signal ({}) does not exist", signal_name);
         logger_.warn(err_msg);
@@ -201,9 +185,11 @@ public:
       }
 
       int signal_type = 0;
-      db_ << "select type from signals where name = ? LIMIT 1;" << std::string(slot_name) >> signal_type;
+      db_ << fmt::format("select type from signals where name = '{}' LIMIT 1;", slot_name) >>
+          [&](int result) { signal_type = result; };
       int slot_type = 0;
-      db_ << "select type from slots where name = ? LIMIT 1;" << std::string(slot_name) >> slot_type;
+      db_ << fmt::format("select type from slots where name = ? LIMIT 1;", slot_name) >>
+          [&](int result) { slot_type = result; };
       if (signal_type != slot_type) {
         std::string const err_msg = "Signal and slot types dont match";
         logger_.warn(err_msg);
@@ -219,17 +205,21 @@ public:
 
   auto disconnect(const std::string_view slot_name) -> void {
     logger_.trace("disconnect called, slot: {}", slot_name);
-    int slot_count = 0;
-    db_ << "select count(*) from slots where name = ?;" << std::string(slot_name) >> slot_count;
-    if (slot_count == 0) {
-      throw std::runtime_error("Slot does not exist");
+    try {
+      int slot_count = 0;
+      db_ << "select count(*) from slots where name = ?;" << std::string(slot_name) >> slot_count;
+      if (slot_count == 0) {
+        throw std::runtime_error("Slot does not exist");
+      }
+      db_ << fmt::format("UPDATE slots SET connected_to = '' WHERE name = '{}';", slot_name);
+      on_connect_cb_(slot_name, "");
+    } catch (const std::exception& e) {
+      logger_.warn(e.what());
     }
-    db_ << fmt::format("UPDATE slots SET connected_to = '' WHERE name = '{}';", slot_name);
-    on_connect_cb_(slot_name, "");
   }
 
 private:
-  tfc::logger::logger logger_;
+  logger::logger logger_;
   sqlite::database db_;
   std::function<void(std::string_view, std::string_view)> on_connect_cb_;
 };
@@ -237,7 +227,7 @@ private:
 class ipc_manager_server {
 public:
   explicit ipc_manager_server(boost::asio::io_context& ctx, std::unique_ptr<ipc_manager>&& ipc_manager)
-    : ipc_manager_{ std::move(ipc_manager) } {
+      : ipc_manager_{ std::move(ipc_manager) } {
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
     connection_->request_name(consts::ipc_ruler_service_name.data());
@@ -295,4 +285,4 @@ private:
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
   std::unique_ptr<ipc_manager> ipc_manager_;
 };
-} // namespace tfc::ipc_ruler
+}  // namespace tfc::ipc_ruler

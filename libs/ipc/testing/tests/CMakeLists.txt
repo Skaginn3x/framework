@@ -1,6 +1,8 @@
 find_package(ut CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_path(SQLITE_MODERN_CPP_INCLUDE_DIRS "sqlite_modern_cpp.h")
 add_executable(ipc_manager_test ipc_manager_test.cpp)
 add_test(
   NAME
@@ -8,7 +10,8 @@ add_test(
   COMMAND
     ipc_manager_test
 )
-target_link_libraries(ipc_manager_test PRIVATE tfc::ipc tfc::confman Boost::ut glaze::glaze)
+target_include_directories(ipc_manager_test PRIVATE ${SQLITE_MODERN_CPP_INCLUDE_DIRS})
+target_link_libraries(ipc_manager_test PRIVATE tfc::ipc tfc::confman Boost::ut glaze::glaze unofficial::sqlite3::sqlite3)
 
 add_executable(ipc_test ipc_test.cpp)
 target_link_libraries(ipc_test PRIVATE Boost::ut tfc::ipc tfc::base)

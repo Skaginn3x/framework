@@ -35,17 +35,11 @@ struct file_storage_mock {
   std::function<void(void)> set_changed_cb = []() {};
 };
 
-using signal_storage_t = file_storage_mock<std::unordered_map<std::string, tfc::ipc_ruler::signal>>;
-using slot_storage_t = file_storage_mock<std::unordered_map<std::string, tfc::ipc_ruler::slot>>;
-using manager_t = tfc::ipc_ruler::ipc_manager<signal_storage_t, slot_storage_t>;
+using manager_t = tfc::ipc_ruler::ipc_manager;
 
 struct test_instance {
   asio::io_context ctx{};
-  signal_storage_t signals{};
-  slot_storage_t slots{};
-  tfc::ipc_ruler::ipc_manager_server<signal_storage_t, slot_storage_t> ipc_manager_server{
-    ctx, std::make_unique<manager_t>(signals, slots)
-  };
+  tfc::ipc_ruler::ipc_manager_server ipc_manager_server{ ctx, std::make_unique<manager_t>(true) };
   tfc::ipc_ruler::ipc_manager_client ipc_manager_client{ ctx };
   bool ran{};
 
@@ -66,17 +60,13 @@ auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
   "ipc_manager correctness check"_test = []() {
-    signal_storage_t signals{};
-    slot_storage_t slots{};
-    auto ipc_manager = std::make_unique<manager_t>(signals, slots);
+    auto ipc_manager = std::make_unique<manager_t>(true);
     ipc_manager->register_signal("some_signal", "Test signal description", tfc::ipc::details::type_e::_bool);
     ut::expect(ipc_manager->get_all_signals().size() == 1);
     ut::expect(ipc_manager->get_all_slots().empty());
-    ut::expect(ipc_manager->get_all_signals()[0].description == "Test signal description");
+    ut::expect(ipc_manager->get_all_signals()[0].description == "Test signal description")
+        << ipc_manager->get_all_signals()[0].description;
     ut::expect(ipc_manager->get_all_signals()[0].name == "some_signal");
-
-    signals.storage_ = {};
-    ut::expect(ipc_manager->get_all_signals().empty());
   };
 
   "get signals empty"_test = [] {
@@ -277,11 +267,13 @@ auto main(int argc, char** argv) -> int {
 
     ut::expect(slot_copy.name == slot_copy2.name);
     ut::expect(slot_copy.created_at == slot_copy2.created_at);
-    ut::expect(slot_copy.created_by == slot_copy2.created_by);
+    ut::expect(slot_copy.created_by == slot_copy2.created_by) << slot_copy.created_by << " " << slot_copy2.created_by;
     ut::expect(slot_copy.type == slot_copy2.type);
     ut::expect(slot_copy.modified_by == slot_copy2.modified_by);
     ut::expect(slot_copy.connected_to == slot_copy2.connected_to);
-    ut::expect(slot_copy.last_registered != slot_copy2.last_registered);
+    ut::expect(slot_copy.last_registered != slot_copy2.last_registered)
+        << slot_copy.last_registered.time_since_epoch().count() << " "
+        << slot_copy2.last_registered.time_since_epoch().count();
   };
 
   "Test ipc communication connection and disconnection with mocking bool"_test = []() {
