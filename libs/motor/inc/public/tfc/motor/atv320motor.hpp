@@ -203,6 +203,12 @@ public:
   }
 
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
+  auto move(speedratio_t, position_t, asio::completion_token_for<signature_t> auto&& token) {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+  }
+
+  template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto move([[maybe_unused]] position_t position, asio::completion_token_for<signature_t> auto&& token) {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);

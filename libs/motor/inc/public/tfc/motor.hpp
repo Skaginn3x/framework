@@ -142,7 +142,6 @@ public:
   // void rotate(QuantityOf<mp_units::angular::angle> auto, std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
-  // TODO FINISH !!!!!!!!!! JBB
   /// \brief Move motor to the given absolute position relative to home position
   /// \param speedratio to move motor at [-100, 100]%
   /// \param position target to reach
@@ -351,6 +350,20 @@ auto api::convey(time_t time, asio::completion_token_for<void(std::error_code, t
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.convey(time, std::forward<decltype(token)>(token)); } },
       impl_);
+}
+
+template <QuantityOf<mp_units::isq::length> position_t>
+auto api::move(speedratio_t speedratio,
+               position_t position,
+               asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type {
+  using signature_t = void(std::error_code, position_t);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) {
+                                  return motor_impl.move(speedratio, position, std::forward<decltype(token)>(token));
+                                } },
+                    impl_);
 }
 
 template <QuantityOf<mp_units::isq::length> position_t>
