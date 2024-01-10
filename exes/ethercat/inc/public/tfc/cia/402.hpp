@@ -146,26 +146,26 @@ struct status_word {
 static_assert(sizeof(status_word) == 2);
 
 [[maybe_unused]] static auto format_as(states_e value) -> std::string_view {
-  using std::string_literals::operator""s;
+  using std::string_view_literals::operator""sv;
   switch (value) {
     case states_e::not_ready_to_switch_on:
-      return "Not ready to switch on"s;
+      return "Not ready to switch on"sv;
     case states_e::switch_on_disabled:
-      return "Switch on disabled"s;
+      return "Switch on disabled"sv;
     case states_e::ready_to_switch_on:
-      return "Ready to switch on"s;
+      return "Ready to switch on"sv;
     case states_e::switched_on:
-      return "Switched on"s;
+      return "Switched on"sv;
     case states_e::operation_enabled:
-      return "Operation enabled"s;
+      return "Operation enabled"sv;
     case states_e::quick_stop_active:
-      return "Quick stop active"s;
+      return "Quick stop active"sv;
     case states_e::fault_reaction_active:
-      return "Fault reaction active"s;
+      return "Fault reaction active"sv;
     case states_e::fault:
-      return "Fault"s;
+      return "Fault"sv;
   }
-  return "unknown"s;
+  return "unknown"sv;
 }
 [[maybe_unused]] static auto to_string(states_e value) -> std::string {
   return std::string(format_as(value));
