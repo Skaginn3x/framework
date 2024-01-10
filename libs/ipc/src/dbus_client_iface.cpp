@@ -1,6 +1,7 @@
 #include <tfc/ipc/details/dbus_client_iface.hpp>
 
 #include <fmt/core.h>
+#include <boost/asio/steady_timer.hpp>
 #include <glaze/glaze.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/property.hpp>
@@ -28,21 +29,6 @@ ipc_manager_client::ipc_manager_client(std::shared_ptr<sdbusplus::asio::connecti
       connection_{ std::move(connection) },
       connection_match_{ make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this)) } {}
 
-ipc_manager_client::ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept {
-  connection_ = std::move(to_be_erased.connection_);
-  slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
-  // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
-  // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-  connection_match_ = make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this));
-}
-auto ipc_manager_client::operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
-  connection_ = std::move(to_be_erased.connection_);
-  slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
-  // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
-  // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-  connection_match_ = make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this));
-  return *this;
-}
 auto ipc_manager_client::register_signal(const std::string_view name,
                                          const std::string_view description,
                                          ipc::details::type_e type,
@@ -57,6 +43,48 @@ auto ipc_manager_client::register_slot(const std::string_view name,
                                        std::function<void(std::error_code const&)>&& handler) -> void {
   connection_->async_method_call(std::move(handler), ipc_ruler_service_name_, ipc_ruler_object_path_,
                                  ipc_ruler_interface_name_, "RegisterSlot", name, description, static_cast<uint8_t>(type));
+}
+struct retry_callable {
+  std::shared_ptr<asio::steady_timer> timer;
+  std::string name{};
+  std::string description{};
+  ipc::details::type_e type{};
+  std::function<void(std::string_view, std::string_view, ipc::details::type_e)> retry{};
+  void operator()(std::error_code err) {
+    if (err) {
+      constexpr std::chrono::seconds timeout{ 1 };
+      fmt::println(stderr, "Error registering: {}, error: {}, will retry in: {}", name, err.message(), timeout);
+      timer->expires_after(timeout);
+      timer->async_wait([timer_ = timer, name_ = name, description_ = description, type_ = type,
+                         retry_ = retry](std::error_code timer_err) {
+        [[maybe_unused]] auto unused{ timer_->expiry() };
+        if (timer_err) {
+          fmt::println(stderr, "Error in retry register: {}, will not retry: {}", name_, timer_err.message());
+        }
+        std::invoke(retry_, name_, description_, type_);
+      });
+    }
+  }
+};
+auto ipc_manager_client::register_signal_retry(const std::string_view name,
+                                               const std::string_view description,
+                                               ipc::details::type_e type) -> void {
+  retry_callable retry{ .timer = std::make_shared<asio::steady_timer>(connection_->get_io_context()),
+                        .name = std::string{ name },
+                        .description = std::string{ description },
+                        .type = type,
+                        .retry = std::bind_front(&ipc_manager_client::register_signal_retry, this) };
+  register_signal(name, description, type, std::move(retry));
+}
+auto ipc_manager_client::register_slot_retry(const std::string_view name,
+                                             const std::string_view description,
+                                             ipc::details::type_e type) -> void {
+  retry_callable retry{ .timer = std::make_shared<asio::steady_timer>(connection_->get_io_context()),
+                        .name = std::string{ name },
+                        .description = std::string{ description },
+                        .type = type,
+                        .retry = std::bind_front(&ipc_manager_client::register_slot_retry, this) };
+  register_slot(name, description, type, std::move(retry));
 }
 auto ipc_manager_client::signals(std::function<void(std::vector<signal> const&)>&& handler) -> void {
   sdbusplus::asio::getProperty<std::string>(
