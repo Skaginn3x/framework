@@ -107,10 +107,11 @@ public:
 
       std::string connected_to = "";
       bool found = false;
-      db_ << "select connected_to from slots where name = ?;" << std::string(name) >> [&](std::string result) {
-        connected_to = result;
-        found = true;
-      };
+      db_ << "select connected_to from slots where name = ?;" << std::string(name) >>
+          [&connected_to, &found](const std::string& result) {
+            connected_to = result;
+            found = true;
+          };
       if (found) {
         // update the signal
         db_ << fmt::format("UPDATE slots SET last_registered = {}, description = '{}', type = {}  WHERE name = '{}';",
@@ -124,7 +125,7 @@ public:
             timestamp_now.time_since_epoch().count(), timestamp_never.time_since_epoch().count(), description);
       }
 
-      on_connect_cb_(std::string(name), connected_to);
+      on_connect_cb_(name, connected_to);
     } catch (const std::exception& e) {
       logger_.error(e.what());
     }
@@ -134,10 +135,11 @@ public:
     logger_.trace("get_all_signals called");
     std::vector<signal> ret;
     db_ << "select name, type, last_registered, description, created_at, created_by from signals" >>
-        [&](std::string name, int type, std::uint64_t last_registered, std::string description, std::uint64_t created_at,
-            std::string created_by) {
-          time_point_t last_reg = time_point_t(std::chrono::milliseconds(last_registered));
-          time_point_t cre_at = time_point_t(std::chrono::milliseconds(created_at));
+        [&ret](const std::string& name, const int type, const std::uint64_t last_registered, const std::string& description,
+               const std::uint64_t created_at, const std::string& created_by) {
+          using std::chrono::milliseconds;
+          const auto last_reg = time_point_t(milliseconds(last_registered));
+          const auto cre_at = time_point_t(milliseconds(created_at));
           ret.emplace_back(signal{ name, static_cast<type_e>(type), created_by, cre_at, last_reg, description });
         };
     return ret;
@@ -148,11 +150,13 @@ public:
     std::vector<slot> ret;
     db_ << "select name, type, last_registered, description, created_at, created_by, last_modified, modified_by, "
            "connected_to from slots" >>
-        [&](std::string name, int type, std::uint64_t last_registered, std::string description, std::uint64_t created_at,
-            std::string created_by, std::uint64_t last_modified, std::string modified_by, std::string connected_to) {
-          time_point_t last_reg = time_point_t(std::chrono::milliseconds(last_registered));
-          time_point_t cre_at = time_point_t(std::chrono::milliseconds(created_at));
-          time_point_t last_mod = time_point_t(std::chrono::milliseconds(last_modified));
+        [&ret](const std::string& name, const int type, const std::uint64_t last_registered, const std::string& description,
+               const std::uint64_t created_at, const std::string& created_by, const std::uint64_t last_modified,
+               const std::string& modified_by, const std::string& connected_to) {
+          using std::chrono::milliseconds;
+          const auto last_reg = time_point_t(milliseconds(last_registered));
+          const auto cre_at = time_point_t(milliseconds(created_at));
+          const auto last_mod = time_point_t(milliseconds(last_modified));
           ret.emplace_back(slot{ name, static_cast<type_e>(type), created_by, cre_at, last_reg, last_mod, modified_by,
                                  connected_to, description });
         };
@@ -162,7 +166,9 @@ public:
   auto get_all_connections() -> std::map<std::string, std::vector<std::string>> {
     std::map<std::string, std::vector<std::string>> connections;
     db_ << "SELECT signals.name, slots.name FROM signals JOIN slots on signals.name = slots.connected_to;" >>
-        [&](std::string signal_name, std::string slot_name) { connections[signal_name].emplace_back(slot_name); };
+        [&connections](const std::string& signal_name, const std::string& slot_name) {
+          connections[signal_name].emplace_back(slot_name);
+        };
     return connections;
   }
 
@@ -186,10 +192,10 @@ public:
 
       int signal_type = 0;
       db_ << fmt::format("select type from signals where name = '{}' LIMIT 1;", slot_name) >>
-          [&](int result) { signal_type = result; };
+          [&signal_type](const int result) { signal_type = result; };
       int slot_type = 0;
       db_ << fmt::format("select type from slots where name = ? LIMIT 1;", slot_name) >>
-          [&](int result) { slot_type = result; };
+          [&slot_type](const int result) { slot_type = result; };
       if (signal_type != slot_type) {
         std::string const err_msg = "Signal and slot types dont match";
         logger_.warn(err_msg);
