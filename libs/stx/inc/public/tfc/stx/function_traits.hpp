@@ -21,4 +21,4 @@ struct function_traits_n<nth_arg, return_t(args_t...)> {
 template <std::size_t nth_arg, typename signature_t>
 using function_traits_n_t = typename function_traits_n<nth_arg, signature_t>::type;
 
-}
+}  // namespace tfc::stx
