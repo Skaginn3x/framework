@@ -31,12 +31,12 @@ struct glz::meta<tfc::mqtt::structs::ssl_active_e> {
 namespace tfc::mqtt::config {
 
 struct broker {
-  std::string address{};
-  std::variant<port_e, uint16_t> port{};
-  structs::ssl_active_e ssl_active{};
+  std::string address{ "localhost" };
+  std::variant<port_e, uint16_t> port{ port_e::mqtt };
+  structs::ssl_active_e ssl_active{ structs::ssl_active_e::no };
   std::string username{};
   std::string password{};
-  std::string client_id{};
+  std::string client_id{ "default_client_id" };
 
   struct glaze {
     // clang-format off
