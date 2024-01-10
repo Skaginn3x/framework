@@ -107,40 +107,28 @@ public:
   auto operator=(atv320motor&&) -> atv320motor& = delete;
   ~atv320motor() = default;
 
-  [[nodiscard]] auto convey() -> std::error_code {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check)
-      return sanity_check;
-    return motor_error(errors::err_enum::motor_not_implemented);
+  template <typename signature_t = void(std::error_code)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
-  [[nodiscard]] auto convey(QuantityOf<mp_units::isq::velocity> auto) -> std::error_code {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check)
-      return sanity_check;
-    return motor_error(errors::err_enum::motor_not_implemented);
+  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto, travel_t, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
   }
 
-  void convey(QuantityOf<mp_units::isq::velocity> auto,
-              QuantityOf<mp_units::isq::length> auto,
-              std::invocable<std::error_code> auto cb) {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check) {
-      cb(sanity_check);
-      return;
-    }
-    cb(motor_error(errors::err_enum::motor_not_implemented));
-  }
-
-  void convey(QuantityOf<mp_units::isq::velocity> auto,
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto,
               QuantityOf<mp_units::isq::time> auto,
-              std::invocable<std::error_code> auto cb) {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check) {
-      cb(sanity_check);
-      return;
-    }
-    cb(motor_error(errors::err_enum::motor_not_implemented));
+              asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
@@ -172,39 +160,46 @@ public:
         token);
   }
 
-  void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
-    logger_.trace("TIME: {}", time);
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check) {
-      cb(sanity_check);
-      return;
-    }
-    connection_->async_method_call(
-        [this, time, cb](const std::error_code& run_err, bool response) {
-          if (run_err || !response) {
-            logger_.error("failed to run motor: {}", run_err.message());
-            cb(motor_error(errors::err_enum::motor_general_error));
-            return;
-          }
-          auto timer = std::make_shared<asio::steady_timer>(ctx_);
-          timer->expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
-          logger_.trace("TIME: {}", time);
-          timer->async_wait([this, timer, cb](const std::error_code& timer_err) {
-            if (timer_err)
-              return;
-            connection_->async_method_call(
-                [&, cb](const std::error_code& stop_err, bool stop_response) {
-                  if (stop_err || !stop_response) {
-                    logger_.error("failed to stop motor: {}", stop_err.message());
-                    cb(motor_error(errors::err_enum::motor_general_error));
-                    return;
-                  }
-                  cb({});
-                },
-                service_name_, path_, interface_name_, std::string{ method::stop });
-          });
-        },
-        service_name_, path_, interface_name_, std::string{ method::run_at_speedratio }, 100.0);
+  template <QuantityOf<mp_units::isq::time> time_t,
+            QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
+  auto convey(time_t, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+
+    // logger_.trace("TIME: {}", time);
+    // auto sanity_check = motor_seems_valid();
+    // if (sanity_check) {
+    //   cb(sanity_check);
+    //   return;
+    // }
+    // connection_->async_method_call(
+    //     [this, time, cb](const std::error_code& run_err, bool response) {
+    //       if (run_err || !response) {
+    //         logger_.error("failed to run motor: {}", run_err.message());
+    //         cb(motor_error(errors::err_enum::motor_general_error));
+    //         return;
+    //       }
+    //       auto timer = std::make_shared<asio::steady_timer>(ctx_);
+    //       timer->expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
+    //       logger_.trace("TIME: {}", time);
+    //       timer->async_wait([this, timer, cb](const std::error_code& timer_err) {
+    //         if (timer_err)
+    //           return;
+    //         connection_->async_method_call(
+    //             [&, cb](const std::error_code& stop_err, bool stop_response) {
+    //               if (stop_err || !stop_response) {
+    //                 logger_.error("failed to stop motor: {}", stop_err.message());
+    //                 cb(motor_error(errors::err_enum::motor_general_error));
+    //                 return;
+    //               }
+    //               cb({});
+    //             },
+    //             service_name_, path_, interface_name_, std::string{ method::stop });
+    //       });
+    //     },
+    //     service_name_, path_, interface_name_, std::string{ method::run_at_speedratio }, 100.0);
   }
 
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
@@ -214,20 +209,18 @@ public:
   }
 
   template <typename signature_t = void(std::error_code)>
-  auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  auto move_home(asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
-  [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
-    auto sanity_check = motor_seems_valid();
-    if (sanity_check)
-      return std::unexpected(sanity_check);
-    return std::unexpected(motor_error(errors::err_enum::motor_not_implemented));
+  template <typename signature_t = void(std::error_code, bool)>
+  auto needs_homing(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
   }
-
-  void notify(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
   void notify(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto) {}
 
@@ -270,6 +263,20 @@ public:
   template <typename signature_t = void(std::error_code)>
   auto run([[maybe_unused]] speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(speedratio_t, QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
