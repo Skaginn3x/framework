@@ -30,17 +30,18 @@ auto main(int argc, char** argv) -> int {
   my_motor.pump(10 * min, [](const std::error_code&) {});
 
   /// Linear transport
-  err =  my_motor.convey(10 * (m / s));
-  if (err) {
-    fmt::print(stderr, "Error: {}\n", err.message());
-  }
-  my_motor.convey(10 * (m / s), 10 * m, [](const std::error_code&) {});
-  my_motor.convey(10 * (m / s), 10 * min, [](const std::error_code&) {});
+  my_motor.convey(10 * (m / s), [](std::error_code error) {
+    if (error) {
+      fmt::println(stderr, "Error: {}\n", error.message());
+    }
+  });
+  my_motor.convey(10 * (m / s), 10 * m, [](const std::error_code&, [[maybe_unused]] decltype(10 * m) actual_travel) {});
+  my_motor.convey(10 * (m / s), 10 * min, [](const std::error_code&, motor::micrometre_t travel_during_time) {});
 
   // Configured speed
-  err =  my_motor.convey();
+  // err =  my_motor.convey();
   my_motor.convey(10 * m, [](std::error_code, [[maybe_unused]] auto actual_travel) {});
-  my_motor.convey(10 * min, [](const std::error_code&) {});
+  my_motor.convey(10 * min, [](const std::error_code&, motor::micrometre_t) {});
 
   co_spawn(ctx, [&]() -> asio::awaitable<void> {
     auto const ret{ my_motor.convey(10 * m, asio::use_awaitable) };
@@ -63,7 +64,7 @@ auto main(int argc, char** argv) -> int {
   my_motor.move_home([](const std::error_code&) {});
 
   // Can be used to ask the motor if he has a good reference to his home point.
-  [[maybe_unused]] auto _ = my_motor.needs_homing();
+  my_motor.needs_homing([](std::error_code, bool needs_homing){});
 
   // Stop with deceleration specified
   // specifing a deceleration overloads
@@ -79,7 +80,7 @@ auto main(int argc, char** argv) -> int {
   my_motor.quick_stop([](std::error_code){});  // Stop the motor with quick stop
 
   /// Getting notified of a continously running motor
-  my_motor.notify(10 * min, [](std::error_code const&) {});
+  // my_motor.notify(10 * min, [](std::error_code const&) {});
   //my_motor.notify(10 * l, [](std::error_code const&) {});
   my_motor.notify(10 * m, [](std::error_code const&) {});
   // motor.notify(10 * rad, [](std::error_code const&) {});
@@ -91,6 +92,12 @@ auto main(int argc, char** argv) -> int {
   // Calling convey, rotate or move
   my_motor.run(50 * percent, [](std::error_code){});
   my_motor.run(-50 * percent, [](std::error_code){});
+
+  // Run for 1 second
+  my_motor.run(50 * percent, 1 * s, [](std::error_code){});
+  my_motor.run(1 * s, [](std::error_code){});  // Run for 1 second at configured speed
+  // my_motor.deceleration(1 * s).run(50 * percent, 10 * s, [](std::error_code){}); // todo
+  // my_motor.deceleration(1 * s).acceleration(1 * s).run(50 * percent, 10 * s, [](std::error_code){}); // todo
 
   ctx.run();
 

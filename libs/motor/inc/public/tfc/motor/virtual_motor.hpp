@@ -63,68 +63,73 @@ public:
     });
   }
 
-  auto convey() -> std::error_code {
-    logger_.info("convey!");
-    running_ = true;
-    return {};
+  template <typename signature_t = void(std::error_code)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+    // logger_.trace("convey({});", vel);
+    // if (!config_.nominal) {
+    //   return motor_error(errors::err_enum::motor_missing_speed_reference);
+    // }
+    // [[maybe_unused]] auto frequency = tfc::motor::impl::nominal_at_50Hz_to_frequency(config_.nominal.value(), vel);
+    // logger_.info("convey running at {}", frequency);
+    // running_ = true;
+    // return {};
   }
 
-  auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {
-    logger_.trace("convey({});", vel);
-    if (!config_.nominal) {
-      return motor_error(errors::err_enum::motor_missing_speed_reference);
-    }
-    [[maybe_unused]] auto frequency = tfc::motor::impl::nominal_at_50Hz_to_frequency(config_.nominal.value(), vel);
-    logger_.info("convey running at {}", frequency);
-    running_ = true;
-    return {};
+  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto, travel_t, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+    // logger_.trace("convey({}, {});", vel, length);
+    // if (!config_.nominal) {
+    //   cb(motor_error(errors::err_enum::motor_missing_speed_reference));
+    // }
+    // auto duration = length / vel;
+    // running_ = true;
+    // // Someone could already be moving or running the motor.
+    // timer_.cancel();
+    // timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
+    // timer_.async_wait([this, cb, vel, length, duration](auto ec) {
+    //   if (ec) {
+    //     logger_.trace("convey({}, {}); canceled", vel, length);
+    //     cb(ec);
+    //     return;
+    //   }
+    //   running_ = false;
+    //   logger_.trace("convey({}, {}); finished in {}!", vel, length, duration);
+    //   cb({});
+    // });
   }
 
-  void convey(QuantityOf<mp_units::isq::velocity> auto vel,
-              QuantityOf<mp_units::isq::length> auto length,
-              std::invocable<std::error_code> auto cb) {
-    logger_.trace("convey({}, {});", vel, length);
-    if (!config_.nominal) {
-      cb(motor_error(errors::err_enum::motor_missing_speed_reference));
-    }
-    auto duration = length / vel;
-    running_ = true;
-    // Someone could already be moving or running the motor.
-    timer_.cancel();
-    timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(duration)));
-    timer_.async_wait([this, cb, vel, length, duration](auto ec) {
-      if (ec) {
-        logger_.trace("convey({}, {}); canceled", vel, length);
-        cb(ec);
-        return;
-      }
-      running_ = false;
-      logger_.trace("convey({}, {}); finished in {}!", vel, length, duration);
-      cb({});
-    });
-  }
-
-  void convey(QuantityOf<mp_units::isq::velocity> auto vel,
-              QuantityOf<mp_units::isq::time> auto time,
-              std::invocable<std::error_code> auto cb) {
-    logger_.trace("convey({}, {});", vel, time);
-    if (!config_.nominal) {
-      cb(motor_error(errors::err_enum::motor_missing_speed_reference));
-    }
-    running_ = true;
-    timer_.cancel();
-    timer_.expires_after(mp_units::to_chrono_duration(time));
-    timer_.async_wait([this, cb, vel, time](auto ec) {
-      if (ec) {
-        logger_.trace("convey({}, {}); canceled", vel, time);
-        cb(ec);
-        return;
-      }
-      running_ = false;
-      auto length = vel * time;
-      logger_.trace("convey({}, {}); ran {}!", vel, time, length);
-      cb({});
-    });
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto,
+              QuantityOf<mp_units::isq::time> auto,
+              asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+    // logger_.trace("convey({}, {});", vel, time);
+    // if (!config_.nominal) {
+    //   cb(motor_error(errors::err_enum::motor_missing_speed_reference));
+    // }
+    // running_ = true;
+    // timer_.cancel();
+    // timer_.expires_after(mp_units::to_chrono_duration(time));
+    // timer_.async_wait([this, cb, vel, time](auto ec) {
+    //   if (ec) {
+    //     logger_.trace("convey({}, {}); canceled", vel, time);
+    //     cb(ec);
+    //     return;
+    //   }
+    //   running_ = false;
+    //   auto length = vel * time;
+    //   logger_.trace("convey({}, {}); ran {}!", vel, time, length);
+    //   cb({});
+    // });
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
@@ -145,22 +150,28 @@ public:
         token);
   }
 
-  void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
-    logger_.trace("convey({});", time);
-    // TODO: Implement
-    running_ = true;
-    timer_.cancel();
-    timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
-    timer_.async_wait([this, cb, time](auto ec) {
-      if (ec) {
-        logger_.trace("convey({}); canceled", time);
-        cb(ec);
-        return;
-      }
-      running_ = false;
-      logger_.trace("convey({}); ran!", time);
-      cb({});
-    });
+  template <QuantityOf<mp_units::isq::time> time_t,
+            QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
+  auto convey(time_t, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+    // logger_.trace("convey({});", time);
+    // // TODO: Implement
+    // running_ = true;
+    // timer_.cancel();
+    // timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
+    // timer_.async_wait([this, cb, time](auto ec) {
+    //   if (ec) {
+    //     logger_.trace("convey({}); canceled", time);
+    //     cb(ec);
+    //     return;
+    //   }
+    //   running_ = false;
+    //   logger_.trace("convey({}); ran!", time);
+    //   cb({});
+    // });
   }
 
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
@@ -209,9 +220,13 @@ public:
     // });
   }
 
-  auto needs_homing() const -> std::expected<bool, std::error_code> {
-    logger_.trace("needs_homing();");
-    return !has_reference_;
+  template <typename signature_t = void(std::error_code, bool)>
+  auto needs_homing(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+    // logger_.trace("needs_homing();");
+    // return !has_reference_;
   }
 
   template <typename signature_t = void(std::error_code)>
@@ -256,6 +271,20 @@ public:
   template <typename signature_t = void(std::error_code)>
   auto run([[maybe_unused]] speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(speedratio_t, QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }

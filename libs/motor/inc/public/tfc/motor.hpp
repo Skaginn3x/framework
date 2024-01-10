@@ -24,6 +24,7 @@ namespace tfc::motor {
 namespace asio = boost::asio;
 using mp_units::QuantityOf;
 using speedratio_t = dbus::types::speedratio_t;
+using micrometre_t = dbus::types::micrometre_t;
 
 class api {
 public:
@@ -75,77 +76,59 @@ public:
 
   void pump(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
-  [[nodiscard]] auto convey() -> std::error_code {
-    return std::visit(
-        [](auto& motor_impl_) -> std::error_code {
-          if constexpr (std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_error(errors::err_enum::no_motor_configured);
-          } else if constexpr (!std::is_invocable_v<decltype(motor_impl_)>) {
-            return motor_impl_.convey();
-          }
-        },
-        impl_);
-  }
+  /// \brief Convey indefinetly or until cancelled at specified velocity
+  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation
+  /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
+  /// would have called some other operation making this operation stale.
+  auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+              asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
-  [[nodiscard]] auto convey(QuantityOf<mp_units::isq::velocity> auto vel) -> std::error_code {
-    return std::visit(
-        [&](auto& motor_impl_) -> std::error_code {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.convey(vel);
-          } else {
-            return motor_error(errors::err_enum::no_motor_configured);
-          }
-        },
-        impl_);
-  }
+  /// \brief Convey a specific length at the given linear velocity and quickly stop when reached
+  /// \tparam travel_t deduced type of length to travel. Underlying type is micrometre any given type will be truncated to
+  /// that resolution
+  /// \param length to travel
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// notification supplies travel_t with actual travel that took place
+  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
+  template <QuantityOf<mp_units::isq::length> travel_t>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+              travel_t length,
+              asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
-  void convey(QuantityOf<mp_units::isq::velocity> auto vel,
-              QuantityOf<mp_units::isq::length> auto length,
-              std::invocable<std::error_code> auto cb) {
-    std::visit(
-        [&](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            motor_impl_.convey(vel, length, cb);
-          } else {
-            cb(motor_error(errors::err_enum::no_motor_configured));
-          }
-        },
-        impl_);
-  }
-
-  void convey(QuantityOf<mp_units::isq::velocity> auto vel,
+  /// \brief Convey for a specific time at the given linear velocity and quickly stop when reached
+  /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
+  /// \param time to travel
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// notification supplies travel_t with the travel made during this time
+  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
               QuantityOf<mp_units::isq::time> auto time,
-              std::invocable<std::error_code> auto cb) {
-    std::visit(
-        [&](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            motor_impl_.convey(vel, time, cb);
-          } else {
-            cb(motor_error(errors::err_enum::no_motor_configured));
-          }
-        },
-        impl_);
-  }
+              asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
-  /// \brief Convey a specific distance at default speedratio and stop when done
-  /// \tparam travel_t deduced type of length to travel underlying type is micrometre any given type will be truncated to
-  /// that resolution \param length to travel \param token completion token to notify when motor sends quick_stop command
-  /// Note that when the motor sends the quick_stop command the motor is still moving
+  /// \brief Convey a specific distance at default speedratio and quickly stop when reached
+  /// \tparam travel_t deduced type of length to travel. Underlying type is micrometre any given type will be truncated to
+  /// that resolution
+  /// \param length to travel
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// notification supplies travel_t with actual travel that took place
+  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
   template <QuantityOf<mp_units::isq::length> travel_t>
   auto convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
-  void convey(QuantityOf<mp_units::isq::time> auto time, std::invocable<std::error_code> auto cb) {
-    std::visit(
-        [&](auto& motor_impl_) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            motor_impl_.convey(time, cb);
-          } else {
-            cb(motor_error(errors::err_enum::no_motor_configured));
-          }
-        },
-        impl_);
-  }
+  /// \brief Convey for a specific time at default speedratio and quickly stop when reached
+  /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
+  /// \param time to travel
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// notification supplies travel_t with the travel made during this time
+  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
+  template <QuantityOf<mp_units::isq::time> time_t, QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
+  auto convey(time_t time, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
   // TODO: rotate api
   // void rotate() {}
@@ -158,29 +141,33 @@ public:
   //             std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::angular::angle> auto, std::invocable<std::error_code> auto) {}
   // void rotate(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
+
+  /// \brief Move motor to the given absolute position relative to home position
+  /// \param position target to reach
+  /// \param token completion token to notify when motor sends quick_stop command
+  /// notification supplies position_t with the actual position relative to home where the motor is positioned
+  /// \note Requires the motor being homed beforehand
+  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
   template <QuantityOf<mp_units::isq::length> position_t>
   auto move(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type;
+
+  /// TODO optional move and specify deceleration
+  // template <QuantityOf<mp_units::isq::length> position_t, QuantityOf<mp_units::isq::time> decel_t>
+  // auto move(position_t position, decel_t deceleration_duration, asio::completion_token_for<void(std::error_code,
+  // position_t)> auto&& token);
 
   /// \brief move motor towards the home sensor on the configured homing travel speedratio
   /// \param token completion token to notify when homing is complete
   auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
-  [[nodiscard]] auto needs_homing() const -> std::expected<bool, std::error_code> {
-    return std::visit(
-        [&](auto& motor_impl_) -> std::expected<bool, std::error_code> {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<decltype(motor_impl_)>>) {
-            return motor_impl_.needs_homing();
-          } else {
-            return std::unexpected(motor_error(errors::err_enum::no_motor_configured));
-          }
-        },
-        impl_);
-  }
+  /// \brief poll whether the motor needs homing
+  /// \param token notification with supplied flag indicating necissity of homing
+  auto needs_homing(asio::completion_token_for<void(std::error_code, bool)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, bool)>::return_type;
 
-  void notify(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
-
+  // todo notify_after, notify_at or notify_from_home
   void notify(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto) {}
 
   void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
@@ -211,7 +198,7 @@ public:
   /// \brief Send run command to motor with default configured speedratio by the motor server
   /// \param token completion token to notify iff motor is in error state, or cancelled by another operation
   /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
-  /// would have called some other operation making this one stale.
+  /// would have called some other operation making this operation stale.
   auto run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
@@ -221,6 +208,25 @@ public:
   /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
   /// would have called some other operation making this one stale.
   auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+
+  /// \brief Run motor for specific time
+  /// \param speedratio to run motor at [-100, 100]%
+  /// \param time duration to run motor for, will stop given the default configured deceleration duration by the motor
+  /// \param token completion token to notify if motor is in error state, cancelled by another operation, or finished
+  /// successfully. In normal operation the notify will return success when time is reached and motor is stopped. Notify can
+  /// return cancel if some other operation is called during the given time.
+  auto run(speedratio_t speedratio,
+           QuantityOf<mp_units::isq::time> auto time,
+           asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+
+  /// \brief Run motor for specific time
+  /// \param time duration to run motor for at configured speedratio, will stop given the default configured deceleration
+  /// duration by the motor \param token completion token to notify if motor is in error state, cancelled by another
+  /// operation, or finished successfully. In normal operation the notify will return success when time is reached and motor
+  /// is stopped. Notify can return cancel if some other operation is called during the given time.
+  auto run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
 private:
@@ -272,6 +278,45 @@ struct overloaded : types_t... {
 };
 }  // namespace detail
 
+auto api::convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+                 asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  using namespace detail;
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.convey(velocity, std::forward<decltype(token)>(token)); } },
+      impl_);
+}
+
+template <QuantityOf<mp_units::isq::length> travel_t>
+auto api::convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+                 travel_t length,
+                 asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
+  using signature_t = void(std::error_code, travel_t);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) {
+                                  return motor_impl.convey(velocity, length, std::forward<decltype(token)>(token));
+                                } },
+                    impl_);
+}
+
+template <QuantityOf<mp_units::isq::length> travel_t>
+auto api::convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+                 QuantityOf<mp_units::isq::time> auto time,
+                 asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
+  using signature_t = void(std::error_code, travel_t);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) {
+                                  return motor_impl.convey(velocity, time, std::forward<decltype(token)>(token));
+                                } },
+                    impl_);
+}
+
 template <QuantityOf<mp_units::isq::length> travel_t>
 auto api::convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
@@ -280,6 +325,17 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.convey(length, std::forward<decltype(token)>(token)); } },
+      impl_);
+}
+
+template <QuantityOf<mp_units::isq::time> time_t, QuantityOf<mp_units::isq::length> travel_t>
+auto api::convey(time_t time, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
+  using signature_t = void(std::error_code, travel_t);
+  using namespace detail;
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.convey(time, std::forward<decltype(token)>(token)); } },
       impl_);
 }
 
@@ -301,6 +357,16 @@ auto api::move_home(asio::completion_token_for<void(std::error_code)> auto&& tok
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.move_home(std::forward<decltype(token)>(token)); } },
+      impl_);
+}
+
+auto api::needs_homing(asio::completion_token_for<void(std::error_code, bool)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, bool)>::return_type {
+  using signature_t = void(std::error_code, bool);
+  using namespace detail;
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.needs_homing(std::forward<decltype(token)>(token)); } },
       impl_);
 }
 
@@ -360,6 +426,28 @@ auto api::run(speedratio_t speedratio, asio::completion_token_for<void(std::erro
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.run(speedratio, std::forward<decltype(token)>(token)); } },
+      impl_);
+}
+
+auto api::run(speedratio_t speedratio,
+              QuantityOf<mp_units::isq::time> auto time,
+              asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  using namespace detail;
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.run(speedratio, time, std::forward<decltype(token)>(token)); } },
+      impl_);
+}
+
+auto api::run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  using namespace detail;
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.run(time, std::forward<decltype(token)>(token)); } },
       impl_);
 }
 
