@@ -7,7 +7,7 @@ pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_path(SQLITE_MODERN_CPP_INCLUDE_DIRS "sqlite_modern_cpp.h")
-target_include_directories(ipc-ruler PRIVATE ${SQLITE_MODERN_CPP_INCLUDE_DIRS})
+target_include_directories(ipc-ruler PRIVATE $<BUILD_INTERFACE:${SQLITE_MODERN_CPP_INCLUDE_DIRS}>)
 
 target_link_libraries(ipc-ruler
   PUBLIC

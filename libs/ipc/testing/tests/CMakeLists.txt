@@ -10,7 +10,7 @@ add_test(
   COMMAND
     ipc_manager_test
 )
-target_include_directories(ipc_manager_test PRIVATE ${SQLITE_MODERN_CPP_INCLUDE_DIRS})
+target_include_directories(ipc_manager_test PRIVATE $<BUILD_INTERFACE:${SQLITE_MODERN_CPP_INCLUDE_DIRS}>)
 target_link_libraries(ipc_manager_test PRIVATE tfc::ipc tfc::confman Boost::ut glaze::glaze unofficial::sqlite3::sqlite3)
 
 add_executable(ipc_test ipc_test.cpp)

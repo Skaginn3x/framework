@@ -9,6 +9,7 @@ add_library(ipc
 )
 add_library(tfc::ipc ALIAS ipc)
 
+find_path(SQLITE_MODERN_CPP_INCLUDE_DIRS "sqlite_modern_cpp.h")
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")
 
 target_include_directories(ipc
@@ -16,6 +17,7 @@ target_include_directories(ipc
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc/public>
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${AZMQ_INCLUDE_DIRS}>
+    $<BUILD_INTERFACE:${SQLITE_MODERN_CPP_INCLUDE_DIRS}>
 )
 
 find_package(Boost REQUIRED)
@@ -24,6 +26,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(stduuid CONFIG REQUIRED)
 find_path(PCG_INCLUDE_DIRS "pcg_random.hpp")
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
 
 target_link_libraries(ipc
   PUBLIC
@@ -37,6 +40,7 @@ target_link_libraries(ipc
     glaze::glaze
     stduuid
     $<IF:$<BOOL:${ZeroMQ_LIBRARY}>,${ZeroMQ_LIBRARY},${ZeroMQ_STATIC_LIBRARY}>
+    unofficial::sqlite3::sqlite3
 )
 
 target_include_directories(ipc PRIVATE ${PCG_INCLUDE_DIRS})
