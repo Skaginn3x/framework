@@ -2,7 +2,6 @@
 
 // ipc-ruler.cpp - Dbus API service maintaining a list of signals/slots and which signal
 // is connected to which slot
-
 #include <functional>
 #include <utility>
 
@@ -26,6 +25,8 @@
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 
+#include <sqlite_modern_cpp.h>
+
 namespace tfc::ipc_ruler {
 using tfc::ipc::details::type_e;
 
@@ -34,14 +35,38 @@ using dbus_error = tfc::dbus::exception::runtime;
 /**
  * A class exposing methods for managing signals and slots
  */
-template <typename signal_storage, typename slot_storage>
 class ipc_manager {
 public:
   using slot_name = std::string_view;
   using signal_name = std::string_view;
 
-  explicit ipc_manager(signal_storage& signals, slot_storage& slots)
-      : logger_("ipc_manager"), signals_{ signals }, slots_{ slots } {}
+  explicit ipc_manager()
+  // TODO: Generate location string
+    : logger_("ipc_manager"), db_("/etc/tfc/ipc-ruler/database.db") {
+    db_ << R"(
+          CREATE TABLE IF NOT EXISTS signals(
+              name TEXT,
+              type INT,
+              created_by TEXT,
+              created_at LONG INTEGER,
+              time_point_t LONG INTEGER,
+              last_registered LONG INTEGER,
+              description TEXT);
+             )";
+    db_ << R"(
+          CREATE TABLE IF NOT EXISTS slots(
+              name TEXT,
+              type INT,
+              created_by TEXT,
+              created_at LONG INTEGER,
+              last_registered LONG INTEGER,
+              last_modified INTEGER,
+              modified_by TEXT,
+              connected_to TEXT,
+              time_point_t LONG INTEGER,
+              description TEXT);
+             )";
+  }
 
   auto set_callback(std::function<void(slot_name, signal_name)> on_connect_cb) -> void {
     on_connect_cb_ = std::move(on_connect_cb);
@@ -50,20 +75,24 @@ public:
   auto register_signal(const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, enum_name(type));
     auto timestamp_now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
-    auto str_name = std::string(name);
-    auto change_signals = signals_.make_change();
-    if (signals_->find(str_name) != signals_->end()) {
-      auto it = change_signals->find(str_name);
-      it->second.last_registered = timestamp_now;
-      it->second.description = std::string(description);
-      it->second.type = type;
-    } else {
-      change_signals->emplace(name, signal{ .name = std::string(name),
-                                            .type = type,
-                                            .created_by = "",
-                                            .created_at = timestamp_now,
-                                            .last_registered = timestamp_now,
-                                            .description = std::string(description) });
+
+    try {
+      // Check if signal exists
+      int count = 0;
+      db_ << "select count(*) from signals where name = ?;" << std::string(name) >> count;
+      if (count != 0) {
+        // update the signal
+        db_ << fmt::format("UPDATE signals SET last_registered = {}, description = '{}', type = {}  WHERE name = '{}';",
+                           timestamp_now.time_since_epoch().count(), description, static_cast<std::uint8_t>(type), name);
+      } else {
+        // Insert the signal
+        db_ << fmt::format(
+            "INSERT INTO signals (name, type, created_at, last_registered, description) VALUES ('{}',{},{},{},'{}');", name,
+            static_cast<std::uint8_t>(type), timestamp_now.time_since_epoch().count(),
+            timestamp_now.time_since_epoch().count(), description);
+      }
+    } catch (const std::exception& e) {
+      logger_.error(e.what());
     }
   }
 
@@ -72,104 +101,143 @@ public:
     auto timestamp_now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
     auto timestamp_never = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{};
 
-    auto str_name = std::string(name);
-    auto change_slots = slots_.make_change();
-    if (change_slots->find(str_name) != slots_->end()) {
-      auto it = change_slots->find(str_name);
-      it->second.last_registered = timestamp_now;
-      it->second.description = std::string(description);
-      it->second.type = type;
-    } else {
-      change_slots->emplace(name, slot{ .name = std::string(name),
-                                        .type = type,
-                                        .created_by = "omar",
-                                        .created_at = timestamp_now,
-                                        .last_registered = timestamp_now,
-                                        .last_modified = timestamp_never,
-                                        .modified_by = "",
-                                        .connected_to = "",
-                                        .description = std::string(description) });
-    }
     // Call the connected callback to get the slot connected to its signal if it has one.
-    on_connect_cb_(str_name, change_slots->at(str_name).connected_to);
+    try {
+      // Check if signal exists
+
+      std::string connected_to = "";
+      bool found = false;
+      db_ << "select connected_to from slots where name = ?;" << std::string(name) >> [&](std::string result) {
+        connected_to = result;
+        found = true;
+      };
+      if (found) {
+        // update the signal
+        db_ << fmt::format("UPDATE slots SET last_registered = {}, description = '{}', type = {}  WHERE name = '{}';",
+                           timestamp_now.time_since_epoch().count(), description, static_cast<std::uint8_t>(type), name);
+      } else {
+        // Insert the signal
+        db_ << fmt::format(
+            "INSERT INTO slots (name, type, created_at, last_registered, last_modified, description) VALUES "
+            "('{}',{},{},{},{},'{}');",
+            name, static_cast<std::uint8_t>(type), timestamp_now.time_since_epoch().count(),
+            timestamp_now.time_since_epoch().count(), timestamp_never.time_since_epoch().count(), description);
+      }
+
+      on_connect_cb_(std::string(name), connected_to);
+    } catch (const std::exception& e) {
+      logger_.error(e.what());
+    }
   }
 
   auto get_all_signals() -> std::vector<signal> {
     logger_.trace("get_all_signals called");
     std::vector<signal> ret;
-    ret.reserve(signals_->size());
-    std::transform(signals_->begin(), signals_->end(), std::back_inserter(ret),
-                   [](const auto& tuple) { return tuple.second; });
+    db_ << "select name, type, last_registered, description, created_at, created_by from signals" >>
+        [&](std::string name,
+            std::string description,
+            std::string created_by,
+            int type,
+            std::uint64_t last_registered,
+            std::uint64_t created_at) {
+          time_point_t last_reg = time_point_t(std::chrono::milliseconds(last_registered));
+          time_point_t cre_at = time_point_t(std::chrono::milliseconds(created_at));
+          ret.emplace_back(signal{ name, static_cast<type_e>(type), created_by, cre_at, last_reg, description });
+        };
     return ret;
   }
 
   auto get_all_slots() -> std::vector<slot> {
     logger_.trace("get_all_slots called");
     std::vector<slot> ret;
-    ret.reserve(slots_->size());
-    std::transform(slots_->begin(), slots_->end(), std::back_inserter(ret), [](const auto& tuple) { return tuple.second; });
+    time_point_t last_modified;
+    std::string modified_by;
+    std::string connected_to;
+    db_ << "select name, type, last_registered, description, created_at, created_by, last_modified, modified_by, "
+        "connected_to from slots" >>
+        [&](std::string name,
+            std::string description,
+            std::string created_by,
+            int type,
+            std::uint64_t last_registered,
+            std::uint64_t created_at,
+            std::uint64_t last_modified,
+            std::string modified_by,
+            std::string connected_to) {
+          time_point_t last_reg = time_point_t(std::chrono::milliseconds(last_registered));
+          time_point_t cre_at = time_point_t(std::chrono::milliseconds(created_at));
+          time_point_t last_mod = time_point_t(std::chrono::milliseconds(last_modified));
+          ret.emplace_back(slot{ name, static_cast<type_e>(type), created_by, cre_at, last_reg, last_mod, modified_by,
+                                 connected_to, description });
+        };
     return ret;
   }
 
   auto get_all_connections() -> std::map<std::string, std::vector<std::string>> {
     std::map<std::string, std::vector<std::string>> connections;
-    std::for_each(signals_->begin(), signals_->end(),
-                  [&](const std::pair<std::string, signal>& key_value) { connections[key_value.second.name] = {}; });
-    std::for_each(slots_->begin(), slots_->end(), [&](const std::pair<std::string, slot>& slot) {
-      if (!slot.second.connected_to.empty()) {
-        connections[slot.second.connected_to].emplace_back(slot.second.name);
-      }
-    });
+    db_ << "SELECT signals.name, slots.name FROM signals JOIN slots on signals.name = slots.connected_to;" >> [&
+        ](std::string signal_name, std::string slot_name) {
+          connections[signal_name].emplace_back(slot_name);
+        };
     return connections;
   }
 
   auto connect(const std::string_view slot_name, const std::string_view signal_name) -> void {
-    auto str_slot_name = std::string(slot_name);
-    auto str_signal_name = std::string(signal_name);
-    logger_.trace("connect called, slot: {}, signal: {}", slot_name, signal_name);
-    if (slots_->find(str_slot_name) == slots_->end()) {
-      std::string const err_msg = fmt::format("Slot ({}) does not exist", slot_name);
-      logger_.warn(err_msg);
-      throw dbus_error(err_msg);
-    }
-    if (signals_->find(str_signal_name) == signals_->end()) {
-      std::string const err_msg = fmt::format("Signal ({}) does not exist", signal_name);
-      logger_.warn(err_msg);
-      throw dbus_error(err_msg);
-    }
-    if (slots_->at(str_slot_name).type != signals_->at(str_signal_name).type) {
-      std::string const err_msg = "Signal and slot types dont match";
-      logger_.warn(err_msg);
-      throw dbus_error(err_msg);
-    }
+    try {
+      logger_.trace("connect called, slot: {}, signal: {}", slot_name, signal_name);
+      int slot_count = 0;
+      db_ << "select count(*) from slots where name = ?;" << std::string(slot_name) >> slot_count;
+      if (slot_count == 0) {
+        std::string const err_msg = fmt::format("Slot ({}) does not exist", slot_name);
+        logger_.warn(err_msg);
+        throw dbus_error(err_msg);
+      }
+      int signal_count = 0;
+      db_ << "select count(*) from signals where name = ?;" << std::string(slot_name) >> signal_count;
+      if (signal_count == 0) {
+        std::string const err_msg = fmt::format("Signal ({}) does not exist", signal_name);
+        logger_.warn(err_msg);
+        throw dbus_error(err_msg);
+      }
 
-    slots_.make_change()->at(str_slot_name).connected_to = signal_name;
-    on_connect_cb_(slot_name, signal_name);
+      int signal_type = 0;
+      db_ << "select type from signals where name = ? LIMIT 1;" << std::string(slot_name) >> signal_type;
+      int slot_type = 0;
+      db_ << "select type from slots where name = ? LIMIT 1;" << std::string(slot_name) >> slot_type;
+      if (signal_type != slot_type) {
+        std::string const err_msg = "Signal and slot types dont match";
+        logger_.warn(err_msg);
+        throw dbus_error(err_msg);
+      }
+
+      db_ << fmt::format("UPDATE slots SET connected_to = '{}' WHERE name = '{}';", signal_name, slot_name);
+      on_connect_cb_(slot_name, signal_name);
+    } catch (const std::exception& e) {
+      logger_.warn(e.what());
+    }
   }
 
   auto disconnect(const std::string_view slot_name) -> void {
     logger_.trace("disconnect called, slot: {}", slot_name);
-    const std::string str_slot_name = std::string(slot_name);
-    if (slots_->find(str_slot_name) == slots_->end()) {
+    int slot_count = 0;
+    db_ << "select count(*) from slots where name = ?;" << std::string(slot_name) >> slot_count;
+    if (slot_count == 0) {
       throw std::runtime_error("Slot does not exist");
     }
-    slots_.make_change()->at(str_slot_name).connected_to = "";
+    db_ << fmt::format("UPDATE slots SET connected_to = '' WHERE name = '{}';", slot_name);
     on_connect_cb_(slot_name, "");
   }
 
 private:
   tfc::logger::logger logger_;
-  signal_storage& signals_;
-  slot_storage& slots_;
+  sqlite::database db_;
   std::function<void(std::string_view, std::string_view)> on_connect_cb_;
 };
 
-template <typename signal_storage, typename slot_storage>
 class ipc_manager_server {
 public:
-  explicit ipc_manager_server(boost::asio::io_context& ctx,
-                              std::unique_ptr<ipc_manager<signal_storage, slot_storage>>&& ipc_manager)
-      : ipc_manager_{ std::move(ipc_manager) } {
+  explicit ipc_manager_server(boost::asio::io_context& ctx, std::unique_ptr<ipc_manager>&& ipc_manager)
+    : ipc_manager_{ std::move(ipc_manager) } {
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
     connection_->request_name(consts::ipc_ruler_service_name.data());
@@ -225,7 +293,6 @@ private:
   std::shared_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
-  std::unique_ptr<ipc_manager<signal_storage, slot_storage>> ipc_manager_;
+  std::unique_ptr<ipc_manager> ipc_manager_;
 };
-
-}  // namespace tfc::ipc_ruler
+} // namespace tfc::ipc_ruler

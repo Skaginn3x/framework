@@ -46,6 +46,8 @@
     "soem",
     "spdlog",
     "stduuid",
+    "sqlite3",
+    "sqlite-modern-cpp",
     {
       "name": "vcpkg-cmake",
       "host": true
