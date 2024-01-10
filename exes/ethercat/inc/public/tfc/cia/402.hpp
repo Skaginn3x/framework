@@ -167,7 +167,9 @@ static_assert(sizeof(status_word) == 2);
   }
   return "unknown"s;
 }
-[[maybe_unused]] static auto to_string(states_e value) -> std::string { return std::string(format_as(value)); }
+[[maybe_unused]] static auto to_string(states_e value) -> std::string {
+  return std::string(format_as(value));
+}
 
 enum struct transition_action {
   none = 0,

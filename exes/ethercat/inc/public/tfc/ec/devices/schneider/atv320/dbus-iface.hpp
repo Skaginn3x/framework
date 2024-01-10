@@ -194,9 +194,7 @@ struct dbus_iface {
     }
   }
 
-  auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) {
-      motor_nominal_frequency_ = nominal_motor_frequency;
-  }
+  auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) { motor_nominal_frequency_ = nominal_motor_frequency; }
 
   auto move(asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio, micrometre_t placement)
       -> std::tuple<motor::errors::err_enum, micrometre_t> {
@@ -287,11 +285,11 @@ struct dbus_iface {
   //
   speedratio_t speed_ratio() { return speed_ratio_; }
   deciseconds acceleration(const deciseconds configured_acceleration) {
-    //TODO influence these parameters depending on action hapening inside dbus-iface.
+    // TODO influence these parameters depending on action hapening inside dbus-iface.
     return configured_acceleration;
   }
   deciseconds deceleration(const deciseconds configured_deceleration) {
-    //TODO influence these parameters depending on action hapening inside dbus-iface.
+    // TODO influence these parameters depending on action hapening inside dbus-iface.
     return configured_deceleration;
   }
   cia_402::control_word ctrl(bool allow_reset) {
@@ -311,7 +309,8 @@ struct dbus_iface {
   cia_402::transition_action action{ cia_402::transition_action::none };
   speedratio_t speed_ratio_{ 0.0 * mp_units::percent };
   cia_402::status_word status_word_{};
-  decifrequency motor_nominal_frequency_{}; // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect on dec and acc duration
+  decifrequency motor_nominal_frequency_{};  // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect
+                                             // on dec and acc duration
 
   const uint16_t slave_id_;
   speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
