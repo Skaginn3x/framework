@@ -70,14 +70,14 @@ struct retry_callable {
       constexpr std::chrono::seconds timeout{ 1 };
       fmt::println(stderr, "Error registering: {}, error: {}, will retry in: {}", name, err.message(), timeout);
       timer->expires_after(timeout);
-      timer->async_wait(
-          [timer_ = timer, name_ = name, description_ = description, type_ = type, retry_ = retry](std::error_code timer_err) {
-            [[maybe_unused]] auto unused{ timer_->expiry() };
-            if (timer_err) {
-              fmt::println(stderr, "Error in retry register: {}, will not retry: {}", name_, timer_err.message());
-            }
-            std::invoke(retry_, name_, description_, type_);
-          });
+      timer->async_wait([timer_ = timer, name_ = name, description_ = description, type_ = type,
+                         retry_ = retry](std::error_code timer_err) {
+        [[maybe_unused]] auto unused{ timer_->expiry() };
+        if (timer_err) {
+          fmt::println(stderr, "Error in retry register: {}, will not retry: {}", name_, timer_err.message());
+        }
+        std::invoke(retry_, name_, description_, type_);
+      });
     }
   }
 };
