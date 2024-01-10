@@ -26,8 +26,8 @@ public:
   // copy constructors should not be used
   ipc_manager_client(ipc_manager_client const&) = delete;
   auto operator=(ipc_manager_client const&) -> ipc_manager_client& = delete;
-  ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept;
-  auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client&;
+  ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept = delete;
+  auto operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& = delete;
 
   auto connection() const noexcept -> std::shared_ptr<sdbusplus::asio::connection> { return connection_; }
 

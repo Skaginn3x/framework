@@ -29,21 +29,6 @@ ipc_manager_client::ipc_manager_client(std::shared_ptr<sdbusplus::asio::connecti
       connection_{ std::move(connection) },
       connection_match_{ make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this)) } {}
 
-ipc_manager_client::ipc_manager_client(ipc_manager_client&& to_be_erased) noexcept {
-  connection_ = std::move(to_be_erased.connection_);
-  slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
-  // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
-  // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-  connection_match_ = make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this));
-}
-auto ipc_manager_client::operator=(ipc_manager_client&& to_be_erased) noexcept -> ipc_manager_client& {
-  connection_ = std::move(to_be_erased.connection_);
-  slot_callbacks_ = std::move(to_be_erased.slot_callbacks_);
-  // It is pretty safe to construct new match here it mostly invokes C api where it does not explicitly throw
-  // it could throw if we are out of memory, but then we are already screwed and the process will terminate.
-  connection_match_ = make_match(connection_match_rule_, std::bind_front(&ipc_manager_client::match_callback, this));
-  return *this;
-}
 auto ipc_manager_client::register_signal(const std::string_view name,
                                          const std::string_view description,
                                          ipc::details::type_e type,
