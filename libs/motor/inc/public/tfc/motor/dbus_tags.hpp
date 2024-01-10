@@ -29,16 +29,19 @@ static constexpr std::string_view quick_stop{ "QuickStop" };
 static constexpr std::string_view do_homing{ "DoHoming" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
-static constexpr std::string_view notify_after_micrometre{ "NotifyAfterMicrometre" };
-// static constexpr std::string_view convey_micrometrepersecond_micrometre{ "ConveyMicrometrepersecondMicrometre" };
-static constexpr std::string_view convey_micrometre{ "ConveyMicrometre" };
-static constexpr std::string_view move_speedratio_micrometre{ "MoveSpeedratioMicrometre" };
-static constexpr std::string_view move_micrometre{ "MoveMicrometre" };
+static constexpr std::string_view notify_after_micrometre{ "NotifyAfter_Micrometre" };
+static constexpr std::string_view convey_micrometrepersecond_micrometre{ "Convey_MicrometrePerSecond_Micrometre" };
+static constexpr std::string_view convey_micrometrepersecond_microsecond{ "Convey_MicrometrePerSecond_Microsecond" };
+static constexpr std::string_view convey_micrometre{ "Convey_Micrometre" };
+static constexpr std::string_view convey_microsecond{ "Convey_Microsecond" };
+static constexpr std::string_view move_speedratio_micrometre{ "Move_Speedratio_Micrometre" };
+static constexpr std::string_view move_micrometre{ "Move_Micrometre" };
 
 }  // namespace method
 
 namespace types {
 using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
+using microsecond_t = mp_units::quantity<mp_units::si::micro<mp_units::si::second>, std::int64_t>;
 using speedratio_t = mp_units::quantity<mp_units::percent, double>;
 }  // namespace types
 

@@ -12,6 +12,7 @@
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
+#include <tfc/stx/function_traits.hpp>
 
 namespace tfc::motor::types {
 
@@ -19,6 +20,7 @@ namespace asio = boost::asio;
 namespace method = dbus::method;
 using mp_units::QuantityOf;
 using micrometre_t = dbus::types::micrometre_t;
+using microsecond_t = dbus::types::microsecond_t;
 using speedratio_t = dbus::types::speedratio_t;
 
 class atv320motor {
@@ -114,59 +116,73 @@ public:
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
-  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
-  auto convey(QuantityOf<mp_units::isq::velocity> auto, travel_t, asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+private:
+  template <typename signature_t>
+  auto length_token(std::string method_name, auto&& token, auto... args) {
+    using second_arg_t = stx::function_traits_n_t<1, signature_t>;
     return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
-  }
-
-  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
-            typename signature_t = void(std::error_code, travel_t)>
-  auto convey(QuantityOf<mp_units::isq::velocity> auto,
-              QuantityOf<mp_units::isq::time> auto,
-              asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
-  }
-
-  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
-  auto convey(travel_t travel, asio::completion_token_for<signature_t> auto&& token) {
-    return asio::async_compose<decltype(token), signature_t>(
-        [this, travel](auto& self, std::error_code = {}, travel_t = 0 * travel_t::reference) {
+        [this, method_name, args...](auto& self) {
           if (auto const sanity_check{ motor_seems_valid() }) {
-            self.complete(sanity_check, 0 * travel_t::reference);
+            self.complete(sanity_check, {});
             return;
           }
+
           connection_->async_method_call_timed(
-              [this, &self](std::error_code const& err, errors::err_enum motor_err, micrometre_t actual_travel) {
+              [this, &self, method_name](std::error_code const& err, errors::err_enum motor_err, micrometre_t length) {
                 if (err) {
-                  logger_.warn("Convey failure: {}", err.message());
-                  self.complete(err, actual_travel.force_in(travel_t::reference));
+                  logger_.warn("{} failure: {}", method_name, err.message());
+                  self.complete(err, length.force_in(second_arg_t::reference));
                   return;
                 }
                 using enum errors::err_enum;
                 if (motor_err != success) {
-                  logger_.warn("Convey failure: {}", motor_err);
-                  self.complete(motor_error(motor_err), actual_travel.force_in(travel_t::reference));
+                  logger_.warn("{} failure: {}", method_name, motor_err);
+                  self.complete(motor_error(motor_err), length.force_in(second_arg_t::reference));
                   return;
                 }
-                self.complete({}, actual_travel.force_in(travel_t::reference));
+                self.complete({}, length.force_in(second_arg_t::reference));
               },
-              service_name_, path_, interface_name_, std::string{ method::convey_micrometre }, method_call_timeout.count(),
-              travel.force_in(micrometre_t::reference));
+              service_name_, path_, interface_name_, method_name, method_call_timeout.count(), args...);
         },
         token);
   }
 
-  template <QuantityOf<mp_units::isq::time> time_t,
-            QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
-            typename signature_t = void(std::error_code, travel_t)>
-  auto convey(time_t, asio::completion_token_for<signature_t> auto&& token) ->
+public:
+  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+              travel_t travel,
+              asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+    using mp_units::si::unit_symbols::s;
+    return length_token<signature_t>(std::string{ method::convey_micrometrepersecond_micrometre },
+                                     std::forward<decltype(token)>(token), velocity.force_in(micrometre_t::reference / s),
+                                     travel.force_in(micrometre_t::reference));
+  }
+
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
+              QuantityOf<mp_units::isq::time> auto time,
+              asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    using mp_units::si::unit_symbols::s;
+    return length_token<signature_t>(std::string{ method::convey_micrometrepersecond_microsecond },
+                                     std::forward<decltype(token)>(token), velocity.force_in(micrometre_t::reference / s),
+                                     time.force_in(microsecond_t::reference));
+  }
+
+  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  auto convey(travel_t travel, asio::completion_token_for<signature_t> auto&& token) {
+    return length_token<signature_t>(std::string{ method::convey_micrometre }, std::forward<decltype(token)>(token),
+                                     travel.force_in(micrometre_t::reference));
+  }
+
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
+  auto convey(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return length_token<signature_t>(std::string{ method::convey_microsecond }, std::forward<decltype(token)>(token),
+                                     time.force_in(microsecond_t::reference));
 
     // logger_.trace("TIME: {}", time);
     // auto sanity_check = motor_seems_valid();

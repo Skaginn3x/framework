@@ -11,6 +11,7 @@
 #include <tfc/motor/atv320motor.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/virtual_motor.hpp>
+#include <tfc/stx/function_traits.hpp>
 
 /**
  * This files contains a top level wrappers for motor abstractions.
@@ -253,23 +254,16 @@ private:
 };
 
 namespace detail {
-template <typename signature_t>
-struct function_traits;
-
-template <typename return_t, typename... args_t>
-struct function_traits<return_t(args_t...)> {
-  static constexpr std::size_t arity = sizeof...(args_t);
-};
 
 template <typename signature_t>
 auto monostate_return(auto&& token) {
   return asio::async_compose<decltype(token), signature_t>(
       [](auto& self) {
-        if constexpr (function_traits<signature_t>::arity == 1) {
+        if constexpr (stx::function_traits<signature_t>::arity == 1) {
           self.complete(motor_error(errors::err_enum::no_motor_configured));
-        } else if constexpr (function_traits<signature_t>::arity == 2) {
+        } else if constexpr (stx::function_traits<signature_t>::arity == 2) {
           self.complete(motor_error(errors::err_enum::no_motor_configured), {});
-        } else if constexpr (function_traits<signature_t>::arity == 3) {
+        } else if constexpr (stx::function_traits<signature_t>::arity == 3) {
           self.complete(motor_error(errors::err_enum::no_motor_configured), {}, {});
         } else {
           []<bool flag = false>() {
