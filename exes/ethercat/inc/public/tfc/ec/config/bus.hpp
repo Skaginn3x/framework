@@ -7,9 +7,9 @@
 
 #include <glaze/core/common.hpp>
 
-#include <tfc/utils/json_schema.hpp>
-#include <tfc/ec/interfaces.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/ec/interfaces.hpp>
+#include <tfc/utils/json_schema.hpp>
 
 namespace tfc::ec::config {
 
