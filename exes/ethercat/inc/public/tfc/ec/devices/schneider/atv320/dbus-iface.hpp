@@ -32,13 +32,13 @@ struct dbus_iface {
   static constexpr std::string_view connected_peer{ "connected_peer" };
   static constexpr std::string_view frequency{ "frequency" };
   static constexpr std::string_view state_402{ "state_402" };
-  static constexpr std::string_view hmis{ "hmis" }; // todo change to more readable form
+  static constexpr std::string_view hmis{ "hmis" };  // todo change to more readable form
   static constexpr std::string_view impl_name{ "atv320" };
 
   dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
-    : ctx_(connection->get_io_context()), slave_id_{ slave_id },
-      pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&dbus_iface::on_homing_sensor, this) },
-      logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
+      : ctx_(connection->get_io_context()), slave_id_{ slave_id },
+        pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&dbus_iface::on_homing_sensor, this) },
+        logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
     sd_bus* bus = nullptr;
     if (sd_bus_open_system(&bus) < 0) {
       throw std::runtime_error(std::string{ "Unable to open sd-bus, error: " } + strerror(errno));
@@ -56,10 +56,10 @@ struct dbus_iface {
           dbus_interface_->signal_property(std::string{ connected_peer });
         }
         timeout_.cancel();
-        timeout_.expires_after(std::chrono::days(750)); // todo revert
+        timeout_.expires_after(std::chrono::days(750));  // todo revert
         timeout_.async_wait([this](std::error_code err) {
           if (err)
-            return; // The timer was canceled or deconstructed.
+            return;  // The timer was canceled or deconstructed.
           // Stop the drive from running since the peer has disconnected
           action = cia_402::transition_action::none;
           speed_ratio_ = 0.0 * mp_units::percent;
@@ -89,7 +89,7 @@ struct dbus_iface {
     });
 
     dbus_interface_->register_method(std::string{ method::quick_stop }, [this](const sdbusplus::message_t& msg) -> bool {
-      return validate_peer(msg.get_sender()) && cancel_pending_operation() && quick_stop(); // todo quick stop
+      return validate_peer(msg.get_sender()) && cancel_pending_operation() && quick_stop();  // todo quick stop
     });
 
     dbus_interface_->register_method(
@@ -127,8 +127,7 @@ struct dbus_iface {
     // returns { error_code, actual displacement }
     dbus_interface_->register_method(
         std::string{ method::convey_micrometre },
-        [this](asio::yield_context yield,
-               sdbusplus::message_t const& msg,
+        [this](asio::yield_context yield, sdbusplus::message_t const& msg,
                micrometre_t displacement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
           using enum motor::errors::err_enum;
           auto const pos{ pos_.position() };
@@ -145,9 +144,8 @@ struct dbus_iface {
             return std::make_tuple(speedratio_out_of_range, 0L * micrometre_t::reference);
           }
           std::error_code err{ pos_.notify_after(displacement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-          auto const actual_displacement{ is_positive
-                                            ? (pos_.position() - pos).force_in(micrometre_t::reference)
-                                            : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+          auto const actual_displacement{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
+                                                      : -(pos - pos_.position()).force_in(micrometre_t::reference) };
           // This is only called if another invocation has taken control of the motor
           // stopping the motor now would be counter productive as somebody is using it.
           if (err != std::errc::operation_canceled) {
@@ -165,17 +163,14 @@ struct dbus_iface {
     // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(
         std::string{ method::move_speedratio_micrometre },
-        [this](asio::yield_context yield,
-               sdbusplus::message_t const& msg,
-               speedratio_t speedratio,
+        [this](asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio,
                micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
           return move(std::move(yield), msg, speedratio, placement);
         });
 
     // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(std::string{ method::move_micrometre },
-                                     [this](asio::yield_context yield,
-                                            sdbusplus::message_t const& msg,
+                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg,
                                             micrometre_t placement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
                                        return move(std::move(yield), msg, config_speedratio_, placement);
                                      });
@@ -183,8 +178,7 @@ struct dbus_iface {
     dbus_interface_->register_property_r<std::string>(std::string{ connected_peer },
                                                       sdbusplus::vtable::property_::emits_change,
                                                       [this](const auto&) -> std::string { return peer_; });
-    dbus_interface_->register_property_r<std::string>(std::string{ state_402 },
-                                                      sdbusplus::vtable::property_::emits_change,
+    dbus_interface_->register_property_r<std::string>(std::string{ state_402 }, sdbusplus::vtable::property_::emits_change,
                                                       [this](const auto&) -> std::string {
                                                         std::string state{ cia_402::to_string(status_word_.parse_state()) };
                                                         return state;
@@ -206,11 +200,8 @@ struct dbus_iface {
 
   auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) { motor_nominal_frequency_ = nominal_motor_frequency; }
 
-  auto move(asio::yield_context yield,
-            sdbusplus::message_t const& msg,
-            speedratio_t speedratio,
-            micrometre_t placement)
-    -> std::tuple<motor::errors::err_enum, micrometre_t> {
+  auto move(asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio, micrometre_t placement)
+      -> std::tuple<motor::errors::err_enum, micrometre_t> {
     using enum motor::errors::err_enum;
     // Get our distance from the homing reference
     micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
@@ -323,7 +314,7 @@ struct dbus_iface {
   }
 
   asio::io_context& ctx_;
-  std::unique_ptr<sdbusplus::asio::object_server> object_server_; // todo is this needed, if so why, I am curious
+  std::unique_ptr<sdbusplus::asio::object_server> object_server_;  // todo is this needed, if so why, I am curious
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   asio::steady_timer timeout_{ ctx_ };
   std::string peer_{ "" };
@@ -334,7 +325,7 @@ struct dbus_iface {
   cia_402::transition_action action{ cia_402::transition_action::none };
   speedratio_t speed_ratio_{ 0.0 * mp_units::percent };
   cia_402::status_word status_word_{};
-  decifrequency motor_nominal_frequency_{}; // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect
+  decifrequency motor_nominal_frequency_{};  // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect
   // on dec and acc duration
 
   const uint16_t slave_id_;
@@ -349,4 +340,4 @@ struct dbus_iface {
    */
   bool has_peer() { return peer_ != ""; }
 };
-} // namespace tfc::ec::devices::schneider::atv320
+}  // namespace tfc::ec::devices::schneider::atv320
