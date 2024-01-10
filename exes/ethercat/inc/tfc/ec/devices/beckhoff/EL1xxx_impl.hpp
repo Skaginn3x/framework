@@ -35,7 +35,10 @@ template <typename manager_client_type,
 void el1xxx<manager_client_type, size, entries, pc, name, signal_t>::process_data(std::span<std::byte> input,
                                                                                   std::span<std::byte>) noexcept {
   constexpr size_t minimum_byte_count = (size / 9) + 1;
-  assert(input.size() == minimum_byte_count && "EL1XXX Size mismatch between process data and expected");
+  if(input.size() != minimum_byte_count) {
+    logger_.warn("EL1XXX Size mismatch between process data and expected expected: {}, actual: {}", minimum_byte_count, input.size());
+    return;
+  }
 
   // Loop bytes
   for (size_t byte = 0; byte < minimum_byte_count; byte++) {
