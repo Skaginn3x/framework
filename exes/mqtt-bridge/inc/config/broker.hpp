@@ -36,7 +36,7 @@ struct broker {
   structs::ssl_active_e ssl_active{ structs::ssl_active_e::no };
   std::string username{};
   std::string password{};
-  std::string client_id{ "default_client_id" };
+  std::string client_id{ "tfc_unconfigured_client_id" };
 
   struct glaze {
     // clang-format off
