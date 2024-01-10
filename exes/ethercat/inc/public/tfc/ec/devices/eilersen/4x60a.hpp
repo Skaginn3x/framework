@@ -438,10 +438,11 @@ PRAGMA_CLANG_WARNING_POP
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
-  confman::config<config> config_{ ctx_, fmt::format("eilersen_weighing_module_{}", slave_index_) };
+  confman::config<config> config_{ ctx_, fmt::format("eilersen_4x60a.s{}", slave_index_) };
   // todo make section struct to cover the config, for now only one output is generated
   std::int64_t last_cumilated_signal_{};
-  ipc_signal_t<ipc::details::type_mass, ipc_ruler::ipc_manager_client&> mass_{ ctx_, client_, "group_1",
-                                                                               "Weigher output for group 1" };
+  ipc_signal_t<ipc::details::type_mass, ipc_ruler::ipc_manager_client&> mass_{
+    ctx_, client_, fmt::format("eilersen_4x60a.s{}.group_1", slave_index_), "Weigher output for group 1"
+  };
 };
 }  // namespace tfc::ec::devices::eilersen::e4x60a
