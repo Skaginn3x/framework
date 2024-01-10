@@ -6,9 +6,10 @@
 #include <vector>
 
 #include <glaze/core/common.hpp>
-#include <tfc/utils/json_schema.hpp>
 
+#include <tfc/utils/json_schema.hpp>
 #include <tfc/ec/interfaces.hpp>
+#include <tfc/confman/observable.hpp>
 
 namespace tfc::ec::config {
 
@@ -39,11 +40,15 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
 };
 
 namespace tfc::ec::config {
-struct bus {
+struct ethercat {
   network_interface primary_interface{ tfc::global::get_interfaces()[0] };
+  confman::observable<std::optional<std::size_t>> minimum_slave_count{ 0 };
   struct glaze {
-    static constexpr auto value{ glz::object("primary_interface", &bus::primary_interface, "Primary interface") };
-    static constexpr std::string_view name{ "config::bus" };
+    // clang-format off
+    static constexpr auto value{ glz::object("primary_interface", &ethercat::primary_interface, "Primary interface",
+                                             "minimum_slave_count", &ethercat::minimum_slave_count, "Minimum slave count") };
+    // clang-format on
+    static constexpr std::string_view name{ "config::ethercat" };
   };
 };
 
