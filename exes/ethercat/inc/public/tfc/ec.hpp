@@ -164,7 +164,7 @@ public:
       return async_start();
     }
 
-    std::optional<std::size_t> configured_slave_count = config_->value().required_slave_count.value();
+    auto configured_slave_count = config_->value().required_slave_count.value();
 
     if (configured_slave_count.has_value()) {
       if (slave_count() == configured_slave_count.value()) {
