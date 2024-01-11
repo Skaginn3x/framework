@@ -168,7 +168,7 @@ public:
 
     if (configured_slave_count.has_value()) {
       if (slave_count() == configured_slave_count.value()) {
-        logger_.trace("Slave count is wrong, current slave count: {}, required slave count: {}", slave_count(),
+        logger_.error("Slave count is wrong, current slave count: {}, required slave count: {}", slave_count(),
                       configured_slave_count.value());
         return async_start();
       }
