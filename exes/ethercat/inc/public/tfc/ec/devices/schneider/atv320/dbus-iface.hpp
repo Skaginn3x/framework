@@ -45,6 +45,77 @@ struct combine_2_error_codes {
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
+
+
+template <stx::basic_fixed_string impl_name>
+struct controller {
+  controller(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
+    :
+  slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
+  pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&controller::on_homing_sensor, this) }
+  {
+
+  }
+
+  auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    action_ = cia_402::transition_action::stop;
+    speed_ratio_ = 0 * mp_units::percent;
+    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
+  }
+
+  // Set properties with new status values
+  void update_status(const input_t& in) {
+    status_word_ = in.status_word;
+    pos_.freq_update(in.frequency);
+    if (in.frequency == 0 * mp_units::si::hertz) {
+      [[maybe_unused]] boost::system::error_code err{};
+      stop_complete_.notify_all(err);
+    }
+    auto state = status_word_.parse_state();
+    using enum motor::errors::err_enum;
+    drive_error_ = {};
+    if (cia_402::states_e::fault == state || cia_402::states_e::fault_reaction_active == state) {
+      drive_error_ = motor_general_error;
+    }
+    if (drive_error_ != success && in.last_error == lft_e::cnf) {
+      drive_error_ = motor_communication_fault;
+    }
+    if (drive_error_ != success) {
+      // big TODO propagate drive error to pending operation
+      cancel_pending_operation();
+    }
+  }
+
+  void on_homing_sensor(bool new_v) {
+    logger_.trace("New homing sensor value: {}", new_v);
+    if (new_v) {
+      homing_complete_.notify_all();
+    }
+  }
+
+  void cancel_pending_operation() {
+    cancel_signal_.emit(asio::cancellation_type::all);
+  }
+private:
+  std::uint16_t slave_id_;
+  asio::io_context& ctx_;
+  motor::positioner::positioner<> pos_;
+  tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
+  tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
+  asio::cancellation_signal cancel_signal_{};
+  logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
+
+  // Motor control parameters
+  cia_402::transition_action action_{ cia_402::transition_action::none };
+  speedratio_t speed_ratio_{ 0.0 * mp_units::percent };
+  cia_402::status_word status_word_{};
+  decifrequency motor_nominal_frequency_{};  // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect
+
+  // Motor status
+  motor::errors::err_enum drive_error_{};
+};
+
 struct dbus_iface {
   // Properties
   static constexpr std::string_view connected_peer{ "connected_peer" };
