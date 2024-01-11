@@ -53,6 +53,32 @@ struct controller {
         pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_),
               std::bind_front(&controller::on_homing_sensor, this) } {}
 
+  auto run_at_speedratio(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    using enum motor::errors::err_enum;
+    if (drive_error_ != success) {
+      logger_.trace("Drive in fault state, cannot run");
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [this](auto& self) { self.complete(motor::motor_error(drive_error_)); }, token);
+    }
+    if (speedratio < -100 * mp_units::percent || speedratio > 100 * mp_units::percent) {
+      logger_.trace("Speedratio not within range [-100,100], value: {}", speedratio);
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [](auto& self) { self.complete(motor::motor_error(speedratio_out_of_range)); }, token);
+    }
+    logger_.trace("Run motor at speedratio: {}", speedratio);
+    action_ = cia_402::transition_action::run;
+    speed_ratio_ = speedratio;
+    return run_blocker_.async_wait(token);
+  }
+
+  auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    action_ = cia_402::transition_action::quick_stop;
+    speed_ratio_ = 0 * mp_units::percent;
+    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
+  }
+
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     action_ = cia_402::transition_action::stop;
@@ -96,6 +122,7 @@ private:
   std::uint16_t slave_id_;
   asio::io_context& ctx_;
   motor::positioner::positioner<> pos_;
+  tfc::asio::condition_variable<asio::any_io_executor> run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
