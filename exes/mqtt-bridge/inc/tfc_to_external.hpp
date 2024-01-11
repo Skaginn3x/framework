@@ -13,6 +13,7 @@
 
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
+#include <tfc/progbase.hpp>
 
 #include <config/publish_signals.hpp>
 #include <signal_names.hpp>
@@ -80,10 +81,11 @@ public:
 
   auto is_publish_signal(std::string signal_name) -> bool {
     // check if signal is a writeable signal
-    if (signal_name.starts_with("mqtt_bridge")) {
+    if (signal_name.starts_with(tfc::base::get_exe_name())) {
       logger_.trace("Signal is a writeable signal");
       return true;
     }
+
     for (const auto& publish_signal : config_.value().publish_signals) {
       if (publish_signal.value == signal_name) {
         logger_.trace("Signal {} is in the list of signals to publish", signal_name);
