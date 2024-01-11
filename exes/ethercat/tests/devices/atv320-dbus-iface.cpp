@@ -19,8 +19,8 @@ using ut::operator|;
 using ut::expect;
 
 using mp_units::percent;
-using mp_units::si::micro;
 using mp_units::si::metre;
+using mp_units::si::micro;
 
 using tfc::ec::devices::schneider::atv320::controller;
 using tfc::ec::devices::schneider::atv320::input_t;
@@ -80,7 +80,6 @@ auto main(int argc, char const* const* argv) -> int {
     expect(ran);
   };
 
-  "more complex race conditions and competing invocations"_test = [&] {
-  };
+  "more complex race conditions and competing invocations"_test = [&] {};
   return EXIT_SUCCESS;
 }
