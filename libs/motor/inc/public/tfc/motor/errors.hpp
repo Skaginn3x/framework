@@ -32,6 +32,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   positioning_missing_event = 21,
   positioning_request_out_of_range = 22,
   permission_denied = 30,
+  operation_canceled = 31, // only used between client and server, user should use std::errc::operation_canceled
   unknown = 100,
 };
 
@@ -59,6 +60,9 @@ inline errors::err_enum motor_enum(std::error_code err) {
   using enum errors::err_enum;
   if (err.category() == category()) {
     return errors::enum_cast(err.value()).value_or(unknown);
+  }
+  if (err == std::errc::operation_canceled) {
+    return operation_canceled;
   }
   return unknown;
 }

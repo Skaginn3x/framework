@@ -41,6 +41,8 @@ class motor_error_category_t : public std::error_category {
         return "Positioning request out of range";
       case permission_denied:
         return "Permission to execute operation not allowed";
+      case operation_canceled:
+        return "Operation canceled";
       case unknown:
         return "Unknown error";
     }

@@ -45,12 +45,14 @@ struct dbus_iface {
                          asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
     using signature_t = void(motor::errors::err_enum, micrometre_t);
+    enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
+    auto const is_positive{ travel > 0L * micrometre_t::reference };
+    auto const pos{ pos_.position() };
     return asio::async_compose<decltype(token), signature_t>(
-        [this, travel, first_call = true, is_positive = travel > 0L * micrometre_t::reference, pos = pos_.position()](
-            auto& self, std::error_code err = {}) mutable {
+        [this, travel, state = state_e::run_until_notify, is_positive, pos](auto& self, std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
-          if (first_call) {
-            first_call = false;
+          if (state == state_e::run_until_notify) {
+            state = state_e::wait_till_stop;
             logger_.trace("Target displacement: {}, current position: {}", travel, pos);
             if (travel == 0L * micrometre_t::reference) {
               self.complete(success, 0L * micrometre_t::reference);
@@ -63,15 +65,19 @@ struct dbus_iface {
             }
             pos_.notify_after(travel, bind_cancellation_slot(cancel_signal_.slot(), std::move(self)));
             return;
+          } else if (state == state_e::wait_till_stop) {
+            state = state_e::complete;
+            // This is only called if another invocation has taken control of the motor
+            // stopping the motor now would be counter productive as somebody is using it.
+            if (err != std::errc::operation_canceled) {
+              // Todo this stops quickly :-)
+              quick_stop(std::move(self));
+              return;
+            }
           }
           auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
                                                 : -(pos - pos_.position()).force_in(micrometre_t::reference) };
-          // This is only called if another invocation has taken control of the motor
-          // stopping the motor now would be counter productive as somebody is using it.
-          if (err != std::errc::operation_canceled) {
-            // Todo this stops quickly :-)
-            quick_stop();
-          }
+
           if (err) {
             logger_.warn("Convey failed: {}", err.message());
             self.complete(motor::motor_enum(err), actual_travel);
@@ -132,12 +138,25 @@ struct dbus_iface {
           pos_.notify_after(distance, yield);
         });
 
-    dbus_interface_->register_method(std::string{ method::stop }, [this](const sdbusplus::message_t& msg) -> bool {
-      return validate_peer(msg.get_sender()) && cancel_pending_operation() && stop();
+    dbus_interface_->register_method(std::string{ method::stop }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+      using enum motor::errors::err_enum;
+      if (!validate_peer(msg.get_sender())) {
+        return permission_denied;
+      }
+      cancel_pending_operation();
+      std::error_code err{ stop(yield) };
+      return motor::motor_enum(err);
     });
 
-    dbus_interface_->register_method(std::string{ method::quick_stop }, [this](const sdbusplus::message_t& msg) -> bool {
-      return validate_peer(msg.get_sender()) && cancel_pending_operation() && quick_stop();  // todo quick stop
+    dbus_interface_->register_method(std::string{ method::quick_stop }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+      // todo duplicate
+      using enum motor::errors::err_enum;
+      if (!validate_peer(msg.get_sender())) {
+        return permission_denied;
+      }
+      cancel_pending_operation();
+      std::error_code err{ quick_stop(yield) };
+      return motor::motor_enum(err);
     });
 
     dbus_interface_->register_method(
@@ -162,7 +181,7 @@ struct dbus_iface {
           run_at_speedratio(travel_speed.value());
           std::error_code err{ homing_complete_.async_wait(bind_cancellation_slot(cancel_signal_.slot(), yield)) };
           if (err != std::errc::operation_canceled) {
-            quick_stop();
+            [[maybe_unused]] std::error_code todo{ quick_stop(yield) };
             auto const pos{ pos_.position() };
             logger_.trace("Storing home position: {}", pos);
             pos_.home(pos);
@@ -258,7 +277,7 @@ struct dbus_iface {
     // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement
     // will quick_stop? or stop?
     if (err != std::errc::operation_canceled) {
-      quick_stop();
+      [[maybe_unused]] std::error_code todo{ quick_stop(yield) };
       pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
       logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
     }
@@ -287,16 +306,18 @@ struct dbus_iface {
     return true;
   }
 
-  bool stop() {
+  auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     action = cia_402::transition_action::stop;
     speed_ratio_ = 0 * mp_units::percent;
-    return true;
+    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
   }
 
-  bool quick_stop() {
+  auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     action = cia_402::transition_action::quick_stop;
     speed_ratio_ = 0 * mp_units::percent;
-    return true;
+    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
   }
 
   bool cancel_pending_operation() {
@@ -308,6 +329,10 @@ struct dbus_iface {
   void update_status(const input_t& in) {
     status_word_ = in.status_word;
     pos_.freq_update(in.frequency);
+    if (in.frequency == 0 * mp_units::si::hertz) {
+      [[maybe_unused]] boost::system::error_code err{};
+      stop_complete_.notify_all(err);
+    }
   }
 
   void on_homing_sensor(bool new_v) {
@@ -342,6 +367,7 @@ struct dbus_iface {
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   asio::steady_timer timeout_{ ctx_ };
   std::string peer_{ "" };
+  tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
 
