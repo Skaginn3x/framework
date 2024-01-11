@@ -224,7 +224,7 @@ public:
   }
 
 private:
-  logger::logger logger_{"ipc-manager"};
+  logger::logger logger_{ "ipc-manager" };
   sqlite::database db_;
   std::function<void(std::string_view, std::string_view)> on_connect_cb_;
 };
