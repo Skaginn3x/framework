@@ -63,7 +63,7 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    config_ = std::make_shared<tfc::confman::config<config::bus>>(ctx_, "ethercat");
+    config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
 
     logger_.trace("Network interface used: {}", config_->value().primary_interface.value);
   }
@@ -162,6 +162,18 @@ public:
       logger_.error("Might need to configure another interface?");
       ctx_.run_for(std::chrono::seconds{ 1 });
       return async_start();
+    }
+
+    auto configured_slave_count = config_->value().required_slave_count.value();
+
+    if (configured_slave_count.has_value()) {
+      if (slave_count() == configured_slave_count.value()) {
+        logger_.error("Slave count is wrong, current slave count: {}, required slave count: {}", slave_count(),
+                      configured_slave_count.value());
+        return async_start();
+      }
+      logger_.trace("Slave count is correct, current slave count: {}, minimum slave count: {}", slave_count(),
+                    configured_slave_count.value());
     }
 
     ecx::config_overlap_map_group(&context_, std::span(io_.data(), io_.size()), 0);
@@ -379,7 +391,7 @@ private:
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
-  std::shared_ptr<tfc::confman::config<config::bus>> config_;
+  std::shared_ptr<tfc::confman::config<config::ethercat>> config_;
   tfc::logger::logger logger_{ "ethercat" };
 };
 
