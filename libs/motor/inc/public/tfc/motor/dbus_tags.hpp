@@ -23,19 +23,22 @@ static inline auto make_interface_name(std::string_view implementation_name, std
 
 namespace method {
 static constexpr std::string_view ping{ "Ping" };
+static constexpr std::string_view run{ "Run" };
 static constexpr std::string_view run_at_speedratio{ "RunAtSpeedratio" };
 static constexpr std::string_view stop{ "Stop" };
 static constexpr std::string_view quick_stop{ "QuickStop" };
-static constexpr std::string_view do_homing{ "DoHoming" };
+static constexpr std::string_view needs_homing{ "NeedsHoming" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
-static constexpr std::string_view notify_after_micrometre{ "NotifyAfter_Micrometre" };
 static constexpr std::string_view convey_micrometrepersecond_micrometre{ "Convey_MicrometrePerSecond_Micrometre" };
 static constexpr std::string_view convey_micrometrepersecond_microsecond{ "Convey_MicrometrePerSecond_Microsecond" };
 static constexpr std::string_view convey_micrometre{ "Convey_Micrometre" };
 static constexpr std::string_view convey_microsecond{ "Convey_Microsecond" };
 static constexpr std::string_view move_speedratio_micrometre{ "Move_Speedratio_Micrometre" };
 static constexpr std::string_view move_micrometre{ "Move_Micrometre" };
+static constexpr std::string_view move_home{ "Move_Home" };
+static constexpr std::string_view notify_after_micrometre{ "NotifyAfter_Micrometre" };
+static constexpr std::string_view notify_from_home_micrometre{ "NotifyFromHome_Micrometre" };
 
 }  // namespace method
 

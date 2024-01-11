@@ -181,16 +181,29 @@ public:
   auto needs_homing(asio::completion_token_for<void(std::error_code, bool)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, bool)>::return_type;
 
-  // todo notify_after, notify_at or notify_from_home
-  void notify(QuantityOf<mp_units::isq::length> auto, std::invocable<std::error_code> auto) {}
+  /// \brief Notify when motor has reached the given position
+  /// \param position to notify after, relative to current position
+  /// \param token completion token to notify when motor has reached the given position
+  template <QuantityOf<mp_units::isq::length> position_t>
+  auto notify_after(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type;
 
-  void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
+  /// \brief Notify when motor has reached the given position
+  /// \param position to notify after, relative to homing position
+  /// \param token completion token to notify when motor has reached the given position
+  template <QuantityOf<mp_units::isq::length> position_t>
+  auto notify_from_home(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type;
+
+  // void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
 
   /// \brief Send stop command to motor with default configured deceleration duration by the motor server
   /// \param token completion token to notify when motor has come to a stop
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
+  // todo implement more generally,
+  // motor.deceleration(100ms).stop(token);
   /// \brief Send stop command to motor and decelerate given the duration
   /// \param token completion token to notify when motor has come to a stop
   /// \param deceleration_duration how long the motor should take to stop
@@ -198,15 +211,9 @@ public:
             asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
-  /// \brief Send quick stop command to motor and release brake when stopped
+  /// \brief Send quick stop command to motor and keep stopped until any other command is sent
   /// \param token completion token to notify when motor has come to a stop
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
-
-  /// \brief Send DC brake command to motor
-  ///  Will keep motor braked until next command is executed
-  /// \param token completion token to notify when motor has come to a stop
-  auto brake(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
   /// \brief Send run command to motor with default configured speedratio by the motor server
@@ -391,6 +398,30 @@ auto api::needs_homing(asio::completion_token_for<void(std::error_code, bool)> a
       impl_);
 }
 
+template <QuantityOf<mp_units::isq::length> position_t>
+auto api::notify_after(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type {
+  using signature_t = void(std::error_code, position_t);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) {
+                                  return motor_impl.notify_after(position, std::forward<decltype(token)>(token));
+                                } },
+                    impl_);
+}
+
+template <QuantityOf<mp_units::isq::length> position_t>
+auto api::notify_from_home(position_t position, asio::completion_token_for<void(std::error_code, position_t)> auto&& token)
+    -> typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, position_t)>::return_type {
+  using signature_t = void(std::error_code, position_t);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) {
+                                  return motor_impl.notify_from_home(position, std::forward<decltype(token)>(token));
+                                } },
+                    impl_);
+}
+
 auto api::stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
   using signature_t = void(std::error_code);
@@ -420,15 +451,6 @@ auto api::quick_stop(asio::completion_token_for<void(std::error_code)> auto&& to
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) mutable { return motor_impl.quick_stop(std::forward<decltype(token)>(token)); } },
       impl_);
-}
-
-auto api::brake(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-  using signature_t = void(std::error_code);
-  using namespace detail;
-  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [&](auto& motor_impl) { return motor_impl.brake(std::forward<decltype(token)>(token)); } },
-                    impl_);
 }
 
 auto api::run(asio::completion_token_for<void(std::error_code)> auto&& token) ->

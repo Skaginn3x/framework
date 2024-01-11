@@ -234,6 +234,18 @@ public:
     // return !has_reference_;
   }
 
+  template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
+  auto notify_after(position_t, asio::completion_token_for<signature_t> auto&& token) {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+  }
+
+  template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
+  auto notify_from_home(position_t, asio::completion_token_for<signature_t> auto&& token) {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
+  }
+
   template <typename signature_t = void(std::error_code)>
   auto stop(asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {

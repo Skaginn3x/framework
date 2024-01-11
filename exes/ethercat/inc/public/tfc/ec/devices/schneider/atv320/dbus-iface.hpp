@@ -93,7 +93,7 @@ struct dbus_iface {
     });
 
     dbus_interface_->register_method(
-        std::string{ method::do_homing }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) {
+        std::string{ method::move_home }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) {
           if (!validate_peer(msg.get_sender())) {
             return;
           }

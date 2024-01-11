@@ -82,7 +82,7 @@ auto main(int argc, char** argv) -> int {
   /// Getting notified of a continously running motor
   // my_motor.notify(10 * min, [](std::error_code const&) {});
   //my_motor.notify(10 * l, [](std::error_code const&) {});
-  my_motor.notify(10 * m, [](std::error_code const&) {});
+  my_motor.notify_after(10 * m, [](std::error_code const&, decltype(10 * m)) {});
   // motor.notify(10 * rad, [](std::error_code const&) {});
 
   /// Special cases
