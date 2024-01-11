@@ -222,7 +222,23 @@ struct controller {
 
   void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
 
+  auto positioner() noexcept -> auto& { return pos_; }
+
 private:
+  auto quick_stop_impl(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    action_ = cia_402::transition_action::quick_stop;
+    speed_ratio_ = 0 * mp_units::percent;
+    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
+  }
+
+  auto stop_impl(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    action_ = cia_402::transition_action::stop;
+    speed_ratio_ = 0 * mp_units::percent;
+    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
+  }
+
   auto run_at_speedratio_impl(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum motor::errors::err_enum;
