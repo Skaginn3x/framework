@@ -42,6 +42,8 @@ using nominal_motor_frequency_FRS =
     setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500 * dHz>;
 
 using fast_stop_ramp_divider_DCF = setting<ecx::index_t{ 0x2052, 0x1F }, "DCF", "Fast stop ramp divider", uint16_t, 4>;
+using fast_stop_ramp_divider_DCF =
+setting<ecx::index_t{ 0x2052, 0x1F }, "DCF", "Fast stop ramp divider. Controls the quick stop time documented as a divider from 1-10. 0 seems to be instant.", uint16_t, 4>;
 
 using nominal_motor_current_NCR =
     setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20 * dA>;
