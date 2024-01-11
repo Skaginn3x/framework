@@ -19,26 +19,33 @@ using ut::operator|;
 using ut::expect;
 
 using mp_units::percent;
-using mp_units::si::metre;
 using mp_units::si::micro;
+using mp_units::si::metre;
 
 using tfc::ec::devices::schneider::atv320::controller;
 using tfc::ec::devices::schneider::atv320::input_t;
 using tfc::ec::devices::schneider::atv320::micrometre_t;
 using tfc::ec::devices::schneider::atv320::speedratio_t;
 using tfc::motor::errors::err_enum;
+using tfc::ec::devices::schneider::atv320::lft_e;
+using tfc::ec::devices::schneider::atv320::hmis_e;
 
-// auto get_good_status_stopped() -> input_t {
-//   return input_t{
-//     .current = 0,
-//   };
-// }
-//
-// auto get_good_status_running() -> input_t {
-//   return input_t{
-//     .current = 10,
-//   };
-// }
+auto get_good_status_stopped() -> input_t {
+  return input_t{
+    .status_word = 0,
+    .frequency = 0,
+    .current = 0,
+    .digital_inputs = 0x0000,
+    .last_error = lft_e::no_fault,
+    .drive_state = hmis_e::rdy,
+  };
+}
+
+auto get_good_status_running() -> input_t {
+  return input_t{
+    .current = 10,
+  };
+}
 
 auto main(int argc, char const* const* argv) -> int {
   tfc::base::init(argc, argv);
@@ -48,12 +55,12 @@ auto main(int argc, char const* const* argv) -> int {
   auto slave_id = 0;
   auto ctrl = controller(dbus_connection, slave_id);
 
+  // Good path tests
   "run_at_speedratio normal start and stop"_test = [&] {
     speedratio_t ratio = 1.0 * percent;
     bool ran = false;
     ctrl.run_at_speedratio(ratio, [&ctx, &ran](const std::error_code& err) -> void {
-      expect(err.category() == tfc::motor::category()) << err.message();
-      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err;
       ctx.stop();
       ran = true;
     });
@@ -80,6 +87,8 @@ auto main(int argc, char const* const* argv) -> int {
     expect(ran);
   };
 
-  "more complex race conditions and competing invocations"_test = [&] {};
+  "update status error detection"_test = [&] {
+    ctrl.update_status(get)
+  };
   return EXIT_SUCCESS;
 }

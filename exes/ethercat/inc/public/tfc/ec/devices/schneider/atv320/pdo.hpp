@@ -3,7 +3,7 @@
 namespace tfc::ec::devices::schneider::atv320 {
 
 struct input_t {
-  tfc::ec::cia_402::status_word status_word{};
+  cia_402::status_word status_word{};
   decifrequency_signed frequency{};
   uint16_t current{};
   uint16_t digital_inputs{};

@@ -18,7 +18,7 @@ namespace tfc::motor {
 // inside some alarm manager.
 namespace errors {
 enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
-  success = 0,                // todo refactor to none ?
+  success = 0,
   no_motor_configured = 1,
   motor_not_connected = 2,
   motor_general_error = 3,
