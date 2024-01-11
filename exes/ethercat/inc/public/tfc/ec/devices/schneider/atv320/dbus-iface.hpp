@@ -43,8 +43,7 @@ struct dbus_iface {
 
   auto convey_micrometre(micrometre_t travel,
                          asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
-  typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type
-  {
+      typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
     using signature_t = void(motor::errors::err_enum, micrometre_t);
     return asio::async_compose<decltype(token), signature_t>(
         [this, travel, first_call = true, is_positive = travel > 0L * micrometre_t::reference, pos = pos_.position()](
