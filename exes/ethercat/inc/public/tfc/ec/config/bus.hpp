@@ -42,11 +42,11 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
 namespace tfc::ec::config {
 struct ethercat {
   network_interface primary_interface{ tfc::global::get_interfaces()[0] };
-  confman::observable<std::optional<std::size_t>> minimum_slave_count{ 0 };
+  confman::observable<std::optional<std::size_t>> required_slave_count{ 0 };
   struct glaze {
     // clang-format off
     static constexpr auto value{ glz::object("primary_interface", &ethercat::primary_interface, "Primary interface",
-                                             "minimum_slave_count", &ethercat::minimum_slave_count, "Minimum slave count") };
+                                             "required_slave_count", &ethercat::required_slave_count, "Required slave count") };
     // clang-format on
     static constexpr std::string_view name{ "config::ethercat" };
   };
