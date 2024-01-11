@@ -10,6 +10,7 @@
 #include "beckhoff/EL2xxx.hpp"
 #include "beckhoff/EL3xxx.hpp"
 #include "beckhoff/EL4xxx.hpp"
+#include "beckhoff/EL9222.hpp"
 #include "beckhoff/EQ2339.hpp"
 #include "eilersen/4x60a.hpp"
 #include "schneider/atv320.hpp"
@@ -32,6 +33,7 @@ using devices_list = devices_type<
   beckhoff::el2004<manager_client_t>,
   beckhoff::el2008<manager_client_t>,
   beckhoff::el2809<manager_client_t>,
+  beckhoff::el9222,
   beckhoff::eq2339<manager_client_t>,
   //beckhoff::el3054,
   beckhoff::el4002,
