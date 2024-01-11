@@ -11,7 +11,13 @@
 
 namespace tfc::mqtt::config {
 
+struct signal_name;
+
+std::vector<std::string> publishing_signals{};
+
 struct signal_name {
+  signal_name() { publishing_signals.push_back(*this); }
+
   std::string value{};
 
   struct glaze {
@@ -19,7 +25,17 @@ struct signal_name {
     static constexpr std::string_view name{ "signal_name" };
   };
 };
+
 }  // namespace tfc::mqtt::config
+
+auto signal_in_publishing_list(std::string signal_name) {
+  for (auto const& signal : tfc::mqtt::config::publishing_signals) {
+    if (signal.value == signal_name) {
+      return true;
+    }
+  }
+  return false;
+}
 
 template <>
 struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
@@ -29,6 +45,10 @@ struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
       s.oneOf = std::vector<tfc::json::detail::schematic>{};
     }
     for (auto const& signal : tfc::global::get_signals()) {
+      if (signal_in_publishing_list(signal.name)) {
+        continue;
+      }
+
       s.oneOf.value().push_back(tfc::json::detail::schematic{ .attributes{
           tfc::json::schema{ .title = signal.name, .description = signal.description, .constant = signal.name } } });
     };
