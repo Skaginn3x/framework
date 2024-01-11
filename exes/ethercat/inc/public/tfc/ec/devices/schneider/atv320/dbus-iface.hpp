@@ -35,6 +35,55 @@ struct dbus_iface {
   static constexpr std::string_view hmis{ "hmis" };  // todo change to more readable form
   static constexpr std::string_view impl_name{ "atv320" };
 
+  dbus_iface(const dbus_iface&) = delete;
+  dbus_iface(dbus_iface&&) = delete;
+  auto operator=(const dbus_iface&) -> dbus_iface& = delete;
+  auto operator=(dbus_iface&&) -> dbus_iface& = delete;
+  ~dbus_iface() = default;
+
+  auto convey_micrometre(micrometre_t travel,
+                         asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+  typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type
+  {
+    using signature_t = void(motor::errors::err_enum, micrometre_t);
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, travel, first_call = true, is_positive = travel > 0L * micrometre_t::reference, pos = pos_.position()](
+            auto& self, std::error_code err = {}) mutable {
+          using enum motor::errors::err_enum;
+          if (first_call) {
+            first_call = false;
+            logger_.trace("Target displacement: {}, current position: {}", travel, pos);
+            if (travel == 0L * micrometre_t::reference) {
+              self.complete(success, 0L * micrometre_t::reference);
+              return;
+            }
+            cancel_pending_operation();
+            if (!run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_)) {
+              self.complete(speedratio_out_of_range, 0L * micrometre_t::reference);
+              return;
+            }
+            pos_.notify_after(travel, bind_cancellation_slot(cancel_signal_.slot(), std::move(self)));
+            return;
+          }
+          auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
+                                                : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+          // This is only called if another invocation has taken control of the motor
+          // stopping the motor now would be counter productive as somebody is using it.
+          if (err != std::errc::operation_canceled) {
+            // Todo this stops quickly :-)
+            quick_stop();
+          }
+          if (err) {
+            logger_.warn("Convey failed: {}", err.message());
+            self.complete(motor::motor_enum(err), actual_travel);
+            return;
+          }
+          logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
+          self.complete(success, actual_travel);
+        },
+        token);
+  }
+
   dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
       : ctx_(connection->get_io_context()), slave_id_{ slave_id },
         pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&dbus_iface::on_homing_sensor, this) },
@@ -125,40 +174,16 @@ struct dbus_iface {
         });
 
     // returns { error_code, actual displacement }
-    dbus_interface_->register_method(
-        std::string{ method::convey_micrometre },
-        [this](asio::yield_context yield, sdbusplus::message_t const& msg,
-               micrometre_t displacement) -> std::tuple<motor::errors::err_enum, micrometre_t> {
-          using enum motor::errors::err_enum;
-          auto const pos{ pos_.position() };
-          logger_.trace("Target displacement: {}, current position: {}", displacement, pos);
-          if (!validate_peer(msg.get_sender())) {
-            return std::make_tuple(permission_denied, 0L * micrometre_t::reference);
-          }
-          if (displacement == 0L * micrometre_t::reference) {
-            return std::make_tuple(success, 0L * micrometre_t::reference);
-          }
-          cancel_pending_operation();
-          bool const is_positive{ displacement > 0L * micrometre_t::reference };
-          if (!run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_)) {
-            return std::make_tuple(speedratio_out_of_range, 0L * micrometre_t::reference);
-          }
-          std::error_code err{ pos_.notify_after(displacement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-          auto const actual_displacement{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
-                                                      : -(pos - pos_.position()).force_in(micrometre_t::reference) };
-          // This is only called if another invocation has taken control of the motor
-          // stopping the motor now would be counter productive as somebody is using it.
-          if (err != std::errc::operation_canceled) {
-            // Todo this stops quickly :-)
-            quick_stop();
-          }
-          if (err) {
-            logger_.warn("Convey failed: {}", err.message());
-            return std::make_tuple(motor::motor_enum(err), actual_displacement);
-          }
-          logger_.trace("Actual displacement: {}, where target was: {}", actual_displacement, displacement);
-          return std::make_tuple(success, actual_displacement);
-        });
+    dbus_interface_->register_method(std::string{ method::convey_micrometre },
+                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg,
+                                            micrometre_t travel) -> std::tuple<motor::errors::err_enum, micrometre_t> {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return std::make_tuple(permission_denied, 0L * micrometre_t::reference);
+                                       }
+                                       auto [err, actual_displacement]{ convey_micrometre(travel, std::move(yield)) };
+                                       return std::make_tuple(err, actual_displacement);
+                                     });
 
     // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(
