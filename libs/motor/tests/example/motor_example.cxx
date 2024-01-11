@@ -36,7 +36,7 @@ auto main(int argc, char** argv) -> int {
     }
   });
   my_motor.convey(10 * (m / s), 10 * m, [](const std::error_code&, [[maybe_unused]] decltype(10 * m) actual_travel) {});
-  my_motor.convey(10 * (m / s), 10 * min, [](const std::error_code&, motor::micrometre_t travel_during_time) {});
+  my_motor.convey(10 * (m / s), 10 * min, [](const std::error_code&, [[maybe_unused]] motor::micrometre_t travel_during_time) {});
 
   // Configured speed
   // err =  my_motor.convey();
@@ -64,7 +64,7 @@ auto main(int argc, char** argv) -> int {
   my_motor.move_home([](const std::error_code&) {});
 
   // Can be used to ask the motor if he has a good reference to his home point.
-  my_motor.needs_homing([](std::error_code, bool needs_homing){});
+  my_motor.needs_homing([](std::error_code, [[maybe_unused]] bool needs_homing){});
 
   // Stop with deceleration specified
   // specifing a deceleration overloads
