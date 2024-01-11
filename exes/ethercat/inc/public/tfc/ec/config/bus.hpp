@@ -43,11 +43,6 @@ namespace tfc::ec::config {
 struct ethercat {
   network_interface primary_interface{ tfc::global::get_interfaces()[0] };
   confman::observable<std::optional<std::size_t>> required_slave_count{ std::nullopt };
-
- //  auto set_default_interface() -> void {
- //    primary_interface = static_cast<const network_interface>(tfc::global::get_interfaces()[0]);
- //  }
-
   struct glaze {
     // clang-format off
     static constexpr auto value{ glz::object("primary_interface", &ethercat::primary_interface, "Primary interface",
