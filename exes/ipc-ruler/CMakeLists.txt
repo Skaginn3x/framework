@@ -5,6 +5,10 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_path(SQLITE_MODERN_CPP_INCLUDE_DIRS "sqlite_modern_cpp.h")
+target_include_directories(ipc-ruler PRIVATE $<BUILD_INTERFACE:${SQLITE_MODERN_CPP_INCLUDE_DIRS}>)
+
 target_link_libraries(ipc-ruler
   PUBLIC
     tfc::ipc
@@ -14,6 +18,7 @@ target_link_libraries(ipc-ruler
     tfc::dbus_util
     Boost::program_options
     PkgConfig::SDBUSPLUS
+    unofficial::sqlite3::sqlite3
 )
 
 include(GNUInstallDirs)
