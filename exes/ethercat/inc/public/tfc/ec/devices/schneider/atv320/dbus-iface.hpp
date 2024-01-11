@@ -56,7 +56,8 @@ struct controller {
   auto run_at_speedratio(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
-    return run_at_speedratio_impl(speedratio, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    return run_at_speedratio_impl(speedratio,
+                                  asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -127,7 +128,8 @@ struct controller {
         token);
   }
 
-  // auto move(speedratio_t speedratio, micrometre_t placement, asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+  // auto move(speedratio_t speedratio, micrometre_t placement, asio::completion_token_for<void(motor::errors::err_enum,
+  // micrometre_t)> auto&& token) ->
   //   typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
   //   using signature_t = void(motor::errors::err_enum, micrometre_t);
   //   enum struct state_e : std::uint8_t { move_until_notify = 0, wait_till_stop, complete };
@@ -155,18 +157,21 @@ struct controller {
   //         ec2]{ asio::experimental::make_parallel_group(
   //                   [&](auto token) { return run_at_speedratio(is_positive ? speedratio : -speedratio, token); },
   //                   [&](auto token) { return pos_.notify_from_home(placement, token); })
-  //                   .async_wait(asio::experimental::wait_for_one(), bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+  //                   .async_wait(asio::experimental::wait_for_one(), bind_cancellation_slot(cancel_signal_.slot(), yield))
+  //                   };
   //   std::error_code err{ order[0] == 0 ? ec1 : ec2 };
   //   // Todo this stops quickly :-)
   //   // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is going
   //   // so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration time) to the
   //   // API call when needed implementing deceleration would propably be best to be controlled by this code not the atv
-  //   // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement
+  //   // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next
+  //   decrement
   //   // will quick_stop? or stop?
   //   if (err != std::errc::operation_canceled) {
   //     [[maybe_unused]] std::error_code todo{ quick_stop(bind_cancellation_slot(cancel_signal_.slot(), yield)) };
   //     pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
-  //     logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
+  //     logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home,
+  //     placement);
   //   }
   //   if (err) {
   //     return std::make_tuple(motor::motor_enum(err), pos_from_home);
