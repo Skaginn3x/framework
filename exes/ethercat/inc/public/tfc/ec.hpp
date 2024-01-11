@@ -13,6 +13,7 @@
 #include <tfc/ec/config/bus.hpp>
 #include <tfc/ec/devices/device.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/ec/interfaces.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -65,7 +66,20 @@ public:
 
     config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
 
+    if (!is_interface_valid()) {
+      config_->make_change()->primary_interface = tfc::ec::config::network_interface{tfc::global::get_interfaces()[0]};
+    }
+
     logger_.trace("Network interface used: {}", config_->value().primary_interface.value);
+  }
+
+  auto is_interface_valid() -> bool {
+    for (auto const& interface : tfc::global::get_interfaces()) {
+      if (interface == config_->value().primary_interface.value) {
+        return true;
+      }
+    }
+    return false;
   }
 
   context_t(const context_t&) = delete;
