@@ -78,7 +78,7 @@ public:
     try {
       // Check if signal exists
       int count = 0;
-      db_ << "select count(*) from signals where name = ?;" << std::string(name) >> count;
+      db_ << "SELECT count(*) FROM signals WHERE name = ?;" << std::string(name) >> count;
       if (count != 0) {
         // update the signal
         db_ << fmt::format("UPDATE signals SET last_registered = {}, description = '{}', type = {}  WHERE name = '{}';",
@@ -106,7 +106,7 @@ public:
 
       std::string connected_to = "";
       bool found = false;
-      db_ << "select connected_to from slots where name = ?;" << std::string(name) >>
+      db_ << "SELECT connected_to FROM slots WHERE name = ?;" << std::string(name) >>
           [&connected_to, &found](const std::string& result) {
             connected_to = result;
             found = true;
@@ -133,7 +133,7 @@ public:
   auto get_all_signals() -> std::vector<signal> {
     logger_.trace("get_all_signals called");
     std::vector<signal> ret;
-    db_ << "select name, type, last_registered, description, created_at, created_by from signals" >>
+    db_ << "SELECT name, type, last_registered, description, created_at, created_by FROM signals" >>
         [&ret](const std::string& name, const int type, const std::uint64_t last_registered, const std::string& description,
                const std::uint64_t created_at, const std::string& created_by) {
           using std::chrono::milliseconds;
@@ -147,8 +147,8 @@ public:
   auto get_all_slots() -> std::vector<slot> {
     logger_.trace("get_all_slots called");
     std::vector<slot> ret;
-    db_ << "select name, type, last_registered, description, created_at, created_by, last_modified, modified_by, "
-           "connected_to from slots" >>
+    db_ << "SELECT name, type, last_registered, description, created_at, created_by, last_modified, modified_by, "
+           "connected_to FROM slots" >>
         [&ret](const std::string& name, const int type, const std::uint64_t last_registered, const std::string& description,
                const std::uint64_t created_at, const std::string& created_by, const std::uint64_t last_modified,
                const std::string& modified_by, const std::string& connected_to) {
@@ -164,7 +164,7 @@ public:
 
   auto get_all_connections() -> std::map<std::string, std::vector<std::string>> {
     std::map<std::string, std::vector<std::string>> connections;
-    db_ << "SELECT signals.name, slots.name FROM signals JOIN slots on signals.name = slots.connected_to;" >>
+    db_ << "SELECT signals.name, slots.name FROM signals JOIN slots ON signals.name = slots.connected_to;" >>
         [&connections](const std::string& signal_name, const std::string& slot_name) {
           connections[signal_name].emplace_back(slot_name);
         };
@@ -175,14 +175,14 @@ public:
     try {
       logger_.trace("connect called, slot: {}, signal: {}", slot_name, signal_name);
       int slot_count = 0;
-      db_ << "select count(*) from slots where name = ?;" << std::string(slot_name) >> slot_count;
+      db_ << "SELECT count(*) FROM slots WHERE name = ?;" << std::string(slot_name) >> slot_count;
       if (slot_count == 0) {
         std::string const err_msg = fmt::format("Slot ({}) does not exist", slot_name);
         logger_.warn(err_msg);
         throw dbus_error(err_msg);
       }
       int signal_count = 0;
-      db_ << "select count(*) from signals where name = ?;" << std::string(signal_name) >> signal_count;
+      db_ << "SELECT count(*) FROM signals WHERE name = ?;" << std::string(signal_name) >> signal_count;
       if (signal_count == 0) {
         std::string const err_msg = fmt::format("Signal ({}) does not exist", signal_name);
         logger_.warn(err_msg);
@@ -190,10 +190,10 @@ public:
       }
 
       int signal_type = 0;
-      db_ << fmt::format("select type from signals where name = '{}' LIMIT 1;", slot_name) >>
+      db_ << fmt::format("SELECT type FROM signals WHERE name = '{}' LIMIT 1;", slot_name) >>
           [&signal_type](const int result) { signal_type = result; };
       int slot_type = 0;
-      db_ << fmt::format("select type from slots where name = ? LIMIT 1;", slot_name) >>
+      db_ << fmt::format("SELECT type FROM slots WHERE name = ? LIMIT 1;", slot_name) >>
           [&slot_type](const int result) { slot_type = result; };
       if (signal_type != slot_type) {
         std::string const err_msg = "Signal and slot types dont match";
@@ -212,7 +212,7 @@ public:
     logger_.trace("disconnect called, slot: {}", slot_name);
     try {
       int slot_count = 0;
-      db_ << "select count(*) from slots where name = ?;" << std::string(slot_name) >> slot_count;
+      db_ << "SELECT count(*) FROM slots WHERE name = ?;" << std::string(slot_name) >> slot_count;
       if (slot_count == 0) {
         throw std::runtime_error("Slot does not exist");
       }

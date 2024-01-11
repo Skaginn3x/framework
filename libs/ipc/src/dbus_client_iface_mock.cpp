@@ -2,6 +2,7 @@
 
 #include <boost/asio/io_context.hpp>
 #include <sdbusplus/asio/connection.hpp>
+#include <sdbusplus/bus/match.hpp>
 #include <sdbusplus/message.hpp>
 
 namespace tfc::ipc_ruler {
