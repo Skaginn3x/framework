@@ -12,7 +12,7 @@ namespace ut = boost::ut;
 using asio::steady_timer;
 
 using std::chrono::operator""ms;
-using std::string_view_literals::operator ""sv;
+using std::string_view_literals::operator""sv;
 
 using ut::operator""_test;
 using ut::operator|;
@@ -21,9 +21,9 @@ using ut::expect;
 using mp_units::percent;
 
 using tfc::ec::devices::schneider::atv320::controller;
-using tfc::ec::devices::schneider::atv320::speedratio_t;
-using tfc::ec::devices::schneider::atv320::micrometre_t;
 using tfc::ec::devices::schneider::atv320::input_t;
+using tfc::ec::devices::schneider::atv320::micrometre_t;
+using tfc::ec::devices::schneider::atv320::speedratio_t;
 
 // auto get_good_status_stopped() -> input_t {
 //   return input_t{
@@ -58,9 +58,7 @@ auto main(int argc, char const* const* argv) -> int {
     timer.expires_after(1ms);
     timer.async_wait([&](const std::error_code& timer_error) {
       expect(!timer_error);
-      ctrl.stop([](const std::error_code& stop_error) {
-        expect(!stop_error);
-      });
+      ctrl.stop([](const std::error_code& stop_error) { expect(!stop_error); });
     });
     ctx.run_for(std::chrono::milliseconds(5000ms));
     expect(ran);
@@ -76,7 +74,6 @@ auto main(int argc, char const* const* argv) -> int {
     expect(ran);
   };
 
-  "more complex race conditions and competing invocations"_test = [&] {
-  };
+  "more complex race conditions and competing invocations"_test = [&] {};
   return EXIT_SUCCESS;
 }
