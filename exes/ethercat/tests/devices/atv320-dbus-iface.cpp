@@ -19,11 +19,14 @@ using ut::operator|;
 using ut::expect;
 
 using mp_units::percent;
+using mp_units::si::micro;
+using mp_units::si::metre;
 
 using tfc::ec::devices::schneider::atv320::controller;
 using tfc::ec::devices::schneider::atv320::input_t;
 using tfc::ec::devices::schneider::atv320::micrometre_t;
 using tfc::ec::devices::schneider::atv320::speedratio_t;
+using tfc::motor::errors::err_enum;
 
 // auto get_good_status_stopped() -> input_t {
 //   return input_t{
@@ -49,8 +52,8 @@ auto main(int argc, char const* const* argv) -> int {
     speedratio_t ratio = 1.0 * percent;
     bool ran = false;
     ctrl.run_at_speedratio(ratio, [&ctx, &ran](const std::error_code& err) -> void {
-      expect(err.category() == tfc::motor::category());
-      expect(tfc::motor::motor_enum(err));
+      expect(err.category() == tfc::motor::category()) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
       ctx.stop();
       ran = true;
     });
@@ -60,20 +63,24 @@ auto main(int argc, char const* const* argv) -> int {
       expect(!timer_error);
       ctrl.stop([](const std::error_code& stop_error) { expect(!stop_error); });
     });
-    ctx.run_for(std::chrono::milliseconds(5000ms));
+    ctx.run_for(5ms);
     expect(ran);
   };
 
   "convey micrometre"_test = [&] {
     bool ran = false;
-    ctrl.convey_micrometre(1000 * micrometre_t{}, [&ran](const std::error_code& err) {
-      expect(!err);
+    ctrl.convey_micrometre(1000 * micrometre_t::reference, [&ran, &ctx](err_enum err, const micrometre_t moved) {
+      expect(err == err_enum::success);
+      expect(moved == 1000 * micrometre_t::reference);
       ran = true;
+      ctx.stop();
     });
-    ctx.run_for(std::chrono::milliseconds(5000ms));
+    ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    ctx.run_for(1ms);
     expect(ran);
   };
 
-  "more complex race conditions and competing invocations"_test = [&] {};
+  "more complex race conditions and competing invocations"_test = [&] {
+  };
   return EXIT_SUCCESS;
 }
