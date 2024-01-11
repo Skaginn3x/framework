@@ -336,6 +336,11 @@ struct dbus_iface {
   auto run_at_speedratio(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum motor::errors::err_enum;
+    if (drive_error_ != motor::errors::err_enum::success) {
+      logger_.trace("Drive in fault state, cannot run");
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [this](auto& self) { self.complete(motor::motor_error(drive_error_)); }, token);
+    }
     if (speedratio < -100 * mp_units::percent || speedratio > 100 * mp_units::percent) {
       logger_.trace("Speedratio not within range [-100,100], value: {}", speedratio);
       return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
@@ -373,6 +378,19 @@ struct dbus_iface {
     if (in.frequency == 0 * mp_units::si::hertz) {
       [[maybe_unused]] boost::system::error_code err{};
       stop_complete_.notify_all(err);
+    }
+    auto state = status_word_.parse_state();
+    if (cia_402::states_e::fault == state || cia_402::states_e::fault_reaction_active == state) {
+      drive_error_ = motor::errors::err_enum::motor_general_error;
+    }
+    if (in.last_error == lft_e::cnf) {
+      drive_error_ = motor::errors::err_enum::motor_communication_fault;
+    }
+    if (drive_error_ != motor::errors::err_enum::success) {
+      asio::steady_timer a;
+      auto k = motor::motor_error(motor::errors::err_enum::success);
+      a.cancel(k);
+      cancel_pending_operation();
     }
   }
 
@@ -422,6 +440,7 @@ struct dbus_iface {
 
   const uint16_t slave_id_;
   speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
+  motor::errors::err_enum drive_error_{};
 
   motor::positioner::positioner<> pos_;
   logger::logger logger_;

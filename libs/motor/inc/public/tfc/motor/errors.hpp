@@ -22,7 +22,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   no_motor_configured = 1,
   motor_not_connected = 2,
   motor_general_error = 3,
-  motor_tripped = 4,
+  motor_communication_fault = 4,
   motor_missing_speed_reference = 5,
   motor_missing_home_reference = 6,
   motor_not_implemented = 7,
