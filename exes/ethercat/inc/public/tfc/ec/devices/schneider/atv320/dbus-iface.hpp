@@ -335,10 +335,7 @@ struct dbus_iface {
       : ctx_(connection->get_io_context()), slave_id_{ slave_id },
         pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&dbus_iface::on_homing_sensor, this) },
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
-    sd_bus* bus = nullptr;
-    if (sd_bus_open_system(&bus) < 0) {
-      throw std::runtime_error(std::string{ "Unable to open sd-bus, error: " } + strerror(errno));
-    }
+
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection, false);
     dbus_interface_ = object_server_->add_unique_interface(std::string{ motor::dbus::path },
                                                            motor::dbus::make_interface_name(impl_name, slave_id_));
