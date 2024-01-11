@@ -24,6 +24,7 @@ namespace asio = boost::asio;
 namespace method = motor::dbus::method;
 using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
+static constexpr std::string_view impl_name{ "atv320" };
 
 template <typename self_t>
 struct combine_2_error_codes {
@@ -46,7 +47,6 @@ struct combine_2_error_codes {
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
 
-template <stx::basic_fixed_string impl_name>
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
       : slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
@@ -86,6 +86,60 @@ struct controller {
     return stop_complete_.async_wait(std::forward<decltype(token)>(token));
   }
 
+  auto convey_micrometre(micrometre_t travel,
+                         asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
+    using signature_t = void(motor::errors::err_enum, micrometre_t);
+    enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
+    auto const is_positive{ travel > 0L * micrometre_t::reference };
+    auto const pos{ pos_.position() };
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, travel, state = state_e::run_until_notify, is_positive, pos](auto& self, std::error_code err = {}) mutable {
+          using enum motor::errors::err_enum;
+          switch (state) {
+            case state_e::run_until_notify:
+              state = state_e::wait_till_stop;
+              logger_.trace("Target displacement: {}, current position: {}", travel, pos);
+              if (travel == 0L * micrometre_t::reference) {
+                self.complete(success, 0L * micrometre_t::reference);
+                return;
+              }
+              cancel_pending_operation();
+
+              asio::experimental::make_parallel_group(
+                  [&](auto inner_token) {
+                    return run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
+                  },
+                  [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
+                  .async_wait(asio::experimental::wait_for_one(), combine_2_error_codes{ std::move(self) });
+              return;
+            case state_e::wait_till_stop:
+              state = state_e::complete;
+              // This is only called if another invocation has not taken control of the motor
+              // stopping the motor now would be counter productive as somebody is using it.
+              if (err != std::errc::operation_canceled) {
+                // Todo this stops quickly :-)
+                quick_stop(std::move(self));
+                return;
+              }
+              self(err);
+              return;
+            case state_e::complete:
+              auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
+                                                    : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+
+              if (err) {
+                logger_.warn("Convey failed: {}", err.message());
+                self.complete(motor::motor_enum(err), actual_travel);
+                return;
+              }
+              logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
+              self.complete(success, actual_travel);
+          }
+        },
+        token);
+  }
+
   // Set properties with new status values
   void update_status(const input_t& in) {
     status_word_ = in.status_word;
@@ -106,6 +160,15 @@ struct controller {
     if (drive_error_ != success) {
       // big TODO propagate drive error to pending operation
       cancel_pending_operation();
+    }
+  }
+
+  auto set_configured_speedratio(speedratio_t speedratio) {
+    auto old_config_speedratio{ config_speedratio_ };
+    config_speedratio_ = speedratio;
+    // this is not correct, but this operation is non frequent and this simplifies the logic
+    if (action_ == cia_402::transition_action::run && speed_ratio_ == old_config_speedratio) {
+      speed_ratio_ = config_speedratio_;
     }
   }
 
@@ -134,6 +197,9 @@ private:
   cia_402::status_word status_word_{};
   decifrequency motor_nominal_frequency_{};  // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect
 
+  // Motor config
+  speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
+
   // Motor status
   motor::errors::err_enum drive_error_{};
 };
@@ -144,7 +210,6 @@ struct dbus_iface {
   static constexpr std::string_view frequency{ "frequency" };
   static constexpr std::string_view state_402{ "state_402" };
   static constexpr std::string_view hmis{ "hmis" };  // todo change to more readable form
-  static constexpr std::string_view impl_name{ "atv320" };
 
   dbus_iface(const dbus_iface&) = delete;
   dbus_iface(dbus_iface&&) = delete;
