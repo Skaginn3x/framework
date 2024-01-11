@@ -46,16 +46,12 @@ struct combine_2_error_codes {
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
 
-
 template <stx::basic_fixed_string impl_name>
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
-    :
-  slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
-  pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&controller::on_homing_sensor, this) }
-  {
-
-  }
+      : slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
+        pos_{ connection, fmt::format("{}_{}", impl_name, slave_id_),
+              std::bind_front(&controller::on_homing_sensor, this) } {}
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
@@ -94,9 +90,8 @@ struct controller {
     }
   }
 
-  void cancel_pending_operation() {
-    cancel_signal_.emit(asio::cancellation_type::all);
-  }
+  void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
+
 private:
   std::uint16_t slave_id_;
   asio::io_context& ctx_;
