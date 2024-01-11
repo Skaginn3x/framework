@@ -138,26 +138,30 @@ struct dbus_iface {
           pos_.notify_after(distance, yield);
         });
 
-    dbus_interface_->register_method(std::string{ method::stop }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
-      using enum motor::errors::err_enum;
-      if (!validate_peer(msg.get_sender())) {
-        return permission_denied;
-      }
-      cancel_pending_operation();
-      std::error_code err{ stop(yield) };
-      return motor::motor_enum(err);
-    });
+    dbus_interface_->register_method(
+        std::string{ method::stop },
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return permission_denied;
+          }
+          cancel_pending_operation();
+          std::error_code err{ stop(yield) };
+          return motor::motor_enum(err);
+        });
 
-    dbus_interface_->register_method(std::string{ method::quick_stop }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
-      // todo duplicate
-      using enum motor::errors::err_enum;
-      if (!validate_peer(msg.get_sender())) {
-        return permission_denied;
-      }
-      cancel_pending_operation();
-      std::error_code err{ quick_stop(yield) };
-      return motor::motor_enum(err);
-    });
+    dbus_interface_->register_method(
+        std::string{ method::quick_stop },
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+          // todo duplicate
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return permission_denied;
+          }
+          cancel_pending_operation();
+          std::error_code err{ quick_stop(yield) };
+          return motor::motor_enum(err);
+        });
 
     dbus_interface_->register_method(
         std::string{ method::move_home }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) {

@@ -32,7 +32,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   positioning_missing_event = 21,
   positioning_request_out_of_range = 22,
   permission_denied = 30,
-  operation_canceled = 31, // only used between client and server, user should use std::errc::operation_canceled
+  operation_canceled = 31,  // only used between client and server, user should use std::errc::operation_canceled
   unknown = 100,
 };
 
