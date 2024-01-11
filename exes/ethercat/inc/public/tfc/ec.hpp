@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <boost/asio/io_context.hpp>
 #include <cassert>
@@ -66,20 +67,13 @@ public:
 
     config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
 
-    if (!is_interface_valid()) {
-      config_->make_change()->primary_interface = tfc::ec::config::network_interface{ tfc::global::get_interfaces()[0] };
+    auto interfaces = tfc::global::get_interfaces();
+    if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_->value().primary_interface.value) !=
+          interfaces.end())) {
+      config_->make_change()->primary_interface = config::network_interface{ interfaces[0] };
     }
 
     logger_.trace("Network interface used: {}", config_->value().primary_interface.value);
-  }
-
-  auto is_interface_valid() -> bool {
-    for (auto const& interface : tfc::global::get_interfaces()) {
-      if (interface == config_->value().primary_interface.value) {
-        return true;
-      }
-    }
-    return false;
   }
 
   context_t(const context_t&) = delete;
