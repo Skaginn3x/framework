@@ -10,6 +10,7 @@
 #include <mp-units/format.h>
 #include <mp-units/quantity.h>
 #include <boost/asio.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
 
 #include <tfc/cia/402.hpp>
 #include <tfc/dbus/sd_bus.hpp>
@@ -51,40 +52,59 @@ struct dbus_iface {
     return asio::async_compose<decltype(token), signature_t>(
         [this, travel, state = state_e::run_until_notify, is_positive, pos](auto& self, std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
-          if (state == state_e::run_until_notify) {
-            state = state_e::wait_till_stop;
-            logger_.trace("Target displacement: {}, current position: {}", travel, pos);
-            if (travel == 0L * micrometre_t::reference) {
-              self.complete(success, 0L * micrometre_t::reference);
-              return;
-            }
-            cancel_pending_operation();
-            if (!run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_)) {
-              self.complete(speedratio_out_of_range, 0L * micrometre_t::reference);
-              return;
-            }
-            pos_.notify_after(travel, bind_cancellation_slot(cancel_signal_.slot(), std::move(self)));
-            return;
-          } else if (state == state_e::wait_till_stop) {
-            state = state_e::complete;
-            // This is only called if another invocation has taken control of the motor
-            // stopping the motor now would be counter productive as somebody is using it.
-            if (err != std::errc::operation_canceled) {
-              // Todo this stops quickly :-)
-              quick_stop(std::move(self));
-              return;
-            }
-          }
-          auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
-                                                : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+          switch (state) {
+            case state_e::run_until_notify:
+              state = state_e::wait_till_stop;
+              logger_.trace("Target displacement: {}, current position: {}", travel, pos);
+              if (travel == 0L * micrometre_t::reference) {
+                self.complete(success, 0L * micrometre_t::reference);
+                return;
+              }
+              cancel_pending_operation();
 
-          if (err) {
-            logger_.warn("Convey failed: {}", err.message());
-            self.complete(motor::motor_enum(err), actual_travel);
-            return;
+              asio::experimental::make_parallel_group(
+                  [&](auto inner_token) {
+                    return run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
+                  },
+                  [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
+                  .async_wait(asio::experimental::wait_for_one(),
+                              [self_m = std::move(self)](const auto& order, const std::error_code& run_error,
+                                                         const std::error_code& position_error) mutable {
+                                switch (order[0]) {
+                                  case 0:  // Run has returned
+                                    // Since we are not waiting for run and only monitoring for errors. An error has occured.
+                                    self_m(run_error);
+                                    break;
+                                  case 1:  // Notify has returned
+                                    self_m(position_error);
+                                    break;
+                                }
+                                return;
+                              });
+              return;
+            case state_e::wait_till_stop:
+              state = state_e::complete;
+              // This is only called if another invocation has not taken control of the motor
+              // stopping the motor now would be counter productive as somebody is using it.
+              if (err != std::errc::operation_canceled) {
+                // Todo this stops quickly :-)
+                quick_stop(std::move(self));
+                return;
+              }
+              self(err);
+              return;
+            case state_e::complete:
+              auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
+                                                    : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+
+              if (err) {
+                logger_.warn("Convey failed: {}", err.message());
+                self.complete(motor::motor_enum(err), actual_travel);
+                return;
+              }
+              logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
+              self.complete(success, actual_travel);
           }
-          logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
-          self.complete(success, actual_travel);
         },
         token);
   }
@@ -127,10 +147,17 @@ struct dbus_iface {
       }
     });
 
-    dbus_interface_->register_method(
-        std::string{ method::run_at_speedratio }, [this](const sdbusplus::message_t& msg, speedratio_t speedratio) -> bool {
-          return validate_peer(msg.get_sender()) && cancel_pending_operation() && run_at_speedratio(speedratio);
-        });
+    dbus_interface_->register_method(std::string{ method::run_at_speedratio },
+                                     [this](asio::yield_context yield, const sdbusplus::message_t& msg,
+                                            speedratio_t speedratio) -> motor::errors::err_enum {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return permission_denied;
+                                       }
+                                       cancel_pending_operation();
+                                       std::error_code err{ run_at_speedratio(speedratio, std::move(yield)) };
+                                       return motor::motor_enum(err);
+                                     });
     dbus_interface_->register_method(
         std::string{ method::notify_after_micrometre },
         [this](asio::yield_context yield, const sdbusplus::message_t& msg, micrometre_t distance) {
@@ -163,49 +190,54 @@ struct dbus_iface {
           return motor::motor_enum(err);
         });
 
-    dbus_interface_->register_method(
-        std::string{ method::move_home }, [this](asio::yield_context yield, const sdbusplus::message_t& msg) {
-          if (!validate_peer(msg.get_sender())) {
-            return;
-          }
-          cancel_pending_operation();
-          auto const& travel_speed{ pos_.homing_travel_speed() };
-          auto const& homing_sensor{ pos_.homing_sensor() };
-          if (!travel_speed.has_value() || !homing_sensor.has_value()) {
-            return;
-          }
-          logger_.trace("Homing motor");
-          if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
-            // todo move out of sensor and back to sensor
-            auto const pos{ pos_.position() };
-            logger_.info("Already at home, storing position: {}", pos);
-            pos_.home(pos);
-            return;
-          }
-          run_at_speedratio(travel_speed.value());
-          std::error_code err{ homing_complete_.async_wait(bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-          if (err != std::errc::operation_canceled) {
-            [[maybe_unused]] std::error_code todo{ quick_stop(yield) };
-            auto const pos{ pos_.position() };
-            logger_.trace("Storing home position: {}", pos);
-            pos_.home(pos);
-          }
-          if (err) {
-            logger_.warn("Homing failed: {}", err.message());
-          }
-        });
+    dbus_interface_->register_method(std::string{ method::move_home }, [this](asio::yield_context yield,
+                                                                              const sdbusplus::message_t& msg) {
+      if (!validate_peer(msg.get_sender())) {
+        return;
+      }
+      cancel_pending_operation();
+      auto const& travel_speed{ pos_.homing_travel_speed() };
+      auto const& homing_sensor{ pos_.homing_sensor() };
+      if (!travel_speed.has_value() || !homing_sensor.has_value()) {
+        return;
+      }
+      logger_.trace("Homing motor");
+      if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
+        // todo move out of sensor and back to sensor
+        auto const pos{ pos_.position() };
+        logger_.info("Already at home, storing position: {}", pos);
+        pos_.home(pos);
+        return;
+      }
+      auto [order, ec1, ec2]{
+        asio::experimental::make_parallel_group([&](auto token) { return run_at_speedratio(travel_speed.value(), token); },
+                                                [&](auto token) { return homing_complete_.async_wait(token); })
+            .async_wait(asio::experimental::wait_for_one(), bind_cancellation_slot(cancel_signal_.slot(), yield))
+      };
+      std::error_code err{ order[0] ? ec2 : ec1 };
+      if (err != std::errc::operation_canceled) {
+        [[maybe_unused]] std::error_code todo{ quick_stop(yield) };
+        auto const pos{ pos_.position() };
+        logger_.trace("Storing home position: {}", pos);
+        pos_.home(pos);
+      }
+      if (err) {
+        logger_.warn("Homing failed: {}", err.message());
+      }
+    });
 
     // returns { error_code, actual displacement }
-    dbus_interface_->register_method(std::string{ method::convey_micrometre },
-                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg,
-                                            micrometre_t travel) -> std::tuple<motor::errors::err_enum, micrometre_t> {
-                                       using enum motor::errors::err_enum;
-                                       if (!validate_peer(msg.get_sender())) {
-                                         return std::make_tuple(permission_denied, 0L * micrometre_t::reference);
-                                       }
-                                       auto [err, actual_displacement]{ convey_micrometre(travel, std::move(yield)) };
-                                       return std::make_tuple(err, actual_displacement);
-                                     });
+    dbus_interface_->register_method(
+        std::string{ method::convey_micrometre },
+        [this](asio::yield_context yield, sdbusplus::message_t const& msg,
+               micrometre_t travel) -> std::tuple<motor::errors::err_enum, micrometre_t> {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return std::make_tuple(permission_denied, 0L * micrometre_t::reference);
+          }
+          auto [err, actual_displacement]{ convey_micrometre(travel, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+          return std::make_tuple(err, actual_displacement);
+        });
 
     // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(
@@ -270,10 +302,12 @@ struct dbus_iface {
     // I thought about using absolute of speedratio, but if normal operation is negative than
     // it won't work, so it is better to making the user responsible to send correct sign.
     // Todo how can we document dbus API method calls?, generically.
-    if (!run_at_speedratio(is_positive ? speedratio : -speedratio)) {
-      return std::make_tuple(speedratio_out_of_range, pos_from_home);
-    }
-    std::error_code err{ pos_.notify_from_home(placement, bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+    auto [order, ec1,
+          ec2]{ asio::experimental::make_parallel_group(
+                    [&](auto token) { return run_at_speedratio(is_positive ? speedratio : -speedratio, token); },
+                    [&](auto token) { return pos_.notify_from_home(placement, token); })
+                    .async_wait(asio::experimental::wait_for_one(), bind_cancellation_slot(cancel_signal_.slot(), yield)) };
+    std::error_code err{ order[0] == 0 ? ec1 : ec2 };
     // Todo this stops quickly :-)
     // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is going
     // so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration time) to the
@@ -281,7 +315,7 @@ struct dbus_iface {
     // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next decrement
     // will quick_stop? or stop?
     if (err != std::errc::operation_canceled) {
-      [[maybe_unused]] std::error_code todo{ quick_stop(yield) };
+      [[maybe_unused]] std::error_code todo{ quick_stop(bind_cancellation_slot(cancel_signal_.slot(), yield)) };
       pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
       logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home, placement);
     }
@@ -299,15 +333,18 @@ struct dbus_iface {
     return true;
   }
 
-  auto run_at_speedratio(speedratio_t speedratio) -> bool {
+  auto run_at_speedratio(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    using enum motor::errors::err_enum;
     if (speedratio < -100 * mp_units::percent || speedratio > 100 * mp_units::percent) {
       logger_.trace("Speedratio not within range [-100,100], value: {}", speedratio);
-      return false;
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [](auto& self) { self.complete(motor::motor_error(speedratio_out_of_range)); }, token);
     }
     logger_.trace("Run motor at speedratio: {}", speedratio);
     action = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
-    return true;
+    return run_blocker_.async_wait(token);
   }
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -371,6 +408,7 @@ struct dbus_iface {
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   asio::steady_timer timeout_{ ctx_ };
   std::string peer_{ "" };
+  tfc::asio::condition_variable<asio::any_io_executor> run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};

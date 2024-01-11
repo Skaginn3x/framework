@@ -178,6 +178,7 @@ public:
 
   /// \brief poll whether the motor needs homing
   /// \param token notification with supplied flag indicating necissity of homing
+  /// error_code is set on server timeout
   auto needs_homing(asio::completion_token_for<void(std::error_code, bool)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, bool)>::return_type;
 
