@@ -19,9 +19,7 @@ external_to_tfc<ipc_client_t, config_t, signal_v>::external_to_tfc(asio::io_cont
 
 template <class ipc_client_t, class config_t, class signal_v>
 auto external_to_tfc<ipc_client_t, config_t, signal_v>::create_outward_signals() -> void {
-  logger_.trace("Creating outward signals");
   for (auto const& sig : config_.value().writeable_signals) {
-    logger_.trace("flipping through signals: {}", sig.name);
     if (!sig.name.empty()) {
       outward_signals_.emplace(sig.name, tfc::ipc::make_any<signal_v, ipc_client_t&, tfc::ipc::signal>::make(
                                              sig.type, io_ctx_, ipc_client_, sig.name, sig.description));

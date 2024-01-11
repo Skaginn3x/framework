@@ -79,7 +79,7 @@ public:
   }
 
   auto is_publish_signal(std::string signal_name) -> bool {
-    // check if signal name starts with "mqtt_bridge"
+    // check if signal is a writeable signal
     if (signal_name.starts_with("mqtt_bridge")) {
       logger_.trace("Signal is a writeable signal");
       return true;
