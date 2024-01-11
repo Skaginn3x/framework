@@ -25,6 +25,23 @@ namespace method = motor::dbus::method;
 using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
 
+template <typename self_t>
+struct combine_2_error_codes {
+  void operator()(auto const& order, std::error_code const& err1, std::error_code const& err2) {
+    switch (order[0]) {
+      case 0:  // first parallel job has finished
+        std::invoke(handler, err1);
+        break;
+      case 1:  // second parallel job has finished
+        std::invoke(handler, err2);
+        break;
+      default:
+        fmt::println(stderr, "Parallel job has failed, {}", order[0]);
+    }
+  }
+  self_t handler{};
+};
+
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
@@ -67,20 +84,7 @@ struct dbus_iface {
                     return run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
                   },
                   [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
-                  .async_wait(asio::experimental::wait_for_one(),
-                              [self_m = std::move(self)](const auto& order, const std::error_code& run_error,
-                                                         const std::error_code& position_error) mutable {
-                                switch (order[0]) {
-                                  case 0:  // Run has returned
-                                    // Since we are not waiting for run and only monitoring for errors. An error has occured.
-                                    self_m(run_error);
-                                    break;
-                                  case 1:  // Notify has returned
-                                    self_m(position_error);
-                                    break;
-                                }
-                                return;
-                              });
+                  .async_wait(asio::experimental::wait_for_one(), combine_2_error_codes{ std::move(self) });
               return;
             case state_e::wait_till_stop:
               state = state_e::complete;
@@ -214,7 +218,7 @@ struct dbus_iface {
                                                 [&](auto token) { return homing_complete_.async_wait(token); })
             .async_wait(asio::experimental::wait_for_one(), bind_cancellation_slot(cancel_signal_.slot(), yield))
       };
-      std::error_code err{ order[0] ? ec2 : ec1 };
+      std::error_code err{ order[0] == 0 ? ec1 : ec2 };
       if (err != std::errc::operation_canceled) {
         [[maybe_unused]] std::error_code todo{ quick_stop(yield) };
         auto const pos{ pos_.position() };
@@ -287,14 +291,14 @@ struct dbus_iface {
     if (!validate_peer(msg.get_sender())) {
       return std::make_tuple(permission_denied, pos_from_home);
     }
-    logger_.trace("Target placement: {}, currently at: {}", placement, pos_from_home);
     cancel_pending_operation();
     if (!pos_.homing_enabled() || pos_.error() == motor_missing_home_reference) {
       logger_.trace("{}", motor_missing_home_reference);
       return std::make_tuple(motor_missing_home_reference, pos_from_home);
     }
     auto const resolution{ pos_.resolution() };
-    if (placement + resolution >= pos_from_home || placement < pos_from_home + resolution) {
+    logger_.trace("Target placement: {}, currently at: {}, with resolution: {}", placement, pos_from_home, resolution);
+    if (placement + resolution >= pos_from_home && placement < pos_from_home + resolution) {
       logger_.trace("Currently within resolution of current position");
       return std::make_tuple(success, placement);
     }
@@ -336,7 +340,7 @@ struct dbus_iface {
   auto run_at_speedratio(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum motor::errors::err_enum;
-    if (drive_error_ != motor::errors::err_enum::success) {
+    if (drive_error_ != success) {
       logger_.trace("Drive in fault state, cannot run");
       return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
           [this](auto& self) { self.complete(motor::motor_error(drive_error_)); }, token);
@@ -380,16 +384,16 @@ struct dbus_iface {
       stop_complete_.notify_all(err);
     }
     auto state = status_word_.parse_state();
+    using enum motor::errors::err_enum;
+    drive_error_ = {};
     if (cia_402::states_e::fault == state || cia_402::states_e::fault_reaction_active == state) {
-      drive_error_ = motor::errors::err_enum::motor_general_error;
+      drive_error_ = motor_general_error;
     }
-    if (in.last_error == lft_e::cnf) {
-      drive_error_ = motor::errors::err_enum::motor_communication_fault;
+    if (drive_error_ != success && in.last_error == lft_e::cnf) {
+      drive_error_ = motor_communication_fault;
     }
     if (drive_error_ != motor::errors::err_enum::success) {
-      asio::steady_timer a;
-      auto k = motor::motor_error(motor::errors::err_enum::success);
-      a.cancel(k);
+      // big TODO propagate drive error to pending operation
       cancel_pending_operation();
     }
   }

@@ -21,8 +21,8 @@ class motor_error_category_t : public std::error_category {
         return "Motor not connected";
       case motor_general_error:
         return "Motor general error";
-      case motor_tripped:
-        return "Motor tripped";
+      case motor_communication_fault:
+        return "Motor communication fault";
       case motor_missing_home_reference:
         return "Motor msing home reference";
       case motor_missing_speed_reference:
