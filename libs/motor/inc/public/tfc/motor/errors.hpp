@@ -64,6 +64,9 @@ inline errors::err_enum motor_enum(std::error_code err) {
   if (err == std::errc::operation_canceled) {
     return operation_canceled;
   }
+  if (!err) {
+    return success;
+  }
   return unknown;
 }
 }  // namespace tfc::motor
