@@ -41,7 +41,6 @@ using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
 using nominal_motor_frequency_FRS =
     setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500 * dHz>;
 
-using fast_stop_ramp_divider_DCF = setting<ecx::index_t{ 0x2052, 0x1F }, "DCF", "Fast stop ramp divider", uint16_t, 4>;
 using fast_stop_ramp_divider_DCF =
     setting<ecx::index_t{ 0x2052, 0x1F },
             "DCF",
