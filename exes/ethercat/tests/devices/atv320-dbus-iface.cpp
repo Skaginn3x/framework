@@ -252,6 +252,47 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
+  "move interupted by quick_stop"_test = [&] {
+    instance inst;
+    // Set current as reference
+    tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
+                              tfc::confman::detail::config_dbus_client>& config = inst.ctrl.positioner().config_ref();
+    config.access().needs_homing_after = home_travel_t{ 1 * mm };
+    config.access().mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
+    // Writing to the homing travel speed creates the ipc-slot that accepts the homing sensor input.
+    config.access().homing_travel_speed = 1 * speedratio_t::reference;
+
+    inst.ctrl.positioner().home();
+    auto sig = bool_signal_t(inst.ctx, inst.manager, "homing_sensor");
+    inst.ctx.run_for(1ms);
+    expect(inst.manager.slots_.size() == 1);
+    expect(inst.manager.signals_.size() == 1);
+    inst.manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
+                         "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
+                         });
+    inst.ctx.run_for(5ms);
+    sig.send(true);
+    inst.ctx.run_for(5ms);
+    expect(inst.ctrl.positioner().homing_enabled());
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](err_enum err, const micrometre_t moved) {
+                     expect(err == err_enum::operation_canceled) << format_as(err);
+                     expect(moved == 800 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[0] = true;
+                   });
+    inst.ctrl.positioner().increment_position(800 * micrometre_t::reference);
+
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+
+    inst.ctx.run();
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+  };
+
   "move interupted by stop"_test = [&] {
     instance inst;
     // Set current as reference
@@ -292,7 +333,6 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
-
   "run cancelled"_test = [] {
     instance inst;
     inst.ctrl.run_at_speedratio(100 * percent, [&inst](const std::error_code& err) {
