@@ -37,8 +37,7 @@
 
 
 namespace tfc::motor::positioner {
-template <typename manager_client_t = ipc_ruler::ipc_manager_client, mp_units::PrefixableUnit auto unit_v =
-              mp_units::si::metre,
+template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre, typename manager_client_t = ipc_ruler::ipc_manager_client&,
           template <typename, typename, typename> typename confman_t = confman::config,
           typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 class positioner {
@@ -54,7 +53,7 @@ public:
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
-  positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, std::string_view name)
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, std::string_view name)
     : positioner(connection, manager, name, [](bool) {
     }) {
   }
@@ -63,7 +62,7 @@ public:
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
-             manager_client_t& manager,
+             manager_client_t manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb)
     : positioner(connection, manager, name, std::move(home_cb), {}) {
@@ -74,7 +73,7 @@ public:
   /// \param home_cb callback to call when homing sensor is triggered
   /// \param default_value configuration default, useful for special cases and testing
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
-             manager_client_t& manager,
+             manager_client_t manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb,
              config_t&& default_value)
@@ -291,7 +290,7 @@ private:
         [this]<typename mode_t>(mode_t const& mode) {
           using mode_raw_t = std::remove_cvref_t<mode_t>;
           if constexpr (std::same_as<mode_raw_t, tachometer_config_t>) {
-            impl_.template emplace<detail::tachometer<>>(dbus_, name_, std::bind_front(&positioner::tick, this));
+            impl_.template emplace<detail::tachometer<manager_client_t>>(dbus_, manager_, name_, std::bind_front(&positioner::tick, this));
 
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
@@ -360,13 +359,13 @@ private:
   std::string name_{};
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
-  manager_client_t& manager_;
+  manager_client_t manager_;
   std::optional<bool_slot_t> homing_sensor_{};
   std::function<void(bool)> home_cb_{ [this](bool) {
   } };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
-  std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<manager_client_t>>
+  std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<manager_client_t>, detail::encoder<manager_client_t>>
   impl_{};
   std::vector<std::shared_ptr<notification>> notifications_{};
 

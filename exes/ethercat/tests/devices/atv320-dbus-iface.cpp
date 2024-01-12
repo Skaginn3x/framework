@@ -38,7 +38,7 @@ using tfc::motor::errors::err_enum;
 using bool_slot_t = tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using bool_signal_t = tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using positioner_t = tfc::motor::positioner::positioner<
-  tfc::ipc_ruler::ipc_manager_client_mock, metre, tfc::confman::stub_config, bool_slot_t>;
+  metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
 static auto get_good_status_stopped() -> input_t {
@@ -74,7 +74,7 @@ struct instance {
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   std::uint16_t slave_id{ 0 };
   tfc::ipc_ruler::ipc_manager_client_mock manager{ dbus_connection };
-  controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, bool_slot_t> ctrl{
+  controller<tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t> ctrl{
     dbus_connection, manager, slave_id };
   std::array<bool, 10> ran{};
   bool_signal_t sig {ctx, manager, "homing_sensor"};
@@ -147,7 +147,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
     });
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
-    inst.ctx.run();
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
 
@@ -160,7 +160,7 @@ auto main(int, char const* const* argv) -> int {
                      inst.ran[0] = true;
                      inst.ctx.stop();
                    });
-    inst.ctx.run();
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
   "move with reference"_test = [&] {
@@ -232,7 +232,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
     });
     inst.ctrl.update_status(get_good_status_stopped());
-    inst.ctx.run();
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
@@ -254,7 +254,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
     });
     inst.ctrl.update_status(get_good_status_stopped());
-    inst.ctx.run();
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
@@ -275,7 +275,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
     });
 
-    inst.ctx.run();
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
@@ -297,7 +297,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
     });
 
-    inst.ctx.run();
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };

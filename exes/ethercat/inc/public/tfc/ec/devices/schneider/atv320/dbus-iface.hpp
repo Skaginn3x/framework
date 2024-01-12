@@ -68,7 +68,7 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 template <typename manager_client_t, template <typename, typename, typename> typename pos_config_t = confman::config,
           typename pos_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>>
 struct controller {
-  controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, const uint16_t slave_id)
+  controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, const uint16_t slave_id)
       : slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
         pos_{ connection, manager, fmt::format("{}_{}", impl_name, slave_id_),
               std::bind_front(&controller::on_homing_sensor, this) } {}
@@ -356,7 +356,7 @@ private:
 
   std::uint16_t slave_id_;
   asio::io_context& ctx_;
-  motor::positioner::positioner<manager_client_t, mp_units::si::metre, pos_config_t, pos_slot_t> pos_;
+  motor::positioner::positioner<mp_units::si::metre, manager_client_t, pos_config_t, pos_slot_t> pos_;
   tfc::asio::condition_variable<asio::any_io_executor> run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };

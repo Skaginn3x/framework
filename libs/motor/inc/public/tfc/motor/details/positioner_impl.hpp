@@ -143,17 +143,19 @@ auto detect_deviation_from_average(auto interval, auto average) {
   return err;
 }
 
-template <typename bool_slot_t = ipc::slot<ipc::details::type_bool, ipc_ruler::ipc_manager_client>,
+template <typename manager_client_t = ipc_ruler::ipc_manager_client&,
+          typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 128>
 struct tachometer {
   using duration_t = typename clock_t::duration;
   using time_point_t = typename clock_t::time_point;
   explicit tachometer(std::shared_ptr<sdbusplus::asio::connection> conn,
+                      manager_client_t manager,
                       std::string_view name,
                       std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) }, induction_sensor_{
-          conn->get_io_context(), conn, fmt::format("tacho_{}", name),
+          conn->get_io_context(), manager, fmt::format("tacho_{}", name),
           "Tachometer input, usually induction sensor directed to rotational metal star or plastic ring with metal bolts.",
           std::bind_front(&tachometer::update, this)
         } {}
@@ -178,12 +180,12 @@ struct tachometer {
   bool_slot_t induction_sensor_;
 };
 
-template <typename manager_client_t = ipc_ruler::ipc_manager_client, typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>,
+template <typename manager_client_t = ipc_ruler::ipc_manager_client&, typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 128>
 struct encoder {
   explicit encoder(std::shared_ptr<sdbusplus::asio::connection> conn,
-                   manager_client_t& manager,
+                   manager_client_t manager,
                    std::string_view name,
                    std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) },

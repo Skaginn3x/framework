@@ -20,7 +20,7 @@ using std::chrono_literals::operator""ms;
 using std::chrono_literals::operator""ns;
 static constexpr std::size_t buffer_len{ 10 };
 
-using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client>;
+using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client&>;
 using mp_units::quantity;
 using mp_units::si::unit_symbols::mm;
 
@@ -116,6 +116,7 @@ static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, fa
 struct test_instance {
   asio::io_context ctx{};
   std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+  tfc::ipc_ruler::ipc_manager_client unused{ dbus };
 };
 
 // clang-format off
@@ -123,13 +124,13 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"tachometer"> tachometer_test = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using tachometer_t = tfc::motor::positioner::detail::tachometer<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using tachometer_t = tfc::motor::positioner::detail::tachometer<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t, tfc::testing::clock, buffer_len>;
 
   struct tachometer_test {
     test_instance inst{};
     // ability to populate, but will be moved into implementation
     std::function<tfc::motor::positioner::tick_signature_t> cb{ [](auto, auto, auto, auto) {} };
-    tachometer_t tachometer{ inst.dbus, "name", std::move(cb) };
+    tachometer_t tachometer{ inst.dbus, inst.unused, "name", std::move(cb) };
   };
 
   "tachometer with single sensor updates internal state"_test = [] {
@@ -264,12 +265,12 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"encoder"> enc_test = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using encoder_t = tfc::motor::positioner::detail::encoder<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using encoder_t = tfc::motor::positioner::detail::encoder<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t, tfc::testing::clock, buffer_len>;
   struct encoder_test {
     test_instance inst{};
     std::function<tfc::motor::positioner::tick_signature_t> cb{ [](std::int64_t, auto, auto, auto) {
     } };  // ability to populate, but will be moved into implementation
-    encoder_t encoder{ inst.dbus, "name", std::move(cb) };
+    encoder_t encoder{ inst.dbus, inst.unused, "name", std::move(cb) };
   };
 
   "encoder: 0"_test = [] {
@@ -403,14 +404,14 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   static constexpr auto unit{ mp_units::si::metre };
   static constexpr auto reference{ mp_units::si::nano<unit> };
   struct notification_test {
-    using positioner_t = tfc::motor::positioner::positioner<unit, tfc::confman::stub_config, mock_bool_slot_t>;
+    using positioner_t = tfc::motor::positioner::positioner<unit, tfc::ipc_ruler::ipc_manager_client&, tfc::confman::stub_config, mock_bool_slot_t>;
     using position_t = positioner_t::absolute_position_t;
     using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
     using tachometer_config_t = tfc::motor::positioner::tachometer_config<reference>;
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
     std::function<void(bool)> home_cb{ [](bool) {} };
-    positioner_t positioner{ inst.dbus, "name", std::move(home_cb), std::move(config) };
+    positioner_t positioner{ inst.dbus, inst.unused, "name", std::move(home_cb), std::move(config) };
   };
   using mp_units::si::unit_symbols::mm;
 
