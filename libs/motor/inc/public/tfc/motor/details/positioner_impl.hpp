@@ -178,19 +178,20 @@ struct tachometer {
   bool_slot_t induction_sensor_;
 };
 
-template <typename bool_slot_t = ipc::slot<ipc::details::type_bool, ipc_ruler::ipc_manager_client>,
+template <typename manager_client_t = ipc_ruler::ipc_manager_client, typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 128>
 struct encoder {
   explicit encoder(std::shared_ptr<sdbusplus::asio::connection> conn,
+                   manager_client_t& manager,
                    std::string_view name,
                    std::function<tick_signature_t>&& position_update_callback)
       : position_update_callback_{ std::move(position_update_callback) },
-        sensor_a_{ conn->get_io_context(), conn, fmt::format("tacho_a_{}", name),
+        sensor_a_{ conn->get_io_context(), manager, fmt::format("tacho_a_{}", name),
                    "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
                    "star or plastic ring of metal bolts.",
                    std::bind_front(&encoder::first_tacho_update, this) },
-        sensor_b_{ conn->get_io_context(), conn, fmt::format("tacho_b_{}", name),
+        sensor_b_{ conn->get_io_context(), manager, fmt::format("tacho_b_{}", name),
                    "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
                    "star or plastic ring of metal bolts.",
                    std::bind_front(&encoder::second_tacho_update, this) } {}

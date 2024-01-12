@@ -37,7 +37,8 @@
 
 
 namespace tfc::motor::positioner {
-template <typename manager_client_t = ipc_ruler::ipc_manager_client, mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
+template <typename manager_client_t = ipc_ruler::ipc_manager_client, mp_units::PrefixableUnit auto unit_v =
+              mp_units::si::metre,
           template <typename, typename, typename> typename confman_t = confman::config,
           typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 class positioner {
@@ -77,7 +78,7 @@ public:
              std::string_view name,
              std::function<void(bool)>&& home_cb,
              config_t&& default_value)
-    : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, home_cb_{ home_cb },
+    : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb },
       config_{ dbus_->get_io_context() /*todo revert to propagate dbus connection*/, fmt::format("positioner_{}", name_),
                std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
@@ -85,15 +86,15 @@ public:
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
     config_->homing_travel_speed.observe(
-        [this, &manager](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
           if (new_v.has_value() && !homing_sensor_.has_value()) {
-            homing_sensor_.emplace(ctx_, manager, fmt::format("homing_sensor_{}", name_),
+            homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
                                    "Homing sensor for position management, consider adding time off delay", home_cb_);
           }
         });
     if (config_->homing_travel_speed->has_value()) {
       // todo duplicate
-      homing_sensor_.emplace(ctx_, manager, fmt::format("homing_sensor_{}", name_),
+      homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
                              "Homing sensor for position management, consider adding time off delay", home_cb_);
     }
   }
@@ -299,7 +300,7 @@ private:
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
-            impl_.template emplace<detail::encoder<>>(dbus_, name_, std::bind_front(&positioner::tick, this));
+            impl_.template emplace<detail::encoder<manager_client_t>>(dbus_, manager_, name_, std::bind_front(&positioner::tick, this));
 
             // todo duplicate
             displacement_per_increment_ = mode.displacement_per_increment.value();
@@ -359,12 +360,14 @@ private:
   std::string name_{};
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
+  manager_client_t& manager_;
   std::optional<bool_slot_t> homing_sensor_{};
   std::function<void(bool)> home_cb_{ [this](bool) {
   } };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
-  std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<>> impl_{};
+  std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<>, detail::encoder<manager_client_t>>
+  impl_{};
   std::vector<std::shared_ptr<notification>> notifications_{};
 
   bool missing_home_{ config_->needs_homing_after->has_value() };
