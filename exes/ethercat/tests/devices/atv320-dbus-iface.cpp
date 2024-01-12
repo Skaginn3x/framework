@@ -222,5 +222,45 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
+
+  "run cancelled"_test = [] {
+    instance inst;
+    inst.ctrl.run_at_speedratio(100 * mp_units::percent,[&inst](const std::error_code& err) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "stop cancelled"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.stop([&inst](const std::error_code& err) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "convey micrometre cancelled"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.convey_micrometre(100 * micrometre_t::reference, [&inst](err_enum err, micrometre_t) {
+      expect(err == err_enum::operation_canceled);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+
   return EXIT_SUCCESS;
 }
