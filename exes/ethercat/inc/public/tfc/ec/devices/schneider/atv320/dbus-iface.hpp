@@ -63,69 +63,21 @@ struct controller {
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
-    return stop_impl(cia_402::transition_action::quick_stop,
-                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    return stop_impl(true, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
-    return stop_impl(cia_402::transition_action::stop,
-                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    return stop_impl(false, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto convey_micrometre(micrometre_t travel,
                          asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
-    using signature_t = void(motor::errors::err_enum, micrometre_t);
-    enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
-    auto const is_positive{ travel > 0L * micrometre_t::reference };
-    auto const pos{ pos_.position() };
-    return asio::async_compose<decltype(token), signature_t>(
-        [this, travel, state = state_e::run_until_notify, is_positive, pos](auto& self, std::error_code err = {}) mutable {
-          using enum motor::errors::err_enum;
-          switch (state) {
-            case state_e::run_until_notify:
-              state = state_e::wait_till_stop;
-              logger_.trace("Target displacement: {}, current position: {}", travel, pos);
-              if (travel == 0L * micrometre_t::reference) {
-                self.complete(success, 0L * micrometre_t::reference);
-                return;
-              }
-              cancel_pending_operation();
-
-              asio::experimental::make_parallel_group(
-                  [&](auto inner_token) {
-                    return run_at_speedratio_impl(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
-                  },
-                  [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
-                  .async_wait(asio::experimental::wait_for_one(), combine_2_error_codes{ std::move(self) });
-              return;
-            case state_e::wait_till_stop:
-              state = state_e::complete;
-              // This is only called if another invocation has not taken control of the motor
-              // stopping the motor now would be counter productive as somebody is using it.
-              if (err != std::errc::operation_canceled) {
-                // Todo this stops quickly :-)
-                stop_impl(cia_402::transition_action::quick_stop, std::move(self));
-                return;
-              }
-              self(err);
-              return;
-            case state_e::complete:
-              auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
-                                                    : -(pos - pos_.position()).force_in(micrometre_t::reference) };
-
-              if (err) {
-                logger_.warn("Convey failed: {}", err.message());
-                self.complete(motor::motor_enum(err), actual_travel);
-                return;
-              }
-              logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
-              self.complete(success, actual_travel);
-          }
-        },
-        token);
+    cancel_pending_operation();
+    return convey_micrometre_impl(travel,
+                                  asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   // auto move(speedratio_t speedratio, micrometre_t placement, asio::completion_token_for<void(motor::errors::err_enum,
@@ -184,7 +136,8 @@ struct controller {
   // Set properties with new status values
   void update_status(const input_t& in) {
     status_word_ = in.status_word;
-    pos_.freq_update(in.frequency);
+    motor_frequency_ = in.frequency;
+    pos_.freq_update(motor_frequency_);
     if (in.frequency == 0 * mp_units::si::hertz) {
       [[maybe_unused]] boost::system::error_code err{};
       stop_complete_.notify_all(err);
@@ -225,10 +178,16 @@ struct controller {
   auto positioner() noexcept -> auto& { return pos_; }
 
 private:
-  auto stop_impl(cia_402::transition_action action, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  auto stop_impl(bool use_quick_stop, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    action_ = action;
+    using enum cia_402::transition_action;
+    action_ = use_quick_stop ? quick_stop : stop;
     speed_ratio_ = 0 * mp_units::percent;
+    if (motor_frequency_ == 0 * mp_units::si::hertz) {
+      logger_.trace("Drive in fault state, cannot run");
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [this](auto& self) { self.complete({}); }, token);
+    }
     return stop_complete_.async_wait(std::forward<decltype(token)>(token));
   }
 
@@ -248,7 +207,60 @@ private:
     logger_.trace("Run motor at speedratio: {}", speedratio);
     action_ = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
-    return run_blocker_.async_wait(token);
+    return run_blocker_.async_wait(std::forward<decltype(token)>(token));
+  }
+
+  auto convey_micrometre_impl(micrometre_t travel,
+                              asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
+    using signature_t = void(motor::errors::err_enum, micrometre_t);
+    enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
+    auto const is_positive{ travel > 0L * micrometre_t::reference };
+    auto const pos{ pos_.position() };
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, travel, state = state_e::run_until_notify, is_positive, pos](auto& self, std::error_code err = {}) mutable {
+          using enum motor::errors::err_enum;
+          switch (state) {
+            case state_e::run_until_notify:
+              state = state_e::wait_till_stop;
+              logger_.trace("Target displacement: {}, current position: {}", travel, pos);
+              if (travel == 0L * micrometre_t::reference) {
+                self.complete(success, 0L * micrometre_t::reference);
+                return;
+              }
+
+              asio::experimental::make_parallel_group(
+                  [&](auto inner_token) {
+                    return run_at_speedratio_impl(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
+                  },
+                  [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
+                  .async_wait(asio::experimental::wait_for_one(), combine_2_error_codes{ std::move(self) });
+              return;
+            case state_e::wait_till_stop:
+              state = state_e::complete;
+              // This is only called if another invocation has not taken control of the motor
+              // stopping the motor now would be counter productive as somebody is using it.
+              if (err != std::errc::operation_canceled) {
+                // Todo this stops quickly :-)
+                stop_impl(true, std::move(self));
+                return;
+              }
+              self(err);
+              return;
+            case state_e::complete:
+              auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
+                                                    : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+
+              if (err) {
+                logger_.warn("Convey failed: {}", err.message());
+                self.complete(motor::motor_enum(err), actual_travel);
+                return;
+              }
+              logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
+              self.complete(success, actual_travel);
+          }
+        },
+        token);
   }
 
   std::uint16_t slave_id_;
@@ -271,6 +283,7 @@ private:
 
   // Motor status
   motor::errors::err_enum drive_error_{};
+  decifrequency_signed motor_frequency_{};
 };
 
 struct dbus_iface {
