@@ -276,7 +276,7 @@ private:
                 return self.complete({}, placement);
               }
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return run_at_speedratio(is_positive ? speedratio : -speedratio, inner_token); },
+                  [&](auto inner_token) { return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token); },
                   [&](auto inner_token) { return pos_.notify_from_home(placement, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
@@ -335,7 +335,7 @@ private:
             return;
           }
           asio::experimental::make_parallel_group(
-            [&](auto inner_token) { return run_at_speedratio(travel_speed.value(), inner_token); },
+            [&](auto inner_token) { return run_at_speedratio_impl(travel_speed.value(), inner_token); },
             [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
             .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
         }
