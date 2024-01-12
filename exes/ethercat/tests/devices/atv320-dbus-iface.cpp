@@ -278,7 +278,32 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
+  "quick stop cancelled"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
   "convey micrometre cancelled"_test = [] {
+    instance inst;
+    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "convey micrometre cancelled while stopping"_test = [] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
@@ -286,6 +311,8 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
     });
     expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.positioner().increment_position(100 * micrometre_t::reference);
     inst.ctx.run_for(1ms);
     inst.ctrl.cancel_pending_operation();
     inst.ctx.run_for(1ms);

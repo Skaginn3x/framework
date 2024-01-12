@@ -26,22 +26,38 @@ using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
 static constexpr std::string_view impl_name{ "atv320" };
 
-auto combine_error_codes(auto&& self) {
-  static_assert(std::is_rvalue_reference_v<decltype(self)>);
-  return [self_m = std::forward<decltype(self)>(self)](auto const& order, std::error_code const& err1,
-                                                       std::error_code const& err2) mutable {
+namespace detail {
+template <typename completion_token_t>
+struct combine_error_code {
+  combine_error_code(completion_token_t&& token) : self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {
+    // static_assert(std::is_rvalue_reference_v<completion_token_t>);
+  }
+  /// The associated cancellation slot type.
+  using cancellation_slot_type = asio::cancellation_slot;
+
+  void operator()(auto const& order, std::error_code const& err1,
+                                                       std::error_code const& err2) {
     switch (order[0]) {
       case 0:  // first parallel job has finished
-        std::invoke(self_m, err1);
-        break;
+        std::invoke(self, err1);
+      break;
       case 1:  // second parallel job has finished
-        std::invoke(self_m, err2);
-        break;
+        std::invoke(self, err2);
+      break;
       default:
         fmt::println(stderr, "Parallel job has failed, {}", order[0]);
     }
   };
-}
+
+  cancellation_slot_type get_cancellation_slot() const noexcept
+  {
+    return slot;
+  }
+
+  completion_token_t self;
+  asio::cancellation_slot slot;
+};
+}  // namespace detail
 
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
@@ -88,6 +104,12 @@ struct controller {
       typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
     cancel_pending_operation();
     return move_impl(speedratio, travel,
+                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+  }
+
+  auto move_home(speedratio_t speedratio, asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
+    return move_home_impl(speedratio,
                      asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
@@ -188,15 +210,13 @@ private:
                 return;
               }
 
-              auto slot{ asio::get_associated_cancellation_slot(self) };
-
               asio::experimental::make_parallel_group(
                   [&](auto inner_token) {
                     return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token);
                   },
                   [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(),
-                              asio::bind_cancellation_slot(slot, combine_error_codes(std::move(self))));
+                              detail::combine_error_code(std::move(self)));
               return;
             }
             case state_e::wait_till_stop: {
@@ -260,7 +280,7 @@ private:
               asio::experimental::make_parallel_group(
                   [&](auto token) { return run_at_speedratio(is_positive ? speedratio : -speedratio, token); },
                   [&](auto token) { return pos_.notify_from_home(placement, token); })
-                  .async_wait(asio::experimental::wait_for_one(), combine_error_codes(std::move(self)));
+                  .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             case state_e::wait_till_stop:
               state = state_e::complete;
@@ -353,7 +373,7 @@ struct dbus_iface {
                     return run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
                   },
                   [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
-                  .async_wait(asio::experimental::wait_for_one(), combine_error_codes(std::move(self)));
+                  .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             case state_e::wait_till_stop:
               state = state_e::complete;
