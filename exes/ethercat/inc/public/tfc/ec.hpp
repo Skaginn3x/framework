@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <boost/asio/io_context.hpp>
 #include <cassert>
@@ -12,6 +13,7 @@
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/ec/config/bus.hpp>
 #include <tfc/ec/devices/device.hpp>
+#include <tfc/ec/interfaces.hpp>
 #include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec {
@@ -64,6 +66,12 @@ public:
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
     config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
+
+    auto interfaces = tfc::global::get_interfaces();
+    if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_->value().primary_interface.value) !=
+          interfaces.end())) {
+      config_->make_change()->primary_interface = config::network_interface{ interfaces[0] };
+    }
 
     logger_.trace("Network interface used: {}", config_->value().primary_interface.value);
   }
