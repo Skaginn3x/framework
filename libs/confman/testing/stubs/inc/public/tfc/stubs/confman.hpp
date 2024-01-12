@@ -50,7 +50,7 @@ public:
 
   auto set_changed() const noexcept -> std::error_code { return {}; }
 
-  using change = tfc::confman::detail::change<stub_config>;
+  using change = detail::change<stub_config>;
 
   auto make_change() noexcept -> change { return change{ *this }; }
 

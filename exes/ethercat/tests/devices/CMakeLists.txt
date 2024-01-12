@@ -15,7 +15,7 @@ add_test(
 )
 
 add_executable(test_atv320_dbus_iface atv320-dbus-iface.cpp)
-target_link_libraries(test_atv320_dbus_iface tfc::base tfc::ec tfc::mock_ipc)
+target_link_libraries(test_atv320_dbus_iface tfc::base tfc::ec tfc::mock_ipc tfc::stub_confman)
 
 # Get access to private headers
 get_property(tfc_ec_dirs TARGET tfc::ec PROPERTY INCLUDE_DIRECTORIES)

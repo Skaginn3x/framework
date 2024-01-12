@@ -4,7 +4,9 @@
 #include <boost/ut.hpp>
 
 #include <tfc/ec/devices/schneider/atv320/dbus-iface.hpp>
+#include <tfc/mocks/ipc.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/stubs/confman.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -19,24 +21,27 @@ using ut::operator|;
 using ut::expect;
 
 using mp_units::percent;
-using mp_units::si::micro;
 using mp_units::si::metre;
+using mp_units::si::micro;
 using mp_units::si::unit_symbols::dHz;
+using mp_units::si::unit_symbols::mm;
 
 using tfc::ec::devices::schneider::atv320::controller;
+using tfc::ec::devices::schneider::atv320::hmis_e;
 using tfc::ec::devices::schneider::atv320::input_t;
+using tfc::ec::devices::schneider::atv320::lft_e;
 using tfc::ec::devices::schneider::atv320::micrometre_t;
 using tfc::ec::devices::schneider::atv320::speedratio_t;
 using tfc::motor::errors::err_enum;
-using tfc::ec::devices::schneider::atv320::lft_e;
-using tfc::ec::devices::schneider::atv320::hmis_e;
+using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client>;
+using positioner_t = tfc::motor::positioner::positioner<metre, tfc::confman::stub_config, mock_bool_slot_t>;
+using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
 auto get_good_status_stopped() -> input_t {
   return input_t{
-    .status_word = tfc::ec::cia_402::status_word{ .state_ready_to_switch_on = 1,
-                                                  .state_switched_on = 1,
-                                                  .voltage_enabled = 1,
-                                                  .state_quick_stop = 1 },
+    .status_word =
+    tfc::ec::cia_402::status_word{
+      .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
     .frequency = 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
@@ -64,7 +69,7 @@ struct instance {
   asio::io_context ctx{ asio::io_context() };
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   std::uint16_t slave_id{ 0 };
-  controller ctrl{ controller(dbus_connection, slave_id) };
+  controller<tfc::confman::stub_config, mock_bool_slot_t> ctrl{ dbus_connection, slave_id };
   std::array<bool, 10> ran{};
 };
 
@@ -131,6 +136,11 @@ auto main(int, char const* const* argv) -> int {
   "move with reference"_test = [&] {
     instance inst;
     // Set current as reference
+    tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
+                              tfc::confman::detail::config_dbus_client>& config = inst.ctrl.positioner().config_ref();
+    config.access().needs_homing_after = home_travel_t{ 1 * mm };
+
+    config.access().mode = tfc::motor::positioner::encoder_config<metre>{};
     inst.ctrl.positioner().home();
     expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
@@ -201,7 +211,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[1]);
   };
 
-  "interupted convey micrometre by quick_stop"_test = [&] {
+  "convey micrometre interupted by quick_stop"_test = [&] {
     instance inst;
     inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
       expect(err == err_enum::operation_canceled);
@@ -225,7 +235,7 @@ auto main(int, char const* const* argv) -> int {
 
   "run cancelled"_test = [] {
     instance inst;
-    inst.ctrl.run_at_speedratio(100 * mp_units::percent,[&inst](const std::error_code& err) {
+    inst.ctrl.run_at_speedratio(100 * mp_units::percent, [&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
     });
