@@ -111,8 +111,8 @@ auto main(int, char const* const* argv) -> int {
 
   "convey micrometre"_test = [&] {
     instance inst;
-    inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
-      expect(err == err_enum::success);
+    inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference, [&inst](std::error_code err, const micrometre_t moved) {
+      expect(!err);
       expect(moved == 1000 * micrometre_t::reference);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -192,8 +192,8 @@ auto main(int, char const* const* argv) -> int {
   // Interupted operations
   "convey micrometre interupted by stop"_test = [&] {
     instance inst;
-    inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
-      expect(err == err_enum::operation_canceled);
+    inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference, [&inst](std::error_code err, const micrometre_t moved) {
+      expect(err == std::errc::operation_canceled);
       expect(moved == 800 * micrometre_t::reference);
       inst.ran[0] = true;
     });
@@ -214,8 +214,8 @@ auto main(int, char const* const* argv) -> int {
 
   "convey micrometre interupted by quick_stop"_test = [&] {
     instance inst;
-    inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
-      expect(err == err_enum::operation_canceled);
+    inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference, [&inst](std::error_code err, const micrometre_t moved) {
+      expect(err == std::errc::operation_canceled);
       expect(moved == 800 * micrometre_t::reference);
       inst.ran[0] = true;
     });
@@ -236,7 +236,7 @@ auto main(int, char const* const* argv) -> int {
 
   "run cancelled"_test = [] {
     instance inst;
-    inst.ctrl.run_at_speedratio(100 * mp_units::percent, [&inst](const std::error_code& err) {
+    inst.ctrl.run_at_speedratio(100 * percent, [&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
     });
@@ -262,8 +262,8 @@ auto main(int, char const* const* argv) -> int {
   "convey micrometre cancelled"_test = [] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.convey_micrometre(100 * micrometre_t::reference, [&inst](err_enum err, micrometre_t) {
-      expect(err == err_enum::operation_canceled);
+    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
+      expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
     });
     expect(!inst.ran[0]);
