@@ -127,9 +127,9 @@ public:
                  reference_frequency_ = detail::percentage_to_deci_freq(
                      value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
                }),
-        frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.in.freq", slave_index), "Current Frequency"),
-        current_transmit_(ctx_, client, fmt::format("atv320.s{}.in.current", slave_index), "Current Current"),
-        last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.in.lft_last_error", slave_index), "Last Error [LFT]"),
+        frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.freq", slave_index), "Current Frequency"),
+        current_transmit_(ctx_, client, fmt::format("atv320.s{}.current", slave_index), "Current Current"),
+        last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
         hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
         config_{ ctx_ /*todo revert to propagate dbus connection*/, fmt::format("atv320_i{}", slave_index) },
         dbus_iface_(connection, slave_index),
