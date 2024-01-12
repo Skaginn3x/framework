@@ -62,16 +62,16 @@ struct controller {
 
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    action_ = cia_402::transition_action::quick_stop;
-    speed_ratio_ = 0 * mp_units::percent;
-    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
+    cancel_pending_operation();
+    return stop_impl(cia_402::transition_action::quick_stop,
+                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    action_ = cia_402::transition_action::stop;
-    speed_ratio_ = 0 * mp_units::percent;
-    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
+    cancel_pending_operation();
+    return stop_impl(cia_402::transition_action::stop,
+                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto convey_micrometre(micrometre_t travel,
@@ -96,7 +96,7 @@ struct controller {
 
               asio::experimental::make_parallel_group(
                   [&](auto inner_token) {
-                    return run_at_speedratio(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
+                    return run_at_speedratio_impl(is_positive ? config_speedratio_ : -config_speedratio_, inner_token);
                   },
                   [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), combine_2_error_codes{ std::move(self) });
@@ -107,7 +107,7 @@ struct controller {
               // stopping the motor now would be counter productive as somebody is using it.
               if (err != std::errc::operation_canceled) {
                 // Todo this stops quickly :-)
-                quick_stop(std::move(self));
+                stop_impl(cia_402::transition_action::quick_stop, std::move(self));
                 return;
               }
               self(err);
@@ -225,16 +225,9 @@ struct controller {
   auto positioner() noexcept -> auto& { return pos_; }
 
 private:
-  auto quick_stop_impl(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  auto stop_impl(cia_402::transition_action action, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    action_ = cia_402::transition_action::quick_stop;
-    speed_ratio_ = 0 * mp_units::percent;
-    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
-  }
-
-  auto stop_impl(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    action_ = cia_402::transition_action::stop;
+    action_ = action;
     speed_ratio_ = 0 * mp_units::percent;
     return stop_complete_.async_wait(std::forward<decltype(token)>(token));
   }
