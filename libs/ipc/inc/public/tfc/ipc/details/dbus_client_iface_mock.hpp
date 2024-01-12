@@ -67,9 +67,9 @@ struct ipc_manager_client_mock {
     throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
   }
 
-  auto slots(tfc::stx::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(slots_); }
+  auto slots(stx::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(slots_); }
 
-  auto signals(tfc::stx::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
+  auto signals(stx::invocable<const std::vector<signal>&> auto&& handler) -> void { handler(signals_); }
 
   auto register_properties_change_callback(std::function<void(sdbusplus::message_t&)> const&)
       -> std::unique_ptr<sdbusplus::bus::match::match>;

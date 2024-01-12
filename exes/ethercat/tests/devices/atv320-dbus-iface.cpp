@@ -6,6 +6,7 @@
 #include <tfc/ec/devices/schneider/atv320/dbus-iface.hpp>
 #include <tfc/mocks/ipc.hpp>
 #include <tfc/progbase.hpp>
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/stubs/confman.hpp>
 
 namespace asio = boost::asio;
@@ -34,8 +35,10 @@ using tfc::ec::devices::schneider::atv320::lft_e;
 using tfc::ec::devices::schneider::atv320::micrometre_t;
 using tfc::ec::devices::schneider::atv320::speedratio_t;
 using tfc::motor::errors::err_enum;
-using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client>;
-using positioner_t = tfc::motor::positioner::positioner<metre, tfc::confman::stub_config, mock_bool_slot_t>;
+using bool_slot_t = tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
+using bool_signal_t = tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
+using positioner_t = tfc::motor::positioner::positioner<
+  tfc::ipc_ruler::ipc_manager_client_mock, metre, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
 auto get_good_status_stopped() -> input_t {
@@ -70,7 +73,9 @@ struct instance {
   asio::io_context ctx{ asio::io_context() };
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   std::uint16_t slave_id{ 0 };
-  controller<tfc::confman::stub_config, mock_bool_slot_t> ctrl{ dbus_connection, slave_id };
+  tfc::ipc_ruler::ipc_manager_client_mock manager{ dbus_connection };
+  controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, bool_slot_t> ctrl{
+    dbus_connection, manager, slave_id };
   std::array<bool, 10> ran{};
 };
 
@@ -140,17 +145,31 @@ auto main(int, char const* const* argv) -> int {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = inst.ctrl.positioner().config_ref();
     config.access().needs_homing_after = home_travel_t{ 1 * mm };
-
     config.access().mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
+    // Writing to the homing travel speed creates the ipc-slot that accepts the homing sensor input.
+    config.access().homing_travel_speed = 1 * speedratio_t::reference;
+
     inst.ctrl.positioner().home();
-    expect(inst.ctrl.positioner().homing_enabled());
-    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-                   [&inst](err_enum err, const micrometre_t moved) {
-                     expect(err == err_enum::motor_missing_home_reference);
-                     expect(moved == 0 * micrometre_t::reference);
-                     inst.ran[0] = true;
-                     inst.ctx.stop();
-                   });
+    auto sig = bool_signal_t(inst.ctx, inst.manager, "homing_sensor");
+    expect(inst.manager.slots_.size() == 1);
+    expect(inst.manager.signals_.size() == 1);
+    inst.manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
+                         "test_atv320_dbus_iface.def.bool.homing_sensor", [](const std::error_code&) {
+                         });
+
+    sig.async_send(true, [&](const std::error_code& err, const std::size_t) {
+      expect(!err) << err;
+      expect(inst.ctrl.positioner().homing_enabled());
+      inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                     [&inst](err_enum err, const micrometre_t moved) {
+                       expect(err == err_enum::success);
+                       expect(moved == 1000 * micrometre_t::reference);
+                       inst.ran[0] = true;
+                       inst.ctx.stop();
+                     });
+      inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    });
+
     inst.ctx.run();
     expect(inst.ran[0]);
   };

@@ -37,9 +37,9 @@
 
 
 namespace tfc::motor::positioner {
-template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
+template <typename manager_client_t = ipc_ruler::ipc_manager_client, mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
           template <typename, typename, typename> typename confman_t = confman::config,
-          typename bool_slot_t = ipc::slot<ipc::details::type_bool, ipc_ruler::ipc_manager_client>>
+          typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 class positioner {
 public:
   static constexpr auto unit{ unit_v };
@@ -53,8 +53,8 @@ public:
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
-  positioner(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name)
-    : positioner(connection, name, [](bool) {
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, std::string_view name)
+    : positioner(connection, manager, name, [](bool) {
     }) {
   }
 
@@ -62,9 +62,10 @@ public:
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
+             manager_client_t& manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb)
-    : positioner(connection, name, std::move(home_cb), {}) {
+    : positioner(connection, manager, name, std::move(home_cb), {}) {
   }
 
   /// \param connection strictly valid dbus connection
@@ -72,6 +73,7 @@ public:
   /// \param home_cb callback to call when homing sensor is triggered
   /// \param default_value configuration default, useful for special cases and testing
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
+             manager_client_t& manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb,
              config_t&& default_value)
@@ -83,15 +85,15 @@ public:
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
     config_->homing_travel_speed.observe(
-        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+        [this, &manager](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
           if (new_v.has_value() && !homing_sensor_.has_value()) {
-            homing_sensor_.emplace(ctx_, dbus_, fmt::format("homing_sensor_{}", name_),
+            homing_sensor_.emplace(ctx_, manager, fmt::format("homing_sensor_{}", name_),
                                    "Homing sensor for position management, consider adding time off delay", home_cb_);
           }
         });
     if (config_->homing_travel_speed->has_value()) {
       // todo duplicate
-      homing_sensor_.emplace(ctx_, dbus_, fmt::format("homing_sensor_{}", name_),
+      homing_sensor_.emplace(ctx_, manager, fmt::format("homing_sensor_{}", name_),
                              "Homing sensor for position management, consider adding time off delay", home_cb_);
     }
   }
@@ -104,11 +106,10 @@ public:
 
   /// Function only for testing the positioner
   /// \return Configuration object
-  auto config_ref() -> confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>&
-      requires std::same_as<
-        confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>,
-        confman::stub_config<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>>
-  {
+  auto config_ref() -> confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>& requires
+    std::same_as<
+      confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>,
+      confman::stub_config<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>> {
     return config_;
   }
 
