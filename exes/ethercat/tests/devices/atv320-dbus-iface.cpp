@@ -116,14 +116,30 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
 
-  "move with no reference"_test = [&]{
+  "move with no reference"_test = [&] {
     instance inst;
-    inst.ctrl.move(10 * speedratio_t::reference,1000 * micrometre_t::reference,  [&inst](err_enum err, const micrometre_t moved) {
-      expect(err == err_enum::motor_missing_home_reference);
-      expect(moved == 0 * micrometre_t::reference);
-      inst.ran[0] = true;
-      inst.ctx.stop();
-    });
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](err_enum err, const micrometre_t moved) {
+                     expect(err == err_enum::motor_missing_home_reference);
+                     expect(moved == 0 * micrometre_t::reference);
+                     inst.ran[0] = true;
+                     inst.ctx.stop();
+                   });
+    inst.ctx.run();
+    expect(inst.ran[0]);
+  };
+  "move with reference"_test = [&] {
+    instance inst;
+    // Set current as reference
+    inst.ctrl.positioner().home();
+    expect(inst.ctrl.positioner().homing_enabled());
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](err_enum err, const micrometre_t moved) {
+                     expect(err == err_enum::motor_missing_home_reference);
+                     expect(moved == 0 * micrometre_t::reference);
+                     inst.ran[0] = true;
+                     inst.ctx.stop();
+                   });
     inst.ctx.run();
     expect(inst.ran[0]);
   };
