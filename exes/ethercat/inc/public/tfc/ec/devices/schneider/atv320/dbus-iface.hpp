@@ -79,59 +79,14 @@ struct controller {
     return convey_micrometre_impl(travel,
                                   asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
-
-  // auto move(speedratio_t speedratio, micrometre_t placement, asio::completion_token_for<void(motor::errors::err_enum,
-  // micrometre_t)> auto&& token) ->
-  //   typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
-  //   using signature_t = void(motor::errors::err_enum, micrometre_t);
-  //   enum struct state_e : std::uint8_t { move_until_notify = 0, wait_till_stop, complete };
-  //
-  //   return asio::async_compose<decltype(token), signature_t>([this](auto& self) {
-  //   using enum motor::errors::err_enum;
-  //   // Get our distance from the homing reference
-  //   micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
-  //   cancel_pending_operation();
-  //   if (!pos_.homing_enabled() || pos_.error() == motor_missing_home_reference) {
-  //     logger_.trace("{}", motor_missing_home_reference);
-  //     return std::make_tuple(motor_missing_home_reference, pos_from_home);
-  //   }
-  //   auto const resolution{ pos_.resolution() };
-  //   logger_.trace("Target placement: {}, currently at: {}, with resolution: {}", placement, pos_from_home, resolution);
-  //   if (placement + resolution >= pos_from_home && placement < pos_from_home + resolution) {
-  //     logger_.trace("Currently within resolution of current position");
-  //     return std::make_tuple(success, placement);
-  //   }
-  //   bool const is_positive{ pos_from_home < placement };
-  //   // I thought about using absolute of speedratio, but if normal operation is negative than
-  //   // it won't work, so it is better to making the user responsible to send correct sign.
-  //   // Todo how can we document dbus API method calls?, generically.
-  //   auto [order, ec1,
-  //         ec2]{ asio::experimental::make_parallel_group(
-  //                   [&](auto token) { return run_at_speedratio(is_positive ? speedratio : -speedratio, token); },
-  //                   [&](auto token) { return pos_.notify_from_home(placement, token); })
-  //                   .async_wait(asio::experimental::wait_for_one(), bind_cancellation_slot(cancel_signal_.slot(), yield))
-  //                   };
-  //   std::error_code err{ order[0] == 0 ? ec1 : ec2 };
-  //   // Todo this stops quickly :-)
-  //   // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm is going
-  //   // so a single config variable for deceleration would not be sufficient, I propose to add it(deceleration time) to the
-  //   // API call when needed implementing deceleration would propably be best to be controlled by this code not the atv
-  //   // itself, meaning decrement given speedratio to 1% (using the given deceleration time) when 1% is reached next
-  //   decrement
-  //   // will quick_stop? or stop?
-  //   if (err != std::errc::operation_canceled) {
-  //     [[maybe_unused]] std::error_code todo{ quick_stop(bind_cancellation_slot(cancel_signal_.slot(), yield)) };
-  //     pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
-  //     logger_.trace("{}, now at: {}, where target is: {}", is_positive ? "Moved" : "Moved back", pos_from_home,
-  //     placement);
-  //   }
-  //   if (err) {
-  //     return std::make_tuple(motor::motor_enum(err), pos_from_home);
-  //   }
-  //   return std::make_tuple(success, pos_from_home);
-  //
-  //   }, token);
-  // }
+  auto move(speedratio_t speedratio,
+            micrometre_t travel,
+            asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
+    cancel_pending_operation();
+    return move_impl(speedratio, travel,
+                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+  }
 
   // Set properties with new status values
   void update_status(const input_t& in) {
@@ -176,6 +131,7 @@ struct controller {
   void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
 
   auto positioner() noexcept -> auto& { return pos_; }
+  auto driver_error() const noexcept -> motor::errors::err_enum { return drive_error_; }
 
 private:
   auto stop_impl(bool use_quick_stop, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -258,6 +214,71 @@ private:
               }
               logger_.trace("Actual travel: {}, where target was: {}", actual_travel, travel);
               self.complete(success, actual_travel);
+          }
+        },
+        token);
+  }
+
+  auto move_impl(speedratio_t speedratio,
+                 micrometre_t placement,
+                 asio::completion_token_for<void(motor::errors::err_enum, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(motor::errors::err_enum, micrometre_t)>::return_type {
+    using signature_t = void(motor::errors::err_enum, micrometre_t);
+    enum struct state_e : std::uint8_t { move_until_notify = 0, wait_till_stop, complete };
+    micrometre_t pos_from_home{ pos_.position_from_home().force_in(micrometre_t::reference) };
+
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, speedratio, placement, pos_from_home, state = state_e::move_until_notify](auto& self,
+                                                                                         std::error_code err = {}) mutable {
+          using enum motor::errors::err_enum;
+          if (err) {
+          }
+          switch (state) {
+            case state_e::move_until_notify:
+              state = state_e::wait_till_stop;
+              // Get our distance from the homing reference
+              if (!pos_.homing_enabled() || pos_.error() == motor_missing_home_reference) {
+                logger_.trace("{}", motor_missing_home_reference);
+                return self.complete(motor_missing_home_reference, pos_from_home);
+              }
+              auto const resolution{ pos_.resolution() };
+              logger_.trace("Target placement: {}, currently at: {}, with resolution: {}", placement, pos_from_home,
+                            resolution);
+              if (placement + resolution >= pos_from_home && placement < pos_from_home + resolution) {
+                logger_.trace("Currently within resolution of current position");
+                return self.complete(success, placement);
+              }
+              bool const is_positive{ pos_from_home < placement };
+              asio::experimental::make_parallel_group(
+                  [&](auto token) { return run_at_speedratio(is_positive ? speedratio : -speedratio, token); },
+                  [&](auto token) { return pos_.notify_from_home(placement, token); })
+                  .async_wait(asio::experimental::wait_for_one(), combine_2_error_codes{ std::move(self) });
+              return;
+            case state_e::wait_till_stop:
+              state = state_e::complete;
+              // This is only called if another invocation has not taken control of the motor
+              // stopping the motor now would be counter productive as somebody is using it.
+              if (err != std::errc::operation_canceled) {
+                // Todo this stops quickly :-)
+                // imagining 6 DOF robot arm, moving towards a specific radian in 3D space, it would depend on where the arm
+                // is going so a single config variable for deceleration would not be sufficient, I propose to add
+                // it(deceleration time) to the API call when needed implementing deceleration would propably be best to be
+                // controlled by this code not the atv itself, meaning decrement given speedratio to 1% (using the given
+                // deceleration time) when 1% is reached next
+                pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
+                logger_.trace("Will stop motor, now at: {}, where target was: {}", pos_from_home, placement);
+                stop_impl(true, std::move(self));
+                return;
+              }
+              self(err);
+              return;
+            case state_e::complete:
+              pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
+              logger_.trace("Motor is stopped, now at: {}, where target was: {}", pos_from_home, placement);
+              self.complete(motor::motor_enum(err), pos_from_home);
+              return;
+            default:
+              logger_.error("Default case reached in move_impl");
           }
         },
         token);
