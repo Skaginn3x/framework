@@ -41,7 +41,7 @@ using positioner_t = tfc::motor::positioner::positioner<
   tfc::ipc_ruler::ipc_manager_client_mock, metre, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
-auto get_good_status_stopped() -> input_t {
+static auto get_good_status_stopped() -> input_t {
   return input_t{
     .status_word =
     tfc::ec::cia_402::status_word{
@@ -54,7 +54,7 @@ auto get_good_status_stopped() -> input_t {
   };
 }
 
-auto get_good_status_running() -> input_t {
+static auto get_good_status_running() -> input_t {
   return input_t{
     .status_word = tfc::ec::cia_402::status_word{ .state_ready_to_switch_on = 1,
                                                   .state_switched_on = 1,
@@ -130,8 +130,8 @@ auto main(int, char const* const* argv) -> int {
   "move with no reference"_test = [&] {
     instance inst;
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-                   [&inst](err_enum err, const micrometre_t moved) {
-                     expect(err == err_enum::motor_missing_home_reference);
+                   [&inst](std::error_code err, const micrometre_t moved) {
+                     expect(tfc::motor::motor_enum(err) == err_enum::motor_missing_home_reference);
                      expect(moved == 0 * micrometre_t::reference);
                      inst.ran[0] = true;
                      inst.ctx.stop();
@@ -162,8 +162,8 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(5ms);
     expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-                   [&inst](err_enum err, const micrometre_t moved) {
-                     expect(err == err_enum::success);
+                   [&inst](std::error_code err, const micrometre_t moved) {
+                     expect(!err);
                      expect(moved == 1000 * micrometre_t::reference);
                      inst.ran[0] = true;
                      inst.ctx.stop();
@@ -275,8 +275,8 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(5ms);
     expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-                   [&inst](err_enum err, const micrometre_t moved) {
-                     expect(err == err_enum::operation_canceled) << format_as(err);
+                   [&inst](std::error_code err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
                      expect(moved == 800 * micrometre_t::reference) << fmt::format("{}", moved);
                      inst.ran[0] = true;
                    });
@@ -316,8 +316,8 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(5ms);
     expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-                   [&inst](err_enum err, const micrometre_t moved) {
-                     expect(err == err_enum::operation_canceled) << format_as(err);
+                   [&inst](std::error_code err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
                      expect(moved == 800 * micrometre_t::reference) << fmt::format("{}", moved);
                      inst.ran[0] = true;
                    });

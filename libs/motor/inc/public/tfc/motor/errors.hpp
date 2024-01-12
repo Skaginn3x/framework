@@ -27,6 +27,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   motor_missing_home_reference = 6,
   motor_not_implemented = 7,
   motor_method_not_implemented = 8,
+  motor_home_sensor_unconfigured = 9,
   speedratio_out_of_range = 11,
   positioning_unstable = 20,
   positioning_missing_event = 21,

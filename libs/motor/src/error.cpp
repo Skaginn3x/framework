@@ -31,6 +31,8 @@ class motor_error_category_t : public std::error_category {
         return "Motor function not implemented";
       case motor_method_not_implemented:
         return "Motor method not implemented";
+      case motor_home_sensor_unconfigured:
+        return "Missing configured home speed or home sensor disconnected";
       case speedratio_out_of_range:
         return "Speed ratio out of range (-100% to 100%)";
       case positioning_unstable:
