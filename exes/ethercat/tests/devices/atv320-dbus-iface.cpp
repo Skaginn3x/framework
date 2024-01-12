@@ -77,7 +77,7 @@ struct instance {
   controller<tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t> ctrl{
     dbus_connection, manager, slave_id };
   std::array<bool, 10> ran{};
-  bool_signal_t sig {ctx, manager, "homing_sensor"};
+  bool_signal_t sig{ ctx, manager, "homing_sensor" };
 
   void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
@@ -354,17 +354,40 @@ auto main(int, char const* const* argv) -> int {
   "convey micrometre cancelled while stopping"_test = [] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
-      expect(err == std::errc::operation_canceled);
+    inst.ctrl.stop([&inst](const std::error_code& err) {
+      expect(err.category() == tfc::motor::category());
+      expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
       inst.ran[0] = true;
     });
-    expect(!inst.ran[0]);
+    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
+      expect(err.category() == tfc::motor::category());
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[1] = true;
+    });
     inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
     inst.ctrl.positioner().increment_position(100 * micrometre_t::reference);
     inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
+    expect(inst.ran[1]);
+  };
+  "convey micrometre cancelled while quick_stopping"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(err.category() == tfc::motor::category());
+      expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
+      inst.ran[0] = true;
+    });
+    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
+      expect(err.category() == tfc::motor::category());
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[1] = true;
+    });
     inst.ctx.run_for(1ms);
-    expect(inst.ran[0]);
+    expect(!inst.ran[0]);
+    inst.ctrl.positioner().increment_position(100 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[1]);
   };
 
   return EXIT_SUCCESS;
