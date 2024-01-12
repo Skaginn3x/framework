@@ -61,11 +61,11 @@ auto get_good_status_running() -> input_t {
 }
 
 struct instance {
-  asio::io_context ctx{asio::io_context()};
-  std::shared_ptr<sdbusplus::asio::connection> dbus_connection {std::make_shared<sdbusplus::asio::connection>(ctx)};
+  asio::io_context ctx{ asio::io_context() };
+  std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   std::uint16_t slave_id{ 0 };
   controller ctrl{ controller(dbus_connection, slave_id) };
-  std::array<bool, 10> ran {};
+  std::array<bool, 10> ran{};
 };
 
 auto main(int, char const* const* argv) -> int {
@@ -73,7 +73,7 @@ auto main(int, char const* const* argv) -> int {
   tfc::base::init(args.size(), args.data());
 
   // Good path tests
-  "run_at_speedratio normal start and stop"_test = [&] {
+  "run_at_speedratio terminated by stop"_test = [&] {
     instance inst;
     speedratio_t ratio = 1.0 * percent;
     inst.ctrl.run_at_speedratio(ratio, [&inst](const std::error_code& err) -> void {
@@ -81,12 +81,24 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
       inst.ran[0] = true;
     });
-    steady_timer timer{ inst.ctx };
-    timer.expires_after(1ms);
-    timer.async_wait([&](const std::error_code& timer_error) {
-      expect(!timer_error);
-      inst.ctrl.stop([](const std::error_code& stop_error) { expect(!stop_error); });
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.stop([](const std::error_code& stop_error) { expect(!stop_error); });
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(5ms);
+    expect(inst.ran[0]);
+  };
+
+  "run_at_speedratio terminated by quick_stop"_test = [&] {
+    instance inst;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.run_at_speedratio(ratio, [&inst](const std::error_code& err) -> void {
+      expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err;
+      inst.ctx.stop();
+      inst.ran[0] = true;
     });
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.quick_stop([](const std::error_code& stop_error) { expect(!stop_error); });
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(5ms);
     expect(inst.ran[0]);
   };
@@ -94,19 +106,93 @@ auto main(int, char const* const* argv) -> int {
   "convey micrometre"_test = [&] {
     instance inst;
     inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
-        expect(err == err_enum::success);
-        expect(moved == 1000 * micrometre_t::reference);
-        inst.ran[0] = true;
-        inst.ctx.stop();
-      });
-      inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
-      inst.ctx.run();
-      expect(inst.ran[0]);
-    };
+      expect(err == err_enum::success);
+      expect(moved == 1000 * micrometre_t::reference);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.ctx.run();
+    expect(inst.ran[0]);
+  };
 
-    "update status error detection"_test = [&] {
-      instance inst;
-      inst.ctrl.update_status(get_good_status_running());
-    };
-    return EXIT_SUCCESS;
-  }
+  "test stop impl"_test = [&] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctrl.stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+    });
+    expect(inst.ran[1]);
+  };
+
+  "test quick_stop impl"_test = [&] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+    });
+    expect(inst.ran[1]);
+  };
+
+  // Interupted operations
+  "convey micrometre interupted by stop"_test = [&] {
+    instance inst;
+    inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
+      expect(err == err_enum::operation_canceled);
+      expect(moved == 800 * micrometre_t::reference);
+      inst.ran[0] = true;
+    });
+    inst.ctrl.positioner().increment_position(800 * micrometre_t::reference);
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run();
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+  };
+
+  "interupted convey micrometre by quick_stop"_test = [&] {
+    instance inst;
+    inst.ctrl.convey_micrometre(1000 * micrometre_t::reference, [&inst](err_enum err, const micrometre_t moved) {
+      expect(err == err_enum::operation_canceled);
+      expect(moved == 800 * micrometre_t::reference);
+      inst.ran[0] = true;
+    });
+    inst.ctrl.positioner().increment_position(800 * micrometre_t::reference);
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run();
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+  };
+  return EXIT_SUCCESS;
+}
