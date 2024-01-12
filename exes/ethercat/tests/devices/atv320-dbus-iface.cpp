@@ -77,6 +77,7 @@ struct instance {
   controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, bool_slot_t> ctrl{
     dbus_connection, manager, slave_id };
   std::array<bool, 10> ran{};
+  bool_signal_t sig {ctx, manager, "homing_sensor"};
 
   void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
@@ -89,16 +90,16 @@ struct instance {
     config.access().homing_travel_speed = 1 * speedratio_t::reference;
 
     ctrl.positioner().home();
-    auto sig = bool_signal_t(ctx, manager, "homing_sensor");
     ctx.run_for(1ms);
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
     manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
-                         "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
+                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
                     });
     ctx.run_for(5ms);
     sig.send(true);
     ctx.run_for(5ms);
+    assert(ctrl.positioner().homing_enabled());
   }
 };
 
@@ -166,7 +167,6 @@ auto main(int, char const* const* argv) -> int {
     instance inst;
     // Set current as reference
     inst.populate_homing_sensor();
-    expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](std::error_code err, const micrometre_t moved) {
                      expect(!err);
@@ -176,7 +176,7 @@ auto main(int, char const* const* argv) -> int {
                    });
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
 
-    inst.ctx.run();
+    inst.ctx.run_for(5ms);
     expect(inst.ran[0]);
   };
 
@@ -261,7 +261,6 @@ auto main(int, char const* const* argv) -> int {
   "move interupted by quick_stop"_test = [&] {
     instance inst;
     inst.populate_homing_sensor();
-    expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](std::error_code err, const micrometre_t moved) {
                      expect(err == std::errc::operation_canceled) << err.message();
@@ -284,7 +283,6 @@ auto main(int, char const* const* argv) -> int {
   "move interupted by stop"_test = [&] {
     instance inst;
     inst.populate_homing_sensor();
-    expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](std::error_code err, const micrometre_t moved) {
                      expect(err == std::errc::operation_canceled) << err.message();
