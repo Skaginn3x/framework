@@ -151,24 +151,24 @@ auto main(int, char const* const* argv) -> int {
 
     inst.ctrl.positioner().home();
     auto sig = bool_signal_t(inst.ctx, inst.manager, "homing_sensor");
+    inst.ctx.run_for(1ms);
     expect(inst.manager.slots_.size() == 1);
     expect(inst.manager.signals_.size() == 1);
     inst.manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
-                         "test_atv320_dbus_iface.def.bool.homing_sensor", [](const std::error_code&) {
+                         "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
                          });
-
-    sig.async_send(true, [&](const std::error_code& err, const std::size_t) {
-      expect(!err) << err;
-      expect(inst.ctrl.positioner().homing_enabled());
-      inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-                     [&inst](err_enum err, const micrometre_t moved) {
-                       expect(err == err_enum::success);
-                       expect(moved == 1000 * micrometre_t::reference);
-                       inst.ran[0] = true;
-                       inst.ctx.stop();
-                     });
-      inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
-    });
+    inst.ctx.run_for(5ms);
+    sig.send(true);
+    inst.ctx.run_for(5ms);
+    expect(inst.ctrl.positioner().homing_enabled());
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](err_enum err, const micrometre_t moved) {
+                     expect(err == err_enum::success);
+                     expect(moved == 1000 * micrometre_t::reference);
+                     inst.ran[0] = true;
+                     inst.ctx.stop();
+                   });
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
 
     inst.ctx.run();
     expect(inst.ran[0]);

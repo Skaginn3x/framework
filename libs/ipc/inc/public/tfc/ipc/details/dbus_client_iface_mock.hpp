@@ -51,7 +51,7 @@ struct ipc_manager_client_mock {
 
   auto connect(const std::string& slot_name,
                const std::string& signal_name,
-               tfc::stx::invocable<const std::error_code&> auto&& handler) -> void {
+               stx::invocable<const std::error_code&> auto&& handler) -> void {
     for (auto& slot : slots_) {
       if (slot.name == slot_name) {
         slot.connected_to = signal_name;
