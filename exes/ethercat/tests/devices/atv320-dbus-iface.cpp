@@ -116,6 +116,18 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
 
+  "move with no reference"_test = [&]{
+    instance inst;
+    inst.ctrl.move(10 * speedratio_t::reference,1000 * micrometre_t::reference,  [&inst](err_enum err, const micrometre_t moved) {
+      expect(err == err_enum::motor_missing_home_reference);
+      expect(moved == 0 * micrometre_t::reference);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run();
+    expect(inst.ran[0]);
+  };
+
   "test stop impl"_test = [&] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
