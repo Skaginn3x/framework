@@ -23,6 +23,7 @@ using ut::expect;
 using mp_units::percent;
 using mp_units::si::metre;
 using mp_units::si::micro;
+using mp_units::si::nano;
 using mp_units::si::unit_symbols::dHz;
 using mp_units::si::unit_symbols::mm;
 
@@ -140,7 +141,7 @@ auto main(int, char const* const* argv) -> int {
                               tfc::confman::detail::config_dbus_client>& config = inst.ctrl.positioner().config_ref();
     config.access().needs_homing_after = home_travel_t{ 1 * mm };
 
-    config.access().mode = tfc::motor::positioner::encoder_config<metre>{};
+    config.access().mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
     inst.ctrl.positioner().home();
     expect(inst.ctrl.positioner().homing_enabled());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
