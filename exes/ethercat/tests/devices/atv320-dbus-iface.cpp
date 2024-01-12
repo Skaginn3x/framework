@@ -21,6 +21,7 @@ using ut::expect;
 using mp_units::percent;
 using mp_units::si::micro;
 using mp_units::si::metre;
+using mp_units::si::unit_symbols::dHz;
 
 using tfc::ec::devices::schneider::atv320::controller;
 using tfc::ec::devices::schneider::atv320::input_t;
@@ -32,8 +33,11 @@ using tfc::ec::devices::schneider::atv320::hmis_e;
 
 auto get_good_status_stopped() -> input_t {
   return input_t{
-    .status_word = 0,
-    .frequency = 0,
+    .status_word = tfc::ec::cia_402::status_word{ .state_ready_to_switch_on = 1,
+                                                  .state_switched_on = 1,
+                                                  .voltage_enabled = 1,
+                                                  .state_quick_stop = 1 },
+    .frequency = 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
     .last_error = lft_e::no_fault,
@@ -43,7 +47,16 @@ auto get_good_status_stopped() -> input_t {
 
 auto get_good_status_running() -> input_t {
   return input_t{
+    .status_word = tfc::ec::cia_402::status_word{ .state_ready_to_switch_on = 1,
+                                                  .state_switched_on = 1,
+                                                  .state_operation_enabled = 1,
+                                                  .voltage_enabled = 1,
+                                                  .state_quick_stop = 1 },
+    .frequency = 50 * dHz,
     .current = 10,
+    .digital_inputs = 0x0000,
+    .last_error = lft_e::no_fault,
+    .drive_state = hmis_e::run,
   };
 }
 
@@ -83,12 +96,12 @@ auto main(int argc, char const* const* argv) -> int {
       ctx.stop();
     });
     ctrl.positioner().increment_position(1000 * micrometre_t::reference);
-    ctx.run_for(1ms);
+    ctx.run();
     expect(ran);
   };
 
   "update status error detection"_test = [&] {
-    ctrl.update_status(get)
+    ctrl.update_status(get_good_status_running());
   };
   return EXIT_SUCCESS;
 }
