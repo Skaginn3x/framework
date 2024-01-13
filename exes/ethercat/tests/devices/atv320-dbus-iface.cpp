@@ -214,6 +214,38 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[1]);
   };
 
+  "move home already in homing sensor"_test = [&] {
+    instance inst;
+    // Set current as reference
+    inst.populate_homing_sensor();
+    inst.ctrl.move_home([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+
+  "move home already not in homing sensor"_test = [&] {
+    instance inst;
+    // Set current as reference
+    inst.populate_homing_sensor();
+    inst.sig.send(false);
+    inst.ctrl.move_home([&inst](std::error_code err) {
+      expect(!err);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.sig.send(true);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+
   // Interupted operations
   "convey micrometre interupted by stop"_test = [&] {
     instance inst;
