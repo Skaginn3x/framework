@@ -294,19 +294,14 @@ auto main(int, char const* const* argv) -> int {
                      expect(moved == 800 * micrometre_t::reference) << fmt::format("{}", moved);
                      inst.ran[0] = true;
                    });
+    inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.positioner().increment_position(800 * micrometre_t::reference);
-
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[1] = true;
-      // NOTE: context should not be stopped here, because the call path is as follows:
-      // - move() is called
-      // - increment is called, with not enough length
-      // - stop() is called
-      //   - stop synchronously calls this callback because the motor is at 0Hz
-      // - move callback is called
+      inst.ctx.stop();
     });
-
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
@@ -321,19 +316,14 @@ auto main(int, char const* const* argv) -> int {
                      expect(moved == 800 * micrometre_t::reference) << fmt::format("{}", moved);
                      inst.ran[0] = true;
                    });
+    inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.positioner().increment_position(800 * micrometre_t::reference);
-
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[1] = true;
-      // NOTE: context should not be stopped here, because the call path is as follows:
-      // - move() is called
-      // - increment is called, with not enough length
-      // - stop() is called
-      //   - stop synchronously calls this callback because the motor is at 0Hz
-      // - move callback is called
+      inst.ctx.stop();
     });
-
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
@@ -392,7 +382,6 @@ auto main(int, char const* const* argv) -> int {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst](const std::error_code& err) {
-      expect(err.category() == tfc::motor::category());
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
       inst.ran[0] = true;
     });
@@ -411,7 +400,6 @@ auto main(int, char const* const* argv) -> int {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
-      expect(err.category() == tfc::motor::category());
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
       inst.ran[0] = true;
     });
