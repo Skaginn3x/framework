@@ -175,13 +175,12 @@ auto main(int, char const* const* argv) -> int {
   "convey micrometre"_test = [&] {
     instance<> inst;
     auto ratio = 100 * percent;
-    inst.ctrl.convey(ratio, 1000 * micrometre_t::reference,
-                     [&inst](const std::error_code& err, const micrometre_t moved) {
-                       expect(!err);
-                       expect(moved == 1000 * micrometre_t::reference);
-                       inst.ran[0] = true;
-                       inst.ctx.stop();
-                     });
+    inst.ctrl.convey(ratio, 1000 * micrometre_t::reference, [&inst](const std::error_code& err, const micrometre_t moved) {
+      expect(!err);
+      expect(moved == 1000 * micrometre_t::reference);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
     expect(inst.ctrl.speed_ratio() == ratio);
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
@@ -259,13 +258,12 @@ auto main(int, char const* const* argv) -> int {
     // set current as reference
     inst.populate_homing_sensor();
     auto ratio = 10 * speedratio_t::reference;
-    inst.ctrl.move(ratio, 1000 * micrometre_t::reference,
-                   [&inst](const std::error_code& err, const micrometre_t moved) {
-                     expect(!err);
-                     expect(moved == 1000 * micrometre_t::reference);
-                     inst.ran[0] = true;
-                     inst.ctx.stop();
-                   });
+    inst.ctrl.move(ratio, 1000 * micrometre_t::reference, [&inst](const std::error_code& err, const micrometre_t moved) {
+      expect(!err);
+      expect(moved == 1000 * micrometre_t::reference);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
     expect(inst.ctrl.speed_ratio() == ratio);
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
