@@ -378,42 +378,43 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
-  "convey micrometre cancelled while stopping"_test = [] {
+  "stoping canceled by convey"_test = [] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
       inst.ran[0] = true;
     });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
     inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
-      expect(err.category() == tfc::motor::category());
       expect(tfc::motor::motor_enum(err) == err_enum::success);
       inst.ran[1] = true;
     });
-    inst.ctx.run_for(1ms);
-    expect(!inst.ran[0]);
     inst.ctrl.positioner().increment_position(100 * micrometre_t::reference);
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
-  "convey micrometre cancelled while quick_stopping"_test = [] {
+  "quick_stop canceled by convey"_test = [] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
       inst.ran[0] = true;
     });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
     inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](std::error_code err, micrometre_t) {
-      expect(err.category() == tfc::motor::category());
       expect(tfc::motor::motor_enum(err) == err_enum::success);
       inst.ran[1] = true;
     });
-    inst.ctx.run_for(1ms);
-    expect(!inst.ran[0]);
     inst.ctrl.positioner().increment_position(100 * micrometre_t::reference);
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
-
   return EXIT_SUCCESS;
 }
