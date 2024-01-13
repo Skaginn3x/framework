@@ -69,7 +69,7 @@ public:
 
     config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
 
-    auto interfaces = tfc::global::get_interfaces();
+    auto interfaces = common::get_interfaces();
     if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_->value().primary_interface.value) !=
           interfaces.end())) {
       config_->make_change()->primary_interface = config::network_interface{ interfaces[0] };
