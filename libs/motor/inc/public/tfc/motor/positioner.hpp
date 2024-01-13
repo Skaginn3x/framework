@@ -267,6 +267,15 @@ public:
 
   auto homing_travel_speed() const noexcept -> auto const& { return config_->homing_travel_speed.value(); }
 
+  auto would_need_homing(displacement_t increment) const noexcept -> bool {
+    // todo test !
+    if (!config_->needs_homing_after->has_value()) {
+      return false;
+    }
+    bool constexpr always_forward{ true };
+    return detail::make_between_callable(travel_since_homed_, travel_since_homed_ + mp_units::abs(increment), always_forward)(config_->needs_homing_after->value());
+  }
+
 private:
   auto needs_homing(displacement_t increment) -> bool {
     if (!config_->needs_homing_after->has_value()) {

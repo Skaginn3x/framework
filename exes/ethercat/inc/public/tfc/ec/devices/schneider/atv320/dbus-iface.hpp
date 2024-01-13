@@ -167,7 +167,7 @@ private:
     action_ = use_quick_stop ? quick_stop : stop;
     speed_ratio_ = 0 * mp_units::percent;
     if (motor_frequency_ == 0 * mp_units::si::hertz) {
-      logger_.trace("Drive in fault state, cannot run");
+      logger_.trace("Drive already stopped");
       return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
           [](auto& self) { self.complete({}); }, token);
     }
@@ -276,6 +276,10 @@ private:
                 logger_.trace("{}", motor_missing_home_reference);
                 return self.complete(motor::motor_error(motor_missing_home_reference), pos_from_home);
               }
+              // if (pos_.would_need_homing(pos_from_home - placement)) {
+              //   logger_.trace("Woud need homing if motor were to move to: {}", placement);
+              //   return self.complete(motor::motor_error(motor_missing_home_reference), pos_from_home);
+              // }
               logger_.trace("Target placement: {}, currently at: {}, with resolution: {}", placement, pos_from_home,
                             resolution);
               if (placement + resolution >= pos_from_home && placement < pos_from_home + resolution) {
@@ -327,7 +331,7 @@ private:
     enum struct state_e : std::uint8_t { move_until_sensor = 0, wait_till_stop, complete };
     auto const& travel_speed{ pos_.homing_travel_speed() };
     auto const& homing_sensor{ pos_.homing_sensor() };
-    return asio::async_compose<decltype(token), signature_t>([this, travel_speed, homing_sensor, state = state_e::move_until_sensor](auto& self, std::error_code err = {}) mutable {
+    return asio::async_compose<decltype(token), signature_t>([this, &travel_speed, &homing_sensor, state = state_e::move_until_sensor](auto& self, std::error_code err = {}) mutable {
       using enum motor::errors::err_enum;
       switch (state) {
         case state_e::move_until_sensor: {
@@ -349,6 +353,7 @@ private:
             [&](auto inner_token) { return run_at_speedratio_impl(travel_speed.value(), inner_token); },
             [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
             .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
+          return;
         }
         case state_e::wait_till_stop: {
           state = state_e::complete;
@@ -363,6 +368,7 @@ private:
           auto const pos{ pos_.position() };
           logger_.trace("Storing home position: {}", pos);
           pos_.home(pos);
+          return;
         }
         case state_e::complete: {
           if (err) {
