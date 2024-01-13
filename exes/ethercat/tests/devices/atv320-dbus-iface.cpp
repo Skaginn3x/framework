@@ -41,7 +41,7 @@ using positioner_t = tfc::motor::positioner::positioner<
   metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
-static auto get_good_status_stopped() -> input_t {
+[[maybe_unused]] static auto get_good_status_stopped() -> input_t {
   return input_t{
     .status_word =
     tfc::ec::cia_402::status_word{
@@ -54,7 +54,7 @@ static auto get_good_status_stopped() -> input_t {
   };
 }
 
-static auto get_good_status_running() -> input_t {
+[[maybe_unused]] static auto get_good_status_running() -> input_t {
   return input_t{
     .status_word = tfc::ec::cia_402::status_word{ .state_ready_to_switch_on = 1,
                                                   .state_switched_on = 1,
@@ -82,7 +82,7 @@ struct instance {
   void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = ctrl.positioner().config_ref();
-    config.access().needs_homing_after = home_travel_t{ 1 * mm };
+    config.access().needs_homing_after = home_travel_t{ 1000000 * mm }; // 1 km
     auto mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
     mode.displacement_per_increment = displacement;
     config.access().mode = mode;
@@ -258,6 +258,33 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
+  "move cancelled"_test = [] {
+    instance inst;
+    inst.populate_homing_sensor();
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](std::error_code err, const micrometre_t) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     inst.ran[0] = true;
+                   });
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "move cancelled after length reached but not stopped"_test = [] {
+    instance inst;
+    inst.populate_homing_sensor();
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](std::error_code err, const micrometre_t) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     inst.ran[0] = true;
+                   });
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(5ms);
+    expect(inst.ran[0]);
+  };
   "move interupted by quick_stop"_test = [&] {
     instance inst;
     inst.populate_homing_sensor();
@@ -272,7 +299,12 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[1] = true;
-      inst.ctx.stop();
+      // NOTE: context should not be stopped here, because the call path is as follows:
+      // - move() is called
+      // - increment is called, with not enough length
+      // - stop() is called
+      //   - stop synchronously calls this callback because the motor is at 0Hz
+      // - move callback is called
     });
 
     inst.ctx.run_for(1ms);
@@ -294,7 +326,12 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[1] = true;
-      inst.ctx.stop();
+      // NOTE: context should not be stopped here, because the call path is as follows:
+      // - move() is called
+      // - increment is called, with not enough length
+      // - stop() is called
+      //   - stop synchronously calls this callback because the motor is at 0Hz
+      // - move callback is called
     });
 
     inst.ctx.run_for(1ms);
