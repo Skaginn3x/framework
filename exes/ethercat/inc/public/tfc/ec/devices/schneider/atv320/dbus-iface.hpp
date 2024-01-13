@@ -768,7 +768,7 @@ struct dbus_iface {
     if (drive_error_ != success && in.last_error == lft_e::cnf) {
       drive_error_ = motor_communication_fault;
     }
-    if (drive_error_ != motor::errors::err_enum::success) {
+    if (drive_error_ != success) {
       // big TODO propagate drive error to pending operation
       cancel_pending_operation();
     }
