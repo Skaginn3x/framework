@@ -193,7 +193,7 @@ auto main(int, char const* const* argv) -> int {
     clock::set_ticks(clock::now() + 80ms);
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
-    clock::set_ticks(clock::now() + 100ms);
+    clock::set_ticks(clock::now() + 101ms);
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
     inst.ctrl.update_status(get_good_status_stopped());
@@ -313,6 +313,54 @@ auto main(int, char const* const* argv) -> int {
   };
 
   // Interupted operations
+  "run time interupted by stop"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    auto duration = 100 * milli<mp_units::si::second>;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
+      expect(err == std::errc::operation_canceled) << err;
+      inst.ran[0] = true;
+    });
+    inst.ctrl.update_status(get_good_status_running());
+    clock::set_ticks(clock::now() + 80ms);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+  };
+  "run time interupted by quick_stop"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    auto duration = 100 * milli<mp_units::si::second>;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
+      expect(err == std::errc::operation_canceled) << err;
+      inst.ran[0] = true;
+    });
+    inst.ctrl.update_status(get_good_status_running());
+    clock::set_ticks(clock::now() + 80ms);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+  };
   "convey micrometre interupted by stop"_test = [&] {
     instance<> inst;
     inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
@@ -440,6 +488,24 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
+  "run time canceled"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    auto duration = 100 * milli<mp_units::si::second>;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
+      expect(err == std::errc::operation_canceled) << err;
+      inst.ctx.stop();
+      inst.ran[0] = true;
+    });
+    inst.ctrl.update_status(get_good_status_running());
+    clock::set_ticks(clock::now() + 80ms);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.cancel_pending_operation();
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
   "stop cancelled"_test = [] {
     instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
@@ -537,6 +603,25 @@ auto main(int, char const* const* argv) -> int {
     });
     inst.ctrl.update_status(motor_status);
     inst.ctx.run_for(5ms);
+    expect(inst.ran[0]);
+  } | motor_status_and_errors;
+
+  "run time terminated by a physical motor error"_test = [&](auto& tuple) {
+    using tfc::testing::clock;
+    auto [motor_status, expected_error] = tuple;
+    instance<clock> inst;
+    inst.ctrl.update_status(get_good_status_running());
+    auto duration = 100 * milli<mp_units::si::second>;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.run(ratio, duration, [&inst, expected_error](const std::error_code& err) -> void {
+      expect(tfc::motor::motor_enum(err) == expected_error) << err;
+      inst.ctx.stop();
+      inst.ran[0] = true;
+    });
+    clock::set_ticks(clock::now() + 80ms);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(motor_status);
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   } | motor_status_and_errors;
 
