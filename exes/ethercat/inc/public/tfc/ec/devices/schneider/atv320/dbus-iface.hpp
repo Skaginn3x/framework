@@ -511,12 +511,12 @@ private:
 
 struct dbus_iface {
   // Properties
-  static const std::string connected_peer{ "connected_peer" };
-  static const std::string frequency{ "frequency" };
-  static const std::string state_402{ "state_402" };
-  static const std::string current{ "current" };
-  static const std::string last_error{ "last_error" };
-  static const std::string hmis{ "hmis" }; // todo change to more readable form
+  const std::string connected_peer{ "connected_peer" };
+  const std::string frequency{ "frequency" };
+  const std::string state_402{ "state_402" };
+  const std::string current{ "current" };
+  const std::string last_error{ "last_error" };
+  const std::string hmis{ "hmis" }; // todo change to more readable form
 
   dbus_iface(const dbus_iface&) = delete;
   dbus_iface(dbus_iface&&) = delete;
@@ -547,10 +547,10 @@ struct dbus_iface {
           if (err)
             return; // The timer was canceled or deconstructed.
           // Stop the drive from running since the peer has disconnected
-          ctrl_.stop([this](const std::error_code& err) {
+          ctrl_.stop([this](const std::error_code& time_err) {
             // TODO: IS THIS RIGHT
-            if (err) {
-              logger_.error("Stop failed after peer disconnect : {}", err.message());
+            if (time_err) {
+              logger_.error("Stop failed after peer disconnect : {}", time_err.message());
             }
           });
           peer_ = "";
@@ -652,7 +652,6 @@ struct dbus_iface {
   }
 
   auto set_configured_speedratio(speedratio_t speedratio) {
-    auto old_config_speedratio{ config_speedratio_ };
     config_speedratio_ = speedratio;
   }
 
