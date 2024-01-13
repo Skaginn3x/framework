@@ -126,16 +126,16 @@ struct controller {
 
   auto run(speedratio_t speedratio,
            mp_units::QuantityOf<mp_units::isq::time> auto time,
-           asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+           asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
     return run_impl(speedratio, time,
                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto run(mp_units::QuantityOf<mp_units::isq::time> auto time,
-           asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+           asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
     return run_impl(config_speedratio_, time,
                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
@@ -325,29 +325,27 @@ private:
   // todo bit duplicated from convey_impl
   auto run_impl(speedratio_t speedratio,
                 mp_units::QuantityOf<mp_units::isq::time> auto time,
-                asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
-    using signature_t = void(std::error_code, micrometre_t);
+                asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    using signature_t = void(std::error_code);
     enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
-    auto const is_positive{ speedratio > 0L * speedratio_t::reference };
-    auto const pos{ pos_.position() };
     auto timer{ std::make_shared<asio::basic_waitable_timer<clock_t>>(ctx_) };
     return asio::async_compose<decltype(token), signature_t>(
-        [this, speedratio, time, timer, state = state_e::run_until_notify, is_positive, pos](
+        [this, speedratio, time, timer, state = state_e::run_until_notify](
             auto& self, std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
           switch (state) {
             case state_e::run_until_notify: {
               state = state_e::wait_till_stop;
-              logger_.trace("Run time: {}, current position: {}", time, pos);
+              logger_.trace("Run time: {}", time);
               if (time == 0L * decltype(time)::reference) {
-                self.complete({}, 0L * micrometre_t::reference);
+                self.complete({});
                 return;
               }
 
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return run_impl(is_positive ? speedratio : -speedratio, inner_token); },
-                  [&](auto inner_token) {
+                  [this, speedratio](auto inner_token) { return run_impl(speedratio, inner_token); },
+                  [time, timer](auto inner_token) {
                     timer->expires_after(mp_units::to_chrono_duration(time));
                     return timer->async_wait(inner_token);
                   })
@@ -367,14 +365,11 @@ private:
               return;
             }
             case state_e::complete: {
-              auto const actual_travel{ is_positive ? (pos_.position() - pos).force_in(micrometre_t::reference)
-                                                    : -(pos - pos_.position()).force_in(micrometre_t::reference) };
-
               if (err) {
                 logger_.warn("Convey failed: {}", err.message());
               }
-              logger_.trace("Actual travel: {}, after time: {}", actual_travel, time);
-              self.complete(err, actual_travel);
+              logger_.trace("Time taken time: {}", time);
+              self.complete(err);
             }
           }
         },
@@ -675,8 +670,7 @@ struct dbus_iface {
                                        if (!validate_peer(msg.get_sender())) {
                                          return permission_denied;
                                        }
-                                       auto [err, distance_travelled_unused]{ ctrl_.run(speedratio, microsecond, yield) };
-                                       return motor::motor_enum(err);
+                                       return motor::motor_enum(ctrl_.run(speedratio, microsecond, yield));
                                      });
 
     dbus_interface_->register_method(std::string{ method::run_microsecond },
@@ -686,8 +680,7 @@ struct dbus_iface {
                                        if (!validate_peer(msg.get_sender())) {
                                          return permission_denied;
                                        }
-                                       auto [err, distance_travelled_unused]{ ctrl_.run(microsecond, yield) };
-                                       return motor::motor_enum(err);
+                                       return motor::motor_enum(ctrl_.run(microsecond, yield));
                                      });
 
     dbus_interface_->register_method(

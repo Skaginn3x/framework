@@ -45,7 +45,7 @@ template <class, template <class...> class>
 inline constexpr bool is_specialization_v = false;
 
 template <template <class...> class type, class... args>
-inline constexpr bool is_specialization_v<type<args...>, type> = true
+inline constexpr bool is_specialization_v<type<args...>, type> = true;
 
 template <typename clock_t>
 concept steady_clock = requires

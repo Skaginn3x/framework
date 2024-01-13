@@ -8,6 +8,7 @@
 #include <tfc/mocks/ipc.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stubs/confman.hpp>
+#include <tfc/testing/asio_clock.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -23,6 +24,7 @@ using ut::expect;
 
 using mp_units::percent;
 using mp_units::si::metre;
+using mp_units::si::milli;
 using mp_units::si::micro;
 using mp_units::si::nano;
 using mp_units::si::unit_symbols::dHz;
@@ -39,14 +41,14 @@ using tfc::motor::errors::err_enum;
 using bool_slot_t = tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using bool_signal_t = tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using positioner_t = tfc::motor::positioner::
-    positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
+positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
 [[maybe_unused]] static auto get_good_status_stopped() -> input_t {
   return input_t{
     .status_word =
-        tfc::ec::cia_402::status_word{
-            .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
+    tfc::ec::cia_402::status_word{
+      .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
     .frequency = 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
@@ -92,20 +94,22 @@ using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absol
   };
 }
 
+template <typename clock_t = std::chrono::steady_clock>
 struct instance {
   asio::io_context ctx{ asio::io_context() };
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   std::uint16_t slave_id{ 0 };
   tfc::ipc_ruler::ipc_manager_client_mock manager{ dbus_connection };
-  controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, bool_slot_t> ctrl{ dbus_connection, manager,
-                                                                                                    slave_id };
+  controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, clock_t, bool_slot_t> ctrl{
+    dbus_connection, manager,
+    slave_id };
   std::array<bool, 10> ran{};
   bool_signal_t sig{ ctx, manager, "homing_sensor" };
 
   void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = ctrl.positioner().config_ref();
-    config.access().needs_homing_after = home_travel_t{ 1000000 * mm };  // 1 km
+    config.access().needs_homing_after = home_travel_t{ 1000000 * mm }; // 1 km
     auto mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
     mode.displacement_per_increment = displacement;
     config.access().mode = mode;
@@ -117,7 +121,8 @@ struct instance {
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
     manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
-                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {});
+                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
+                    });
     ctx.run_for(5ms);
     sig.send(true);
     ctx.run_for(5ms);
@@ -131,7 +136,7 @@ auto main(int, char const* const* argv) -> int {
 
   // Good path tests
   "run_at_speedratio terminated by stop"_test = [&] {
-    instance inst;
+    instance<> inst;
     speedratio_t ratio = 1.0 * percent;
     inst.ctrl.run(ratio, [&inst](const std::error_code& err) -> void {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err;
@@ -146,7 +151,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "run_at_speedratio terminated by quick_stop"_test = [&] {
-    instance inst;
+    instance<> inst;
     speedratio_t ratio = 1.0 * percent;
     inst.ctrl.run(ratio, [&inst](const std::error_code& err) -> void {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err;
@@ -161,7 +166,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "convey micrometre"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
                      [&inst](const std::error_code& err, const micrometre_t moved) {
                        expect(!err);
@@ -174,8 +179,30 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
 
+  "run time"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    auto duration = 100 * milli<mp_units::si::second>;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
+      expect(!err) << err;
+      inst.ctx.stop();
+      inst.ran[0] = true;
+    });
+    inst.ctrl.update_status(get_good_status_running());
+    clock::set_ticks(clock::now() + 80ms);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    clock::set_ticks(clock::now() + 100ms);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+
   "move with no reference"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](const std::error_code& err, const micrometre_t moved) {
                      expect(tfc::motor::motor_enum(err) == err_enum::motor_missing_home_reference);
@@ -187,7 +214,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "move with reference"_test = [&] {
-    instance inst;
+    instance<> inst;
     // set current as reference
     inst.populate_homing_sensor();
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
@@ -203,7 +230,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "move to far"_test = [&] {
-    instance inst;
+    instance<> inst;
     // set current as reference
     inst.populate_homing_sensor();
     expect(inst.ctrl.positioner().homing_enabled());
@@ -220,7 +247,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "test stop impl"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(!err);
@@ -237,7 +264,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "test quick_stop impl"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(!err);
@@ -254,7 +281,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "move home already in homing sensor"_test = [&] {
-    instance inst;
+    instance<> inst;
     // Set current as reference
     inst.populate_homing_sensor();
     inst.ctrl.move_home([&inst](const std::error_code& err) {
@@ -268,7 +295,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "move home not in homing sensor"_test = [&] {
-    instance inst;
+    instance<> inst;
     // Set current as reference
     inst.populate_homing_sensor();
     inst.sig.send(false);
@@ -287,7 +314,7 @@ auto main(int, char const* const* argv) -> int {
 
   // Interupted operations
   "convey micrometre interupted by stop"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
                      [&inst](const std::error_code& err, const micrometre_t moved) {
                        expect(err == std::errc::operation_canceled);
@@ -310,7 +337,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "convey micrometre interupted by quick_stop"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
                      [&inst](const std::error_code& err, const micrometre_t moved) {
                        expect(err == std::errc::operation_canceled);
@@ -332,7 +359,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[1]);
   };
   "move cancelled"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.populate_homing_sensor();
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](const std::error_code& err, const micrometre_t) {
@@ -344,7 +371,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "move cancelled after length reached but not stopped"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.populate_homing_sensor();
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
@@ -359,7 +386,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "move interupted by quick_stop"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.populate_homing_sensor();
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](const std::error_code& err, const micrometre_t moved) {
@@ -381,7 +408,7 @@ auto main(int, char const* const* argv) -> int {
   };
 
   "move interupted by stop"_test = [&] {
-    instance inst;
+    instance<> inst;
     inst.populate_homing_sensor();
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](const std::error_code& err, const micrometre_t moved) {
@@ -402,7 +429,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[1]);
   };
   "run cancelled"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
@@ -414,7 +441,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "stop cancelled"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
@@ -427,7 +454,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "quick stop cancelled"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
@@ -440,7 +467,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "convey micrometre cancelled"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](const std::error_code& err, micrometre_t) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
@@ -452,7 +479,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
   "stoping canceled by convey"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
@@ -471,7 +498,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[1]);
   };
   "quick_stop canceled by convey"_test = [] {
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err.message();
@@ -499,7 +526,7 @@ auto main(int, char const* const* argv) -> int {
                   std::tuple{ get_bad_status_missing_phase(true), err_enum::frequency_drive_reports_fault } };
   "run_at_speedratio terminated by a physical motor error"_test = [&](auto& tuple) {
     auto [motor_status, expected_error] = tuple;
-    instance inst;
+    instance<> inst;
     inst.ctrl.update_status(get_good_status_stopped());
 
     speedratio_t ratio = 1.0 * percent;
@@ -514,7 +541,7 @@ auto main(int, char const* const* argv) -> int {
   } | motor_status_and_errors;
 
   "convey micrometre terminated by a physical motor error"_test = [&](auto& tuple) {
-    instance inst;
+    instance<> inst;
     auto [motor_status, expected_error] = tuple;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
@@ -532,7 +559,7 @@ auto main(int, char const* const* argv) -> int {
   } | motor_status_and_errors;
 
   "stop terminated by a physical motor error"_test = [](auto& tuple) {
-    instance inst;
+    instance<> inst;
     auto [motor_status, expected_error] = tuple;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst, expected_error](const std::error_code& err) {
@@ -547,7 +574,7 @@ auto main(int, char const* const* argv) -> int {
   } | motor_status_and_errors;
 
   "quick stop terminated by a physical motor error"_test = [](auto& tuple) {
-    instance inst;
+    instance<> inst;
     auto [motor_status, expected_error] = tuple;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst, expected_error](const std::error_code& err) {
@@ -562,7 +589,7 @@ auto main(int, char const* const* argv) -> int {
   } | motor_status_and_errors;
 
   "convey micrometre terminated by a physical motor error while stopping"_test = [&](auto& tuple) {
-    instance inst;
+    instance<> inst;
     auto [motor_status, expected_error] = tuple;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
