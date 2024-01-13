@@ -309,17 +309,40 @@ private:
     logger_.trace("Run motor at speedratio: {}", speedratio);
     action_ = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
+    enum struct state_e : std::uint8_t { run_until_stopped = 0, wait_till_stop, complete };
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
-        [this, first_call = true](auto& self, std::error_code err = {}) mutable {
-          if (first_call) {
-            first_call = false;
-            asio::experimental::make_parallel_group(
-                [&](auto inner_token) { return drive_error_subscriptable_.async_wait(inner_token); },
-                [&](auto inner_token) { return run_blocker_.async_wait(inner_token); })
-                .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
-            return;
+        [this, state = state_e::run_until_stopped](auto& self, std::error_code err = {}) mutable {
+          switch (state) {
+            case state_e::run_until_stopped: {
+              state = state_e::wait_till_stop;
+              asio::experimental::make_parallel_group(
+                  [&](auto inner_token) { return drive_error_subscriptable_.async_wait(inner_token); },
+                  [&](auto inner_token) { return run_blocker_.async_wait(inner_token); })
+                  .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
+              return;
+            }
+            case state_e::wait_till_stop: {
+              state = state_e::complete;
+              if (err == std::errc::operation_canceled) {
+                self(err);  // calling complete
+                return;
+              }
+              if (err) {
+                // if an error occured, let's stop the motor
+                stop_impl(false, err, std::move(self));
+                return;
+              }
+              self(err);  // calling complete
+              return;
+            }
+            case state_e::complete: {
+              if (err) {
+                logger_.warn("Run failed: {}", err.message());
+              }
+              logger_.trace("Run completed");
+              self.complete(err);
+            }
           }
-          self.complete(err);
         },
         token);
   }
@@ -362,7 +385,7 @@ private:
                 return;
               }
               // Todo this stops quickly :-)
-              stop_impl(true, err, std::move(self));
+              stop_impl(false, err, std::move(self));
               return;
             }
             case state_e::complete: {
@@ -413,7 +436,7 @@ private:
                 return;
               }
               // Todo this stops quickly :-)
-              stop_impl(true, err, std::move(self));
+              stop_impl(false, err, std::move(self));
               return;
             }
             case state_e::complete: {

@@ -278,6 +278,7 @@ auto main(int, char const* const* argv) -> int {
     // set current as reference
     inst.populate_homing_sensor();
     expect(inst.ctrl.positioner().homing_enabled());
+    inst.ctrl.update_status(get_good_status_stopped());
     // Since populate homing_sensor sets the homing_displacement amount to 1km we can move just over 1km
     inst.ctrl.move(10 * speedratio_t::reference, 2 * km, [&inst](const std::error_code& err, const micrometre_t moved) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_missing_home_reference);
@@ -286,7 +287,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ctx.stop();
     });
     expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
-    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::stop);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::none);
     inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
     inst.ctx.run_for(5ms);
     expect(inst.ran[0]);
