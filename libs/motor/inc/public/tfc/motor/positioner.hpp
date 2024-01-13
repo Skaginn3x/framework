@@ -36,7 +36,7 @@
 
 // FWD declare stub
 namespace tfc::confman {
-template <typename config_storage_t, typename = void, typename = void>
+template <typename config_storage_t, typename, typename>
 class stub_config;
 }
 
