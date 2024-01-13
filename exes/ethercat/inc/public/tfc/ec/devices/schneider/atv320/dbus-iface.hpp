@@ -343,7 +343,7 @@ private:
               }
 
               asio::experimental::make_parallel_group(
-                  [this, speedratio](auto inner_token) { return run_impl(speedratio, inner_token); },
+                  [this, speedratio](auto inner_token) { return this->run_impl(speedratio, inner_token); },
                   [time, timer](auto inner_token) {
                     timer->expires_after(mp_units::to_chrono_duration(time));
                     return timer->async_wait(inner_token);
