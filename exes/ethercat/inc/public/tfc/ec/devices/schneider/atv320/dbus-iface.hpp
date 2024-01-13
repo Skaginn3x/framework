@@ -18,6 +18,7 @@
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/positioner.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 namespace asio = boost::asio;
@@ -102,6 +103,7 @@ drive_error_first(completion_token_t&&, motor::errors::err_enum&) -> drive_error
 
 template <typename manager_client_t = ipc_ruler::ipc_manager_client,
           template <typename, typename, typename> typename pos_config_t = confman::config,
+          stx::steady_clock clock_t = asio::steady_timer::time_point::clock,
           typename pos_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, const uint16_t slave_id)
@@ -329,7 +331,7 @@ private:
     enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
     auto const is_positive{ speedratio > 0L * speedratio_t::reference };
     auto const pos{ pos_.position() };
-    auto timer{ std::make_shared<asio::steady_timer>(ctx_) };
+    auto timer{ std::make_shared<asio::basic_waitable_timer<clock_t>>(ctx_) };
     return asio::async_compose<decltype(token), signature_t>(
         [this, speedratio, time, timer, state = state_e::run_until_notify, is_positive, pos](
             auto& self, std::error_code err = {}) mutable {
