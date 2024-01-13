@@ -57,7 +57,42 @@ struct combine_error_code {
 
 template <typename completion_token_t>
 combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_t>;
-} // namespace detail
+
+template <typename completion_token_t>
+struct drive_error_first {
+  drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error)
+      : drive_err{ drive_error }, self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {
+    // static_assert(std::is_rvalue_reference_v<completion_token_t>);
+  }
+  /// The associated cancellation slot type.
+  using cancellation_slot_type = asio::cancellation_slot;
+
+  void operator()(auto const& order, std::error_code const& err1, std::error_code const& err2) {
+    if (drive_err != motor::errors::err_enum::success) {
+      std::invoke(self, motor::motor_error(drive_err));
+      return;
+    }
+    switch (order[0]) {
+      case 0:  // first parallel job has finished
+        std::invoke(self, err1);
+      break;
+      case 1:  // second parallel job has finished
+        std::invoke(self, err2);
+      break;
+      default:
+        fmt::println(stderr, "Parallel job has failed, {}", order[0]);
+    }
+  }
+
+  cancellation_slot_type get_cancellation_slot() const noexcept { return slot; }
+
+  motor::errors::err_enum& drive_err;
+  completion_token_t self;
+  asio::cancellation_slot slot;
+};
+template <typename completion_token_t>
+drive_error_first(completion_token_t&&, motor::errors::err_enum&) -> drive_error_first<completion_token_t>;
+}  // namespace detail
 
 // Handy commands
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
@@ -77,7 +112,7 @@ struct controller {
                          asio::completion_token_for<void(std::error_code)> auto&& token) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
-    return run_at_speedratio_impl(speedratio,
+    return run_impl(speedratio,
                                   asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
@@ -144,14 +179,13 @@ struct controller {
     using enum motor::errors::err_enum;
     drive_error_ = {};
     if (cia_402::states_e::fault == state || cia_402::states_e::fault_reaction_active == state) {
-      drive_error_ = motor_general_error;
+      drive_error_ = frequency_drive_reports_fault;
     }
     if (drive_error_ != success && in.last_error == lft_e::cnf) {
       drive_error_ = frequency_drive_communication_fault;
     }
     if (drive_error_ != success) {
-      // big TODO propagate drive error to pending operation
-      cancel_pending_operation();
+      drive_error_subscriptable_.notify_all();
     }
   }
 
@@ -203,25 +237,36 @@ private:
     using enum cia_402::transition_action;
     action_ = use_quick_stop ? quick_stop : stop;
     speed_ratio_ = 0 * mp_units::percent;
+
     if (motor_frequency_ == 0 * mp_units::si::hertz) {
       logger_.trace("Drive already stopped");
-      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([](auto& self) { self.complete({}); },
-        token);
+      // return drive error if there is one
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([this](auto& self) {
+        self.complete(motor::motor_error(drive_error_));
+      }, token);
     }
-    // auto cancelation_slot{ asio::get_associated_cancellation_slot(token) };
-    return stop_complete_.async_wait(std::forward<decltype(token)>(token));
-    //return stop_complete_.async_wait(asio::bind_cancellation_slot(
-    //    cancelation_slot, [tok = std::forward<decltype(token)>(token), stop_reason](std::error_code err) mutable {
-    //      if (stop_reason) {
-    //        std::invoke(tok, stop_reason);
-    //      }
-    //      std::invoke(tok, err);
-    //    }));
+    return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
+      if (first_call) {
+        first_call = false;
+        asio::experimental::make_parallel_group(
+          [&](auto inner_token) {
+            return drive_error_subscriptable_.async_wait(inner_token);
+          },
+          [&](auto inner_token) {
+            return stop_complete_.async_wait(inner_token);
+          }).async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
+        return;
+      }
+      if (stop_reason) {
+        self.complete(stop_reason);
+        return;
+      }
+      self.complete(err);
+    }, token);
   }
 
-  auto run_at_speedratio_impl(speedratio_t speedratio,
-                              asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  auto run_impl(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum motor::errors::err_enum;
     if (drive_error_ != success) {
       logger_.trace("Drive in fault state, cannot run");
@@ -236,7 +281,19 @@ private:
     logger_.trace("Run motor at speedratio: {}", speedratio);
     action_ = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
-    return run_blocker_.async_wait(std::forward<decltype(token)>(token));
+    return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+    [this, first_call = true](auto& self, std::error_code err = {}) mutable {
+      if (first_call) {
+        first_call = false;
+        asio::experimental::make_parallel_group(
+        [&](auto inner_token) {
+          return drive_error_subscriptable_.async_wait(inner_token);
+        },
+        [&](auto inner_token) { return run_blocker_.async_wait(inner_token); }).async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
+        return;
+      }
+      self.complete(err);
+    }, token);
   }
 
   auto convey_impl(speedratio_t speedratio,
@@ -261,10 +318,10 @@ private:
               }
 
               asio::experimental::make_parallel_group(
-                      [&](auto inner_token) {
-                        return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token);
-                      },
-                      [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
+                  [&](auto inner_token) {
+                    return run_impl(is_positive ? speedratio : -speedratio, inner_token);
+                  },
+                  [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }
@@ -329,10 +386,10 @@ private:
                 return self.complete({}, placement);
               }
               asio::experimental::make_parallel_group(
-                      [&](auto inner_token) {
-                        return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token);
-                      },
-                      [&](auto inner_token) { return pos_.notify_from_home(placement, inner_token); })
+                  [&](auto inner_token) {
+                    return run_impl(is_positive ? speedratio : -speedratio, inner_token);
+                  },
+                  [&](auto inner_token) { return pos_.notify_from_home(placement, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }
@@ -397,8 +454,8 @@ private:
                 return;
               }
               asio::experimental::make_parallel_group(
-                      [&](auto inner_token) { return run_at_speedratio_impl(travel_speed.value(), inner_token); },
-                      [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
+                  [&](auto inner_token) { return run_impl(travel_speed.value(), inner_token); },
+                  [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }
@@ -433,6 +490,7 @@ private:
   motor::positioner::positioner<mp_units::si::metre, manager_client_t&, pos_config_t, pos_slot_t> pos_;
   tfc::asio::condition_variable<asio::any_io_executor> run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
+  tfc::asio::condition_variable<asio::any_io_executor> drive_error_subscriptable_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
   logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
@@ -453,12 +511,12 @@ private:
 
 struct dbus_iface {
   // Properties
-  static constexpr std::string connected_peer{ "connected_peer" };
-  static constexpr std::string frequency{ "frequency" };
-  static constexpr std::string state_402{ "state_402" };
-  static constexpr std::string current{ "current" };
-  static constexpr std::string last_error{ "last_error" };
-  static constexpr std::string hmis{ "hmis" }; // todo change to more readable form
+  static const std::string connected_peer{ "connected_peer" };
+  static const std::string frequency{ "frequency" };
+  static const std::string state_402{ "state_402" };
+  static const std::string current{ "current" };
+  static const std::string last_error{ "last_error" };
+  static const std::string hmis{ "hmis" }; // todo change to more readable form
 
   dbus_iface(const dbus_iface&) = delete;
   dbus_iface(dbus_iface&&) = delete;
