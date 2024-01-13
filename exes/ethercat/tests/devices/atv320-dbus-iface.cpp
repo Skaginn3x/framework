@@ -139,7 +139,7 @@ auto main(int, char const* const* argv) -> int {
   "run_at_speedratio terminated by stop"_test = [&] {
     instance inst;
     speedratio_t ratio = 1.0 * percent;
-    inst.ctrl.run_at_speedratio(ratio, [&inst](const std::error_code& err) -> void {
+    inst.ctrl.run(ratio, [&inst](const std::error_code& err) -> void {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err;
       inst.ctx.stop();
       inst.ran[0] = true;
@@ -154,7 +154,7 @@ auto main(int, char const* const* argv) -> int {
   "run_at_speedratio terminated by quick_stop"_test = [&] {
     instance inst;
     speedratio_t ratio = 1.0 * percent;
-    inst.ctrl.run_at_speedratio(ratio, [&inst](const std::error_code& err) -> void {
+    inst.ctrl.run(ratio, [&inst](const std::error_code& err) -> void {
       expect(tfc::motor::motor_enum(err) == err_enum::operation_canceled) << err;
       inst.ctx.stop();
       inst.ran[0] = true;
@@ -410,7 +410,7 @@ auto main(int, char const* const* argv) -> int {
   };
   "run cancelled"_test = [] {
     instance inst;
-    inst.ctrl.run_at_speedratio(100 * percent, [&inst](const std::error_code& err) {
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
     });
@@ -511,7 +511,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.update_status(get_good_status_stopped());
 
     speedratio_t ratio = 1.0 * percent;
-    inst.ctrl.run_at_speedratio(ratio, [&inst, expected_error](const std::error_code& err) -> void {
+    inst.ctrl.run(ratio, [&inst, expected_error](const std::error_code& err) -> void {
       expect(tfc::motor::motor_enum(err) == expected_error) << err;
       inst.ctx.stop();
       inst.ran[0] = true;

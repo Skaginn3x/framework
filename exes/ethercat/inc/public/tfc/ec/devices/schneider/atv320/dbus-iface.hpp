@@ -9,6 +9,7 @@
 
 #include <mp-units/format.h>
 #include <mp-units/quantity.h>
+#include <mp-units/chrono.h>
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 
@@ -23,6 +24,7 @@ namespace asio = boost::asio;
 namespace method = motor::dbus::method;
 using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
+using microsecond_t = motor::dbus::types::microsecond_t;
 static constexpr std::string_view impl_name{ "atv320" };
 
 namespace detail {
@@ -108,12 +110,36 @@ struct controller {
             std::bind_front(&controller::on_homing_sensor, this) } {
   }
 
-  auto run_at_speedratio(speedratio_t speedratio,
+  auto run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    cancel_pending_operation();
+    return run_impl(config_speedratio_,
+                                  asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+  }
+
+  auto run(speedratio_t speedratio,
                          asio::completion_token_for<void(std::error_code)> auto&& token) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
     return run_impl(speedratio,
                                   asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+  }
+
+  auto run(speedratio_t speedratio,
+            mp_units::QuantityOf<mp_units::isq::time> auto time,
+            asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+  typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    cancel_pending_operation();
+    return run_impl(speedratio, time,
+                       asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+  }
+
+  auto run(mp_units::QuantityOf<mp_units::isq::time> auto time,
+          asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+  typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    cancel_pending_operation();
+    return run_impl(config_speedratio_, time,
+                       asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -235,14 +261,19 @@ private:
                  asio::completion_token_for<void(std::error_code)> auto&& token) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum cia_402::transition_action;
+    using enum motor::errors::err_enum;
     action_ = use_quick_stop ? quick_stop : stop;
     speed_ratio_ = 0 * mp_units::percent;
-
+    if (drive_error_ != success) {
+      auto const motor_err{ motor::motor_error(drive_error_) };
+      logger_.trace("Drive in fault state, command is set as stop but will return the error: {}", motor_err.message());
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [motor_err](auto& self) { self.complete(motor_err); }, token);
+    }
     if (motor_frequency_ == 0 * mp_units::si::hertz) {
       logger_.trace("Drive already stopped");
-      // return drive error if there is one
-      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([this](auto& self) {
-        self.complete(motor::motor_error(drive_error_));
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([](auto& self) {
+        self.complete({});
       }, token);
     }
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
@@ -294,6 +325,68 @@ private:
       }
       self.complete(err);
     }, token);
+  }
+
+  // todo bit duplicated from convey_impl
+  auto run_impl(speedratio_t speedratio,
+                   mp_units::QuantityOf<mp_units::isq::time> auto time,
+                   asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    using signature_t = void(std::error_code, micrometre_t);
+    enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
+    auto const is_positive{ speedratio > 0L * speedratio_t::reference };
+    auto const pos{ pos_.position() };
+    auto timer{ std::make_shared<asio::steady_timer>(ctx_) };
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, speedratio, time, timer, state = state_e::run_until_notify, is_positive, pos](auto& self,
+      std::error_code err = {}) mutable {
+          using enum motor::errors::err_enum;
+          switch (state) {
+            case state_e::run_until_notify: {
+              state = state_e::wait_till_stop;
+              logger_.trace("Run time: {}, current position: {}", time, pos);
+              if (time == 0L * decltype(time)::reference) {
+                self.complete({}, 0L * micrometre_t::reference);
+                return;
+              }
+
+              asio::experimental::make_parallel_group(
+                  [&](auto inner_token) {
+                    return run_impl(is_positive ? speedratio : -speedratio, inner_token);
+                  },
+                  [&](auto inner_token) {
+                    timer->expires_after(mp_units::to_chrono_duration(time));
+                    return timer->async_wait(inner_token);
+                  })
+                  .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
+              return;
+            }
+            case state_e::wait_till_stop: {
+              state = state_e::complete;
+              // This is only called if another invocation has not taken control of the motor
+              // stopping the motor now would be counter productive as somebody is using it.
+              if (err == std::errc::operation_canceled) {
+                self(err); // calling complete
+                return;
+              }
+              // Todo this stops quickly :-)
+              stop_impl(true, err, std::move(self));
+              return;
+            }
+            case state_e::complete: {
+              auto const actual_travel{ is_positive
+                                          ? (pos_.position() - pos).force_in(micrometre_t::reference)
+                                          : -(pos - pos_.position()).force_in(micrometre_t::reference) };
+
+              if (err) {
+                logger_.warn("Convey failed: {}", err.message());
+              }
+              logger_.trace("Actual travel: {}, after time: {}", actual_travel, time);
+              self.complete(err, actual_travel);
+            }
+          }
+        },
+        token);
   }
 
   auto convey_impl(speedratio_t speedratio,
@@ -568,6 +661,16 @@ struct dbus_iface {
       }
     });
 
+    dbus_interface_->register_method(std::string{ method::run },
+                                     [this](asio::yield_context yield,
+                                            const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return permission_denied;
+                                       }
+                                       return motor::motor_enum(ctrl_.run(yield));
+                                     });
+
     dbus_interface_->register_method(std::string{ method::run_at_speedratio },
                                      [this](asio::yield_context yield,
                                             const sdbusplus::message_t& msg,
@@ -576,8 +679,32 @@ struct dbus_iface {
                                        if (!validate_peer(msg.get_sender())) {
                                          return permission_denied;
                                        }
-                                       return motor::motor_enum(ctrl_.run_at_speedratio(speedratio, yield));
+                                       return motor::motor_enum(ctrl_.run(speedratio, yield));
                                      });
+
+    dbus_interface_->register_method(std::string{ method::run_at_speedratio_microsecond },
+                                     [this](asio::yield_context yield,
+                                            const sdbusplus::message_t& msg,
+                                            speedratio_t speedratio, microsecond_t microsecond) -> motor::errors::err_enum {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return permission_denied;
+                                       }
+                                       auto [err, distance_travelled_unused]{ ctrl_.run(speedratio, microsecond, yield) };
+                                       return motor::motor_enum(err);
+                                     });
+
+    dbus_interface_->register_method(std::string{ method::run_microsecond },
+                                 [this](asio::yield_context yield,
+                                        const sdbusplus::message_t& msg, microsecond_t microsecond) -> motor::errors::err_enum {
+                                   using enum motor::errors::err_enum;
+                                   if (!validate_peer(msg.get_sender())) {
+                                     return permission_denied;
+                                   }
+                                   auto [err, distance_travelled_unused]{ ctrl_.run(microsecond, yield) };
+                                   return motor::motor_enum(err);
+                                 });
+
     dbus_interface_->register_method(
         std::string{ method::notify_after_micrometre },
         [this](asio::yield_context yield, micrometre_t distance) -> std::tuple<motor::errors::err_enum> {
