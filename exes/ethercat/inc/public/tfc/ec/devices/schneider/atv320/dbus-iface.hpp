@@ -29,30 +29,27 @@ static constexpr std::string_view impl_name{ "atv320" };
 namespace detail {
 template <typename completion_token_t>
 struct combine_error_code {
-  combine_error_code(completion_token_t&& token) : self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {
+  combine_error_code(completion_token_t&& token)
+      : self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {
     // static_assert(std::is_rvalue_reference_v<completion_token_t>);
   }
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
 
-  void operator()(auto const& order, std::error_code const& err1,
-                                                       std::error_code const& err2) {
+  void operator()(auto const& order, std::error_code const& err1, std::error_code const& err2) {
     switch (order[0]) {
       case 0:  // first parallel job has finished
         std::invoke(self, err1);
-      break;
+        break;
       case 1:  // second parallel job has finished
         std::invoke(self, err2);
-      break;
+        break;
       default:
         fmt::println(stderr, "Parallel job has failed, {}", order[0]);
     }
   }
 
-  cancellation_slot_type get_cancellation_slot() const noexcept
-  {
-    return slot;
-  }
+  cancellation_slot_type get_cancellation_slot() const noexcept { return slot; }
 
   completion_token_t self;
   asio::cancellation_slot slot;
@@ -65,7 +62,8 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 // sudo busctl introspect com.skaginn3x.atv320 /com/skaginn3x/atvmotor
 //
 
-template <typename manager_client_t, template <typename, typename, typename> typename pos_config_t = confman::config,
+template <typename manager_client_t,
+          template <typename, typename, typename> typename pos_config_t = confman::config,
           typename pos_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>>
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, const uint16_t slave_id)
@@ -92,12 +90,13 @@ struct controller {
     return stop_impl(false, {}, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
-  auto convey(speedratio_t speedratio, micrometre_t travel,
-                         asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+  auto convey(speedratio_t speedratio,
+              micrometre_t travel,
+              asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
     cancel_pending_operation();
     return convey_impl(speedratio, travel,
-                                  asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+                       asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto move(speedratio_t speedratio,
@@ -161,24 +160,27 @@ struct controller {
   auto driver_error() const noexcept -> motor::errors::err_enum { return drive_error_; }
 
 private:
-  auto stop_impl(bool use_quick_stop, std::error_code stop_reason, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  auto stop_impl(bool use_quick_stop,
+                 std::error_code stop_reason,
+                 asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum cia_402::transition_action;
     action_ = use_quick_stop ? quick_stop : stop;
     speed_ratio_ = 0 * mp_units::percent;
     if (motor_frequency_ == 0 * mp_units::si::hertz) {
       logger_.trace("Drive already stopped");
-      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
-          [](auto& self) { self.complete({}); }, token);
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([](auto& self) { self.complete({}); },
+                                                                                       token);
     }
     auto cancelation_slot{ asio::get_associated_cancellation_slot(token) };
 
-    return stop_complete_.async_wait(asio::bind_cancellation_slot(cancelation_slot, [tok = std::forward<decltype(token)>(token), stop_reason](std::error_code err) mutable {
-      if (stop_reason) {
-        std::invoke(tok, stop_reason);
-      }
-      std::invoke(tok, err);
-    }));
+    return stop_complete_.async_wait(asio::bind_cancellation_slot(
+        cancelation_slot, [tok = std::forward<decltype(token)>(token), stop_reason](std::error_code err) mutable {
+          if (stop_reason) {
+            std::invoke(tok, stop_reason);
+          }
+          std::invoke(tok, err);
+        }));
   }
 
   auto run_at_speedratio_impl(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -200,15 +202,17 @@ private:
     return run_blocker_.async_wait(std::forward<decltype(token)>(token));
   }
 
-  auto convey_impl(speedratio_t speedratio, micrometre_t travel,
-                              asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+  auto convey_impl(speedratio_t speedratio,
+                   micrometre_t travel,
+                   asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
     using signature_t = void(std::error_code, micrometre_t);
     enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
     auto const is_positive{ travel > 0L * micrometre_t::reference };
     auto const pos{ pos_.position() };
     return asio::async_compose<decltype(token), signature_t>(
-        [this, speedratio, travel, state = state_e::run_until_notify, is_positive, pos](auto& self, std::error_code err = {}) mutable {
+        [this, speedratio, travel, state = state_e::run_until_notify, is_positive, pos](auto& self,
+                                                                                        std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
           switch (state) {
             case state_e::run_until_notify: {
@@ -224,8 +228,7 @@ private:
                     return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token);
                   },
                   [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
-                  .async_wait(asio::experimental::wait_for_one(),
-                              detail::combine_error_code(std::move(self)));
+                  .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }
             case state_e::wait_till_stop: {
@@ -233,7 +236,7 @@ private:
               // This is only called if another invocation has not taken control of the motor
               // stopping the motor now would be counter productive as somebody is using it.
               if (err == std::errc::operation_canceled) {
-                self(err); // calling complete
+                self(err);  // calling complete
                 return;
               }
               // Todo this stops quickly :-)
@@ -265,8 +268,8 @@ private:
     bool const is_positive{ pos_from_home < placement };
     auto const resolution{ pos_.resolution() };
     return asio::async_compose<decltype(token), signature_t>(
-        [this, speedratio, placement, pos_from_home, is_positive, resolution, state = state_e::move_until_notify](auto& self,
-                                                                                         std::error_code err = {}) mutable {
+        [this, speedratio, placement, pos_from_home, is_positive, resolution, state = state_e::move_until_notify](
+            auto& self, std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
           switch (state) {
             case state_e::move_until_notify: {
@@ -287,7 +290,9 @@ private:
                 return self.complete({}, placement);
               }
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token); },
+                  [&](auto inner_token) {
+                    return run_at_speedratio_impl(is_positive ? speedratio : -speedratio, inner_token);
+                  },
                   [&](auto inner_token) { return pos_.notify_from_home(placement, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
@@ -297,7 +302,7 @@ private:
               // This is only called if another invocation has not taken control of the motor
               // stopping the motor now would be counter productive as somebody is using it.
               if (err == std::errc::operation_canceled) {
-                std::invoke(self, err); // calling complete of this lambda
+                std::invoke(self, err);  // calling complete of this lambda
                 return;
               }
               // Todo this stops quickly :-)
@@ -320,64 +325,68 @@ private:
               logger_.trace("Motor should be stopped, now at: {}, where target was: {}", pos_from_home, placement);
               self.complete(err, pos_from_home);
             }
-            }
+          }
         },
         token);
   }
 
   auto move_home_impl(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using signature_t = void(std::error_code);
     enum struct state_e : std::uint8_t { move_until_sensor = 0, wait_till_stop, complete };
     auto const& travel_speed{ pos_.homing_travel_speed() };
     auto const& homing_sensor{ pos_.homing_sensor() };
-    return asio::async_compose<decltype(token), signature_t>([this, &travel_speed, &homing_sensor, state = state_e::move_until_sensor](auto& self, std::error_code err = {}) mutable {
-      using enum motor::errors::err_enum;
-      switch (state) {
-        case state_e::move_until_sensor: {
-          state = state_e::wait_till_stop;
-          if (!travel_speed.has_value() || !homing_sensor.has_value()) {
-            self.complete(motor::motor_error(motor_home_sensor_unconfigured));
-            return;
+    return asio::async_compose<decltype(token), signature_t>(
+        [this, &travel_speed, &homing_sensor, state = state_e::move_until_sensor](auto& self,
+                                                                                  std::error_code err = {}) mutable {
+          using enum motor::errors::err_enum;
+          switch (state) {
+            case state_e::move_until_sensor: {
+              state = state_e::wait_till_stop;
+              if (!travel_speed.has_value() || !homing_sensor.has_value()) {
+                self.complete(motor::motor_error(motor_home_sensor_unconfigured));
+                return;
+              }
+              logger_.trace("Homing motor at speed: {}, currently positioned at: {}", travel_speed.value(),
+                            pos_.position_from_home());
+              if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
+                // todo move out of sensor and back to sensor
+                auto const pos{ pos_.position() };
+                logger_.info("Already at home, storing position: {}", pos);
+                pos_.home(pos);
+                self.complete({});
+                return;
+              }
+              asio::experimental::make_parallel_group(
+                  [&](auto inner_token) { return run_at_speedratio_impl(travel_speed.value(), inner_token); },
+                  [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
+                  .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
+              return;
+            }
+            case state_e::wait_till_stop: {
+              state = state_e::complete;
+              // let's verify that we are not positioned at home
+              // if we are not in sensor, check whether we are cancelled
+              if (!homing_sensor->value().value() && err == std::errc::operation_canceled) {
+                logger_.trace("Move home got cancelled");
+                self.complete(err);
+                return;
+              }
+              stop_impl(true, err, std::move(self));
+              auto const pos{ pos_.position() };
+              logger_.trace("Storing home position: {}", pos);
+              pos_.home(pos);
+              return;
+            }
+            case state_e::complete: {
+              if (err) {
+                logger_.warn("Homing failed: {}", err.message());
+              }
+              self.complete(err);
+            }
           }
-          logger_.trace("Homing motor at speed: {}, currently positioned at: {}", travel_speed.value(), pos_.position_from_home());
-          if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
-            // todo move out of sensor and back to sensor
-            auto const pos{ pos_.position() };
-            logger_.info("Already at home, storing position: {}", pos);
-            pos_.home(pos);
-            self.complete({});
-            return;
-          }
-          asio::experimental::make_parallel_group(
-            [&](auto inner_token) { return run_at_speedratio_impl(travel_speed.value(), inner_token); },
-            [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
-            .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
-          return;
-        }
-        case state_e::wait_till_stop: {
-          state = state_e::complete;
-          // let's verify that we are not positioned at home
-          // if we are not in sensor, check whether we are cancelled
-          if (!homing_sensor->value().value() && err == std::errc::operation_canceled) {
-            logger_.trace("Move home got cancelled");
-            self.complete(err);
-            return;
-          }
-          stop_impl(true, err, std::move(self));
-          auto const pos{ pos_.position() };
-          logger_.trace("Storing home position: {}", pos);
-          pos_.home(pos);
-          return;
-        }
-        case state_e::complete: {
-          if (err) {
-            logger_.warn("Homing failed: {}", err.message());
-          }
-          self.complete(err);
-        }
-      }
-    }, token);
+        },
+        token);
   }
 
   std::uint16_t slave_id_;
@@ -471,9 +480,9 @@ struct dbus_iface {
   }
 
   dbus_iface(std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
-      : ctx_(connection->get_io_context()), slave_id_{ slave_id },
-        manager_(connection),
-        pos_{ connection, manager_, fmt::format("{}_{}", impl_name, slave_id_), std::bind_front(&dbus_iface::on_homing_sensor, this) },
+      : ctx_(connection->get_io_context()), slave_id_{ slave_id }, manager_(connection),
+        pos_{ connection, manager_, fmt::format("{}_{}", impl_name, slave_id_),
+              std::bind_front(&dbus_iface::on_homing_sensor, this) },
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection, false);
     dbus_interface_ = object_server_->add_unique_interface(std::string{ motor::dbus::path },

@@ -180,7 +180,8 @@ struct tachometer {
   bool_slot_t induction_sensor_;
 };
 
-template <typename manager_client_t = ipc_ruler::ipc_manager_client&, typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>,
+template <typename manager_client_t = ipc_ruler::ipc_manager_client&,
+          typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>,
           typename clock_t = asio::steady_timer::time_point::clock,
           std::size_t circular_buffer_len = 128>
 struct encoder {

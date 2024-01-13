@@ -124,7 +124,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"tachometer"> tachometer_test = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using tachometer_t = tfc::motor::positioner::detail::tachometer<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using tachometer_t = tfc::motor::positioner::detail::tachometer<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t,
+                                                                  tfc::testing::clock, buffer_len>;
 
   struct tachometer_test {
     test_instance inst{};
@@ -265,7 +266,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"encoder"> enc_test = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using encoder_t = tfc::motor::positioner::detail::encoder<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using encoder_t = tfc::motor::positioner::detail::encoder<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t,
+                                                            tfc::testing::clock, buffer_len>;
   struct encoder_test {
     test_instance inst{};
     std::function<tfc::motor::positioner::tick_signature_t> cb{ [](std::int64_t, auto, auto, auto) {
@@ -404,7 +406,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   static constexpr auto unit{ mp_units::si::metre };
   static constexpr auto reference{ mp_units::si::nano<unit> };
   struct notification_test {
-    using positioner_t = tfc::motor::positioner::positioner<unit, tfc::ipc_ruler::ipc_manager_client&, tfc::confman::stub_config, mock_bool_slot_t>;
+    using positioner_t = tfc::motor::positioner::
+        positioner<unit, tfc::ipc_ruler::ipc_manager_client&, tfc::confman::stub_config, mock_bool_slot_t>;
     using position_t = positioner_t::absolute_position_t;
     using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
     using tachometer_config_t = tfc::motor::positioner::tachometer_config<reference>;

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <fmt/format.h>
 #include <mp-units/math.h>
-#include <mp-units/systems/isq/isq.h>
 #include <mp-units/systems/si/si.h>
 #include <algorithm>
 #include <memory>
@@ -72,6 +70,9 @@ public:
     deceleration_ramp_time_DEC deceleration;
     confman::observable<speedratio_t> default_speedratio{ 1 * speedratio_t::reference };  // Run the motor at LSP by default
     fast_stop_ramp_divider_DCF fast_stop_ramp_divider;
+    async_motor_leakage_inductance_LFA async_motor_leakage_inductance;
+    async_motor_stator_resistance_RSA async_motor_stator_resistance;
+    rotor_time_constant_TRA rotor_time_constant;
 
     struct glaze {
       using T = atv_config;
@@ -103,7 +104,13 @@ public:
                                                 &T::default_speedratio,
                                                 "fast_stop_ramp_divider",
                                                 &T::fast_stop_ramp_divider,
-                                                tfc::json::schema{ .minimum = 0, .maximum = 10 });
+                                                "async_motor_leakage_inductance",
+                                                &T::async_motor_leakage_inductance,
+                                                "async_motor_stator_resistance",
+                                                &T::async_motor_stator_resistance,
+                                                "rotor_time_constant",
+                                                &T::rotor_time_constant,
+                                                json::schema{ .minimum = 0, .maximum = 10 });
       static constexpr std::string_view name{ "atv320" };
     };
 
@@ -132,7 +139,7 @@ public:
         last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
         hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
         config_{ ctx_ /*todo revert to propagate dbus connection*/, fmt::format("atv320_i{}", slave_index) },
-        dbus_iface_(connection, client, slave_index),
+        dbus_iface_(connection, slave_index),
         reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
           auto timer = std::make_shared<asio::steady_timer>(ctx_);
           // A timer to reset the reset just in case
@@ -143,37 +150,46 @@ public:
           "Live motor configuration is discouraged. Large amounts of SDO traffic can delay and disrubt the ethercat cycle. "
           "Please consider turning of the ethercat master and editing the files directly if commisioning the device");
       if (new_value.nominal_motor_power != old_value.nominal_motor_power) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.nominal_motor_power); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_power); });
       }
       if (new_value.nominal_motor_voltage != old_value.nominal_motor_voltage) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.nominal_motor_voltage); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_voltage); });
       }
       if (new_value.nominal_motor_current != old_value.nominal_motor_current) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.nominal_motor_current); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_current); });
       }
       if (new_value.nominal_motor_frequency != old_value.nominal_motor_frequency) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.nominal_motor_frequency); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_frequency); });
       }
       if (new_value.nominal_motor_speed != old_value.nominal_motor_speed) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.nominal_motor_speed); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_speed); });
       }
       if (new_value.max_frequency != old_value.max_frequency) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.max_frequency); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.max_frequency); });
       }
       if (new_value.motor_thermal_current != old_value.motor_thermal_current) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.motor_thermal_current); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.motor_thermal_current); });
       }
       if (new_value.high_speed != old_value.high_speed) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.high_speed); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.high_speed); });
       }
       if (new_value.low_speed != old_value.low_speed) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.low_speed); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.low_speed); });
       }
       if (new_value.motor_1_cos_phi != old_value.motor_1_cos_phi) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.motor_1_cos_phi); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.motor_1_cos_phi); });
       }
       if (new_value.fast_stop_ramp_divider != old_value.fast_stop_ramp_divider) {
-        asio::post(ctx_, [this, new_value]() { sdo_write(new_value.fast_stop_ramp_divider); });
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.fast_stop_ramp_divider); });
+      }
+      if (new_value.async_motor_leakage_inductance != old_value.async_motor_leakage_inductance) {
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.async_motor_leakage_inductance); });
+      }
+      if (new_value.async_motor_stator_resistance != old_value.async_motor_stator_resistance) {
+        asio::post(ctx_, [this, new_value] { sdo_write(config_->value().async_motor_stator_resistance); });
+      }
+      if (new_value.rotor_time_constant != old_value.rotor_time_constant) {
+        asio::post(ctx_, [this, new_value] { sdo_write(config_->value().rotor_time_constant); });
       }
     });
 
@@ -357,6 +373,9 @@ public:
     sdo_write(config_->value().low_speed);
     sdo_write(config_->value().motor_1_cos_phi);
     sdo_write(config_->value().fast_stop_ramp_divider);
+    sdo_write(config_->value().async_motor_leakage_inductance);
+    sdo_write(config_->value().async_motor_stator_resistance);
+    sdo_write(config_->value().rotor_time_constant);
     return 1;
   }
 

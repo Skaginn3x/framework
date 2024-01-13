@@ -32,12 +32,17 @@
 #include <tfc/utils/json_schema.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
-#include <tfc/stubs/confman.hpp>
 #include <tfc/motor/details/positioner_impl.hpp>
 
+// FWD declare stub
+namespace tfc::confman {
+template <typename config_storage_t, typename = void, typename = void>
+class stub_config;
+}
 
 namespace tfc::motor::positioner {
-template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre, typename manager_client_t = ipc_ruler::ipc_manager_client&,
+template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
+          typename manager_client_t = ipc_ruler::ipc_manager_client&,
           template <typename, typename, typename> typename confman_t = confman::config,
           typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 class positioner {
@@ -54,9 +59,7 @@ public:
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, std::string_view name)
-    : positioner(connection, manager, name, [](bool) {
-    }) {
-  }
+      : positioner(connection, manager, name, [](bool) {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
@@ -65,8 +68,7 @@ public:
              manager_client_t manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb)
-    : positioner(connection, manager, name, std::move(home_cb), {}) {
-  }
+      : positioner(connection, manager, name, std::move(home_cb), {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
@@ -77,9 +79,9 @@ public:
              std::string_view name,
              std::function<void(bool)>&& home_cb,
              config_t&& default_value)
-    : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb },
-      config_{ dbus_->get_io_context() /*todo revert to propagate dbus connection*/, fmt::format("positioner_{}", name_),
-               std::move(default_value) } {
+      : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb },
+        config_{ dbus_->get_io_context() /*todo revert to propagate dbus connection*/, fmt::format("positioner_{}", name_),
+                 std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
@@ -106,19 +108,19 @@ public:
 
   /// Function only for testing the positioner
   /// \return Configuration object
-  auto config_ref() -> confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>& requires
-    std::same_as<
-      confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>,
-      confman::stub_config<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>> {
+  auto config_ref() -> confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>&
+    requires std::same_as<
+        confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>,
+        confman::stub_config<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>>
+  {
     return config_;
   }
 
   /// \param position absolute position
   /// \param token completion token to trigger when get passed the given position
   /// \todo implicitly allow motor::errors::err_enum as param in token
-  auto notify_at(absolute_position_t position,
-                 asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  auto notify_at(absolute_position_t position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using cv = tfc::asio::condition_variable<asio::any_io_executor>;
     auto new_notification = std::make_shared<notification>(position, cv{ ctx_.get_executor() });
     notifications_.emplace_back(new_notification);
@@ -140,17 +142,15 @@ public:
 
   /// \param displacement from current position
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_after(displacement_t displacement,
-                    asio::completion_token_for<void(std::error_code)> auto&& token)
-    -> decltype(auto) {
+  auto notify_after(displacement_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+      -> decltype(auto) {
     return notify_at(displacement + absolute_position_, std::forward<decltype(token)>(token));
   }
 
   /// \param displacement from home
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_from_home(displacement_t displacement,
-                        asio::completion_token_for<void(std::error_code)> auto&& token)
-    -> decltype(auto) {
+  auto notify_from_home(displacement_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+      -> decltype(auto) {
     return notify_at(displacement + home_, std::forward<decltype(token)>(token));
   }
 
@@ -302,7 +302,8 @@ private:
         [this]<typename mode_t>(mode_t const& mode) {
           using mode_raw_t = std::remove_cvref_t<mode_t>;
           if constexpr (std::same_as<mode_raw_t, tachometer_config_t>) {
-            impl_.template emplace<detail::tachometer<manager_client_t>>(dbus_, manager_, name_, std::bind_front(&positioner::tick, this));
+            impl_.template emplace<detail::tachometer<manager_client_t>>(dbus_, manager_, name_,
+                                                                         std::bind_front(&positioner::tick, this));
 
             displacement_per_increment_ = mode.displacement_per_increment.value();
             standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
@@ -311,7 +312,8 @@ private:
             mode.standard_deviation_threshold.observe(
                 [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
           } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
-            impl_.template emplace<detail::encoder<manager_client_t>>(dbus_, manager_, name_, std::bind_front(&positioner::tick, this));
+            impl_.template emplace<detail::encoder<manager_client_t>>(dbus_, manager_, name_,
+                                                                      std::bind_front(&positioner::tick, this));
 
             // todo duplicate
             displacement_per_increment_ = mode.displacement_per_increment.value();
@@ -373,14 +375,16 @@ private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
   manager_client_t manager_;
   std::optional<bool_slot_t> homing_sensor_{};
-  std::function<void(bool)> home_cb_{ [this](bool) {
-  } };
+  std::function<void(bool)> home_cb_{ [this](bool) {} };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
-  std::variant<std::monostate, detail::frequency<displacement_t>, detail::tachometer<manager_client_t>, detail::encoder<manager_client_t>>
-  impl_{};
+  std::variant<std::monostate,
+               detail::frequency<displacement_t>,
+               detail::tachometer<manager_client_t>,
+               detail::encoder<manager_client_t>>
+      impl_{};
   std::vector<std::shared_ptr<notification>> notifications_{};
 
   bool missing_home_{ config_->needs_homing_after->has_value() };
 };
-} // namespace tfc::motor::positioner
+}  // namespace tfc::motor::positioner
