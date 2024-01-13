@@ -26,8 +26,8 @@ using mp_units::si::metre;
 using mp_units::si::micro;
 using mp_units::si::nano;
 using mp_units::si::unit_symbols::dHz;
-using mp_units::si::unit_symbols::mm;
 using mp_units::si::unit_symbols::km;
+using mp_units::si::unit_symbols::mm;
 
 using tfc::ec::devices::schneider::atv320::controller;
 using tfc::ec::devices::schneider::atv320::hmis_e;
@@ -39,14 +39,14 @@ using tfc::motor::errors::err_enum;
 using bool_slot_t = tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using bool_signal_t = tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using positioner_t = tfc::motor::positioner::
-positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
+    positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
 [[maybe_unused]] static auto get_good_status_stopped() -> input_t {
   return input_t{
     .status_word =
-    tfc::ec::cia_402::status_word{
-      .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
+        tfc::ec::cia_402::status_word{
+            .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
     .frequency = 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
@@ -57,9 +57,7 @@ using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absol
 
 [[maybe_unused]] static auto get_bad_status_communication_failure(bool running = false) -> input_t {
   return input_t{
-    .status_word =
-    tfc::ec::cia_402::status_word{
-      .state_fault = true },
+    .status_word = tfc::ec::cia_402::status_word{ .state_fault = true },
     .frequency = running ? 100 * dHz : 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
@@ -68,12 +66,9 @@ using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absol
   };
 }
 
-
 [[maybe_unused]] static auto get_bad_status_missing_phase(bool running = false) -> input_t {
   return input_t{
-    .status_word =
-    tfc::ec::cia_402::status_word{
-      .state_fault = true },
+    .status_word = tfc::ec::cia_402::status_word{ .state_fault = true },
     .frequency = running ? 100 * dHz : 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
@@ -102,15 +97,15 @@ struct instance {
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   std::uint16_t slave_id{ 0 };
   tfc::ipc_ruler::ipc_manager_client_mock manager{ dbus_connection };
-  controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, bool_slot_t> ctrl{ dbus_connection,
-    manager, slave_id };
+  controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, bool_slot_t> ctrl{ dbus_connection, manager,
+                                                                                                    slave_id };
   std::array<bool, 10> ran{};
   bool_signal_t sig{ ctx, manager, "homing_sensor" };
 
   void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = ctrl.positioner().config_ref();
-    config.access().needs_homing_after = home_travel_t{ 1000000 * mm }; // 1 km
+    config.access().needs_homing_after = home_travel_t{ 1000000 * mm };  // 1 km
     auto mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
     mode.displacement_per_increment = displacement;
     config.access().mode = mode;
@@ -122,8 +117,7 @@ struct instance {
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
     manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
-                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
-                    });
+                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {});
     ctx.run_for(5ms);
     sig.send(true);
     ctx.run_for(5ms);
@@ -214,13 +208,12 @@ auto main(int, char const* const* argv) -> int {
     inst.populate_homing_sensor();
     expect(inst.ctrl.positioner().homing_enabled());
     // Since populate homing_sensor sets the homing_displacement amount to 1km we can move just over 1km
-    inst.ctrl.move(10 * speedratio_t::reference, 2 * km,
-                   [&inst](const std::error_code& err, const micrometre_t moved) {
-                     expect(tfc::motor::motor_enum(err) == err_enum::motor_missing_home_reference);
-                     expect(moved == 0 * micrometre_t::reference);
-                     inst.ran[0] = true;
-                     inst.ctx.stop();
-                   });
+    inst.ctrl.move(10 * speedratio_t::reference, 2 * km, [&inst](const std::error_code& err, const micrometre_t moved) {
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_missing_home_reference);
+      expect(moved == 0 * micrometre_t::reference);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
     inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
     inst.ctx.run_for(5ms);
     expect(inst.ran[0]);
@@ -499,12 +492,11 @@ auto main(int, char const* const* argv) -> int {
   // Cancel operations by motor error
 
   // A list of expected errors given a particular motor status
-  auto motor_status_and_errors = std::array{
-    std::tuple{ get_bad_status_communication_failure(), err_enum::frequency_drive_communication_fault },
-    std::tuple{ get_bad_status_communication_failure(true), err_enum::frequency_drive_communication_fault },
-    std::tuple{ get_bad_status_missing_phase(), err_enum::frequency_drive_reports_fault },
-    std::tuple{ get_bad_status_missing_phase(true), err_enum::frequency_drive_reports_fault }
-  };
+  auto motor_status_and_errors =
+      std::array{ std::tuple{ get_bad_status_communication_failure(), err_enum::frequency_drive_communication_fault },
+                  std::tuple{ get_bad_status_communication_failure(true), err_enum::frequency_drive_communication_fault },
+                  std::tuple{ get_bad_status_missing_phase(), err_enum::frequency_drive_reports_fault },
+                  std::tuple{ get_bad_status_missing_phase(true), err_enum::frequency_drive_reports_fault } };
   "run_at_speedratio terminated by a physical motor error"_test = [&](auto& tuple) {
     auto [motor_status, expected_error] = tuple;
     instance inst;

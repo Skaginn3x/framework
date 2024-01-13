@@ -274,7 +274,8 @@ public:
     }
     bool constexpr always_forward{ true };
     auto const pos{ config_->needs_homing_after->value() };
-    return detail::make_between_callable(travel_since_homed_, travel_since_homed_ + mp_units::abs(increment), always_forward)(pos);
+    return detail::make_between_callable(travel_since_homed_, travel_since_homed_ + mp_units::abs(increment),
+                                         always_forward)(pos);
   }
 
 private:

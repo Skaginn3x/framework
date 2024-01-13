@@ -139,8 +139,7 @@ public:
         last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
         hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
         config_{ ctx_ /*todo revert to propagate dbus connection*/, fmt::format("atv320_i{}", slave_index) },
-        ctrl_(connection, client, slave_index),
-        dbus_iface_(ctrl_, connection, slave_index),
+        ctrl_(connection, client, slave_index), dbus_iface_(ctrl_, connection, slave_index),
         reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
           auto timer = std::make_shared<asio::steady_timer>(ctx_);
           // A timer to reset the reset just in case
@@ -294,8 +293,8 @@ public:
       out->control = cia_402::transition(state, action, auto_reset_allowed);
       out->frequency = reference_frequency_.value;
     } else {
-      auto freq = detail::percentage_to_deci_freq(ctrl_.speed_ratio(), config_->value().low_speed,
-                                                  config_->value().high_speed);
+      auto freq =
+          detail::percentage_to_deci_freq(ctrl_.speed_ratio(), config_->value().low_speed, config_->value().high_speed);
       out->acc = ctrl_.acceleration(config_->value().acceleration.value);
       out->dec = ctrl_.deceleration(config_->value().deceleration.value);
       out->frequency = freq.value;
