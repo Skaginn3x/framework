@@ -178,25 +178,42 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
 
+  "run time happy path"_test = [&] {
+    using tfc::testing::clock;
+    clock::set_ticks(clock::time_point{});
+    instance<clock> inst;
+    auto duration = 1 * milli<mp_units::si::second>;
+    speedratio_t ratio = 1.0 * percent;
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
+      expect(!err) << err;
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    clock::set_ticks(clock::now() + mp_units::to_chrono_duration(duration));
+    inst.ctx.run_for(2ms);
+    expect(inst.ran[0]);
+  };
+
   "run time"_test = [&] {
     using tfc::testing::clock;
     instance<clock> inst;
-    auto duration = 100 * milli<mp_units::si::second>;
+    auto duration = 3 * milli<mp_units::si::second>;
     speedratio_t ratio = 1.0 * percent;
     inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
       expect(!err) << err;
-      inst.ctx.stop();
       inst.ran[0] = true;
+      inst.ctx.stop();
     });
     inst.ctrl.update_status(get_good_status_running());
-    clock::set_ticks(clock::now() + 80ms);
-    inst.ctx.run_for(1ms);
+    clock::set_ticks(clock::now() + 1ms);
+    inst.ctx.run_for(2ms);
     expect(!inst.ran[0]);
-    clock::set_ticks(clock::now() + 101ms);
-    inst.ctx.run_for(1ms);
+    clock::set_ticks(clock::now() + 2ms);
+    inst.ctx.run_for(2ms);
     expect(!inst.ran[0]);
     inst.ctrl.update_status(get_good_status_stopped());
-    inst.ctx.run_for(1ms);
+    inst.ctx.run_for(2ms);
     expect(inst.ran[0]);
   };
 
