@@ -55,12 +55,12 @@ using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absol
   };
 }
 
-[[maybe_unused]] static auto get_bad_status_communication_failure() -> input_t {
+[[maybe_unused]] static auto get_bad_status_communication_failure(bool running = false) -> input_t {
   return input_t{
     .status_word =
     tfc::ec::cia_402::status_word{
       .state_fault = true },
-    .frequency = 0 * dHz,
+    .frequency = running ? 100 * dHz : 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
     .last_error = lft_e::cnf,
@@ -69,12 +69,12 @@ using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absol
 }
 
 
-[[maybe_unused]] static auto get_bad_status_missing_phase() -> input_t {
+[[maybe_unused]] static auto get_bad_status_missing_phase(bool running = false) -> input_t {
   return input_t{
     .status_word =
     tfc::ec::cia_402::status_word{
       .state_fault = true },
-    .frequency = 0 * dHz,
+    .frequency = running ? 100 * dHz : 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
     .last_error = lft_e::opf1,
@@ -212,6 +212,7 @@ auto main(int, char const* const* argv) -> int {
     instance inst;
     // set current as reference
     inst.populate_homing_sensor();
+    expect(inst.ctrl.positioner().homing_enabled());
     // Since populate homing_sensor sets the homing_displacement amount to 1km we can move just over 1km
     inst.ctrl.move(10 * speedratio_t::reference, 2 * km,
                    [&inst](const std::error_code& err, const micrometre_t moved) {
@@ -500,7 +501,9 @@ auto main(int, char const* const* argv) -> int {
   // A list of expected errors given a particular motor status
   auto motor_status_and_errors = std::array{
     std::tuple{ get_bad_status_communication_failure(), err_enum::frequency_drive_communication_fault },
-    std::tuple{ get_bad_status_missing_phase(), err_enum::frequency_drive_reports_fault}
+    std::tuple{ get_bad_status_communication_failure(true), err_enum::frequency_drive_communication_fault },
+    std::tuple{ get_bad_status_missing_phase(), err_enum::frequency_drive_reports_fault },
+    std::tuple{ get_bad_status_missing_phase(true), err_enum::frequency_drive_reports_fault }
   };
   "run_at_speedratio terminated by a physical motor error"_test = [&](auto& tuple) {
     auto [motor_status, expected_error] = tuple;
@@ -535,6 +538,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   } | motor_status_and_errors;
+
   "stop terminated by a physical motor error"_test = [](auto& tuple) {
     instance inst;
     auto [motor_status, expected_error] = tuple;
@@ -549,6 +553,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   } | motor_status_and_errors;
+
   "quick stop terminated by a physical motor error"_test = [](auto& tuple) {
     instance inst;
     auto [motor_status, expected_error] = tuple;
@@ -559,6 +564,24 @@ auto main(int, char const* const* argv) -> int {
     });
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(motor_status);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  } | motor_status_and_errors;
+
+  "convey micrometre terminated by a physical motor error while stopping"_test = [&](auto& tuple) {
+    instance inst;
+    auto [motor_status, expected_error] = tuple;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
+                     [&inst, expected_error](const std::error_code& err, const micrometre_t moved) {
+                       expect(tfc::motor::motor_enum(err) == expected_error);
+                       expect(moved == 1000 * micrometre_t::reference);
+                       inst.ran[0] = true;
+                     });
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
     inst.ctrl.update_status(motor_status);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
