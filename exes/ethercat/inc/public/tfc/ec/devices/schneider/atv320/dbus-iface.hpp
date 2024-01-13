@@ -276,10 +276,10 @@ private:
                 logger_.trace("{}", motor_missing_home_reference);
                 return self.complete(motor::motor_error(motor_missing_home_reference), pos_from_home);
               }
-              // if (pos_.would_need_homing(pos_from_home - placement)) {
-              //   logger_.trace("Woud need homing if motor were to move to: {}", placement);
-              //   return self.complete(motor::motor_error(motor_missing_home_reference), pos_from_home);
-              // }
+              if (pos_.would_need_homing(pos_from_home - placement)) {
+                logger_.trace("Woud need homing if motor were to move to: {}", placement);
+                return self.complete(motor::motor_error(motor_missing_home_reference), pos_from_home);
+              }
               logger_.trace("Target placement: {}, currently at: {}, with resolution: {}", placement, pos_from_home,
                             resolution);
               if (placement + resolution >= pos_from_home && placement < pos_from_home + resolution) {

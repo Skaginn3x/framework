@@ -273,7 +273,8 @@ public:
       return false;
     }
     bool constexpr always_forward{ true };
-    return detail::make_between_callable(travel_since_homed_, travel_since_homed_ + mp_units::abs(increment), always_forward)(config_->needs_homing_after->value());
+    auto const pos{ config_->needs_homing_after->value() };
+    return detail::make_between_callable(travel_since_homed_, travel_since_homed_ + mp_units::abs(increment), always_forward)(pos);
   }
 
 private:
@@ -284,7 +285,9 @@ private:
     auto const old_travel_since_homed{ travel_since_homed_ };
     travel_since_homed_ += mp_units::abs(increment);
     auto const pos{ config_->needs_homing_after->value() };
-    if (pos >= old_travel_since_homed && pos <= travel_since_homed_) {
+    bool constexpr always_forward{ true };
+    auto const comparator{ detail::make_between_callable(old_travel_since_homed, travel_since_homed_, always_forward) };
+    if (comparator(pos)) {
       missing_home_ = true;
     }
     return missing_home_;
