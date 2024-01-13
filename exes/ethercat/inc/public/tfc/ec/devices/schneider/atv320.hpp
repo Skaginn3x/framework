@@ -139,7 +139,8 @@ public:
         last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
         hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
         config_{ ctx_ /*todo revert to propagate dbus connection*/, fmt::format("atv320_i{}", slave_index) },
-        dbus_iface_(connection, slave_index),
+        ctrl_(connection, client, slave_index),
+        dbus_iface_(ctrl_, connection, slave_index),
         reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
           auto timer = std::make_shared<asio::steady_timer>(ctx_);
           // A timer to reset the reset just in case
@@ -198,7 +199,7 @@ public:
 
     // Apply the default speedratio to both means of controlling the motor
     dbus_iface_.set_configured_speedratio(config_->value().default_speedratio);
-    dbus_iface_.set_motor_nominal_freq(config_->value().nominal_motor_frequency.value);
+    ctrl_.set_motor_nominal_freq(config_->value().nominal_motor_frequency.value);
     reference_frequency_ = detail::percentage_to_deci_freq(config_->value().default_speedratio, config_->value().low_speed,
                                                            config_->value().high_speed);
 
@@ -293,12 +294,12 @@ public:
       out->control = cia_402::transition(state, action, auto_reset_allowed);
       out->frequency = reference_frequency_.value;
     } else {
-      auto freq = detail::percentage_to_deci_freq(dbus_iface_.speed_ratio(), config_->value().low_speed,
+      auto freq = detail::percentage_to_deci_freq(ctrl_.speed_ratio(), config_->value().low_speed,
                                                   config_->value().high_speed);
-      out->acc = dbus_iface_.acceleration(config_->value().acceleration.value);
-      out->dec = dbus_iface_.deceleration(config_->value().deceleration.value);
+      out->acc = ctrl_.acceleration(config_->value().acceleration.value);
+      out->dec = ctrl_.deceleration(config_->value().deceleration.value);
       out->frequency = freq.value;
-      out->control = dbus_iface_.ctrl(auto_reset_allowed);
+      out->control = ctrl_.ctrl(auto_reset_allowed);
 
       // Set running to false. Will need to be set high before the motor starts on ipc
       // after dbus disconnect
@@ -396,6 +397,7 @@ private:
   hmis_e last_hmis_{};
   ipc::uint_signal hmis_transmitter_;
   config_t config_;
+  controller<manager_client_t> ctrl_;
   dbus_iface dbus_iface_;
   ipc::bool_slot reset_;
   std::array<lft_e, 10> last_errors_{};
