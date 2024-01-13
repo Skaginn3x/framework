@@ -532,7 +532,12 @@ struct dbus_iface {
     dbus_interface_ = object_server_->add_unique_interface(std::string{ motor::dbus::path },
                                                            motor::dbus::make_interface_name(impl_name, slave_id_));
 
-    dbus_interface_->register_method(std::string{ method::ping }, [this](const sdbusplus::message_t& msg) -> bool {
+    /**
+     * Never set long_living_ping from a program. This parameter is only here
+     * for convinience while testing motor directions and fault finding during
+     * commisioning.
+     **/
+    dbus_interface_->register_method(std::string{ method::ping }, [this](const sdbusplus::message_t& msg, bool long_living_ping) -> bool {
       const std::string incoming_peer = msg.get_sender();
       const bool new_peer = incoming_peer != peer_;
       // This is the same peer or we have no peer
@@ -542,7 +547,7 @@ struct dbus_iface {
           dbus_interface_->set_property(connected_peer, peer_);
         }
         timeout_.cancel();
-        timeout_.expires_after(std::chrono::days(750)); // todo revert
+        timeout_.expires_after(long_living_ping ? std::chrono::hours(1) : std::chrono::milliseconds(750));
         timeout_.async_wait([this](std::error_code err) {
           if (err)
             return; // The timer was canceled or deconstructed.

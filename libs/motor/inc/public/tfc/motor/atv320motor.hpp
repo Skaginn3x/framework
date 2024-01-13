@@ -52,6 +52,7 @@ private:
   // Assemble the interface string and start ping-pong sequence.
   // Only set connected to true if there is an answer on the interface
   // and it is returning true. Indicating we have control over the motor.
+  constexpr bool long_living_ = false;
   void send_ping(uint16_t slave_id) {
     connection_->async_method_call(
         [this, slave_id](const std::error_code& err, bool response) {
@@ -76,7 +77,7 @@ private:
             send_ping(slave_id);
           });
         },
-        service_name_, path_, interface_name_, std::string{ method::ping });
+        service_name_, path_, interface_name_, std::string{ method::ping }, long_living_);
   }
   bool connected_{ false };
   [[nodiscard]] std::error_code motor_seems_valid() const noexcept {
