@@ -14,7 +14,6 @@
 #include <tfc/ec/common.hpp>
 #include <tfc/ec/config/bus.hpp>
 #include <tfc/ec/devices/device.hpp>
-#include <tfc/ec/interfaces.hpp>
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 
