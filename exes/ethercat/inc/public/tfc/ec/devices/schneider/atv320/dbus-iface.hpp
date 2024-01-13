@@ -331,8 +331,7 @@ private:
     enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
     auto timer{ std::make_shared<asio::basic_waitable_timer<clock_t>>(ctx_) };
     return asio::async_compose<decltype(token), signature_t>(
-        [this, speedratio, time, timer, state = state_e::run_until_notify](
-            auto& self, std::error_code err = {}) mutable {
+        [this, speedratio, time, timer, state = state_e::run_until_notify](auto& self, std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
           switch (state) {
             case state_e::run_until_notify: {

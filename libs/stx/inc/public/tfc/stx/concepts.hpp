@@ -48,11 +48,10 @@ template <template <class...> class type, class... args>
 inline constexpr bool is_specialization_v<type<args...>, type> = true;
 
 template <typename clock_t>
-concept steady_clock = requires
-{
+concept steady_clock = requires {
   requires clock_t::is_steady;
   requires clock_t::is_steady == true;
-} ;
+};
 
 namespace test {
 
