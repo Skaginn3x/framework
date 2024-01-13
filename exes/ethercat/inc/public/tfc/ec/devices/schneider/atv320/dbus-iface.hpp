@@ -143,7 +143,7 @@ struct controller {
       drive_error_ = motor_general_error;
     }
     if (drive_error_ != success && in.last_error == lft_e::cnf) {
-      drive_error_ = motor_communication_fault;
+      drive_error_ = frequency_drive_communication_fault;
     }
     if (drive_error_ != success) {
       // big TODO propagate drive error to pending operation
@@ -766,7 +766,7 @@ struct dbus_iface {
       drive_error_ = motor_general_error;
     }
     if (drive_error_ != success && in.last_error == lft_e::cnf) {
-      drive_error_ = motor_communication_fault;
+      drive_error_ = frequency_drive_communication_fault;
     }
     if (drive_error_ != success) {
       // big TODO propagate drive error to pending operation

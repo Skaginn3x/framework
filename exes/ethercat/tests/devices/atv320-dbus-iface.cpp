@@ -499,8 +499,8 @@ auto main(int, char const* const* argv) -> int {
 
   // A list of expected errors given a particular motor status
   auto motor_status_and_errors = std::array{
-    std::tuple{ get_bad_status_communication_failure(), err_enum::motor_communication_fault },
-    std::tuple{ get_bad_status_missing_phase(), err_enum::motor_general_error }
+    std::tuple{ get_bad_status_communication_failure(), err_enum::frequency_drive_communication_fault },
+    std::tuple{ get_bad_status_missing_phase(), err_enum::frequency_drive_reports_fault}
   };
   "run_at_speedratio terminated by a physical motor error"_test = [&](auto& tuple) {
     auto [motor_status, expected_error] = tuple;
@@ -531,6 +531,34 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.positioner().increment_position(700 * micrometre_t::reference);
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
+    inst.ctrl.update_status(motor_status);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  } | motor_status_and_errors;
+  "stop terminated by a physical motor error"_test = [](auto& tuple) {
+    instance inst;
+    auto [motor_status, expected_error] = tuple;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.stop([&inst, expected_error](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == expected_error);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(motor_status);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  } | motor_status_and_errors;
+  "quick stop terminated by a physical motor error"_test = [](auto& tuple) {
+    instance inst;
+    auto [motor_status, expected_error] = tuple;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.quick_stop([&inst, expected_error](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == expected_error);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
     inst.ctrl.update_status(motor_status);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);

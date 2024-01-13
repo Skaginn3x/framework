@@ -22,7 +22,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   no_motor_configured = 1,
   motor_not_connected = 2,
   motor_general_error = 3,
-  motor_communication_fault = 4,
+  frequency_drive_communication_fault = 4,
   motor_missing_speed_reference = 5,
   motor_missing_home_reference = 6,
   motor_not_implemented = 7,
@@ -34,6 +34,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   positioning_request_out_of_range = 22,
   permission_denied = 30,
   operation_canceled = 31,  // only used between client and server, user should use std::errc::operation_canceled
+  frequency_drive_reports_fault = 32,
   unknown = 100,
 };
 

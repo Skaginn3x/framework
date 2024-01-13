@@ -21,7 +21,7 @@ class motor_error_category_t : public std::error_category {
         return "Motor not connected";
       case motor_general_error:
         return "Motor general error";
-      case motor_communication_fault:
+      case frequency_drive_communication_fault:
         return "Motor communication fault";
       case motor_missing_home_reference:
         return "Motor msing home reference";
@@ -45,6 +45,8 @@ class motor_error_category_t : public std::error_category {
         return "Permission to execute operation not allowed";
       case operation_canceled:
         return "Operation canceled";
+      case frequency_drive_reports_fault:
+        return "Frequency drive reports fault";
       case unknown:
         return "Unknown error";
     }
