@@ -233,7 +233,7 @@ struct controller {
   auto positioner() noexcept -> auto& { return pos_; }
   auto driver_error() const noexcept -> motor::errors::err_enum { return drive_error_; }
   auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) { motor_nominal_frequency_ = nominal_motor_frequency; }
-  speedratio_t speed_ratio() { return speed_ratio_; }
+  const speedratio_t speed_ratio() const noexcept { return speed_ratio_; }
 
   deciseconds acceleration(const deciseconds configured_acceleration) {
     // TODO influence these parameters depending on action hapening inside dbus-iface.
@@ -245,12 +245,14 @@ struct controller {
     return configured_deceleration;
   }
 
-  cia_402::control_word ctrl(bool allow_reset) {
+  const cia_402::control_word ctrl(bool allow_reset) const noexcept {
     using enum cia_402::transition_action;
     if (speed_ratio_ < 1 * mp_units::percent && speed_ratio_ > -1 * mp_units::percent && run == action_)
       return transition(status_word_.parse_state(), none, allow_reset);
     return transition(status_word_.parse_state(), action_, allow_reset);
   }
+
+  cia_402::transition_action action() const noexcept { return action_; }
 
 private:
   auto stop_impl(bool use_quick_stop,
