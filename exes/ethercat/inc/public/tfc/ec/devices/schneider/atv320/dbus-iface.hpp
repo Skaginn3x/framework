@@ -772,16 +772,16 @@ struct dbus_iface {
   // Set properties with new status values
   void update_status(const input_t& in) {
     if (in.status_word.parse_state() != last_in_.status_word.parse_state()) {
-      dbus_interface_->set_property(state_402, in.status_word.parse_state());
+      // dbus_interface_->set_property(state_402, format_as(in.status_word.parse_state()));
     }
     if (in.drive_state != last_in_.drive_state) {
-      dbus_interface_->set_property(hmis, format_as(in.drive_state));
+      // dbus_interface_->set_property(hmis, format_as(in.drive_state));
     }
     if (in.last_error != last_in_.last_error) {
-      dbus_interface_->set_property(last_error, format_as(in.last_error));
+      // dbus_interface_->set_property(last_error, format_as(in.last_error));
     }
     if (in.current != last_in_.current) {
-      dbus_interface_->set_property(current, static_cast<double>(in.current) / 10.0);
+      // dbus_interface_->set_property(current, static_cast<double>(in.current) / 10.0);
     }
     last_in_ = in;
   }

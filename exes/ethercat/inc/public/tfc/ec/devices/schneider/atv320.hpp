@@ -244,6 +244,7 @@ public:
                       .drive_state = hmis_e::fault };
       transmit_status(status);
       dbus_iface_.update_status(status);
+      ctrl_.update_status(status);
       return;
     }
     if (input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) {
@@ -276,6 +277,7 @@ public:
 
     transmit_status(*in);
     dbus_iface_.update_status(*in);
+    ctrl_.update_status(*in);
 
     bool auto_reset_allowed =
         std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end() ||
