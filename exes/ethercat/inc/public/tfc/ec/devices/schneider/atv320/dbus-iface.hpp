@@ -114,6 +114,19 @@ struct controller {
     return move_home_impl(asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
+  auto notify_after(micrometre_t travel,
+                    asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    cancel_pending_operation();
+    return pos_.notify_after(travel, std::forward<decltype(token)>(token));
+  }
+
+  auto notify_from_home(micrometre_t position, asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    cancel_pending_operation();
+    return pos_.notify_from_home(position, std::forward<decltype(token)>(token));
+  }
+
   // Set properties with new status values
   void update_status(const input_t& in) {
     status_word_ = in.status_word;
