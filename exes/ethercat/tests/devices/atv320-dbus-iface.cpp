@@ -174,15 +174,20 @@ auto main(int, char const* const* argv) -> int {
 
   "convey micrometre"_test = [&] {
     instance<> inst;
-    inst.ctrl.convey(100 * percent, 1000 * micrometre_t::reference,
+    auto ratio = 100 * percent;
+    inst.ctrl.convey(ratio, 1000 * micrometre_t::reference,
                      [&inst](const std::error_code& err, const micrometre_t moved) {
                        expect(!err);
                        expect(moved == 1000 * micrometre_t::reference);
                        inst.ran[0] = true;
                        inst.ctx.stop();
                      });
+    expect(inst.ctrl.speed_ratio() == ratio);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
     inst.ctx.run_for(1ms);
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::quick_stop);
     expect(inst.ran[0]);
   };
 
@@ -198,9 +203,13 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    expect(inst.ctrl.speed_ratio() == ratio);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     clock::set_ticks(clock::now() + mp_units::to_chrono_duration(duration));
     inst.ctx.run_for(2ms);
     expect(inst.ran[0]);
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::quick_stop);
   };
 
   "run time"_test = [&] {
@@ -213,14 +222,20 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    expect(inst.ctrl.speed_ratio() == ratio);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctrl.update_status(get_good_status_running());
     clock::set_ticks(clock::now() + 1ms);
     inst.ctx.run_for(2ms);
     expect(!inst.ran[0]);
     clock::set_ticks(clock::now() + 2ms);
+    expect(inst.ctrl.speed_ratio() == ratio);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctx.run_for(2ms);
     expect(!inst.ran[0]);
     inst.ctrl.update_status(get_good_status_stopped());
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::stop);
     inst.ctx.run_for(2ms);
     expect(inst.ran[0]);
   };
@@ -234,6 +249,8 @@ auto main(int, char const* const* argv) -> int {
                      inst.ran[0] = true;
                      inst.ctx.stop();
                    });
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::stop);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
@@ -241,16 +258,21 @@ auto main(int, char const* const* argv) -> int {
     instance<> inst;
     // set current as reference
     inst.populate_homing_sensor();
-    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+    auto ratio = 10 * speedratio_t::reference;
+    inst.ctrl.move(ratio, 1000 * micrometre_t::reference,
                    [&inst](const std::error_code& err, const micrometre_t moved) {
                      expect(!err);
                      expect(moved == 1000 * micrometre_t::reference);
                      inst.ran[0] = true;
                      inst.ctx.stop();
                    });
+    expect(inst.ctrl.speed_ratio() == ratio);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
 
     inst.ctx.run_for(5ms);
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::quick_stop);
     expect(inst.ran[0]);
   };
   "move to far"_test = [&] {
@@ -265,17 +287,20 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::stop);
     inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
     inst.ctx.run_for(5ms);
     expect(inst.ran[0]);
   };
 
-  "test stop impl"_test = [&] {
+  "test stop impl interupted by stop"_test = [&] {
     instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.stop([&inst](const std::error_code& err) {
-      expect(!err);
+      expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
+      inst.ctx.stop();
     });
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
@@ -285,14 +310,17 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[1] = true;
     });
     expect(inst.ran[1]);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
   };
 
   "test quick_stop impl"_test = [&] {
     instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
-      expect(!err);
+      expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
+      inst.ctx.stop();
     });
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
@@ -302,6 +330,8 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[1] = true;
     });
     expect(inst.ran[1]);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
   };
 
   "move home already in homing sensor"_test = [&] {
@@ -313,6 +343,7 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
     inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
