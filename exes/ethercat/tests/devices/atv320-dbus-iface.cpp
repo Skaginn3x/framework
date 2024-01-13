@@ -313,7 +313,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
 
-  "test quick_stop impl"_test = [&] {
+  "test quick_stop impl interupted by quick_stop"_test = [&] {
     instance<> inst;
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
