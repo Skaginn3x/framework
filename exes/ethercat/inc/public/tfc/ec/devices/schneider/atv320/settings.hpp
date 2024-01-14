@@ -94,4 +94,6 @@ using rotor_time_constant_TRA = setting<ecx::index_t{ 0x2042, 0x44 },
                                         "Rotor time constant. Typical for 120Hz Lenze = 90ms",
                                         std::chrono::duration<std::uint16_t, std::milli>,
                                         0>;
+
+                                        // SSB Trq/I limit. stop, (16#203E/29) ecfg_e, CLI current limitation (16#203E/2) 1 = 0.1A
 }  // namespace tfc::ec::devices::schneider::atv320
