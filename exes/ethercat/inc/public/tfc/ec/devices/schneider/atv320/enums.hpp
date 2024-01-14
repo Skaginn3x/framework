@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string_view>
 
-#include <tfc/utils/pragmas.hpp>
+#include <glaze/core/common.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 
@@ -1639,6 +1639,7 @@ constexpr auto format_as(dur_e const enum_value) -> std::string_view {
   return enum_desc(enum_value);
 }
 
+// Torque or current limit stop
 // Begin of ecfg_e enum decleration
 enum struct ecfg_e : std::uint16_t {
   no = 0,   ///< Ignore ([Ignore] (NO))
@@ -6802,3 +6803,19 @@ constexpr auto format_as(wupm_e const enum_value) -> std::string_view {
 }
 
 }  // namespace tfc::ec::devices::schneider::atv320
+
+template <>
+struct glz::meta<tfc::ec::devices::schneider::atv320::ecfg_e> {
+  static constexpr std::string_view name{ "ecfg" };
+  using enum tfc::ec::devices::schneider::atv320::ecfg_e;
+  static constexpr auto value{ glz::enumerate(
+    enum_desc(no), no,
+    enum_desc(yes), yes,
+    enum_desc(stt), stt,
+    enum_desc(lff), lff,
+    enum_desc(rls), rls,
+    enum_desc(rmp), rmp,
+    enum_desc(fst), fst,
+    enum_desc(dci), dci
+    ) };
+};
