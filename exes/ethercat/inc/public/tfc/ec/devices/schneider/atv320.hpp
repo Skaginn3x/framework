@@ -128,7 +128,7 @@ public:
         current_transmit_(ctx_, client, fmt::format("atv320.s{}.current", slave_index), "Current Current"),
         last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
         hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
+        config_{ ctx_ /*connection TODO apply connection once fronend is fixed */, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         dbus_iface_(ctrl_, connection, slave_index),
         reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
           auto timer = std::make_shared<asio::steady_timer>(ctx_);
