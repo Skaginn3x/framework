@@ -241,6 +241,7 @@ public:
       transmit_status(status);
       dbus_iface_.update_status(status);
       ctrl_.update_status(status);
+      logger_.error("Frequency drive lost contact");
       return;
     }
     if (input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) {

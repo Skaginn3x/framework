@@ -109,7 +109,11 @@ public:
       if (slavelist_[i].outputs != nullptr) {
         output = { reinterpret_cast<std::byte*>(slavelist_[i].outputs), static_cast<size_t>(slavelist_[i].Obytes) };
       }
-      slaves_[i]->process_data(input, output);
+      if (slavelist_[i].islost ) {
+       slaves_[i]->process_data({}, {});
+      } else {
+        slaves_[i]->process_data(input, output);
+      }
     }
 
     return wkc;
