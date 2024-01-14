@@ -32,8 +32,7 @@ struct file_storage_mock {
   auto make_change() { return change{ *this }; }
 
   storage_t storage_{};
-  std::function<void(void)> set_changed_cb = []() {
-  };
+  std::function<void(void)> set_changed_cb = []() {};
 };
 
 using manager_t = tfc::ipc_ruler::ipc_manager;
@@ -143,11 +142,9 @@ auto main(int argc, char** argv) -> int {
   "connection change subscription"_test = []() {
     test_instance instance{};
 
-    instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_string, [](const auto&) {
-    });
+    instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_string, [](const auto&) {});
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string, [](const auto&) {
-    });
+    instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string, [](const auto&) {});
     instance.ctx.run_for(std::chrono::milliseconds(5));
     // Register a method for connection change callback
     instance.ipc_manager_client.register_connection_change_callback("test_slot", [&instance](std::string_view signal_name) {
@@ -161,11 +158,9 @@ auto main(int argc, char** argv) -> int {
   "connection change subscription types dont match"_test = []() {
     test_instance instance{};
 
-    instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_bool, [](const auto&) {
-    });
+    instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_bool, [](const auto&) {});
     instance.ctx.run_for(std::chrono::milliseconds(5));
-    instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string, [](const auto&) {
-    });
+    instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string, [](const auto&) {});
     instance.ctx.run_for(std::chrono::milliseconds(5));
     // Register a method for connection change callback
     instance.ipc_manager_client.register_connection_change_callback("test_slot", [&instance](std::string_view signal_name) {
@@ -317,7 +312,7 @@ auto main(int argc, char** argv) -> int {
           }
         });
     tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, mock_client,
-      "bool_signal", "");
+                                                                                                 "bool_signal", "");
 
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
                         [&](const std::error_code& err) { ut::expect(!err); });
@@ -326,8 +321,7 @@ auto main(int argc, char** argv) -> int {
     timer.expires_after(std::chrono::milliseconds(10));
     timer.async_wait([&sig, &test_values](std::error_code) {
       for (auto const value : test_values) {
-        sig.async_send(value, [](std::error_code, std::size_t) {
-        });
+        sig.async_send(value, [](std::error_code, std::size_t) {});
       }
     });
     isolated_ctx.run_for(std::chrono::seconds(3));
@@ -354,7 +348,7 @@ auto main(int argc, char** argv) -> int {
           }
         });
     tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, mock_client,
-      "bool_signal", "");
+                                                                                                "bool_signal", "");
 
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
                         [](const std::error_code& err) { ut::expect(!err); });
@@ -391,8 +385,7 @@ auto main(int argc, char** argv) -> int {
     timer.expires_after(std::chrono::milliseconds(10));
     timer.async_wait([&sig, &test_values](std::error_code) {
       for (auto const value : test_values) {
-        sig.async_send(value, [](std::error_code, std::size_t) {
-        });
+        sig.async_send(value, [](std::error_code, std::size_t) {});
       }
     });
     isolated_ctx.run_for(std::chrono::seconds(3));
