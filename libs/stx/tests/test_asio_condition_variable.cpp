@@ -1,6 +1,7 @@
 #include <chrono>
 #include <utility>
 
+#include <fmt/core.h>
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/ut.hpp>
@@ -107,6 +108,52 @@ auto main() -> int {
     cv2.notify_one();
     ctx.run_for(1ms);
     ut::expect(called);
+  };
+
+  "coupled with cancellation slot"_test = [] {
+    asio::io_context ctx;
+    tfc::asio::condition_variable<asio::any_io_executor> cv{ ctx.get_executor() };
+    asio::cancellation_signal signal{};
+    bool called{};
+    cv.async_wait(bind_cancellation_slot(signal.slot(), [&called](std::error_code err) {
+      ut::expect(err == std::errc::operation_canceled);
+      called = true;
+    }));
+    ctx.run_for(1ms);
+    ut::expect(!called);
+    signal.emit(asio::cancellation_type::all);
+    ctx.run_for(1ms);
+    ut::expect(called);
+  };
+
+  "make parallel group and cancel"_test = [] {
+    asio::io_context ctx{};
+    tfc::asio::condition_variable<asio::any_io_executor> cv{ ctx.get_executor() };
+    tfc::asio::condition_variable<asio::any_io_executor> cv2{ ctx.get_executor() };
+    asio::cancellation_signal cancel_signal{};
+    {
+      asio::experimental::make_parallel_group([&](auto token) { return cv.async_wait(token); },
+                                              [&](auto token) { return cv2.async_wait(token); })
+          .async_wait(asio::experimental::wait_for_one(),
+                      asio::bind_cancellation_slot(cancel_signal.slot(), [](auto const& order, std::error_code const& err1,
+                                                                            std::error_code const& err2) {
+                        switch (order[0]) {
+                          case 0:  // first parallel job has finished
+                            ut::expect(err1 == std::errc::operation_canceled);
+                            fmt::println("Error 1: {}", err1.message());
+                            break;
+                          case 1:  // second parallel job has finished
+                            ut::expect(err2 == std::errc::operation_canceled);
+                            fmt::println("Error 2: {}", err2.message());
+                            break;
+                          default:
+                            fmt::println(stderr, "Parallel job has failed, {}", order[0]);
+                        }
+                      }));
+    }
+    ctx.run_for(1ms);
+    cancel_signal.emit(asio::cancellation_type::all);
+    ctx.run_for(1ms);
   };
 
   return EXIT_SUCCESS;

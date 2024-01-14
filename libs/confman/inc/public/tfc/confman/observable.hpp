@@ -92,7 +92,7 @@ public:
   /// \param callback calling function for all changes, this function cannot throw.
   /// \note Reason for callback being nothrow is that when calling multiple observers it is
   ///       not known which observer is called first and it is expected that all observers will be called.
-  void observe(tfc::stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
+  void observe(stx::nothrow_invocable<conf_param_t const&, conf_param_t const&> auto&& callback) const {
     callback_ = std::forward<decltype(callback)>(callback);
   }
 
@@ -100,6 +100,8 @@ public:
   auto value() const noexcept -> conf_param_t const& { return value_; }
 
   auto operator->() const noexcept -> decltype(auto) { return std::addressof(value()); }
+
+  constexpr operator conf_param_t const&() const noexcept { return value_; }
 
 private:
   auto reference() noexcept -> conf_param_t& { return value_; }

@@ -46,6 +46,10 @@ public:
   /// \note Should only be used for testing !!!
   explicit config_dbus_client(asio::io_context& ctx);
 
+  /// \brief Empty constructor
+  /// \note Should only be used for testing !!!
+  explicit config_dbus_client(dbus_connection_t);
+
   using value_call_t = std::function<std::string()>;
   using schema_call_t = std::function<std::string()>;
   using change_call_t = std::function<std::error_code(std::string_view)>;

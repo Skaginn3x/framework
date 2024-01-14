@@ -4,8 +4,11 @@
 #include <array>
 #include <cassert>
 #include <chrono>
+#include <concepts>
 #include <cstddef>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <string_view>
 #include <type_traits>  // required by mp-units
 #include <variant>
@@ -22,412 +25,330 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
+#include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_condition_variable.hpp>
 #include <tfc/utils/json_schema.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
-namespace tfc::motor::detail {
-enum struct position_mode_e : std::uint8_t { not_used = 0, tachometer, encoder, frequency };
+#include <tfc/motor/details/positioner_impl.hpp>
+
+// FWD declare stub
+namespace tfc::confman {
+template <typename config_storage_t, typename, typename>
+class stub_config;
 }
 
-template <>
-struct glz::meta<tfc::motor::detail::position_mode_e> {
-  static constexpr std::string_view name{ "tacho_config" };
-  using enum tfc::motor::detail::position_mode_e;
-  static constexpr auto value{
-    glz::enumerate("Not used", not_used, "Tachometer", tachometer, "Encoder", encoder, "Frequency", frequency)
-  };
-};
-
-namespace tfc::motor {
-using namespace mp_units::si::unit_symbols;
-enum struct position_error_code_e : std::uint8_t {
-  none = 0,
-  unstable,       // could be one event missing per cycle or similar
-  missing_event,  // missing event from encoder
-  unknown,        // cause not explicitly known
-};
-
-namespace asio = boost::asio;
-using position_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
-using hertz_t = mp_units::quantity<mp_units::si::milli<mp_units::si::hertz>, std::int64_t>;
-using tick_signature_t = void(std::int64_t, std::chrono::nanoseconds, std::chrono::nanoseconds, position_error_code_e);
-
-namespace detail {
-template <typename storage_t, std::size_t len>
-struct circular_buffer {
-  circular_buffer() = default;
-
-  /// \param args arguments to forward to constructor of storage_t
-  /// \return removed item, the oldest item
-  constexpr auto emplace(auto&&... args) -> storage_t {
-    storage_t removed_item{ std::move(*insert_pos_) };
-    front_ = insert_pos_;
-    std::construct_at(insert_pos_, std::forward<decltype(args)>(args)...);
-    std::advance(insert_pos_, 1);
-    if (insert_pos_ == std::end(buffer_)) {
-      insert_pos_ = std::begin(buffer_);
-    }
-    return std::move(removed_item);
-  }
-  /// \return reference to most recently inserted item
-  constexpr auto front() noexcept -> storage_t& { return *front_; }
-  /// \return const reference to most recently inserted item
-  constexpr auto front() const noexcept -> storage_t const& { return *front_; }
-  /// \return reference to oldest inserted item
-  constexpr auto back() noexcept -> storage_t& { return *insert_pos_; }
-  /// \return const reference to oldest inserted item
-  constexpr auto back() const noexcept -> storage_t const& { return *insert_pos_; }
-
-  std::array<storage_t, len> buffer_{};
-  // front is invalid when there has no item been inserted yet, but should not matter much
-  typename std::array<storage_t, len>::iterator front_{ std::begin(buffer_) };
-  typename std::array<storage_t, len>::iterator insert_pos_{ std::begin(buffer_) + 1 };  // this is front + 1
-};
-
-template <typename clock_t = asio::steady_timer::time_point::clock, std::size_t circular_buffer_len = 1024>
-struct time_series_statistics {
-  using duration_t = typename clock_t::duration;
-  using time_point_t = typename clock_t::time_point;
-
-  void update(time_point_t const& now) noexcept {
-    // now let's calculate the average interval and variance
-    auto const intvl_current{ now - buffer_.front().time_point };
-    auto const current_variance_increment{ std::pow(static_cast<double>(intvl_current.count()) - average_, 2) };
-
-    auto const removed{ buffer_.emplace(now, intvl_current, current_variance_increment) };
-
-    average_ += static_cast<double>(intvl_current.count() - removed.interval_duration.count()) / circular_buffer_len;
-    // Note the variance is actually incorrect but it serves the purpose of detecting if the variance is increasing or not.
-    // It is incorrect because it uses mean of values that have already been removed from the buffer to determine the
-    // incremental variance of the older items in the buffer. I think it is impossible to calculate the correct variance in
-    // constant time. For reference, see
-    // https://math.stackexchange.com/questions/102978/incremental-computation-of-standard-deviation
-    variance_ += (current_variance_increment - removed.variance_increment) / circular_buffer_len;
-  }
-
-  auto buffer() const noexcept -> auto const& { return buffer_; }
-
-  auto average() const noexcept -> duration_t { return duration_t{ static_cast<typename duration_t::rep>(average_) }; }
-
-  auto stddev() const noexcept -> duration_t {
-    // assert(variance_ >= 0, "Variance is squared so it should be positive.");
-    return duration_t{ static_cast<typename duration_t::rep>(std::sqrt(variance_)) };
-  }
-
-  struct event_storage {
-    time_point_t time_point{};
-    duration_t interval_duration{};
-    double variance_increment{};
-  };
-  double average_{};
-  double variance_{};
-  circular_buffer<event_storage, circular_buffer_len> buffer_{};
-};
-
-template <typename bool_slot_t = ipc::bool_slot,
-          typename clock_t = asio::steady_timer::time_point::clock,
-          std::size_t circular_buffer_len = 1024>
-struct tachometer {
-  using duration_t = typename clock_t::duration;
-  using time_point_t = typename clock_t::time_point;
-  explicit tachometer(asio::io_context& ctx,
-                      ipc_ruler::ipc_manager_client& client,
-                      std::string_view name,
-                      std::function<tick_signature_t>&& position_update_callback)
-      : position_update_callback_{ std::move(position_update_callback) }, induction_sensor_{
-          ctx, client, fmt::format("tacho_{}", name),
-          "Tachometer input, usually induction sensor directed to rotational metal star or plastic ring with metal bolts.",
-          std::bind_front(&tachometer::update, this)
-        } {}
-
-  void update(bool first_new_val) noexcept {
-    if (!first_new_val) {
-      return;
-    }
-    auto now{ clock_t::now() };
-    statistics_.update(now);
-    std::invoke(position_update_callback_, ++position_, statistics().average(), statistics().stddev(),
-                position_error_code_e::none);
-  }
-
-  auto statistics() const noexcept -> auto const& { return statistics_; }
-
-  std::int64_t position_{};
-  time_series_statistics<clock_t, circular_buffer_len> statistics_{};
-  std::function<tick_signature_t> position_update_callback_;
-  bool_slot_t induction_sensor_;
-};
-
-template <typename bool_slot_t = ipc::bool_slot,
-          typename clock_t = asio::steady_timer::time_point::clock,
-          std::size_t circular_buffer_len = 1024>
-struct encoder {
-  explicit encoder(asio::io_context& ctx,
-                   ipc_ruler::ipc_manager_client& client,
-                   std::string_view name,
-                   std::function<tick_signature_t>&& position_update_callback)
-      : position_update_callback_{ std::move(position_update_callback) },
-        sensor_a_{ ctx, client, fmt::format("tacho_a_{}", name),
-                   "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
-                   "star or plastic ring of metal bolts.",
-                   std::bind_front(&encoder::first_tacho_update, this) },
-        sensor_b_{ ctx, client, fmt::format("tacho_b_{}", name),
-                   "First input of tachometer, with two sensors, usually induction sensor directed to rotational metal "
-                   "star or plastic ring of metal bolts.",
-                   std::bind_front(&encoder::second_tacho_update, this) } {}
-
-  struct storage {
-    enum struct last_event_e : std::uint8_t { unknown = 0, first, second };
-    bool first_tacho_state{};
-    bool second_tacho_state{};
-    last_event_e last_event{ last_event_e::unknown };
-  };
-
-  void first_tacho_update(bool first_new_val) noexcept {
-    position_ += first_new_val ? buffer_.front().second_tacho_state ? 1 : -1 : buffer_.front().second_tacho_state ? -1 : 1;
-    update(first_new_val, buffer_.front().second_tacho_state, storage::last_event_e::first);
-  }
-
-  void second_tacho_update(bool second_new_val) noexcept {
-    position_ += second_new_val ? buffer_.front().first_tacho_state ? -1 : 1 : buffer_.front().first_tacho_state ? 1 : -1;
-    update(buffer_.front().first_tacho_state, second_new_val, storage::last_event_e::second);
-  }
-
-  void update(bool first, bool second, typename storage::last_event_e event) noexcept {
-    auto const now{ clock_t::now() };
-    position_error_code_e err{ position_error_code_e::none };
-    if (buffer_.front().last_event == event) {
-      err = position_error_code_e::missing_event;
-    }
-    statistics_.update(now);
-    buffer_.emplace(first, second, event);
-    std::invoke(position_update_callback_, position_, statistics_.average(), statistics_.stddev(), err);
-  }
-
-  std::int64_t position_{};
-  circular_buffer<storage, circular_buffer_len> buffer_{};
-  time_series_statistics<clock_t, circular_buffer_len> statistics_{};
-  std::function<tick_signature_t> position_update_callback_;
-  bool_slot_t sensor_a_;
-  bool_slot_t sensor_b_;
-};
-
-template <mp_units::Quantity dimension_t,
-          typename clock_t = asio::steady_timer::time_point::clock,
-          std::size_t circular_buffer_len = 1024>
-struct frequency {
-  static constexpr auto reference{ dimension_t::reference };
-  using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
-  using time_point_t = typename clock_t::time_point;
-  static constexpr hertz_t reference_frequency_{ 50 * Hz };
-
-  explicit frequency(velocity_t velocity_at_frequency,
-                     hertz_t,
-                     std::function<void(dimension_t)>&& position_update_callback) noexcept
-      : velocity_at_frequency_{ velocity_at_frequency }, position_update_callback_{ std::move(position_update_callback) } {}
-
-  void freq_update(hertz_t hertz) {
-    // Update our traveled distance from the new frequency
-    // Calculate the distance the motor would have traveled on the old speed
-    auto now = clock_t::now();
-    mp_units::quantity<mp_units::si::nano<mp_units::si::second>, int64_t> const intvl_current{ now - time_point };
-    time_point = now;
-    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_frequency_ *
-                                                                           last_measured_ / reference_frequency_);
-    last_measured_ = hertz;
-    position_update_callback_(displacement);
-  }
-
-  velocity_t velocity_at_frequency_{};
-  hertz_t last_measured_{ 0 * Hz };
-  std::function<void(dimension_t)> position_update_callback_{ [](dimension_t) {} };
-  time_point_t time_point{ clock_t::now() };
-};
-
-}  // namespace detail
-
-template <mp_units::Quantity dimension_t = position_t,
-          template <typename, typename, typename> typename confman_t = confman::config>
+namespace tfc::motor::positioner {
+template <mp_units::PrefixableUnit auto unit_v = mp_units::si::metre,
+          typename manager_client_t = ipc_ruler::ipc_manager_client&,
+          template <typename, typename, typename> typename confman_t = confman::config,
+          typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 class positioner {
 public:
-  static constexpr auto reference{ dimension_t::reference };
+  static constexpr auto unit{ unit_v };
+  static constexpr auto reference{ mp_units::si::nano<unit> };
+  // using unsigned integer to get detirmistic overflow/underflow
+  using absolute_position_t = mp_units::quantity<reference, std::uint64_t>;
+  // easier to use signed integer to represent displacement
+  using displacement_t = mp_units::quantity<reference, std::int64_t>;
   using velocity_t = mp_units::quantity<reference / mp_units::si::second, std::int64_t>;
+  using config_t = config<reference>;
 
-  struct config {
-    detail::position_mode_e mode{ detail::position_mode_e::not_used };  // todo observable
-    static constexpr dimension_t inch{ 1 * mp_units::international::inch };
-    dimension_t displacement_per_increment{ inch };
-    std::chrono::microseconds standard_deviation_threshold{ 100 };
-    mp_units::quantity<mp_units::percent, std::uint8_t> tick_average_deviation_threshold{ 180 * mp_units::percent };  // todo
-    velocity_t velocity_at_frequency{ 0 * (reference / mp_units::si::second) };  // todo observable
-    hertz_t reference_frequency{ 0 * mp_units::si::hertz };                      // todo observable
-    struct glaze {
-      static constexpr std::string_view name{ "positioner_config" };
-      // clang-format off
-      static constexpr auto value{
-        glz::object(
-          "mode", &config::mode,
-          "displacement_per_increment", &config::displacement_per_increment, json::schema{
-            .description = "Displacement per increment\n"
-                           "Mode: tachometer, displacement per pulse or distance between two teeths\n"
-                           "Mode: encoder, displacement per edge, distance between two teeths divided by 4",
-            .default_value = inch.numerical_value_ref_in(dimension_t::reference),
-            .minimum = 1UL,
-          },
-          "standard_deviation_threshold", &config::standard_deviation_threshold, json::schema{
-            .description = "Standard deviation between increments, used to determine if signal is stable",
-            .default_value = 100UL,
-            .minimum = 1UL,
-          },
-          "tick_average_deviation_threshold", &config::tick_average_deviation_threshold, json::schema{
-            .description = "Threshold of deviation from average per increment, used to determine if signal is stable",
-            .default_value = 80UL,
-            .minimum = 1UL,
-          },
-          "velocity_at_frequency", &config::velocity_at_frequency, json::schema{
-            .description = "Velocity at the given frequency",
-            .default_value = 0UL,
-          },
-          "reference_frequency", &config::reference_frequency, json::schema{
-            .description = "Reference frequency for the given velocity",
-            .default_value = 0UL,
-          }
-        )
-      };
-      // clang-format on
-    };
-  };
-
-  /// \param ctx boost asio context
-  /// \param client ipc client
+  /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
-  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name)
-      : positioner(ctx, client, name, config{}) {}
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, std::string_view name)
+      : positioner(connection, manager, name, [](bool) {}) {}
 
-  /// \param ctx boost asio context
-  /// \param client ipc client
+  /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
+  /// \param home_cb callback to call when homing sensor is triggered
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
+             manager_client_t manager,
+             std::string_view name,
+             std::function<void(bool)>&& home_cb)
+      : positioner(connection, manager, name, std::move(home_cb), {}) {}
+
+  /// \param connection strictly valid dbus connection
+  /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
+  /// \param home_cb callback to call when homing sensor is triggered
   /// \param default_value configuration default, useful for special cases and testing
-  positioner(asio::io_context& ctx, ipc_ruler::ipc_manager_client& client, std::string_view name, config&& default_value)
-      : name_{ name }, ctx_{ ctx }, config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
-    switch (config_->mode) {
-      using enum detail::position_mode_e;
-      case not_used:
-        break;
-      case tachometer: {
-        impl_.template emplace<detail::tachometer<>>(ctx_, client, name_, std::bind_front(&positioner::tick, this));
-        break;
-      }
-      case encoder: {
-        impl_.template emplace<detail::encoder<>>(ctx_, client, name_, std::bind_front(&positioner::tick, this));
-        break;
-      }
-      case frequency: {
-        impl_.template emplace<detail::frequency<dimension_t>>(config_->velocity_at_frequency, config_->reference_frequency,
-                                                               std::bind_front(&positioner::increment_position, this));
-        break;
-      }
+  positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
+             manager_client_t manager,
+             std::string_view name,
+             std::function<void(bool)>&& home_cb,
+             config_t&& default_value)
+      : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb },
+        config_{ dbus_, fmt::format("positioner_{}", name_), std::move(default_value) } {
+    config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
+    construct_implementation(config_->mode, {});
+    config_->needs_homing_after.observe(
+        [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
+    config_->homing_travel_speed.observe(
+        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+          if (new_v.has_value() && !homing_sensor_.has_value()) {
+            homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
+                                   "Homing sensor for position management, consider adding time off delay", home_cb_);
+          }
+        });
+    if (config_->homing_travel_speed->has_value()) {
+      // todo duplicate
+      homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
+                             "Homing sensor for position management, consider adding time off delay", home_cb_);
     }
+  }
+
+  positioner(positioner const&) = delete;
+  auto operator=(positioner const&) -> positioner& = delete;
+  positioner(positioner&&) noexcept = default;
+  auto operator=(positioner&&) noexcept -> positioner& = default;
+  ~positioner() = default;
+
+  /// Function only for testing the positioner
+  /// \return Configuration object
+  auto config_ref() -> confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>&
+    requires std::same_as<
+        confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>,
+        confman::stub_config<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client>>
+  {
+    return config_;
   }
 
   /// \param position absolute position
   /// \param token completion token to trigger when get passed the given position
-  auto notify_at(dimension_t const& position, asio::completion_token_for<void(std::error_code)> auto&& token)
-      -> decltype(auto) {
-    using return_t = typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+  /// \todo implicitly allow motor::errors::err_enum as param in token
+  auto notify_at(absolute_position_t position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using cv = tfc::asio::condition_variable<asio::any_io_executor>;
-    notifications.emplace_back(position, cv{ ctx_.get_executor() });
-    if constexpr (std::same_as<return_t, void>) {
-      notifications.back().cv_.async_wait(std::forward<decltype(token)>(token));
-      return;
-    } else {
-      return_t result{ notifications.back().cv_.async_wait(std::forward<decltype(token)>(token)) };
-      return result;
-    }
+    auto new_notification = std::make_shared<notification>(position, cv{ ctx_.get_executor() });
+    notifications_.emplace_back(new_notification);
+    return asio::async_compose<decltype(token), void(std::error_code)>(
+        [first_call = true, new_notification](auto& self, std::error_code err = {}) mutable {
+          if (first_call) {
+            first_call = false;
+            new_notification->cv_.async_wait(std::move(self));
+            return;
+          }
+          if (err) {
+            self.complete(err);
+            return;
+          }
+          self.complete(motor_error(new_notification->err_));
+        },
+        token, ctx_);
   }
 
   /// \param displacement from current position
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_after(dimension_t const& displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+  auto notify_after(displacement_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     return notify_at(displacement + absolute_position_, std::forward<decltype(token)>(token));
   }
 
   /// \param displacement from home
   /// \param token completion token to trigger when get passed the given displacement
-  auto notify_from_home(dimension_t const& displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
+  auto notify_from_home(displacement_t displacement, asio::completion_token_for<void(std::error_code)> auto&& token)
       -> decltype(auto) {
     return notify_at(displacement + home_, std::forward<decltype(token)>(token));
   }
 
   /// \return Current position since last restart
-  [[nodiscard]] auto position() const noexcept -> dimension_t { return absolute_position_; }
+  [[nodiscard]] auto position() const noexcept -> absolute_position_t { return absolute_position_; }
+
+  /// \return Current position relative to home
+  [[nodiscard]] auto position_from_home() const noexcept -> displacement_t {
+    return std::min((home_ - absolute_position_) % absolute_position_t::max(),
+                    (absolute_position_ - home_) % absolute_position_t::max());
+  }
 
   /// \return Resolution of the absolute position
-  [[nodiscard]] auto resolution() const noexcept -> dimension_t { return config_->displacement_per_increment; }
+  [[nodiscard]] auto resolution() const noexcept -> displacement_t {
+    return std::visit(
+        [this]<typename mode_t>(mode_t const& mode) -> displacement_t {
+          if constexpr (std::convertible_to<mode_t, increment_config<reference>>) {
+            return mode.displacement_per_increment.value();
+          } else if constexpr (std::convertible_to<mode_t, freq_config<deduce_velocity_t<reference>>>) {
+            // TODO !!! this is dependent on ethercat cycle time !!!!
+            // Make this as template argument
+            // todo test!!!
+            return (velocity() * (1 * mp_units::si::milli<mp_units::si::second>)).force_in(displacement_t::reference);
+          }
+          return {};
+        },
+        config_->mode.value());
+  }
 
   /// \return Current velocity
   [[nodiscard]] auto velocity() const noexcept -> velocity_t { return velocity_; }
 
+  /// \return whether homing sequence is needed and therefore movable
+  [[nodiscard]] auto movable() const noexcept -> bool { return config_->needs_homing_after->has_value(); }
+
   /// \brief home is used in method notify_from_home to determine the notification position
   /// \relates notify_from_home
   /// \param new_home_position store this position as home
-  void home(dimension_t const& new_home_position) noexcept { home_ = new_home_position; }
+  void home(absolute_position_t new_home_position) noexcept {
+    home_ = new_home_position;
+    travel_since_homed_ = 0 * reference;
+    missing_home_ = false;
+    if (last_error_ == errors::err_enum::motor_missing_home_reference) {
+      last_error_ = errors::err_enum::success;
+    }
+  }
+
+  /// \brief home is used in method notify_from_home to determine the notification position
+  /// \relates notify_from_home
+  /// Will store current position as home
+  void home() noexcept { return home(position()); }
+
+  /// Slot was created and slot has received a value
+  bool homing_enabled() { return homing_sensor_.has_value() && homing_sensor_->value().has_value(); }
 
   /// \brief return current error state
   /// \return error code
-  [[nodiscard]] auto error() const noexcept -> position_error_code_e {
-    using enum position_error_code_e;
-    if (stddev_ >= config_->standard_deviation_threshold) {
-      return unstable;
+  [[nodiscard]] auto error() const noexcept -> errors::err_enum {
+    using enum errors::err_enum;
+    // special case when we have not yet homed and we recovered from some other error
+    // it might be beneficial to refactor error to being bitset struct of error bool flags
+    if (config_->needs_homing_after->has_value() && last_error_ == success && missing_home_) {
+      return motor_missing_home_reference;
     }
-    return none;
+    return last_error_;
   }
 
   void freq_update(hertz_t hertz) {
     std::visit(
         [hertz]<typename impl_t>(impl_t& impl) {
-          if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<dimension_t>>) {
+          if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<displacement_t>>) {
             impl.freq_update(hertz);
           }
         },
         impl_);
   }
 
-  void increment_position(dimension_t const& increment) {
+  void increment_position(displacement_t increment, velocity_t velocity = 0 * velocity_t::reference) {
     auto const old_position{ absolute_position_ };
+    auto const forward{ increment > 0 * decltype(increment)::reference };
     absolute_position_ += increment;
-    notify_if_applicable(old_position);
+    velocity_ = velocity;
+    if (needs_homing(increment)) {
+      if (last_error_ == errors::err_enum::success) {
+        last_error_ = errors::err_enum::motor_missing_home_reference;
+      }
+    }
+    notify_if_applicable(old_position, forward);
   }
 
-  void tick(std::int64_t tachometer_counts,
-            std::chrono::nanoseconds const& average,
-            std::chrono::nanoseconds const& stddev,
-            [[maybe_unused]] position_error_code_e err) {
-    auto const old_position{ absolute_position_ };
-    absolute_position_ = config_->displacement_per_increment * tachometer_counts;
+  void tick(std::int8_t increment_counts,
+            std::chrono::nanoseconds average,
+            std::chrono::nanoseconds stddev,
+            errors::err_enum err) {
+    auto const increment{ displacement_per_increment_ * increment_counts };
     stddev_ = stddev;
+    last_error_ = err;
+    // if (stddev_ >= standard_deviation_threshold_) {
+    // last_error_ = errors::err_enum::positioning_unstable;
+    // }
     // Important the resolution below needs to match
     static constexpr auto nanometer_reference{ mp_units::si::nano<mp_units::si::metre> };
     static constexpr auto nanosec_reference{ mp_units::si::nano<mp_units::si::second> };
-    if (average.count() > 0) {
-      auto const displacement{ (absolute_position_ - old_position).in(nanometer_reference) };
-      velocity_ = displacement / (average.count() * nanosec_reference);
+    velocity_t velocity{};
+    if (average > std::chrono::seconds{ 0 }) {
+      velocity = increment.in(nanometer_reference) / (average.count() * nanosec_reference);
     } else {
-      velocity_ = 0 * (reference / nanosec_reference);
+      velocity = 0 * velocity_t::reference;
     }
-    notify_if_applicable(old_position);
+    increment_position(increment, velocity);
+  }
+
+  auto homing_sensor() const noexcept -> auto const& { return homing_sensor_; }
+
+  auto homing_travel_speed() const noexcept -> auto const& { return config_->homing_travel_speed.value(); }
+
+  auto would_need_homing(displacement_t increment) const noexcept -> bool {
+    // todo test !
+    if (!config_->needs_homing_after->has_value()) {
+      return false;
+    }
+    bool constexpr always_forward{ true };
+    auto const pos{ config_->needs_homing_after->value() };
+    return detail::make_between_callable(travel_since_homed_, travel_since_homed_ + mp_units::abs(increment),
+                                         always_forward)(pos);
   }
 
 private:
-  void notify_if_applicable(dimension_t const& old_position) {
-    std::erase_if(notifications, [current_position = absolute_position_, last_position = old_position](notification& n) {
-      auto const pos{ n.abs_notify_pos_ };
-      if (pos >= std::min(last_position, current_position) && pos <= std::max(last_position, current_position)) {
-        n.cv_.notify_all();
+  auto needs_homing(displacement_t increment) -> bool {
+    if (!config_->needs_homing_after->has_value()) {
+      return false;
+    }
+    auto const old_travel_since_homed{ travel_since_homed_ };
+    travel_since_homed_ += mp_units::abs(increment);
+    auto const pos{ config_->needs_homing_after->value() };
+    bool constexpr always_forward{ true };
+    auto const comparator{ detail::make_between_callable(old_travel_since_homed, travel_since_homed_, always_forward) };
+    if (comparator(pos)) {
+      missing_home_ = true;
+    }
+    return missing_home_;
+  }
+
+  auto construct_implementation(position_mode_config<reference> const& mode_to_construct,
+                                [[maybe_unused]] position_mode_config<reference> const& old_mode) noexcept {
+    using tachometer_config_t = tachometer_config<reference>;
+    using encoder_config_t = encoder_config<reference>;
+    using freq_config_t = freq_config<deduce_velocity_t<reference>>;
+    std::visit(
+        [this]<typename mode_t>(mode_t const& mode) {
+          using mode_raw_t = std::remove_cvref_t<mode_t>;
+          if constexpr (std::same_as<mode_raw_t, tachometer_config_t>) {
+            impl_.template emplace<detail::tachometer<manager_client_t>>(dbus_, manager_, name_,
+                                                                         std::bind_front(&positioner::tick, this));
+
+            displacement_per_increment_ = mode.displacement_per_increment.value();
+            standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
+            mode.displacement_per_increment.observe(
+                [this](displacement_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
+            mode.standard_deviation_threshold.observe(
+                [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
+          } else if constexpr (std::same_as<mode_raw_t, encoder_config_t>) {
+            impl_.template emplace<detail::encoder<manager_client_t>>(dbus_, manager_, name_,
+                                                                      std::bind_front(&positioner::tick, this));
+
+            // todo duplicate
+            displacement_per_increment_ = mode.displacement_per_increment.value();
+            standard_deviation_threshold_ = mode.standard_deviation_threshold.value();
+            mode.displacement_per_increment.observe(
+                [this](displacement_t const& new_v, auto&) { displacement_per_increment_ = new_v; });
+            mode.standard_deviation_threshold.observe(
+                [this](std::chrono::microseconds new_v, auto) { standard_deviation_threshold_ = new_v; });
+          } else if constexpr (std::same_as<mode_raw_t, freq_config_t>) {
+            impl_.template emplace<detail::frequency<displacement_t>>(
+                mode.velocity_at_50Hz, std::bind_front(&positioner::increment_position, this));
+
+            mode.velocity_at_50Hz.observe([this](velocity_t const& new_v, auto&) {
+              std::visit(
+                  [new_v]<typename impl_t>(impl_t& impl) {
+                    if constexpr (std::same_as<std::remove_cvref_t<impl_t>, detail::frequency<displacement_t>>) {
+                      impl.update_velocity_at_50Hz(new_v);
+                    }
+                  },
+                  impl_);
+            });
+          } else {
+            impl_ = std::monostate{};
+          }
+        },
+        mode_to_construct);
+  }
+
+  void notify_if_applicable(absolute_position_t old_position, bool forward) {
+    auto const comparator{ detail::make_between_callable(old_position, absolute_position_, forward) };
+    std::erase_if(notifications_, [this, &comparator](auto& n) {
+      auto const pos{ n->abs_notify_pos_ };
+      if (comparator(pos)) {
+        n->err_ = last_error_;
+        n->cv_.notify_all();
         return true;
       }
       return false;
@@ -435,26 +356,35 @@ private:
   }
 
   struct notification {
-    dimension_t abs_notify_pos_{};
+    absolute_position_t abs_notify_pos_{};
     tfc::asio::condition_variable<asio::any_io_executor> cv_;
+    errors::err_enum err_{ errors::err_enum::success };
     auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };
 
-  dimension_t absolute_position_{};
-  dimension_t home_{};
+  errors::err_enum last_error_{ errors::err_enum::success };
+  absolute_position_t absolute_position_{};
+  absolute_position_t travel_since_homed_{};
+  absolute_position_t home_{};
+  displacement_t displacement_per_increment_{};
   velocity_t velocity_{};
   std::chrono::nanoseconds stddev_{};
+  std::chrono::nanoseconds standard_deviation_threshold_{};
   std::string name_{};
   asio::io_context& ctx_;
+  std::shared_ptr<sdbusplus::asio::connection> dbus_;
+  manager_client_t manager_;
+  std::optional<bool_slot_t> homing_sensor_{};
+  std::function<void(bool)> home_cb_{ [this](bool) {} };
   logger::logger logger_{ name_ };
-  confman_t<config, confman::file_storage<config>, confman::detail::config_dbus_client> config_;
-  std::variant<detail::frequency<dimension_t>, detail::tachometer<>, detail::encoder<>> impl_{
-    detail::frequency<dimension_t>{ config_->velocity_at_frequency, config_->reference_frequency,
-                                    std::bind_front(&positioner::increment_position, this) }
-  };
-  // todo overflow
-  // in terms of conveyors, µm resolution, this would overflow when you have gone 1.8 trips to Pluto back and forth
-  std::vector<notification> notifications{};
-};
+  confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
+  std::variant<std::monostate,
+               detail::frequency<displacement_t>,
+               detail::tachometer<manager_client_t>,
+               detail::encoder<manager_client_t>>
+      impl_{};
+  std::vector<std::shared_ptr<notification>> notifications_{};
 
-}  // namespace tfc::motor
+  bool missing_home_{ config_->needs_homing_after->has_value() };
+};
+}  // namespace tfc::motor::positioner

@@ -7,7 +7,6 @@
 #include <tfc/ec/soem_interface.hpp>
 
 namespace tfc::ec::cia_402 {
-
 using ecx::index_t;
 
 struct control_word {
@@ -36,15 +35,19 @@ struct control_word {
     [[nodiscard]] static auto shutdown() -> control_word {
       return control_word{ .switch_on = false, .enable_voltage = true, .quick_stop = true };
     }
+
     [[nodiscard]] static auto switch_on() -> control_word {
       return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true };
     }
+
     [[nodiscard]] static auto enable_operation() -> control_word {
       return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true, .enable_operation = true };
     }
+
     [[nodiscard]] static auto disable_operation() -> control_word {
       return control_word{ .switch_on = true, .enable_voltage = true, .quick_stop = true, .enable_operation = false };
     }
+
     [[nodiscard]] static auto disable_voltage() -> control_word { return control_word{ .enable_voltage = false }; }
     [[nodiscard]] static auto quick_stop() -> control_word { return control_word{ .enable_voltage = true }; }
     [[nodiscard]] static auto fault_reset() -> control_word { return control_word{ .fault_reset = true }; }
@@ -142,61 +145,82 @@ struct status_word {
 
 static_assert(sizeof(status_word) == 2);
 
-[[maybe_unused]] static auto to_string(states_e value) -> std::string {
-  using std::string_literals::operator""s;
+[[maybe_unused]] static auto format_as(states_e value) -> std::string_view {
+  using std::string_view_literals::operator""sv;
   switch (value) {
     case states_e::not_ready_to_switch_on:
-      return "Not ready to switch on"s;
+      return "Not ready to switch on"sv;
     case states_e::switch_on_disabled:
-      return "Switch on disabled"s;
+      return "Switch on disabled"sv;
     case states_e::ready_to_switch_on:
-      return "Ready to switch on"s;
+      return "Ready to switch on"sv;
     case states_e::switched_on:
-      return "Switched on"s;
+      return "Switched on"sv;
     case states_e::operation_enabled:
-      return "Operation enabled"s;
+      return "Operation enabled"sv;
     case states_e::quick_stop_active:
-      return "Quick stop active"s;
+      return "Quick stop active"sv;
     case states_e::fault_reaction_active:
-      return "Fault reaction active"s;
+      return "Fault reaction active"sv;
     case states_e::fault:
-      return "Fault"s;
+      return "Fault"sv;
   }
-  return "unknown"s;
+  return "unknown"sv;
 }
+[[maybe_unused]] static auto to_string(states_e value) -> std::string {
+  return std::string(format_as(value));
+}
+
+enum struct transition_action {
+  none = 0,
+  run,
+  stop,
+  // Note. For now this is not directly used but has the same effect as none as run is not set.
+  quick_stop,
+  freewheel_stop,
+  reset,
+};
 
 /**
  * Transition to operational mode
  * @param current_state State parsed from status word determined to be the current status of a drive
- * @param quick_stop if the drive should be placed in quick_stop mode.
+ * @param action the action to change to another state in cia402 state machine
+ * @param auto_reset_allowed allowance flag to indicate whether it is okay to move from fault state
  * @return the command to transition to operational mode / stick in quick stop mode.
  */
-inline auto transition(states_e current_state, bool run, bool quick_stop, bool freewheel_stop) -> control_word {
+inline auto transition(states_e current_state, transition_action action, bool auto_reset_allowed = false) -> control_word {
   switch (current_state) {
     case states_e::switch_on_disabled:
       return commands::shutdown();
     case states_e::switched_on:
     case states_e::ready_to_switch_on:
-      if (run && !freewheel_stop && !quick_stop) {
+      if (transition_action::run == action) {
         return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
       }
       return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
     case states_e::operation_enabled:
-      if (quick_stop) {
+      if (transition_action::quick_stop == action) {
         return commands::quick_stop();
       }
-      if (freewheel_stop) {
+      if (transition_action::freewheel_stop == action) {
         return commands::disable_voltage();  // Freewheel stop
       }
-      if (!run) {
+      if (transition_action::run != action) {
         return commands::disable_operation();
       }
 
       return commands::enable_operation();
     case states_e::fault:
-      return commands::fault_reset();
-
+      if (transition_action::reset == action || auto_reset_allowed) {
+        return commands::fault_reset();
+      }
+      // We are not allowed to reset the fault that has occured.
+      return commands::shutdown();
     case states_e::quick_stop_active:
+      if (transition_action::quick_stop == action) {
+        return commands::quick_stop();
+      }
+      return commands::disable_voltage();
     case states_e::not_ready_to_switch_on:
     case states_e::fault_reaction_active:
       return commands::disable_voltage();
@@ -204,5 +228,4 @@ inline auto transition(states_e current_state, bool run, bool quick_stop, bool f
   // Can only occur if someone casts an integer for state_e that is not defined in the enum
   return commands::disable_voltage();
 }
-
 }  // namespace tfc::ec::cia_402

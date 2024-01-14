@@ -1,3 +1,4 @@
+#include <cassert>
 #include <utility>
 
 #include <tfc/confman/detail/config_dbus_client.hpp>
@@ -19,7 +20,9 @@ namespace tfc::confman::detail {
 // busctl --system introspect com.skaginn3x.config.operation_mode.def.state_machine /com/skaginn3x/etc/tfc/config
 // clang-format on
 
-config_dbus_client::config_dbus_client(boost::asio::io_context&) {}
+config_dbus_client::config_dbus_client(asio::io_context&) {}
+
+config_dbus_client::config_dbus_client(std::shared_ptr<sdbusplus::asio::connection> conn) : dbus_connection_{ conn } {}
 
 config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        std::string_view key,
@@ -89,6 +92,10 @@ void config_dbus_client::initialize() {
 }
 
 auto config_dbus_client::get_io_context() const noexcept -> asio::io_context& {
+  assert((dbus_connection_ || dbus_interface_) && "Invalid state");
+  if (dbus_connection_) {
+    return dbus_connection_->get_io_context();
+  }
   return dbus_interface_->connection()->get_io_context();
 }
 

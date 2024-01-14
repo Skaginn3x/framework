@@ -23,6 +23,8 @@ jobs:
           clangFormatVersion: 16
           style: file
           inplace: True
-      - uses: EndBug/add-and-commit@v9
+      - name: "Commit clang format"
+        if: github.event.pull_request.draft == false
+        uses: EndBug/add-and-commit@v9
         with:
           message: ':art: Committing clang-format changes'

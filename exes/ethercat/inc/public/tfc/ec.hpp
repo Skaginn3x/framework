@@ -11,10 +11,11 @@
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/ec/common.hpp>
 #include <tfc/ec/config/bus.hpp>
 #include <tfc/ec/devices/device.hpp>
-#include <tfc/ec/interfaces.hpp>
 #include <tfc/ec/soem_interface.hpp>
+#include <tfc/motor/dbus_tags.hpp>
 
 namespace tfc::ec {
 using std::chrono::duration;
@@ -27,7 +28,9 @@ using std::chrono::nanoseconds;
 template <size_t pdo_buffer_size = 4096>
 class context_t {
 public:
-  static constexpr std::string_view dbus_name{ "ethercat" };
+  static constexpr std::string_view dbus_name{
+    tfc::motor::dbus::detail::service
+  };  // needs to match the name in motor/dbus_tags.hpp
   // There is support in SOEM and ethercat to split
   // your network into groups. There can even be
   // Many processing loops operating on the same
@@ -39,7 +42,6 @@ public:
   // interacting with groups.
 
   explicit context_t(boost::asio::io_context& ctx) : ctx_(ctx), client_(ctx_) {
-    dbus_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     dbus_->request_name(dbus::make_dbus_name(dbus_name).c_str());
     context_.userdata = static_cast<void*>(this);
     context_.port = &port_;
@@ -67,7 +69,7 @@ public:
 
     config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
 
-    auto interfaces = tfc::global::get_interfaces();
+    auto interfaces = common::get_interfaces();
     if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_->value().primary_interface.value) !=
           interfaces.end())) {
       config_->make_change()->primary_interface = config::network_interface{ interfaces[0] };
@@ -223,7 +225,7 @@ private:
     if (first_iteration) {
       timer->expires_after(std::chrono::microseconds(0));
     } else {
-      auto sleep_time = milliseconds(1) - (std::chrono::high_resolution_clock::now() - cycle_start_);
+      auto sleep_time = ec::common::cycle_time() - (std::chrono::high_resolution_clock::now() - cycle_start_);
       timer->expires_after(sleep_time);
     }
     cycle_start_with_sleep_ = std::chrono::high_resolution_clock::now();
@@ -398,7 +400,9 @@ private:
   int32_t wkc_ = 0;
   std::array<std::byte, pdo_buffer_size> io_;
   std::unique_ptr<std::thread> check_thread_;
-  std::shared_ptr<sdbusplus::asio::connection> dbus_;
+  std::shared_ptr<sdbusplus::asio::connection> dbus_{
+    std::make_shared<sdbusplus::asio::connection>(ctx_, dbus::sd_bus_open_system())
+  };
   std::shared_ptr<tfc::confman::config<config::ethercat>> config_;
   tfc::logger::logger logger_{ "ethercat" };
 };

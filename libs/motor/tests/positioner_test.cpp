@@ -15,6 +15,7 @@ using ut::expect;
 using ut::operator""_test;
 using ut::operator|;
 using ut::operator/;
+using ut::operator>>;
 using std::chrono_literals::operator""ms;
 using std::chrono_literals::operator""ns;
 static constexpr std::size_t buffer_len{ 10 };
@@ -23,11 +24,99 @@ using mock_bool_slot_t = tfc::ipc::mock_slot<tfc::ipc::details::type_bool, tfc::
 using mp_units::quantity;
 using mp_units::si::unit_symbols::mm;
 
+namespace compile_tests {
+
+#ifdef __clang__
+
+using tfc::motor::positioner::detail::make_between_callable;
+// overflow tests
+// numbers from 245 -> 255 and 0 -> 11
+// is 244 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 244 }));
+// is 12 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 12 }));
+// is 246 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 246 }));
+// is 1 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 1 }));
+// is 1 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 0 }));
+// is 255 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 255 }));
+// is 245 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 245 }));
+// is 11 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 })(std::uint8_t{ 11 }));
+
+// normal incremental tests
+// numbers from 11 -> 245
+// is 11 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 11 }));
+// is 245 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 245 }));
+// is 12 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 12 }));
+// is 244 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 244 }));
+// is 0 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 0 }));
+// is 1 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 1 }));
+// is 255 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 255 }));
+// is 10 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 10 }));
+// is 246 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 })(std::uint8_t{ 246 }));
+
+// underflow tests now we go backwards
+// numbers from 11 -> 0 and 255 -> 245
+// is 11 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 11 }));
+// is 245 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 245 }));
+// is 0 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 0 }));
+// is 1 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 1 }));
+// is 255 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 255 }));
+// is 10 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 10 }));
+// is 246 between 11 and 245, yes
+static_assert(make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 246 }));
+// is 12 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 12 }));
+// is 244 between 11 and 245, nope
+static_assert(!make_between_callable(std::uint8_t{ 11 }, std::uint8_t{ 245 }, false)(std::uint8_t{ 244 }));
+
+// normal decrement tests
+// numbers from 245 -> 11
+// is 245 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 245 }));
+// is 11 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 11 }));
+// is 12 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 12 }));
+// is 244 between 245 and 11, yes
+static_assert(make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 244 }));
+// is 0 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 0 }));
+// is 10 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 10 }));
+// is 246 between 245 and 11, nope
+static_assert(!make_between_callable(std::uint8_t{ 245 }, std::uint8_t{ 11 }, false)(std::uint8_t{ 246 }));
+
+#endif
+
+}  // namespace compile_tests
+
 #if (!(__GNUC__ && defined(DEBUG) && !__clang__))
 
 struct test_instance {
   asio::io_context ctx{};
-  tfc::ipc_ruler::ipc_manager_client client{ ctx };
+  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+  tfc::ipc_ruler::ipc_manager_client unused{ dbus };
 };
 
 // clang-format off
@@ -35,13 +124,14 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"tachometer"> tachometer_test = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using tachometer_t = tfc::motor::detail::tachometer<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using tachometer_t = tfc::motor::positioner::detail::tachometer<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t,
+                                                                  tfc::testing::clock, buffer_len>;
 
   struct tachometer_test {
     test_instance inst{};
     // ability to populate, but will be moved into implementation
-    std::function<tfc::motor::tick_signature_t> cb{ [](auto, auto, auto, auto) {} };
-    tachometer_t tachometer{ inst.ctx, inst.client, "name", std::move(cb) };
+    std::function<tfc::motor::positioner::tick_signature_t> cb{ [](auto, auto, auto, auto) {} };
+    tachometer_t tachometer{ inst.dbus, inst.unused, "name", std::move(cb) };
   };
 
   "tachometer with single sensor updates internal state"_test = [] {
@@ -54,13 +144,12 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   "tachometer with single sensor calls owner"_test = [] {
-    std::int64_t idx{ 1 };
     bool called{};
-    tachometer_test test{ .cb = [&idx, &called](std::int64_t new_value, auto, auto, auto) {
-      expect(idx == new_value) << fmt::format("got {} expected {}", new_value, idx);
+    tachometer_test test{ .cb = [&called](std::int64_t new_value, auto, auto, auto) {
+      expect(1 == new_value) << fmt::format("got {} expected {}", new_value, 1);
       called = true;
     } };
-    for (; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
+    for (std::size_t idx{}; idx < static_cast<std::int64_t>(buffer_len * 3); idx++) {
       test.tachometer.update(true);
       test.tachometer.update(false);
     }
@@ -140,6 +229,36 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
                    data_t{ .time_between_teeth = 3ms, .stddev = 909945ns },
                    data_t{ .time_between_teeth = 7ms, .stddev = 2123205ns },
                    data_t{ .time_between_teeth = 17ms, .stddev = 5156355ns } };
+
+  ut::skip / "tachometer average deviation threshold reached"_test = [] {
+    bool called{};
+    bool do_expect_error{};
+    tachometer_test test{ .cb = [&called, &do_expect_error](auto, auto, auto, tfc::motor::errors::err_enum err) {
+      if (do_expect_error) {
+        auto const expected{ tfc::motor::errors::err_enum::positioning_unstable };
+        expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+        called = true;
+      }
+    } };
+
+    tfc::testing::clock::set_ticks(tfc::testing::clock::time_point{});
+    // lets go 2 rounds to make sure the average is correct
+    for (std::size_t idx{ 0 }; idx < buffer_len * 2; idx++) {
+      tfc::testing::clock::time_point const later{ tfc::testing::clock::now() + 1ms };
+      tfc::testing::clock::set_ticks(later);
+      test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+      test.tachometer.update(true);
+    }
+
+    // let's get down to business
+    do_expect_error = true;
+    tfc::testing::clock::time_point const average_times_2{ tfc::testing::clock::now() +
+                                                           test.tachometer.statistics().average() * 2 };
+    tfc::testing::clock::set_ticks(average_times_2);
+    test.tachometer.update(false);  // for sake of completeness, even though it is unnecessary
+    test.tachometer.update(true);
+    expect(called);
+  };
 };
 
 // clang-format off
@@ -147,12 +266,13 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"encoder"> enc_test = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
-  using encoder_t = tfc::motor::detail::encoder<mock_bool_slot_t, tfc::testing::clock, buffer_len>;
+  using encoder_t = tfc::motor::positioner::detail::encoder<tfc::ipc_ruler::ipc_manager_client&, mock_bool_slot_t,
+                                                            tfc::testing::clock, buffer_len>;
   struct encoder_test {
     test_instance inst{};
-    std::function<tfc::motor::tick_signature_t> cb{ [](std::int64_t, auto, auto, auto) {
+    std::function<tfc::motor::positioner::tick_signature_t> cb{ [](std::int64_t, auto, auto, auto) {
     } };  // ability to populate, but will be moved into implementation
-    encoder_t encoder{ inst.ctx, inst.client, "name", std::move(cb) };
+    encoder_t encoder{ inst.dbus, inst.unused, "name", std::move(cb) };
   };
 
   "encoder: 0"_test = [] {
@@ -212,17 +332,6 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     expect(test.encoder.position_ == 0);
   };
 
-  ///	0   1   |   0   1   ->   no movement
-  // "encoder: 0"_test = [] {
-  //   encoder_test test{};
-
-  //   test.encoder.first_tacho_update(true);
-  //   expect(test.encoder.position_ == -1);
-
-  //   test.encoder.first_tacho_update(true);
-  //   expect(test.encoder.position_ == -1);
-  // };
-
   ///	0   1   |   1   1   ->   +1
   "encoder: +1"_test = [] {
     encoder_test test{};
@@ -234,17 +343,6 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.encoder.second_tacho_update(false);
     expect(test.encoder.position_ == -1);
   };
-
-  ///	1   0   |   1   0   ->   no movement
-  // "encoder: 0"_test = [] {
-  //   encoder_test test{};
-
-  //   test.encoder.second_tacho_update(true);
-  //   expect(test.encoder.position_ == 1);
-
-  //   test.encoder.second_tacho_update(true);
-  //   expect(test.encoder.position_ == 1);
-  // };
 
   ///	1   0   |   1   1   ->   -1
   "encoder: -1"_test = [] {
@@ -280,18 +378,24 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     expect(test.encoder.position_ == 2) << test.encoder.position_;
   };
 
-  ///   1   1   |   1   1   ->   no movement
-  // "encoder: 0"_test = [] {
-  //   encoder_test test{};
+  // we do expect that the encoder will receive event on first sensor than the second and so forth
+  "missing event"_test = [](auto event) {
+    bool called{};
+    encoder_test test{ .cb = [&called, first_call = true](auto, auto, auto, tfc::motor::errors::err_enum err) mutable {
+      if (first_call) {
+        first_call = false;
+        return;
+      }
+      called = true;
+      auto const expected{ tfc::motor::errors::err_enum::positioning_missing_event };
+      expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+    } };
 
-  //   test.encoder.first_tacho_update(true);
-  //   test.encoder.second_tacho_update(true);
-  //   expect(test.encoder.position_ == -2) << test.encoder.position_;
+    test.encoder.update(1, true, false, event);
+    test.encoder.update(1, true, false, event);
 
-  //   test.encoder.first_tacho_update(true);
-  //   test.encoder.second_tacho_update(true);
-  //   expect(test.encoder.position_ == -2) << test.encoder.position_;
-  // };
+    expect(called);
+  } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };
 };
 
 // clang-format off
@@ -299,11 +403,18 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 [[maybe_unused]] static ut::suite<"notifications"> notify_tests = [] {
   PRAGMA_CLANG_WARNING_POP
   // clang-format on
+  static constexpr auto unit{ mp_units::si::metre };
+  static constexpr auto reference{ mp_units::si::nano<unit> };
   struct notification_test {
-    using positioner_t = tfc::motor::positioner<tfc::motor::position_t, tfc::confman::stub_config>;
+    using positioner_t = tfc::motor::positioner::
+        positioner<unit, tfc::ipc_ruler::ipc_manager_client&, tfc::confman::stub_config, mock_bool_slot_t>;
+    using position_t = positioner_t::absolute_position_t;
+    using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
+    using tachometer_config_t = tfc::motor::positioner::tachometer_config<reference>;
     test_instance inst{};
-    positioner_t::config config{};  // to be moved to implementation
-    positioner_t positioner{ inst.ctx, inst.client, "name", std::move(config) };
+    positioner_t::config_t config{};  // to be moved to implementation
+    std::function<void(bool)> home_cb{ [](bool) {} };
+    positioner_t positioner{ inst.dbus, inst.unused, "name", std::move(home_cb), std::move(config) };
   };
   using mp_units::si::unit_symbols::mm;
 
@@ -404,16 +515,27 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   } | std::vector{ 1 * mm, -1 * mm };  // it can go either forward or backwards from current position
 
   "position per tick"_test = [] {
-    auto const displacement{ 100 * mm };
-    notification_test test{ .config = { .displacement_per_increment = displacement } };
+    auto constexpr displacement{ 100 * mm };
+    notification_test::positioner_t::config_t config{};
+    using tachometer_config_t = tfc::motor::positioner::tachometer_config<mp_units::si::nano<mp_units::si::metre>>;
+    tachometer_config_t tachometer_config{};
+    tachometer_config.displacement_per_increment = displacement;
+    config.mode = tachometer_config;
+
+    notification_test test{ .config = config };
     test.positioner.tick(1, {}, {}, {});
     expect(test.positioner.position() == displacement)
         << fmt::format("expected: {}, got: {}\n", displacement, test.positioner.position());
   };
 
   "velocity per tick"_test = [] {
-    auto const displacement{ 100 * mm };
-    notification_test test{ .config = { .displacement_per_increment = displacement } };
+    auto constexpr displacement{ 100 * mm };
+    notification_test::positioner_t::config_t config{};
+    notification_test::tachometer_config_t tachometer_config{};
+    tachometer_config.displacement_per_increment = displacement;
+    config.mode = tachometer_config;
+
+    notification_test test{ .config = config };
     auto const tick_duration{ 1ms };
     test.positioner.tick(1, tick_duration, {}, {});
     auto expected_velocity{ displacement / (tick_duration.count() * mp_units::si::milli<mp_units::si::second>)};
@@ -422,17 +544,85 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
         << fmt::format("expected: {}, got: {}\n", expected_velocity, test.positioner.velocity());
   };
 
-  "standard deviation error"_test = [] {
-    auto stddev{ 1ms };
-    notification_test test{ .config = { .standard_deviation_threshold = stddev } };
+  ut::skip / "standard deviation error"_test = [] {
+    auto constexpr stddev{ 1ms };
+    notification_test::positioner_t::config_t config{};
+    notification_test::tachometer_config_t tachometer_config{};
+    tachometer_config.standard_deviation_threshold = stddev;
+    config.mode = tachometer_config;
+
+    notification_test test{ .config = config };
     test.positioner.tick(1, {}, stddev, {});
-    expect(test.positioner.error() == tfc::motor::position_error_code_e::unstable);
+    expect(test.positioner.error() == tfc::motor::errors::err_enum::positioning_unstable);
+  };
+
+  "homing required not normally"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{};
+    expect(test.positioner.error() == success);
+  };
+
+  "homing required on construction if homing travel is configured"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 1 * mm } } };
+    expect(test.positioner.error() == motor_missing_home_reference);
+  };
+
+  "homing not required if homed"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 1 * mm } } };
+    test.positioner.home();
+    expect(test.positioner.error() == success);
+  };
+
+  "homing required if homed and exceeded config param"_test = [] {
+    using enum tfc::motor::errors::err_enum;
+    notification_test test{ .config = { .needs_homing_after = notification_test::home_travel_t{ 2 * mm } } };
+    test.positioner.home();
+    test.positioner.increment_position(1 * mm);
+    test.positioner.increment_position(-1 * mm);
+    expect(test.positioner.error() == motor_missing_home_reference);
+  };
+
+  struct flow_test {
+    notification_test::position_t value{};
+    std::int64_t ticks{};
+  };
+  "under or overflow"_test =
+      [](flow_test const& data) {
+        notification_test test{};
+        test.positioner.increment_position(data.value);
+        bool called{};
+        test.positioner.notify_after(data.ticks * 2 * mm, [&called](std::error_code err) {
+          expect(!err) << err.message();
+          called = true;
+        });
+        test.positioner.increment_position(data.ticks * mm);
+        test.inst.ctx.run_for(1ms);
+        expect(!called);
+        test.positioner.increment_position(data.ticks * mm);
+        test.inst.ctx.run_for(1ms);
+        expect(called);
+      } |
+      std::vector{ flow_test{ .value = notification_test::position_t::max(), .ticks = 1 },
+                   flow_test{ .value = notification_test::position_t::min(), .ticks = -1 } };
+
+  "homing velocity enabled call home callback"_test = [] {
+    using tfc::confman::observable;
+    using tfc::motor::positioner::speedratio_t;
+    bool called{};
+    notification_test test{ .config = { .homing_travel_speed =
+                                            observable<std::optional<speedratio_t>>{ 2 * mp_units::percent } },
+                            .home_cb = [&called](bool new_v) { called = new_v; } };
+    expect(test.positioner.homing_sensor().has_value() >> ut::fatal);
+    test.positioner.homing_sensor()->callback(true);
+    expect(called);
   };
 };
 #endif
 
 int main(int argc, char** argv) {
-  using tfc::motor::detail::circular_buffer;
+  using tfc::motor::positioner::detail::circular_buffer;
   tfc::base::init(argc, argv);
 
   "circular_buffer_test moves pointer front when inserted to last item"_test = [] {

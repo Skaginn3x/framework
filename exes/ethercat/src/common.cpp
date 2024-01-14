@@ -3,7 +3,7 @@
 
 #include <ifaddrs.h>
 
-#include <tfc/ec/interfaces.hpp>
+#include <tfc/ec/common.hpp>
 #include <tfc/utils/pragmas.hpp>
 
 namespace {
@@ -16,7 +16,7 @@ PRAGMA_CLANG_WARNING_POP
 // clang-format on
 }  // namespace
 
-namespace tfc::global {
+namespace tfc::ec::common {
 
 auto get_interfaces() -> std::vector<std::string> const& {
   struct ifaddrs* addrs;
@@ -34,4 +34,4 @@ auto get_interfaces() -> std::vector<std::string> const& {
   return interfaces;
 }
 
-}  // namespace tfc::global
+}  // namespace tfc::ec::common

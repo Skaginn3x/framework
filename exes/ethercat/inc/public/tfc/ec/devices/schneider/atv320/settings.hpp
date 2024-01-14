@@ -1,6 +1,10 @@
 #pragma once
 
+#include <mp-units/systems/si/si.h>
+
 #include <tfc/ec/devices/schneider/atv320/enums.hpp>
+#include <tfc/ec/devices/util.hpp>
+
 namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
 
@@ -40,6 +44,13 @@ using nominal_motor_voltage_UNS = setting<ecx::index_t{ 0x2042, 0x02 },
 using nominal_motor_frequency_FRS =
     setting<ecx::index_t{ 0x2042, 0x03 }, "FRS", "Nominal motor frequency", decifrequency, 500 * dHz>;
 
+using fast_stop_ramp_divider_DCF =
+    setting<ecx::index_t{ 0x2052, 0x1F },
+            "DCF",
+            "Fast stop ramp divider. Controls the quick stop time documented as a divider from 1-10. 0 seems to be instant.",
+            uint16_t,
+            4>;
+
 using nominal_motor_current_NCR =
     setting<ecx::index_t{ 0x2042, 0x04 }, "NCR", "Nominal motor current", atv_deciampere_rep, 20 * dA>;
 
@@ -66,4 +77,21 @@ using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", 
 // 10 = 1 second
 using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", deciseconds, 1>;
 
+// Lenze 120Hz specific drive parameters
+using async_motor_leakage_inductance_LFA =
+    setting<ecx::index_t{ 0x2042, 0x3F },
+            "LFA",
+            "Async motor leakage inductance. Typical for 120Hz Lenze = 61mH",
+            mp_units::quantity<mp_units::si::milli<mp_units::si::henry>, std::uint16_t>,
+            0 * mp_units::si::henry>;
+using async_motor_stator_resistance_RSA = setting<ecx::index_t{ 0x2042, 0x2B },
+                                                  "RSA",
+                                                  "Async motor stator resistance. Typical for 120Hz Lenze = 1100mOhm",
+                                                  mp_units::quantity<mp_units::si::milli<mp_units::si::ohm>, std::uint16_t>,
+                                                  0 * mp_units::si::ohm>;
+using rotor_time_constant_TRA = setting<ecx::index_t{ 0x2042, 0x44 },
+                                        "TRA",
+                                        "Rotor time constant. Typical for 120Hz Lenze = 90ms",
+                                        std::chrono::duration<std::uint16_t, std::milli>,
+                                        0>;
 }  // namespace tfc::ec::devices::schneider::atv320

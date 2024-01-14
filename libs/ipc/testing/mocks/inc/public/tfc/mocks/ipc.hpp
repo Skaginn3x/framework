@@ -7,6 +7,7 @@
 #include <gmock/gmock.h>
 #include <boost/asio/io_context.hpp>
 
+#include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ipc {
@@ -43,14 +44,29 @@ template <typename type_desc, typename manager_client_type>
 struct mock_slot {
   using value_t = typename type_desc::value_t;
   mock_slot(asio::io_context const&,
-            manager_client_type&,
+            manager_client_type,
             std::string_view,
             std::string_view,
             tfc::stx::invocable<value_t> auto&& cb)
+    requires std::is_lvalue_reference_v<manager_client_type>
       : callback{ std::forward<decltype(cb)>(cb) } {
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
   }
-  mock_slot(asio::io_context const&, manager_client_type&, std::string_view, tfc::stx::invocable<value_t> auto&&) {}
+  mock_slot(asio::io_context const& ctx,
+            manager_client_type client,
+            std::string_view,
+            tfc::stx::invocable<value_t> auto&& cb)
+      : mock_slot(ctx, client, {}, {}, std::forward<decltype(cb)>(cb)) {}
+
+  mock_slot(asio::io_context const&,
+            std::shared_ptr<sdbusplus::asio::connection>,
+            std::string_view,
+            std::string_view,
+            tfc::stx::invocable<value_t> auto&& cb)
+    requires(!std::is_lvalue_reference_v<manager_client_type>)
+      : callback{ std::forward<decltype(cb)>(cb) } {
+    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
+  }
 
   MOCK_METHOD((std::optional<value_t> const&), value, (), (const));  // NOLINT
   std::optional<value_t> value_{ std::nullopt };

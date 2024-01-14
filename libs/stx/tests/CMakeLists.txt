@@ -27,6 +27,7 @@ add_executable(test_asio_condition_variable test_asio_condition_variable.cpp)
 target_link_libraries(test_asio_condition_variable
   PRIVATE
     tfc::stx
+    fmt::fmt
     Boost::ut
 )
 

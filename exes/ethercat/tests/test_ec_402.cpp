@@ -27,16 +27,17 @@ auto main(int, char**) -> int {
 #endif
   };
 
-  "transition_to_operation"_test = []() {
-    bool run = true;
-    bool quick_stop = false;
-    bool freewheel_stop = false;
+  "transition_to_operation"_test = [] {
     using tfc::ec::cia_402::commands;
-    expect(transition(states_e::switch_on_disabled, run, quick_stop, freewheel_stop) == commands::shutdown());
-    expect(transition(states_e::ready_to_switch_on, run, quick_stop, freewheel_stop) == commands::enable_operation());
-    expect(transition(states_e::switched_on, run, quick_stop, freewheel_stop) == commands::enable_operation());
-    expect(transition(states_e::fault, run, quick_stop, freewheel_stop) == commands::fault_reset());
-    expect(transition(states_e::operation_enabled, run, quick_stop, freewheel_stop) == commands::enable_operation());
+    using enum tfc::ec::cia_402::transition_action;
+    using enum states_e;
+    expect(transition(switch_on_disabled, run) == commands::shutdown());
+    expect(transition(ready_to_switch_on, run) == commands::enable_operation());
+    expect(transition(switched_on, run) == commands::enable_operation());
+    bool const allow_reset_fault{ true };
+    expect(transition(fault, run, allow_reset_fault) == commands::fault_reset());
+    expect(transition(fault, run) == commands::shutdown());
+    expect(transition(operation_enabled, run) == commands::enable_operation());
   };
 }
 
