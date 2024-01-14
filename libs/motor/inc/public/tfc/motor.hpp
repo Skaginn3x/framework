@@ -254,7 +254,8 @@ public:
   /// \brief Try to reset any error on motor driver
   /// Can commonly be used when operation of the user logic is set to "running"
   auto reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-        typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+
 private:
   asio::io_context& ctx_;
 
