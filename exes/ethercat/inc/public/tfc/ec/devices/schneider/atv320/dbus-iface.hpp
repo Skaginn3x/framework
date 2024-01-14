@@ -217,9 +217,10 @@ struct controller {
             reset_allowed_ = false;
           });
           self.complete(status_word_.parse_state() == states_e::fault
-                          ? motor::motor_error(err_enum::frequency_drive_reports_fault)
-                          : motor::motor_error({}));
-        }, token);
+                            ? motor::motor_error(err_enum::frequency_drive_reports_fault)
+                            : motor::motor_error({}));
+        },
+        token);
   }
 
   // Set properties with new status values
