@@ -1,3 +1,4 @@
+#include <cassert>
 #include <utility>
 
 #include <tfc/confman/detail/config_dbus_client.hpp>
@@ -21,7 +22,7 @@ namespace tfc::confman::detail {
 
 config_dbus_client::config_dbus_client(asio::io_context&) {}
 
-config_dbus_client::config_dbus_client(std::shared_ptr<sdbusplus::asio::connection>) {}
+config_dbus_client::config_dbus_client(std::shared_ptr<sdbusplus::asio::connection> conn) : dbus_connection_{ conn } {}
 
 config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        std::string_view key,
@@ -91,7 +92,12 @@ void config_dbus_client::initialize() {
 }
 
 auto config_dbus_client::get_io_context() const noexcept -> asio::io_context& {
-  return dbus_interface_->connection()->get_io_context();
+  if (dbus_connection_) {
+    return dbus_connection_->get_io_context();
+  } else if (dbus_interface_) {
+    return dbus_interface_->connection()->get_io_context();
+  }
+  assert(false && "Invalid state");
 }
 
 auto config_dbus_client::get_dbus_interface_name() const -> std::string {
