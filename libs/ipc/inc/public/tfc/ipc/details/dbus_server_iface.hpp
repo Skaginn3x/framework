@@ -190,10 +190,10 @@ public:
       }
 
       int signal_type = 0;
-      db_ << fmt::format("SELECT type FROM signals WHERE name = '{}' LIMIT 1;", slot_name) >>
+      db_ << fmt::format("SELECT type FROM signals WHERE name = '{}' LIMIT 1;", signal_name) >>
           [&signal_type](const int result) { signal_type = result; };
       int slot_type = 0;
-      db_ << fmt::format("SELECT type FROM slots WHERE name = ? LIMIT 1;", slot_name) >>
+      db_ << fmt::format("SELECT type FROM slots WHERE name = '{}' LIMIT 1;", slot_name) >>
           [&slot_type](const int result) { slot_type = result; };
       if (signal_type != slot_type) {
         std::string const err_msg = "Signal and slot types dont match";
