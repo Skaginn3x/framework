@@ -267,7 +267,7 @@ public:
   template <typename signature_t = void(std::error_code)>
   auto reset(asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    std::chrono::microseconds static constexpr timeout{ std::chrono::seconds{ 25 } }; // sdbus default
+    std::chrono::microseconds static constexpr timeout{ std::chrono::seconds{ 25 } };  // sdbus default
     return error_only_token_impl<signature_t, timeout>(std::string{ method::reset }, std::forward<decltype(token)>(token));
   }
 
