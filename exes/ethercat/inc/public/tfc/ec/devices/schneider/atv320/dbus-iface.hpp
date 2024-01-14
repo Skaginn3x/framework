@@ -31,10 +31,8 @@ static constexpr std::string_view impl_name{ "atv320" };
 namespace detail {
 template <typename completion_token_t>
 struct combine_error_code {
-  combine_error_code(completion_token_t&& token)
-      : self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {
-    // static_assert(std::is_rvalue_reference_v<completion_token_t>);
-  }
+  explicit combine_error_code(completion_token_t&& token)
+      : self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {}
 
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
@@ -64,10 +62,7 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 template <typename completion_token_t>
 struct drive_error_first {
   drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error)
-      : drive_err{ drive_error }, self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {
-    // static_assert(std::is_rvalue_reference_v<completion_token_t>);
-  }
-
+      : drive_err{ drive_error }, self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {}
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
 
@@ -314,8 +309,8 @@ private:
           if (first_call) {
             first_call = false;
             asio::experimental::make_parallel_group(
-                [&](auto inner_token) { return drive_error_subscriptable_.async_wait(inner_token); },
-                [&](auto inner_token) { return stop_complete_.async_wait(inner_token); })
+                [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
+                [this](auto inner_token) { return this->stop_complete_.async_wait(inner_token); })
                 .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
             return;
           }
@@ -351,8 +346,8 @@ private:
             case state_e::run_until_stopped: {
               state = state_e::wait_till_stop;
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return drive_error_subscriptable_.async_wait(inner_token); },
-                  [&](auto inner_token) { return run_blocker_.async_wait(inner_token); })
+                  [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
+                  [this](auto inner_token) { return this->run_blocker_.async_wait(inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
               return;
             }
@@ -457,8 +452,8 @@ private:
               }
 
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return run_impl(is_positive ? speedratio : -speedratio, inner_token); },
-                  [&](auto inner_token) { return pos_.notify_after(travel, inner_token); })
+                  [this, is_positive, speedratio](auto inner_token) { return this->run_impl(is_positive ? speedratio : -speedratio, inner_token); },
+                  [this, travel](auto inner_token) { return this->pos_.notify_after(travel, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }
@@ -521,8 +516,8 @@ private:
                 return self.complete({}, placement);
               }
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return run_impl(is_positive ? speedratio : -speedratio, inner_token); },
-                  [&](auto inner_token) { return pos_.notify_from_home(placement, inner_token); })
+                  [this, is_positive, speedratio](auto inner_token) { return this->run_impl(is_positive ? speedratio : -speedratio, inner_token); },
+                  [this, placement](auto inner_token) { return this->pos_.notify_from_home(placement, inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }
@@ -587,8 +582,8 @@ private:
                 return;
               }
               asio::experimental::make_parallel_group(
-                  [&](auto inner_token) { return run_impl(travel_speed.value(), inner_token); },
-                  [&](auto inner_token) { return homing_complete_.async_wait(inner_token); })
+                  [this, speed = travel_speed.value()](auto inner_token) { return this->run_impl(speed, inner_token); },
+                  [this](auto inner_token) { return this->homing_complete_.async_wait(inner_token); })
                   .async_wait(asio::experimental::wait_for_one(), detail::combine_error_code(std::move(self)));
               return;
             }

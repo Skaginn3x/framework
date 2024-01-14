@@ -89,7 +89,7 @@ private:
 
 public:
   using config_t = config;
-  std::chrono::microseconds static constexpr method_call_timeout{ std::chrono::hours{ 24 } };
+  std::chrono::microseconds static constexpr method_call_timeout{ std::chrono::microseconds::max() };
 
   atv320motor(asio::io_context& ctx, const config_t& conf) : ctx_{ ctx } {
     slave_id_ = conf.slave_id.value();

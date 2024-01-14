@@ -299,19 +299,20 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
-      inst.ctx.stop();
     });
-    expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
     inst.ctrl.stop([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[1] = true;
+      inst.ctx.stop();
     });
-    expect(inst.ran[1]);
-    inst.ctrl.update_status(get_good_status_stopped());
-    expect(inst.ran[1]);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
+    expect(!inst.ran[1]);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[1]);
   };
 
   "test quick_stop impl interupted by quick_stop"_test = [&] {
@@ -320,19 +321,20 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
-      inst.ctx.stop();
     });
-    expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
     inst.ctrl.quick_stop([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[1] = true;
+      inst.ctx.stop();
     });
-    expect(inst.ran[1]);
-    inst.ctrl.update_status(get_good_status_stopped());
-    expect(inst.ran[1]);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
+    expect(!inst.ran[1]);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[1]);
   };
 
   "move home already in homing sensor"_test = [&] {
