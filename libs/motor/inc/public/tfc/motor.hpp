@@ -251,6 +251,10 @@ public:
   auto run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
+  /// \brief Try to reset any error on motor driver
+  /// Can commonly be used when operation of the user logic is set to "running"
+  auto reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+        typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 private:
   asio::io_context& ctx_;
 
@@ -493,6 +497,15 @@ auto api::run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.run(time, std::forward<decltype(token)>(token)); } },
       impl_);
+}
+
+auto api::reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+  using signature_t = void(std::error_code);
+  using namespace detail;
+  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                                [&](auto& motor_impl) { return motor_impl.reset(std::forward<decltype(token)>(token)); } },
+                    impl_);
 }
 
 }  // namespace tfc::motor

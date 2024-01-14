@@ -207,7 +207,7 @@ public:
 
   template <typename signature_t = void(std::error_code)>
   auto move_home(asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
     // logger_.trace("move_home();");
@@ -248,7 +248,7 @@ public:
 
   template <typename signature_t = void(std::error_code)>
   auto stop(asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
     // running_ = false;
@@ -258,21 +258,21 @@ public:
 
   template <typename signature_t = void(std::error_code)>
   auto stop(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
   template <typename signature_t = void(std::error_code)>
   auto quick_stop(asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
   template <typename signature_t = void(std::error_code)>
   auto brake(asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
@@ -280,14 +280,14 @@ public:
 
   template <typename signature_t = void(std::error_code)>
   auto run(asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
   template <typename signature_t = void(std::error_code)>
   auto run([[maybe_unused]] speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
@@ -302,6 +302,13 @@ public:
   template <typename signature_t = void(std::error_code)>
   auto run(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return asio::async_compose<decltype(token), signature_t>(
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto reset(asio::completion_token_for<signature_t> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
