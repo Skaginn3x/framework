@@ -3093,9 +3093,11 @@ enum struct lft_e : std::uint16_t {
   inf7 = 37,     ///< Internal error 7 (Init) ([Internal Error 7] (INF7))
   epf2 = 38,     ///< External error detected by Fieldbus ([Fieldbus Error] (EPF2))
   inf8 = 40,     ///< Internal error 8 (Switching Supply) ([Internal Error 8] (INF8))
+  brf = 41,      ///< Brake feedback ([Brake feedback] (brF))
   slf2 = 42,     ///< PC communication interruption ([PC Com Interruption] (SLF2))
-  ssf  = 44,     ///<
+  ssf  = 44,     ///< Torque/current lim ([Torque/current lim] (SSF))
   slf3 = 45,     ///< HMI communication interruption ([HMI Com Interruption] (SLF3))
+  ptfL = 49,     ///< PTC probe ([PTC probe] (PtFL))
   inf9 = 51,     ///< Internal error 9 (Measure) ([Internal Error 9] (INF9))
   infa = 52,     ///< Internal error 10 (Mains) ([Internal Error 10] (INFA))
   infb = 53,     ///< Internal error 11 (Temperature) ([Internal Error 11] (INFB))
