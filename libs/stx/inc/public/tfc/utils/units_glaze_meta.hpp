@@ -112,8 +112,6 @@ template <mp_units::Reference auto ref_t>
 inline consteval auto dimension_name() -> std::string_view {
   // todo: the following
   // "elastance",
-  // "resistance",
-  // "inductance",
   // "magnetism",
   // "magnetism",
   // "specific_volume",
@@ -176,7 +174,13 @@ inline consteval auto dimension_name() -> std::string_view {
     return "ratio";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::second)) {
     return "time";
-  } else {
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::henry)) {
+    return "inductance";
+  }
+  else if constexpr (mp_units::convertible(ref_t, mp_units::si::ohm)) {
+    return "resistance";
+  }
+  else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");
     }

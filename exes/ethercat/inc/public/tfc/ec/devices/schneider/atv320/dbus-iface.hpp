@@ -863,7 +863,6 @@ struct dbus_iface {
   motor::errors::err_enum drive_error_{};
 
   ipc_ruler::ipc_manager_client manager_;
-  // motor::positioner::positioner<> pos_;
   logger::logger logger_;
   input_t last_in_{};
 
