@@ -100,7 +100,7 @@ drive_error_first(completion_token_t&&, motor::errors::err_enum&) -> drive_error
 
 template <typename manager_client_t = ipc_ruler::ipc_manager_client,
           template <typename, typename, typename> typename pos_config_t = confman::config,
-          stx::steady_clock clock_t = asio::steady_timer::time_point::clock,
+          typename steady_timer_t = asio::steady_timer,
           typename pos_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, const uint16_t slave_id)
@@ -197,18 +197,21 @@ struct controller {
           [](auto& self) { self.complete(motor::motor_error({})); }, token);
     }
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
-        [this](auto& self) {
-          reset_allowed_ = true;
-          reset_timer_.cancel();  // Cancel the old reset;
-          reset_timer_.expires_from_now(std::chrono::seconds(atv320_reset_time));
-          reset_timer_.async_wait([this](const std::error_code& err) {
-            if (err)
-              return;
-            reset_allowed_ = false;
-          });
-          self.complete(status_word_.parse_state() == states_e::fault
-                            ? motor::motor_error(err_enum::frequency_drive_reports_fault)
-                            : motor::motor_error({}));
+        [this, first_call = true](auto& self, std::error_code err = {}) mutable {
+          if (first_call) {
+            first_call = false;
+            reset_allowed_ = true;
+            reset_timer_.cancel();  // Cancel the old reset;
+            reset_timer_.expires_from_now(std::chrono::seconds(atv320_reset_time));
+            reset_timer_.async_wait(std::move(self));
+            return;
+          }
+          if (err) {
+            self.complete(err);
+            return;
+          }
+          reset_allowed_ = false;
+          self.complete(motor::motor_error(drive_error_));
         },
         token);
   }
@@ -379,7 +382,7 @@ private:
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using signature_t = void(std::error_code);
     enum struct state_e : std::uint8_t { run_until_notify = 0, wait_till_stop, complete };
-    auto timer{ std::make_shared<asio::basic_waitable_timer<clock_t>>(ctx_) };
+    auto timer{ std::make_shared<steady_timer_t>(ctx_) };
     return asio::async_compose<decltype(token), signature_t>(
         [this, speedratio, time, timer, state = state_e::run_until_notify](auto& self, std::error_code err = {}) mutable {
           using enum motor::errors::err_enum;
@@ -628,7 +631,7 @@ private:
   cia_402::status_word status_word_{};
   decifrequency motor_nominal_frequency_{};  // Indication if this is a 50Hz motor or 120Hz motor. That number has an effect
   bool reset_allowed_{};
-  asio::basic_waitable_timer<clock_t> reset_timer_{ ctx_ };
+  steady_timer_t reset_timer_{ ctx_ };
 
   // Motor config
   speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
