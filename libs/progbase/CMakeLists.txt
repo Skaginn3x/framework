@@ -1,6 +1,8 @@
 project(progbase)
 cmake_minimum_required(VERSION 3.21)
 
+include(tfc_version)
+
 add_library(base
   src/progbase.cpp
 )
@@ -12,11 +14,13 @@ target_include_directories(base
     $<INSTALL_INTERFACE:include>
   PRIVATE
     inc
+    ${CMAKE_CURRENT_BINARY_DIR}/inc
     ${TFC_LOGGER_INCLUDE_DIRS}
 )
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(fmt CONFIG REQUIRED)
+
 
 target_link_libraries(base
   PRIVATE
@@ -31,6 +35,13 @@ add_library_to_docs(tfc::base)
 if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
+
+# generate file version.hpp based on version.hpp.in
+configure_file(
+        ${CMAKE_CURRENT_LIST_DIR}/inc/tfc/version.hpp.in
+        ${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp
+        @ONLY
+)
 
 include(tfc_install)
 tfc_install_lib(base)
