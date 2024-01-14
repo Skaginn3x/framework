@@ -92,12 +92,11 @@ void config_dbus_client::initialize() {
 }
 
 auto config_dbus_client::get_io_context() const noexcept -> asio::io_context& {
+  assert((dbus_connection_ || dbus_interface_) && "Invalid state");
   if (dbus_connection_) {
     return dbus_connection_->get_io_context();
-  } else if (dbus_interface_) {
-    return dbus_interface_->connection()->get_io_context();
   }
-  assert(false && "Invalid state");
+  return dbus_interface_->connection()->get_io_context();
 }
 
 auto config_dbus_client::get_dbus_interface_name() const -> std::string {
