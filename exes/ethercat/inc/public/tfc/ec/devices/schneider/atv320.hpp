@@ -76,41 +76,27 @@ public:
 
     struct glaze {
       using T = atv_config;
-      static constexpr auto value = glz::object("nominal_motor_power",
-                                                &T::nominal_motor_power,
-                                                "nominal_motor_voltage",
-                                                &T::nominal_motor_voltage,
-                                                "nominal_motor_current",
-                                                &T::nominal_motor_current,
-                                                "nominal_motor_frequency",
-                                                &T::nominal_motor_frequency,
-                                                "nominal_motor_speed",
-                                                &T::nominal_motor_speed,
-                                                "max_frequency",
-                                                &T::max_frequency,
-                                                "motor_thermal_current",
-                                                &T::motor_thermal_current,
-                                                "high_speed",
-                                                &T::high_speed,
-                                                "low_speed",
-                                                &T::low_speed,
-                                                "cos_phi",
-                                                &T::motor_1_cos_phi,
-                                                "acceleration",
-                                                &T::acceleration,
-                                                "deceleration",
-                                                &T::deceleration,
-                                                "default_speedratio",
-                                                &T::default_speedratio,
-                                                "fast_stop_ramp_divider",
-                                                &T::fast_stop_ramp_divider,
-                                                "async_motor_leakage_inductance",
-                                                &T::async_motor_leakage_inductance,
-                                                "async_motor_stator_resistance",
-                                                &T::async_motor_stator_resistance,
-                                                "rotor_time_constant",
-                                                &T::rotor_time_constant,
-                                                json::schema{ .minimum = 0, .maximum = 10 });
+      // clang-format off
+      static constexpr auto value = glz::object(
+        "nominal_motor_power", &T::nominal_motor_power,
+        "nominal_motor_voltage", &T::nominal_motor_voltage,
+        "nominal_motor_current", &T::nominal_motor_current,
+        "nominal_motor_frequency", &T::nominal_motor_frequency,
+        "nominal_motor_speed", &T::nominal_motor_speed,
+        "max_frequency", &T::max_frequency,
+        "motor_thermal_current", &T::motor_thermal_current,
+        "high_speed", &T::high_speed,
+        "low_speed", &T::low_speed,
+        "cos_phi", &T::motor_1_cos_phi, json::schema{ .maximum = 100L },
+        "acceleration", &T::acceleration,
+        "deceleration", &T::deceleration,
+        "default_speedratio", &T::default_speedratio, json::schema{ .minimum = -100L, .maximum = 100L },
+        "fast_stop_ramp_divider", &T::fast_stop_ramp_divider, json::schema{ .minimum = 0L, .maximum = 10L },
+        "async_motor_leakage_inductance", &T::async_motor_leakage_inductance,
+        "async_motor_stator_resistance", &T::async_motor_stator_resistance,
+        "rotor_time_constant", &T::rotor_time_constant
+        );
+      // clang-format on
       static constexpr std::string_view name{ "atv320" };
     };
 
