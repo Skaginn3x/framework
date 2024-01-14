@@ -155,6 +155,22 @@ auto main(int argc, char** argv) -> int {
     instance.ctx.run_for(std::chrono::milliseconds(5));
     ut::expect(instance.ran);
   };
+  "connection change subscription types dont match"_test = []() {
+    test_instance instance{};
+
+    instance.ipc_manager_client.register_signal("test_signal", "", tfc::ipc::details::type_e::_bool, [](const auto&) {});
+    instance.ctx.run_for(std::chrono::milliseconds(5));
+    instance.ipc_manager_client.register_slot("test_slot", "", tfc::ipc::details::type_e::_string, [](const auto&) {});
+    instance.ctx.run_for(std::chrono::milliseconds(5));
+    // Register a method for connection change callback
+    instance.ipc_manager_client.register_connection_change_callback("test_slot", [&instance](std::string_view signal_name) {
+      ut::expect(signal_name == "test_signal");
+      instance.ran = true;
+    });
+    instance.ipc_manager_client.connect("test_slot", "test_signal", [](const std::error_code& err) { ut::expect(!err); });
+    instance.ctx.run_for(std::chrono::milliseconds(5));
+    ut::expect(!instance.ran);
+  };
   "Check that re-registering a communication channel only changes last_registered "_test = []() {
     test_instance instance{};
 
