@@ -191,11 +191,6 @@ struct controller {
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using cia_402::states_e;
     using motor::errors::err_enum;
-    // The bit is already set
-    if (reset_allowed_) {
-      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([](auto& self) { self.complete({}); },
-                                                                                       token);
-    }
     // Reset has no effect as the drive is not in a fault state.
     if (status_word_.parse_state() != states_e::fault) {
       return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(

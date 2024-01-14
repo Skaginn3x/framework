@@ -41,14 +41,14 @@ using tfc::motor::errors::err_enum;
 using bool_slot_t = tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using bool_signal_t = tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>;
 using positioner_t = tfc::motor::positioner::
-    positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
+positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
 [[maybe_unused]] static auto get_good_status_stopped() -> input_t {
   return input_t{
     .status_word =
-        tfc::ec::cia_402::status_word{
-            .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
+    tfc::ec::cia_402::status_word{
+      .state_ready_to_switch_on = 1, .state_switched_on = 1, .voltage_enabled = 1, .state_quick_stop = 1 },
     .frequency = 0 * dHz,
     .current = 0,
     .digital_inputs = 0x0000,
@@ -101,15 +101,15 @@ struct instance {
   std::uint16_t slave_id{ 0 };
   tfc::ipc_ruler::ipc_manager_client_mock manager{ dbus_connection };
   controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, clock_t, bool_slot_t> ctrl{ dbus_connection,
-                                                                                                             manager,
-                                                                                                             slave_id };
+    manager,
+    slave_id };
   std::array<bool, 10> ran{};
   bool_signal_t sig{ ctx, manager, "homing_sensor" };
 
   void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = ctrl.positioner().config_ref();
-    config.access().needs_homing_after = home_travel_t{ 1000000 * mm };  // 1 km
+    config.access().needs_homing_after = home_travel_t{ 1000000 * mm }; // 1 km
     auto mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
     mode.displacement_per_increment = displacement;
     config.access().mode = mode;
@@ -121,7 +121,8 @@ struct instance {
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
     manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
-                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {});
+                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
+                    });
     ctx.run_for(5ms);
     sig.send(true);
     ctx.run_for(5ms);
@@ -290,6 +291,56 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::none);
     inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
     inst.ctx.run_for(5ms);
+    expect(inst.ran[0]);
+  };
+  "test reset no fault"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    // set current as reference
+    inst.populate_homing_sensor();
+    inst.ctrl.update_status(get_good_status_stopped());
+    // Since populate homing_sensor sets the homing_displacement amount to 1km we can move just over 1km
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+
+  "test reset fault goes away"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    // set current as reference
+    inst.populate_homing_sensor();
+    inst.ctrl.update_status(get_bad_status_missing_phase());
+    // Since populate homing_sensor sets the homing_displacement amount to 1km we can move just over 1km
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.update_status(get_good_status_stopped());
+    clock::set_ticks(clock::now() + 6000ms);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+
+  "test reset fault stays"_test = [&] {
+    using tfc::testing::clock;
+    instance<clock> inst;
+    // set current as reference
+    inst.populate_homing_sensor();
+    inst.ctrl.update_status(get_bad_status_missing_phase());
+    // Since populate homing_sensor sets the homing_displacement amount to 1km we can move just over 1km
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    clock::set_ticks(clock::now() + 6000ms);
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
 
