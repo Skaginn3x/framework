@@ -176,11 +176,9 @@ inline consteval auto dimension_name() -> std::string_view {
     return "time";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::henry)) {
     return "inductance";
-  }
-  else if constexpr (mp_units::convertible(ref_t, mp_units::si::ohm)) {
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::ohm)) {
     return "resistance";
-  }
-  else {
+  } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");
     }

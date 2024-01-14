@@ -78,16 +78,20 @@ using acceleration_ramp_time_ACC = setting<ecx::index_t{ 0x203c, 0x02 }, "ACC", 
 using deceleration_ramp_time_DEC = setting<ecx::index_t{ 0x203c, 0x03 }, "DEC", "Deceleration time ramp", deciseconds, 1>;
 
 // Lenze 120Hz specific drive parameters
-using async_motor_leakage_inductance_LFA = setting<ecx::index_t{ 0x2042, 0x3F },
-                                                   "LFA",
-                                                   "Async motor leakage inductance. Typical for 120Hz Lenze = 61mH",
-                                                   mp_units::quantity<mp_units::si::milli<mp_units::si::henry>, std::uint16_t>,
-                                                   0 * mp_units::si::henry>;
+using async_motor_leakage_inductance_LFA =
+    setting<ecx::index_t{ 0x2042, 0x3F },
+            "LFA",
+            "Async motor leakage inductance. Typical for 120Hz Lenze = 61mH",
+            mp_units::quantity<mp_units::si::milli<mp_units::si::henry>, std::uint16_t>,
+            0 * mp_units::si::henry>;
 using async_motor_stator_resistance_RSA = setting<ecx::index_t{ 0x2042, 0x2B },
                                                   "RSA",
                                                   "Async motor stator resistance. Typical for 120Hz Lenze = 1100mOhm",
                                                   mp_units::quantity<mp_units::si::milli<mp_units::si::ohm>, std::uint16_t>,
                                                   0 * mp_units::si::ohm>;
-using rotor_time_constant_TRA =
-    setting<ecx::index_t{ 0x2042, 0x44 }, "TRA", "Rotor time constant. Typical for 120Hz Lenze = 90ms", std::chrono::duration<std::uint16_t, std::milli>, 0>;
+using rotor_time_constant_TRA = setting<ecx::index_t{ 0x2042, 0x44 },
+                                        "TRA",
+                                        "Rotor time constant. Typical for 120Hz Lenze = 90ms",
+                                        std::chrono::duration<std::uint16_t, std::milli>,
+                                        0>;
 }  // namespace tfc::ec::devices::schneider::atv320
