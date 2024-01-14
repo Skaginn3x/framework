@@ -99,6 +99,10 @@ auto main(int argc, char** argv) -> int {
   // my_motor.deceleration(1 * s).run(50 * percent, 10 * s, [](std::error_code){}); // todo
   // my_motor.deceleration(1 * s).acceleration(1 * s).run(50 * percent, 10 * s, [](std::error_code){}); // todo
 
+  // reset any motor driver error
+  // returns no error on successful reset
+  my_motor.reset([](std::error_code){});
+
   ctx.run();
 
   return EXIT_SUCCESS;

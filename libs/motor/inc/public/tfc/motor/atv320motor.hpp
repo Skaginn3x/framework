@@ -265,9 +265,10 @@ public:
   }
 
   template <typename signature_t = void(std::error_code)>
-  auto reset(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token) ->
+  auto reset(asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    return error_only_token_impl<signature_t>(std::string{ method::reset }, std::forward<decltype(token)>(token));
+    std::chrono::microseconds static constexpr timeout{ std::chrono::seconds{ 25 } }; // sdbus default
+    return error_only_token_impl<signature_t, timeout>(std::string{ method::reset }, std::forward<decltype(token)>(token));
   }
 
 private:
@@ -300,7 +301,7 @@ private:
         },
         token);
   }
-  template <typename signature_t>
+  template <typename signature_t, std::chrono::microseconds const& timeout = method_call_timeout>
   auto error_only_token_impl(std::string method_name, auto&& token, auto... args) {
     static_assert(stx::function_traits<signature_t>::arity == 1, "signature_t must be of type void(std::error_code)");
     return asio::async_compose<decltype(token), signature_t>(
@@ -323,7 +324,7 @@ private:
                 }
                 self.complete(motor_error(motor_err));
               },
-              service_name_, path_, interface_name_, method_name, method_call_timeout.count(), args...);
+              service_name_, path_, interface_name_, method_name, timeout.count(), args...);
         },
         token);
   }
