@@ -195,7 +195,7 @@ auto main(int, char const* const* argv) -> int {
     using tfc::testing::clock;
     clock::set_ticks(clock::time_point{});
     instance<clock> inst;
-    auto duration = 1 * milli<mp_units::si::second>;
+    auto duration = 10 * milli<mp_units::si::second>;
     speedratio_t ratio = 1.0 * percent;
     inst.ctrl.update_status(get_good_status_stopped());
     inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
@@ -206,7 +206,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ctrl.speed_ratio() == ratio);
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     clock::set_ticks(clock::now() + mp_units::to_chrono_duration(duration));
-    inst.ctx.run_for(2ms);
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::stop);
@@ -215,7 +215,7 @@ auto main(int, char const* const* argv) -> int {
   "run time"_test = [&] {
     using tfc::testing::clock;
     instance<clock> inst;
-    auto duration = 3 * milli<mp_units::si::second>;
+    auto duration = 10 * milli<mp_units::si::second>;
     speedratio_t ratio = 1.0 * percent;
     inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
       expect(!err) << err;
@@ -226,17 +226,17 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
     inst.ctrl.update_status(get_good_status_running());
     clock::set_ticks(clock::now() + 1ms);
-    inst.ctx.run_for(2ms);
+    inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
-    clock::set_ticks(clock::now() + 2ms);
     expect(inst.ctrl.speed_ratio() == ratio);
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::run);
-    inst.ctx.run_for(2ms);
+    clock::set_ticks(clock::now() + 9ms);
+    inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
     inst.ctrl.update_status(get_good_status_stopped());
     expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
     expect(inst.ctrl.action() == tfc::ec::cia_402::transition_action::stop);
-    inst.ctx.run_for(2ms);
+    inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
 
