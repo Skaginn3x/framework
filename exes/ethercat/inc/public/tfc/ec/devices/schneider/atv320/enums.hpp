@@ -3097,7 +3097,7 @@ enum struct lft_e : std::uint16_t {
   slf2 = 42,     ///< PC communication interruption ([PC Com Interruption] (SLF2))
   ssf  = 44,     ///< Torque/current lim ([Torque/current lim] (SSF))
   slf3 = 45,     ///< HMI communication interruption ([HMI Com Interruption] (SLF3))
-  ptfL = 49,     ///< PTC probe ([PTC probe] (PtFL))
+  ptfl = 49,     ///< PTC probe ([PTC probe] (PtFL))
   inf9 = 51,     ///< Internal error 9 (Measure) ([Internal Error 9] (INF9))
   infa = 52,     ///< Internal error 10 (Mains) ([Internal Error 10] (INFA))
   infb = 53,     ///< Internal error 11 (Temperature) ([Internal Error 11] (INFB))
@@ -3262,10 +3262,16 @@ enum struct lft_e : std::uint16_t {
       return "[Fieldbus Error] (EPF2), External error detected by Fieldbus";
     case lft_e::inf8:
       return "[Internal Error 8] (INF8), Internal error 8 (Switching Supply)";
+    case lft_e::brf:
+      return "[Brake feedback] (brF), Brake feedback";
     case lft_e::slf2:
       return "[PC Com Interruption] (SLF2), PC communication interruption";
+    case lft_e::ssf:
+      return "[Torque/current lim] (SSF), Torque/current lim";
     case lft_e::slf3:
       return "[HMI Com Interruption] (SLF3), HMI communication interruption";
+    case lft_e::ptfl:
+      return "[PTC probe] (PtFL), PTC probe";
     case lft_e::inf9:
       return "[Internal Error 9] (INF9), Internal error 9 (Measure)";
     case lft_e::infa:
