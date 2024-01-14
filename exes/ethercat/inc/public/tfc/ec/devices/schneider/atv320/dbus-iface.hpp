@@ -113,6 +113,7 @@ struct controller {
         pos_{ connection, manager, fmt::format("{}_{}", impl_name, slave_id_),
               std::bind_front(&controller::on_homing_sensor, this) } {}
   static constexpr auto atv320_reset_time = std::chrono::seconds(5);
+
   auto run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
@@ -216,10 +217,9 @@ struct controller {
             reset_allowed_ = false;
           });
           self.complete(status_word_.parse_state() == states_e::fault
-                            ? motor::motor_error(err_enum::frequency_drive_reports_fault)
-                            : motor::motor_error({}));
-        },
-        token);
+                          ? motor::motor_error(err_enum::frequency_drive_reports_fault)
+                          : motor::motor_error({}));
+        }, token);
   }
 
   // Set properties with new status values
@@ -712,6 +712,15 @@ struct dbus_iface {
           }
           return motor::motor_enum(ctrl_.run(yield));
         });
+    dbus_interface_->register_method(
+        std::string{ method::reset },
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return permission_denied;
+          }
+          return motor::motor_enum(ctrl_.reset(yield));
+        });
 
     dbus_interface_->register_method(std::string{ method::run_at_speedratio },
                                      [this](asio::yield_context yield, const sdbusplus::message_t& msg,
@@ -833,16 +842,16 @@ struct dbus_iface {
   // Set properties with new status values
   void update_status(const input_t& in) {
     if (in.status_word.parse_state() != last_in_.status_word.parse_state()) {
-      // dbus_interface_->set_property(state_402, format_as(in.status_word.parse_state()));
+      dbus_interface_->set_property(state_402, std::string(format_as(in.status_word.parse_state())));
     }
     if (in.drive_state != last_in_.drive_state) {
-      // dbus_interface_->set_property(hmis, format_as(in.drive_state));
+      dbus_interface_->set_property(hmis, std::string(format_as(in.drive_state)));
     }
     if (in.last_error != last_in_.last_error) {
-      // dbus_interface_->set_property(last_error, format_as(in.last_error));
+      dbus_interface_->set_property(last_error, std::string(format_as(in.last_error)));
     }
     if (in.current != last_in_.current) {
-      // dbus_interface_->set_property(current, static_cast<double>(in.current) / 10.0);
+      dbus_interface_->set_property(current, static_cast<double>(in.current) / 10.0);
     }
     last_in_ = in;
   }

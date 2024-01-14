@@ -8,11 +8,10 @@
 #include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::motor::dbus {
-
 namespace detail {
 static constexpr std::string_view path_postfix{ "Motors" };
 static constexpr std::string_view service{ "Ethercat" };
-}  // namespace detail
+} // namespace detail
 
 static constexpr std::string_view service_name{ tfc::dbus::const_dbus_name<detail::service> };
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<detail::path_postfix> };
@@ -30,6 +29,7 @@ static constexpr std::string_view run_microsecond{ "Run_Microsecond" };
 static constexpr std::string_view stop{ "Stop" };
 static constexpr std::string_view quick_stop{ "QuickStop" };
 static constexpr std::string_view needs_homing{ "NeedsHoming" };
+static constexpr std::string_view reset{ "Reset" };
 // D-Bus does not support method overloading
 // todo do metaprogramming deducing postfix from type, when registering methods
 static constexpr std::string_view convey_micrometrepersecond_micrometre{ "Convey_MicrometrePerSecond_Micrometre" };
@@ -41,13 +41,11 @@ static constexpr std::string_view move_micrometre{ "Move_Micrometre" };
 static constexpr std::string_view move_home{ "Move_Home" };
 static constexpr std::string_view notify_after_micrometre{ "NotifyAfter_Micrometre" };
 static constexpr std::string_view notify_from_home_micrometre{ "NotifyFromHome_Micrometre" };
-
-}  // namespace method
+} // namespace method
 
 namespace types {
 using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
 using microsecond_t = mp_units::quantity<mp_units::si::micro<mp_units::si::second>, std::int64_t>;
 using speedratio_t = mp_units::quantity<mp_units::percent, double>;
-}  // namespace types
-
-}  // namespace tfc::motor::dbus
+} // namespace types
+} // namespace tfc::motor::dbus
