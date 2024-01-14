@@ -286,20 +286,22 @@ public:
     if (!dbus_iface_.has_peer()) {
       // Quick stop if frequncy set to 0
       auto action = cia_402::transition_action::none;
-      if (ipc_running_)
+      if (ipc_running_) {
         action = cia_402::transition_action::run;
-      if (reference_frequency_.value == 0 * dHz)
+      }
+      if (reference_frequency_ == 0 * dHz) {
         action = cia_402::transition_action::quick_stop;
+      }
       out->acc = config_->value().acceleration.value;
       out->dec = config_->value().deceleration.value;
       out->control = cia_402::transition(state, action, auto_reset_allowed);
-      out->frequency = reference_frequency_.value;
+      out->frequency = reference_frequency_;
     } else {
       auto freq =
           detail::percentage_to_deci_freq(ctrl_.speed_ratio(), config_->value().low_speed, config_->value().high_speed);
       out->acc = ctrl_.acceleration(config_->value().acceleration.value);
       out->dec = ctrl_.deceleration(config_->value().deceleration.value);
-      out->frequency = freq.value;
+      out->frequency = freq;
       out->control = ctrl_.ctrl(auto_reset_allowed);
 
       // Set running to false. Will need to be set high before the motor starts on ipc
@@ -387,7 +389,7 @@ private:
   std::vector<tfc::ipc::bool_signal> di_transmitters_;
   bool ipc_running_{};
   ipc::bool_slot run_;
-  detail::speed reference_frequency_{ .value = 0 * dHz };
+  decifrequency_signed reference_frequency_{ 0 * dHz };
   ipc::double_slot ratio_;
   double last_frequency_{};
   double last_current_{};
