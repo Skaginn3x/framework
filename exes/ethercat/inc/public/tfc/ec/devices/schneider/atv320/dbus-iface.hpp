@@ -703,10 +703,9 @@ struct dbus_iface {
               dbus_interface_->set_property(connected_peer, peer_);
             });
             return true;
-          } else {
-            // Peer rejected
-            return false;
           }
+          // Peer rejected
+          return false;
         });
 
     dbus_interface_->register_method(
