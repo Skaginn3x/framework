@@ -171,7 +171,7 @@ public:
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto move(position_t position, asio::completion_token_for<signature_t> auto&& token) {
     return length_token_impl<signature_t>(method::move_micrometre, std::forward<decltype(token)>(token),
-                                          mp_units::quantity_cast<micrometre_t::quantity_spec>(position));
+                                          position.force_in(micrometre_t::reference));
   }
 
   template <typename signature_t = void(std::error_code)>
@@ -185,27 +185,27 @@ public:
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     std::string method_name{ method::needs_homing };
     return asio::async_compose<decltype(token), signature_t>(
-        [this, method_name](auto& self) {
+        [this](auto& self) {
           if (auto const sanity_check{ motor_seems_valid() }) {
             self.complete(sanity_check, {});
             return;
           }
 
           connection_->async_method_call(
-              [this, self_m = std::move(self), method_name](std::error_code const& err, errors::err_enum motor_err,
+              [this, self_m = std::move(self)](std::error_code const& err, errors::err_enum motor_err,
                                                             bool needs_homing) mutable {
                 if (err) {
-                  logger_.warn("{} failure: {}", method_name, err.message());
+                  logger_.warn("{} dbus failure: {}", method::needs_homing, err.message());
                   self_m.complete(err, needs_homing);
                   return;
                 }
                 using enum errors::err_enum;
                 if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
+                  logger_.warn("{} failure: {}", method::needs_homing, motor_err);
                 }
                 self_m.complete(motor_error(motor_err), needs_homing);
               },
-              service_name_, path_, interface_name_, method_name);
+              service_name_, path_, interface_name_, std::string(method::needs_homing));
         },
         token);
   }
