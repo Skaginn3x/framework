@@ -150,29 +150,6 @@ public:
         token);
   }
 
-  template <QuantityOf<mp_units::isq::time> time_t,
-            QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
-            typename signature_t = void(std::error_code, travel_t)>
-  auto convey(time_t, asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), {}); }, token);
-    // logger_.trace("convey({});", time);
-    // // TODO: Implement
-    // running_ = true;
-    // timer_.cancel();
-    // timer_.expires_after(chrono::duration_cast<chrono::nanoseconds>(mp_units::to_chrono_duration(time)));
-    // timer_.async_wait([this, cb, time](auto ec) {
-    //   if (ec) {
-    //     logger_.trace("convey({}); canceled", time);
-    //     cb(ec);
-    //     return;
-    //   }
-    //   running_ = false;
-    //   logger_.trace("convey({}); ran!", time);
-    //   cb({});
-    // });
-  }
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto move(speedratio_t, position_t, asio::completion_token_for<signature_t> auto&& token) {
     return asio::async_compose<decltype(token), signature_t>(

@@ -23,6 +23,32 @@ using mp_units::QuantityOf;
 using micrometre_t = dbus::types::micrometre_t;
 using microsecond_t = dbus::types::microsecond_t;
 using speedratio_t = dbus::types::speedratio_t;
+using velocity_t = dbus::types::velocity_t;
+
+template <typename rep, auto ref>
+static constexpr auto value_cast(mp_units::Quantity auto quantity) -> mp_units::quantity<ref, rep> {
+  if constexpr (std::floating_point<typename decltype(quantity)::rep>) {
+    return mp_units::value_cast<rep>(quantity.force_in(ref));
+  }
+  return mp_units::value_cast<rep>(quantity).force_in(ref);
+}
+static constexpr auto micrometre_cast(QuantityOf<mp_units::isq::length> auto length) -> micrometre_t {
+  return value_cast<micrometre_t::rep, micrometre_t::reference>(length);
+}
+static constexpr auto microsecond_cast(QuantityOf<mp_units::isq::time> auto time) -> microsecond_t {
+  return value_cast<microsecond_t::rep, microsecond_t::reference>(time);
+}
+static constexpr auto velocity_cast(QuantityOf<mp_units::isq::velocity> auto velocity) -> velocity_t {
+  return value_cast<velocity_t::rep, velocity_t::reference>(velocity);
+}
+
+static_assert(123456789 * micrometre_t::reference == micrometre_cast(123.456789 * mp_units::si::metre));
+static_assert(123000000 * micrometre_t::reference == micrometre_cast(123LL * mp_units::si::metre));
+static_assert(123 * micrometre_t::reference == micrometre_cast(123456LL * mp_units::si::nano<mp_units::si::metre>));
+static_assert(123456789 * microsecond_t::reference == microsecond_cast(123.456789 * mp_units::si::second));
+static_assert(123000000 * microsecond_t::reference == microsecond_cast(123LL * mp_units::si::second));
+static_assert(123 * microsecond_t::reference == microsecond_cast(123456LL * mp_units::si::nano<mp_units::si::second>));
+static_assert(3600000000LL * microsecond_t::reference == microsecond_cast(60 * mp_units::si::minute));
 
 class atv320motor {
 private:
@@ -134,7 +160,7 @@ public:
     using mp_units::si::unit_symbols::s;
     return length_token_impl<signature_t>(
         method::convey_micrometrepersecond_micrometre, std::forward<decltype(token)>(token),
-        velocity.force_in(micrometre_t::reference / s), travel.force_in(micrometre_t::reference));
+        velocity_cast(velocity), micrometre_cast(travel));
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
@@ -146,33 +172,25 @@ public:
     using mp_units::si::unit_symbols::s;
     return length_token_impl<signature_t>(
         method::convey_micrometrepersecond_microsecond, std::forward<decltype(token)>(token),
-        velocity.force_in(micrometre_t::reference / s), time.force_in(microsecond_t::reference));
+        velocity_cast(velocity), microsecond_cast(time));
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
   auto convey(travel_t travel, asio::completion_token_for<signature_t> auto&& token) {
     return length_token_impl<signature_t>(method::convey_micrometre, std::forward<decltype(token)>(token),
-                                          travel.force_in(micrometre_t::reference));
-  }
-
-  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
-            typename signature_t = void(std::error_code, travel_t)>
-  auto convey(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    return length_token_impl<signature_t>(method::convey_microsecond, std::forward<decltype(token)>(token),
-                                          time.force_in(microsecond_t::reference));
+                                          micrometre_cast(travel));
   }
 
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto move(speedratio_t speedratio, position_t position, asio::completion_token_for<signature_t> auto&& token) {
     return length_token_impl<signature_t>(method::move_speedratio_micrometre, std::forward<decltype(token)>(token),
-                                          speedratio, position.force_in(micrometre_t::reference));
+                                          speedratio, micrometre_cast(position));
   }
 
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto move(position_t position, asio::completion_token_for<signature_t> auto&& token) {
     return length_token_impl<signature_t>(method::move_micrometre, std::forward<decltype(token)>(token),
-                                          position.force_in(micrometre_t::reference));
+                                          micrometre_cast(position));
   }
 
   template <typename signature_t = void(std::error_code)>
@@ -214,13 +232,13 @@ public:
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto notify_after(position_t position, asio::completion_token_for<signature_t> auto&& token) {
     return length_token_impl<signature_t>(method::notify_after_micrometre, std::forward<decltype(token)>(token),
-                                          position.force_in(micrometre_t::reference));
+                                          micrometre_cast(position));
   }
 
   template <QuantityOf<mp_units::isq::length> position_t, typename signature_t = void(std::error_code, position_t)>
   auto notify_from_home(position_t position, asio::completion_token_for<signature_t> auto&& token) {
     return length_token_impl<signature_t>(method::notify_from_home_micrometre, std::forward<decltype(token)>(token),
-                                          position.force_in(micrometre_t::reference));
+                                          micrometre_cast(position));
   }
 
   // void notify(QuantityOf<mp_units::isq::volume> auto, std::invocable<std::error_code> auto) {}
@@ -261,14 +279,14 @@ public:
            asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return error_only_token_impl<signature_t>(method::run_at_speedratio_microsecond, std::forward<decltype(token)>(token),
-                                              speedratio, time.force_in(microsecond_t::reference));
+                                              speedratio, microsecond_cast(time));
   }
 
   template <typename signature_t = void(std::error_code)>
   auto run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return error_only_token_impl<signature_t>(method::run_at_speedratio, std::forward<decltype(token)>(token),
-                                              time.force_in(microsecond_t::reference));
+                                              microsecond_cast(time));
   }
 
   template <typename signature_t = void(std::error_code)>

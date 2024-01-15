@@ -47,5 +47,6 @@ namespace types {
 using micrometre_t = mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>;
 using microsecond_t = mp_units::quantity<mp_units::si::micro<mp_units::si::second>, std::int64_t>;
 using speedratio_t = mp_units::quantity<mp_units::percent, double>;
+using velocity_t = mp_units::quantity<micrometre_t::reference / mp_units::si::second, std::int64_t>;
 }  // namespace types
 }  // namespace tfc::motor::dbus

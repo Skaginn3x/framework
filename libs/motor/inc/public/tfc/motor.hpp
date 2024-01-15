@@ -141,16 +141,6 @@ public:
   auto convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
-  /// \brief Convey for a specific time at default speedratio and quickly stop when reached
-  /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
-  /// \param time to travel
-  /// \param token completion token to notify when motor sends quick_stop command
-  /// notification supplies travel_t with the travel made during this time
-  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
-  template <QuantityOf<mp_units::isq::time> time_t, QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
-  auto convey(time_t time, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
-
   // TODO: rotate api
   // void rotate() {}
   // void rotate(QuantityOf<mp_units::isq::angular_velocity> auto) {}
@@ -365,17 +355,6 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.convey(length, std::forward<decltype(token)>(token)); } },
-      impl_);
-}
-
-template <QuantityOf<mp_units::isq::time> time_t, QuantityOf<mp_units::isq::length> travel_t>
-auto api::convey(time_t time, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
-  using signature_t = void(std::error_code, travel_t);
-  using namespace detail;
-  return std::visit(
-      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                  [&](auto& motor_impl) { return motor_impl.convey(time, std::forward<decltype(token)>(token)); } },
       impl_);
 }
 
