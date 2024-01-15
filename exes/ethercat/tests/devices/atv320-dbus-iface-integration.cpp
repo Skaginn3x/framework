@@ -57,7 +57,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(inst.ran[0]);
   };
-  "Call move on client"_test = [] {
+  "Call speed and move on client"_test = [] {
     instance inst;
     inst.ctx.run_for(5ms);
     clientinstance cinst(inst);
