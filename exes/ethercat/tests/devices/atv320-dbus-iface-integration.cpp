@@ -212,4 +212,49 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(inst.ran[0]);
   };
+  "stop"_test = [] {
+    instance inst;
+    inst.ctx.run_for(5ms);
+    clientinstance cinst(inst);
+    inst.ctx.run_for(10ms);
+    expect(cinst.client.connected());
+    // Setup homing sensor on server instance
+    cinst.client.stop([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(10ms);
+    expect(inst.ran[0]);
+  };
+  "quick_stop"_test = [] {
+    instance inst;
+    inst.ctx.run_for(5ms);
+    clientinstance cinst(inst);
+    inst.ctx.run_for(10ms);
+    expect(cinst.client.connected());
+    // Setup homing sensor on server instance
+    cinst.client.quick_stop([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(10ms);
+    expect(inst.ran[0]);
+  };
+  "reset"_test = [] {
+    instance inst;
+    inst.ctx.run_for(5ms);
+    clientinstance cinst(inst);
+    inst.ctx.run_for(10ms);
+    expect(cinst.client.connected());
+    // Setup homing sensor on server instance
+    cinst.client.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(10ms);
+    expect(inst.ran[0]);
+  };
 }
