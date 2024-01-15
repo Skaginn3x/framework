@@ -109,9 +109,12 @@ template <typename manager_client_t = ipc_ruler::ipc_manager_client,
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, const uint16_t slave_id)
       : slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
-        pos_{ connection, manager, fmt::format("{}_{}", impl_name, slave_id_),
-              std::bind_front(&controller::on_homing_sensor, this) } {}
-
+        pos_{ connection,
+              manager,
+              fmt::format("{}_{}", impl_name, slave_id_),
+              std::bind_front(&controller::on_homing_sensor, this),
+              std::bind_front(&controller::on_positive_limit_switch, this),
+              std::bind_front(&controller::on_negative_limit_switch, this) } {}
   static constexpr auto atv320_reset_time = std::chrono::seconds(5);
 
   auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -248,6 +251,16 @@ struct controller {
     }
   }
 
+  void on_positive_limit_switch(bool new_v) {
+    logger_.trace("New positive limit switch value: {}", new_v);
+    if (new_v) {
+      drive_error_ = motor::errors::err_enum::positioning_positive_limit_reached;
+      cancel_pending_operation();
+    }
+  }
+
+  void on_negative_limit_switch(bool new_v) { logger_.trace("New negative limit switch value: {}", new_v); }
+
   void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
 
   auto positioner() noexcept -> auto& { return pos_; }
@@ -327,6 +340,8 @@ private:
       return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
           [](auto& self) { self.complete(motor::motor_error(speedratio_out_of_range)); }, token);
     }
+    bool const positive_speedratio{ speedratio > 0 * mp_units::percent };
+    // todo early return
     logger_.trace("Run motor at speedratio: {}", speedratio);
     action_ = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
@@ -615,6 +630,8 @@ private:
   tfc::asio::condition_variable<asio::any_io_executor> drive_error_subscriptable_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
+  asio::cancellation_signal positive_limit_signal_{};
+  asio::cancellation_signal negative_limit_signal_{};
   asio::cancellation_signal no_drive_error_{};
   logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
 

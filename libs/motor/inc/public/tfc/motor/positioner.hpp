@@ -76,7 +76,7 @@ public:
              std::function<void(bool)>&& home_cb,
              std::function<void(bool)>&& positive_limit_cb,
              std::function<void(bool)>&& negative_limit_cb)
-      : positioner(connection, manager, name, std::move(home_cb), {}) {}
+      : positioner(connection, manager, name, std::move(home_cb), std::move(positive_limit_cb), std::move(negative_limit_cb), {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id

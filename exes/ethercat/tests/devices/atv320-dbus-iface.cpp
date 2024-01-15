@@ -551,6 +551,18 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
+  "run to positive limit"_test = [] {
+    instance inst;
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_positive_limit_reached);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
   "run time canceled"_test = [&] {
     using tfc::testing::clock;
     instance inst;
