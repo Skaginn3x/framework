@@ -60,7 +60,7 @@ private:
           // error has occured
           if (err) {
             // This error is returned, it is the users job to notify this failure and or deal with it.
-            // logger_.error("connect_to_motor: {}", err.message());
+            logger_.error("connect_to_motor_error: {}", err.message());
             response = false;
           }
           // New id our call chain is invalid
