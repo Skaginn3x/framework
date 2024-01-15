@@ -39,7 +39,7 @@ public:
       auto version = base::version();
       std::stringstream out;
       desc.print(out);
-      fmt::print("Built: {}, Commited: {}, Branch: {}, Hash: {}, Tag: {},  {}\n", version.get_build_date(),
+      fmt::print("TFC - https://github.com/skaginn3x/framework\nBuilt: {}, Commited: {}, Branch: {}, Hash: {}, Tag: {} - {}\n", version.get_build_date(),
                  version.get_git_commit_date(), version.get_git_branch(), version.get_git_hash(), version.get_git_tag(),
                  version.get_git_is_dirty());
       std::exit(0);
