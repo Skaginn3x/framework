@@ -645,6 +645,10 @@ private:
   decifrequency_signed motor_frequency_{};
 };
 
+template <typename manager_client_t = ipc_ruler::ipc_manager_client,
+          template <typename, typename, typename> typename pos_config_t = confman::config,
+          typename steady_timer_t = asio::steady_timer,
+          typename pos_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 struct dbus_iface {
   // Properties
   const std::string connected_peer{ "connected_peer" };
@@ -660,7 +664,7 @@ struct dbus_iface {
   auto operator=(dbus_iface&&) -> dbus_iface& = delete;
   ~dbus_iface() = default;
 
-  dbus_iface(controller<>& ctrl, std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
+  dbus_iface(controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl, std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
       : ctx_(connection->get_io_context()), slave_id_{ slave_id }, ctrl_{ ctrl }, manager_(connection),
 
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
@@ -830,9 +834,6 @@ struct dbus_iface {
 
   auto set_configured_speedratio(speedratio_t speedratio) { config_speedratio_ = speedratio; }
 
-  // auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) { motor_nominal_frequency_ = nominal_motor_frequency;
-  // }
-
   auto validate_peer(std::string_view incoming_peer) -> bool {
     if (incoming_peer != peer_) {
       logger_.warn("Peer rejected: {}", incoming_peer);
@@ -865,7 +866,7 @@ struct dbus_iface {
   std::string peer_{ "" };
 
   const uint16_t slave_id_;
-  controller<>& ctrl_;
+  controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl_;
   speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
   motor::errors::err_enum drive_error_{};
 

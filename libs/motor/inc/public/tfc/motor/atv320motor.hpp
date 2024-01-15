@@ -40,9 +40,7 @@ private:
 
   asio::io_context& ctx_;
   asio::steady_timer ping{ ctx_ };
-  std::shared_ptr<sdbusplus::asio::connection> connection_{
-    std::make_shared<sdbusplus::asio::connection>(ctx_, tfc::dbus::sd_bus_open_system())
-  };
+  std::shared_ptr<sdbusplus::asio::connection> connection_;
   logger::logger logger_{ "atv320motor" };
   uint16_t slave_id_{ 0 };
   std::string const service_name_{ dbus::service_name };
@@ -91,7 +89,7 @@ public:
   using config_t = config;
   std::chrono::microseconds static constexpr method_call_timeout{ std::chrono::microseconds::max() };
 
-  atv320motor(asio::io_context& ctx, const config_t& conf) : ctx_{ ctx } {
+  atv320motor(std::shared_ptr<sdbusplus::asio::connection>& connection, const config_t& conf) : ctx_{ connection->get_io_context() }, connection_{connection} {
     slave_id_ = conf.slave_id.value();
     send_ping(slave_id_);
     conf.slave_id.observe([this](const std::uint16_t new_id, const std::uint16_t old_id) {
@@ -110,6 +108,7 @@ public:
   auto operator=(atv320motor&&) -> atv320motor& = delete;
   ~atv320motor() = default;
 
+  auto connected() -> bool {return connected_; }
   template <typename signature_t = void(std::error_code)>
   auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {

@@ -32,26 +32,42 @@ public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
-  explicit api(asio::io_context& ctx, std::string_view name, config_t default_config = {})
-      : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
+  explicit api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
+      : ctx_{ connection->get_io_context() }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
     std::visit(
-        [this](auto& conf) {
+        [this, connection](auto& conf) {
           using conf_t = std::remove_cvref_t<decltype(conf)>;
           if constexpr (!std::same_as<std::monostate, conf_t>) {
-            impl_.emplace<typename conf_t::impl>(ctx_, conf);
+            if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>, const conf_t&>) {
+              impl_.emplace<typename conf_t::impl>(connection, conf);
+            } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, const conf_t&>) {
+              impl_.emplace<typename conf_t::impl>(ctx_, conf);
+            } else {
+              []<bool flag = false>{
+                static_assert(flag && "Type cannot be constructed");
+              }();
+            }
           }
         },
         config_->value());
-    config_->observe([this](auto& new_v, auto& old_v) {
+    config_->observe([this, connection](auto& new_v, auto& old_v) {
       // If there is the same motor type for the old and
       // the new it is the responsibility of the motor to
       // handle that change
       std::visit(
-          [this](auto& vst_new, auto& vst_old) {
+          [this, connection](auto& vst_new, auto& vst_old) {
             using conf_t = std::remove_cvref_t<decltype(vst_new)>;
             if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<std::monostate, conf_t>) {
               logger_.info("Switching running motor config");
-              impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
+              if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>, conf_t>) {
+                impl_.emplace<typename conf_t::impl>(connection, vst_new);
+              } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, conf_t&>) {
+                impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
+              } else {
+                []<bool flag = false>{
+                  static_assert(flag && "Type cannot be constructed");
+                }();
+              }
             }
           },
           new_v, old_v);
