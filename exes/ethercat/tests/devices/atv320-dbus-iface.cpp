@@ -343,6 +343,61 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
   };
 
+  "reset interupted by reset error gone"_test = [] {
+    using tfc::testing::clock;
+    instance inst;
+    inst.ctrl.update_status(get_bad_status_missing_phase());
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    clock::set_ticks(clock::now() + 5000ms);
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    // This one should also return becuse of resets early return logic
+    expect(inst.ran[1]);
+  };
+  "reset interupted by reset error not gone"_test = [] {
+    using tfc::testing::clock;
+    instance inst;
+    inst.ctrl.update_status(get_bad_status_missing_phase());
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault);
+      inst.ran[0] = true;
+    });
+    clock::set_ticks(clock::now() + 2000ms);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault);
+      inst.ran[1] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    clock::set_ticks(clock::now() + 5000ms);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[1]);
+  };
+  "reset early return"_test = [] {
+    using tfc::testing::clock;
+    instance inst;
+    inst.ctrl.update_status(get_bad_status_missing_phase());
+    inst.ctrl.reset([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::success);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
   "test stop impl interupted by stop"_test = [&] {
     instance inst;
     inst.ctrl.update_status(get_good_status_running());

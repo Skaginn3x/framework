@@ -13,12 +13,18 @@
 
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/logger.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ec::devices {
 template <typename setting_t>
 concept setting_c = requires {
   std::remove_cvref_t<setting_t>::index;
   std::remove_cvref_t<setting_t>::value;
+};
+template <typename setting_t>
+concept optional_setting_c = requires {
+  requires stx::is_optional<std::remove_cvref_t<setting_t>>;
+  requires setting_c<typename std::remove_cvref_t<setting_t>::value_type>;
 };
 template <typename setting_t>
 concept trivial_setting_c = requires {
@@ -95,6 +101,14 @@ public:
   template <mp_units_quantity_setting_c setting_t>
   auto sdo_write(setting_t&& in) const {
     return base::sdo_write(in.index, in.value.numerical_value_ref_in(decltype(in.value)::unit));
+  }
+
+  template <optional_setting_c setting_t>
+  auto sdo_write(setting_t&& in) const {
+    if (in.has_value()) {
+      return sdo_write(in.value());
+    }
+    return 0;
   }
 
 protected:
