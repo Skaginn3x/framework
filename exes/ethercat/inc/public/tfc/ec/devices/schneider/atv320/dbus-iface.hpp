@@ -63,6 +63,7 @@ template <typename completion_token_t>
 struct drive_error_first {
   drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error)
       : drive_err{ drive_error }, self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {}
+
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
 
@@ -107,6 +108,7 @@ struct controller {
       : slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
         pos_{ connection, manager, fmt::format("{}_{}", impl_name, slave_id_),
               std::bind_front(&controller::on_homing_sensor, this) } {}
+
   static constexpr auto atv320_reset_time = std::chrono::seconds(5);
 
   auto run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -203,14 +205,12 @@ struct controller {
             reset_allowed_ = true;
             reset_timer_.cancel();  // Cancel the old reset;
             reset_timer_.expires_from_now(std::chrono::seconds(atv320_reset_time));
-            reset_timer_.async_wait(std::move(self));
+            reset_timer_.async_wait(asio::bind_cancellation_slot(no_drive_error_.slot(), std::move(self)));
             return;
           }
-          if (err) {
-            self.complete(err);
-            return;
+          if (err != std::errc::operation_canceled) {
+            reset_allowed_ = false;
           }
-          reset_allowed_ = false;
           self.complete(motor::motor_error(drive_error_));
         },
         token);
@@ -236,6 +236,9 @@ struct controller {
     }
     if (drive_error_ != success) {
       drive_error_subscriptable_.notify_all();
+    } else {
+      // Early return for calls to reset
+      no_drive_error_.emit(asio::cancellation_type::all);
     }
   }
 
@@ -623,6 +626,7 @@ private:
   tfc::asio::condition_variable<asio::any_io_executor> drive_error_subscriptable_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
+  asio::cancellation_signal no_drive_error_{};
   logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
 
   // Motor control parameters

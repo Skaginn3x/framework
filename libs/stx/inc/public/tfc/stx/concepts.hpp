@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <expected>
+#include <optional>
 #include <system_error>
 #include <type_traits>
 
@@ -53,6 +54,12 @@ concept steady_clock = requires {
   requires clock_t::is_steady == true;
 };
 
+template <typename T>
+concept is_optional = requires(T t) {
+  typename T::value_type;
+  requires std::same_as<T, std::optional<typename T::value_type>>;
+};
+
 namespace test {
 
 struct empty {};
@@ -65,6 +72,10 @@ struct is_steady_clock {
 static_assert(!steady_clock<not_steady_clock>);
 static_assert(!steady_clock<empty>);
 static_assert(steady_clock<is_steady_clock>);
+
+static_assert(is_optional<std::optional<int>>);
+static_assert(!is_optional<std::vector<int>>);
+static_assert(!is_optional<int>);
 
 static_assert(is_expected_quantity<
               std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::uint64_t>, std::error_code>>);

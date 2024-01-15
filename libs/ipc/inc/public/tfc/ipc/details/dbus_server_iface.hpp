@@ -196,7 +196,7 @@ public:
       db_ << fmt::format("SELECT type FROM slots WHERE name = '{}' LIMIT 1;", slot_name) >>
           [&slot_type](const int result) { slot_type = result; };
       if (signal_type != slot_type) {
-        std::string const err_msg = "Signal and slot types dont match";
+        std::string const err_msg = fmt::format("Signal: {} and slot: {}, types dont match", signal_type, slot_type);
         logger_.warn(err_msg);
         throw dbus_error(err_msg);
       }

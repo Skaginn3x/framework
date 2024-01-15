@@ -84,7 +84,7 @@ public:
   auto send(value_t const& value) -> std::error_code {
     last_value_ = value;
     std::vector<std::byte> send_buffer{};
-    if (auto serialize_err{ packet_t::serialize(last_value_, send_buffer) }) {
+    if (auto serialize_err{ packet_t::serialize(last_value_.value(), send_buffer) }) {
       return serialize_err;
     }
     std::size_t size = socket_.send(asio::buffer(send_buffer));
@@ -102,7 +102,7 @@ public:
       typename asio::async_result<std::decay_t<completion_token_t>, void(std::error_code, std::size_t)>::return_type {
     last_value_ = value;
     auto send_buffer{ std::make_unique<std::vector<std::byte>>() };
-    if (auto serialize_error{ packet_t::serialize(last_value_, *send_buffer) }) {
+    if (auto serialize_error{ packet_t::serialize(last_value_.value(), *send_buffer) }) {
       return asio::async_compose<completion_token_t, void(std::error_code, std::size_t)>(
           [serialize_error](auto& self, std::error_code = {}, std::size_t = 0) { self.complete(serialize_error, 0); },
           token);
@@ -132,11 +132,11 @@ public:
         },
         token, socket_);
   }
-  [[nodiscard]] auto value() const noexcept -> value_t const& { return last_value_; }
+  [[nodiscard]] auto value() const noexcept -> auto const& { return last_value_; }
 
 private:
   signal(asio::io_context& ctx, std::string_view name)
-      : transmission_base<type_desc>(name), last_value_(), timer_(ctx), socket_(ctx),
+      : transmission_base<type_desc>(name), timer_(ctx), socket_(ctx),
         socket_monitor_(socket_.monitor(ctx, ZMQ_EVENT_HANDSHAKE_SUCCEEDED)) {}
 
   auto init() -> std::error_code {
@@ -156,13 +156,17 @@ private:
     }
     std::array<std::byte, 1024> buffer;
     socket_monitor_.receive(asio::buffer(buffer), 0);
+    if (!last_value_.has_value()) {
+      register_handle_accept();
+      return;
+    }
     // TODO: This sleep is the worst.
     timer_.expires_after(std::chrono::milliseconds(1));
     timer_.async_wait([this](std::error_code const& error) {
       if (error) {
         return;
       }
-      async_send(last_value_, [&](std::error_code err, size_t) {
+      async_send(last_value_.value(), [&](std::error_code err, size_t) {
         if (err) {
           assert(false && "Handle event accept (send) canceled!");
           return;
@@ -181,7 +185,7 @@ private:
           }
         });
   }
-  value_t last_value_{};
+  std::optional<value_t> last_value_{ std::nullopt };
   boost::asio::steady_timer timer_;
   azmq::pub_socket socket_;
   azmq::socket socket_monitor_;

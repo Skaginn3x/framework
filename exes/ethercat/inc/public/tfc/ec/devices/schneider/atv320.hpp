@@ -59,7 +59,8 @@ public:
     nominal_motor_frequency_FRS nominal_motor_frequency;
     nominal_motor_speed_NSP nominal_motor_speed;
     max_frequency_TFR max_frequency;
-    motor_thermal_current_ITH motor_thermal_current;
+    std::optional<motor_thermal_current_ITH> motor_thermal_current;
+    std::optional<current_limitation_CLI> current_limitation;
     high_speed_HSP high_speed;
     low_speed_LSP low_speed;
     motor_1_cos_phi_COS motor_1_cos_phi;
@@ -73,29 +74,32 @@ public:
     async_motor_leakage_inductance_LFA async_motor_leakage_inductance;
     async_motor_stator_resistance_RSA async_motor_stator_resistance;
     rotor_time_constant_TRA rotor_time_constant;
+    torque_or_current_limitation_stop_SSB torque_or_current_limitation_stop;
 
     struct glaze {
       using T = atv_config;
       // clang-format off
       static constexpr auto value = glz::object(
-          "nominal_motor_power", &T::nominal_motor_power,
-          "nominal_motor_voltage", &T::nominal_motor_voltage,
-          "nominal_motor_current", &T::nominal_motor_current,
-          "nominal_motor_frequency", &T::nominal_motor_frequency,
-          "nominal_motor_speed", &T::nominal_motor_speed,
-          "max_frequency", &T::max_frequency,
-          "motor_thermal_current", &T::motor_thermal_current,
-          "high_speed", &T::high_speed,
-          "low_speed", &T::low_speed,
-          "cos_phi", &T::motor_1_cos_phi, json::schema{ .maximum = 100L },
-          "acceleration", &T::acceleration,
-          "deceleration", &T::deceleration,
-          "default_speedratio", &T::default_speedratio, json::schema{ .minimum = -100L, .maximum = 100L },
-          "fast_stop_ramp_divider", &T::fast_stop_ramp_divider, json::schema{ .minimum = 0L, .maximum = 10L },
-          "async_motor_leakage_inductance", &T::async_motor_leakage_inductance,
-          "async_motor_stator_resistance", &T::async_motor_stator_resistance,
-          "rotor_time_constant", &T::rotor_time_constant
-          );
+        "nominal_motor_power", &T::nominal_motor_power,
+        "nominal_motor_voltage", &T::nominal_motor_voltage,
+        "nominal_motor_current", &T::nominal_motor_current,
+        "nominal_motor_frequency", &T::nominal_motor_frequency,
+        "nominal_motor_speed", &T::nominal_motor_speed,
+        "max_frequency", &T::max_frequency,
+        "motor_thermal_current", &T::motor_thermal_current,
+        "high_speed", &T::high_speed,
+        "low_speed", &T::low_speed,
+        "cos_phi", &T::motor_1_cos_phi, json::schema{ .maximum = 100L },
+        "acceleration", &T::acceleration,
+        "deceleration", &T::deceleration,
+        "default_speedratio", &T::default_speedratio, json::schema{ .minimum = -100L, .maximum = 100L },
+        "fast_stop_ramp_divider", &T::fast_stop_ramp_divider, json::schema{ .minimum = 0L, .maximum = 10L },
+        "async_motor_leakage_inductance", &T::async_motor_leakage_inductance,
+        "async_motor_stator_resistance", &T::async_motor_stator_resistance,
+        "rotor_time_constant", &T::rotor_time_constant,
+        "current_limitation", &T::current_limitation,
+        "torque_or_current_limitation_stop", &T::torque_or_current_limitation_stop
+        );
       // clang-format on
       static constexpr std::string_view name{ "atv320" };
     };
@@ -111,7 +115,7 @@ public:
                                                                       fmt::format("atv320.s{}.run", slave_index),
                                                                       "Turn on motor",
                                                                       [this](bool value) { ipc_running_ = value; }),
-        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
+        config_{ ctx_ /*connection TODO apply connection once fronend is fixed */, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
                                  fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
@@ -167,6 +171,9 @@ public:
       if (new_value.motor_thermal_current != old_value.motor_thermal_current) {
         asio::post(ctx_, [this, new_value] { sdo_write(new_value.motor_thermal_current); });
       }
+      if (new_value.current_limitation != old_value.current_limitation) {
+        asio::post(ctx_, [this, new_value] { sdo_write(new_value.current_limitation); });
+      }
       if (new_value.high_speed != old_value.high_speed) {
         asio::post(ctx_, [this, new_value] { sdo_write(new_value.high_speed); });
       }
@@ -187,6 +194,9 @@ public:
       }
       if (new_value.rotor_time_constant != old_value.rotor_time_constant) {
         asio::post(ctx_, [this, new_value] { sdo_write(config_->value().rotor_time_constant); });
+      }
+      if (new_value.torque_or_current_limitation_stop != old_value.torque_or_current_limitation_stop) {
+        asio::post(ctx_, [this, new_value] { sdo_write(config_->value().torque_or_current_limitation_stop); });
       }
     });
 
@@ -258,6 +268,7 @@ public:
       transmit_status(status);
       dbus_iface_.update_status(status);
       ctrl_.update_status(status);
+      logger_.error("Frequency drive lost contact");
       return;
     }
     if (input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) {
@@ -388,6 +399,7 @@ public:
     sdo_write(config_->value().nominal_motor_speed);
     sdo_write(config_->value().max_frequency);
     sdo_write(config_->value().motor_thermal_current);
+    sdo_write(config_->value().current_limitation);
     sdo_write(config_->value().high_speed);
     sdo_write(config_->value().low_speed);
     sdo_write(config_->value().motor_1_cos_phi);
@@ -395,6 +407,7 @@ public:
     sdo_write(config_->value().async_motor_leakage_inductance);
     sdo_write(config_->value().async_motor_stator_resistance);
     sdo_write(config_->value().rotor_time_constant);
+    sdo_write(config_->value().torque_or_current_limitation_stop);
     return 1;
   }
 

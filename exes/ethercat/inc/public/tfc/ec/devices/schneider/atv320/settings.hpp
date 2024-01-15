@@ -4,6 +4,7 @@
 
 #include <tfc/ec/devices/schneider/atv320/enums.hpp>
 #include <tfc/ec/devices/util.hpp>
+#include <tfc/stx/concepts.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 using tfc::ec::util::setting;
@@ -62,6 +63,9 @@ using motor_1_cos_phi_COS = setting<ecx::index_t{ 0x2042, 0x07 }, "COS", "Motor 
 using motor_thermal_current_ITH =
     setting<ecx::index_t{ 0x2042, 0x17 }, "ITH", "motor thermal current", atv_deciampere_rep, 20 * dA>;
 
+using current_limitation_CLI =
+    setting<ecx::index_t{ 0x203E, 0x2 }, "CLI", "Current limitation", atv_deciampere_rep, 20 * dA>;
+
 //  Units 0.1 Hz, Range 10Hz - 500Hz
 
 using max_frequency_TFR = setting<ecx::index_t{ 0x2001, 0x04 }, "TFR", "Max frequency", decifrequency, 800 * dHz>;
@@ -94,4 +98,8 @@ using rotor_time_constant_TRA = setting<ecx::index_t{ 0x2042, 0x44 },
                                         "Rotor time constant. Typical for 120Hz Lenze = 90ms",
                                         std::chrono::duration<std::uint16_t, std::milli>,
                                         0>;
+
+using torque_or_current_limitation_stop_SSB =
+    setting<ecx::index_t{ 0x203E, 0x29 }, "SSB", "Torque or current limit stop mode", ecfg_e, ecfg_e::no>;
+
 }  // namespace tfc::ec::devices::schneider::atv320
