@@ -115,21 +115,32 @@ public:
                                                                       fmt::format("atv320.s{}.run", slave_index),
                                                                       "Turn on motor",
                                                                       [this](bool value) { ipc_running_ = value; }),
-        ratio_(ctx_,
-               client,
-               fmt::format("atv320.s{}.ratio", slave_index),
-               "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
-               "reverse min freq.",
-               [this](double value) {
-                 reference_frequency_ = detail::percentage_to_deci_freq(
-                     value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
-               }),
+        config_{ ctx_ /*connection TODO apply connection once fronend is fixed */, fmt::format("atv320_i{}", slave_index) },
+        ctrl_(connection, client, slave_index),
+        tmp_config_ratio_signal_(ctx_,
+                                 client,
+                                 fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
+                                 "Currently set speed ratio"),
+        tmp_config_ratio_slot_(
+            ctx_,
+            client,
+            fmt::format("atv320.s{}.tmp_config_ratio_in", slave_index),
+            "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
+            "reverse min freq.",
+            [this](double value) {
+              // Only way to override a oberservable is with the equals operator.
+              // here I only want to change a inner observable but have to
+              // write the entire outer observable in order to get a mutable
+              // reference to the inner observable.
+              auto config = config_->value();
+              config.default_speedratio = value * speedratio_t::reference;
+              config_.make_change().value() = config;
+            }),
         frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.freq", slave_index), "Current Frequency"),
         current_transmit_(ctx_, client, fmt::format("atv320.s{}.current", slave_index), "Current Current"),
         last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
         hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ ctx_ /*connection TODO apply connection once fronend is fixed */, fmt::format("atv320_i{}", slave_index) },
-        ctrl_(connection, client, slave_index), dbus_iface_(ctrl_, connection, slave_index),
+        dbus_iface_(ctrl_, connection, slave_index),
         reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
           auto timer = std::make_shared<asio::steady_timer>(ctx_);
           // A timer to reset the reset just in case
@@ -150,6 +161,7 @@ public:
       }
       if (new_value.nominal_motor_frequency != old_value.nominal_motor_frequency) {
         asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_frequency); });
+        ctrl_.set_motor_nominal_freq(new_value.nominal_motor_frequency.value);
       }
       if (new_value.nominal_motor_speed != old_value.nominal_motor_speed) {
         asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_speed); });
@@ -189,14 +201,30 @@ public:
       }
     });
 
-    config_->value().default_speedratio.observe(
-        [this](speedratio_t new_v, auto) { dbus_iface_.set_configured_speedratio(new_v); });
+    config_->value().default_speedratio.observe([this](speedratio_t new_v, auto) {
+      dbus_iface_.set_configured_speedratio(new_v);
+      reference_frequency_ = detail::percentage_to_deci_freq(new_v, config_->value().low_speed, config_->value().high_speed);
+      tmp_config_ratio_signal_.async_send(
+          new_v.numerical_value_ref_in(speedratio_t::unit), [this](const std::error_code& err, const std::size_t) {
+            if (err) {
+              logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
+            }
+          });
+    });
 
     // Apply the default speedratio to both means of controlling the motor
     dbus_iface_.set_configured_speedratio(config_->value().default_speedratio);
     ctrl_.set_motor_nominal_freq(config_->value().nominal_motor_frequency.value);
     reference_frequency_ = detail::percentage_to_deci_freq(config_->value().default_speedratio, config_->value().low_speed,
                                                            config_->value().high_speed);
+
+    tmp_config_ratio_signal_.async_send(
+        config_->value().default_speedratio.value().numerical_value_ref_in(speedratio_t::unit),
+        [this](const std::error_code& err, const std::size_t) {
+          if (err) {
+            logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
+          }
+        });
 
     for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
@@ -387,23 +415,25 @@ public:
 private:
   asio::io_context& ctx_;
   std::bitset<atv320_di_count> last_bool_values_;
-  std::vector<tfc::ipc::bool_signal> di_transmitters_;
-  bool ipc_running_{};
+  std::vector<ipc::bool_signal> di_transmitters_;
   ipc::bool_slot run_;
-  decifrequency_signed reference_frequency_{ 0 * dHz };
-  ipc::double_slot ratio_;
-  double last_frequency_{};
-  double last_current_{};
-  std::uint64_t last_error_{};
+  config_t config_;
+  controller<manager_client_t> ctrl_;
+  ipc::double_signal tmp_config_ratio_signal_;
+  ipc::double_slot tmp_config_ratio_slot_;
   ipc::double_signal frequency_transmit_;
   ipc::double_signal current_transmit_;
   ipc::uint_signal last_error_transmit_;
-  hmis_e last_hmis_{};
   ipc::uint_signal hmis_transmitter_;
-  config_t config_;
-  controller<manager_client_t> ctrl_;
   dbus_iface dbus_iface_;
   ipc::bool_slot reset_;
+
+  hmis_e last_hmis_{};
+  double last_frequency_{};
+  double last_current_{};
+  std::uint64_t last_error_{};
+  bool ipc_running_{};
+  decifrequency_signed reference_frequency_{ 0 * dHz };
   std::array<lft_e, 10> last_errors_{};
   asio::steady_timer reset_timer_{ ctx_ };
   bool no_data_{ false };
