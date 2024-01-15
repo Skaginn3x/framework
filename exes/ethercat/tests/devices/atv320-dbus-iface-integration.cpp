@@ -49,7 +49,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.move_home([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
       inst.ran[0] = true;
@@ -64,7 +63,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.move(10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
       expect(pos == 0 * mm);
@@ -80,7 +78,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.move(10 * speedratio_t::reference, 10 * mm,
                       [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
                         expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
@@ -97,7 +94,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.needs_homing([&inst](const std::error_code& err, bool needs_homing) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
       expect(needs_homing);
@@ -113,7 +109,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.run([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
       inst.ran[0] = true;
@@ -128,7 +123,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.run(10 * s, [&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
       inst.ran[0] = true;
@@ -143,7 +137,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.run(10 * speedratio_t::reference, 10 * s, [&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
       inst.ran[0] = true;
@@ -158,7 +151,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.run(10 * speedratio_t::reference, [&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
       inst.ran[0] = true;
@@ -173,9 +165,24 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
-    cinst.client.convey(10 * mm / s, 10 * mm, [&inst](const std::error_code& err) {
+    cinst.client.convey(10 * mm / s, 10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(pos == 0 * mm);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(10ms);
+    expect(inst.ran[0]);
+  };
+  "convey vel"_test = [] {
+    instance inst;
+    inst.ctx.run_for(5ms);
+    clientinstance cinst(inst);
+    inst.ctx.run_for(10ms);
+    expect(cinst.client.connected());
+    cinst.client.convey(10 * (mm / s), [&inst](const std::error_code& err, const micrometre_t& pos) {
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_not_implemented);
+      expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -188,9 +195,9 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
-    cinst.client.convey(10 * mm / s, 10 * s, [&inst](const std::error_code& err) {
+    cinst.client.convey(10 * (mm / s), 10 * s, [&inst](const std::error_code& err, const micrometre_t& pos) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -203,9 +210,9 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
-    cinst.client.convey(10 * mm, [&inst](const std::error_code& err) {
+    cinst.client.convey(10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -218,7 +225,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.stop([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
       inst.ran[0] = true;
@@ -233,7 +239,6 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.quick_stop([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
       inst.ran[0] = true;
@@ -248,12 +253,13 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
-    // Setup homing sensor on server instance
     cinst.client.reset([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault);
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    // Try to shorten the test time with an early return
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(10ms);
     expect(inst.ran[0]);
   };

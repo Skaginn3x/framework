@@ -118,11 +118,12 @@ public:
   ~atv320motor() = default;
 
   auto connected() -> bool { return connected_; }
-  template <typename signature_t = void(std::error_code)>
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
+            typename signature_t = void(std::error_code, travel_t)>
   auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
+        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), 0 * travel_t::reference); }, token);
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
