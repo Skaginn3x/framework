@@ -104,7 +104,7 @@ struct instance {
 
   asio::io_context ctx{ asio::io_context() };
   std::shared_ptr<sdbusplus::asio::connection> dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
-  std::uint16_t slave_id{ 0 };
+  std::uint16_t slave_id{ 999 };
   tfc::ipc_ruler::ipc_manager_client_mock manager{ dbus_connection };
   using timer_t = asio::basic_waitable_timer<tfc::testing::clock, tfc::testing::wait_traits>;
   controller<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, timer_t, bool_slot_t> ctrl{ dbus_connection,
