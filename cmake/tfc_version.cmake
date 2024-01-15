@@ -1,7 +1,7 @@
 # Run this with CMake in "script mode" (-P flag) at build time
 
 # find Git and if available set GIT_HASH variable
-find_package(Git QUIET)
+find_package(Git REQUIRED)
 if(GIT_FOUND)
     execute_process(
             COMMAND git log -1 --pretty=format:%H
