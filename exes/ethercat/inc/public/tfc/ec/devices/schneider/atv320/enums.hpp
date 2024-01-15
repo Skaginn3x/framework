@@ -3096,7 +3096,7 @@ enum struct lft_e : std::uint16_t {
   inf8 = 40,     ///< Internal error 8 (Switching Supply) ([Internal Error 8] (INF8))
   brf = 41,      ///< Brake feedback ([Brake feedback] (brF))
   slf2 = 42,     ///< PC communication interruption ([PC Com Interruption] (SLF2))
-  ssf  = 44,     ///< Torque/current lim ([Torque/current lim] (SSF))
+  ssf = 44,      ///< Torque/current lim ([Torque/current lim] (SSF))
   slf3 = 45,     ///< HMI communication interruption ([HMI Com Interruption] (SLF3))
   ptfl = 49,     ///< PTC probe ([PTC probe] (PtFL))
   inf9 = 51,     ///< Internal error 9 (Measure) ([Internal Error 9] (INF9))
@@ -6808,14 +6808,20 @@ template <>
 struct glz::meta<tfc::ec::devices::schneider::atv320::ecfg_e> {
   static constexpr std::string_view name{ "ecfg" };
   using enum tfc::ec::devices::schneider::atv320::ecfg_e;
-  static constexpr auto value{ glz::enumerate(
-    enum_desc(no), no,
-    enum_desc(yes), yes,
-    enum_desc(stt), stt,
-    enum_desc(lff), lff,
-    enum_desc(rls), rls,
-    enum_desc(rmp), rmp,
-    enum_desc(fst), fst,
-    enum_desc(dci), dci
-    ) };
+  static constexpr auto value{ glz::enumerate(enum_desc(no),
+                                              no,
+                                              enum_desc(yes),
+                                              yes,
+                                              enum_desc(stt),
+                                              stt,
+                                              enum_desc(lff),
+                                              lff,
+                                              enum_desc(rls),
+                                              rls,
+                                              enum_desc(rmp),
+                                              rmp,
+                                              enum_desc(fst),
+                                              fst,
+                                              enum_desc(dci),
+                                              dci) };
 };

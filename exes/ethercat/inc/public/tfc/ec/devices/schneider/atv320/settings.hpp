@@ -99,10 +99,7 @@ using rotor_time_constant_TRA = setting<ecx::index_t{ 0x2042, 0x44 },
                                         std::chrono::duration<std::uint16_t, std::milli>,
                                         0>;
 
-using torque_or_current_limitation_stop_SSB = setting<ecx::index_t{ 0x203E, 0x29 },
-                                                      "SSB",
-                                                      "Torque or current limit stop mode",
-                                                      ecfg_e,
-                                                      ecfg_e::no>;
+using torque_or_current_limitation_stop_SSB =
+    setting<ecx::index_t{ 0x203E, 0x29 }, "SSB", "Torque or current limit stop mode", ecfg_e, ecfg_e::no>;
 
 }  // namespace tfc::ec::devices::schneider::atv320

@@ -2,9 +2,9 @@
 
 #include <concepts>
 #include <expected>
+#include <optional>
 #include <system_error>
 #include <type_traits>
-#include <optional>
 
 // todo should we split to concepts/mp-units.hpp and concepts/stx.hpp
 #include <mp-units/systems/si/si.h>
@@ -54,11 +54,10 @@ concept steady_clock = requires {
   requires clock_t::is_steady == true;
 };
 
-template< typename T >
-concept is_optional = requires( T t )
-{
+template <typename T>
+concept is_optional = requires(T t) {
   typename T::value_type;
-  requires std::same_as< T, std::optional< typename T::value_type > >;
+  requires std::same_as<T, std::optional<typename T::value_type>>;
 };
 
 namespace test {
