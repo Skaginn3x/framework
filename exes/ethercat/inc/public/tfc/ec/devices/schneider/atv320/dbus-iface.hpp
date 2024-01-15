@@ -664,7 +664,9 @@ struct dbus_iface {
   auto operator=(dbus_iface&&) -> dbus_iface& = delete;
   ~dbus_iface() = default;
 
-  dbus_iface(controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl, std::shared_ptr<sdbusplus::asio::connection> connection, const uint16_t slave_id)
+  dbus_iface(controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl,
+             std::shared_ptr<sdbusplus::asio::connection> connection,
+             const uint16_t slave_id)
       : ctx_(connection->get_io_context()), slave_id_{ slave_id }, ctrl_{ ctrl }, manager_(connection),
 
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {

@@ -38,14 +38,16 @@ public:
         [this, connection](auto& conf) {
           using conf_t = std::remove_cvref_t<decltype(conf)>;
           if constexpr (!std::same_as<std::monostate, conf_t>) {
-            if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>, const conf_t&>) {
+            if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
+                                                  const conf_t&>) {
               impl_.emplace<typename conf_t::impl>(connection, conf);
             } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, const conf_t&>) {
               impl_.emplace<typename conf_t::impl>(ctx_, conf);
             } else {
-              []<bool flag = false>{
+              []<bool flag = false> {
                 static_assert(flag && "Type cannot be constructed");
-              }();
+              }
+              ();
             }
           }
         },
@@ -59,14 +61,16 @@ public:
             using conf_t = std::remove_cvref_t<decltype(vst_new)>;
             if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<std::monostate, conf_t>) {
               logger_.info("Switching running motor config");
-              if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>, conf_t>) {
+              if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
+                                                    conf_t>) {
                 impl_.emplace<typename conf_t::impl>(connection, vst_new);
               } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, conf_t&>) {
                 impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
               } else {
-                []<bool flag = false>{
+                []<bool flag = false> {
                   static_assert(flag && "Type cannot be constructed");
-                }();
+                }
+                ();
               }
             }
           },
