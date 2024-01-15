@@ -178,7 +178,7 @@ public:
 
   [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->full_name(); }
 
-  [[nodiscard]] auto value() const noexcept -> value_t const& { return signal_->value(); }
+  [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return signal_->value(); }
 
 private:
   static auto make_impl_signal(auto&& ctx, auto&& name) {

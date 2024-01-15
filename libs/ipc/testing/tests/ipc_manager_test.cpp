@@ -297,15 +297,10 @@ auto main(int argc, char** argv) -> int {
 
     std::array<bool, 3> test_values{ true, false, true };
     uint8_t invocation{};
-    bool ignore_first{ true };
 
     tfc::ipc_ruler::ipc_manager_client_mock mock_client{ isolated_ctx };
     const tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> slot(
         isolated_ctx, mock_client, "bool_slot", "", [&](bool value) {
-          if (ignore_first) {
-            ignore_first = false;
-            return;
-          }
           ut::expect(test_values.at(invocation++) == value);
           if (invocation == test_values.size()) {
             isolated_ctx.stop();
@@ -333,15 +328,10 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc_ruler::ipc_manager_client_mock mock_client{ isolated_ctx };
 
     uint8_t invocation{};
-    bool ignore_first{ true };
     std::array<std::int64_t, 3> test_values{ 25, 1337, 42 };
 
     const tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&> slot(
         isolated_ctx, mock_client, "bool_slot", "", [&](int64_t value) {
-          if (ignore_first) {
-            ignore_first = false;
-            return;
-          }
           ut::expect(test_values.at(invocation++) == value);
           if (invocation == test_values.size()) {
             isolated_ctx.stop();

@@ -252,11 +252,13 @@ public:
       last_errors_[0] = in->last_error;
       bool auto_reset =
           std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end();
-      logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in->last_error) ,in->last_error, auto_reset);
+      logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in->last_error),
+                    in->last_error, auto_reset);
     } else if (drive_in_fault_state && in->last_error == lft_e::no_fault) {
       logger_.warn("ATV reports fault state but last fault is not set");
     } else if (in->last_error != last_errors_[0]) {
-      logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in->last_error), in->last_error, state);
+      logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in->last_error),
+                   in->last_error, state);
       std::shift_right(last_errors_.begin(), last_errors_.end(), 1);
       last_errors_[0] = in->last_error;
     }
