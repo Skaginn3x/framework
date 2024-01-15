@@ -28,8 +28,7 @@
       "inherits": [
         "cfg-vcpkg-clang-dynamic",
         "cfg-build-dir",
-        "cfg-debug",
-        "cfg-ccache"
+        "cfg-debug"
       ]
     },
     {
