@@ -89,7 +89,7 @@ public:
   using config_t = config;
   std::chrono::microseconds static constexpr method_call_timeout{ std::chrono::microseconds::max() };
 
-  atv320motor(std::shared_ptr<sdbusplus::asio::connection>& connection, const config_t& conf) : ctx_{ connection->get_io_context() }, connection_{connection} {
+  atv320motor(std::shared_ptr<sdbusplus::asio::connection> connection, const config_t& conf) : ctx_{ connection->get_io_context() }, connection_{connection} {
     slave_id_ = conf.slave_id.value();
     send_ping(slave_id_);
     conf.slave_id.observe([this](const std::uint16_t new_id, const std::uint16_t old_id) {
