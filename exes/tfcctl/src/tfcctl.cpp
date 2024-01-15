@@ -47,10 +47,10 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
             using value_t = typename signal_type::value_t;
             std::string buff{ buffer_str };
             value_t val{};
-            if constexpr (signal_type::value_type == ipc::details::type_e::_string || signal_type::value_type == ipc::details::type_e::_json) {
+            if constexpr (signal_type::value_type == ipc::details::type_e::_string ||
+                          signal_type::value_type == ipc::details::type_e::_json) {
               val = buff;
-            }
-            else {
+            } else {
               auto value{ glz::read_json<value_t>(buff) };
               if (!value.has_value()) {
                 fmt::println("Invalid input error: {}", glz::format_error(value.error(), buff));
@@ -59,18 +59,17 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
               val = value.value();
             }
 
-            my_signal.async_send(val,
-                                 [&, actual_value = val](std::error_code const& code, size_t bytes) {
-                                   if (code) {
-                                     fmt::println("Error: {}", code.message());
-                                   } else {
-                                     if constexpr (tfc::stx::is_expected_quantity<value_t>) {
-                                       fmt::println("Sent value: {} size: {}", actual_value.value(), bytes);
-                                     } else {
-                                       fmt::println("Sent value: {} size: {}", actual_value, bytes);
-                                     }
-                                   }
-                                 });
+            my_signal.async_send(val, [&, actual_value = val](std::error_code const& code, size_t bytes) {
+              if (code) {
+                fmt::println("Error: {}", code.message());
+              } else {
+                if constexpr (tfc::stx::is_expected_quantity<value_t>) {
+                  fmt::println("Sent value: {} size: {}", actual_value.value(), bytes);
+                } else {
+                  fmt::println("Sent value: {} size: {}", actual_value, bytes);
+                }
+              }
+            });
           }
         },
         sender);
