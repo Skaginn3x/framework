@@ -43,7 +43,7 @@ inline variable_t async_send_if_new(signal_t& signal,
   }
   return new_var;
 }
-};  // namespace details
+}; // namespace details
 
 template <typename manager_client_t>
 class device final : public base {
@@ -68,7 +68,7 @@ public:
     // takes approx 5 seconds to reach 80Hz
     acceleration_ramp_time_ACC acceleration;
     deceleration_ramp_time_DEC deceleration;
-    confman::observable<speedratio_t> default_speedratio{ 1 * speedratio_t::reference };  // Run the motor at LSP by default
+    confman::observable<speedratio_t> default_speedratio{ 1 * speedratio_t::reference }; // Run the motor at LSP by default
     fast_stop_ramp_divider_DCF fast_stop_ramp_divider;
     async_motor_leakage_inductance_LFA async_motor_leakage_inductance;
     async_motor_stator_resistance_RSA async_motor_stator_resistance;
@@ -78,24 +78,24 @@ public:
       using T = atv_config;
       // clang-format off
       static constexpr auto value = glz::object(
-        "nominal_motor_power", &T::nominal_motor_power,
-        "nominal_motor_voltage", &T::nominal_motor_voltage,
-        "nominal_motor_current", &T::nominal_motor_current,
-        "nominal_motor_frequency", &T::nominal_motor_frequency,
-        "nominal_motor_speed", &T::nominal_motor_speed,
-        "max_frequency", &T::max_frequency,
-        "motor_thermal_current", &T::motor_thermal_current,
-        "high_speed", &T::high_speed,
-        "low_speed", &T::low_speed,
-        "cos_phi", &T::motor_1_cos_phi, json::schema{ .maximum = 100L },
-        "acceleration", &T::acceleration,
-        "deceleration", &T::deceleration,
-        "default_speedratio", &T::default_speedratio, json::schema{ .minimum = -100L, .maximum = 100L },
-        "fast_stop_ramp_divider", &T::fast_stop_ramp_divider, json::schema{ .minimum = 0L, .maximum = 10L },
-        "async_motor_leakage_inductance", &T::async_motor_leakage_inductance,
-        "async_motor_stator_resistance", &T::async_motor_stator_resistance,
-        "rotor_time_constant", &T::rotor_time_constant
-        );
+          "nominal_motor_power", &T::nominal_motor_power,
+          "nominal_motor_voltage", &T::nominal_motor_voltage,
+          "nominal_motor_current", &T::nominal_motor_current,
+          "nominal_motor_frequency", &T::nominal_motor_frequency,
+          "nominal_motor_speed", &T::nominal_motor_speed,
+          "max_frequency", &T::max_frequency,
+          "motor_thermal_current", &T::motor_thermal_current,
+          "high_speed", &T::high_speed,
+          "low_speed", &T::low_speed,
+          "cos_phi", &T::motor_1_cos_phi, json::schema{ .maximum = 100L },
+          "acceleration", &T::acceleration,
+          "deceleration", &T::deceleration,
+          "default_speedratio", &T::default_speedratio, json::schema{ .minimum = -100L, .maximum = 100L },
+          "fast_stop_ramp_divider", &T::fast_stop_ramp_divider, json::schema{ .minimum = 0L, .maximum = 10L },
+          "async_motor_leakage_inductance", &T::async_motor_leakage_inductance,
+          "async_motor_stator_resistance", &T::async_motor_stator_resistance,
+          "rotor_time_constant", &T::rotor_time_constant
+          );
       // clang-format on
       static constexpr std::string_view name{ "atv320" };
     };
@@ -106,31 +106,41 @@ public:
   using config_t = confman::config<confman::observable<atv_config>>;
 
   explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& client, uint16_t slave_index)
-      : base(slave_index), ctx_{ connection->get_io_context() }, run_(ctx_,
-                                                                      client,
-                                                                      fmt::format("atv320.s{}.run", slave_index),
-                                                                      "Turn on motor",
-                                                                      [this](bool value) { ipc_running_ = value; }),
-        ratio_(ctx_,
-               client,
-               fmt::format("atv320.s{}.ratio", slave_index),
-               "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
-               "reverse min freq.",
-               [this](double value) {
-                 reference_frequency_ = detail::percentage_to_deci_freq(
-                     value * mp_units::percent, config_.value().value().low_speed, config_.value().value().high_speed);
-               }),
-        frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.freq", slave_index), "Current Frequency"),
-        current_transmit_(ctx_, client, fmt::format("atv320.s{}.current", slave_index), "Current Current"),
-        last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
-        hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
-        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
-        dbus_iface_(ctrl_, connection, slave_index),
-        reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
-          auto timer = std::make_shared<asio::steady_timer>(ctx_);
-          // A timer to reset the reset just in case
-          allow_reset_ = value;
-        }) {
+    : base(slave_index), ctx_{ connection->get_io_context() }, run_(ctx_,
+                                                                    client,
+                                                                    fmt::format("atv320.s{}.run", slave_index),
+                                                                    "Turn on motor",
+                                                                    [this](bool value) { ipc_running_ = value; }),
+      config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
+      tmp_config_ratio_signal_(ctx_,
+                               client,
+                               fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
+                               "Currently set speed ratio"),
+      tmp_config_ratio_slot_(
+          ctx_,
+          client,
+          fmt::format("atv320.s{}.tmp_config_ratio_in", slave_index),
+          "Speed ratio.\n100% is max freq.\n1%, is min freq.\n(-1, 1)% is stopped.\n-100% is reverse max freq.\n-1% is "
+          "reverse min freq.",
+          [this](double value){
+            // Only way to override a oberservable is with the equals operator.
+            // here I only want to change a inner observable but have to
+            // write the entire outer observable in order to get a mutable
+            // reference to the inner observable.
+            auto config = config_->value();
+            config.default_speedratio = value * speedratio_t::reference;
+            config_.make_change().value() = config;
+          }),
+      frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.freq", slave_index), "Current Frequency"),
+      current_transmit_(ctx_, client, fmt::format("atv320.s{}.current", slave_index), "Current Current"),
+      last_error_transmit_(ctx_, client, fmt::format("atv320.s{}.last_error", slave_index), "Last Error [LFT]"),
+      hmis_transmitter_(ctx_, client, fmt::format("atv320.s{}.hmis", slave_index), "HMI state"),
+      dbus_iface_(ctrl_, connection, slave_index),
+      reset_(ctx_, client, fmt::format("atv320.s{}.reset", slave_index), "Reset atv fault", [this](bool value) {
+        auto timer = std::make_shared<asio::steady_timer>(ctx_);
+        // A timer to reset the reset just in case
+        allow_reset_ = value;
+      }) {
     config_->observe([this](auto& new_value, auto& old_value) {
       logger_.warn(
           "Live motor configuration is discouraged. Large amounts of SDO traffic can delay and disrubt the ethercat cycle. "
@@ -146,6 +156,7 @@ public:
       }
       if (new_value.nominal_motor_frequency != old_value.nominal_motor_frequency) {
         asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_frequency); });
+        ctrl_.set_motor_nominal_freq(new_value.nominal_motor_frequency.value);
       }
       if (new_value.nominal_motor_speed != old_value.nominal_motor_speed) {
         asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_speed); });
@@ -179,14 +190,31 @@ public:
       }
     });
 
-    config_->value().default_speedratio.observe(
-        [this](speedratio_t new_v, auto) { dbus_iface_.set_configured_speedratio(new_v); });
+    config_->value().default_speedratio.observe([this](speedratio_t new_v, auto) {
+      dbus_iface_.set_configured_speedratio(new_v);
+      reference_frequency_ = detail::percentage_to_deci_freq(new_v, config_->value().low_speed, config_->value().high_speed);
+      tmp_config_ratio_signal_.async_send(
+          new_v.numerical_value_ref_in(speedratio_t::unit),
+          [this](const std::error_code& err, const std::size_t) {
+            if (err) {
+              logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
+            }
+          });
+    });
 
     // Apply the default speedratio to both means of controlling the motor
     dbus_iface_.set_configured_speedratio(config_->value().default_speedratio);
     ctrl_.set_motor_nominal_freq(config_->value().nominal_motor_frequency.value);
     reference_frequency_ = detail::percentage_to_deci_freq(config_->value().default_speedratio, config_->value().low_speed,
                                                            config_->value().high_speed);
+
+    tmp_config_ratio_signal_.async_send(
+        config_->value().default_speedratio.value().numerical_value_ref_in(speedratio_t::unit),
+        [this](const std::error_code& err, const std::size_t) {
+          if (err) {
+            logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
+          }
+        });
 
     for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
@@ -252,11 +280,13 @@ public:
       last_errors_[0] = in->last_error;
       bool auto_reset =
           std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end();
-      logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in->last_error) ,in->last_error, auto_reset);
+      logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in->last_error),
+                    in->last_error, auto_reset);
     } else if (drive_in_fault_state && in->last_error == lft_e::no_fault) {
       logger_.warn("ATV reports fault state but last fault is not set");
     } else if (in->last_error != last_errors_[0]) {
-      logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in->last_error), in->last_error, state);
+      logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in->last_error),
+                   in->last_error, state);
       std::shift_right(last_errors_.begin(), last_errors_.end(), 1);
       last_errors_[0] = in->last_error;
     }
@@ -313,25 +343,25 @@ public:
     sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);
     // Zero the size
     sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>, 0x20020510);  // LCR  - CURRENT USAGE ( A
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>, 0x20291610);  // LFT  - Last error occured
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20022910);  // HMIS - Drive state
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010); // ETA  - STATUS WORD
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310); // RFR  - CURRENT SPEED HZ
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>, 0x20020510); // LCR  - CURRENT USAGE ( A
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310); // 1LIR - DI1-DI6
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>, 0x20291610); // LFT  - Last error occured
+    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20022910); // HMIS - Drive state
     sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 6);
 
     // Zero the size
     sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
     // Assign tx variables
     sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x01>,
-                        ecx::make_mapping_value<cia_402::control_word>());  // CMD - CONTROL WORD
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);             // LFR - REFERENCE SPEED HZ
+                        ecx::make_mapping_value<cia_402::control_word>()); // CMD - CONTROL WORD
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);            // LFR - REFERENCE SPEED HZ
     sdo_write<uint32_t>(
         ecx::rx_pdo_mapping<0x03>,
-        0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x04>, 0x203C0210);  // ACC - Acceleration
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x05>, 0x203C0310);  // DEC - Deceleration
+        0x20160D10); // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x04>, 0x203C0210); // ACC - Acceleration
+    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x05>, 0x203C0310); // DEC - Deceleration
 
     // Set tx size
     sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 5);
@@ -372,26 +402,28 @@ public:
 private:
   asio::io_context& ctx_;
   std::bitset<atv320_di_count> last_bool_values_;
-  std::vector<tfc::ipc::bool_signal> di_transmitters_;
-  bool ipc_running_{};
+  std::vector<ipc::bool_signal> di_transmitters_;
   ipc::bool_slot run_;
-  decifrequency_signed reference_frequency_{ 0 * dHz };
-  ipc::double_slot ratio_;
-  double last_frequency_{};
-  double last_current_{};
-  std::uint64_t last_error_{};
+  config_t config_;
+  controller<manager_client_t> ctrl_;
+  ipc::double_signal tmp_config_ratio_signal_;
+  ipc::double_slot tmp_config_ratio_slot_;
   ipc::double_signal frequency_transmit_;
   ipc::double_signal current_transmit_;
   ipc::uint_signal last_error_transmit_;
-  hmis_e last_hmis_{};
   ipc::uint_signal hmis_transmitter_;
-  config_t config_;
-  controller<manager_client_t> ctrl_;
   dbus_iface dbus_iface_;
   ipc::bool_slot reset_;
+
+  hmis_e last_hmis_{};
+  double last_frequency_{};
+  double last_current_{};
+  std::uint64_t last_error_{};
+  bool ipc_running_{};
+  decifrequency_signed reference_frequency_{ 0 * dHz };
   std::array<lft_e, 10> last_errors_{};
   asio::steady_timer reset_timer_{ ctx_ };
   bool no_data_{ false };
   bool allow_reset_{ false };
 };
-}  // namespace tfc::ec::devices::schneider::atv320
+} // namespace tfc::ec::devices::schneider::atv320
