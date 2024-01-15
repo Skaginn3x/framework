@@ -50,7 +50,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.move_home([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -64,7 +64,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.move(10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -80,7 +80,7 @@ auto main(int, char const* const* argv) -> int {
     expect(cinst.client.connected());
     cinst.client.move(10 * speedratio_t::reference, 10 * mm,
                       [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
-                        expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
+                        expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured) << err.message() << err.message();
                         expect(pos == 0 * mm);
                         inst.ran[0] = true;
                         inst.ctx.stop();
@@ -95,7 +95,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.needs_homing([&inst](const std::error_code& err, bool needs_homing) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured) << err.message();
       expect(needs_homing);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -110,7 +110,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.run([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -124,7 +124,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.run(10 * s, [&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -138,7 +138,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.run(10 * speedratio_t::reference, 10 * s, [&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -152,7 +152,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.run(10 * speedratio_t::reference, [&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -166,7 +166,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.convey(10 * mm / s, 10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -181,7 +181,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.convey(10 * (mm / s), [&inst](const std::error_code& err, const micrometre_t& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_not_implemented);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_not_implemented) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -196,7 +196,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.convey(10 * (mm / s), 10 * s, [&inst](const std::error_code& err, const micrometre_t& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -211,7 +211,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.convey(10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -226,7 +226,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.stop([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -240,7 +240,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.quick_stop([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error);
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -254,7 +254,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.reset([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault);
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
