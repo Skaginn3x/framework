@@ -29,7 +29,7 @@ template <size_t pdo_buffer_size = 4096>
 class context_t {
 public:
   static constexpr std::string_view dbus_name{
-    tfc::motor::dbus::detail::service
+    motor::dbus::detail::service
   };  // needs to match the name in motor/dbus_tags.hpp
   // There is support in SOEM and ethercat to split
   // your network into groups. There can even be

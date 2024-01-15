@@ -9,6 +9,8 @@
 #include <tfc/stubs/confman.hpp>
 #include <tfc/testing/asio_clock.hpp>
 #include <tfc/motor/atv320motor.hpp>
+#include <tfc/dbus/sd_bus.hpp>
+#include <tfc/motor/dbus_tags.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -49,6 +51,7 @@ using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absol
 struct instance {
   instance() {
     atv_conf.slave_id = slave_id;
+    dbus_connection->request_name(tfc::dbus::make_dbus_name(tfc::motor::dbus::detail::service).c_str());
   }
 
   asio::io_context ctx{ asio::io_context() };
@@ -71,7 +74,7 @@ auto main(int, char const* const* argv) -> int {
   tfc::base::init(args.size(), args.data());
   "test ping from client to server"_test = [] {
     instance inst;
-    inst.ctx.run_for(1ms);
+    inst.ctx.run_for(3ms);
     expect(inst.client.connected());
   };
 }
