@@ -6,6 +6,7 @@
  *
  */
 
+#include <sys/resource.h>
 #include <ranges>
 
 #include <boost/asio/signal_set.hpp>
@@ -20,6 +21,15 @@ auto main(int argc, char* argv[]) -> int {
 
   boost::asio::io_context io_ctx;
   tfc::ec::context_t ctx(io_ctx);
+
+  rlimit limit{};
+  auto const res{ getrlimit(RLIMIT_NOFILE, &limit) };
+  if (res != 0) {
+    fmt::println(stderr, "Failed to getrlimit: {}", std::strerror(errno));
+    return 1;
+  }
+  fmt::println("File descriptor soft limit: {}", limit.rlim_cur);
+  fmt::println("File descriptor hard limit: {}", limit.rlim_max);
 
   ctx.async_start();
 
