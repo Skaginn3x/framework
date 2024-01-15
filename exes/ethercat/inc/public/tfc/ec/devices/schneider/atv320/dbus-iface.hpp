@@ -688,7 +688,7 @@ struct dbus_iface {
               dbus_interface_->set_property(connected_peer, peer_);
             }
             timeout_.cancel();
-            timeout_.expires_after(long_living_ping ? std::chrono::hours(1) : std::chrono::milliseconds(750));
+            timeout_.expires_after(long_living_ping ? std::chrono::hours(1) : std::chrono::milliseconds(1500));
             timeout_.async_wait([this](std::error_code err) {
               if (err)
                 return;  // The timer was canceled or deconstructed.

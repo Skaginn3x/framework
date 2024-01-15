@@ -1,11 +1,13 @@
 #pragma once
-#include <mp-units/chrono.h>
 
 #include <string>
 #include <string_view>
+#include <cstdint>
 
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
+
+#include <mp-units/chrono.h>
 
 #include <tfc/confman.hpp>
 #include <tfc/dbus/sd_bus.hpp>
@@ -73,7 +75,11 @@ private:
             }
             send_ping(slave_id);
           });
-        }, service_name_, path_, interface_name_, std::string{ method::ping }, std::chrono::microseconds(std::chrono::milliseconds(100)).count(), false);
+        },service_name_,
+        path_,
+        interface_name_,
+        std::string{ method::ping },
+        std::chrono::microseconds(std::chrono::milliseconds(100)).count(), false);
   }
   bool connected_{ false };
   [[nodiscard]] std::error_code motor_seems_valid() const noexcept {

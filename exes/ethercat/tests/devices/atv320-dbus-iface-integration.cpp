@@ -84,7 +84,7 @@ auto main(int, char const* const* argv) -> int {
     serverinstance sinst;
     sinst.ctx.run_for(5ms);
     clientinstance cinst(sinst);
-    sinst.ctx.run_for(5000ms);
+    sinst.ctx.run_for(10ms);
     expect(cinst.client.connected());
   };
 }

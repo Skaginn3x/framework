@@ -424,7 +424,7 @@ private:
   ipc::double_signal current_transmit_;
   ipc::uint_signal last_error_transmit_;
   ipc::uint_signal hmis_transmitter_;
-  dbus_iface dbus_iface_;
+  dbus_iface<manager_client_t> dbus_iface_;
   ipc::bool_slot reset_;
 
   hmis_e last_hmis_{};
