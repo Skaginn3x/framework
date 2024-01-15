@@ -1,4 +1,5 @@
 #include <string_view>
+#include <async_mqtt/endpoint.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
@@ -48,8 +49,8 @@ using positioner_t = tfc::motor::positioner::
 positioner<metre, tfc::ipc_ruler::ipc_manager_client_mock&, tfc::confman::stub_config, bool_slot_t>;
 using home_travel_t = tfc::confman::observable<std::optional<positioner_t::absolute_position_t>>;
 
-struct instance {
-  instance() {
+struct serverinstance {
+  serverinstance() {
     atv_conf.slave_id = slave_id;
     dbus_connection->request_name(tfc::dbus::make_dbus_name(tfc::motor::dbus::detail::service).c_str());
   }
@@ -65,16 +66,25 @@ struct instance {
   dbus_iface<tfc::ipc_ruler::ipc_manager_client_mock, tfc::confman::stub_config, timer_t, bool_slot_t> server{
     ctrl, dbus_connection, slave_id };
   atv320motor::config_t atv_conf;
-  atv320motor client{ dbus_connection, atv_conf };
   std::array<bool, 10> ran{};
+};
+
+struct clientinstance {
+  clientinstance(serverinstance& server)
+    : client(server.dbus_connection, server.atv_conf) {
+  }
+
+  atv320motor client;
 };
 
 auto main(int, char const* const* argv) -> int {
   std::array<char const*, 4> args{ argv[0], "--log-level", "trace", "--stdout" };
   tfc::base::init(args.size(), args.data());
   "test ping from client to server"_test = [] {
-    instance inst;
-    inst.ctx.run_for(3ms);
-    expect(inst.client.connected());
+    serverinstance sinst;
+    sinst.ctx.run_for(5ms);
+    clientinstance cinst(sinst);
+    sinst.ctx.run_for(5000ms);
+    expect(cinst.client.connected());
   };
 }

@@ -50,9 +50,8 @@ private:
   // Assemble the interface string and start ping-pong sequence.
   // Only set connected to true if there is an answer on the interface
   // and it is returning true. Indicating we have control over the motor.
-  static constexpr bool long_living_ = false;
   void send_ping(uint16_t slave_id) {
-    connection_->async_method_call(
+    connection_->async_method_call_timed(
         [this, slave_id](const std::error_code& err, bool response) {
           // It could be that we started before the ethercat network or a configuration
           // error has occured
@@ -74,8 +73,7 @@ private:
             }
             send_ping(slave_id);
           });
-        },
-        service_name_, path_, interface_name_, std::string{ method::ping }, long_living_);
+        }, service_name_, path_, interface_name_, std::string{ method::ping }, std::chrono::microseconds(std::chrono::milliseconds(100)).count(), false);
   }
   bool connected_{ false };
   [[nodiscard]] std::error_code motor_seems_valid() const noexcept {
