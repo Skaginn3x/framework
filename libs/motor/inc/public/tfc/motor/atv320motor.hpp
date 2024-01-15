@@ -13,6 +13,7 @@
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/stx/function_traits.hpp>
+#include <tfc/confman/observable.hpp>
 
 namespace tfc::motor::types {
 
