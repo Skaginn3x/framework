@@ -414,7 +414,12 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test_instance inst{};
     positioner_t::config_t config{};  // to be moved to implementation
     std::function<void(bool)> home_cb{ [](bool) {} };
-    positioner_t positioner{ inst.dbus, inst.unused, "name", std::move(home_cb), std::move(config) };
+    std::function<void(bool)> positive_limit_cb{ [](bool) {} };
+    std::function<void(bool)> negative_limit_cb{ [](bool) {} };
+    positioner_t positioner{
+      inst.dbus,        inst.unused, "name", std::move(home_cb), std::move(positive_limit_cb), std::move(negative_limit_cb),
+      std::move(config)
+    };
   };
   using mp_units::si::unit_symbols::mm;
 
@@ -616,6 +621,30 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
                             .home_cb = [&called](bool new_v) { called = new_v; } };
     expect(test.positioner.homing_sensor().has_value() >> ut::fatal);
     test.positioner.homing_sensor()->callback(true);
+    expect(called);
+  };
+
+  "positive limit switch enabled call callback"_test = [] {
+    using tfc::confman::observable;
+    using tfc::motor::positioner::speedratio_t;
+    using tfc::motor::positioner::limit_switch_e;
+    bool called{};
+    notification_test test{ .config = { .limit_switches = observable{ limit_switch_e::limit_switches_optional } },
+                            .positive_limit_cb = [&called](bool new_v) { called = new_v; } };
+    expect(test.positioner.positive_limit_switch().has_value() >> ut::fatal);
+    test.positioner.positive_limit_switch()->callback(true);
+    expect(called);
+  };
+
+  "negative limit switch enabled call callback"_test = [] {
+    using tfc::confman::observable;
+    using tfc::motor::positioner::speedratio_t;
+    using tfc::motor::positioner::limit_switch_e;
+    bool called{};
+    notification_test test{ .config = { .limit_switches = observable{ limit_switch_e::limit_switches_optional } },
+                            .negative_limit_cb = [&called](bool new_v) { called = new_v; } };
+    expect(test.positioner.negative_limit_switch().has_value() >> ut::fatal);
+    test.positioner.negative_limit_switch()->callback(true);
     expect(called);
   };
 };
