@@ -24,7 +24,7 @@ auto main(int, char const* const* argv) -> int {
   "test ping from client to server"_test = [] {
     instance sinst;
     sinst.ctx.run_for(5ms);
-    clientinstance cinst(sinst, {});
+    clientinstance cinst(sinst);
     sinst.ctx.run_for(10ms);
     expect(cinst.client.connected());
   };
