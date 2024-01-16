@@ -13,6 +13,7 @@
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
+#include <tfc/motor/enums.hpp>
 #include <tfc/stx/function_traits.hpp>
 
 namespace tfc::motor::types {
@@ -288,6 +289,20 @@ public:
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return error_only_token_impl<signature_t>(method::run_microsecond, std::forward<decltype(token)>(token),
                                               microsecond_cast(time));
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(direction_e direction, asio::completion_token_for<signature_t> auto&& token) ->
+  typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return error_only_token_impl<signature_t>(method::run_direction, std::forward<decltype(token)>(token),
+                                              direction);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(direction_e direction, QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    return error_only_token_impl<signature_t>(method::run_direction_microsecond, std::forward<decltype(token)>(token),
+                                              direction, microsecond_cast(time));
   }
 
   template <typename signature_t = void(std::error_code)>

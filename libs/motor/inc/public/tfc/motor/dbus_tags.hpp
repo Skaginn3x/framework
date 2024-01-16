@@ -28,6 +28,8 @@ static constexpr std::string_view run{ "Run" };
 static constexpr std::string_view run_at_speedratio{ "RunAtSpeedratio" };
 static constexpr std::string_view run_at_speedratio_microsecond{ "RunAtSpeedratio_Microsecond" };
 static constexpr std::string_view run_microsecond{ "Run_Microsecond" };
+static constexpr std::string_view run_direction{ "Run_Direction" };
+static constexpr std::string_view run_direction_microsecond{ "Run_Direction_Microsecond" };
 static constexpr std::string_view stop{ "Stop" };
 static constexpr std::string_view quick_stop{ "QuickStop" };
 static constexpr std::string_view needs_homing{ "NeedsHoming" };
