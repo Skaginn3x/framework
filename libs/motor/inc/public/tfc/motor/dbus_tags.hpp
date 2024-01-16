@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 #include <mp-units/systems/si/si.h>
 
+#include <tfc/motor/errors.hpp>
 #include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::motor::dbus {
@@ -49,4 +50,21 @@ using microsecond_t = mp_units::quantity<mp_units::si::micro<mp_units::si::secon
 using speedratio_t = mp_units::quantity<mp_units::percent, double>;
 using velocity_t = mp_units::quantity<micrometre_t::reference / mp_units::si::second, std::int64_t>;
 }  // namespace types
+
+namespace message {
+
+template <mp_units::Quantity quantity_t>
+struct generic {
+  errors::err_enum err{ errors::err_enum::unknown };
+  quantity_t length{};
+  static constexpr auto dbus_reflection{ [](auto&& self) {
+    return stx::to_tuple(std::forward<decltype(self)>(self));
+  } };
+};
+
+using length = generic<types::micrometre_t>;
+
+}
+
+
 }  // namespace tfc::motor::dbus
