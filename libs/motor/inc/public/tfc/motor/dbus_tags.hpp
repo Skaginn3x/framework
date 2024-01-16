@@ -64,6 +64,14 @@ struct generic {
 
 using length = generic<types::micrometre_t>;
 
+struct needs_homing {
+  errors::err_enum err{ errors::err_enum::unknown };
+  bool needs_homing{ false };
+  static constexpr auto dbus_reflection{ [](auto&& self) {
+    return stx::to_tuple(std::forward<decltype(self)>(self));
+  } };
+};
+
 }
 
 

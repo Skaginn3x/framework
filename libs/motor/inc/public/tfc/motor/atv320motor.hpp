@@ -202,7 +202,6 @@ public:
   template <typename signature_t = void(std::error_code, bool)>
   auto needs_homing(asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    std::string method_name{ method::needs_homing };
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) {
           if (auto const sanity_check{ motor_seems_valid() }) {
@@ -211,18 +210,17 @@ public:
           }
 
           connection_->async_method_call(
-              [this, self_m = std::move(self)](std::error_code const& err, errors::err_enum motor_err,
-                                                            bool needs_homing) mutable {
+              [this, self_m = std::move(self)](std::error_code const& err, dbus::message::needs_homing msg) mutable {
                 if (err) {
                   logger_.warn("{} dbus failure: {}", method::needs_homing, err.message());
-                  self_m.complete(err, needs_homing);
+                  self_m.complete(err, msg.needs_homing);
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method::needs_homing, motor_err);
+                if (msg.err != success) {
+                  logger_.warn("{} failure: {}", method::needs_homing, msg.err);
                 }
-                self_m.complete(motor_error(motor_err), needs_homing);
+                self_m.complete(motor_error(msg.err), msg.needs_homing);
               },
               service_name_, path_, interface_name_, std::string(method::needs_homing));
         },

@@ -18,6 +18,8 @@ namespace tfc::motor {
 // inside some alarm manager.
 namespace errors {
 enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
+  motor_method_not_implemented = -2,
+  motor_not_implemented = -1,
   success = 0,
   no_motor_configured = 1,
   motor_not_connected = 2,
@@ -25,9 +27,7 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   frequency_drive_communication_fault = 4,
   motor_missing_speed_reference = 5,
   motor_missing_home_reference = 6,
-  motor_not_implemented = 7,
-  motor_method_not_implemented = 8,
-  motor_home_sensor_unconfigured = 9,
+  motor_home_sensor_unconfigured = 7,
   speedratio_out_of_range = 11,
   positioning_unstable = 20,
   positioning_missing_event = 21,
