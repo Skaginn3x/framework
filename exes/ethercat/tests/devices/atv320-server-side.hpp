@@ -129,8 +129,8 @@ struct instance {
     ctx.run_for(1ms);
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
-    manager.connect("test_atv320_dbus_iface.def.bool.homing_sensor_atv320_0",
-                    "test_atv320_dbus_iface.def.bool.homing_sensor", [&](const std::error_code&) {
+    manager.connect(fmt::format("{}.{}.bool.homing_sensor_atv320_{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), slave_id),
+                    fmt::format("{}.{}.bool.homing_sensor", tfc::base::get_exe_name(), tfc::base::get_proc_name()), [&](const std::error_code&) {
                     });
     ctx.run_for(5ms);
     sig.send(true);

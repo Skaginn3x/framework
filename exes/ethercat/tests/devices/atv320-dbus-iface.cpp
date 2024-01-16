@@ -313,6 +313,19 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[1]);
   };
 
+  "move_home unconfigured homing sensor"_test = [&] {
+    instance inst;
+    // Set current as reference
+    inst.ctrl.move_home([&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
   "move home already in homing sensor"_test = [&] {
     instance inst;
     // Set current as reference
@@ -439,6 +452,20 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
     expect(inst.ran[1]);
+  };
+  "move unconfigured homing sensor"_test = [&] {
+    instance inst;
+    // Set current as reference
+    inst.ctrl.move(10 * micrometre_t::reference, [&inst](const std::error_code& err, const micrometre_t travel) {
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
+      expect(travel == 0 * micrometre_t::reference);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    expect(inst.ctrl.speed_ratio() == 0 * speedratio_t::reference);
+    inst.ctrl.positioner().increment_position(0 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
   };
   "move cancelled"_test = [] {
     instance inst;

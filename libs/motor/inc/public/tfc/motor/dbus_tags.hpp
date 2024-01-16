@@ -7,6 +7,7 @@
 
 #include <tfc/motor/errors.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/stx/to_tuple.hpp>
 
 namespace tfc::motor::dbus {
 namespace detail {
