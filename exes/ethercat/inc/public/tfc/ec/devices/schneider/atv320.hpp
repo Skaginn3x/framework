@@ -131,9 +131,13 @@ public:
               // here I only want to change a inner observable but have to
               // write the entire outer observable in order to get a mutable
               // reference to the inner observable.
-              auto config = config_->value();
-              config.default_speedratio = value * speedratio_t::reference;
-              config_.make_change().value() = config;
+              if (value > -1 && value < 1) {
+                logger_.warn("Invalid default speedratio value set over slot");
+              } else {
+                auto config = config_->value();
+                config.default_speedratio = value * speedratio_t::reference;
+                config_.make_change().value() = config;
+              }
             }),
         frequency_transmit_(ctx_, client, fmt::format("atv320.s{}.freq", slave_index), "Current Frequency"),
         current_transmit_(ctx_, client, fmt::format("atv320.s{}.current", slave_index), "Current Current"),
@@ -199,9 +203,9 @@ public:
         asio::post(ctx_, [this, new_value] { sdo_write(config_->value().torque_or_current_limitation_stop); });
       }
     });
-
     config_->value().default_speedratio.observe([this](speedratio_t new_v, auto) {
       dbus_iface_.set_configured_speedratio(new_v);
+      ctrl_.set_configured_speedratio(new_v);
       reference_frequency_ = detail::percentage_to_deci_freq(new_v, config_->value().low_speed, config_->value().high_speed);
       tmp_config_ratio_signal_.async_send(
           new_v.numerical_value_ref_in(speedratio_t::unit), [this](const std::error_code& err, const std::size_t) {
@@ -213,6 +217,7 @@ public:
 
     // Apply the default speedratio to both means of controlling the motor
     dbus_iface_.set_configured_speedratio(config_->value().default_speedratio);
+    ctrl_.set_configured_speedratio(config_->value().default_speedratio);
     ctrl_.set_motor_nominal_freq(config_->value().nominal_motor_frequency.value);
     reference_frequency_ = detail::percentage_to_deci_freq(config_->value().default_speedratio, config_->value().low_speed,
                                                            config_->value().high_speed);
