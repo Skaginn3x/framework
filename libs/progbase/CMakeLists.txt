@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 
 add_library(base
   src/progbase.cpp
+  src/version.cpp
 )
 add_library(tfc::base ALIAS base)
 get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECTORIES)
