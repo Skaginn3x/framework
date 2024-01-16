@@ -816,6 +816,17 @@ struct dbus_iface {
 
     dbus_interface_->register_method(std::string{ method::convey_micrometrepersecond_microsecond },
                                      [this](asio::yield_context, sdbusplus::message_t const& msg,
+                                            velocity_t, time_t) -> message::length {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return { permission_denied, 0L * micrometre_t::reference };
+                                       }
+                                       //TODO: Implement
+                                       logger_.error("Unimplemented convey(velocity, time) called dbus-iface");
+                                       return { motor_method_not_implemented, 0 * micrometre_t::reference };
+                                     });
+    dbus_interface_->register_method(std::string{ method::convey_micrometrepersecond_micrometre },
+                                     [this](asio::yield_context, sdbusplus::message_t const& msg,
                                             velocity_t, micrometre_t) -> message::length {
                                        using enum motor::errors::err_enum;
                                        if (!validate_peer(msg.get_sender())) {

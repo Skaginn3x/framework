@@ -283,7 +283,7 @@ public:
   template <typename signature_t = void(std::error_code)>
   auto run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    return error_only_token_impl<signature_t>(method::run_at_speedratio, std::forward<decltype(token)>(token),
+    return error_only_token_impl<signature_t>(method::run_microsecond, std::forward<decltype(token)>(token),
                                               microsecond_cast(time));
   }
 

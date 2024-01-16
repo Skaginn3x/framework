@@ -160,7 +160,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.convey(10 * mm / s, 10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_method_not_implemented) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
