@@ -26,6 +26,7 @@ namespace method = motor::dbus::method;
 namespace message = motor::dbus::message;
 using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
+using velocity_t = motor::dbus::types::velocity_t;
 using microsecond_t = motor::dbus::types::microsecond_t;
 static constexpr std::string_view impl_name{ "atv320" };
 
@@ -811,6 +812,18 @@ struct dbus_iface {
                                        }
                                        auto [err, actual_displacement]{ ctrl_.convey(config_speedratio_, travel, yield) };
                                        return { motor::motor_enum(err), actual_displacement };
+                                     });
+
+    dbus_interface_->register_method(std::string{ method::convey_micrometrepersecond_microsecond },
+                                     [this](asio::yield_context, sdbusplus::message_t const& msg,
+                                            velocity_t, micrometre_t) -> message::length {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return { permission_denied, 0L * micrometre_t::reference };
+                                       }
+                                       //TODO: Implement
+                                       logger_.error("Unimplemented convey(velocity, time) called dbus-iface");
+                                       return { motor_method_not_implemented, 0 * micrometre_t::reference };
                                      });
 
     // returns { error_code, absolute position relative to home }
