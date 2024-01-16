@@ -65,7 +65,8 @@ auto main(int, char const* const* argv) -> int {
     expect(cinst.client.connected());
     cinst.client.move(10 * speedratio_t::reference, 10 * mm,
                       [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
-                        expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured) << err.message() << err.message();
+                        expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured) << err.message() <<
+                            err.message();
                         expect(pos == 0 * mm);
                         inst.ran[0] = true;
                         inst.ctx.stop();
@@ -94,6 +95,8 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
+    // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
+    inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
@@ -108,6 +111,8 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
+    // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
+    inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run(10 * s, [&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
@@ -122,6 +127,8 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
+    // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
+    inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run(10 * speedratio_t::reference, 10 * s, [&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
@@ -136,6 +143,8 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
+    // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
+    inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run(10 * speedratio_t::reference, [&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       inst.ran[0] = true;
@@ -195,6 +204,8 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
+    // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
+    inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.convey(10 * mm, [&inst](const std::error_code& err, const decltype(10 * mm)& pos) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
       expect(pos == 0 * mm);
@@ -238,6 +249,7 @@ auto main(int, char const* const* argv) -> int {
     clientinstance cinst(inst);
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
+    inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.reset([&inst](const std::error_code& err) {
       expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
       inst.ran[0] = true;
