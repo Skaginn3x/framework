@@ -265,8 +265,7 @@ struct frequency {
     mp_units::quantity<mp_units::si::nano<mp_units::si::second>, int64_t> const intvl_current{ now - time_point_ };
     time_point_ = now;
     auto const velocity{ velocity_at_50Hz_ * last_measured_ / reference_frequency_50Hz };
-    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity_at_50Hz_ *
-                                                                           last_measured_ / reference_frequency_50Hz);
+    auto const displacement = mp_units::value_cast<dimension_t::reference>(intvl_current * velocity);
     last_measured_ = hertz;
     std::invoke(position_update_callback_, displacement, velocity);
   }
