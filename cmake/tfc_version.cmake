@@ -7,43 +7,36 @@ if(GIT_FOUND)
             COMMAND git log -1 --pretty=format:%H
             OUTPUT_VARIABLE GIT_HASH
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
     execute_process(
             COMMAND git log -1 --pretty=format:"%an <%ae>"
             OUTPUT_VARIABLE GIT_AUTHOR
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
     execute_process(
             COMMAND git branch --show-current
             OUTPUT_VARIABLE GIT_BRANCH
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
     execute_process(
             COMMAND git describe --tags --abbrev=1
             OUTPUT_VARIABLE GIT_TAG
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
     execute_process(
             COMMAND git diff --shortstat
             OUTPUT_VARIABLE GIT_IS_DIRTY_INTERMEDIATE
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
     execute_process(
             COMMAND git log -1 --pretty=format:%as
             OUTPUT_VARIABLE GIT_COMMIT_DATE
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
     execute_process(
             COMMAND date +"%Y-%M-%d %H:%M:%S"
             OUTPUT_VARIABLE BUILD_DATE
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
     )
 else()
     message(FATAL_ERROR "Git not found, cannot generate version.hpp")
