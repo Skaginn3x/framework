@@ -310,8 +310,11 @@ private:
           }
 
           connection_->async_method_call_timed(
-              [this, self_m = std::move(self), method_name](std::error_code const& err, errors::err_enum motor_err,
-                                                            micrometre_t length) mutable {
+              [this, self_m = std::move(self), method_name](std::error_code const& err, std::tuple<std::string, int64_t> input) mutable {
+                auto [motor_err_string, length_raw] = input;
+                auto length = length_raw * second_arg_t::reference;
+                // TODO JBB, CHANGE THIS LINE
+                auto motor_err = errors::err_enum::success;
                 if (err) {
                   logger_.warn("{} failure: {}", method_name, err.message());
                   self_m.complete(err, length.force_in(second_arg_t::reference));
