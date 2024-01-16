@@ -98,7 +98,7 @@ auto main(int, char const* const* argv) -> int {
     // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
     inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -114,7 +114,7 @@ auto main(int, char const* const* argv) -> int {
     // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
     inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run(10 * s, [&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -130,7 +130,7 @@ auto main(int, char const* const* argv) -> int {
     // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
     inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run(10 * speedratio_t::reference, 10 * s, [&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -146,7 +146,7 @@ auto main(int, char const* const* argv) -> int {
     // Set an error on the drive to get an eary return from run. We are only testing dbus communication here. ctrl is tested elsewhere.
     inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.run(10 * speedratio_t::reference, [&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -175,7 +175,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.convey(10 * (mm / s), [&inst](const std::error_code& err, const micrometre_t& pos) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_not_implemented) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::motor_method_not_implemented) << err.message();
       expect(pos == 0 * mm);
       inst.ran[0] = true;
       inst.ctx.stop();
@@ -222,7 +222,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.stop([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::success) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -236,7 +236,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(10ms);
     expect(cinst.client.connected());
     cinst.client.quick_stop([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::motor_general_error) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::success) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
@@ -251,7 +251,7 @@ auto main(int, char const* const* argv) -> int {
     expect(cinst.client.connected());
     inst.ctrl.update_status(get_bad_status_missing_phase());
     cinst.client.reset([&inst](const std::error_code& err) {
-      expect(tfc::motor::motor_enum(err) == err_enum::frequency_drive_reports_fault) << err.message();
+      expect(tfc::motor::motor_enum(err) == err_enum::success) << err.message();
       inst.ran[0] = true;
       inst.ctx.stop();
     });
