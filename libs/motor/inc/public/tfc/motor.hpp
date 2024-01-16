@@ -99,9 +99,9 @@ public:
 
   /// \brief Convey indefinetly or until cancelled at specified velocity
   /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
-  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation. And its travel during this convey.
-  /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
-  /// would have called some other operation making this operation stale.
+  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation. And its travel
+  /// during this convey. In normal operation the std::errc::operation_canceled feedback is the normal case because your user
+  /// logic would have called some other operation making this operation stale.
   template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
   auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
               asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
