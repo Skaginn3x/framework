@@ -4,6 +4,11 @@
 find_package(Git REQUIRED)
 if(GIT_FOUND)
     execute_process(
+            COMMAND git config --global --add safe.directory ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_HASH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
             COMMAND git log -1 --pretty=format:%H
             OUTPUT_VARIABLE GIT_HASH
             OUTPUT_STRIP_TRAILING_WHITESPACE
