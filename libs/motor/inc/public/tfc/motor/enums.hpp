@@ -8,4 +8,3 @@ enum struct direction_e : std::uint8_t {
 };
 
 }  // namespace tfc::motor
-

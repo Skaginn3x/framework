@@ -17,8 +17,8 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/motor/dbus_tags.hpp>
-#include <tfc/motor/positioner.hpp>
 #include <tfc/motor/enums.hpp>
+#include <tfc/motor/positioner.hpp>
 #include <tfc/stx/concepts.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
@@ -702,13 +702,14 @@ struct dbus_iface {
 
     dbus_interface_->register_method(
         std::string{ method::run },
-        [this](asio::yield_context yield, const sdbusplus::message_t& msg, motor::direction_e direction) -> motor::errors::err_enum {
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg,
+               motor::direction_e direction) -> motor::errors::err_enum {
           using enum motor::errors::err_enum;
           if (!validate_peer(msg.get_sender())) {
             return permission_denied;
           }
           using enum motor::direction_e;
-          auto const speedratio{ direction == forward ? config_speedratio_ : - config_speedratio_ };
+          auto const speedratio{ direction == forward ? config_speedratio_ : -config_speedratio_ };
           return motor::motor_enum(ctrl_.run(speedratio, yield));
         });
     dbus_interface_->register_method(
@@ -741,17 +742,18 @@ struct dbus_iface {
                                        return motor::motor_enum(ctrl_.run(speedratio, microsecond, yield));
                                      });
 
-    dbus_interface_->register_method(std::string{ method::run_microsecond },
-                                     [this](asio::yield_context yield, const sdbusplus::message_t& msg,
-                                            microsecond_t microsecond, motor::direction_e direction) -> motor::errors::err_enum {
-                                       using enum motor::errors::err_enum;
-                                       if (!validate_peer(msg.get_sender())) {
-                                         return permission_denied;
-                                       }
-                                       using enum motor::direction_e;
-                                       auto const speedratio{ direction == forward ? config_speedratio_ : - config_speedratio_ };
-                                       return motor::motor_enum(ctrl_.run(speedratio, microsecond, yield));
-                                     });
+    dbus_interface_->register_method(
+        std::string{ method::run_microsecond },
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg, microsecond_t microsecond,
+               motor::direction_e direction) -> motor::errors::err_enum {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return permission_denied;
+          }
+          using enum motor::direction_e;
+          auto const speedratio{ direction == forward ? config_speedratio_ : -config_speedratio_ };
+          return motor::motor_enum(ctrl_.run(speedratio, microsecond, yield));
+        });
 
     dbus_interface_->register_method(std::string{ method::notify_after_micrometre },
                                      [this](asio::yield_context yield, micrometre_t distance) -> motor::errors::err_enum {

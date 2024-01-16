@@ -12,8 +12,8 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/motor/dbus_tags.hpp>
-#include <tfc/motor/errors.hpp>
 #include <tfc/motor/enums.hpp>
+#include <tfc/motor/errors.hpp>
 #include <tfc/stx/function_traits.hpp>
 
 namespace tfc::motor::types {
@@ -285,7 +285,9 @@ public:
   }
 
   template <typename signature_t = void(std::error_code)>
-  auto run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<signature_t> auto&& token, direction_e direction = direction_e::forward) ->
+  auto run(QuantityOf<mp_units::isq::time> auto time,
+           asio::completion_token_for<signature_t> auto&& token,
+           direction_e direction = direction_e::forward) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return error_only_token_impl<signature_t>(method::run_microsecond, std::forward<decltype(token)>(token),
                                               microsecond_cast(time), direction);

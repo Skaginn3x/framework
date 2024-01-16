@@ -9,9 +9,9 @@
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/motor/atv320motor.hpp>
+#include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/virtual_motor.hpp>
-#include <tfc/motor/enums.hpp>
 #include <tfc/stx/function_traits.hpp>
 
 /**
@@ -232,8 +232,8 @@ public:
 
   /// \brief Send run command to motor with default configured speedratio by the motor server
   /// \param token completion token to notify iff motor is in error state, or cancelled by another operation
-  /// \param direction (optional) either forward or backward, forward being default speedratio and backward negative speedratio
-  /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
+  /// \param direction (optional) either forward or backward, forward being default speedratio and backward negative
+  /// speedratio In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
   /// would have called some other operation making this operation stale.
   auto run(asio::completion_token_for<void(std::error_code)> auto&& token, direction_e direction = direction_e::forward) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
@@ -261,12 +261,13 @@ public:
   /// \param time duration to run motor for at configured speedratio, will stop given the default configured deceleration
   /// duration by the motor
   /// \param token completion token to notify if motor is in error state, cancelled by another
-  /// \param direction (optional) either forward or backward, forward being default speedratio and backward negative speedratio
-  /// operation, or finished successfully. In normal operation the notify will return success when time is reached and motor
-  /// is stopped. Notify can return cancel if some other operation is called during the given time.
-  auto run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<void(std::error_code)> auto&& token, direction_e direction = direction_e::forward) ->
+  /// \param direction (optional) either forward or backward, forward being default speedratio and backward negative
+  /// speedratio operation, or finished successfully. In normal operation the notify will return success when time is reached
+  /// and motor is stopped. Notify can return cancel if some other operation is called during the given time.
+  auto run(QuantityOf<mp_units::isq::time> auto time,
+           asio::completion_token_for<void(std::error_code)> auto&& token,
+           direction_e direction = direction_e::forward) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
-
 
   /// \brief Try to reset any error on motor driver
   /// Can commonly be used when operation of the user logic is set to "running"
@@ -470,9 +471,10 @@ auto api::run(asio::completion_token_for<void(std::error_code)> auto&& token, di
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
   using signature_t = void(std::error_code);
   using namespace detail;
-  return std::visit(overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                                [&](auto& motor_impl) { return motor_impl.run(std::forward<decltype(token)>(token), direction); } },
-                    impl_);
+  return std::visit(
+      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
+                  [&](auto& motor_impl) { return motor_impl.run(std::forward<decltype(token)>(token), direction); } },
+      impl_);
 }
 
 auto api::run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -497,7 +499,9 @@ auto api::run(speedratio_t speedratio,
       impl_);
 }
 
-auto api::run(QuantityOf<mp_units::isq::time> auto time, asio::completion_token_for<void(std::error_code)> auto&& token, direction_e direction) ->
+auto api::run(QuantityOf<mp_units::isq::time> auto time,
+              asio::completion_token_for<void(std::error_code)> auto&& token,
+              direction_e direction) ->
     typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
   using signature_t = void(std::error_code);
   using namespace detail;

@@ -11,9 +11,9 @@
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/motor/dbus_tags.hpp>
+#include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/impl.hpp>
-#include <tfc/motor/enums.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
 
 namespace tfc::motor::types {
