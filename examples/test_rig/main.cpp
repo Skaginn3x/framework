@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 
   asio::io_context ctx{};
 
-  [[maybe_unused]] app my_app{  ctx };
+  [[maybe_unused]] app my_app{ ctx };
 
   my_app.init();
 

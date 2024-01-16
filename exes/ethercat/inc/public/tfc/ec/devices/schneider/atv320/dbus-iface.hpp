@@ -218,9 +218,7 @@ struct controller {
         token);
   }
 
-  auto needs_homing() -> motor::errors::err_enum {
-    return pos_.needs_homing();
-  }
+  auto needs_homing() -> motor::errors::err_enum { return pos_.needs_homing(); }
 
   // Set properties with new status values
   void update_status(const input_t& in) {
@@ -765,12 +763,11 @@ struct dbus_iface {
                                        return motor::motor_enum(ctrl_.run(microsecond, yield));
                                      });
 
-    dbus_interface_->register_method(
-        std::string{ method::notify_after_micrometre },
-        [this](asio::yield_context yield, micrometre_t distance) -> motor::errors::err_enum {
-          auto err{ ctrl_.notify_after(distance, yield) };
-          return motor::motor_enum(err);
-        });
+    dbus_interface_->register_method(std::string{ method::notify_after_micrometre },
+                                     [this](asio::yield_context yield, micrometre_t distance) -> motor::errors::err_enum {
+                                       auto err{ ctrl_.notify_after(distance, yield) };
+                                       return motor::motor_enum(err);
+                                     });
 
     dbus_interface_->register_method(
         std::string{ method::stop },
@@ -803,50 +800,50 @@ struct dbus_iface {
         });
 
     // returns { error_code, actual displacement }
-    dbus_interface_->register_method(std::string{ method::convey_micrometre },
-                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg,
-                                            micrometre_t travel) -> message::length {
-                                       using enum motor::errors::err_enum;
-                                       if (!validate_peer(msg.get_sender())) {
-                                         return { permission_denied, 0L * micrometre_t::reference };
-                                       }
-                                       auto [err, actual_displacement]{ ctrl_.convey(config_speedratio_, travel, yield) };
-                                       return { motor::motor_enum(err), actual_displacement };
-                                     });
+    dbus_interface_->register_method(
+        std::string{ method::convey_micrometre },
+        [this](asio::yield_context yield, sdbusplus::message_t const& msg, micrometre_t travel) -> message::length {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return { permission_denied, 0L * micrometre_t::reference };
+          }
+          auto [err, actual_displacement]{ ctrl_.convey(config_speedratio_, travel, yield) };
+          return { motor::motor_enum(err), actual_displacement };
+        });
 
-    dbus_interface_->register_method(std::string{ method::convey_micrometrepersecond_microsecond },
-                                     [this](asio::yield_context, sdbusplus::message_t const& msg,
-                                            velocity_t, time_t) -> message::length {
-                                       using enum motor::errors::err_enum;
-                                       if (!validate_peer(msg.get_sender())) {
-                                         return { permission_denied, 0L * micrometre_t::reference };
-                                       }
-                                       //TODO: Implement
-                                       logger_.error("Unimplemented convey(velocity, time) called dbus-iface");
-                                       return { motor_method_not_implemented, 0 * micrometre_t::reference };
-                                     });
-    dbus_interface_->register_method(std::string{ method::convey_micrometrepersecond_micrometre },
-                                     [this](asio::yield_context, sdbusplus::message_t const& msg,
-                                            velocity_t, micrometre_t) -> message::length {
-                                       using enum motor::errors::err_enum;
-                                       if (!validate_peer(msg.get_sender())) {
-                                         return { permission_denied, 0L * micrometre_t::reference };
-                                       }
-                                       //TODO: Implement
-                                       logger_.error("Unimplemented convey(velocity, time) called dbus-iface");
-                                       return { motor_method_not_implemented, 0 * micrometre_t::reference };
-                                     });
+    dbus_interface_->register_method(
+        std::string{ method::convey_micrometrepersecond_microsecond },
+        [this](asio::yield_context, sdbusplus::message_t const& msg, velocity_t, time_t) -> message::length {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return { permission_denied, 0L * micrometre_t::reference };
+          }
+          // TODO: Implement
+          logger_.error("Unimplemented convey(velocity, time) called dbus-iface");
+          return { motor_method_not_implemented, 0 * micrometre_t::reference };
+        });
+    dbus_interface_->register_method(
+        std::string{ method::convey_micrometrepersecond_micrometre },
+        [this](asio::yield_context, sdbusplus::message_t const& msg, velocity_t, micrometre_t) -> message::length {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return { permission_denied, 0L * micrometre_t::reference };
+          }
+          // TODO: Implement
+          logger_.error("Unimplemented convey(velocity, time) called dbus-iface");
+          return { motor_method_not_implemented, 0 * micrometre_t::reference };
+        });
 
     // returns { error_code, absolute position relative to home }
     dbus_interface_->register_method(std::string{ method::move_speedratio_micrometre },
-                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg, speedratio_t speedratio,
-                                            micrometre_t travel) -> message::length {
-                                              using enum motor::errors::err_enum;
-                                              if (!validate_peer(msg.get_sender())) {
-                                                 return { permission_denied, 0L * micrometre_t::reference };
-                                              }
-                                              auto [err, traveled]{ ctrl_.move(speedratio, travel, yield) };
-                                              return { motor::motor_enum(err), traveled };
+                                     [this](asio::yield_context yield, sdbusplus::message_t const& msg,
+                                            speedratio_t speedratio, micrometre_t travel) -> message::length {
+                                       using enum motor::errors::err_enum;
+                                       if (!validate_peer(msg.get_sender())) {
+                                         return { permission_denied, 0L * micrometre_t::reference };
+                                       }
+                                       auto [err, traveled]{ ctrl_.move(speedratio, travel, yield) };
+                                       return { motor::motor_enum(err), traveled };
                                      });
 
     // returns { error_code, absolute position relative to home }
@@ -855,17 +852,17 @@ struct dbus_iface {
         [this](asio::yield_context yield, sdbusplus::message_t const& msg, micrometre_t placement) -> message::length {
           using enum motor::errors::err_enum;
           if (!validate_peer(msg.get_sender())) {
-             return { permission_denied, 0L * micrometre_t::reference };
+            return { permission_denied, 0L * micrometre_t::reference };
           }
           auto [err, final_placement]{ ctrl_.move(config_speedratio_, placement, yield) };
           return { motor::motor_enum(err), final_placement };
         });
 
     dbus_interface_->register_method(std::string{ method::needs_homing },
-      [this](sdbusplus::message_t const&) -> message::needs_homing {
-        auto err{ ctrl_.needs_homing() };
-        return { err, err != motor::errors::err_enum::success };
-      });
+                                     [this](sdbusplus::message_t const&) -> message::needs_homing {
+                                       auto err{ ctrl_.needs_homing() };
+                                       return { err, err != motor::errors::err_enum::success };
+                                     });
 
     dbus_interface_->register_property<std::string>(connected_peer, peer_);
     dbus_interface_->register_property<std::string>(state_402, "");

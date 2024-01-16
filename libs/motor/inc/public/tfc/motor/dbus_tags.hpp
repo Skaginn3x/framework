@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 #include <mp-units/systems/si/si.h>
 
-#include <tfc/motor/errors.hpp>
 #include <tfc/dbus/string_maker.hpp>
+#include <tfc/motor/errors.hpp>
 #include <tfc/stx/to_tuple.hpp>
 
 namespace tfc::motor::dbus {
@@ -58,9 +58,7 @@ template <mp_units::Quantity quantity_t>
 struct generic {
   errors::err_enum err{ errors::err_enum::unknown };
   quantity_t length{};
-  static constexpr auto dbus_reflection{ [](auto&& self) {
-    return stx::to_tuple(std::forward<decltype(self)>(self));
-  } };
+  static constexpr auto dbus_reflection{ [](auto&& self) { return stx::to_tuple(std::forward<decltype(self)>(self)); } };
 };
 
 using length = generic<types::micrometre_t>;
@@ -68,12 +66,9 @@ using length = generic<types::micrometre_t>;
 struct needs_homing {
   errors::err_enum err{ errors::err_enum::unknown };
   bool needs_homing{ false };
-  static constexpr auto dbus_reflection{ [](auto&& self) {
-    return stx::to_tuple(std::forward<decltype(self)>(self));
-  } };
+  static constexpr auto dbus_reflection{ [](auto&& self) { return stx::to_tuple(std::forward<decltype(self)>(self)); } };
 };
 
-}
-
+}  // namespace message
 
 }  // namespace tfc::motor::dbus

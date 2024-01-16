@@ -8,12 +8,12 @@
 #include <sdbusplus/asio/connection.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/stx/function_traits.hpp>
-#include <tfc/confman/observable.hpp>
 
 namespace tfc::motor::types {
 
@@ -149,7 +149,10 @@ public:
   auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented), 0 * travel_t::reference); }, token);
+        [](auto& self) {
+          self.complete(motor_error(errors::err_enum::motor_method_not_implemented), 0 * travel_t::reference);
+        },
+        token);
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
@@ -158,9 +161,9 @@ public:
               asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     using mp_units::si::unit_symbols::s;
-    return length_token_impl<signature_t>(
-        method::convey_micrometrepersecond_micrometre, std::forward<decltype(token)>(token),
-        velocity_cast(velocity), micrometre_cast(travel));
+    return length_token_impl<signature_t>(method::convey_micrometrepersecond_micrometre,
+                                          std::forward<decltype(token)>(token), velocity_cast(velocity),
+                                          micrometre_cast(travel));
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
@@ -170,9 +173,9 @@ public:
               asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     using mp_units::si::unit_symbols::s;
-    return length_token_impl<signature_t>(
-        method::convey_micrometrepersecond_microsecond, std::forward<decltype(token)>(token),
-        velocity_cast(velocity), microsecond_cast(time));
+    return length_token_impl<signature_t>(method::convey_micrometrepersecond_microsecond,
+                                          std::forward<decltype(token)>(token), velocity_cast(velocity),
+                                          microsecond_cast(time));
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
@@ -308,7 +311,8 @@ private:
           }
 
           connection_->async_method_call_timed(
-              [this, self_m = std::move(self), method_name](std::error_code const& err, dbus::message::length input) mutable {
+              [this, self_m = std::move(self), method_name](std::error_code const& err,
+                                                            dbus::message::length input) mutable {
                 auto [motor_err, length] = input;
                 if (err) {
                   logger_.warn("{} failure: {}", method_name, err.message());
