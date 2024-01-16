@@ -456,7 +456,7 @@ auto main(int, char const* const* argv) -> int {
   "move unconfigured homing sensor"_test = [&] {
     instance inst;
     // Set current as reference
-    inst.ctrl.move(10 * micrometre_t::reference, [&inst](const std::error_code& err, const micrometre_t travel) {
+    inst.ctrl.move(10 * speedratio_t::reference, 10 * micrometre_t::reference, [&inst](const std::error_code& err, const micrometre_t travel) {
       expect(tfc::motor::motor_enum(err) == err_enum::motor_home_sensor_unconfigured);
       expect(travel == 0 * micrometre_t::reference);
       inst.ran[0] = true;
