@@ -24,7 +24,7 @@ class motor_error_category_t : public std::error_category {
       case frequency_drive_communication_fault:
         return "Motor communication fault";
       case motor_missing_home_reference:
-        return "Motor msing home reference";
+        return "Motor missing home reference";
       case motor_missing_speed_reference:
         return "Motor missing speed reference";
       case motor_not_implemented:

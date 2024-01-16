@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <fmt/core.h>
 #include <mp-units/systems/si/unit_symbols.h>
+#include <sdbusplus/asio/connection.hpp>
 
 #include <tfc/progbase.hpp>
 #include <tfc/motor.hpp>
@@ -13,8 +14,9 @@ using mp_units::percent;
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
   boost::asio::io_context ctx;
+  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
   motor::api my_motor {
-    ctx, "my_motor"
+    dbus, "my_motor"
   };
 
   /// Liquid transport
@@ -30,7 +32,7 @@ auto main(int argc, char** argv) -> int {
   my_motor.pump(10 * min, [](const std::error_code&) {});
 
   /// Linear transport
-  my_motor.convey(10 * (m / s), [](std::error_code error) {
+  my_motor.convey(10 * (m / s), [](std::error_code error, [[maybe_unused]] motor::micrometre_t travel_until_stopped) {
     if (error) {
       fmt::println(stderr, "Error: {}\n", error.message());
     }
@@ -41,7 +43,6 @@ auto main(int argc, char** argv) -> int {
   // Configured speed
   // err =  my_motor.convey();
   my_motor.convey(10 * m, [](std::error_code, [[maybe_unused]] auto actual_travel) {});
-  my_motor.convey(10 * min, [](const std::error_code&, motor::micrometre_t) {});
 
   co_spawn(ctx, [&]() -> asio::awaitable<void> {
     auto const ret{ my_motor.convey(10 * m, asio::use_awaitable) };

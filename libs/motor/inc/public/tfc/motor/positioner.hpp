@@ -91,6 +91,7 @@ public:
           if (new_v.has_value() && !homing_sensor_.has_value()) {
             homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
                                    "Homing sensor for position management, consider adding time off delay", home_cb_);
+            missing_home_ = true;
           }
         });
     if (config_->homing_travel_speed->has_value()) {
@@ -266,6 +267,21 @@ public:
   auto homing_sensor() const noexcept -> auto const& { return homing_sensor_; }
 
   auto homing_travel_speed() const noexcept -> auto const& { return config_->homing_travel_speed.value(); }
+
+  auto needs_homing() const noexcept -> errors::err_enum {
+    using enum errors::err_enum;
+    if (!homing_sensor().has_value()) {
+      return motor_home_sensor_unconfigured;
+    }
+    if (!homing_sensor()->value().has_value()) {
+      // Never received a value from homing sensor
+      return motor_missing_home_reference;
+    }
+    if (missing_home_) {
+      return motor_missing_home_reference;
+    }
+    return success;
+  }
 
   auto would_need_homing(displacement_t increment) const noexcept -> bool {
     // todo test !

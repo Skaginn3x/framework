@@ -34,6 +34,12 @@ struct glz::meta<config_struct> {
 };
 
 struct app {
+  app(asio::io_context& io) : ctx{ io } {
+    // std::size_t idx{};
+    // for (auto& slot : test) {
+    //   slot = std::make_shared<tfc::ipc::uint_slot>(ctx, client, fmt::format("test_{}", idx++), "test", [](auto) {});
+    // }
+  }
   asio::io_context& ctx;
   tfc::confman::config<config_struct> config{ ctx, "test_rig_config",
                                               config_struct{ .servo_cycle = std::chrono::seconds{ 1 }, .count = 10 } };
@@ -45,6 +51,7 @@ struct app {
   tfc::ipc::uint_signal servo{ ctx, client, "servo", "Wink out" };
   tfc::ipc::uint_slot servo_manual{ ctx, client, "servo_manual", "Maintenance mode manual servo control",
                                     std::bind_front(&app::on_servo_manual, this) };
+  std::array<std::shared_ptr<tfc::ipc::uint_slot>, 2096> test;
   asio::steady_timer run_servo_timer{ ctx };
   uint8_t servo_count{};
   bool maintenance_mode{ false };
@@ -94,7 +101,7 @@ int main(int argc, char** argv) {
 
   asio::io_context ctx{};
 
-  [[maybe_unused]] app my_app{ .ctx = ctx };
+  [[maybe_unused]] app my_app{ ctx };
 
   my_app.init();
 

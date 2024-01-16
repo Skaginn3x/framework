@@ -32,26 +32,46 @@ public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
-  explicit api(asio::io_context& ctx, std::string_view name, config_t default_config = {})
-      : ctx_{ ctx }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
+  explicit api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
+      : ctx_{ connection->get_io_context() }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
     std::visit(
-        [this](auto& conf) {
+        [this, connection](auto& conf) {
           using conf_t = std::remove_cvref_t<decltype(conf)>;
           if constexpr (!std::same_as<std::monostate, conf_t>) {
-            impl_.emplace<typename conf_t::impl>(ctx_, conf);
+            if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
+                                                  const conf_t&>) {
+              impl_.emplace<typename conf_t::impl>(connection, conf);
+            } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, const conf_t&>) {
+              impl_.emplace<typename conf_t::impl>(ctx_, conf);
+            } else {
+              []<bool flag = false> {
+                static_assert(flag && "Type cannot be constructed");
+              }
+              ();
+            }
           }
         },
         config_->value());
-    config_->observe([this](auto& new_v, auto& old_v) {
+    config_->observe([this, connection](auto& new_v, auto& old_v) {
       // If there is the same motor type for the old and
       // the new it is the responsibility of the motor to
       // handle that change
       std::visit(
-          [this](auto& vst_new, auto& vst_old) {
+          [this, connection](auto& vst_new, auto& vst_old) {
             using conf_t = std::remove_cvref_t<decltype(vst_new)>;
             if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<std::monostate, conf_t>) {
               logger_.info("Switching running motor config");
-              impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
+              if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
+                                                    conf_t>) {
+                impl_.emplace<typename conf_t::impl>(connection, vst_new);
+              } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, conf_t&>) {
+                impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
+              } else {
+                []<bool flag = false> {
+                  static_assert(flag && "Type cannot be constructed");
+                }
+                ();
+              }
             }
           },
           new_v, old_v);
@@ -78,12 +98,14 @@ public:
   void pump(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
   /// \brief Convey indefinetly or until cancelled at specified velocity
-  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation
-  /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
-  /// would have called some other operation making this operation stale.
+  /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
+  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation. And its travel
+  /// during this convey. In normal operation the std::errc::operation_canceled feedback is the normal case because your user
+  /// logic would have called some other operation making this operation stale.
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
   auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
-              asio::completion_token_for<void(std::error_code)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+              asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
   /// \brief Convey a specific length at the given linear velocity and quickly stop when reached
   /// \tparam travel_t deduced type of length to travel. Underlying type is micrometre any given type will be truncated to
@@ -119,16 +141,6 @@ public:
   /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
   template <QuantityOf<mp_units::isq::length> travel_t>
   auto convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
-
-  /// \brief Convey for a specific time at default speedratio and quickly stop when reached
-  /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
-  /// \param time to travel
-  /// \param token completion token to notify when motor sends quick_stop command
-  /// notification supplies travel_t with the travel made during this time
-  /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
-  template <QuantityOf<mp_units::isq::time> time_t, QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
-  auto convey(time_t time, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
   // TODO: rotate api
@@ -298,10 +310,11 @@ struct overloaded : types_t... {
 };
 }  // namespace detail
 
+template <QuantityOf<mp_units::isq::length> travel_t>
 auto api::convey(QuantityOf<mp_units::isq::velocity> auto velocity,
-                 asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-  using signature_t = void(std::error_code);
+                 asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
+  using signature_t = void(std::error_code, travel_t);
   using namespace detail;
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
@@ -345,17 +358,6 @@ auto api::convey(travel_t length, asio::completion_token_for<void(std::error_cod
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
                   [&](auto& motor_impl) { return motor_impl.convey(length, std::forward<decltype(token)>(token)); } },
-      impl_);
-}
-
-template <QuantityOf<mp_units::isq::time> time_t, QuantityOf<mp_units::isq::length> travel_t>
-auto api::convey(time_t time, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
-  using signature_t = void(std::error_code, travel_t);
-  using namespace detail;
-  return std::visit(
-      overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
-                  [&](auto& motor_impl) { return motor_impl.convey(time, std::forward<decltype(token)>(token)); } },
       impl_);
 }
 

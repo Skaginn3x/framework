@@ -115,8 +115,7 @@ public:
                                                                       fmt::format("atv320.s{}.run", slave_index),
                                                                       "Turn on motor",
                                                                       [this](bool value) { ipc_running_ = value; }),
-        config_{ ctx_ /*connection TODO apply connection once fronend is fixed */, fmt::format("atv320_i{}", slave_index) },
-        ctrl_(connection, client, slave_index),
+        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
                                  fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
@@ -425,7 +424,7 @@ private:
   ipc::double_signal current_transmit_;
   ipc::uint_signal last_error_transmit_;
   ipc::uint_signal hmis_transmitter_;
-  dbus_iface dbus_iface_;
+  dbus_iface<manager_client_t> dbus_iface_;
   ipc::bool_slot reset_;
 
   hmis_e last_hmis_{};
