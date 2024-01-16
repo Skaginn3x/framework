@@ -32,7 +32,7 @@ auto main(int argc, char** argv) -> int {
   my_motor.pump(10 * min, [](const std::error_code&) {});
 
   /// Linear transport
-  my_motor.convey(10 * (m / s), [](std::error_code error) {
+  my_motor.convey(10 * (m / s), [](std::error_code error, [[maybe_unused]] motor::micrometre_t travel_until_stopped) {
     if (error) {
       fmt::println(stderr, "Error: {}\n", error.message());
     }

@@ -98,12 +98,14 @@ public:
   void pump(QuantityOf<mp_units::isq::time> auto, std::invocable<std::error_code> auto) {}
 
   /// \brief Convey indefinetly or until cancelled at specified velocity
-  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation
+  /// \tparam travel_t feedback of travel. Underlying type is micrometre any given type will be truncated to that resolution
+  /// \param token completion token to notify iff motor is in error state, or cancelled by another operation. And its travel during this convey.
   /// In normal operation the std::errc::operation_canceled feedback is the normal case because your user logic
   /// would have called some other operation making this operation stale.
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
   auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
-              asio::completion_token_for<void(std::error_code)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
+              asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 
   /// \brief Convey a specific length at the given linear velocity and quickly stop when reached
   /// \tparam travel_t deduced type of length to travel. Underlying type is micrometre any given type will be truncated to
@@ -308,10 +310,11 @@ struct overloaded : types_t... {
 };
 }  // namespace detail
 
+template <QuantityOf<mp_units::isq::length> travel_t>
 auto api::convey(QuantityOf<mp_units::isq::velocity> auto velocity,
-                 asio::completion_token_for<void(std::error_code)> auto&& token) ->
-    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-  using signature_t = void(std::error_code);
+                 asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
+    typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type {
+  using signature_t = void(std::error_code, travel_t);
   using namespace detail;
   return std::visit(
       overloaded{ return_monostate<signature_t>(std::forward<decltype(token)>(token)),
