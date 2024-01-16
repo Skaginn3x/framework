@@ -510,9 +510,9 @@ private:
             case state_e::move_until_notify: {
               state = state_e::wait_till_stop;
               // Get our distance from the homing reference
-              if (!pos_.homing_enabled() || pos_.error() == motor_missing_home_reference) {
-                logger_.trace("{}", motor_missing_home_reference);
-                return self.complete(motor::motor_error(motor_missing_home_reference), pos_from_home);
+              if (auto const needs_homing_err{ pos_.needs_homing() }; needs_homing_err != success) {
+                logger_.trace("{}", needs_homing_err);
+                return self.complete(motor::motor_error(needs_homing_err), pos_from_home);
               }
               if (pos_.would_need_homing(pos_from_home - placement)) {
                 logger_.trace("Woud need homing if motor were to move to: {}", placement);

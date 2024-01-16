@@ -112,6 +112,7 @@ auto main(int, char const* const* argv) -> int {
 
   "move with no reference"_test = [&] {
     instance inst;
+    inst.populate_homing_sensor(1 * micrometre_t::reference, false);
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
                    [&inst](const std::error_code& err, const micrometre_t moved) {
                      expect(tfc::motor::motor_enum(err) == err_enum::motor_missing_home_reference);

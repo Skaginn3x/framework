@@ -91,6 +91,7 @@ public:
           if (new_v.has_value() && !homing_sensor_.has_value()) {
             homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
                                    "Homing sensor for position management, consider adding time off delay", home_cb_);
+            missing_home_ = true;
           }
         });
     if (config_->homing_travel_speed->has_value()) {

@@ -115,7 +115,7 @@ struct instance {
   std::array<bool, 10> ran{};
   bool_signal_t sig{ ctx, manager, "homing_sensor" };
 
-  void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference) {
+  void populate_homing_sensor(micrometre_t displacement = 1 * micrometre_t::reference, bool do_homing = true) {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = ctrl.positioner().config_ref();
     config.access().needs_homing_after = home_travel_t{ 1000000 * mm }; // 1 km
@@ -125,7 +125,9 @@ struct instance {
     // Writing to the homing travel speed creates the ipc-slot that accepts the homing sensor input.
     config.access().homing_travel_speed = 1 * speedratio_t::reference;
 
-    ctrl.positioner().home();
+    if (do_homing) {
+      ctrl.positioner().home();
+    }
     ctx.run_for(1ms);
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
