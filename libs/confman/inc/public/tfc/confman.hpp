@@ -65,6 +65,7 @@ public:
                  std::bind_front(&config::from_string, this) },
         storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
+    logger_.trace("Create config stored in file: {}", storage_.file().string());
     init();
   }
 

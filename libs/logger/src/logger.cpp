@@ -18,23 +18,27 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 // clang-format on
 std::shared_ptr<spdlog::details::thread_pool> thread_pool;
+std::shared_ptr<spdlog::sinks::tfc_systemd_sink_mt> systemd;
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 }  // namespace
 
 tfc::logger::logger::logger(std::string_view key) : key_{ key } {
+  // TODO use KEY !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // Create sinks
-  std::shared_ptr<spdlog::sinks::tfc_systemd_sink_mt> systemd;
-  try {
-    systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_);
-  } catch (boost::system::system_error const& err) {
-    auto loc = std::source_location::current();
-    fmt::print(
-        stderr,
-        "Unable to open journald socket for logging. using console err: {}, source location: FILE: {}, FUNC: {}, LINE: {}",
-        err.what(), loc.file_name(), loc.function_name(), loc.line());
-    systemd = nullptr;
+  if (!systemd) {
+    try {
+      systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>(key_);
+    } catch (boost::system::system_error const& err) {
+      auto loc = std::source_location::current();
+      fmt::print(
+          stderr,
+          "Unable to open journald socket for logging. using console err: {}, source location: FILE: {}, FUNC: {}, LINE: {}",
+          err.what(), loc.file_name(), loc.function_name(), loc.line());
+      systemd = nullptr;
+    }
   }
+
   std::vector<spdlog::sink_ptr> sinks{};
   if (systemd != nullptr) {
     sinks.emplace_back(systemd);
