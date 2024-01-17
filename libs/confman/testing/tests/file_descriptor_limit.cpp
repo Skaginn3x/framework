@@ -43,6 +43,9 @@ auto main(int argc, char** argv) -> int {
   using config_t = std::vector<std::map<std::string, std::string>>;
 
   "make many many instances of config"_test = [&] {
+    // $ ls /proc/$(pidof confman_file_descriptor_limit)/fd | wc -l
+    // 250
+
     asio::io_context ctx{};
     print_fd_limit();
     std::vector<std::shared_ptr<config_testable<config_t>>> instances{};
