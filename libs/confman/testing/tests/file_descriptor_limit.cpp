@@ -1,10 +1,10 @@
-#include <filesystem>
 #include <sys/resource.h>
+#include <filesystem>
 
+#include <fmt/core.h>
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 #include <sdbusplus/asio/connection.hpp>
-#include <fmt/core.h>
 
 #include <tfc/confman.hpp>
 
@@ -38,7 +38,6 @@ static auto print_fd_limit() -> void {
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
-
   // no reason for the config complexity, just to test in general
   using config_t = std::vector<std::map<std::string, std::string>>;
 
@@ -52,7 +51,8 @@ auto main(int argc, char** argv) -> int {
     // this line in sdbusplus  _intf->sd_bus_get_unique_name(_bus.get(), &unique);
     // returns null as unique name for the 241 iteration
     for (auto i = 0; i < 240; ++i) {
-      instances.emplace_back(std::make_shared<config_testable<config_t>>(ctx, fmt::format("foo{}", i), config_t{ { { "a", "1" }, { "b", "2" }, { "c", "bar" } } }));
+      instances.emplace_back(std::make_shared<config_testable<config_t>>(
+          ctx, fmt::format("foo{}", i), config_t{ { { "a", "1" }, { "b", "2" }, { "c", "bar" } } }));
       ctx.run_for(std::chrono::milliseconds{ 1 });
     }
     fmt::println("All done");
