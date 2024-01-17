@@ -89,6 +89,7 @@ auto main(int argc, char** argv) -> int {
   /// Special cases
   my_motor.run(0 * percent, [](std::error_code){});  // Stop the motor
   my_motor.run([](std::error_code){});   // Start the motor at configured speed
+  my_motor.run([](std::error_code){}, motor::direction_e::backward);
 
   // Calling convey, rotate or move
   my_motor.run(50 * percent, [](std::error_code){});
@@ -97,8 +98,11 @@ auto main(int argc, char** argv) -> int {
   // Run for 1 second
   my_motor.run(50 * percent, 1 * s, [](std::error_code){});
   my_motor.run(1 * s, [](std::error_code){});  // Run for 1 second at configured speed
+  my_motor.run(1 * s, [](std::error_code){}, motor::direction_e::backward);
   // my_motor.deceleration(1 * s).run(50 * percent, 10 * s, [](std::error_code){}); // todo
   // my_motor.deceleration(1 * s).acceleration(1 * s).run(50 * percent, 10 * s, [](std::error_code){}); // todo
+
+
 
   // reset any motor driver error
   // returns no error on successful reset

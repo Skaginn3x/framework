@@ -17,6 +17,7 @@
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ec/devices/schneider/atv320/pdo.hpp>
 #include <tfc/motor/dbus_tags.hpp>
+#include <tfc/motor/enums.hpp>
 #include <tfc/motor/positioner.hpp>
 #include <tfc/stx/concepts.hpp>
 
@@ -113,13 +114,6 @@ struct controller {
 
   static constexpr auto atv320_reset_time = std::chrono::seconds(5);
 
-  auto run(asio::completion_token_for<void(std::error_code)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    cancel_pending_operation();
-    return run_impl(config_speedratio_,
-                    asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
-  }
-
   auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
@@ -132,14 +126,6 @@ struct controller {
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     cancel_pending_operation();
     return run_impl(speedratio, time,
-                    asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
-  }
-
-  auto run(mp_units::QuantityOf<mp_units::isq::time> auto time,
-           asio::completion_token_for<void(std::error_code)> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    cancel_pending_operation();
-    return run_impl(config_speedratio_, time,
                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
@@ -716,12 +702,15 @@ struct dbus_iface {
 
     dbus_interface_->register_method(
         std::string{ method::run },
-        [this](asio::yield_context yield, const sdbusplus::message_t& msg) -> motor::errors::err_enum {
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg,
+               motor::direction_e direction) -> motor::errors::err_enum {
           using enum motor::errors::err_enum;
           if (!validate_peer(msg.get_sender())) {
             return permission_denied;
           }
-          return motor::motor_enum(ctrl_.run(yield));
+          using enum motor::direction_e;
+          auto const speedratio{ direction == forward ? config_speedratio_ : -config_speedratio_ };
+          return motor::motor_enum(ctrl_.run(speedratio, yield));
         });
     dbus_interface_->register_method(
         std::string{ method::reset },
@@ -753,15 +742,18 @@ struct dbus_iface {
                                        return motor::motor_enum(ctrl_.run(speedratio, microsecond, yield));
                                      });
 
-    dbus_interface_->register_method(std::string{ method::run_microsecond },
-                                     [this](asio::yield_context yield, const sdbusplus::message_t& msg,
-                                            microsecond_t microsecond) -> motor::errors::err_enum {
-                                       using enum motor::errors::err_enum;
-                                       if (!validate_peer(msg.get_sender())) {
-                                         return permission_denied;
-                                       }
-                                       return motor::motor_enum(ctrl_.run(microsecond, yield));
-                                     });
+    dbus_interface_->register_method(
+        std::string{ method::run_microsecond },
+        [this](asio::yield_context yield, const sdbusplus::message_t& msg, microsecond_t microsecond,
+               motor::direction_e direction) -> motor::errors::err_enum {
+          using enum motor::errors::err_enum;
+          if (!validate_peer(msg.get_sender())) {
+            return permission_denied;
+          }
+          using enum motor::direction_e;
+          auto const speedratio{ direction == forward ? config_speedratio_ : -config_speedratio_ };
+          return motor::motor_enum(ctrl_.run(speedratio, microsecond, yield));
+        });
 
     dbus_interface_->register_method(std::string{ method::notify_after_micrometre },
                                      [this](asio::yield_context yield, micrometre_t distance) -> motor::errors::err_enum {

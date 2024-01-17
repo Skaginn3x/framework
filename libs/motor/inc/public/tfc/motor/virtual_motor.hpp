@@ -11,6 +11,7 @@
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
 #include <tfc/motor/dbus_tags.hpp>
+#include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/impl.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
@@ -257,7 +258,7 @@ public:
   auto is_running() const -> bool { return running_; }
 
   template <typename signature_t = void(std::error_code)>
-  auto run(asio::completion_token_for<signature_t> auto&& token) ->
+  auto run(asio::completion_token_for<signature_t> auto&& token, direction_e) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
@@ -278,7 +279,7 @@ public:
   }
 
   template <typename signature_t = void(std::error_code)>
-  auto run(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+  auto run(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token, direction_e) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
