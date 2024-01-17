@@ -1,3 +1,4 @@
+#pragma once
 #include "app_operation_mode.hpp"
 #include "state_machine_owner.hpp"
 
