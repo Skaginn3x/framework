@@ -35,6 +35,7 @@ jobs:
           FILES=$(find libs exes -name "*.hpp" -type f -exec grep -H -c '#pragma once' {} \; | grep 0$ | cut -d':' -f1)
           if [ "x$FILES" != x"" ]; then 
             echo $FILES 
+            exit 1
           fi
       - name: start dbus
         run: |
