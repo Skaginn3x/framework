@@ -1,3 +1,4 @@
+#pragma once
 #ifndef AVAKAR_DESTRUCTURE_64_H
 #define AVAKAR_DESTRUCTURE_64_H
 
