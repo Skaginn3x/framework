@@ -34,14 +34,14 @@ public:
 
   /// \brief Empty constructor
   /// \note Should only be used for testing !!!
-  explicit file_storage(asio::io_context& ctx) : logger_{ "file_storage" } {}
+  explicit file_storage(asio::io_context&) : logger_{ "file_storage" } {}
 
   /// \brief Construct file storage with default constructed storage_t
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
       : file_storage{ ctx, file_path, storage_t{} } {}
 
   /// \brief Construct file storage with user defined default values for storage_t
-  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path, auto&& default_value)
+  file_storage(asio::io_context&, std::filesystem::path const& file_path, auto&& default_value)
       : config_file_{ file_path }, storage_{ std::forward<decltype(default_value)>(default_value) },
         logger_{ fmt::format("file_storage.{}", file_path.string()) } {
     std::filesystem::create_directories(config_file_.parent_path());
