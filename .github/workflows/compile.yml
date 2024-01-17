@@ -30,6 +30,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: Check if there are missing pragma once
+        run: |
+          FILES=$(find libs exes -name "*.hpp" -type f -exec grep -H -c '#pragma once' {} \; | grep 0$ | cut -d':' -f1)
+          if [ "x$FILES" != x"" ]; then 
+            echo $FILES 
+          fi
       - name: start dbus
         run: |
           dbus-daemon --system
