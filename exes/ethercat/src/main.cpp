@@ -20,6 +20,9 @@ auto main(int argc, char* argv[]) -> int {
   tfc::base::init(argc, argv, prog_desc);
 
   boost::asio::io_context io_ctx;
+
+  azmq::set_option(io_ctx, azmq::max_sockets{ 3000 });
+
   tfc::ec::context_t ctx(io_ctx);
 
   rlimit limit{};
