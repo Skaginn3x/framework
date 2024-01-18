@@ -568,7 +568,7 @@ private:
               }
               logger_.trace("Homing motor at speed: {}, currently positioned at: {}", travel_speed.value(),
                             pos_.position_from_home());
-              if (homing_sensor->value().has_value() && homing_sensor->value().value()) {
+              if (homing_sensor->value().value_or(false)) {
                 // todo move out of sensor and back to sensor
                 auto const pos{ pos_.position() };
                 logger_.info("Already at home, storing position: {}", pos);
@@ -586,7 +586,9 @@ private:
               state = state_e::complete;
               // let's verify that we are not positioned at home
               // if we are not in sensor, check whether we are cancelled
-              if (!homing_sensor->value().value() && err == std::errc::operation_canceled) {
+              // this is useful while we don't have implementation of limit switches, force the conveyor to stop if the cancel
+              // would be emitted while in sensor
+              if (!homing_sensor->value().value_or(false) && err == std::errc::operation_canceled) {
                 logger_.trace("Move home got cancelled");
                 self.complete(err);
                 return;
