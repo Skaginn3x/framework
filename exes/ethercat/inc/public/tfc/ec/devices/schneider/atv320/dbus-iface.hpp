@@ -584,11 +584,10 @@ private:
             }
             case state_e::wait_till_stop: {
               state = state_e::complete;
-              // let's verify that we are not positioned at home
-              // if we are not in sensor, check whether we are cancelled
-              // this is useful while we don't have implementation of limit switches, force the conveyor to stop if the cancel
-              // would be emitted while in sensor
-              if (!homing_sensor->value().value_or(false) && err == std::errc::operation_canceled) {
+              if (homing_sensor->value().value_or(false)) {
+                // let's continue to stopping the conveyor since the value of home sensor is high
+              }
+              else if (err == std::errc::operation_canceled) {
                 logger_.trace("Move home got cancelled");
                 self.complete(err);
                 return;
