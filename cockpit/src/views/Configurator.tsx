@@ -66,7 +66,7 @@ const Configurator: React.FC = () => {
     });
   }, []);
 
-  useEffect(() => {
+  function getData() {
     if (names.size > 0) {
       names.forEach((interfaceName, processName) => {
         fetchDataFromDBus(
@@ -86,6 +86,10 @@ const Configurator: React.FC = () => {
         });
       });
     }
+  }
+
+  useEffect(() => {
+    getData();
   }, [names]);
 
   /**
@@ -141,6 +145,7 @@ const Configurator: React.FC = () => {
       setFormData,
       addAlert,
     );
+    getData();
   }
 
   /**
