@@ -31,6 +31,8 @@ jobs:
         architecture: [ x86_64, aarch64 ]
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Get release
         if: github.event_name == 'release' && github.event.action == 'created'

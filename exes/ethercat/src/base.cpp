@@ -1,5 +1,5 @@
 //
-// This compilation unit is only here to store vtable references.
+// this compilation unit is only here to store vtable references.
 //
 #include "tfc/ec/devices/base.hpp"
 #include "tfc/ec/devices/beckhoff/EK1xxx.hpp"

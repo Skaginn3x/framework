@@ -1,8 +1,9 @@
 #include <ranges>
 
-#include "tfc/logger.hpp"
-#include "tfc/progbase.hpp"
-#include "tfc/utils/pragmas.hpp"
+#include <tfc/logger.hpp>
+#include <tfc/progbase.hpp>
+#include <tfc/utils/pragmas.hpp>
+#include <tfc/version.hpp>
 
 #include <fmt/printf.h>
 #include <boost/asio.hpp>
@@ -33,6 +34,17 @@ public:
     id_ = vm_["id"].as<std::string>();
     stdout_ = vm_["stdout"].as<bool>();
     noeffect_ = vm_["noeffect"].as<bool>();
+    bool wants_version = vm_["version"].as<bool>();
+    if (wants_version) {
+      auto version = base::version();
+      std::stringstream out;
+      desc.print(out);
+      fmt::print(
+          "TFC - https://github.com/skaginn3x/framework\nBuilt: {}, Commited: {}, Branch: {}, Hash: {}, Tag: {} - {}\n",
+          version.get_build_date(), version.get_git_commit_date(), version.get_git_branch(), version.get_git_hash(),
+          version.get_git_tag(), version.get_git_is_dirty());
+      std::exit(0);
+    }
 
     auto log_level = vm_["log-level"].as<std::string>();
     auto enum_v = magic_enum::enum_cast<tfc::logger::lvl_e>(log_level);
@@ -57,7 +69,8 @@ public:
   [[nodiscard]] auto get_exe_name() const -> std::string_view { return exe_name_; }
   [[nodiscard]] auto get_stdout() const noexcept -> bool { return stdout_; }
   [[nodiscard]] auto get_noeffect() const noexcept -> bool { return noeffect_; }
-  [[nodiscard]] auto get_log_lvl() const noexcept -> tfc::logger::lvl_e { return log_level_; }
+  [[nodiscard]] auto get_log_lvl() const noexcept -> logger::lvl_e { return log_level_; }
+  [[nodiscard]] auto get_version() const noexcept -> base::version { return version_; }
 
 private:
   options() = default;
@@ -66,7 +79,8 @@ private:
   std::string id_{};
   std::string exe_name_{};
   bpo::variables_map vm_{};
-  tfc::logger::lvl_e log_level_{};
+  logger::lvl_e log_level_{};
+  base::version version_;
 };
 
 auto default_description() -> boost::program_options::options_description {
@@ -87,7 +101,8 @@ auto default_description() -> boost::program_options::options_description {
       "id,i", bpo::value<std::string>()->default_value("def"), "Process name used internally, max 12 characters.")(
       "noeffect", bpo::bool_switch()->default_value(false), "Process will not send any IPCs.")(
       "stdout", bpo::bool_switch()->default_value(false), "Logs displayed both in terminal and journal.")(
-      "log-level", bpo::value<std::string>()->default_value("info"), fmt::format("Set log level ({})", help_text).c_str());
+      "log-level", bpo::value<std::string>()->default_value("info"), fmt::format("Set log level ({})", help_text).c_str())(
+      "version,v", bpo::bool_switch()->default_value(false), "Print version information");
   return description;
 }
 
@@ -102,12 +117,15 @@ void init(int argc, char const* const* argv) {
 auto get_exe_name() noexcept -> std::string_view {
   return options::instance().get_exe_name();
 }
+
 auto get_proc_name() noexcept -> std::string_view {
   return options::instance().get_id();
 }
+
 auto get_log_lvl() noexcept -> tfc::logger::lvl_e {
   return options::instance().get_log_lvl();
 }
+
 auto get_map() noexcept -> boost::program_options::variables_map const& {
   return options::instance().get_map();
 }
@@ -118,6 +136,7 @@ auto get_config_directory() -> std::filesystem::path {
   }
   return std::filesystem::path{ "/etc/tfc/" };
 }
+
 auto make_config_file_name(std::string_view filename, std::string_view extension) -> std::filesystem::path {
   auto config_dir{ get_config_directory() };
   std::string filename_path{ filename };
@@ -130,6 +149,7 @@ auto make_config_file_name(std::string_view filename, std::string_view extension
 auto is_stdout_enabled() noexcept -> bool {
   return options::instance().get_stdout();
 }
+
 auto is_noeffect_enabled() noexcept -> bool {
   return options::instance().get_noeffect();
 }
@@ -147,5 +167,4 @@ auto exit_signals(asio::io_context& ctx) -> asio::awaitable<void> {
   fmt::print("\nShutting down gracefully.\nMay you have a pleasant remainder of your day.\n");
   ctx.stop();
 }
-
 }  // namespace tfc::base
