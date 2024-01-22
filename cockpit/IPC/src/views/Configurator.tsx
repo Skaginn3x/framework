@@ -127,9 +127,14 @@ const Configurator: React.FC = () => {
   function handleSubmit(data: any) {
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
+    // Find interface name from dbus name
+    const interfaceName = names.get(activeItem) ?? activeItem;
+    console.log('Submitting data:', data);
+    console.log('Active Item:', activeItem);
+    console.log('Interface Name:', interfaceName);
     updateFormData(
       activeItem, // Process name
-      activeItem, // Interface name
+      interfaceName, // Interface name
       'Config', // Path
       'config', // property
       data, // Data
