@@ -6,6 +6,10 @@ namespace tfc::base{
 class version {
 public:
     explicit version() = default;
+    version(version const&) = default;
+    version(version&&) = default;
+    auto operator=(version const&) -> version& = default;
+    auto operator=(version&&) -> version& = default;
     virtual ~version();
     virtual constexpr auto get_git_hash() const noexcept -> std::string_view { return git_hash; }
     virtual constexpr auto get_git_tag() const noexcept -> std::string_view { return git_tag; }
