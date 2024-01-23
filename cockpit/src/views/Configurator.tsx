@@ -51,6 +51,24 @@ const Configurator: React.FC = () => {
         ) && !name.includes('ipc_ruler'),
       );
 
+      filteredNames.sort((a, b) => {
+        const regex = /([^\d]+)(\d+)$/;
+        const matchA = regex.exec(a);
+        const matchB = regex.exec(b);
+
+        if (matchA && matchB) {
+          // Compare non-numeric parts
+          if (matchA[1] < matchB[1]) return -1;
+          if (matchA[1] > matchB[1]) return 1;
+
+          // Compare numeric parts
+          return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+        }
+
+        // Fallback to regular string comparison if one or both don't match the pattern
+        return a.localeCompare(b);
+      });
+
       // Process each name asynchronously
       filteredNames.forEach((name) => {
         const dbus = window.cockpit.dbus(name);
