@@ -53,6 +53,7 @@ add_custom_target(
         WORKING_DIRECTORY
         ${CMAKE_SOURCE_DIR}
 )
+message(WARNING "Generating version header in directory ${CMAKE_SOURCE_DIR}")
 add_dependencies(base generate_version_header)
 include(tfc_install)
 tfc_install_lib(base)
