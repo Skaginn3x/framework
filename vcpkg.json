@@ -10,6 +10,7 @@
     "bext-sml",
     "bext-ut",
     "boost-asio",
+    "boost-test",
     "boost-program-options",
     "boost-coroutine2",
     "boost-stacktrace",
