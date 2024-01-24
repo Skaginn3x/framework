@@ -68,12 +68,6 @@ target_link_libraries(integration_tests
         async_mqtt_iface::async_mqtt_iface
         )
 
-target_compile_definitions(integration_tests
-        PUBLIC
-        ASYNC_MQTT_USE_TLS
-        ASYNC_MQTT_BUILD_SYSTEM_TESTS
-        )
-
 include(GNUInstallDirs)
 
-add_subdirectory(tool)
+add_subdirectory(broker)
