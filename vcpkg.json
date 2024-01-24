@@ -13,6 +13,8 @@
     "boost-test",
     "boost-program-options",
     "boost-coroutine2",
+    "boost-process",
+    "boost-uuid",
     "boost-stacktrace",
     "date",
     "fmt",
