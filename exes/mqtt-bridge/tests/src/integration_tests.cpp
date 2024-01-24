@@ -1,12 +1,3 @@
-// #include <run.hpp>
-
-// #include <../inc/broker_runner.hpp>
-// #include <async_mqtt/
-
-#include <boost/asio.hpp>
-//
-namespace asio = boost::asio;
-
 #include <thread>
 #include <optional>
 
@@ -17,24 +8,25 @@ namespace asio = boost::asio;
 
 #include <boost/test/unit_test.hpp>
 
+namespace asio = boost::asio;
+
 namespace as = boost::asio;
 namespace pr = boost::process;
-// namespace am = async_mqtt;
 
-// inline bool launch_broker_required() {
-//     auto argc = boost::unit_test::framework::master_test_suite().argc;
-//     if (argc >= 3) {
-//         auto argv = boost::unit_test::framework::master_test_suite().argv;
-//         auto launch = std::string_view(argv[2]);
-//         if (launch == "no" || launch == "no_launch") {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
+inline bool launch_broker_required() {
+    auto argc = boost::unit_test::framework::master_test_suite().argc;
+    if (argc >= 3) {
+        auto argv = boost::unit_test::framework::master_test_suite().argv;
+        auto launch = std::string_view(argv[2]);
+        if (launch == "no" || launch == "no_launch") {
+            return false;
+        }
+    }
+    return true;
+}
 
 inline void kill_broker() {
-    // if (!launch_broker_required()) return;
+    if (!launch_broker_required()) return;
     std::system("pkill broker");
 }
 
@@ -49,9 +41,9 @@ struct broker_runner : broker_killer {
             std::string const &config = "st_broker.conf",
             std::string const &auth = "st_auth.json"
     ) {
-        // if (launch_broker_required()) {
-        brk.emplace(pr::args({"../../tool/broker", "--cfg", config, "--auth_file", auth}));
-        // }
+        if (launch_broker_required()) {
+            brk.emplace(pr::args({"exes/mqtt-bridge/tests/tool/broker", "--cfg", config, "--auth_file", auth}));
+        }
         {
             as::io_context ioc;
             as::ip::address address = boost::asio::ip::make_address("127.0.0.1");
@@ -90,11 +82,7 @@ auto main() -> int {
 
     broker_runner broker_i{};
 
-//     tfc::mqtt::run running{io_ctx};
-//
-//     asio::co_spawn(io_ctx, running.start(), asio::detached);
-
-    io_ctx.run();
+    // io_ctx.run();
 
     return 0;
 }
