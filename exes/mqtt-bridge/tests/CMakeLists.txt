@@ -75,3 +75,5 @@ target_compile_definitions(integration_tests
         )
 
 include(GNUInstallDirs)
+
+add_subdirectory(tool)
