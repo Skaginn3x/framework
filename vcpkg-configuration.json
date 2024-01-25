@@ -15,6 +15,6 @@
     }
   ],
   "overlay-triplets": [
-    "./vcpkg-overlays/triplets"
+    "./cmake/vcpkg-triplets"
   ]
 }

@@ -26,11 +26,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset_postfixes: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
+        presets: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
 
     steps:
       - uses: actions/checkout@v3
         with:
+          submodules: true
           fetch-depth: 0
       - name: Check if there are missing pragma once
         run: |
@@ -54,6 +55,6 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          configurePreset: 'ci-${{ matrix.preset_postfixes }}'
-          buildPreset: 'build-ci-${{ matrix.preset_postfixes }}'
-          testPreset: 'test-ci-${{ matrix.preset_postfixes }}'
+          configurePreset: '${{ matrix.presets }}'
+          buildPreset: '${{ matrix.presets }}'
+          testPreset: '${{ matrix.presets }}'

@@ -49,5 +49,5 @@ install(
     ${CMAKE_INSTALL_BINDIR}/debug/
   CONFIGURATIONS Debug
 )
-
+include(tfc_systemd)
 tfc_systemd_service_file(operations "TFC Operation Mode")
