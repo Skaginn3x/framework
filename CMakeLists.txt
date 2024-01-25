@@ -21,7 +21,8 @@ include(tfc_config)
 include(tfc_warnings)
 include(tfc_docs)
 include(tfc_cpack)
-include(tfc_systemd)
+
+tfc_cpack_init(${CMAKE_CURRENT_LIST_DIR}/LICENSE ${CMAKE_CURRENT_LIST_DIR}/readme.md)
 
 if (BUILD_EXES)
 add_subdirectory(exes)
