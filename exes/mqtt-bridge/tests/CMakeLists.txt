@@ -69,5 +69,3 @@ target_link_libraries(integration_tests
         )
 
 include(GNUInstallDirs)
-
-add_subdirectory(tool)

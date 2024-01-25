@@ -48,18 +48,18 @@ extern template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
                                       tfc::confman::config<config::writeable_signals>,
                                       tfc::ipc::any_signal>;
 
-using any_signal_imc_mock =
-    std::variant<std::monostate,                                                                              //
-                 tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>,    //
-                 tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&>,     //
-                 tfc::ipc::signal<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock&>,    //
-                 tfc::ipc::signal<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock&>,  //
-                 tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock&>,  //
-                 tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock&>,
-                 tfc::ipc::signal<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&> >;
-
-extern template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client_mock,
-                                      tfc::mqtt::config::writeable_signals_mock,
-                                      any_signal_imc_mock>;
+// using any_signal_imc_mock =
+//     std::variant<std::monostate,                                                                              //
+//                  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&>,    //
+//                  tfc::ipc::signal<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&>,     //
+//                  tfc::ipc::signal<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock&>,    //
+//                  tfc::ipc::signal<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock&>,  //
+//                  tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock&>,  //
+//                  tfc::ipc::signal<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock&>,
+//                  tfc::ipc::signal<tfc::ipc::details::type_mass, tfc::ipc_ruler::ipc_manager_client_mock&> >;
+//
+// extern template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client_mock,
+//                                       tfc::mqtt::config::writeable_signals_mock,
+//                                       any_signal_imc_mock>;
 
 }  // namespace tfc::mqtt

@@ -19,6 +19,9 @@ enum class qos : std::uint8_t;
 
 class buffer;
 namespace v5 {
+
+class connect_packet;
+
 template <std::size_t PacketIdBytes>
 class basic_publish_packet;
 
@@ -58,6 +61,8 @@ public:
 
   auto send_initial() -> asio::awaitable<bool>;
 
+  auto connect_packet() -> async_mqtt::v5::connect_packet;
+
 private:
   asio::io_context& io_ctx_;
   std::string mqtt_will_topic_;
@@ -69,10 +74,10 @@ private:
 };
 
 using client_n = client<endpoint_client, tfc::confman::config<config::broker>>;
-using client_mock = client<endpoint_client_mock, config::broker_mock>;
+//using client_mock = client<endpoint_client_mock, config::broker_mock>;
 
 extern template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
 
-extern template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;
+// extern template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;
 
 }  // namespace tfc::mqtt

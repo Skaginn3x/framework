@@ -18,8 +18,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
+#include <iostream>
 #include "endpoint.hpp"
-#include "endpoint_mock.hpp"
 
 namespace tfc::mqtt {
 
@@ -70,21 +70,9 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
 
   co_await endpoint_client_->async_handshake();
 
-  /// SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
-  auto connect_packet =
-      async_mqtt::v5::connect_packet{ true,
-                                      std::chrono::seconds(100).count(),
-                                      async_mqtt::allocate_buffer(config_.value().client_id),
-                                      async_mqtt::will(async_mqtt::allocate_buffer(mqtt_will_topic_),
-                                                       async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
-                                                       { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
-                                      async_mqtt::allocate_buffer(config_.value().username),
-                                      async_mqtt::allocate_buffer(config_.value().password),
-                                      { async_mqtt::property::session_expiry_interval{ 0 } } };
-
   logger_.trace("Sending MQTT connection packet...");
 
-  auto send_error = co_await endpoint_client_->send(connect_packet, asio::use_awaitable);
+  auto send_error = co_await endpoint_client_->send(connect_packet(), asio::use_awaitable);
 
   if (send_error) {
     co_return false;
@@ -98,11 +86,41 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
   co_return connack;
 }
 
+/// SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
+template <class client_t, class config_t>
+auto client<client_t, config_t>::connect_packet() -> async_mqtt::v5::connect_packet {
+  if (config_.value().username.empty() || config_.value().password.empty()) {
+    return async_mqtt::v5::connect_packet{ true,
+                                           std::chrono::seconds(100).count(),
+                                           async_mqtt::allocate_buffer(config_.value().client_id),
+                                           async_mqtt::will(
+                                               async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                               async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                                               { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+                                           async_mqtt::nullopt,
+                                           async_mqtt::nullopt,
+                                           { async_mqtt::property::session_expiry_interval{ 0 } } };
+  } else {
+    return async_mqtt::v5::connect_packet{ true,
+                                           std::chrono::seconds(100).count(),
+                                           async_mqtt::allocate_buffer(config_.value().client_id),
+                                           async_mqtt::will(
+                                               async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                               async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                                               { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+                                           async_mqtt::allocate_buffer(config_.value().username),
+                                           async_mqtt::allocate_buffer(config_.value().password),
+                                           { async_mqtt::property::session_expiry_interval{ 0 } } };
+  }
+}
+
 template <class client_t, class config_t>
 auto client<client_t, config_t>::receive_connack() -> asio::awaitable<bool> {
   logger_.trace("Waiting for CONNACK");
 
   auto connack_received = co_await endpoint_client_->recv(async_mqtt::control_packet_type::connack);
+
+  std::cout << "connack received: " << connack_received << std::endl;
 
   logger_.trace("CONNACK received");
   auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
@@ -231,4 +249,4 @@ auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
 
 template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
 
-template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;
+// template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;

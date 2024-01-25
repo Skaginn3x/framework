@@ -74,6 +74,6 @@ template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client,
                                tfc::confman::config<config::writeable_signals>,
                                tfc::ipc::any_signal>;
 
-template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client_mock, config::writeable_signals_mock, any_signal_imc_mock>;
+// template class external_to_tfc<tfc::ipc_ruler::ipc_manager_client_mock, config::writeable_signals_mock, any_signal_imc_mock>;
 
 }  // namespace tfc::mqtt
