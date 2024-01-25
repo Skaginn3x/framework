@@ -22,7 +22,11 @@ include(tfc_warnings)
 include(tfc_docs)
 include(tfc_cpack)
 
-tfc_cpack_init(${CMAKE_CURRENT_LIST_DIR}/LICENSE ${CMAKE_CURRENT_LIST_DIR}/readme.md)
+set(PACKAGE_NAME ${PROJECT_NAME})
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(PACKAGE_NAME "${PACKAGE_NAME}-dbg")
+endif()
+tfc_cpack_init(${PACKAGE_NAME} ${CMAKE_CURRENT_LIST_DIR}/LICENSE ${CMAKE_CURRENT_LIST_DIR}/readme.md)
 
 if (BUILD_EXES)
 add_subdirectory(exes)
