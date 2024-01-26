@@ -34,7 +34,7 @@ public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
-  explicit api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
+  api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
       : ctx_{ connection->get_io_context() }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
     std::visit(
         [this, connection](auto& conf) {
