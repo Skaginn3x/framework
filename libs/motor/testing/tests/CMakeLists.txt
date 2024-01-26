@@ -23,6 +23,3 @@ add_test(
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(positioner_test PRIVATE DEBUG)
 endif()
-if(BUILD_EXAMPLES)
-  add_subdirectory(example)
-endif()
