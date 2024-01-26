@@ -49,12 +49,9 @@ include(GNUInstallDirs)
 configure_file("${CMAKE_CURRENT_LIST_DIR}/systemd/ethercat.service" "${CMAKE_BINARY_DIR}/systemd/ethercat.service")
 
 install(
-  FILES
-    "${CMAKE_BINARY_DIR}/systemd/ethercat.service"
-  DESTINATION
-    /usr/lib/systemd/system/
-  CONFIGURATIONS
-    Release
+  FILES "${CMAKE_BINARY_DIR}/systemd/ethercat.service"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/systemd/system/"
+  CONFIGURATIONS Release
 )
 
 install(
