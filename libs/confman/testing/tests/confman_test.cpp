@@ -143,7 +143,7 @@ auto main(int argc, char** argv) -> int {
         dbus, interface_name, interface_path.string(), interface_name,
         std::string{ property_name.data(), property_name.size() },
         [&called]([[maybe_unused]] std::error_code err, [[maybe_unused]] config_property prop) {
-          ut::expect(!err);
+          ut::expect(!err) << err.message();
           called++;
           glz::json_t json{};
           std::ignore = glz::read_json(json, prop.value);
