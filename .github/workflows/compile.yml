@@ -42,7 +42,7 @@ jobs:
           fi
       - name: start dbus
         run: |
-          dbus-daemon --system
+          dbus-broker --system
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v11
