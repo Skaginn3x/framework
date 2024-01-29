@@ -32,6 +32,8 @@ spark_plug_interface<config_t, mqtt_client_t>::spark_plug_interface(asio::io_con
           { constants::namespace_element, config_.value().group_id, constants::ndata, config_.value().node_id })) {
   const std::string_view mqtt_will_payload{ make_will_payload() };
 
+  std::cout << "making mqtt client" << std::endl;
+
   mqtt_client_ = std::make_unique<mqtt_client_t>(io_ctx_, mqtt_will_topic_, mqtt_will_payload);
 }
 

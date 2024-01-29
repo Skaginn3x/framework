@@ -29,6 +29,7 @@ client<client_t, config_t>::client(asio::io_context& io_ctx,
                                    std::string_view mqtt_will_payload)
     : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload) {
   using enum structs::ssl_active_e;
+  std::cout << "making endpont client" << std::endl;
   if (config_.value().ssl_active == yes) {
     endpoint_client_ = std::make_unique<client_t>(io_ctx_, yes);
   } else if (config_.value().ssl_active == no) {

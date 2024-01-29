@@ -26,6 +26,8 @@
 //
 #include <async_mqtt/all.hpp>
 
+#include <tfc/progbase.hpp>
+
 #include <run.hpp>
 
 namespace asio = boost::asio;
@@ -37,7 +39,9 @@ struct message {
   std::string payload;
 };
 
-auto main() -> int {
+auto main(int argc, char* argv[]) -> int {
+  tfc::base::init(argc, argv);
+
   asio::io_context io_ctx{};
 
   std::vector<message> messages;
@@ -81,9 +85,6 @@ auto main() -> int {
       return;
 
     asio::async_connect(amep->next_layer(), eps, [&](boost::system::error_code, asio::ip::tcp::endpoint /*unused*/) {
-      //  std::cout << "TCP connected ec:" << ec.message() << std::endl;
-      //  if (ec)
-      //    return;
       amep->send(
           am::v5::connect_packet{
               true,
@@ -98,63 +99,40 @@ auto main() -> int {
               std::cout << "MQTT CONNECT send error:" << se.what() << std::endl;
               return;
             }
-            // Recv MQTT CONNACK
             amep->recv([&](am::packet_variant pv) {
-              // if (pv) {
-              pv.visit(am::overload{
-                  [&](am::v5::connack_packet const&) {
+              pv.visit(am::overload {
+                [&](am::v5::connack_packet const&) {
                     amep->send(
                         am::v5::subscribe_packet{
                             *amep->acquire_unique_packet_id(),
-                            { { am::allocate_buffer("spBv1.0/tfc_unconfigured_group_id/NDATA/tfc_unconfigured_node_id"),
+                            { { am::allocate_buffer("spBv1.0/tfc_unconfigured_group_id/#"),
+                            // { { am::allocate_buffer("spBv1.0/tfc_unconfigured_group_id/NDATA/tfc_unconfigured_node_id"),
                                 am::qos::at_most_once } } },
                         [&](am::system_error const&) {
-                          //  if (se) {
-                          //    std::cout << "MQTT SUBSCRIBE send error:" << se.what() << std::endl;
-                          //    return;
-                          //  }
-                          // Recv MQTT SUBACK
-                          amep->recv([&](am::packet_variant pv) {
-                            // if (pv) {
-                            pv.visit(am::overload{ [&](am::v5::suback_packet const& p) {
-                                                    std::cout << "MQTT SUBACK recv"
-                                                              << " pid:" << p.packet_id() << " entries:";
-
-                                                    auto recv_handler =
-                                                        std::make_shared<std::function<void(am::packet_variant pv)>>();
-                                                    *recv_handler = [&, recv_handler](am::packet_variant pv) {
-                                                      // if (pv) {
-                                                      pv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
-                                                                              messages.emplace_back(p.topic().data(),
-                                                                                                    p.payload()[0].data());
-                                                        std::cout << "message received: " << "topic: " << p.topic().data() << " payload: " << p.payload()[0].data() << std::endl;
-                                                                              // amep->recv(*recv_handler);
-                                                                            },
-                                                                             [](auto const&) {} });
-                                                      // if (messages.size() < 3) {
-                                                      //   amep->recv(*recv_handler);
-                                                      // }
-                                                      // } else {
-                                                      //   std::cout << "MQTT recv error:" <<
-                                                      //   pv.get<am::system_error>().what() << std::endl; return;
-                                                      // }
-                                                    };
-                                                    amep->recv(*recv_handler);
-                                                    // });
-                                                  },
-                                                   [](auto const&) {} });
-                            //  } else {
-                            //    std::cout << "MQTT SUBACK recv error:" << pv.get<am::system_error>().what() << std::endl;
-                            //    return;
-                            //  }
-                          });
+                amep->recv([&](am::packet_variant pv) {
+                  pv.visit(am::overload{ [&](am::v5::suback_packet const&) {
+                                          auto recv_handler = std::make_shared<std::function<void(am::packet_variant pv)>>();
+                                          *recv_handler = [&, recv_handler](am::packet_variant pv) {
+                                            // if (pv) {
+                                            pv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
+                                                                    messages.emplace_back(p.topic().data(),
+                                                                                          p.payload()[0].data());
+                                                                    std::cout << "message received: "
+                                                                              << "topic: " << p.topic().data()
+                                                                              << " payload: " << p.payload()[0].data()
+                                                                              << std::endl;
+                                                                    // amep->recv(*recv_handler);
+                                                                  },
+                                                                   [](auto const&) {} });
+                                          };
+                                          amep->recv(*recv_handler);
+                                        },
+                                         [](auto const&) {} });
+                });
                         });
-                  },
-                  [](auto const&) {} });
-              //   } else {
-              //     std::cout << "MQTT CONNACK recv error:" << pv.get<am::system_error>().what() << std::endl;
-              //     return;
-              //   }
+                },
+                    [](auto const&) {}
+              });
             });
           });
     });
@@ -169,12 +147,14 @@ auto main() -> int {
   std::cout << "starting run" << std::endl;
   asio::co_spawn(io_ctx, running.start(), asio::detached);
 
-  io_ctx.run_for(std::chrono::seconds{ 10 });
+  io_ctx.run_for(std::chrono::seconds{ 20 });
 
   std::cout << "messages: " << std::endl;
   for (auto& m : messages) {
     std::cout << "topic: " << m.topic << " payload: " << m.payload << std::endl;
   }
+
+  io_ctx.run();
 
   return 0;
 }
