@@ -82,6 +82,7 @@ auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(structs::s
   auto* metadata = metric->mutable_metadata();
   metadata->set_description(variable.description);
 
+  std::cout << "ndata topic: " << ndata_topic_ << " signal name: " << variable.name << std::endl;
   logger_.trace("Updating variable: {}", variable.name);
   logger_.trace("Payload: {}", payload.DebugString());
 
@@ -90,7 +91,11 @@ auto spark_plug_interface<config_t, mqtt_client_t>::update_value_impl(structs::s
 
   logger_.trace("Sending message on topic: {}", ndata_topic_);
 
+  std::string test{ ndata_topic_ + "/" + variable.name };
+  std::cout << "test: " << test;
+
   co_await mqtt_client_->send_message(ndata_topic_, payload_string, async_mqtt::qos::at_most_once);
+  // co_await mqtt_client_->send_message(test, payload_string, async_mqtt::qos::at_most_once);
 }
 
 template <class config_t, class mqtt_client_t>

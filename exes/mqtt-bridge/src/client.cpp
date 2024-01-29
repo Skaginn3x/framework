@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <iostream>
 
 #include <async_mqtt/buffer.hpp>
 #include <async_mqtt/packet/property.hpp>
@@ -114,6 +115,8 @@ auto client<client_t, config_t>::receive_connack() -> asio::awaitable<bool> {
 template <class client_t, class config_t>
 auto client<client_t, config_t>::send_message(std::string topic, std::string payload, async_mqtt::qos qos)
     -> asio::awaitable<bool> {
+  std::cout << "sending message on topic: " << topic << " payload: " << payload << std::endl;
+
   std::optional<uint16_t> p_id;
 
   if (qos != async_mqtt::qos::at_most_once) {
