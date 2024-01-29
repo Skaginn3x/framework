@@ -53,9 +53,7 @@ public:
     }
   }
 
-  void set_version_description(std::string_view desc) {
-    extra_description_ = desc;
-  }
+  void set_version_description(std::string_view desc) { extra_description_ = desc; }
 
   static auto instance() -> options& {
     // clang-format off
@@ -110,7 +108,6 @@ auto default_description() -> boost::program_options::options_description {
 void set_version_description(std::string_view desc) {
   options::instance().set_version_description(desc);
 }
-
 
 void init(int argc, char const* const* argv, bpo::options_description const& desc) {
   options::instance().init(argc, argv, desc);
