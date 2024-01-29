@@ -25,10 +25,16 @@
 // #include <boost/asio.hpp>
 //
 #include <async_mqtt/all.hpp>
+#include <constants.hpp>
 
 #include <tfc/progbase.hpp>
 
 #include <run.hpp>
+
+#include <boost/ut.hpp>
+namespace ut = boost::ut;
+using ut::operator""_test;
+using ut::expect;
 
 namespace asio = boost::asio;
 // namespace pr = boost::process;
@@ -39,53 +45,63 @@ struct message {
   std::string payload;
 };
 
-auto main(int argc, char* argv[]) -> int {
-  tfc::base::init(argc, argv);
+class mqtt_broker {
+public:
+  mqtt_broker(asio::io_context& io_ctx)
+      : io_ctx_(io_ctx), mqtt_endpoint_(asio::ip::tcp::v4(), 1883), mqtt_acceptor_(io_ctx_, mqtt_endpoint_),
+        broker_(io_ctx_) {
+    setupAsyncAccept();
+  }
 
-  asio::io_context io_ctx{};
+private:
+  void setupAsyncAccept() {
+    mqtt_async_accept_ = [this] {
+      auto endpoint = am::endpoint<am::role::server, am::protocol::mqtt>::create(am::protocol_version::undetermined,
+                                                                                 io_ctx_.get_executor());
 
-  std::vector<message> messages;
+      auto& lowest_layer = endpoint->lowest_layer();
+      mqtt_acceptor_.async_accept(lowest_layer, [this, endpoint](boost::system::error_code const& ec) mutable {
+        if (!ec) {
+          broker_.handle_accept(epv_t{ std::move(endpoint) });
+          mqtt_async_accept_();
+        } else {
+          std::cerr << "TCP accept error: " << ec.message() << std::endl;
+        }
+      });
+    };
 
+    mqtt_async_accept_();
+  }
+
+  asio::io_context& io_ctx_;
+  asio::ip::tcp::endpoint mqtt_endpoint_;
+  asio::ip::tcp::acceptor mqtt_acceptor_;
+  std::function<void()> mqtt_async_accept_;
   using epv_t = am::endpoint_variant<am::role::server, am::protocol::mqtt>;
+  am::broker<epv_t> broker_;
+};
 
-  am::broker<epv_t> brk{ io_ctx };
+class mqtt_client {
+public:
+  mqtt_client(asio::io_context& io_ctx, std::vector<message>& messages, std::string& topic)
+      : io_ctx_(io_ctx), messages_(messages),
+        amep_(am::endpoint<am::role::client, am::protocol::mqtt>::create(am::protocol_version::v5, io_ctx.get_executor())),
+        resolver_(io_ctx), topic_(topic) {
+    connect("127.0.0.1", "1883");
+  }
 
-  // mqtt (MQTT on TCP)
-  asio::ip::tcp::endpoint mqtt_endpoint{ asio::ip::tcp::v4(), 1883 };
-
-  asio::ip::tcp::acceptor mqtt_ac{ io_ctx, mqtt_endpoint };
-
-  std::function<void()> mqtt_async_accept = [&] {
-    auto epsp = am::endpoint<am::role::server, am::protocol::mqtt>::create(am::protocol_version::undetermined,
-                                                                           io_ctx.get_executor());
-
-    auto& lowest_layer = epsp->lowest_layer();
-    mqtt_ac.async_accept(lowest_layer, [&mqtt_async_accept, &brk, epsp](boost::system::error_code const& ec) mutable {
-      if (ec) {
-        std::cout << "TCP accept error:" << ec.message();
-      } else {
-        brk.handle_accept(epv_t{ force_move(epsp) });
-      }
-      mqtt_async_accept();
+  void connect(const std::string& host, const std::string& port) {
+    resolver_.async_resolve(host, port, [&](boost::system::error_code ec, asio::ip::tcp::resolver::results_type eps) {
+      if (ec)
+        return;
+      handle_resolve(eps);
     });
-  };
+  }
 
-  mqtt_async_accept();
-
-  // std::this_thread::sleep_for(std::chrono::seconds{ 1 });
-
-  io_ctx.run_for(std::chrono::milliseconds{ 100 });
-
-  asio::ip::tcp::socket resolve_sock{ io_ctx };
-  asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
-  auto amep = am::endpoint<am::role::client, am::protocol::mqtt>::create(am::protocol_version::v5, io_ctx.get_executor());
-
-  res.async_resolve("127.0.0.1", "1883", [&](boost::system::error_code ec, asio::ip::tcp::resolver::results_type eps) {
-    if (ec)
-      return;
-
-    asio::async_connect(amep->next_layer(), eps, [&](boost::system::error_code, asio::ip::tcp::endpoint /*unused*/) {
-      amep->send(
+private:
+  void handle_resolve(asio::ip::tcp::resolver::results_type eps) {
+    asio::async_connect(amep_->next_layer(), eps, [&](boost::system::error_code, asio::ip::tcp::endpoint /*unused*/) {
+      amep_->send(
           am::v5::connect_packet{
               true,
               0x1234,
@@ -94,67 +110,73 @@ auto main(int argc, char* argv[]) -> int {
               am::nullopt,
               am::nullopt,
           },
-          [&](am::system_error const& se) {
-            if (se) {
-              std::cout << "MQTT CONNECT send error:" << se.what() << std::endl;
-              return;
-            }
-            amep->recv([&](am::packet_variant pv) {
-              pv.visit(am::overload {
-                [&](am::v5::connack_packet const&) {
-                    amep->send(
-                        am::v5::subscribe_packet{
-                            *amep->acquire_unique_packet_id(),
-                            { { am::allocate_buffer("spBv1.0/tfc_unconfigured_group_id/#"),
-                            // { { am::allocate_buffer("spBv1.0/tfc_unconfigured_group_id/NDATA/tfc_unconfigured_node_id"),
-                                am::qos::at_most_once } } },
+          [&](am::system_error const&) {
+            amep_->recv([&](am::packet_variant pv) {
+              pv.visit(am::overload{
+                  [&](am::v5::connack_packet const&) {
+                    amep_->send(
+                        am::v5::subscribe_packet{ *amep_->acquire_unique_packet_id(),
+                                                  { { am::allocate_buffer(topic_), am::qos::at_most_once } } },
                         [&](am::system_error const&) {
-                amep->recv([&](am::packet_variant pv) {
-                  pv.visit(am::overload{ [&](am::v5::suback_packet const&) {
-                                          auto recv_handler = std::make_shared<std::function<void(am::packet_variant pv)>>();
-                                          *recv_handler = [&, recv_handler](am::packet_variant pv) {
-                                            // if (pv) {
-                                            pv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
-                                                                    messages.emplace_back(p.topic().data(),
-                                                                                          p.payload()[0].data());
-                                                                    std::cout << "message received: "
-                                                                              << "topic: " << p.topic().data()
-                                                                              << " payload: " << p.payload()[0].data()
-                                                                              << std::endl;
-                                                                    // amep->recv(*recv_handler);
-                                                                  },
-                                                                   [](auto const&) {} });
-                                          };
-                                          amep->recv(*recv_handler);
-                                        },
-                                         [](auto const&) {} });
-                });
+                          amep_->recv([&](am::packet_variant pv) {
+                            pv.visit(am::overload{ [&](am::v5::suback_packet const&) {
+                                                    auto recv_handler =
+                                                        std::make_shared<std::function<void(am::packet_variant pv)>>();
+                                                    *recv_handler = [&, recv_handler](am::packet_variant pv) {
+                                                      pv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
+                                                                              messages_.emplace_back(p.topic().data(),
+                                                                                                     p.payload()[0].data());
+                                                                            },
+                                                                             [](auto const&) {} });
+                                                    };
+                                                    amep_->recv(*recv_handler);
+                                                  },
+                                                   [](auto const&) {} });
+                          });
                         });
-                },
-                    [](auto const&) {}
-              });
+                  },
+                  [](auto const&) {} });
             });
           });
     });
-  });
+  }
 
-  std::cout << "waiting for client to start" << std::endl;
+  asio::io_context& io_ctx_;
+  std::vector<message>& messages_;
+  decltype(am::endpoint<am::role::client, am::protocol::mqtt>::create(am::protocol_version::v5)) amep_;
+  asio::ip::tcp::resolver resolver_;
+  std::string& topic_;
+};
 
-  io_ctx.run_for(std::chrono::seconds{ 5 });
+auto main(int argc, char* argv[]) -> int {
+  tfc::base::init(argc, argv);
+
+  asio::io_context io_ctx{};
+
+  std::vector<message> messages;
+
+  mqtt_broker broker{ io_ctx };
+
+  io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  std::string nbirth_topic = "spBv1.0/tfc_unconfigured_group_id/NBIRTH/tfc_unconfigured_node_id";
+
+  mqtt_client cli{ io_ctx, messages, nbirth_topic };
+
+  io_ctx.run_for(std::chrono::seconds{ 1 });
 
   tfc::mqtt::run running{ io_ctx };
 
-  std::cout << "starting run" << std::endl;
   asio::co_spawn(io_ctx, running.start(), asio::detached);
 
-  io_ctx.run_for(std::chrono::seconds{ 20 });
+  io_ctx.run_for(std::chrono::seconds{ 1 });
 
-  std::cout << "messages: " << std::endl;
-  for (auto& m : messages) {
-    std::cout << "topic: " << m.topic << " payload: " << m.payload << std::endl;
+  ut::expect(messages.size() == 1);
+
+  if (messages.size() >= 1) {
+    ut::expect(messages[0].topic == nbirth_topic);
+    // ut::expect(messages[0].payload == "1");
   }
-
-  io_ctx.run();
 
   return 0;
 }
