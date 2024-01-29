@@ -39,7 +39,7 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp
   ALL
   COMMAND
-    ${CMAKE_COMMAND} -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
+    ${CMAKE_COMMAND} -D NAMESPACE=tfc -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
   WORKING_DIRECTORY
     ${CMAKE_SOURCE_DIR}
 )
@@ -47,7 +47,7 @@ add_custom_command(
 add_custom_target(generate_version_header
   ALL
   COMMAND
-    ${CMAKE_COMMAND} -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
+    ${CMAKE_COMMAND} -D NAMESPACE=tfc -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
   WORKING_DIRECTORY
     ${CMAKE_SOURCE_DIR}
 )
