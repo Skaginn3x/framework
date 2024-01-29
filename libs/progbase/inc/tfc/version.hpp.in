@@ -16,13 +16,13 @@ struct version {
 
   /// \brief Returns a string with version information
   /// example:
-  /// TFC - https://github.com/skaginn3x/framework
-  /// Build date: 2024-46-29 09:46:27
+  /// git@github.com:Skaginn3x/framework.git
+  /// Build date: 2024-01-29 10:33:21
   /// Commit date: 2024-01-29
   /// Branch: support-extra-version-info
-  /// Hash: 1b10352c523b7dda07a9867260945e21f7f0c980
-  /// Tag: 2023.11.1-110-g1b10 - dirty
-  static constexpr std::string_view make_version_string() noexcept {
+  /// Hash: 8da82645ce3bd11848a24d995946f259b1e95873
+  /// Tag: 2023.11.1-112-g8da8 - dirty
+  static constexpr auto make_version_string() noexcept -> std::string_view {
     static constexpr auto git_info{
     // clang-format off
       stx::string_view_join_v<
