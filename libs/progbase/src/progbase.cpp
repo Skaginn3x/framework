@@ -38,6 +38,9 @@ public:
       std::stringstream out;
       desc.print(out);
       fmt::println(version::make_version_string());
+      if (!extra_description_.empty()) {
+        fmt::println("\n{}", extra_description_);
+      }
       std::exit(0);
     }
 
@@ -48,6 +51,10 @@ public:
     } else {
       throw std::runtime_error(fmt::format("Invalid log_level : {}", log_level));
     }
+  }
+
+  void set_version_description(std::string_view desc) {
+    extra_description_ = desc;
   }
 
   static auto instance() -> options& {
@@ -74,6 +81,7 @@ private:
   std::string exe_name_{};
   bpo::variables_map vm_{};
   logger::lvl_e log_level_{};
+  std::string extra_description_{};
 };
 
 auto default_description() -> boost::program_options::options_description {
@@ -100,7 +108,7 @@ auto default_description() -> boost::program_options::options_description {
 }
 
 void set_version_description(std::string_view desc) {
-
+  options::instance().set_version_description(desc);
 }
 
 

@@ -37,9 +37,9 @@ endif ()
 add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp
-    ALL
+  ALL
   COMMAND
-    ${CMAKE_COMMAND} -D GIT_HASH=${GIT_HASH} -D GIT_AUTHOR=${GIT_AUTHOR} -D GIT_BRANCH=${GIT_BRANCH} -D GIT_TAG=${GIT_TAG} -D GIT_IS_DIRTY=${GIT_IS_DIRTY} -D GIT_COMMIT_DATE=${GIT_COMMIT_DATE} -D IN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/inc/tfc/version.hpp.in -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
+    ${CMAKE_COMMAND} -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
   WORKING_DIRECTORY
     ${CMAKE_SOURCE_DIR}
 )
@@ -47,7 +47,7 @@ add_custom_command(
 add_custom_target(generate_version_header
   ALL
   COMMAND
-    ${CMAKE_COMMAND} -D GIT_HASH=${GIT_HASH} -D GIT_AUTHOR=${GIT_AUTHOR} -D GIT_BRANCH=${GIT_BRANCH} -D GIT_TAG=${GIT_TAG} -D GIT_IS_DIRTY=${GIT_IS_DIRTY} -D GIT_COMMIT_DATE=${GIT_COMMIT_DATE} -D IN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/inc/tfc/version.hpp.in -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
+    ${CMAKE_COMMAND} -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
   WORKING_DIRECTORY
     ${CMAKE_SOURCE_DIR}
 )
