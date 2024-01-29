@@ -24,7 +24,7 @@ if (${CMAKE_INSTALL_PREFIX} MATCHES "^\/usr")
     FILES
       ${CMAKE_CURRENT_BINARY_DIR}/generated/tfc.conf
     DESTINATION
-      /${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d
+      ${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/system.d/
     CONFIGURATIONS Release
   )
 endif()
