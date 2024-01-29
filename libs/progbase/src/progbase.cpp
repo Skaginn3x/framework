@@ -5,7 +5,7 @@
 #include <tfc/utils/pragmas.hpp>
 #include <tfc/version.hpp>
 
-#include <fmt/printf.h>
+#include <fmt/core.h>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/stacktrace.hpp>
@@ -34,15 +34,10 @@ public:
     id_ = vm_["id"].as<std::string>();
     stdout_ = vm_["stdout"].as<bool>();
     noeffect_ = vm_["noeffect"].as<bool>();
-    bool wants_version = vm_["version"].as<bool>();
-    if (wants_version) {
-      auto version = base::version();
+    if (vm_["version"].as<bool>()) {
       std::stringstream out;
       desc.print(out);
-      fmt::print(
-          "TFC - https://github.com/skaginn3x/framework\nBuilt: {}, Commited: {}, Branch: {}, Hash: {}, Tag: {} - {}\n",
-          version.get_build_date(), version.get_git_commit_date(), version.get_git_branch(), version.get_git_hash(),
-          version.get_git_tag(), version.get_git_is_dirty());
+      fmt::println(version::make_version_string());
       std::exit(0);
     }
 
@@ -70,7 +65,6 @@ public:
   [[nodiscard]] auto get_stdout() const noexcept -> bool { return stdout_; }
   [[nodiscard]] auto get_noeffect() const noexcept -> bool { return noeffect_; }
   [[nodiscard]] auto get_log_lvl() const noexcept -> logger::lvl_e { return log_level_; }
-  [[nodiscard]] auto get_version() const noexcept -> base::version { return version_; }
 
 private:
   options() = default;
@@ -80,7 +74,6 @@ private:
   std::string exe_name_{};
   bpo::variables_map vm_{};
   logger::lvl_e log_level_{};
-  base::version version_;
 };
 
 auto default_description() -> boost::program_options::options_description {
@@ -105,6 +98,11 @@ auto default_description() -> boost::program_options::options_description {
       "version,v", bpo::bool_switch()->default_value(false), "Print version information");
   return description;
 }
+
+void set_version_description(std::string_view desc) {
+
+}
+
 
 void init(int argc, char const* const* argv, bpo::options_description const& desc) {
   options::instance().init(argc, argv, desc);
@@ -156,7 +154,7 @@ auto is_noeffect_enabled() noexcept -> bool {
 
 void terminate() {
   boost::stacktrace::stacktrace const trace{};
-  fmt::fprintf(stderr, "%s\n", to_string(trace).data());
+  fmt::println(stderr, "{}", to_string(trace).data());
   std::terminate();
 }
 
