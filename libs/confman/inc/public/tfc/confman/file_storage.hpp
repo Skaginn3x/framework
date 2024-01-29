@@ -48,9 +48,18 @@ public:
     std::filesystem::create_directories(config_file_.parent_path());
     error_ = read_file();
     if (error_) {
-      error_ = set_changed();  // write to file
-      if (error_) {
-        return;
+      // The file does not exist
+      if (!std::filesystem::exists(config_file_) || std::filesystem::file_size(config_file_) == 0) {
+        error_ = set_changed();
+        if (error_) {
+          throw std::runtime_error(fmt::format("Unable to write configuration file to disc {}", config_file_.string()));
+        }
+      } else {
+        // When unable to parse configuration throw a runtime error. This is a fatal error.
+        std::string message =
+            fmt::format("Unable to read config file: {}, err: {}, throwing!", config_file_.string(), error_.message());
+        logger_.error(message);
+        throw std::runtime_error(message);
       }
     }
     auto const inotify_fd{ inotify_init1(IN_NONBLOCK) };
