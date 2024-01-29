@@ -26,6 +26,8 @@
 //
 #include <async_mqtt/all.hpp>
 
+#include <run.hpp>
+
 namespace asio = boost::asio;
 // namespace pr = boost::process;
 namespace am = async_mqtt;
@@ -68,7 +70,7 @@ auto main() -> int {
 
   // std::this_thread::sleep_for(std::chrono::seconds{ 1 });
 
-  io_ctx.run_for(std::chrono::milliseconds{100});
+  io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
   asio::ip::tcp::socket resolve_sock{ io_ctx };
   asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
@@ -78,10 +80,10 @@ auto main() -> int {
     if (ec)
       return;
 
-    asio::async_connect(amep->next_layer(), eps, [&](boost::system::error_code ec, asio::ip::tcp::endpoint /*unused*/) {
-     //  std::cout << "TCP connected ec:" << ec.message() << std::endl;
-     //  if (ec)
-     //    return;
+    asio::async_connect(amep->next_layer(), eps, [&](boost::system::error_code, asio::ip::tcp::endpoint /*unused*/) {
+      //  std::cout << "TCP connected ec:" << ec.message() << std::endl;
+      //  if (ec)
+      //    return;
       amep->send(
           am::v5::connect_packet{
               true,
@@ -106,7 +108,7 @@ auto main() -> int {
                             *amep->acquire_unique_packet_id(),
                             { { am::allocate_buffer("spBv1.0/tfc_unconfigured_group_id/NDATA/tfc_unconfigured_node_id"),
                                 am::qos::at_most_once } } },
-                        [&](am::system_error const& ) {
+                        [&](am::system_error const&) {
                           //  if (se) {
                           //    std::cout << "MQTT SUBSCRIBE send error:" << se.what() << std::endl;
                           //    return;
@@ -125,6 +127,8 @@ auto main() -> int {
                                                       pv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
                                                                               messages.emplace_back(p.topic().data(),
                                                                                                     p.payload()[0].data());
+                                                        std::cout << "message received: " << "topic: " << p.topic().data() << " payload: " << p.payload()[0].data() << std::endl;
+                                                                              // amep->recv(*recv_handler);
                                                                             },
                                                                              [](auto const&) {} });
                                                       // if (messages.size() < 3) {
@@ -156,8 +160,18 @@ auto main() -> int {
     });
   });
 
+  std::cout << "waiting for client to start" << std::endl;
+
+  io_ctx.run_for(std::chrono::seconds{ 5 });
+
+  tfc::mqtt::run running{ io_ctx };
+
+  std::cout << "starting run" << std::endl;
+  asio::co_spawn(io_ctx, running.start(), asio::detached);
+
   io_ctx.run_for(std::chrono::seconds{ 10 });
 
+  std::cout << "messages: " << std::endl;
   for (auto& m : messages) {
     std::cout << "topic: " << m.topic << " payload: " << m.payload << std::endl;
   }

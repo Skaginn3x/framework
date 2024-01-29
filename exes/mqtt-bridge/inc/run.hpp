@@ -4,77 +4,75 @@
 
 #include <tfc/logger.hpp>
 
+#include <external_to_tfc.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
-#include <external_to_tfc.hpp>
 
 namespace asio = boost::asio;
 
 namespace tfc::mqtt {
 
-    class run {
+class run {
+public:
+  explicit run(asio::io_context& io_ctx_) : io_ctx_(io_ctx_) {}
 
-    public:
+  auto start() -> asio::awaitable<void> {
+    while (true) {
+      logger.trace("----------------------------------------------------------------------------");
+      logger.trace("Event loop started");
 
-        explicit run(asio::io_context &io_ctx_) : io_ctx_(io_ctx_) {}
+      std::cout << "sp interface" << std::endl;
+      tfc::mqtt::spark_plug sp_interface{ io_ctx_ };
 
-        auto start() -> asio::awaitable<void> {
-            while (true) {
-                logger.trace("----------------------------------------------------------------------------");
-                logger.trace("Event loop started");
+      std::cout << "tfc to ext" << std::endl;
+      tfc::mqtt::tfc_to_ext tfc_to_ext{ io_ctx_, sp_interface };
 
-                tfc::mqtt::spark_plug sp_interface{io_ctx_};
+      std::cout << "ext to tfc" << std::endl;
+      tfc::mqtt::ext_to_tfc ext_to_tfc{ io_ctx_ };
 
-                tfc::mqtt::tfc_to_ext tfc_to_ext{io_ctx_, sp_interface};
+      bool connection_success = co_await sp_interface.connect_mqtt_client();
 
-                tfc::mqtt::ext_to_tfc ext_to_tfc{io_ctx_};
+      if (!connection_success) {
+        continue;
+      }
 
-                bool connection_success = co_await sp_interface.connect_mqtt_client();
+      bool subscribe_success = co_await sp_interface.subscribe_to_ncmd();
 
-                if (!connection_success) {
-                    continue;
-                }
+      if (!subscribe_success) {
+        continue;
+      }
 
-                bool subscribe_success = co_await sp_interface.subscribe_to_ncmd();
+      ext_to_tfc.create_outward_signals();
 
-                if (!subscribe_success) {
-                    continue;
-                }
+      tfc_to_ext.set_signals();
 
-                ext_to_tfc.create_outward_signals();
+      sp_interface.set_value_change_callback(std::bind_front(&tfc::mqtt::ext_to_tfc::receive_new_value, &ext_to_tfc));
 
-                tfc_to_ext.set_signals();
+      co_await asio::steady_timer{ io_ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
 
-                sp_interface.set_value_change_callback(
-                        std::bind_front(&tfc::mqtt::ext_to_tfc::receive_new_value, &ext_to_tfc));
+      auto signals = tfc_to_ext.get_signals();
 
-                co_await asio::steady_timer{io_ctx_, std::chrono::seconds{1}}.async_wait(asio::use_awaitable);
+      asio::cancellation_signal cancel_signal{};
 
-                auto signals = tfc_to_ext.get_signals();
+      bool restart_needed = false;
 
-                asio::cancellation_signal cancel_signal{};
+      asio::co_spawn(sp_interface.strand(),
+                     sp_interface.wait_for_payloads(std::bind_front(&tfc::mqtt::spark_plug::process_payload, &sp_interface),
+                                                    restart_needed),
+                     asio::bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
-                bool restart_needed = false;
+      while (!restart_needed) {
+        co_await asio::steady_timer{ sp_interface.strand(), std::chrono::seconds{ 5 } }.async_wait(asio::use_awaitable);
+      }
 
-                asio::co_spawn(sp_interface.strand(),
-                               sp_interface.wait_for_payloads(
-                                       std::bind_front(&tfc::mqtt::spark_plug::process_payload, &sp_interface),
-                                       restart_needed),
-                               asio::bind_cancellation_slot(cancel_signal.slot(), asio::detached));
+      cancel_signal.emit(asio::cancellation_type::all);
 
-                while (!restart_needed) {
-                    co_await asio::steady_timer{sp_interface.strand(), std::chrono::seconds{5}}.async_wait(
-                            asio::use_awaitable);
-                }
+      tfc_to_ext.clear_signals();
+    }
+  }
 
-                cancel_signal.emit(asio::cancellation_type::all);
-
-                tfc_to_ext.clear_signals();
-            }
-        }
-
-    private:
-        asio::io_context &io_ctx_;
-        tfc::logger::logger logger{"run_loop"};
-    };
-}
+private:
+  asio::io_context& io_ctx_;
+  tfc::logger::logger logger{ "run_loop" };
+};
+}  // namespace tfc::mqtt
