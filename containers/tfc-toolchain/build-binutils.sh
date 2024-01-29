@@ -4,7 +4,7 @@ set -ex
 
 source shared.sh
 
-VERSION=2.41
+VERSION=$1
 
 hide_output apt install bzip2 bison file texinfo -y --no-install-recommends
 
