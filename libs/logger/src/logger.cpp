@@ -13,6 +13,11 @@ inline constexpr size_t tp_queue_size = 128;
 inline constexpr size_t tp_worker_count = 1;
 
 namespace {
+struct logger_singleton {
+  std::shared_ptr<spdlog::details::thread_pool> thread_pool;
+  std::shared_ptr<spdlog::sinks::tfc_systemd_sink_mt> systemd;
+};
+
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
@@ -60,7 +65,7 @@ tfc::logger::logger::logger(std::string_view key) : key_{ key } {
                                                          spdlog::async_overflow_policy::overrun_oldest);
   async_logger_->set_level(static_cast<spdlog::level::level_enum>(tfc::base::get_log_lvl()));
 }
-void tfc::logger::logger::log_(lvl_e log_lvl, std::string_view msg) const {
+void tfc::logger::logger::log_(lvl_e log_lvl, std::string_view msg, std::source_location loc) const {
   async_logger_->log(static_cast<spdlog::level::level_enum>(log_lvl), msg);
 }
 void tfc::logger::logger::set_loglevel(tfc::logger::lvl_e log_level) {

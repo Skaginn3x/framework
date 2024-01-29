@@ -65,12 +65,6 @@ protected:
       payload = msg.payload;
     }
 
-    size_t length = payload.size();
-    // limit to max int
-    if (length > static_cast<size_t>(std::numeric_limits<int>::max())) {
-      length = static_cast<size_t>(std::numeric_limits<int>::max());
-    }
-
     std::vector<std::pair<std::string_view, std::string_view>> parameters;
     parameters.emplace_back("TFC_KEY", key_);
     parameters.emplace_back("TFC_EXE", tfc::base::get_exe_name());
