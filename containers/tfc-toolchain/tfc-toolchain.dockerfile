@@ -5,6 +5,8 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ENV PATH=/cpproot/bin:$PATH
 ENV PKG_CONFIG_PATH=/cpproot/lib/pkgconfig
+ENV LD_LIBRARY_PATH=/cpproot/lib:/cpproot/lib/x86_64-unknown-linux-gnu:$LD_LIBRARY_PATH
+ENV LIBRARY_PATH=/cpproot/lib:/cpproot/lib/x86_64-unknown-linux-gnu:$LIBRARY_PATH
 
 RUN mkdir -p /cpproot/bin
 WORKDIR /tmp
@@ -30,9 +32,6 @@ RUN ./build-ninja.sh 1.11.1
 # This has to happen after gcc-13 and cmake
 COPY build-mold.sh /tmp/
 RUN ./build-mold.sh 2.4.0
-# Lets see if we get away with this
-RUN ln -sf /cpproot/bin/mold /cpproot/bin/ld
-
 
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 
