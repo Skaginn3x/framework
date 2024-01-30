@@ -1,4 +1,4 @@
-#pragma once
+// #pragma once
 
 #include <functional>
 #include <memory>
@@ -8,8 +8,8 @@
 
 #include <boost/asio.hpp>
 
-#include <config/broker.hpp>
-#include <config/broker_mock.hpp>
+#include <config/bridge.hpp>
+#include <config/bridge_mock.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/utils/asio_fwd.hpp>
@@ -39,7 +39,10 @@ namespace asio = boost::asio;
 template <class client_t, class config_t>
 class client {
 public:
-  explicit client(asio::io_context& io_ctx, std::string_view mqtt_will_topic, std::string_view mqtt_will_payload);
+  explicit client(asio::io_context& io_ctx,
+                  std::string_view mqtt_will_topic,
+                  std::string_view mqtt_will_payload,
+                  config_t& config);
 
   auto connect() -> asio::awaitable<bool>;
 
@@ -68,16 +71,17 @@ private:
   std::string mqtt_will_topic_;
   std::string mqtt_will_payload_;
   std::unique_ptr<client_t, std::function<void(client_t*)>> endpoint_client_;
-  config_t config_{ io_ctx_, "client" };
-  tfc::logger::logger logger_{ "client" };
+  config_t& config_;
+  logger::logger logger_{ "client" };
   std::tuple<std::string, std::string, async_mqtt::qos> initial_message_;
 };
 
-using client_n = client<endpoint_client, tfc::confman::config<config::broker>>;
-//using client_mock = client<endpoint_client_mock, config::broker_mock>;
+using client_n = client<endpoint_client, confman::config<config::bridge>>;
+using client_semi_normal = client<endpoint_client, config::bridge_mock>;
+using client_mock = client<endpoint_client_mock, config::bridge_mock>;
 
-extern template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
-
-// extern template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;
+extern template class client<endpoint_client, confman::config<config::bridge>>;
+extern template class client<endpoint_client, config::bridge_mock>;
+extern template class client<endpoint_client_mock, config::bridge_mock>;
 
 }  // namespace tfc::mqtt

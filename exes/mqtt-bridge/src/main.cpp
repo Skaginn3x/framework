@@ -8,8 +8,7 @@
 #include <boost/program_options.hpp>
 
 #include <run.hpp>
-
-#include <run.hpp>
+#include <config/spark_plug_b.hpp>
 
 namespace asio = boost::asio;
 
@@ -20,9 +19,9 @@ auto main(int argc, char* argv[]) -> int {
 
   asio::io_context io_ctx{};
 
-  tfc::mqtt::run running{io_ctx};
+  tfc::mqtt::run<tfc::confman::config<tfc::mqtt::config::bridge>> running{ io_ctx };
 
-  asio::co_spawn(io_ctx, running.start(), asio::detached);
+  co_spawn(io_ctx, running.start(), asio::detached);
 
   io_ctx.run();
 
