@@ -17,5 +17,8 @@ target_link_libraries(mock_motor
 
 add_library_to_docs(tfc::mock_motor)
 
+add_executable(mock_motor_example example.cpp)
+target_link_libraries(mock_motor_example PRIVATE tfc::mock_motor)
+
 include(tfc_install)
 tfc_install_lib(mock_motor)

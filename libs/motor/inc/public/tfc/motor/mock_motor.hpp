@@ -27,9 +27,9 @@ using namespace mp_units::si::unit_symbols;
 
 template <typename clock_t>
 struct mock_motor {
-  explicit virtual_motor(boost::asio::io_context&) {}
+  explicit mock_motor(boost::asio::io_context&) {}
 
-  ~virtual_motor() {}
+  ~mock_motor() {}
 
   auto convey() -> std::error_code {}
 
