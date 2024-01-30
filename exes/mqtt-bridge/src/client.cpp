@@ -19,6 +19,7 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <iostream>
+#include "../tests/inc/endpoint_mock.hpp"
 #include "endpoint.hpp"
 
 namespace tfc::mqtt {
@@ -26,8 +27,9 @@ namespace tfc::mqtt {
 template <class client_t, class config_t>
 client<client_t, config_t>::client(asio::io_context& io_ctx,
                                    std::string_view mqtt_will_topic,
-                                   std::string_view mqtt_will_payload)
-    : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload) {
+                                   std::string_view mqtt_will_payload,
+                                   config_t& config)
+    : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload), config_(config) {
   using enum structs::ssl_active_e;
   std::cout << "making endpont client" << std::endl;
   if (config_.value().ssl_active == yes) {
@@ -43,6 +45,9 @@ auto client<client_t, config_t>::connect() -> asio::awaitable<bool> {
 
   asio::ip::tcp::socket resolve_sock{ io_ctx_ };
   asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
+
+  logger_.trace("address {}", config_.value().address);
+  logger_.trace("port: {}", config_.value().get_port());
 
   asio::ip::tcp::resolver::results_type resolved_ip =
       co_await res.async_resolve(config_.value().address, config_.value().get_port(), asio::use_awaitable);
@@ -120,8 +125,6 @@ auto client<client_t, config_t>::receive_connack() -> asio::awaitable<bool> {
   logger_.trace("Waiting for CONNACK");
 
   auto connack_received = co_await endpoint_client_->recv(async_mqtt::control_packet_type::connack);
-
-  std::cout << "connack received: " << connack_received << std::endl;
 
   logger_.trace("CONNACK received");
   auto connack_packet = connack_received.template get<async_mqtt::v5::connack_packet>();
@@ -246,8 +249,8 @@ auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
   co_return true;
 }
 
+template class client<endpoint_client, confman::config<config::bridge>>;
+template class client<endpoint_client, config::bridge_mock>;
+template class client<endpoint_client_mock, config::bridge_mock>;
+
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
-
-// template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;

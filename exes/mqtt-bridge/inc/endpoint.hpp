@@ -26,7 +26,6 @@ using boost::asio::experimental::awaitable_operators::operator||;
 class endpoint_client {
 public:
   explicit endpoint_client(asio::io_context& ctx, structs::ssl_active_e input_ssl) : io_ctx_(ctx) {
-    std::cout << "endpoint client cstr" << std::endl;
     if (input_ssl == structs::ssl_active_e::yes) {
       mqtts_client_ = async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtts>::create(
           async_mqtt::protocol_version::v5, ctx.get_executor(), tls_ctx_);

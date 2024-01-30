@@ -1,43 +1,25 @@
-// #include <algorithm>
-// #include <fstream>
-// #include <iomanip>
-// #include <iostream>
-// #include <optional>
-// #include <stdexcept>
-// #include <thread>
-
-#include <async_mqtt/broker/broker.hpp>
-// #include <async_mqtt/broker/constant.hpp>
-#include <async_mqtt/broker/endpoint_variant.hpp>
-// #include <async_mqtt/broker/fixed_core_map.hpp>
-// #include <async_mqtt/predefined_underlying_layer.hpp>
-// #include <async_mqtt/setup_log.hpp>
-#include <boost/asio.hpp>
-// #include <boost/asio/signal_set.hpp>
-// #include <boost/format.hpp>
-// #include <boost/process.hpp>
-// #include <boost/program_options.hpp>
-// #include <boost/test/unit_test.hpp>
-//
 #include <iostream>
-// #include <string>
-//
-// #include <boost/asio.hpp>
-//
-#include <async_mqtt/all.hpp>
-#include <constants.hpp>
 
+#include <sparkplug_b/sparkplug_b.pb.h>
+#include <async_mqtt/all.hpp>
+#include <async_mqtt/broker/broker.hpp>
+#include <async_mqtt/broker/endpoint_variant.hpp>
+#include <boost/asio.hpp>
+#include <boost/ut.hpp>
+
+#include <config/bridge_mock.hpp>
 #include <tfc/progbase.hpp>
+#include "../inc/endpoint_mock.hpp"
+
+#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 
 #include <run.hpp>
 
-#include <boost/ut.hpp>
 namespace ut = boost::ut;
 using ut::operator""_test;
 using ut::expect;
 
 namespace asio = boost::asio;
-// namespace pr = boost::process;
 namespace am = async_mqtt;
 
 struct message {
@@ -50,11 +32,11 @@ public:
   mqtt_broker(asio::io_context& io_ctx)
       : io_ctx_(io_ctx), mqtt_endpoint_(asio::ip::tcp::v4(), 1883), mqtt_acceptor_(io_ctx_, mqtt_endpoint_),
         broker_(io_ctx_) {
-    setupAsyncAccept();
+    setup_async_connect();
   }
 
 private:
-  void setupAsyncAccept() {
+  void setup_async_connect() {
     mqtt_async_accept_ = [this] {
       auto endpoint = am::endpoint<am::role::server, am::protocol::mqtt>::create(am::protocol_version::undetermined,
                                                                                  io_ctx_.get_executor());
@@ -84,7 +66,9 @@ private:
 class mqtt_client {
 public:
   mqtt_client(asio::io_context& io_ctx, std::vector<message>& messages, std::string& topic)
-      : io_ctx_(io_ctx), messages_(messages),
+      : messages_(messages),
+        // : io_ctx_(io_ctx),
+        // messages_(messages),
         amep_(am::endpoint<am::role::client, am::protocol::mqtt>::create(am::protocol_version::v5, io_ctx.get_executor())),
         resolver_(io_ctx), topic_(topic) {
     connect("127.0.0.1", "1883");
@@ -118,20 +102,26 @@ private:
                         am::v5::subscribe_packet{ *amep_->acquire_unique_packet_id(),
                                                   { { am::allocate_buffer(topic_), am::qos::at_most_once } } },
                         [&](am::system_error const&) {
-                          amep_->recv([&](am::packet_variant pv) {
-                            pv.visit(am::overload{ [&](am::v5::suback_packet const&) {
-                                                    auto recv_handler =
-                                                        std::make_shared<std::function<void(am::packet_variant pv)>>();
-                                                    *recv_handler = [&, recv_handler](am::packet_variant pv) {
-                                                      pv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
-                                                                              messages_.emplace_back(p.topic().data(),
-                                                                                                     p.payload()[0].data());
-                                                                            },
-                                                                             [](auto const&) {} });
-                                                    };
-                                                    amep_->recv(*recv_handler);
-                                                  },
-                                                   [](auto const&) {} });
+                          amep_->recv([&](am::packet_variant pvvv) {
+                            pvvv.visit(am::overload{
+                                [&](am::v5::suback_packet const&) {
+                                  auto recv_handler = std::make_shared<std::function<void(am::packet_variant pv)>>();
+                                  *recv_handler = [&, recv_handler](am::packet_variant pvv) {
+                                    pvv.visit(am::overload{ [&](am::v5::publish_packet const& p) {
+                                                             for (auto& payload : p.payload()) {
+                                                               client_log.trace("\n\n\n\n");
+                                                               client_log.trace("received message on topic: {}, payload: {}",
+                                                                                p.topic().data(), payload.data());
+                                                               client_log.trace("\n\n\n\n");
+                                                               messages_.emplace_back(p.topic().data(), payload.data());
+                                                             }
+                                                             amep_->recv(*recv_handler);
+                                                           },
+                                                            [](auto const&) {} });
+                                  };
+                                  amep_->recv(*recv_handler);
+                                },
+                                [](auto const&) {} });
                           });
                         });
                   },
@@ -141,11 +131,12 @@ private:
     });
   }
 
-  asio::io_context& io_ctx_;
+  // asio::io_context& io_ctx_;
   std::vector<message>& messages_;
   decltype(am::endpoint<am::role::client, am::protocol::mqtt>::create(am::protocol_version::v5)) amep_;
   asio::ip::tcp::resolver resolver_;
   std::string& topic_;
+  tfc::logger::logger client_log{ "client" };
 };
 
 auto main(int argc, char* argv[]) -> int {
@@ -153,30 +144,124 @@ auto main(int argc, char* argv[]) -> int {
 
   asio::io_context io_ctx{};
 
+  // "testing if nbirth is sent, no signals"_test = [&]() {
+  //   std::vector<message> messages;
+
+  //   mqtt_broker broker{ io_ctx };
+
+  //   io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  //   std::string nbirth_topic = "spBv1.0/tfc_unconfigured_group_id/NBIRTH/tfc_unconfigured_node_id";
+
+  //   mqtt_client cli{ io_ctx, messages, nbirth_topic };
+
+  //   io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  //   tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal, tfc::ipc_ruler::ipc_manager_client>
+  //       running{ io_ctx };
+
+  //   co_spawn(io_ctx, running.start(), asio::detached);
+
+  //   io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  //   expect(messages.size() == 1);
+
+  //   if (messages.size() >= 1) {
+  //     expect(messages[0].topic == nbirth_topic);
+
+  //     org::eclipse::tahu::protobuf::Payload payload;
+
+  //     payload.ParseFromString(messages[0].payload);
+
+  //     expect(payload.metrics_size() == 1) << "metrics size: " << payload.metrics_size();
+  //     expect(payload.metrics()[0].name() == "Node Control/Rebirth");
+  //     expect(payload.metrics()[0].datatype() == 11);
+  //     expect(!payload.metrics()[0].is_historical());
+  //     expect(!payload.metrics()[0].is_transient());
+  //     expect(!payload.metrics()[0].is_null());
+  //     expect(!payload.metrics()[0].boolean_value());
+  //   }
+  // };
+
+  // --------------------------------------------------
+  // "test sending value on signal, see if it sends correct initial value in NBIRTH"_test = [&]() {
   std::vector<message> messages;
+
+  tfc::logger::logger log{ "log" };
 
   mqtt_broker broker{ io_ctx };
 
   io_ctx.run_for(std::chrono::seconds{ 1 });
 
-  std::string nbirth_topic = "spBv1.0/tfc_unconfigured_group_id/NBIRTH/tfc_unconfigured_node_id";
+  // std::string nbirth_topic = "spBv1.0/tfc_unconfigured_group_id/NBIRTH/tfc_unconfigured_node_id";
+  std::string ndata_topic = "spBv1.0/tfc_unconfigured_group_id/NDATA/tfc_unconfigured_node_id";
 
-  mqtt_client cli{ io_ctx, messages, nbirth_topic };
-
-  io_ctx.run_for(std::chrono::seconds{ 1 });
-
-  tfc::mqtt::run running{ io_ctx };
-
-  asio::co_spawn(io_ctx, running.start(), asio::detached);
+  // mqtt_client nbirth_cli{ io_ctx, messages, nbirth_topic };
+  mqtt_client ndata_cli{ io_ctx, messages, ndata_topic };
 
   io_ctx.run_for(std::chrono::seconds{ 1 });
 
-  ut::expect(messages.size() == 1);
+  tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
 
-  if (messages.size() >= 1) {
-    ut::expect(messages[0].topic == nbirth_topic);
-    // ut::expect(messages[0].payload == "1");
+  tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sig{ io_ctx, ipc_client, "test" };
+
+  io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  sig.send(true);
+
+  for (auto& signal : ipc_client.signals_) {
+    std::cout << signal.name << std::endl;
+    log.trace("signal name: {}", signal.name);
   }
 
-  return 0;
+  io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal, tfc::ipc_ruler::ipc_manager_client_mock&>
+      running{ io_ctx, ipc_client };
+
+  co_spawn(io_ctx, running.start(), asio::detached);
+
+  io_ctx.run_for(std::chrono::seconds{ 1 });
+  sig.send(false);
+  io_ctx.run_for(std::chrono::seconds{ 1 });
+  sig.send(true);
+  io_ctx.run_for(std::chrono::seconds{ 1 });
+
+  expect(messages.size() == 3) << "messages size: " << messages.size();
+
+  if (messages.size() >= 3) {
+    expect(messages[0].topic == ndata_topic);
+
+    org::eclipse::tahu::protobuf::Payload payload;
+
+    payload.ParseFromString(messages[0].payload);
+
+    //  metrics {
+    //    name: "integration_tests/def/bool/test"
+    //    timestamp: 1706632055709
+    //    datatype: 11
+    //    metadata {
+    //      description: ""
+    //    }
+    //    boolean_value: true
+    //  }
+    //  seq: 1
+
+    expect(payload.metrics_size() == 1) << "metrics size: " << payload.metrics_size();
+    expect(payload.metrics()[0].name() == "integration_tests/def/bool/test");
+    expect(payload.metrics()[0].datatype() == 11);
+    expect(false) << payload.debug
+    expect(payload.metrics()[0].has_boolean_value());
+    expect(payload.metrics()[0].boolean_value());
+
+    // expect(payload.metrics_size() == 1) << "metrics size: " << payload.metrics_size();
+    //  expect(payload.metrics()[1].name() == "integration_tests/def/bool/test");
+    //  expect(payload.metrics()[1].datatype() == 11);
+    //  expect(!payload.metrics()[1].is_historical());
+    //  expect(!payload.metrics()[1].is_transient());
+    //  expect(!payload.metrics()[1].is_null());
+    //  expect(!payload.metrics()[1].boolean_value());
+  }
+
+  // return 0;
 }
