@@ -76,9 +76,6 @@ public:
   /// \return Access to underlying value
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
-  /// \brief Subscribe to changes from the filesystem
-  auto on_change(std::invocable auto&& callback) -> void { cb_ = callback; }
-
   using change = detail::change<file_storage>;
 
   /// If user would like to change the internal storage_t value.
@@ -130,7 +127,6 @@ protected:
   storage_t storage_{};
   tfc::logger::logger logger_;
   std::error_code error_{};
-  std::function<void()> cb_{};
 };
 
 }  // namespace tfc::confman
