@@ -26,6 +26,6 @@ install(
   FILES
     manifest.json
   DESTINATION
-    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/ipc/
+    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/tfc/
   CONFIGURATIONS Release
 )
