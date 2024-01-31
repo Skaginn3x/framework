@@ -47,12 +47,6 @@ public:
       if (!sig.name.empty()) {
         outward_signals_.emplace(sig.name, ipc::make_any<signal_v, ipc_client_t, ipc::signal>::make(
                                                sig.type, io_ctx_, ipc_client_, sig.name, sig.description));
-        // no viable conversion from returned value of type
-        // 'signal<details::type_bool, ipc_manager_client_mock &>'
-        // (aka 'signal<type_description<bool, type_e::_bool>, tfc::ipc_ruler::ipc_manager_client_mock &>')
-        // to function return type
-        // 'std::variant<std::monostate, tfc::ipc::signal<tfc::ipc::details::type_description<bool, tfc::ipc::details::type_e::_bool>>, tfc::ipc::signal<tfc::ipc::details::type_description<long, tfc::ipc::details::type_e::_int64_t>>, tfc::ipc::signal<tfc::ipc::details::type_description<unsigned long, tfc::ipc::details::type_e::_uint64_t>>, tfc::ipc::signal<tfc::ipc::details::type_description<double, tfc::ipc::details::type_e::_double_t>>, tfc::ipc::signal<tfc::ipc::details::type_description<std::string, tfc::ipc::details::type_e::_string>>, tfc::ipc::signal<tfc::ipc::details::type_description<std::string, tfc::ipc::details::type_e::_json>>, tfc::ipc::signal<tfc::ipc::details::type_description<std::expected<mp_units::quantity<milli_<struct gram{{}}>{{{}}}, long>, tfc::ipc::details::mass_error_e>, tfc::ipc::details::type_e::_mass>>>'
-
       }
     }
   }
@@ -98,16 +92,12 @@ public:
 
 private:
   asio::io_context& io_ctx_;
-config_t& config_;
-ipc_client_t ipc_client_;
+  config_t& config_;
+  ipc_client_t ipc_client_;
   logger::logger logger_{ "external_to_tfc" };
   std::map<std::string, signal_v> outward_signals_;
 
   friend class test_external_to_tfc;
 };
-
-// extern template class external_to_tfc<ipc_ruler::ipc_manager_client, confman::config<config::bridge>, ipc::any_signal>;
-// extern template class external_to_tfc<ipc_ruler::ipc_manager_client, config::bridge_mock, ipc::any_signal>;
-// extern template class external_to_tfc<ipc_ruler::ipc_manager_client_mock&, config::bridge_mock, ipc::any_signal>;
 
 }  // namespace tfc::mqtt

@@ -1,7 +1,6 @@
 add_executable(test_mqtt_bridge
   ../src/client.cpp
   ../src/spark_plug_interface.cpp
-  ../src/external_to_tfc.cpp
   ../src/signal_names.cpp
   src/test_external_to_tfc.cpp
   src/unit_tests.cpp
@@ -40,7 +39,6 @@ find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 add_executable(integration_tests
         ../src/client.cpp
         ../src/spark_plug_interface.cpp
-        ../src/external_to_tfc.cpp
         ../src/signal_names.cpp
         src/integration_tests.cpp
         )
