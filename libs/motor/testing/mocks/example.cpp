@@ -22,7 +22,7 @@ int main () {
   auto constexpr test_velocity{ 4.2 * vel_double_t::reference };
   auto constexpr test_length{ 1337.0 * metre_double_t::reference };
   auto constexpr test_sec{ 13.37 * second_double_t::reference };
-  auto constexpr test_speedratio{ 100 * tfc::motor::speedratio_t::reference };
+  tfc::motor::speedratio_t constexpr test_speedratio{ 100 * tfc::motor::speedratio_t::reference };
 
   {
     EXPECT_CALL(api, convey_vel_double_t_metre_double_t(test_velocity, testing::_));
