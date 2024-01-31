@@ -452,22 +452,4 @@ using any_slot_cb = std::variant<std::monostate,      //
 /// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
 using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 
-using bool_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_bool>>;
-using int_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_int>>;
-using uint_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_uint>>;
-using double_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_double>>;
-using string_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_string>>;
-using json_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_json>>;
-using mass_slot_cb_weak_ptr = std::weak_ptr<slot_callback<type_mass>>;
-using any_slot_weak_cb = std::variant<std::monostate,      //
-                                 bool_slot_cb_weak_ptr,
-                                 int_slot_cb_weak_ptr,
-                                 uint_slot_cb_weak_ptr,
-                                 double_slot_cb_weak_ptr,
-                                 string_slot_cb_weak_ptr,
-                                 json_slot_cb_weak_ptr,
-                                 mass_slot_cb_weak_ptr>;
-/// \brief any_slot_cb foo = make_any_slot_weak_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
-using make_any_slot_weak_cb = make_any_ptr<any_slot_weak_cb, slot_callback>;
-
 }  // namespace tfc::ipc::details

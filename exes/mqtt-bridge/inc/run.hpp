@@ -51,18 +51,17 @@ public:
 
     co_await asio::steady_timer{ io_ctx_, std::chrono::seconds{ 1 } }.async_wait(asio::use_awaitable);
 
-    auto signals = tfc_to_exter_.get_signals();
+    // auto signals = tfc_to_exter_.get_signals();
 
     asio::cancellation_signal cancel_signal{};
 
     bool restart_needed = false;
 
     co_spawn(sp_interface_.strand(),
-             // co_spawn(io_ctx_,
              sp_interface_.wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_), restart_needed),
              bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
-    // io_ctx_.run_for(std::chrono::seconds{ 100 });
+    io_ctx_.run_for(std::chrono::seconds{ 100 });
 
     while (!restart_needed) {
       co_await asio::steady_timer{ sp_interface_.strand(), std::chrono::seconds{ 5 } }.async_wait(asio::use_awaitable);

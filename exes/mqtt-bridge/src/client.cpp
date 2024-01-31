@@ -222,35 +222,35 @@ auto client<client_t, config_t>::wait_for_payloads(
 
     logger_.trace("Received PUBLISH packet. Parsing payload...");
 
-    for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
-      process_payload(publish_packet->payload()[i], *publish_packet);
+      for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
+        process_payload(publish_packet->payload()[i], *publish_packet);
+      }
     }
   }
-}
 
-template <class client_t, class config_t>
-auto client<client_t, config_t>::strand() -> asio::strand<asio::any_io_executor> {
-  return endpoint_client_->strand();
-}
-
-template <class client_t, class config_t>
-auto client<client_t, config_t>::set_initial_message(std::string const& topic,
-                                                     std::string const& payload,
-                                                     async_mqtt::qos const& qos) -> void {
-  initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{ topic, payload, qos };
-}
-
-template <class client_t, class config_t>
-auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
-  if (!std::get<0>(initial_message_).empty()) {
-    co_return co_await send_message(std::get<0>(initial_message_), std::get<1>(initial_message_),
-                                    std::get<2>(initial_message_));
+  template <class client_t, class config_t>
+  auto client<client_t, config_t>::strand()->asio::strand<asio::any_io_executor> {
+    return endpoint_client_->strand();
   }
-  co_return true;
-}
 
-template class client<endpoint_client, confman::config<config::bridge>>;
-template class client<endpoint_client, config::bridge_mock>;
-template class client<endpoint_client_mock, config::bridge_mock>;
+  template <class client_t, class config_t>
+  auto client<client_t, config_t>::set_initial_message(std::string const& topic, std::string const& payload,
+                                                       async_mqtt::qos const& qos)
+      ->void {
+    initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{ topic, payload, qos };
+  }
+
+  template <class client_t, class config_t>
+  auto client<client_t, config_t>::send_initial()->asio::awaitable<bool> {
+    if (!std::get<0>(initial_message_).empty()) {
+      co_return co_await send_message(std::get<0>(initial_message_), std::get<1>(initial_message_),
+                                      std::get<2>(initial_message_));
+    }
+    co_return true;
+  }
+
+  template class client<endpoint_client, confman::config<config::bridge>>;
+  template class client<endpoint_client, config::bridge_mock>;
+  template class client<endpoint_client_mock, config::bridge_mock>;
 
 }  // namespace tfc::mqtt
