@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: lukka/get-cmake@latest

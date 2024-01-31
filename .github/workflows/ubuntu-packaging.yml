@@ -30,7 +30,7 @@ jobs:
         build_type: [debug, release]
         architecture: [ x86_64, aarch64 ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0

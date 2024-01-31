@@ -9,6 +9,8 @@ ENV LD_LIBRARY_PATH=/cpproot/lib:/cpproot/lib/x86_64-unknown-linux-gnu:$LD_LIBRA
 ENV LIBRARY_PATH=/cpproot/lib:/cpproot/lib/x86_64-unknown-linux-gnu:$LIBRARY_PATH
 
 RUN mkdir -p /cpproot/bin
+RUN mkdir /cpproot/include
+RUN mkdir /cpproot/lib
 WORKDIR /tmp
 COPY ./shared.sh /tmp/
 
@@ -22,6 +24,13 @@ RUN ./install-common.sh
 RUN ln -sf /usr/bin/gcc-13 /cpproot/bin/gcc
 RUN ln -sf /usr/bin/g++-13 /cpproot/bin/g++
 RUN ln -sf /usr/bin/gcc-13 /cpproot/bin/cc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-ar-13 /cpproot/bin/aarch64-linux-gnu-ar
+RUN ln -sf /usr/bin/aarch64-linux-gnu-strip /cpproot/bin/aarch64-linux-gnu-strip
+RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-13 /cpproot/bin/aarch64-linux-gnu-gcc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-g++-13 /cpproot/bin/aarch64-linux-gnu-g++
+RUN ln -sf /usr/aarch64-linux-gnu /cpproot/aarch64-linux-gnu
+RUN ln -sf /usr/include/aarch64-linux-gnu /cpproot/include/aarch64-linux-gnu
+RUN ln -sf /usr/lib/aarch64-linux-gnu /cpproot/lib/aarch64-linux-gnu
 
 COPY install-cmake.sh /tmp/
 RUN ./install-cmake.sh 3.28.1
@@ -46,7 +55,7 @@ RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr
 FROM base AS gcc-13
 
 COPY build-binutils.sh /tmp/
-RUN ./build-binutils.sh 2.41
+RUN ./build-binutils.sh 2.42
 
 # COPY build-gcc-from-commit.sh /tmp/
 # RUN ./build-gcc-from-commit.sh eb83605be3db9e8246c73755eafcac5df32ddc69

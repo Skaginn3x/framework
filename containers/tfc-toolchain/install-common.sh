@@ -29,8 +29,12 @@ hide_output apt install -y --no-install-recommends \
   libltdl-dev # Required for autoconf
 
 # Install documentation specific packages
-#hide_output apt install -y \
-#  doxygen \
-#  python3-venv \
-#  python3-jinja2 \
-#  graphviz
+hide_output apt install -y --no-install-recommends \
+  doxygen \
+  python3-venv \
+  python3-jinja2 \
+  graphviz
+
+# Packaging specific packages
+hide_output apt install -y --no-install-recommends \
+  rpm

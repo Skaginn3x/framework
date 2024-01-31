@@ -29,7 +29,7 @@ jobs:
         presets: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
