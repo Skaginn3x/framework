@@ -19,7 +19,7 @@ install(
   DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR}/build/
   DESTINATION
-    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/ipc
+    ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/tfc
   CONFIGURATIONS Release
 )
 install(
