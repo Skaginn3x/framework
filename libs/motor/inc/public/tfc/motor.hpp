@@ -34,7 +34,7 @@ public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
   // Default initialize the motor as a printing motor
-  explicit api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
+  api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
       : ctx_{ connection->get_io_context() }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
     std::visit(
         [this, connection](auto& conf) {
@@ -253,9 +253,8 @@ public:
   /// \param token completion token to notify if motor is in error state, cancelled by another operation, or finished
   /// successfully. In normal operation the notify will return success when time is reached and motor is stopped. Notify can
   /// return cancel if some other operation is called during the given time.
-  auto run(speedratio_t speedratio,
-           QuantityOf<mp_units::isq::time> auto time,
-           asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  template <QuantityOf<mp_units::isq::time> time_t>
+  auto run(speedratio_t speedratio, time_t time, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
   /// \brief Run motor for specific time

@@ -27,6 +27,9 @@ namespace tfc::base {
 /// \return Default description for tfc applications
 [[nodiscard]] auto default_description() -> boost::program_options::options_description;
 
+/// \brief Set extra version description to be printed on --version,-v
+void set_version_description(std::string_view desc);
+
 /// \brief Function to call from main function to initialize singleton who populates the below getters.
 /// \example example_base.cpp
 void init(int argc, char const* const* argv, boost::program_options::options_description const& desc);

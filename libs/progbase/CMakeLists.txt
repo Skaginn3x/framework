@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.21)
 
 add_library(base
   src/progbase.cpp
-  src/version.cpp
 )
 add_library(tfc::base ALIAS base)
 get_target_property(TFC_LOGGER_INCLUDE_DIRS tfc::logger INTERFACE_INCLUDE_DIRECTORIES)
@@ -36,22 +35,21 @@ if (BUILD_TESTING)
 endif ()
 
 add_custom_command(
-        OUTPUT
-        ${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp
-        ALL
-        COMMAND
-        ${CMAKE_COMMAND} -D GIT_HASH=${GIT_HASH} -D GIT_AUTHOR=${GIT_AUTHOR} -D GIT_BRANCH=${GIT_BRANCH} -D GIT_TAG=${GIT_TAG} -D GIT_IS_DIRTY=${GIT_IS_DIRTY} -D GIT_COMMIT_DATE=${GIT_COMMIT_DATE} -D IN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/inc/tfc/version.hpp.in -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
-        WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
+  OUTPUT
+    ${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp
+  ALL
+  COMMAND
+    ${CMAKE_COMMAND} -D NAMESPACE=tfc -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
+  WORKING_DIRECTORY
+    ${CMAKE_SOURCE_DIR}
 )
 
-add_custom_target(
-        generate_version_header
-        ALL
-        COMMAND
-        ${CMAKE_COMMAND} -D GIT_HASH=${GIT_HASH} -D GIT_AUTHOR=${GIT_AUTHOR} -D GIT_BRANCH=${GIT_BRANCH} -D GIT_TAG=${GIT_TAG} -D GIT_IS_DIRTY=${GIT_IS_DIRTY} -D GIT_COMMIT_DATE=${GIT_COMMIT_DATE} -D IN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/inc/tfc/version.hpp.in -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
-        WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
+add_custom_target(generate_version_header
+  ALL
+  COMMAND
+    ${CMAKE_COMMAND} -D NAMESPACE=tfc -D OUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/inc/tfc/version.hpp -P ${CMAKE_SOURCE_DIR}/cmake/tfc_version.cmake
+  WORKING_DIRECTORY
+    ${CMAKE_SOURCE_DIR}
 )
 add_dependencies(base generate_version_header)
 include(tfc_install)

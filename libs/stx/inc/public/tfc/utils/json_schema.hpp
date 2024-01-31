@@ -3,6 +3,8 @@
 // For the license information refer to glaze.hpp
 #pragma once
 
+#include <algorithm>
+
 #include <glaze/api/impl.hpp>
 #include <glaze/core/common.hpp>
 #include <glaze/core/meta.hpp>
@@ -466,6 +468,10 @@ struct to_json_schema<T> {
   }
 };
 
+auto consteval has_slash(std::string_view str) noexcept -> bool {
+  return std::ranges::any_of(str, [](auto const character) { return character == '/'; });
+}
+
 template <glz::detail::glaze_object_t T>
 struct to_json_schema<T> {
   template <auto Opts>
@@ -480,6 +486,7 @@ struct to_json_schema<T> {
       using mptr_t = decltype(glz::get<1>(item));
       using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
       auto& def = defs[glz::name_v<val_t>];
+      static_assert(!has_slash(glz::name_v<val_t>), "Slashes in json schema references are not allowed");
       auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
