@@ -32,9 +32,7 @@ target_link_libraries(motor
 
 add_library_to_docs(motor)
 
-if (BUILD_TESTING)
-  add_subdirectory(tests)
-endif ()
+add_subdirectory(testing)
 
 include(tfc_install)
 tfc_install_lib(motor)
