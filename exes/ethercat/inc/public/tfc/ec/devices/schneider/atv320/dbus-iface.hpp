@@ -532,7 +532,6 @@ private:
               // deceleration time) when 1% is reached next
               pos_from_home = pos_.position_from_home().force_in(micrometre_t::reference);
               logger_.trace("Will stop motor, now at: {}, where target was: {}", pos_from_home, placement);
-              [[maybe_unused]] auto slot = asio::get_associated_cancellation_slot(self);
               stop_impl(true, err, std::move(self));
               return;
             }
