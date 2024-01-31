@@ -55,7 +55,7 @@ RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr
 FROM base AS gcc-13
 
 COPY build-binutils.sh /tmp/
-RUN ./build-binutils.sh 2.42
+RUN ./build-binutils.sh 2.40
 
 # COPY build-gcc-from-commit.sh /tmp/
 # RUN ./build-gcc-from-commit.sh eb83605be3db9e8246c73755eafcac5df32ddc69
