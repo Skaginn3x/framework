@@ -16,7 +16,7 @@ namespace {
 struct logger_singleton {
   logger_singleton() {
     try {
-      systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>("systemd_sink");
+      systemd = std::make_shared<spdlog::sinks::tfc_systemd_sink_mt>();
     } catch (boost::system::system_error const& err) {
       auto loc = std::source_location::current();
       fmt::println(
