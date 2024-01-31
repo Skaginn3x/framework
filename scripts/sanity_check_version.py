@@ -14,9 +14,9 @@ def read_and_parse(filename: 'string'):
 def vcpkg_version_string():
     return read_and_parse('vcpkg.json')["version"]
 
-# Return the cockpit IPC version string
+# Return the cockpit version string
 def cockpit_version_string():
-    return read_and_parse('cockpit/IPC/package.json')["version"]
+    return read_and_parse('cockpit/package.json')["version"]
 
 # Return the base cmake version
 def cmake_project_version():
