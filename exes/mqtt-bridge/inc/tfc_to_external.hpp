@@ -18,6 +18,7 @@
 #include <signal_names.hpp>
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
+#include "tfc/ipc/details/impl.hpp"
 
 namespace tfc::mqtt {
 
@@ -115,7 +116,7 @@ public:
         continue;
       }
 
-      signals_.emplace_back(ipc::details::make_any_slot_cb::make(signal.type, io_ctx_, signal.name));
+      signals_.emplace_back(ipc::details::make_any_slot_weak_cb::make(signal.type, io_ctx_, signal.name));
 
       spb_variables_.emplace_back(format_signal_name(signal.name.data()), type_enum_convert(signal.type), std::nullopt,
                                   signal.description.data());
@@ -126,15 +127,17 @@ public:
       auto& variable = spb_variables_.back();
 
       std::visit(
-          [this, &variable](auto&& receiver) {
-            using receiver_t = std::remove_cvref_t<decltype(receiver)>;
+          [this, &variable](auto&& weak_receiver) {
+            using receiver_t = std::remove_cvref_t<decltype(weak_receiver)>;
             if constexpr (!std::same_as<receiver_t, std::monostate>) {
-              auto error_code = receiver->connect(receiver->name(), [this, &variable](auto&& value) {
-                variable.value = value;
-                spark_plug_interface_.update_value(variable);
-              });
-              if (error_code) {
-                logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
+              if (auto receiver = weak_receiver.lock()) {
+                auto error_code = receiver->connect(receiver->name(), [this, &variable](auto&& value) {
+                  variable.value = value;
+                  spark_plug_interface_.update_value(variable);
+                });
+                if (error_code) {
+                  logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
+                }
               }
             }
           },
@@ -153,7 +156,7 @@ public:
     spark_plug_interface_.send_current_values();
   }
 
-  auto get_signals() -> std::vector<tfc::ipc::details::any_slot_cb>& { return signals_; }
+  auto get_signals() -> std::vector<tfc::ipc::details::any_slot_weak_cb>& { return signals_; }
 
   auto clear_signals() -> void { signals_.clear(); }
 
@@ -163,7 +166,7 @@ private:
   config_t& config_;
   ipc_client_t ipc_client_;
   logger::logger logger_{ "tfc_to_external" };
-  std::vector<ipc::details::any_slot_cb> signals_;
+  std::vector<ipc::details::any_slot_weak_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
 
   friend class test_tfc_to_external;
