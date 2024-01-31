@@ -25,13 +25,8 @@ hide_output apt install -y --no-install-recommends \
   python3-venv \
   gcc-13 \
   g++-13 \
-  g++-13-aarch64-linux-gnu
-
-
-# Speciality installs
-hide_output apt install -y --no-install-recommends \
-  libltdl-dev # This package is required for autoconf to succeed when building libxcrypt
-
+  g++-13-aarch64-linux-gnu \
+  libltdl-dev # Required for autoconf
 
 # Install documentation specific packages
 #hide_output apt install -y \
