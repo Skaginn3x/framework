@@ -11,7 +11,7 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_custom_target(cockpit-IPC-build ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build)
+add_custom_target(cockpit-build ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build)
 
 include(GNUInstallDirs)
 
