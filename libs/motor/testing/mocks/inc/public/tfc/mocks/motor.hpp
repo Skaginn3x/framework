@@ -416,7 +416,7 @@ public:
   MOCK_METHOD((void), run, (speedratio_t, std::function<void(std::error_code)>), (const));
 
   /// \brief Run motor at the given speedratio for the given time.
-  /// Mock Signature: run_<time_t>(time_t, std::function<void(std::error_code)>)
+  /// Mock Signature: run_<time_t>(speedratio_t, time_t, std::function<void(std::error_code)>)
   /// \note please refer to substitute "<>" naming in typedefs in detail namespace above
   /// \code
   ///   tfc::motor::mock_api api{ dbus, "foo" };
@@ -443,7 +443,7 @@ public:
   }
 
   /// \brief Run motor at the default speedratio for the given time with the given direction.
-  /// Mock Signature: run_<time_t>(time_t, std::function<void(std::error_code)>)
+  /// Mock Signature: run_<time_t>(time_t, std::function<void(std::error_code)>, direction_e)
   /// \note please refer to substitute "<>" naming in typedefs in detail namespace above
   /// \code
   ///   tfc::motor::mock_api api{ dbus, "foo" };
