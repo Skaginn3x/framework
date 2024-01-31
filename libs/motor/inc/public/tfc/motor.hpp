@@ -253,9 +253,8 @@ public:
   /// \param token completion token to notify if motor is in error state, cancelled by another operation, or finished
   /// successfully. In normal operation the notify will return success when time is reached and motor is stopped. Notify can
   /// return cancel if some other operation is called during the given time.
-  auto run(speedratio_t speedratio,
-           QuantityOf<mp_units::isq::time> auto time,
-           asio::completion_token_for<void(std::error_code)> auto&& token) ->
+  template <QuantityOf<mp_units::isq::time> time_t>
+  auto run(speedratio_t speedratio, time_t time, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
   /// \brief Run motor for specific time
