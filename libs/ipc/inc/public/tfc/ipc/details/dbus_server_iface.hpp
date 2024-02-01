@@ -2,9 +2,9 @@
 
 // ipc-ruler.cpp - Dbus API service maintaining a list of signals/slots and which signal
 // is connected to which slot
+#include <filesystem>
 #include <functional>
 #include <utility>
-#include <filesystem>
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
@@ -47,8 +47,7 @@ public:
   using slot_name = std::string_view;
   using signal_name = std::string_view;
 
-  explicit ipc_manager(bool in_memory = false)
-      : db_(in_memory ? ":memory:" : config_file_name_populate_dir()) {
+  explicit ipc_manager(bool in_memory = false) : db_(in_memory ? ":memory:" : config_file_name_populate_dir()) {
     db_ << R"(
           CREATE TABLE IF NOT EXISTS signals(
               name TEXT,
