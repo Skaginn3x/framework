@@ -166,10 +166,6 @@ public:
 protected:
   void init() {
     client_.initialize();
-    storage_.on_change([]() {
-      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
-    });
   }
 
   friend struct detail::change<config>;
