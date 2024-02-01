@@ -13,6 +13,7 @@
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/virtual_motor.hpp>
+#include <tfc/motor/stub.hpp>
 #include <tfc/stx/function_traits.hpp>
 
 /**
@@ -32,7 +33,7 @@ using micrometre_t = dbus::types::micrometre_t;
 class api {
 public:
   using config_t =
-      confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
+      confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t, types::stub::config_t>>;
 
 private:
   using config_internal_t = std::variant<confman::config<config_t>, std::shared_ptr<config_t>>;
@@ -316,7 +317,7 @@ private:
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> connection_;
 
-  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>;  //, types::stub>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor, types::stub>;
   implementations impl_;
   config_internal_t config_;
   logger::logger logger_;

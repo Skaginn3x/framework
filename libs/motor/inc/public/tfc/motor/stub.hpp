@@ -28,13 +28,18 @@ namespace asio = boost::asio;
  * default.
  */
 
-struct config {
-
-};
-
 struct stub {
+  struct config {
+    using impl = stub;
+    struct glaze {
+      using T = config;
+      static constexpr auto value = glz::object();
+      static constexpr std::string_view name{ "stub" };
+    };
+    auto operator==(const config&) const noexcept -> bool = default;
+  };
   using config_t = config;
-  explicit stub(asio::io_context&) : logger_{"stub"}{}
+  explicit stub(asio::io_context&, config_t) : logger_{"stub"}{}
 
   ~stub() {}
   template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
@@ -63,7 +68,7 @@ struct stub {
   }
 
   template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
-  auto convey(travel_t length, asio::completion_token_for<signature_t> auto&& token) {
+  auto convey(travel_t, asio::completion_token_for<signature_t> auto&& token) {
     // todo
     return asio::async_compose<decltype(token), signature_t>(
         [](auto& self, std::error_code = {}, travel_t = 0 * travel_t::reference) {
