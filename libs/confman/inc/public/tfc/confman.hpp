@@ -35,6 +35,12 @@ public:
   using type = config_storage_t;
   using storage_t = config_storage_t;
 
+  config(config const&) = delete;
+  config(config&&) = delete;
+  auto operator=(config const&) -> config& = delete;
+  auto operator=(config&&) -> config& = delete;
+  ~config() = default;
+
   /// \brief construct config and expose it via dbus
   /// \param ctx context ref to which the config shall run in
   /// \param key identification of this config storage, requires to be unique

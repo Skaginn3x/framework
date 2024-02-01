@@ -13,6 +13,7 @@
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/motor/virtual_motor.hpp>
+#include <tfc/motor/stub.hpp>
 #include <tfc/stx/function_traits.hpp>
 
 /**
@@ -33,16 +34,43 @@ class api {
 public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
-  // Default initialize the motor as a printing motor
-  api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name, config_t default_config = {})
-      : ctx_{ connection->get_io_context() }, impl_(), config_{ ctx_, name, default_config }, logger_{ name } {
+private:
+  using config_internal_t = std::variant<confman::config<config_t>, std::shared_ptr<config_t>>;
+public:
+  /*
+   * @brief Construct a motor api
+   * @param connection to the dbus
+   * @param name of the motor
+   * @param reference_config  a shared_ptr to a config in which case an external entity can change the config and the motor
+   * will react to that change
+   */
+  api(std::shared_ptr<sdbusplus::asio::connection> connection,
+      std::string_view name,
+      std::shared_ptr<config_t> reference_config)
+      : ctx_{ connection->get_io_context() }, connection_{ connection }, config_{ reference_config }, logger_{ name } {
+    if (reference_config == nullptr) throw std::runtime_error("nullptr");
+    initalize_configuration(*reference_config);
+  }
+  api(std::shared_ptr<sdbusplus::asio::connection> connection,
+      std::string_view name)
+      : ctx_{ connection->get_io_context() }, connection_{ connection }, config_(std::in_place_type<confman::config<config_t>>, connection_, name), logger_{ name } {
+    std::visit([this](auto& conf) {
+      if constexpr(std::is_same_v<confman::config<config_internal_t>, std::decay_t<decltype(conf)>>) {
+        initalize_configuration(conf.value());
+      } else {
+        assert(false && "This should never happen");
+      }
+    }, config_);
+  }
+
+  void initalize_configuration(const config_t& config) {
     std::visit(
-        [this, connection](auto& conf) {
-          using conf_t = std::remove_cvref_t<decltype(conf)>;
+        [this](auto& conf) {
+          using conf_t = std::decay_t<decltype(conf)>;
           if constexpr (!std::same_as<std::monostate, conf_t>) {
             if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
                                                   const conf_t&>) {
-              impl_.emplace<typename conf_t::impl>(connection, conf);
+              impl_.emplace<typename conf_t::impl>(connection_, conf);
             } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, const conf_t&>) {
               impl_.emplace<typename conf_t::impl>(ctx_, conf);
             } else {
@@ -53,19 +81,19 @@ public:
             }
           }
         },
-        config_->value());
-    config_->observe([this, connection](auto& new_v, auto& old_v) {
+        config.value());
+    config.observe([this](auto& new_v, auto& old_v) {
       // If there is the same motor type for the old and
       // the new it is the responsibility of the motor to
       // handle that change
       std::visit(
-          [this, connection](auto& vst_new, auto& vst_old) {
-            using conf_t = std::remove_cvref_t<decltype(vst_new)>;
+          [this](auto& vst_new, auto& vst_old) {
+            using conf_t = std::decay_t<decltype(vst_new)>;
             if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<std::monostate, conf_t>) {
               logger_.info("Switching running motor config");
               if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
                                                     conf_t>) {
-                impl_.emplace<typename conf_t::impl>(connection, vst_new);
+                impl_.emplace<typename conf_t::impl>(connection_, vst_new);
               } else if constexpr (std::is_constructible_v<typename conf_t::impl, asio::io_context&, conf_t&>) {
                 impl_.emplace<typename conf_t::impl>(ctx_, vst_new);
               } else {
@@ -276,11 +304,11 @@ public:
 
 private:
   asio::io_context& ctx_;
+  std::shared_ptr<sdbusplus::asio::connection> connection_;
 
-  // TODO(omarhogni): Implement convey and move over ethercat motor
-  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>; //, types::stub>;
   implementations impl_;
-  confman::config<config_t> config_;
+  config_internal_t config_;
   logger::logger logger_;
 };
 
