@@ -1,15 +1,13 @@
 #pragma once
 
-#include <chrono>
 #include <concepts>
-#include <memory>
 #include <string>
 #include <type_traits>
 #include <variant>
 #include <vector>
+#include <optional>
 
 #include <boost/asio.hpp>
-#include <sdbusplus/bus/match.hpp>
 
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
@@ -17,8 +15,6 @@
 
 #include <signal_names.hpp>
 #include <spark_plug_interface.hpp>
-#include <structs.hpp>
-#include "tfc/ipc/details/impl.hpp"
 
 namespace tfc::mqtt {
 
@@ -84,9 +80,6 @@ public:
   auto is_publish_signal(std::string signal_name) -> bool {
     // check if signal is a writeable signal
     if (signal_name.starts_with(base::get_exe_name())) {
-      // if (base::get_exe_name() == "integration_tests") {
-      //   return false;
-      // }
       logger_.trace("Signal is a writeable signal");
       return true;
     }
@@ -101,8 +94,8 @@ public:
     return false;
   }
 
-  auto handle_incoming_signals_from_ipc_client(std::vector<tfc::ipc_ruler::signal> const& signals) -> void {
-    tfc::global::set_signals(signals);
+  auto handle_incoming_signals_from_ipc_client(std::vector<ipc_ruler::signal> const& signals) -> void {
+    global::set_signals(signals);
     logger_.trace("Received {} new signals to add.", signals.size());
 
     signals_.clear();
@@ -130,13 +123,13 @@ public:
           [this, &variable](auto&& receiver) {
             using receiver_t = std::remove_cvref_t<decltype(receiver)>;
             if constexpr (!std::same_as<receiver_t, std::monostate>) {
-                auto error_code = receiver->connect(receiver->name(), [this, &variable](auto&& value) {
-                  variable.value = value;
-                  spark_plug_interface_.update_value(variable);
-                });
-                if (error_code) {
-                  logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
-                }
+              auto error_code = receiver->connect(receiver->name(), [this, &variable](auto&& value) {
+                variable.value = value;
+                spark_plug_interface_.update_value(variable);
+              });
+              if (error_code) {
+                logger_.trace("Error connecting to signal: {}, error: {}", receiver->name(), error_code.message());
+              }
             }
           },
           slot);
