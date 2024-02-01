@@ -12,8 +12,8 @@
 #include <tfc/motor/atv320motor.hpp>
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
-#include <tfc/motor/virtual_motor.hpp>
 #include <tfc/motor/stub.hpp>
+#include <tfc/motor/virtual_motor.hpp>
 #include <tfc/stx/function_traits.hpp>
 
 /**
@@ -34,8 +34,10 @@ class api {
 public:
   using config_t =
       confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
+
 private:
   using config_internal_t = std::variant<confman::config<config_t>, std::shared_ptr<config_t>>;
+
 public:
   /*
    * @brief Construct a motor api
@@ -48,19 +50,22 @@ public:
       std::string_view name,
       std::shared_ptr<config_t> reference_config)
       : ctx_{ connection->get_io_context() }, connection_{ connection }, config_{ reference_config }, logger_{ name } {
-    if (reference_config == nullptr) throw std::runtime_error("nullptr");
+    if (reference_config == nullptr)
+      throw std::runtime_error("nullptr");
     initalize_configuration(*reference_config);
   }
-  api(std::shared_ptr<sdbusplus::asio::connection> connection,
-      std::string_view name)
-      : ctx_{ connection->get_io_context() }, connection_{ connection }, config_(std::in_place_type<confman::config<config_t>>, connection_, name), logger_{ name } {
-    std::visit([this](auto& conf) {
-      if constexpr(std::is_same_v<confman::config<config_internal_t>, std::decay_t<decltype(conf)>>) {
-        initalize_configuration(conf.value());
-      } else {
-        assert(false && "This should never happen");
-      }
-    }, config_);
+  api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name)
+      : ctx_{ connection->get_io_context() }, connection_{ connection },
+        config_(std::in_place_type<confman::config<config_t>>, connection_, name), logger_{ name } {
+    std::visit(
+        [this](auto& conf) {
+          if constexpr (std::is_same_v<confman::config<config_internal_t>, std::decay_t<decltype(conf)>>) {
+            initalize_configuration(conf.value());
+          } else {
+            assert(false && "This should never happen");
+          }
+        },
+        config_);
   }
 
   void initalize_configuration(const config_t& config) {
@@ -306,7 +311,7 @@ private:
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> connection_;
 
-  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>; //, types::stub>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>;  //, types::stub>;
   implementations impl_;
   config_internal_t config_;
   logger::logger logger_;
