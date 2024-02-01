@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.24)
 project(mqtt-sparkplug)
 
 find_package(Protobuf CONFIG REQUIRED)

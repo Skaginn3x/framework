@@ -22,14 +22,14 @@ jobs:
   build:
     name: 'build and run tests'
     runs-on: ubuntu-22.04
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:sha-6cd5f4c
+    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:latest
     strategy:
       fail-fast: false
       matrix:
         presets: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0

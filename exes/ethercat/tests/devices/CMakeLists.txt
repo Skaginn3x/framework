@@ -1,5 +1,3 @@
-
-
 add_executable(test_beckhoff beckhoff.cpp)
 target_link_libraries(test_beckhoff tfc::base tfc::ec tfc::mock_ipc)
 
@@ -42,7 +40,6 @@ target_link_libraries(test_atv320_dbus_iface_integration
 )
 
 # Get access to private headers
-get_property(tfc_ec_dirs TARGET tfc::ec PROPERTY INCLUDE_DIRECTORIES)
 target_include_directories(test_atv320_dbus_iface PRIVATE ${tfc_ec_dirs})
 
 target_include_directories(test_atv320_dbus_iface_integration PRIVATE ${tfc_ec_dirs})
@@ -55,9 +52,9 @@ add_test(
 )
 
 add_test(
-        NAME
-        test_atv320_dbus_iface_integration
-        COMMAND
-        test_atv320_dbus_iface_integration
+  NAME
+    test_atv320_dbus_iface_integration
+  COMMAND
+     test_atv320_dbus_iface_integration
 )
 

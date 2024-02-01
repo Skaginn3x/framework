@@ -1,4 +1,3 @@
-#include <boost/program_options/options_description.hpp>
 #include <boost/ut.hpp>
 #include <string_view>
 #include "tfc/logger.hpp"
@@ -10,17 +9,24 @@ auto main(int argc, char** argv) -> int {
   using boost::ut::operator""_test;
   using boost::ut::expect;
 
-  // Initilize framework
-  auto prog_desc{ tfc::base::default_description() };
-  tfc::base::init(argc, argv, prog_desc);
+  tfc::base::init(argc, argv);
 
-  "example logging"_test = []() {
+  "example logging"_test = [] {
     tfc::logger::logger foo("key");
 
     foo.log<tfc::logger::lvl_e::info>(""sv);
-    foo.log<tfc::logger::lvl_e::info>("Some arguments {}: {}", 1, 2);
-    foo.log<tfc::logger::lvl_e::info>("Some arguments {}: {}, {}", 1, 2, 3);
+    foo.trace(""sv);
+    foo.trace("Some arguments {}: {}", 1, 2);
+    foo.debug("Some arguments {}: {}, {}", 1, 2, 3);
+    foo.info("Some arguments {}: {}, {}, {}", 1, 2, 3, 4);
+    foo.warn("Some arguments {}: {}, {}, {}, {}", 1, 2, 3, 4, 5);
+    foo.error("Some arguments {}: {}, {}, {}, {}, {}", 1, 2, 3, 4, 5, 6);
+    foo.critical("Some arguments {}: {}, {}, {}, {}, {}, {}", 1, 2, 3, 4, 5, 6, 7);
+    foo.log<tfc::logger::lvl_e::info>("Some arguments {}: {}, {}, {}, {}, {}, {}, {}", 1, 2, 3, 4, 5, 6, 7, 8);
+    foo.log<tfc::logger::lvl_e::info>("Some arguments {}: {}, {}, {}, {}, {}, {}, {}, {}", 1, 2, 3, 4, 5, 6, 7, 8, 9);
+    foo.log<tfc::logger::lvl_e::info>("Some arguments {}: {}, {}, {}, {}, {}, {}, {}, {}, {}", 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                      10);
 
-    boost::ut::expect(true);
+    expect(true);
   };
 }

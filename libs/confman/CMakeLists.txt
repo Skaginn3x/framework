@@ -1,5 +1,4 @@
 project(confman)
-cmake_minimum_required(VERSION 3.21)
 
 find_package(glaze CONFIG REQUIRED)
 find_path(AZMQ_INCLUDE_DIRS "azmq/actor.hpp")

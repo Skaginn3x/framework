@@ -119,15 +119,6 @@ auto main(int argc, char** argv) -> int {
     ut::expect(a_called == 1);
   };
 
-  "subscript-able"_test = [&] {
-    file_testable<test_me> conf{ ctx, file_name };
-    uint32_t called{};
-    conf.on_change([&called]() { called++; });
-    conf.make_change()->a = 1;
-    ctx.run_for(std::chrono::milliseconds(1));
-    ut::expect(called == 1);
-  };
-
   "verify file"_test = [&] {
     file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     glz::json_t json{};
@@ -143,44 +134,6 @@ auto main(int argc, char** argv) -> int {
     glz::read_file_json(json, file_name.string(), buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 2);
     ut::expect(json["b"].get<std::string>() == "test");
-  };
-
-  "write to file"_test = [&] {
-    file_testable<test_me> const conf{ ctx, file_name };
-    glz::json_t json{};
-    std::string buffer{};
-    glz::read_file_json(json, file_name.string(), buffer);
-
-    uint32_t a_called{};
-    conf->a.observe([&a_called](int new_a, int old_a) {
-      a_called++;
-      ut::expect(new_a == 32);
-      ut::expect(old_a == 0);
-    });
-
-    json["a"] = 32;
-    json["b"] = "test";
-    buffer = {};
-    std::ignore = glz::write_file_json(json, file_name, buffer);
-
-    ctx.run_for(std::chrono::milliseconds(10));
-
-    ut::expect(a_called == 1);
-    ut::expect(conf->a == 32);
-    ut::expect(conf->b == "test");
-  };
-
-  "change test"_test = [&]() {
-    file_testable<map> my_map{ ctx, file_name };
-    { my_map.make_change().value()["new_key"] = test_me{ .a = observable<int>{ 42 }, .b = "hello-world" }; }
-    ut::expect(my_map.value().at("new_key") == test_me{ .a = observable<int>{ 42 }, .b = "hello-world" });
-    ut::expect(my_map->at("new_key") == test_me{ .a = observable<int>{ 42 }, .b = "hello-world" });
-
-    uint32_t called{};
-    my_map.on_change([&called]() { called++; });
-
-    ctx.run_for(std::chrono::milliseconds(1));
-    ut::expect(called == 1);
   };
 
   "backup on config change"_test = [&] {

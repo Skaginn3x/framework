@@ -26,8 +26,8 @@ static constexpr std::string_view journald_socket = "/run/systemd/journal/socket
 template <typename mutex>
 class tfc_systemd_sink : public base_sink<mutex> {
 public:
-  explicit tfc_systemd_sink(std::string key, bool enable_formatting = false)
-      : key_{ std::move(key) }, enable_formatting_{ enable_formatting },
+  explicit tfc_systemd_sink(bool enable_formatting = false)
+      : enable_formatting_{ enable_formatting },
         syslog_levels_{
           { /* spdlog::level::trace      */ LOG_DEBUG,
             /* spdlog::level::debug      */ LOG_DEBUG,
@@ -48,7 +48,6 @@ public:
   auto operator=(const tfc_systemd_sink&) -> tfc_systemd_sink& = delete;
 
 protected:
-  const std::string key_;
   bool enable_formatting_ = false;
   using levels_array = std::array<int, 7>;
   levels_array syslog_levels_;
@@ -65,14 +64,8 @@ protected:
       payload = msg.payload;
     }
 
-    size_t length = payload.size();
-    // limit to max int
-    if (length > static_cast<size_t>(std::numeric_limits<int>::max())) {
-      length = static_cast<size_t>(std::numeric_limits<int>::max());
-    }
-
     std::vector<std::pair<std::string_view, std::string_view>> parameters;
-    parameters.emplace_back("TFC_KEY", key_);
+    parameters.emplace_back("TFC_KEY", msg.logger_name);
     parameters.emplace_back("TFC_EXE", tfc::base::get_exe_name());
     parameters.emplace_back("TFC_ID", tfc::base::get_proc_name());
 

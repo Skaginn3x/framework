@@ -65,6 +65,7 @@ public:
                  std::bind_front(&config::from_string, this) },
         storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
+    logger_.trace("Create config stored in file: {}", storage_.file().string());
     init();
   }
 
@@ -163,13 +164,7 @@ public:
   }
 
 protected:
-  void init() {
-    client_.initialize();
-    storage_.on_change([]() {
-      // todo this can lead too callback hell, set property calls dbus set prop and dbus set prop calls back
-      //      client_.set(detail::config_property{ .value = string(), .schema = schema() });
-    });
-  }
+  void init() { client_.initialize(); }
 
   friend struct detail::change<config>;
 
