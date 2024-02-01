@@ -18,7 +18,7 @@
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 
-#include "../inc/endpoint_mock.hpp"
+// #include "../inc/endpoint_mock.hpp"
 
 namespace tfc::mqtt {
 
@@ -198,8 +198,6 @@ auto spark_plug_interface<config_t, mqtt_client_t>::process_payload(async_mqtt::
   }
 
   logger_.trace("Payload parsed successfully. Processing payload...");
-
-  payload.PrintDebugString();
 
   if (payload.metrics_size() == 0) {
     logger_.trace("No metrics inside of payload. Nothing more to do.");
