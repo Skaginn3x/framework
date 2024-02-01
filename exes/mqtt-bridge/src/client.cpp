@@ -18,9 +18,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
-#include <iostream>
-#include "../tests/inc/endpoint_mock.hpp"
-#include "endpoint.hpp"
+#include <endpoint.hpp>
 
 namespace tfc::mqtt {
 
@@ -31,7 +29,6 @@ client<client_t, config_t>::client(asio::io_context& io_ctx,
                                    config_t& config)
     : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload), config_(config) {
   using enum structs::ssl_active_e;
-  std::cout << "making endpont client" << std::endl;
   if (config_.value().ssl_active == yes) {
     endpoint_client_ = std::make_unique<client_t>(io_ctx_, yes);
   } else if (config_.value().ssl_active == no) {
@@ -45,9 +42,6 @@ auto client<client_t, config_t>::connect() -> asio::awaitable<bool> {
 
   asio::ip::tcp::socket resolve_sock{ io_ctx_ };
   asio::ip::tcp::resolver res{ resolve_sock.get_executor() };
-
-  logger_.trace("address {}", config_.value().address);
-  logger_.trace("port: {}", config_.value().get_port());
 
   asio::ip::tcp::resolver::results_type resolved_ip =
       co_await res.async_resolve(config_.value().address, config_.value().get_port(), asio::use_awaitable);
@@ -106,18 +100,16 @@ auto client<client_t, config_t>::connect_packet() -> async_mqtt::v5::connect_pac
                                            async_mqtt::nullopt,
                                            async_mqtt::nullopt,
                                            { async_mqtt::property::session_expiry_interval{ 0 } } };
-  } else {
-    return async_mqtt::v5::connect_packet{ true,
-                                           std::chrono::seconds(100).count(),
-                                           async_mqtt::allocate_buffer(config_.value().client_id),
-                                           async_mqtt::will(
-                                               async_mqtt::allocate_buffer(mqtt_will_topic_),
-                                               async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
-                                               { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
-                                           async_mqtt::allocate_buffer(config_.value().username),
-                                           async_mqtt::allocate_buffer(config_.value().password),
-                                           { async_mqtt::property::session_expiry_interval{ 0 } } };
   }
+  return async_mqtt::v5::connect_packet{ true,
+                                         std::chrono::seconds(100).count(),
+                                         async_mqtt::allocate_buffer(config_.value().client_id),
+                                         async_mqtt::will(async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                                          async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                                                          { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+                                         async_mqtt::allocate_buffer(config_.value().username),
+                                         async_mqtt::allocate_buffer(config_.value().password),
+                                         { async_mqtt::property::session_expiry_interval{ 0 } } };
 }
 
 template <class client_t, class config_t>
@@ -222,35 +214,35 @@ auto client<client_t, config_t>::wait_for_payloads(
 
     logger_.trace("Received PUBLISH packet. Parsing payload...");
 
-      for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
-        process_payload(publish_packet->payload()[i], *publish_packet);
-      }
+    for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
+      process_payload(publish_packet->payload()[i], *publish_packet);
     }
   }
+}
 
-  template <class client_t, class config_t>
-  auto client<client_t, config_t>::strand()->asio::strand<asio::any_io_executor> {
-    return endpoint_client_->strand();
+template <class client_t, class config_t>
+auto client<client_t, config_t>::strand() -> asio::strand<asio::any_io_executor> {
+  return endpoint_client_->strand();
+}
+
+template <class client_t, class config_t>
+auto client<client_t, config_t>::set_initial_message(std::string const& topic,
+                                                     std::string const& payload,
+                                                     async_mqtt::qos const& qos) -> void {
+  initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{ topic, payload, qos };
+}
+
+template <class client_t, class config_t>
+auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
+  if (!std::get<0>(initial_message_).empty()) {
+    co_return co_await send_message(std::get<0>(initial_message_), std::get<1>(initial_message_),
+                                    std::get<2>(initial_message_));
   }
+  co_return true;
+}
 
-  template <class client_t, class config_t>
-  auto client<client_t, config_t>::set_initial_message(std::string const& topic, std::string const& payload,
-                                                       async_mqtt::qos const& qos)
-      ->void {
-    initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{ topic, payload, qos };
-  }
-
-  template <class client_t, class config_t>
-  auto client<client_t, config_t>::send_initial()->asio::awaitable<bool> {
-    if (!std::get<0>(initial_message_).empty()) {
-      co_return co_await send_message(std::get<0>(initial_message_), std::get<1>(initial_message_),
-                                      std::get<2>(initial_message_));
-    }
-    co_return true;
-  }
-
-  template class client<endpoint_client, confman::config<config::bridge>>;
-  template class client<endpoint_client, config::bridge_mock>;
-  template class client<endpoint_client_mock, config::bridge_mock>;
+template class client<endpoint_client, confman::config<config::bridge>>;
+template class client<endpoint_client, config::bridge_mock>;
+template class client<endpoint_client_mock, config::bridge_mock>;
 
 }  // namespace tfc::mqtt
