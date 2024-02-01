@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sys/inotify.h>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -35,16 +34,16 @@ public:
 
   /// \brief Empty constructor
   /// \note Should only be used for testing !!!
-  explicit file_storage(asio::io_context& ctx) : logger_{ "file_storage" }, file_watcher_{ ctx } {}
+  explicit file_storage(asio::io_context&) : logger_{ "file_storage" } {}
 
   /// \brief Construct file storage with default constructed storage_t
   file_storage(asio::io_context& ctx, std::filesystem::path const& file_path)
       : file_storage{ ctx, file_path, storage_t{} } {}
 
   /// \brief Construct file storage with user defined default values for storage_t
-  file_storage(asio::io_context& ctx, std::filesystem::path const& file_path, auto&& default_value)
+  file_storage(asio::io_context&, std::filesystem::path const& file_path, auto&& default_value)
       : config_file_{ file_path }, storage_{ std::forward<decltype(default_value)>(default_value) },
-        logger_{ fmt::format("file_storage.{}", file_path.string()) }, file_watcher_{ ctx } {
+        logger_{ fmt::format("file_storage.{}", file_path.string()) } {
     std::filesystem::create_directories(config_file_.parent_path());
     error_ = read_file();
     if (error_) {
@@ -62,20 +61,6 @@ public:
         throw std::runtime_error(message);
       }
     }
-    auto const inotify_fd{ inotify_init1(IN_NONBLOCK) };
-    if (inotify_fd < 0) {
-      int const err{ errno };
-      error_ = std::make_error_code(static_cast<std::errc>(err));
-      return;
-    }
-    auto const inotify_watch_fd{ inotify_add_watch(inotify_fd, config_file_.c_str(), IN_MODIFY) };
-    if (inotify_watch_fd < 0) {
-      int const err{ errno };
-      error_ = std::make_error_code(static_cast<std::errc>(err));
-      return;
-    }
-    file_watcher_.assign(inotify_fd);
-    file_watcher_.async_read_some(asio::null_buffers(), std::bind_front(&file_storage::on_file_change, this));
   }
 
   /// \brief Internal error code
@@ -90,9 +75,6 @@ public:
 
   /// \return Access to underlying value
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
-
-  /// \brief Subscribe to changes from the filesystem
-  auto on_change(std::invocable auto&& callback) -> void { cb_ = callback; }
 
   using change = detail::change<file_storage>;
 
@@ -141,32 +123,10 @@ protected:
     return {};
   }
 
-  auto on_file_change(std::error_code const& err, std::size_t) -> void {
-    if (err) {
-      fmt::print(stderr, "File watch error: {}\n", err.message());
-      return;
-    }
-    std::array<char, 1024> buf{};
-    file_watcher_.read_some(asio::buffer(buf));  // discard the data since we only got one watcher per inotify fd
-
-    logger_.trace("File change");
-
-    // the following updates internal storage_ member
-    read_file();
-
-    if (cb_) {
-      std::invoke(cb_);
-    }
-
-    file_watcher_.async_read_some(asio::null_buffers(), std::bind_front(&file_storage::on_file_change, this));
-  }
-
   std::filesystem::path config_file_{};
   storage_t storage_{};
   tfc::logger::logger logger_;
   std::error_code error_{};
-  asio::posix::stream_descriptor file_watcher_;
-  std::function<void()> cb_{};
 };
 
 }  // namespace tfc::confman

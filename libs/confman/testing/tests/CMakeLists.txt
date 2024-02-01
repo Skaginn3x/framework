@@ -41,6 +41,22 @@ add_test(
     confman_test
 )
 
+add_executable(confman_file_descriptor_limit file_descriptor_limit.cpp)
+
+target_link_libraries(confman_file_descriptor_limit
+  PRIVATE
+    tfc::confman
+    Boost::ut
+    glaze::glaze
+)
+
+add_test(
+  NAME
+    confman_file_descriptor_limit
+  COMMAND
+    confman_file_descriptor_limit
+)
+
 add_executable(confman_unit_test confman_unit_test.cpp)
 
 target_link_libraries(confman_unit_test

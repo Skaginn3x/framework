@@ -33,7 +33,6 @@ struct mock_file_storage : public file_storage<storage_t> {
   MOCK_METHOD((std::filesystem::path const&), file, (), (const noexcept));  // NOLINT
   MOCK_METHOD((storage_t const&), value, (), (const noexcept));             // NOLINT
   MOCK_METHOD((storage_t&), access, (), (const noexcept));                  // NOLINT
-  MOCK_METHOD((void), on_change, (std::function<void()>), ());              // NOLINT, todo
   MOCK_METHOD((change), make_change, (), (noexcept));                       // NOLINT
   MOCK_METHOD((std::error_code), set_changed, (), (const noexcept));        // NOLINT
 };

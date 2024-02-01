@@ -188,27 +188,6 @@ auto main(int argc, char** argv) -> int {
     ut::expect(a_called == 1);
   };
 
-  "integration change_file"_test = [&] {
-    boost::asio::io_context ctx{};
-    config_testable<storage> const conf{ ctx, key };
-
-    uint32_t a_called{};
-    conf->a.observe([&a_called](int new_a, int) {
-      a_called++;
-      ut::expect(new_a == 27);
-    });
-
-    glz::json_t json{};
-    std::ignore = glz::read_json(json, conf.string());
-    json["a"] = 27;
-
-    std::string buffer{};
-    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"), buffer);
-
-    ctx.run_for(std::chrono::milliseconds(10));
-    ut::expect(a_called == 1);
-  };
-
   "integration await property changed internally"_test = [&] {
     boost::asio::io_context ctx{};
     sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
