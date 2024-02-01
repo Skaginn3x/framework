@@ -33,9 +33,7 @@ public:
 
   auto make_change() -> change { return change{ *this }; }
 
-  auto set_changed() const noexcept -> std::error_code {
-    return {};
-  }
+  auto set_changed() const noexcept -> std::error_code { return {}; }
 };
 
 }  // namespace tfc::confman
