@@ -34,7 +34,6 @@ public:
   auto make_change() -> change { return change{ *this }; }
 
   auto set_changed() const noexcept -> std::error_code {
-    std::invoke(this->cb_);
     return {};
   }
 };
