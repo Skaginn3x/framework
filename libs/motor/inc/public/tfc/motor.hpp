@@ -53,6 +53,12 @@ public:
       throw std::runtime_error("nullptr");
     initalize_configuration(*reference_config);
   }
+    /*
+   * @brief Construct a motor api
+   * @param connection to the dbus
+   * @param name of the motor
+   * Motor api will expose the config by itself.
+   */
   api(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view name)
       : ctx_{ connection->get_io_context() }, connection_{ connection },
         config_(std::in_place_type<confman::config<config_t>>, connection_, name), logger_{ name } {
