@@ -37,8 +37,9 @@ public:
     owner_.publish_signals = { signal_name{ "integration_tests.def.bool.test" } };
     owner_.node_id = "tfc_unconfigured_node_id";
     owner_.group_id = "tfc_unconfigured_group_id";
-    owner_.writeable_signals = { signal_definition{
-        .name = "test_writeable_signal", .description = "description", .type = type_e::_bool } };
+    // owner_.writeable_signals = { signal_definition{
+    //     .name = "test_writeable_signal", .description = "description", .type = type_e::_bool } };
+    owner_.writeable_signals = {};
   }
 
   [[nodiscard]] auto value() const -> bridge_owner_mock { return owner_; }
