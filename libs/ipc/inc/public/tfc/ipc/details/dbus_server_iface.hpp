@@ -2,6 +2,7 @@
 
 // ipc-ruler.cpp - Dbus API service maintaining a list of signals/slots and which signal
 // is connected to which slot
+#include <filesystem>
 #include <functional>
 #include <utility>
 
@@ -32,6 +33,12 @@ using tfc::ipc::details::type_e;
 
 using dbus_error = tfc::dbus::exception::runtime;
 
+inline std::string config_file_name_populate_dir() {
+  auto const file{ base::make_config_file_name("ipc-ruler", "db") };
+  std::filesystem::create_directories(file.parent_path());
+  return file.string();
+}
+
 /**
  * A class exposing methods for managing signals and slots
  */
@@ -40,8 +47,7 @@ public:
   using slot_name = std::string_view;
   using signal_name = std::string_view;
 
-  explicit ipc_manager(bool in_memory = false)
-      : db_(in_memory ? ":memory:" : base::make_config_file_name("ipc-ruler", "db")) {
+  explicit ipc_manager(bool in_memory = false) : db_(in_memory ? ":memory:" : config_file_name_populate_dir()) {
     db_ << R"(
           CREATE TABLE IF NOT EXISTS signals(
               name TEXT,
