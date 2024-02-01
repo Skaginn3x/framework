@@ -1,30 +1,15 @@
 #pragma once
 
-#include <cstdint>
-#include <map>
 #include <string>
-#include <variant>
-#include <vector>
-
-#include <boost/asio.hpp>
-
-#include <config/bridge.hpp>
-#include <config/bridge_mock.hpp>
-#include <tfc/confman.hpp>
-#include <tfc/ipc.hpp>
-#include <tfc/ipc/details/dbus_client_iface_mock.hpp>
-#include <tfc/logger.hpp>
-
-#include <cstdint>
-#include <map>
-#include <string>
-#include <tuple>
 #include <type_traits>
 #include <variant>
+#include <cstdint>
+#include <vector>
+#include <sstream>
+#include <map>
 
 #include <boost/asio.hpp>
 
-#include <external_to_tfc.hpp>
 #include <tfc/ipc.hpp>
 
 namespace tfc::mqtt {
