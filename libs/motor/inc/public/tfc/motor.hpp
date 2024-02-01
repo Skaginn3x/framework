@@ -12,7 +12,6 @@
 #include <tfc/motor/atv320motor.hpp>
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
-#include <tfc/motor/stub.hpp>
 #include <tfc/motor/virtual_motor.hpp>
 #include <tfc/stx/function_traits.hpp>
 
