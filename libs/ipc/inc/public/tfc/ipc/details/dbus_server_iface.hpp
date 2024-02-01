@@ -4,6 +4,7 @@
 // is connected to which slot
 #include <functional>
 #include <utility>
+#include <filesystem>
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
@@ -32,6 +33,12 @@ using tfc::ipc::details::type_e;
 
 using dbus_error = tfc::dbus::exception::runtime;
 
+inline std::string config_file_name_populate_dir() {
+  auto const file{ base::make_config_file_name("ipc-ruler", "db") };
+  std::filesystem::create_directories(file.parent_path());
+  return file.string();
+}
+
 /**
  * A class exposing methods for managing signals and slots
  */
@@ -41,7 +48,7 @@ public:
   using signal_name = std::string_view;
 
   explicit ipc_manager(bool in_memory = false)
-      : db_(in_memory ? ":memory:" : base::make_config_file_name("ipc-ruler", "db")) {
+      : db_(in_memory ? ":memory:" : config_file_name_populate_dir()) {
     db_ << R"(
           CREATE TABLE IF NOT EXISTS signals(
               name TEXT,
