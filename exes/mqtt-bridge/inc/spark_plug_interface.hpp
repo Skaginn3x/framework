@@ -1,15 +1,14 @@
 #pragma once
 
-#include <any>
 #include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <variant>
 #include <vector>
+#include <any>
 
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
@@ -78,7 +77,7 @@ public:
 
   auto strand() -> asio::strand<asio::any_io_executor>;
 
-  static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, tfc::logger::logger const&) -> void;
+  static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, logger::logger const&) -> void;
 
   static auto topic_formatter(std::vector<std::string_view> const& topic_vector) -> std::string;
 
@@ -108,7 +107,5 @@ private:
 extern template class spark_plug_interface<confman::config<config::bridge>, client_n>;
 extern template class spark_plug_interface<config::bridge_mock, client_semi_normal>;
 extern template class spark_plug_interface<config::bridge_mock, client_mock>;
-
-
 
 }  // namespace tfc::mqtt
