@@ -53,7 +53,7 @@ public:
       throw std::runtime_error("nullptr");
     initalize_configuration(*reference_config);
   }
-    /*
+  /*
    * @brief Construct a motor api
    * @param connection to the dbus
    * @param name of the motor
