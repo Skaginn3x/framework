@@ -164,9 +164,7 @@ public:
   }
 
 protected:
-  void init() {
-    client_.initialize();
-  }
+  void init() { client_.initialize(); }
 
   friend struct detail::change<config>;
 
