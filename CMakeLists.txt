@@ -71,6 +71,8 @@ set(ColourReset "${Esc}[m")
 set(Red         "${Esc}[31m")
 set(Green       "${Esc}[32m")
 message("${Green}Using ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} for ${CMAKE_SYSTEM_PROCESSOR}${ColourReset}")
+message("${Green}Library path: $ENV{LIBRARY_PATH}${ColourReset}")
+message("${Green}Build type: ${CMAKE_BUILD_TYPE}${ColourReset}")
 
 feature_summary(
   DESCRIPTION "A summary of TFC options"
