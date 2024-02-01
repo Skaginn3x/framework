@@ -73,6 +73,9 @@ public:
     co_return;
   }
 
+  auto config() -> config_t& { return config_; }
+
+private:
   asio::io_context& io_ctx_;
   ipc_client_t ipc_client_;
   config_t config_{ io_ctx_, "mqtt" };
