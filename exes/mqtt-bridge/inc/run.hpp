@@ -88,16 +88,8 @@ private:
 
   tfc_to_external<config_t, mqtt_client_t, ipc_client_t&> tfc_to_exter_{ io_ctx_, sp_interface_, ipc_client_, config_ };
 
-  using any_signal_imc_mock = std::variant<std::monostate,
-                                           ipc::signal<ipc::details::type_bool, ipc_client_t&>,
-                                           ipc::signal<ipc::details::type_int, ipc_client_t&>,
-                                           ipc::signal<ipc::details::type_uint, ipc_client_t&>,
-                                           ipc::signal<ipc::details::type_double, ipc_client_t&>,
-                                           ipc::signal<ipc::details::type_string, ipc_client_t&>,
-                                           ipc::signal<ipc::details::type_json, ipc_client_t&>,
-                                           ipc::signal<ipc::details::type_mass, ipc_client_t&> >;
 
-  using ext_to_tfc = external_to_tfc<ipc_client_t&, config_t, any_signal_imc_mock>;
+  using ext_to_tfc = external_to_tfc<ipc_client_t&, config_t>;
   ext_to_tfc exter_to_tfc_{ io_ctx_, config_, ipc_client_ };
 };
 }  // namespace tfc::mqtt

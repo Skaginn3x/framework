@@ -1,12 +1,12 @@
 #pragma once
 
+#include <cstdint>
+#include <map>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <variant>
-#include <cstdint>
 #include <vector>
-#include <sstream>
-#include <map>
 
 #include <boost/asio.hpp>
 
@@ -16,7 +16,7 @@ namespace tfc::mqtt {
 
 namespace asio = boost::asio;
 
-template <class ipc_client_t, class config_t, class signal_v>
+template <class ipc_client_t, class config_t>
 class external_to_tfc {
 public:
   explicit external_to_tfc(asio::io_context& io_ctx, config_t& config)
@@ -26,6 +26,15 @@ public:
       : io_ctx_(io_ctx), config_(config), ipc_client_(ipc_client) {
     static_assert(std::is_lvalue_reference<ipc_client_t>::value);
   }
+
+  using signal_v = std::variant<std::monostate,
+                                ipc::signal<ipc::details::type_bool, ipc_client_t>,
+                                ipc::signal<ipc::details::type_int, ipc_client_t>,
+                                ipc::signal<ipc::details::type_uint, ipc_client_t>,
+                                ipc::signal<ipc::details::type_double, ipc_client_t>,
+                                ipc::signal<ipc::details::type_string, ipc_client_t>,
+                                ipc::signal<ipc::details::type_json, ipc_client_t>,
+                                ipc::signal<ipc::details::type_mass, ipc_client_t> >;
 
   auto create_outward_signals() -> void {
     for (auto const& sig : config_.value().writeable_signals) {
