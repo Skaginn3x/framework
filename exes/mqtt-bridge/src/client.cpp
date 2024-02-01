@@ -19,6 +19,7 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <endpoint.hpp>
+#include "../tests/inc/endpoint_mock.hpp"
 
 namespace tfc::mqtt {
 
