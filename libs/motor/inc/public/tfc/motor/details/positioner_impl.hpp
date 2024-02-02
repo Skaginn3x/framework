@@ -134,15 +134,6 @@ struct time_series_statistics {
   circular_buffer<event_storage, circular_buffer_len> buffer_{};
 };
 
-auto detect_deviation_from_average(auto interval, auto average) {
-  auto err{ errors::err_enum::success };
-  // check if interval is greater than 180% of average
-  if (interval * 10 > average * 18) {
-    err = errors::err_enum::positioning_missing_event;
-  }
-  return err;
-}
-
 template <typename manager_client_t = ipc_ruler::ipc_manager_client&,
           typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>,
           typename clock_t = asio::steady_timer::time_point::clock,
@@ -168,8 +159,13 @@ struct tachometer {
     statistics_.update(now);
     auto constexpr increment{ 1 };
     position_ += increment;
-    std::invoke(position_update_callback_, increment, statistics().average(), statistics().stddev(),
-                detect_deviation_from_average(statistics_.last_interval(), statistics_.average()));
+    auto err{ errors::err_enum::success };
+    // check if interval is greater than 180% of average and less than 400% of average
+    // todo is 400% good strategy to detect when stopped and started again?
+    if (statistics_.last_interval() * 10 > statistics_.average() * 18 && statistics_.last_interval() < statistics_.average() * 4) {
+      err = errors::err_enum::positioning_missing_event;
+    }
+    std::invoke(position_update_callback_, increment, statistics().average(), statistics().stddev(), err);
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
@@ -226,16 +222,22 @@ struct encoder {
     auto const now{ clock_t::now() };
     position_ += increment;
     fmt::println(stderr, "Encoder position: {}", position_);  // todo remove
-    auto err{ detect_deviation_from_average(statistics_.last_interval(), statistics_.average()) };
+    errors::err_enum err{ errors::err_enum::success };
     if (buffer_.front().last_event == event) {
-      err = errors::err_enum::positioning_missing_event;
+      // if positioning is still going to the same direction, we should have gotten a new event
+      // needs revisement if increment is dynamic, as in not always 1 or -1
+      if (increment == last_increment_) {
+        err = errors::err_enum::positioning_missing_event;
+      }
     }
+    last_increment_ = increment;
     statistics_.update(now);
     buffer_.emplace(first, second, event);
     std::invoke(position_update_callback_, increment, statistics_.average(), statistics_.stddev(), err);
   }
 
   std::int64_t position_{};  // todo now this is only for testing purposes, need to refactor tests
+  std::int8_t last_increment_{};
   circular_buffer<storage, circular_buffer_len> buffer_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<tick_signature_t> position_update_callback_;
