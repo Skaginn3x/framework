@@ -65,7 +65,7 @@ public:
         config_(std::in_place_type<confman::config<config_t>>, connection_, name), logger_{ name } {
     std::visit(
         [this](auto& conf) {
-          if constexpr (std::is_same_v<confman::config<config_internal_t>, std::decay_t<decltype(conf)>>) {
+          if constexpr (std::is_same_v<confman::config<config_t>, std::decay_t<decltype(conf)>>) {
             initalize_configuration(conf.value());
           } else {
             assert(false && "This should never happen");
@@ -313,6 +313,11 @@ public:
   auto reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
+  /// \brief accessor to the motor impl if the impl is a stub.
+  /// only to be used for tests.
+  auto stub() -> types::stub& {
+    return std::get<types::stub>(impl_);
+  }
 private:
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> connection_;
