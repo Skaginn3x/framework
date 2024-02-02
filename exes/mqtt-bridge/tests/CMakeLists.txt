@@ -34,8 +34,6 @@ target_compile_definitions(test_mqtt_bridge
 
 find_package(async_mqtt_iface CONFIG REQUIRED)
 
-# find_package(Boost REQUIRED COMPONENTS unit_test_framework)
-
 add_executable(mqtt_bridge_integration_tests
         ../src/client.cpp
         ../src/spark_plug_interface.cpp

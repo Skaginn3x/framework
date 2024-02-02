@@ -22,16 +22,17 @@ using ut::operator""_test;
 using ut::expect;
 
 namespace asio = boost::asio;
-// namespace am = async_mqtt;
 
 class mqtt_broker {
 public:
-  mqtt_broker(asio::io_context& io_ctx)
+  /// TODO: this makes no sense
+  explicit mqtt_broker(asio::io_context& io_ctx)
       : io_ctx_(io_ctx), mqtt_endpoint_(asio::ip::tcp::v4(), 1883), mqtt_acceptor_(io_ctx_, mqtt_endpoint_),
         broker_(io_ctx_) {
     setup_async_connect();
   }
 
+  /// TODO: this makes no sense
   void setup_async_connect() {
     mqtt_async_accept_ = [this] {
       auto endpoint = async_mqtt::endpoint<async_mqtt::role::server, async_mqtt::protocol::mqtt>::create(
@@ -124,6 +125,8 @@ public:
 
 auto main(int argc, char* argv[]) -> int {
   tfc::base::init(argc, argv);
+
+  /// NOTE: you cannot be running a local MQTT broker on port 1883
 
   "correct nbirth with no signals"_test = [&]() {
     asio::io_context io_ctx{};
