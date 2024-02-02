@@ -258,24 +258,19 @@ struct controller {
 
   void on_positive_limit_switch(bool new_v) {
     logger_.trace("New positive limit switch value: {}", new_v);
-    if (new_v) {
-      limit_error_ = motor::errors::err_enum::positioning_positive_limit_reached;
-      drive_error_subscriptable_.notify_all();
-    }
+    on_limit_switch(new_v, motor::errors::err_enum::positioning_positive_limit_reached);
   }
 
   void on_negative_limit_switch(bool new_v) {
     logger_.trace("New negative limit switch value: {}", new_v);
-    if (new_v) {
-      limit_error_ = motor::errors::err_enum::positioning_negative_limit_reached;
-      drive_error_subscriptable_.notify_all();
-    }
+    on_limit_switch(new_v, motor::errors::err_enum::positioning_negative_limit_reached);
   }
 
   void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
 
   auto positioner() noexcept -> auto& { return pos_; }
   auto driver_error() const noexcept -> motor::errors::err_enum { return drive_error_; }
+  auto limit_error() const noexcept -> motor::errors::err_enum { return limit_error_; }
   auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) { motor_nominal_frequency_ = nominal_motor_frequency; }
   speedratio_t speed_ratio() const noexcept { return speed_ratio_; }
 
@@ -300,6 +295,17 @@ struct controller {
   cia_402::transition_action action() const noexcept { return action_; }
 
 private:
+  auto on_limit_switch(bool new_v, motor::errors::err_enum limit_error) {
+    using enum motor::errors::err_enum;
+    if (new_v) {
+      limit_error_ = limit_error;
+      drive_error_subscriptable_.notify_all();
+    }
+    else if (limit_error_ == limit_error) {
+      limit_error_ = success;
+    }
+  }
+
   auto stop_impl(bool use_quick_stop,
                  std::error_code stop_reason,
                  asio::completion_token_for<void(std::error_code)> auto&& token) ->

@@ -551,6 +551,29 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
+  "on negative limit, limit error set to negative error"_test = [] {
+    instance inst;
+    inst.ctrl.on_negative_limit_switch(true);
+    expect(inst.ctrl.limit_error() == err_enum::positioning_negative_limit_reached);
+  };
+  "on negative limit falling edge, limit error reset"_test = [] {
+    instance inst;
+    inst.ctrl.on_negative_limit_switch(true);
+    inst.ctrl.on_negative_limit_switch(false);
+    expect(inst.ctrl.limit_error() == err_enum::success);
+  };
+  "on positive limit, limit error set to positive error"_test = [] {
+    instance inst;
+    inst.ctrl.on_positive_limit_switch(true);
+    expect(inst.ctrl.limit_error() == err_enum::positioning_positive_limit_reached);
+  };
+  "on positive limit falling edge, limit error reset"_test = [] {
+    instance inst;
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctrl.on_positive_limit_switch(false);
+    expect(inst.ctrl.limit_error() == err_enum::success);
+  };
+
   "run to positive limit"_test = [] {
     instance inst;
     inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
