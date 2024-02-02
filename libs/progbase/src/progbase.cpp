@@ -3,7 +3,7 @@
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/utils/pragmas.hpp>
-// #include <tfc/version.hpp>
+#include <tfc/version.hpp>
 
 #include <fmt/core.h>
 #include <boost/asio.hpp>
@@ -37,7 +37,7 @@ public:
     if (vm_["version"].as<bool>()) {
       std::stringstream out;
       desc.print(out);
-      // fmt::println(version::make_version_string());
+      fmt::println(version::make_version_string());
       if (!extra_description_.empty()) {
         fmt::println("\n{}", extra_description_);
       }
