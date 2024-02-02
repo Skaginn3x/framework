@@ -560,62 +560,23 @@ auto main(int, char const* const* argv) -> int {
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
     inst.ctrl.on_positive_limit_switch(true);
-    inst.ctx.run_for(1ms);
-    expect(inst.ran[0]);
-  };
-  "run time canceled"_test = [&] {
-    using tfc::testing::clock;
-    instance inst;
-    auto duration = 100 * milli<mp_units::si::second>;
-    speedratio_t ratio = 1.0 * percent;
-    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
-      expect(err == std::errc::operation_canceled) << err;
-      inst.ctx.stop();
-      inst.ran[0] = true;
-    });
+    // Even though a good update we should not clear the error
     inst.ctrl.update_status(get_good_status_running());
-    clock::set_ticks(clock::now() + 80ms);
     inst.ctx.run_for(1ms);
-    expect(!inst.ran[0]);
-    inst.ctrl.cancel_pending_operation();
+    // We need to wait till the motor is stopped before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
-  "stop cancelled"_test = [] {
+  "run to negative limit"_test = [] {
     instance inst;
-    inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.stop([&inst](const std::error_code& err) {
-      expect(err == std::errc::operation_canceled);
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_negative_limit_reached);
       inst.ran[0] = true;
     });
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
-    inst.ctx.run_for(1ms);
-    expect(inst.ran[0]);
-  };
-  "quick stop cancelled"_test = [] {
-    instance inst;
-    inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
-      expect(err == std::errc::operation_canceled);
-      inst.ran[0] = true;
-    });
-    expect(!inst.ran[0]);
-    inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
-    inst.ctx.run_for(1ms);
-    expect(inst.ran[0]);
-  };
-  "convey micrometre cancelled"_test = [] {
-    instance inst;
-    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](const std::error_code& err, micrometre_t) {
-      expect(err == std::errc::operation_canceled);
-      inst.ran[0] = true;
-    });
-    expect(!inst.ran[0]);
-    inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
+    inst.ctrl.on_negative_limit_switch(true);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };

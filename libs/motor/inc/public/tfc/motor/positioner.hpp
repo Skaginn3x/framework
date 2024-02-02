@@ -70,6 +70,8 @@ public:
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
+  /// \param positive_limit_cb callback to call when positive limit switch is triggered
+  /// \param negative_limit_cb callback to call when negative limit switch is triggered
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              manager_client_t manager,
              std::string_view name,
@@ -81,6 +83,8 @@ public:
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
+  /// \param positive_limit_cb callback to call when positive limit switch is triggered
+  /// \param negative_limit_cb callback to call when negative limit switch is triggered
   /// \param default_value configuration default, useful for special cases and testing
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              manager_client_t manager,
