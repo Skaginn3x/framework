@@ -162,7 +162,8 @@ struct tachometer {
     auto err{ errors::err_enum::success };
     // check if interval is greater than 180% of average and less than 400% of average
     // todo is 400% good strategy to detect when stopped and started again?
-    if (statistics_.last_interval() * 10 > statistics_.average() * 18 && statistics_.last_interval() < statistics_.average() * 4) {
+    if (statistics_.last_interval() * 10 > statistics_.average() * 18 &&
+        statistics_.last_interval() < statistics_.average() * 4) {
       err = errors::err_enum::positioning_missing_event;
     }
     std::invoke(position_update_callback_, increment, statistics().average(), statistics().stddev(), err);
