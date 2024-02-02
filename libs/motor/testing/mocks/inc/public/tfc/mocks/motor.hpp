@@ -128,7 +128,9 @@ using second_double_t = mp_units::quantity<mp_units::si::second, std::double_t>;
 class mock_api {
 public:
   using config_t = typename tfc::motor::api::config_t;
-  mock_api(std::shared_ptr<sdbusplus::asio::connection>, std::string_view, config_t = {}) {}
+  mock_api(std::shared_ptr<sdbusplus::asio::connection>, std::string_view) {}
+
+  mock_api(std::shared_ptr<sdbusplus::asio::connection>, std::string_view, std::shared_ptr<config_t>) {}
 
   /// \brief Convey at the given velocity until interrupted.
   /// Mock Signature: convey_<velocity_t>_<travel_t>(velocity_t, travel_t, std::function<void(std::error_code, travel_t)>)
