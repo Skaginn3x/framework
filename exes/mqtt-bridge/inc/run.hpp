@@ -4,23 +4,25 @@
 #include <functional>
 #include <type_traits>
 
-#include <boost/asio.hpp>
 #include <async_mqtt/all.hpp>
+#include <boost/asio.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 
 #include <client.hpp>
+#include <external_to_tfc.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
-#include <external_to_tfc.hpp>
 
 namespace asio = boost::asio;
 
 namespace tfc::mqtt {
 
-template <class config_t = tfc::confman::config<tfc::mqtt::config::bridge> , class mqtt_client_t = tfc::mqtt::client_n , class ipc_client_t = tfc::ipc_ruler::ipc_manager_client >
+template <class config_t = tfc::confman::config<tfc::mqtt::config::bridge>,
+          class mqtt_client_t = tfc::mqtt::client_n,
+          class ipc_client_t = tfc::ipc_ruler::ipc_manager_client>
 class run {
 public:
   explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}
@@ -87,7 +89,6 @@ private:
   spark_plug sp_interface_{ io_ctx_, config_ };
 
   tfc_to_external<config_t, mqtt_client_t, ipc_client_t&> tfc_to_exter_{ io_ctx_, sp_interface_, ipc_client_, config_ };
-
 
   using ext_to_tfc = external_to_tfc<ipc_client_t&, config_t>;
   ext_to_tfc exter_to_tfc_{ io_ctx_, config_, ipc_client_ };

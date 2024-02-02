@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -8,7 +9,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include <any>
 
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
