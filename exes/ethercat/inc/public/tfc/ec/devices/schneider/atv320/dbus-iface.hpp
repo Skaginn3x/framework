@@ -661,8 +661,6 @@ private:
   tfc::asio::condition_variable<asio::any_io_executor> drive_error_subscriptable_{ ctx_.get_executor() };
   tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
-  asio::cancellation_signal positive_limit_signal_{};
-  asio::cancellation_signal negative_limit_signal_{};
   asio::cancellation_signal no_drive_error_{};
   logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
 
