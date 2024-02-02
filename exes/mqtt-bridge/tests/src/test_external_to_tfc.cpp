@@ -13,55 +13,66 @@
 #include <test_external_to_tfc.hpp>
 
 namespace tfc::mqtt {
+    namespace asio = boost::asio;
+    namespace ut = boost::ut;
 
-namespace asio = boost::asio;
-namespace ut = boost::ut;
+    auto test_external_to_tfc::test() -> bool {
+        asio::io_context isolated_ctx{};
 
-auto test_external_to_tfc::test() -> bool {
-  asio::io_context isolated_ctx{};
+        using ipc::signal;
+        using ipc::slot;
+        using ipc_ruler::ipc_manager_client_mock;
+        using namespace tfc::ipc::details;
+        using std::chrono::milliseconds;
 
-  using ipc::signal;
-  using ipc::slot;
-  using ipc_ruler::ipc_manager_client_mock;
-  using namespace tfc::ipc::details;
-  using std::chrono::milliseconds;
+        ipc_manager_client_mock ipc_client{isolated_ctx};
+        config::bridge_mock config{isolated_ctx, "test"};
+        config.value().writeable_signals.emplace_back(
+            config::signal_definition{
+                .name = "test_signal",
+                .description = "test_signal",
+                .type = type_e::_bool
+            }
+        );
 
-  ipc_manager_client_mock ipc_client{ isolated_ctx };
-  config::bridge_mock config{ isolated_ctx, "test" };
+        external_to_tfc<ipc_manager_client_mock &, config::bridge_mock> ext_test{isolated_ctx, config, ipc_client};
 
-  external_to_tfc<ipc_manager_client_mock&, config::bridge_mock> ext_test{ isolated_ctx, config, ipc_client };
+        isolated_ctx.run_for(milliseconds{1});
 
-  const slot<type_bool, ipc_manager_client_mock&> recv_slot(isolated_ctx, ext_test.ipc_client_, "test_slot", "",
-                                                            [&](bool) {});
+        ut::expect(false) << "size == " << ext_test.ipc_client_.signals_.size();
 
-  isolated_ctx.run_for(milliseconds{ 1 });
+        const slot<type_bool, ipc_manager_client_mock &> recv_slot(isolated_ctx, ext_test.ipc_client_, "test_slot", "",
+                                                                   [&](bool) {
+                                                                   });
 
-  ext_test.create_outward_signals();
+        isolated_ctx.run_for(milliseconds{1});
 
-  isolated_ctx.run_for(milliseconds{ 1 });
+        ext_test.create_outward_signals();
 
-  ext_test.ipc_client_.connect(ext_test.ipc_client_.slots_[0].name, ext_test.ipc_client_.signals_[0].name,
-                               [&](std::error_code) {});
+        isolated_ctx.run_for(milliseconds{1});
 
-  isolated_ctx.run_for(milliseconds{ 1 });
+        ext_test.ipc_client_.connect(ext_test.ipc_client_.slots_[0].name, ext_test.ipc_client_.signals_[0].name,
+                                     [&](std::error_code) {
+                                     });
 
-  ext_test.receive_new_value("test_signal", true);
+        isolated_ctx.run_for(milliseconds{1});
 
-  isolated_ctx.run_for(milliseconds{ 1 });
+        ext_test.receive_new_value("test_signal", true);
 
-  if (ext_test.ipc_client_.signals_[0].name != "test_mqtt_bridge.def.bool.test_signal") {
-    return false;
-  }
+        isolated_ctx.run_for(milliseconds{1});
 
-  if (ext_test.ipc_client_.slots_[0].name != "test_mqtt_bridge.def.bool.test_slot") {
-    return false;
-  }
+        if (ext_test.ipc_client_.signals_[0].name != "test_mqtt_bridge.def.bool.test_signal") {
+            return false;
+        }
 
-  if (!recv_slot.value().has_value()) {
-    return false;
-  }
+        if (ext_test.ipc_client_.slots_[0].name != "test_mqtt_bridge.def.bool.test_slot") {
+            return false;
+        }
 
-  return recv_slot.value().value();
-}
+        if (!recv_slot.value().has_value()) {
+            return false;
+        }
 
-}  // namespace tfc::mqtt
+        return recv_slot.value().value();
+    }
+} // namespace tfc::mqtt
