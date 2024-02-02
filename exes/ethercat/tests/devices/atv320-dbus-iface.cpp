@@ -573,7 +573,6 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.on_positive_limit_switch(false);
     expect(inst.ctrl.limit_error() == err_enum::success);
   };
-
   "run to positive limit"_test = [] {
     instance inst;
     inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
@@ -600,6 +599,49 @@ auto main(int, char const* const* argv) -> int {
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
     inst.ctrl.on_negative_limit_switch(true);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "forbid run in limit positive switch"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_positive_limit_reached);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]); // need to stop the motor before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "allow run in limit positive switch for negative speed"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctrl.run(-100 * percent, [&inst](const std::error_code& err) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]); // need to stop the motor before the error is propagated
+    inst.ctrl.stop([](std::error_code){});
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "forbid run in limit negative switch"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_negative_limit_switch(true);
+    inst.ctrl.run(-100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_negative_limit_reached);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]); // need to stop the motor before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };

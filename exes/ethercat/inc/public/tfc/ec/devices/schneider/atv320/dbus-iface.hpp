@@ -344,6 +344,17 @@ private:
         token);
   }
 
+  auto run_limitted(bool positive_speedratio) -> bool {
+    using enum motor::errors::err_enum;
+    if (limit_error_ != success) {
+      if (positive_speedratio) {
+        return limit_error_ == positioning_positive_limit_reached;
+      }
+      return limit_error_ == positioning_negative_limit_reached;
+    }
+    return false;
+  }
+
   auto run_impl(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum motor::errors::err_enum;
@@ -357,17 +368,20 @@ private:
       return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
           [](auto& self) { self.complete(motor::motor_error(speedratio_out_of_range)); }, token);
     }
-    // bool const positive_speedratio{ speedratio > 0 * mp_units::percent };
-    // todo early return
     logger_.trace("Run motor at speedratio: {}", speedratio);
     action_ = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
     enum struct state_e : std::uint8_t { run_until_stopped = 0, wait_till_stop, complete };
+    bool const positive_speedratio{ speedratio > 0 * mp_units::percent };
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
-        [this, state = state_e::run_until_stopped](auto& self, std::error_code err = {}) mutable {
+        [this, state = state_e::run_until_stopped, positive_speedratio](auto& self, std::error_code err = {}) mutable {
           switch (state) {
             case state_e::run_until_stopped: {
               state = state_e::wait_till_stop;
+              if (run_limitted(positive_speedratio)) {
+                self(motor::motor_error(limit_error_));
+                return;
+              }
               asio::experimental::make_parallel_group(
                   [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                   [this](auto inner_token) { return this->run_blocker_.async_wait(inner_token); })
@@ -665,7 +679,7 @@ private:
 
   // Motor status
   motor::errors::err_enum drive_error_{};
-  motor::errors::err_enum limit_error_{};
+  motor::errors::err_enum limit_error_{ motor::errors::err_enum::success };
   decifrequency_signed motor_frequency_{};
 };
 
