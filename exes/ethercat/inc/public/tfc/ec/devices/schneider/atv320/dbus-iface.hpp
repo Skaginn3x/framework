@@ -629,9 +629,7 @@ private:
             }
             case state_e::wait_till_stop: {
               state = state_e::complete;
-              if (homing_sensor->value().value_or(false)) {
-                // let's continue to stopping the conveyor since the value of home sensor is high
-              } else if (err == std::errc::operation_canceled) {
+              if (err == std::errc::operation_canceled) {
                 logger_.trace("Move home got cancelled");
                 self.complete(err);
                 return;

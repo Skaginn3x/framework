@@ -611,7 +611,8 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
     });
     inst.ctx.run_for(1ms);
-    expect(!inst.ran[0]); // need to stop the motor before the error is propagated
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
     inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
@@ -625,7 +626,10 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
     });
     inst.ctx.run_for(1ms);
-    expect(!inst.ran[0]); // need to stop the motor before the error is propagated
+    // Now we should be out of the limit switch
+    inst.ctrl.on_positive_limit_switch(false);
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
     inst.ctrl.stop([](std::error_code){});
     inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
@@ -640,7 +644,26 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
     });
     inst.ctx.run_for(1ms);
-    expect(!inst.ran[0]); // need to stop the motor before the error is propagated
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "allow run in limit negative switch for positive speed"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_negative_limit_switch(true);
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    // Now we should be out of the limit switch
+    inst.ctrl.on_negative_limit_switch(false);
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
+    inst.ctrl.stop([](std::error_code){});
     inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
