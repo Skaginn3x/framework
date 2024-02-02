@@ -27,19 +27,11 @@ namespace tfc::mqtt {
 
         ipc_manager_client_mock ipc_client{isolated_ctx};
         config::bridge_mock config{isolated_ctx, "test"};
-        config.value().writeable_signals.emplace_back(
-            config::signal_definition{
-                .name = "test_signal",
-                .description = "test_signal",
-                .type = type_e::_bool
-            }
-        );
-
-        external_to_tfc<ipc_manager_client_mock &, config::bridge_mock> ext_test{isolated_ctx, config, ipc_client};
-
+        config.add_writeable_signal("test_signal", "test_signal", type_e::_bool);
         isolated_ctx.run_for(milliseconds{1});
 
-        ut::expect(false) << "size == " << ext_test.ipc_client_.signals_.size();
+        external_to_tfc<ipc_manager_client_mock &, config::bridge_mock> ext_test{isolated_ctx, config, ipc_client};
+        isolated_ctx.run_for(milliseconds{1});
 
         const slot<type_bool, ipc_manager_client_mock &> recv_slot(isolated_ctx, ext_test.ipc_client_, "test_slot", "",
                                                                    [&](bool) {

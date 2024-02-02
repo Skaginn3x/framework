@@ -39,6 +39,10 @@ public:
     owner_.writeable_signals = {};
   }
 
+  auto add_writeable_signal(std::string name, std::string description, tfc::ipc::details::type_e type) -> void {
+    owner_.writeable_signals.emplace_back(signal_definition{ name, description, type });
+  }
+
   [[nodiscard]] auto value() const -> bridge_owner_mock { return owner_; }
 };
 
