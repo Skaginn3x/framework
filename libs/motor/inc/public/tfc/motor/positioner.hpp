@@ -91,7 +91,7 @@ public:
              config_t&& default_value)
   : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb }, positive_limit_cb_{ std::move(positive_limit_cb) },
     negative_limit_cb_{ std::move(negative_limit_cb) },
-        config_{ ctx_, /*dbus_, TODO apply dbus_ once frontend is fixed */ fmt::format("positioner_{}", name_),
+        config_{ dbus_, fmt::format("positioner_{}", name_),
                  std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
