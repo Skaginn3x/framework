@@ -27,10 +27,9 @@ public:
 
     asio::io_context isolated_ctx{};
 
-    tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{ isolated_ctx };
+    ipc_ruler::ipc_manager_client_mock ipc_mock{ isolated_ctx };
 
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, ipc_mock,
-                                                                                                 "bool_signal");
+    ipc::signal<ipc::details::type_bool, ipc_ruler::ipc_manager_client_mock&> sig(isolated_ctx, ipc_mock, "bool_signal");
 
     isolated_ctx.run_for(milliseconds{ 1 });
 
@@ -38,13 +37,13 @@ public:
 
     isolated_ctx.run_for(milliseconds{ 1 });
 
-    spark_plug_mock sp_mock{ isolated_ctx };
+    config::bridge_mock config{ isolated_ctx, "test" };
 
-    using tfc_to_ext_mock =
-        tfc_to_external<config::publish_signals_mock, config::spark_plug_b_mock,
-                        client<endpoint_client_mock, config::broker_mock>, tfc::ipc_ruler::ipc_manager_client_mock&>;
+    spark_plug_interface<config::bridge_mock, client_mock> sp_mock{ isolated_ctx, config };
 
-    tfc_to_ext_mock tfc_ext_mock{ isolated_ctx, sp_mock, ipc_mock };
+    tfc_to_external<config::bridge_mock, client_mock, ipc_ruler::ipc_manager_client_mock&> tfc_ext_mock{ isolated_ctx,
+                                                                                                         sp_mock, ipc_mock,
+                                                                                                         config };
 
     isolated_ctx.run_for(milliseconds{ 1 });
 

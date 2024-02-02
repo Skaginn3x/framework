@@ -52,22 +52,21 @@ auto main(int argc, char* argv[]) -> int {
   };
 
   "testing spark plug interface"_test = [&]() {
-    tfc::mqtt::spark_plug_mock sp{ io_ctx };
+    tfc::mqtt::config::bridge_mock config{ io_ctx, "test" };
+    tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_mock> sp{ io_ctx, config };
 
     expect(sp.topic_formatter({ "first", "second" }) == "first/second");
   };
 
   "testing tfc to external"_test = [&]() {
     tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{ io_ctx };
-    tfc::mqtt::spark_plug_mock sp{ io_ctx };
 
-    using namespace tfc::mqtt;
+    tfc::mqtt::config::bridge_mock config{ io_ctx, "test" };
+    tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_mock> sp{ io_ctx, config };
 
-    using tfc_to_ext_mock =
-        tfc_to_external<config::publish_signals_mock, config::spark_plug_b_mock,
-                        client<endpoint_client_mock, config::broker_mock>, tfc::ipc_ruler::ipc_manager_client_mock&>;
-
-    tfc_to_ext_mock test_ext{ io_ctx, sp, ipc_mock };
+    tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_mock,
+                               tfc::ipc_ruler::ipc_manager_client_mock&>
+        test_ext{ io_ctx, sp, ipc_mock, config };
 
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
