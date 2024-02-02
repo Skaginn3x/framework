@@ -65,7 +65,8 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 template <typename completion_token_t>
 struct drive_error_first {
   drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error, motor::errors::err_enum& limit_error)
-      : drive_err{ drive_error }, limit_err{ limit_error}, self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {}
+      : drive_err{ drive_error }, limit_err{ limit_error }, self{ std::move(token) },
+        slot{ asio::get_associated_cancellation_slot(self) } {}
 
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
@@ -300,8 +301,7 @@ private:
     if (new_v) {
       limit_error_ = limit_error;
       drive_error_subscriptable_.notify_all();
-    }
-    else if (limit_error_ == limit_error) {
+    } else if (limit_error_ == limit_error) {
       limit_error_ = success;
     }
   }
@@ -322,8 +322,8 @@ private:
     }
     if (motor_frequency_ == 0 * mp_units::si::hertz) {
       logger_.trace("Drive already stopped");
-      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([stop_reason](auto& self) { self.complete(stop_reason); },
-                                                                                       token);
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [stop_reason](auto& self) { self.complete(stop_reason); }, token);
     }
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
         [this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
@@ -332,7 +332,8 @@ private:
             asio::experimental::make_parallel_group(
                 [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                 [this](auto inner_token) { return this->stop_complete_.async_wait(inner_token); })
-                .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_, limit_error_));
+                .async_wait(asio::experimental::wait_for_one(),
+                            detail::drive_error_first(std::move(self), drive_error_, limit_error_));
             return;
           }
           if (stop_reason) {
@@ -385,7 +386,8 @@ private:
               asio::experimental::make_parallel_group(
                   [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                   [this](auto inner_token) { return this->run_blocker_.async_wait(inner_token); })
-                  .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_, limit_error_));
+                  .async_wait(asio::experimental::wait_for_one(),
+                              detail::drive_error_first(std::move(self), drive_error_, limit_error_));
               return;
             }
             case state_e::wait_till_stop: {

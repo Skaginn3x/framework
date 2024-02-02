@@ -630,7 +630,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.on_positive_limit_switch(false);
     expect(!inst.ran[0]);
     // need to stop the motor before the error is propagated
-    inst.ctrl.stop([](std::error_code){});
+    inst.ctrl.stop([](std::error_code) {});
     inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
@@ -663,7 +663,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctrl.on_negative_limit_switch(false);
     expect(!inst.ran[0]);
     // need to stop the motor before the error is propagated
-    inst.ctrl.stop([](std::error_code){});
+    inst.ctrl.stop([](std::error_code) {});
     inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
