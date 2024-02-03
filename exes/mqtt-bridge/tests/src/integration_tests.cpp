@@ -60,9 +60,10 @@ public:
         amep_(async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>::create(
             async_mqtt::protocol_version::v5,
             io_ctx.get_executor())) {
-    resolver_.async_resolve("127.0.0.1", "1965", [this](boost::system::error_code, asio::ip::tcp::resolver::results_type eps) {
-      co_spawn(io_ctx_, handle_resolve(eps), asio::detached);
-    });
+    resolver_.async_resolve("127.0.0.1", "1965",
+                            [this](boost::system::error_code, asio::ip::tcp::resolver::results_type eps) {
+                              co_spawn(io_ctx_, handle_resolve(eps), asio::detached);
+                            });
   }
 
   auto handle_resolve(asio::ip::tcp::resolver::results_type eps) -> asio::awaitable<void> {
