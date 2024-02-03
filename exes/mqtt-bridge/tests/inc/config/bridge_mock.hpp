@@ -19,7 +19,7 @@ struct bridge_owner_mock {
   std::string group_id{};
   std::vector<signal_definition> writeable_signals{};
 
-  static auto get_port() -> std::string { return "1883"; }
+  static auto get_port() -> std::string { return "1965"; }
 };
 
 class bridge_mock {
