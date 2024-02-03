@@ -20,9 +20,9 @@ namespace asio = boost::asio;
 
 namespace tfc::mqtt {
 
-template <class config_t = tfc::confman::config<tfc::mqtt::config::bridge>,
-          class mqtt_client_t = tfc::mqtt::client_n,
-          class ipc_client_t = tfc::ipc_ruler::ipc_manager_client>
+template <class config_t = confman::config<config::bridge>,
+          class mqtt_client_t = client_n,
+          class ipc_client_t = ipc_ruler::ipc_manager_client>
 class run {
 public:
   explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}
