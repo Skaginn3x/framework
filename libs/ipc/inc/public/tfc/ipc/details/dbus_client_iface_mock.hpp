@@ -12,6 +12,8 @@
 #include <system_error>
 #include <unordered_map>
 
+#include <fmt/core.h>
+
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/dbus_structs.hpp>
 #include <tfc/ipc/enums.hpp>
@@ -49,13 +51,13 @@ struct ipc_manager_client_mock {
     handler(std::error_code());
   }
 
-  auto connect(const std::string& slot_name,
-               const std::string& signal_name,
+  auto connect(std::string_view slot_name,
+               std::string_view signal_name,
                stx::invocable<const std::error_code&> auto&& handler) -> void {
     for (auto& slot : slots_) {
       if (slot.name == slot_name) {
         slot.connected_to = signal_name;
-        auto iterator = slot_callbacks.find(slot_name);
+        auto iterator = slot_callbacks.find(std::string{ slot_name });
         if (iterator != slot_callbacks.end()) {
           std::invoke(iterator->second, signal_name);
         }
@@ -64,7 +66,7 @@ struct ipc_manager_client_mock {
         return;
       }
     }
-    throw std::runtime_error("Signal not found in mocking list signal_name: " + signal_name + " slot_name: " + slot_name);
+    throw std::runtime_error(fmt::format("Signal not found in mocking list signal_name: {},  slot_name: {}", signal_name, slot_name));
   }
 
   auto slots(stx::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(slots_); }

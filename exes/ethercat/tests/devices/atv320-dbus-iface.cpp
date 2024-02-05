@@ -590,6 +590,30 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
+  "positive limit same as homing sensor"_test = [] {
+    instance inst;
+    inst.populate_homing_sensor();
+
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sensor{ inst.ctx, inst.manager, "foo" };
+    inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), sensor.full_name(), [](std::error_code){});
+    inst.manager.connect(inst.ctrl.positioner().positive_limit_switch()->full_name(), sensor.full_name(), [](std::error_code){});
+
+    // Duplicate of move home test almost, but using limit switch
+    inst.sig.send(false);
+    inst.ctrl.move_home([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.ctrl.on_positive_limit_switch(true); // explicit limit switch activation
+    // inst.sig.send(true);
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    // inst.ctrl.on_positive_limit_switch()
+  };
   "run to negative limit"_test = [] {
     instance inst;
     inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
