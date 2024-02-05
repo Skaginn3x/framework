@@ -108,11 +108,10 @@ public:
 
 private:
   void client_init(std::string_view description) {
-    client_.register_connection_change_callback(
-        full_name(), [this](std::string_view signal_name) {
-          connected_signal_ = signal_name;
-          slot_->connect(signal_name, filters_);
-        });
+    client_.register_connection_change_callback(full_name(), [this](std::string_view signal_name) {
+      connected_signal_ = signal_name;
+      slot_->connect(signal_name, filters_);
+    });
 
     client_.register_slot_retry(full_name(), description, type_desc::value_e);
 

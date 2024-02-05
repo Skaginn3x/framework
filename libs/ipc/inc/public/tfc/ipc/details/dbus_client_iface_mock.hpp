@@ -66,7 +66,8 @@ struct ipc_manager_client_mock {
         return;
       }
     }
-    throw std::runtime_error(fmt::format("Signal not found in mocking list signal_name: {},  slot_name: {}", signal_name, slot_name));
+    throw std::runtime_error(
+        fmt::format("Signal not found in mocking list signal_name: {},  slot_name: {}", signal_name, slot_name));
   }
 
   auto slots(stx::invocable<const std::vector<slot>&> auto&& handler) -> void { handler(slots_); }

@@ -594,9 +594,11 @@ auto main(int, char const* const* argv) -> int {
     instance inst;
     inst.populate_homing_sensor();
 
-    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sensor{ inst.ctx, inst.manager, "foo" };
-    inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), sensor.full_name(), [](std::error_code){});
-    inst.manager.connect(inst.ctrl.positioner().positive_limit_switch()->full_name(), sensor.full_name(), [](std::error_code){});
+    tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> sensor{ inst.ctx, inst.manager,
+                                                                                                     "foo" };
+    inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), sensor.full_name(), [](std::error_code) {});
+    inst.manager.connect(inst.ctrl.positioner().positive_limit_switch()->full_name(), sensor.full_name(),
+                         [](std::error_code) {});
 
     // Duplicate of move home test almost, but using limit switch
     inst.sig.send(false);
@@ -608,7 +610,7 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     inst.ctrl.update_status(get_good_status_running());
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
-    inst.ctrl.on_positive_limit_switch(true); // explicit limit switch activation
+    inst.ctrl.on_positive_limit_switch(true);  // explicit limit switch activation
     // inst.sig.send(true);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
