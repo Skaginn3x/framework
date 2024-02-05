@@ -32,9 +32,10 @@ struct stub {
   struct config {
     explicit config() = default;
     using impl = stub;
+    static constexpr std::string_view name{ "stub" };
     struct glaze {
       using T = config;
-      static constexpr auto value = glz::object();
+      static constexpr auto value = glz::object("name", &T::name);
       static constexpr std::string_view name{ "stub DONT PICK" };
     };
     auto operator==(const config&) const noexcept -> bool = default;
