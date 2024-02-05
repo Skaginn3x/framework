@@ -396,6 +396,24 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 
     expect(called);
   } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };
+
+  "NOT missing event if going forward and then backwards"_test = [](auto event) {
+    bool called{};
+    encoder_test test{ .cb = [&called, first_call = true](auto, auto, auto, tfc::motor::errors::err_enum err) mutable {
+      if (first_call) {
+        first_call = false;
+        return;
+      }
+      called = true;
+      auto const expected{ tfc::motor::errors::err_enum::success };
+      expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+    } };
+
+    test.encoder.update(1, true, false, event);
+    test.encoder.update(-1, true, false, event);
+
+    expect(called);
+  } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };
 };
 
 // clang-format off
