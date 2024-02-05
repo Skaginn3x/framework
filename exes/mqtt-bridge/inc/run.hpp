@@ -35,10 +35,6 @@ namespace tfc::mqtt {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
         }
 
-        //  ~run() {
-        //      io_ctx_.stop();
-        //  }
-
         auto start() -> asio::awaitable<void> {
             while (true) {
                 restart_needed_ = false;
@@ -47,9 +43,7 @@ namespace tfc::mqtt {
                 logger.trace("Event loop started");
 
                 sp_interface_.emplace(io_ctx_, config_);
-
                 tfc_to_exter_.emplace(io_ctx_, sp_interface_.value(), ipc_client_, config_, restart_needed_);
-
                 exter_to_tfc_.emplace(io_ctx_, config_, ipc_client_);
 
                 bool connection_success = co_await sp_interface_->connect_mqtt_client();
@@ -69,7 +63,8 @@ namespace tfc::mqtt {
                 tfc_to_exter_->set_signals();
 
                 sp_interface_->
-                        set_value_change_callback(std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_.value()));
+                        set_value_change_callback(
+                            std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_.value()));
 
                 co_await asio::steady_timer{io_ctx_, std::chrono::seconds{1}}.async_wait(asio::use_awaitable);
 
@@ -77,8 +72,9 @@ namespace tfc::mqtt {
 
                 co_spawn(
                     sp_interface_->strand(),
-                    sp_interface_->wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_.value()),
-                                                    restart_needed_),
+                    sp_interface_->wait_for_payloads(
+                        std::bind_front(&spark_plug::process_payload, &sp_interface_.value()),
+                        restart_needed_),
                     bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
                 io_ctx_.run_for(std::chrono::seconds{1});
@@ -92,12 +88,7 @@ namespace tfc::mqtt {
                 cancel_signal.emit(asio::cancellation_type::all);
 
                 io_ctx_.run_for(std::chrono::seconds{1});
-
-               //  sp_interface_ = std::nullopt;
-               //  tfc_to_exter_ = std::nullopt;
-               //  exter_to_tfc_ = std::nullopt;
             }
-            co_return;
         }
 
         auto config() -> config_t & { return config_; }
