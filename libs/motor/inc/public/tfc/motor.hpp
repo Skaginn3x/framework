@@ -155,7 +155,7 @@ public:
   /// \param token completion token to notify when motor sends quick_stop command
   /// notification supplies travel_t with actual travel that took place
   /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
-  template <QuantityOf<mp_units::isq::length> travel_t>
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
   auto convey(QuantityOf<mp_units::isq::velocity> auto velocity,
               travel_t length,
               asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
@@ -180,7 +180,7 @@ public:
   /// \param token completion token to notify when motor sends quick_stop command
   /// notification supplies travel_t with actual travel that took place
   /// \note that when the motor sends the quick_stop command and calls the token the motor is still moving
-  template <QuantityOf<mp_units::isq::length> travel_t>
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t>
   auto convey(travel_t length, asio::completion_token_for<void(std::error_code, travel_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, travel_t)>::return_type;
 

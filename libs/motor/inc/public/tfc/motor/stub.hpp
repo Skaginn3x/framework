@@ -2,7 +2,6 @@
 #include <string>
 
 #include <boost/asio.hpp>
-
 #include <mp-units/format.h>
 #include <mp-units/ostream.h>
 #include <mp-units/systems/isq/isq.h>
@@ -78,11 +77,13 @@ struct stub {
         token);
   }
 
-  template <QuantityOf<mp_units::isq::length> travel_t, typename signature_t = void(std::error_code, travel_t)>
+  template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t, typename signature_t = void(std::error_code, travel_t)>
   auto convey(travel_t, asio::completion_token_for<signature_t> auto&& token) {
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
-          tokens.async_wait([this, self_m = std::move(self)](const std::error_code&) mutable { self_m.complete(code, value_cast<typename travel_t::rep, travel_t::reference>(length)); });
+          tokens.async_wait([this, self_m = std::move(self)](const std::error_code&) mutable {
+            self_m.complete(code, value_cast<typename travel_t::rep, travel_t::reference>(this->length));
+          });
         },
         token);
   }

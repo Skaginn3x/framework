@@ -93,12 +93,16 @@ int main(int, char** argv) {
     std::shared_ptr<tfc::motor::api::config_t> motor_conf = std::make_shared<tfc::motor::api::config_t>(tfc::motor::types::stub::config_t{});
     tfc::motor::api motor_api(i.conn, "", motor_conf);
     auto& stub = motor_api.stub();
-    motor_api.convey(1 * m, [&](auto ec, auto travel) { i.res = ec; i.length = travel; });
-    stub.code = motor_error(frequency_drive_communication_fault);
+    stub.code = motor_error(frequency_drive_reports_fault);
     stub.length = 10 * mm;
+    motor_api.convey(1 * micrometre_t::reference, [&](auto ec, auto travel) {
+      i.res = ec;
+      i.length = travel;
+      std::cout << travel << std::endl;
+    });
     stub.tokens.notify_one();
     i.ctx.run_for(2ms);
-    expect(i.res == motor_error(frequency_drive_communication_fault));
+    expect(i.res == motor_error(frequency_drive_reports_fault));
     expect(i.length == 10 * mm) << i.length;
   };
 }
