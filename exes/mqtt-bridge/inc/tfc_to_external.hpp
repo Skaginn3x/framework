@@ -22,6 +22,16 @@ namespace tfc::mqtt {
     template<class config_t, class mqtt_client_t, class ipc_client_t>
     class tfc_to_external {
     public:
+        ~tfc_to_external() {
+            //   if (match_object_) {
+            //       match_object_->reset();
+            //       match_object_ = std::nullopt;
+            //   }
+
+//             sdbusplus::bus::match::match *raw = match_object_.release(); // pointer to no-longer-managed object
+//             delete raw; // needs manual deletion
+        }
+
         explicit tfc_to_external(asio::io_context &io_ctx,
                                  spark_plug_interface<config_t, mqtt_client_t> &spark_plug_i,
                                  config_t &config)
@@ -31,9 +41,15 @@ namespace tfc::mqtt {
         explicit tfc_to_external(asio::io_context &io_ctx,
                                  spark_plug_interface<config_t, mqtt_client_t> &spark_plug_i,
                                  ipc_client_t ipc_client,
-                                 config_t &config)
-            : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), config_(config), ipc_client_(ipc_client) {
+                                 config_t &config,
+                                 bool &restart_needed
+        )
+            : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), config_(config), ipc_client_(ipc_client),
+              restart_needed_(restart_needed) {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
+            // match_object_ =
+                ipc_client_.register_properties_change_callback(
+                std::bind_front(&tfc_to_external::foo, this));
         }
 
         /// This function converts tfc types to Spark Plug B types
@@ -79,9 +95,12 @@ namespace tfc::mqtt {
                 });
         }
 
-        auto register_signal_change_callback(bool &ipc_ruler_changed) -> void {
-            match_object_ = ipc_client_.register_properties_change_callback(
-                [&ipc_ruler_changed](sdbusplus::message_t &) { ipc_ruler_changed = true; });
+
+        //         auto register_signal_change_callback() -> void {
+        //         }
+
+        auto foo(sdbusplus::message_t &) -> void {
+            restart_needed_ = true;
         }
 
         auto is_publish_signal(std::string signal_name) -> bool {
@@ -165,10 +184,11 @@ namespace tfc::mqtt {
         spark_plug_interface<config_t, mqtt_client_t> &spark_plug_interface_;
         config_t &config_;
         ipc_client_t ipc_client_;
+        bool &restart_needed_;
         logger::logger logger_{"tfc_to_external"};
         std::vector<ipc::details::any_slot_cb> signals_;
         std::vector<structs::spark_plug_b_variable> spb_variables_;
-        std::unique_ptr<sdbusplus::bus::match::match> match_object_;
+        // std::unique_ptr<sdbusplus::bus::match::match> match_object_;
 
         friend class test_tfc_to_external;
     };

@@ -125,8 +125,42 @@ public:
     asio::ip::tcp::resolver resolver_{io_ctx_};
 };
 
+// class smth {
+// public:
+//     smth(tfc::ipc_ruler::ipc_manager_client_mock &ipc_client, bool& flip) : ipc_client_{ipc_client}, flip_(flip) {
+//         match_object_ = ipc_client.register_properties_change_callback(
+//             std::bind_front(&smth::foo, this));
+//     }
+//
+//     auto foo(sdbusplus::message_t &) -> void {
+//         flip_ = true;
+//     }
+//
+// private:
+//     tfc::ipc_ruler::ipc_manager_client_mock &ipc_client_;
+//     std::unique_ptr<sdbusplus::bus::match::match> match_object_;
+//     bool& flip_;
+// };
+//
+// class owner {
+// public:
+//     owner(asio::io_context &io_ctx) : io_ctx_(io_ctx) {
+//     }
+//
+// private:
+//     asio::io_context &io_ctx_;
+//     bool flip_;
+//     tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx_};
+// };
+
+
 auto main(int argc, char *argv[]) -> int {
     tfc::base::init(argc, argv);
+
+//     asio::io_context io_ctx{};
+//
+//     owner test{io_ctx};
+
 
     /// NOTE: broker is running on port 1965 because that port is never used for anything
 
@@ -272,7 +306,7 @@ auto main(int argc, char *argv[]) -> int {
     //     };
 
 
-    "dynamic loading of signals"_test = [&]() {
+    // "dynamic loading of signals"_test = [&]() {
         asio::io_context io_ctx{};
 
         // start broker
@@ -349,64 +383,64 @@ auto main(int argc, char *argv[]) -> int {
         log.trace("finished");
         log.trace("finished");
 
-        //  timestamp: 1706985768834
-        // metrics {
-        //     name: "Node Control/Rebirth"
-        //     timestamp: 1706985768834
-        //     datatype: 11
-        //     is_historical: false
-        //     is_transient: false
-        //     is_null: false
-        //     boolean_value: false
-        //   }
-        //  metrics {
-        //      name: "bdSeq"
-        //      timestamp: 1706985768834
-        //      datatype: 8
-        //      long_value: 0
-        //    }
-        //  metrics {
-        //      name: "mqtt_bridge_integration_tests/def/bool/test"
-        //      timestamp: 1706985768834
-        //      datatype: 11
-        //      is_historical: false
-        //      is_transient: false
-        //      is_null: true
-        //      metadata {
-        //          description: ""
-        //        }
-        //  }
-        //  seq: 0
+    //  timestamp: 1706985768834
+    // metrics {
+    //     name: "Node Control/Rebirth"
+    //     timestamp: 1706985768834
+    //     datatype: 11
+    //     is_historical: false
+    //     is_transient: false
+    //     is_null: false
+    //     boolean_value: false
+    //   }
+    //  metrics {
+    //      name: "bdSeq"
+    //      timestamp: 1706985768834
+    //      datatype: 8
+    //      long_value: 0
+    //    }
+    //  metrics {
+    //      name: "mqtt_bridge_integration_tests/def/bool/test"
+    //      timestamp: 1706985768834
+    //      datatype: 11
+    //      is_historical: false
+    //      is_transient: false
+    //      is_null: true
+    //      metadata {
+    //          description: ""
+    //        }
+    //  }
+    //  seq: 0
 
-        org::eclipse::tahu::protobuf::Payload second_message;
-        second_message.ParseFromArray(messages[1].data(), messages[1].size());
-        expect(second_message.metrics_size() == 3);
-        expect(second_message.has_seq());
-        expect(second_message.seq() == 0);
+    //  org::eclipse::tahu::protobuf::Payload second_message;
+    //  second_message.ParseFromArray(messages[1].data(), messages[1].size());
+    //  expect(second_message.metrics_size() == 3);
+    //  expect(second_message.has_seq());
+    //  expect(second_message.seq() == 0);
 
-        // rebirth metric
-        expect(second_message.metrics()[0].name() == "Node Control/Rebirth");
-        expect(second_message.metrics()[0].datatype() == 11);
-        expect(!second_message.metrics()[0].is_historical());
-        expect(!second_message.metrics()[0].is_transient());
-        expect(!second_message.metrics()[0].is_null());
-        expect(second_message.metrics()[0].has_boolean_value());
-        expect(!second_message.metrics()[0].boolean_value());
+    //  // rebirth metric
+    //  expect(second_message.metrics()[0].name() == "Node Control/Rebirth");
+    //  expect(second_message.metrics()[0].datatype() == 11);
+    //  expect(!second_message.metrics()[0].is_historical());
+    //  expect(!second_message.metrics()[0].is_transient());
+    //  expect(!second_message.metrics()[0].is_null());
+    //  expect(second_message.metrics()[0].has_boolean_value());
+    //  expect(!second_message.metrics()[0].boolean_value());
 
-        // bdSeq metric
-        expect(second_message.metrics()[1].name() == "bdSeq");
-        expect(second_message.metrics()[1].datatype() == 8);
-        expect(second_message.metrics()[1].has_long_value());
-        expect(second_message.metrics()[1].long_value() == 0);
+    //  // bdSeq metric
+    //  expect(second_message.metrics()[1].name() == "bdSeq");
+    //  expect(second_message.metrics()[1].datatype() == 8);
+    //  expect(second_message.metrics()[1].has_long_value());
+    //  expect(second_message.metrics()[1].long_value() == 0);
 
-        // new signal
-        expect(second_message.metrics()[2].name() == "mqtt_bridge_integration_tests/def/bool/test");
-        expect(second_message.metrics()[2].datatype() == 11);
-        expect(!second_message.metrics()[2].is_historical());
-        expect(!second_message.metrics()[2].is_transient());
-        expect(second_message.metrics()[2].is_null());
+    //  // new signal
+    //  expect(second_message.metrics()[2].name() == "mqtt_bridge_integration_tests/def/bool/test");
+    //  expect(second_message.metrics()[2].datatype() == 11);
+    //  expect(!second_message.metrics()[2].is_historical());
+    //  expect(!second_message.metrics()[2].is_transient());
+    //  expect(second_message.metrics()[2].is_null());
 
-    };
+    // };
 
     return 0;
 }

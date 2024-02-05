@@ -35,6 +35,10 @@ namespace tfc::mqtt {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
         }
 
+        ~run() {
+            io_ctx_.stop();
+        }
+
         auto start() -> asio::awaitable<void> {
             while (true) {
                 restart_needed_ = false;
@@ -45,7 +49,7 @@ namespace tfc::mqtt {
                 spark_plug sp_interface_{io_ctx_, config_};
 
                 tfc_to_ext tfc_to_exter_{
-                    io_ctx_, sp_interface_, ipc_client_, config_
+                    io_ctx_, sp_interface_, ipc_client_, config_, restart_needed_
                 };
 
                 ext_to_tfc exter_to_tfc_{io_ctx_, config_, ipc_client_};
@@ -66,7 +70,7 @@ namespace tfc::mqtt {
 
                 tfc_to_exter_.set_signals();
 
-                tfc_to_exter_.register_signal_change_callback(restart_needed_);
+                // tfc_to_exter_.register_signal_change_callback(restart_needed_);
 
                 sp_interface_.
                         set_value_change_callback(std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_));
