@@ -27,10 +27,6 @@ class mqtt_broker {
 public:
     explicit mqtt_broker(asio::io_context &io_ctx) : io_ctx_(io_ctx) { mqtt_async_accept(); }
 
-    ~mqtt_broker() {
-        std::cout << "destructor for mqtt_broker" << std::endl;
-    }
-
     auto mqtt_async_accept() -> void {
         endpoint_ = async_mqtt::endpoint<async_mqtt::role::server, async_mqtt::protocol::mqtt>::create(
             async_mqtt::protocol_version::undetermined, io_ctx_.get_executor());
@@ -68,10 +64,6 @@ public:
                                 [this](boost::system::error_code, asio::ip::tcp::resolver::results_type eps) {
                                     co_spawn(io_ctx_, handle_resolve(eps), asio::detached);
                                 });
-    }
-
-    ~mqtt_client() {
-        std::cout << "destructor for mqtt_client" << std::endl;
     }
 
     auto handle_resolve(asio::ip::tcp::resolver::results_type eps) -> asio::awaitable<void> {

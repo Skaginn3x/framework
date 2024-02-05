@@ -22,20 +22,12 @@ namespace tfc::mqtt {
     template<class config_t, class mqtt_client_t, class ipc_client_t>
     class tfc_to_external {
     public:
-        ~tfc_to_external() {
-            //   if (match_object_) {
-            //       match_object_->reset();
-            //       match_object_ = std::nullopt;
-            //   }
-
-//             sdbusplus::bus::match::match *raw = match_object_.release(); // pointer to no-longer-managed object
-//             delete raw; // needs manual deletion
-        }
-
-        explicit tfc_to_external(asio::io_context &io_ctx,
-                                 spark_plug_interface<config_t, mqtt_client_t> &spark_plug_i,
-                                 config_t &config)
-            : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), config_(config), ipc_client_(io_ctx_) {
+        explicit tfc_to_external(asio::io_context &io_ctx, spark_plug_interface<config_t, mqtt_client_t> &spark_plug_i,
+                                 config_t &config, bool &restart_needed) : io_ctx_(io_ctx),
+                                                                           spark_plug_interface_(spark_plug_i),
+                                                                           config_(config),
+                                                                           restart_needed_(restart_needed),
+                                                                           ipc_client_(io_ctx_) {
         }
 
         explicit tfc_to_external(asio::io_context &io_ctx,
@@ -48,8 +40,8 @@ namespace tfc::mqtt {
               restart_needed_(restart_needed) {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
             // match_object_ =
-                ipc_client_.register_properties_change_callback(
-                std::bind_front(&tfc_to_external::foo, this));
+                    ipc_client_.register_properties_change_callback(
+                        std::bind_front(&tfc_to_external::foo, this));
         }
 
         /// This function converts tfc types to Spark Plug B types
