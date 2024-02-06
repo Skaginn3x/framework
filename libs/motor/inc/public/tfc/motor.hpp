@@ -320,7 +320,6 @@ public:
 private:
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> connection_;
-
   using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor, types::stub>;
   implementations impl_;
   config_internal_t config_;
