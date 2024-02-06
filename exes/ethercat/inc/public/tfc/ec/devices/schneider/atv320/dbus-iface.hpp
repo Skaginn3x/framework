@@ -262,7 +262,6 @@ struct controller {
     if (pos_.positive_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
       if (pos_.positive_limit_switch().value().connection() == pos_.homing_sensor().value().connection()) {
         homing_complete_.notify_all();
-        return;
       }
     }
     on_limit_switch(new_v, motor::errors::err_enum::positioning_positive_limit_reached);

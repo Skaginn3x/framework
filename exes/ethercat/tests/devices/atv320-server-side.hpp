@@ -118,6 +118,7 @@ struct instance {
     tfc::confman::stub_config<positioner_t::config_t, tfc::confman::file_storage<positioner_t::config_t>,
                               tfc::confman::detail::config_dbus_client>& config = ctrl.positioner().config_ref();
     config.access().needs_homing_after = home_travel_t{ 1000000 * mm };  // 1 km
+    config.access().limit_switches = tfc::motor::positioner::limit_switch_e::limit_switches_optional;
     auto mode = tfc::motor::positioner::encoder_config<nano<metre>>{};
     mode.displacement_per_increment = displacement;
     config.access().mode = mode;
