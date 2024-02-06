@@ -1,0 +1,85 @@
+{
+  "name": "tfc_ipc",
+  "version": "2023.11.1",
+  "description": "",
+  "homepage": "./",
+  "dependencies": {
+    "@babel/core": "7.21.8",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.0",
+    "@emotion/styled": "^11.11.0",
+    "@hpcc-js/wasm": "^2.14.1",
+    "@mui/icons-material": "^5.13.7",
+    "@mui/material": "^5.13.7",
+    "@patternfly/react-core": "^5.0.1",
+    "@patternfly/react-icons": "^5.0.1",
+    "@patternfly/react-styles": "^5.0.1",
+    "@patternfly/react-table": "^5.0.1",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/js-quantities": "^1.6.4",
+    "@types/node": "^16.11.45",
+    "@types/react": "^18.0.15",
+    "@types/react-dom": "^18.0.6",
+    "@types/react-modal": "^3.13.1",
+    "@ui-schema/ds-material": "^0.4.1",
+    "@ui-schema/ui-schema": "^0.4.5",
+    "bootstrap": "^5.3.0",
+    "bootstrap-icons": "^1.10.5",
+    "hamburger-react": "^2.5.0",
+    "html-react-parser": "^5.0.3",
+    "immutable": "^4.3.0",
+    "js-quantities": "^1.8.0",
+    "mathjs": "^11.8.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-draggable": "^4.4.6",
+    "react-icons": "^4.4.0",
+    "react-jwt": "^1.1.6",
+    "react-modal": "^3.15.1",
+    "react-router": "^6.3.0",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "5.0.1",
+    "react-uid": "^2.3.3",
+    "typescript": "^4.7.4",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "GENERATE_SOURCEMAP=false BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json",
+    "dev": "GENERATE_SOURCEMAP=false react-scripts build && react-scripts start",
+    "devbuild": "REACT_APP_INCLUDE_DEBUG=true GENERATE_SOURCEMAP=true BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json && node ./install/create_link.js",
+    "eject": "react-scripts eject",
+    "lint": "./node_modules/.bin/eslint"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.59.9",
+    "@typescript-eslint/parser": "^5.59.9",
+    "eslint": "^8.42.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  }
+}

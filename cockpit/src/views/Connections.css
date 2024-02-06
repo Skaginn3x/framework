@@ -1,0 +1,23 @@
+.pf-v5-c-tree-view__node-toggle {
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   padding-right: 0.5rem;
+   /* Adjust the padding as needed */
+}
+
+.pf-v5-c-tree-view__node-toggle-icon {
+   margin-left: 0.5rem;
+   /* Adjust the margin as needed */
+}
+
+.TableDiv {
+   width: 95vw;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+}
+
+.MuiFormControl-root {
+   align-items: center;
+}

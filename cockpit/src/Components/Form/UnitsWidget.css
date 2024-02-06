@@ -1,0 +1,10 @@
+.RequiredText {
+   text-align: left;
+   max-width: 13rem;
+   color: rgb(211, 47, 47);
+   font-size: 0.8rem;
+   padding: 0rem;
+}
+.MuiInputBase-root.MuiOutlinedInput-root.MuiInputBase-colorPrimary.MuiInputBase-formControl {
+   width:100%;
+}

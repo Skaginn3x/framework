@@ -1,0 +1,85 @@
+.normalRow {
+   outline: none;
+   --pf-c-table--cell--PaddingTop: 0.7rem;
+   --pf-c-table--cell--PaddingBottom: 0.7rem;
+}
+
+.smallRow {
+   outline: none;
+   --pf-c-table--cell--PaddingTop: 0.1rem;
+   --pf-c-table--cell--PaddingBottom: 0.1rem;
+}
+
+.selectionCell {
+   align-items: center !important;
+   display: flex !important;
+   justify-content: center !important;
+   padding: 8px !important;
+   max-width: 800px !important;
+   width: 99% !important;
+   height: 50px !important;
+   margin: 0px !important;
+}
+
+.topLevelCell {
+   width: 0px !important;
+   padding: 0px !important;
+}
+
+.selectionHover:hover {
+   background-color: #f0f0f0 !important;
+   cursor: pointer !important;
+}
+.selectionHoverSignal:hover {
+   background-color: #e4e4e4 !important;
+   cursor: pointer !important;
+}
+
+.darkSelectionHover:hover {
+   background-color: #666 !important;
+   cursor: pointer !important;
+}
+
+.darkSelectionHoverSignal:hover {
+   background-color: #777 !important;
+   cursor: pointer !important;
+}
+
+.smallSelectionCell {
+   align-items: center !important;
+   display: flex !important;
+   justify-content: center !important;
+   max-width: 3rem !important;
+   padding: 8px !important;
+   width: 3rem !important;
+   height: 100% !important;
+   margin: 0px !important;
+}
+
+.pf-v5-c-table .pf-m-truncate,
+.pf-v5-c-table thead {
+   --pf-c-table--cell--MinWidth: 2rem;
+   padding-left: 1rem !important
+}
+
+.pf-v5-c-table__td {
+   font-size: 0.95rem !important;
+   padding: 0.2rem 0.5rem !important;
+   
+}
+.pf-v5-c-table {
+   text-align: left;
+}
+
+.pf-v5-c-table tr> :first-child {
+   --pf-c-table--cell--PaddingLeft: 1rem;
+}
+
+
+.wideModal {
+   --pf-c-modal-box--Width: 90% !important;
+}
+
+.pf-v5-c-table__td.pf-v5-c-table__check > label{
+   margin-left: 0rem !important;
+}
