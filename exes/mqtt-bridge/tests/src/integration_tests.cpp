@@ -410,7 +410,7 @@ auto main(int argc, char *argv[]) -> int {
                     tfc::ipc_ruler::ipc_manager_client_mock &>
                 running{io_ctx, ipc_client};
 
-        running.config().add_banned_signal("mqtt_bridge_integration_tests/def/bool/test");
+        running.config().add_banned_signal("mqtt_bridge_integration_tests.def.bool.test");
 
         co_spawn(io_ctx, running.start(), asio::detached);
         io_ctx.run_for(std::chrono::milliseconds{50});
@@ -440,12 +440,11 @@ auto main(int argc, char *argv[]) -> int {
 
         // new signal
         expect(nbirth_message.metrics()[2].name() == "mqtt_bridge_integration_tests/def/string/test");
-        expect(nbirth_message.metrics()[2].datatype() == 11);
+        expect(nbirth_message.metrics()[2].datatype() == 12);
         expect(!nbirth_message.metrics()[2].is_historical());
         expect(!nbirth_message.metrics()[2].is_transient());
         expect(nbirth_message.metrics()[2].is_null());
     };
-
 
     return 0;
 }

@@ -153,6 +153,8 @@ namespace tfc::mqtt {
             spark_plug_interface_.send_current_values();
         }
 
+        auto get_signals() -> std::vector<tfc::ipc::details::any_slot_cb> & { return signals_; }
+
     private:
         asio::io_context &io_ctx_;
         spark_plug_interface<config_t, mqtt_client_t> &spark_plug_interface_;
