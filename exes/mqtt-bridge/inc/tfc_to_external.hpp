@@ -23,25 +23,12 @@ namespace tfc::mqtt {
     class tfc_to_external {
     public:
         explicit tfc_to_external(asio::io_context &io_ctx, spark_plug_interface<config_t, mqtt_client_t> &spark_plug_i,
-                                 config_t &config, bool &restart_needed) : io_ctx_(io_ctx),
-                                                                           spark_plug_interface_(spark_plug_i),
-                                                                           config_(config),
-                                                                           restart_needed_(restart_needed),
-                                                                           ipc_client_(io_ctx_) {
-        }
-
-        explicit tfc_to_external(asio::io_context &io_ctx,
-                                 spark_plug_interface<config_t, mqtt_client_t> &spark_plug_i,
-                                 ipc_client_t ipc_client,
-                                 config_t &config,
-                                 bool &restart_needed
-        )
-            : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), config_(config), ipc_client_(ipc_client),
-              restart_needed_(restart_needed) {
+                                 ipc_client_t ipc_client, config_t &config, bool &restart_needed) : io_ctx_(io_ctx),
+            spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client), config_(config),
+            restart_needed_(restart_needed) {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
-            // match_object_ =
-                    ipc_client_.register_properties_change_callback(
-                        std::bind_front(&tfc_to_external::foo, this));
+            match_object_ = ipc_client_.register_properties_change_callback(
+                std::bind_front(&tfc_to_external::foo, this));
         }
 
         /// This function converts tfc types to Spark Plug B types
@@ -97,19 +84,18 @@ namespace tfc::mqtt {
 
         auto is_publish_signal(std::string signal_name) -> bool {
             // check if signal is a writeable signal
+            for (const auto &banned_signal: config_.value().banned_signals) {
+                if (banned_signal.value == signal_name) {
+                    logger_.trace("Signal {} is in the list of banned signals", signal_name);
+                    return false;
+                }
+            }
             if (signal_name.starts_with(base::get_exe_name())) {
                 logger_.trace("Signal is a writeable signal");
                 return true;
             }
-
-            for (const auto &publish_signal: config_.value().publish_signals) {
-                if (publish_signal.value == signal_name) {
-                    logger_.trace("Signal {} is in the list of signals to publish", signal_name);
-                    return true;
-                }
-            }
-            logger_.trace("Signal {} is not in the list of signals to publish", signal_name);
-            return false;
+            logger_.trace("Signal {} is not in the banned list", signal_name);
+            return true;
         }
 
         auto handle_incoming_signals_from_ipc_client(std::vector<ipc_ruler::signal> const &signals) -> void {
@@ -167,20 +153,16 @@ namespace tfc::mqtt {
             spark_plug_interface_.send_current_values();
         }
 
-        auto get_signals() -> std::vector<ipc::details::any_slot_cb> & { return signals_; }
-
-        auto clear_signals() -> void { signals_.clear(); }
-
     private:
         asio::io_context &io_ctx_;
         spark_plug_interface<config_t, mqtt_client_t> &spark_plug_interface_;
-        config_t &config_;
         ipc_client_t ipc_client_;
+        config_t &config_;
         bool &restart_needed_;
         logger::logger logger_{"tfc_to_external"};
         std::vector<ipc::details::any_slot_cb> signals_;
         std::vector<structs::spark_plug_b_variable> spb_variables_;
-        // std::unique_ptr<sdbusplus::bus::match::match> match_object_;
+        std::unique_ptr<sdbusplus::bus::match::match> match_object_;
 
         friend class test_tfc_to_external;
     };

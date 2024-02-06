@@ -21,15 +21,13 @@ namespace asio = boost::asio;
 namespace tfc::mqtt {
     template<class config_t = confman::config<config::bridge>,
         class mqtt_client_t = client_n,
-        class ipc_client_t = ipc_ruler::ipc_manager_client>
+        class ipc_client_t = ipc_ruler::ipc_manager_client&>
     class run {
         using spark_plug = spark_plug_interface<config_t, mqtt_client_t>;
         using ext_to_tfc = external_to_tfc<ipc_client_t &, config_t>;
         using tfc_to_ext = tfc_to_external<config_t, mqtt_client_t, ipc_client_t>;
 
     public:
-        explicit run(asio::io_context &io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {
-        }
 
         explicit run(asio::io_context &io_ctx, ipc_client_t ipc_client) : io_ctx_(io_ctx), ipc_client_(ipc_client) {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
@@ -80,7 +78,6 @@ namespace tfc::mqtt {
                 io_ctx_.run_for(std::chrono::seconds{1});
 
                 while (!restart_needed_) {
-                    logger.trace("restart_needed = {}", restart_needed_);
                     co_await asio::steady_timer{sp_interface_->strand(), std::chrono::seconds{1}}.async_wait(
                         asio::use_awaitable);
                 }

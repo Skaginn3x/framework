@@ -379,5 +379,73 @@ auto main(int argc, char *argv[]) -> int {
         expect(second_message.metrics()[2].is_null());
     };
 
+
+    "banned signals are not published"_test = [&]() {
+        asio::io_context io_ctx{};
+
+        // start broker
+        mqtt_broker broker{io_ctx};
+        io_ctx.run_for(std::chrono::milliseconds{5});
+
+        // start client
+        std::string ndata_topic = "spBv1.0/tfc_unconfigured_group_id/NBIRTH/tfc_unconfigured_node_id";
+        std::vector<async_mqtt::buffer> messages;
+        mqtt_client ndata_cli{io_ctx, messages, ndata_topic};
+        io_ctx.run_for(std::chrono::milliseconds{5});
+
+        // start mock ipc client
+        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
+        tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock &> sig_b{
+            io_ctx, ipc_client,
+            "test"
+        };
+        tfc::ipc::signal<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock &> sig_s{
+            io_ctx, ipc_client,
+            "test"
+        };
+        io_ctx.run_for(std::chrono::milliseconds{5});
+
+        // start mqtt bridge
+        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal,
+                    tfc::ipc_ruler::ipc_manager_client_mock &>
+                running{io_ctx, ipc_client};
+
+        running.config().add_banned_signal("mqtt_bridge_integration_tests/def/bool/test");
+
+        co_spawn(io_ctx, running.start(), asio::detached);
+        io_ctx.run_for(std::chrono::milliseconds{50});
+
+        expect(messages.size() == 1);
+
+        org::eclipse::tahu::protobuf::Payload nbirth_message;
+        nbirth_message.ParseFromArray(messages[0].data(), messages[0].size());
+        expect(nbirth_message.metrics_size() == 3);
+        expect(nbirth_message.has_seq());
+        expect(nbirth_message.seq() == 0);
+
+        // rebirth metric
+        expect(nbirth_message.metrics()[0].name() == "Node Control/Rebirth");
+        expect(nbirth_message.metrics()[0].datatype() == 11);
+        expect(!nbirth_message.metrics()[0].is_historical());
+        expect(!nbirth_message.metrics()[0].is_transient());
+        expect(!nbirth_message.metrics()[0].is_null());
+        expect(nbirth_message.metrics()[0].has_boolean_value());
+        expect(!nbirth_message.metrics()[0].boolean_value());
+
+        // bdSeq metric
+        expect(nbirth_message.metrics()[1].name() == "bdSeq");
+        expect(nbirth_message.metrics()[1].datatype() == 8);
+        expect(nbirth_message.metrics()[1].has_long_value());
+        expect(nbirth_message.metrics()[1].long_value() == 0);
+
+        // new signal
+        expect(nbirth_message.metrics()[2].name() == "mqtt_bridge_integration_tests/def/string/test");
+        expect(nbirth_message.metrics()[2].datatype() == 11);
+        expect(!nbirth_message.metrics()[2].is_historical());
+        expect(!nbirth_message.metrics()[2].is_transient());
+        expect(nbirth_message.metrics()[2].is_null());
+    };
+
+
     return 0;
 }
