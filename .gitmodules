@@ -1,3 +1,4 @@
 [submodule "cmake"]
 	path = cmake
 	url = https://github.com/Skaginn3x/cmake_modules.git
+	ignore = dirty
