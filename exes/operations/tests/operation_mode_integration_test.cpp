@@ -74,6 +74,27 @@ auto main(int argc, char** argv) -> int {
     test.ctx.run_for(std::chrono::milliseconds(100));
     ut::expect(call_count == 5);
   };
+  "stop w reason"_test = [] {
+    using tfc::operation::mode_e;
+
+    operation_mode_test test{};
+    sdbusplus::asio::connection dbus{ test.ctx, tfc::dbus::sd_bus_open_system() };
+    tfc::confman::set_config(dbus, "state_machine",
+                             tfc::operation::detail::storage{ .startup_time = std::chrono::milliseconds{ 3 } },
+                             [](std::error_code) {});
+
+    auto& sm = test.app.state_machine();
+    EXPECT_CALL(sm.stop_reason_str_signal(), async_send_cb("Test reason", testing::_)).Times(1);
+    size_t call_count = 0;
+    test.lib.on_enter(mode_e::stopped, [&call_count](auto, auto) { call_count += 1; });
+    test.lib.stop("Test reason");
+    test.ctx.run_for(std::chrono::milliseconds(2));
+    ut::expect(call_count == 1);
+
+    EXPECT_CALL(sm.stop_reason_str_signal(), async_send_cb("", testing::_)).Times(1);
+    test.lib.set(mode_e::running);
+    test.ctx.run_for(std::chrono::milliseconds(2));
+  };
 
   return EXIT_SUCCESS;
 }

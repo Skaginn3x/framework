@@ -59,46 +59,74 @@ public:
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, std::string_view name)
-      : positioner(connection, manager, name, [](bool) {}) {}
+      : positioner(
+            connection,
+            manager,
+            name,
+            [](bool) {},
+            [](bool) {},
+            [](bool) {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
+  /// \param positive_limit_cb callback to call when positive limit switch is triggered
+  /// \param negative_limit_cb callback to call when negative limit switch is triggered
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              manager_client_t manager,
              std::string_view name,
-             std::function<void(bool)>&& home_cb)
-      : positioner(connection, manager, name, std::move(home_cb), {}) {}
+             std::function<void(bool)>&& home_cb,
+             std::function<void(bool)>&& positive_limit_cb,
+             std::function<void(bool)>&& negative_limit_cb)
+      : positioner(connection,
+                   manager,
+                   name,
+                   std::move(home_cb),
+                   std::move(positive_limit_cb),
+                   std::move(negative_limit_cb),
+                   {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
+  /// \param positive_limit_cb callback to call when positive limit switch is triggered
+  /// \param negative_limit_cb callback to call when negative limit switch is triggered
   /// \param default_value configuration default, useful for special cases and testing
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              manager_client_t manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb,
+             std::function<void(bool)>&& positive_limit_cb,
+             std::function<void(bool)>&& negative_limit_cb,
              config_t&& default_value)
       : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb },
-        config_{ ctx_, /*dbus_, TODO apply dbus_ once frontend is fixed */ fmt::format("positioner_{}", name_),
-                 std::move(default_value) } {
+        positive_limit_cb_{ std::move(positive_limit_cb) }, negative_limit_cb_{ std::move(negative_limit_cb) },
+        config_{ ctx_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
-    config_->homing_travel_speed.observe(
-        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
-          if (new_v.has_value() && !homing_sensor_.has_value()) {
-            homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
-                                   "Homing sensor for position management, consider adding time off delay", home_cb_);
-            missing_home_ = true;
-          }
-        });
-    if (config_->homing_travel_speed->has_value()) {
-      // todo duplicate
-      homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
-                             "Homing sensor for position management, consider adding time off delay", home_cb_);
-    }
+    auto const make_homing_slots{ [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+      if (new_v.has_value() && !homing_sensor_.has_value()) {
+        homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
+                               "Homing sensor for position management", home_cb_);
+        missing_home_ = true;
+      }
+      if (new_v.has_value() && !positive_limit_switch_.has_value()) {
+        positive_limit_switch_.emplace(
+            ctx_, manager_, fmt::format("positive_limit_{}", name_),
+            "Positive limit switch, can be used when motor cannot exceed this switch while going in positive speedratio",
+            positive_limit_cb_);
+      }
+      if (new_v.has_value() && !negative_limit_switch_.has_value()) {
+        negative_limit_switch_.emplace(
+            ctx_, manager_, fmt::format("negative_limit_{}", name_),
+            "Negative limit switch, can be used when motor cannot exceed this switch while going in negative speedratio",
+            negative_limit_cb_);
+      }
+    } };
+    make_homing_slots(config_->homing_travel_speed, {});
+    config_->homing_travel_speed.observe(std::move(make_homing_slots));
   }
 
   positioner(positioner const&) = delete;
@@ -122,7 +150,7 @@ public:
   /// \todo implicitly allow motor::errors::err_enum as param in token
   auto notify_at(absolute_position_t position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    using cv = tfc::asio::condition_variable<asio::any_io_executor>;
+    using cv = tfc::asio::condition_variable;
     auto new_notification = std::make_shared<notification>(position, cv{ ctx_.get_executor() });
     notifications_.emplace_back(new_notification);
     return asio::async_compose<decltype(token), void(std::error_code)>(
@@ -194,9 +222,6 @@ public:
     home_ = new_home_position;
     travel_since_homed_ = 0 * reference;
     missing_home_ = false;
-    if (last_error_ == errors::err_enum::motor_missing_home_reference) {
-      last_error_ = errors::err_enum::success;
-    }
   }
 
   /// \brief home is used in method notify_from_home to determine the notification position
@@ -209,15 +234,15 @@ public:
 
   /// \brief return current error state
   /// \return error code
-  [[nodiscard]] auto error() const noexcept -> errors::err_enum {
-    using enum errors::err_enum;
-    // special case when we have not yet homed and we recovered from some other error
-    // it might be beneficial to refactor error to being bitset struct of error bool flags
-    if (config_->needs_homing_after->has_value() && last_error_ == success && missing_home_) {
-      return motor_missing_home_reference;
-    }
-    return last_error_;
-  }
+  // [[nodiscard]] auto error() const noexcept -> errors::err_enum {
+  //   using enum errors::err_enum;
+  //   // special case when we have not yet homed and we recovered from some other error
+  //   // it might be beneficial to refactor error to being bitset struct of error bool flags
+  //   if (config_->needs_homing_after->has_value() && last_error_ == success && missing_home_) {
+  //     return motor_missing_home_reference;
+  //   }
+  //   return last_error_;
+  // }
 
   void freq_update(hertz_t hertz) {
     std::visit(
@@ -235,9 +260,7 @@ public:
     absolute_position_ += increment;
     velocity_ = velocity;
     if (needs_homing(increment)) {
-      if (last_error_ == errors::err_enum::success) {
-        last_error_ = errors::err_enum::motor_missing_home_reference;
-      }
+      apply_error_to_pending_notifications(errors::err_enum::motor_missing_home_reference);
     }
     notify_if_applicable(old_position, forward);
   }
@@ -248,7 +271,9 @@ public:
             errors::err_enum err) {
     auto const increment{ displacement_per_increment_ * increment_counts };
     stddev_ = stddev;
-    last_error_ = err;
+    if (err != errors::err_enum::success) {
+      apply_error_to_pending_notifications(err);
+    }
     // if (stddev_ >= standard_deviation_threshold_) {
     // last_error_ = errors::err_enum::positioning_unstable;
     // }
@@ -265,6 +290,8 @@ public:
   }
 
   auto homing_sensor() const noexcept -> auto const& { return homing_sensor_; }
+  auto positive_limit_switch() const noexcept -> auto const& { return positive_limit_switch_; }
+  auto negative_limit_switch() const noexcept -> auto const& { return negative_limit_switch_; }
 
   auto homing_travel_speed() const noexcept -> auto const& { return config_->homing_travel_speed.value(); }
 
@@ -295,6 +322,13 @@ public:
   }
 
 private:
+  auto apply_error_to_pending_notifications(errors::err_enum err) -> void {
+    for (auto const& notification : notifications_) {
+      if (notification->err_ == errors::err_enum::success) {
+        notification->err_ = err;
+      }
+    }
+  }
   auto needs_homing(displacement_t increment) -> bool {
     if (!config_->needs_homing_after->has_value()) {
       return false;
@@ -361,10 +395,9 @@ private:
 
   void notify_if_applicable(absolute_position_t old_position, bool forward) {
     auto const comparator{ detail::make_between_callable(old_position, absolute_position_, forward) };
-    std::erase_if(notifications_, [this, &comparator](auto& n) {
+    std::erase_if(notifications_, [&comparator](auto& n) {
       auto const pos{ n->abs_notify_pos_ };
       if (comparator(pos)) {
-        n->err_ = last_error_;
         n->cv_.notify_all();
         return true;
       }
@@ -374,12 +407,11 @@ private:
 
   struct notification {
     absolute_position_t abs_notify_pos_{};
-    tfc::asio::condition_variable<asio::any_io_executor> cv_;
+    tfc::asio::condition_variable cv_;
     errors::err_enum err_{ errors::err_enum::success };
     auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };
 
-  errors::err_enum last_error_{ errors::err_enum::success };
   absolute_position_t absolute_position_{};
   absolute_position_t travel_since_homed_{};
   absolute_position_t home_{};
@@ -392,7 +424,11 @@ private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
   manager_client_t manager_;
   std::optional<bool_slot_t> homing_sensor_{};
+  std::optional<bool_slot_t> negative_limit_switch_{};
+  std::optional<bool_slot_t> positive_limit_switch_{};
   std::function<void(bool)> home_cb_{ [this](bool) {} };
+  std::function<void(bool)> positive_limit_cb_{ [this](bool) {} };
+  std::function<void(bool)> negative_limit_cb_{ [this](bool) {} };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
   std::variant<std::monostate,

@@ -18,4 +18,6 @@ tfc_install_lib(stub_confman)
 
 add_library_to_docs(tfc::stub_confman)
 
-add_subdirectory(example)
+if(BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()

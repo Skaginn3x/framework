@@ -13,6 +13,11 @@ User=tfc
 AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
 Restart=always
 RestartSec=1s
+RuntimeDirectory=tfc
+RuntimeDirectoryPreserve=yes
+ConfigurationDirectory=tfc
+PrivateTmp=true
+ProtectSystem=yes # Cannot be set to full or strict, requires acess to /etc/tfc to facilitate configuration changes
 
 [Install]
 WantedBy=multi-user.target

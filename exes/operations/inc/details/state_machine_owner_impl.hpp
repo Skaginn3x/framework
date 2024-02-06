@@ -78,6 +78,10 @@ void state_machine_owner<signal_t, slot_t, sml_t>::leave_stopped() {
     if (err)
       logger_.info("Unable to send stopped signal false, error: {}", err.message());
   });
+  stop_reason_str_.async_send(std::string{ "" }, [this](auto err, auto) {
+    if (err)
+      logger_.info("Unable to send stop reason str: none, error: {}", err.message());
+  });
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
@@ -168,11 +172,19 @@ void state_machine_owner<signal_t, slot_t, sml_t>::leave_cleaning() {
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void state_machine_owner<signal_t, slot_t, sml_t>::enter_emergency() {}
+void state_machine_owner<signal_t, slot_t, sml_t>::enter_emergency() {
+  emergency_out_.async_send(true, [this](std::error_code const& err, std::size_t) {
+    logger_.info("Unable to send emergency signal true, error: {}", err.message());
+  });
+}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on
-void state_machine_owner<signal_t, slot_t, sml_t>::leave_emergency() {}
+void state_machine_owner<signal_t, slot_t, sml_t>::leave_emergency() {
+  emergency_out_.async_send(false, [this](std::error_code const& err, std::size_t) {
+    logger_.info("Unable to send emergency signal false, error: {}", err.message());
+  });
+}
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>
 // clang-format on

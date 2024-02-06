@@ -19,9 +19,6 @@ namespace asio = boost::asio;
 template <class ipc_client_t, class config_t>
 class external_to_tfc {
 public:
-  explicit external_to_tfc(asio::io_context& io_ctx, config_t& config)
-      : io_ctx_(io_ctx), config_(config), ipc_client_(io_ctx) {}
-
   explicit external_to_tfc(asio::io_context& io_ctx, config_t& config, ipc_client_t ipc_client)
       : io_ctx_(io_ctx), config_(config), ipc_client_(ipc_client) {
     static_assert(std::is_lvalue_reference<ipc_client_t>::value);

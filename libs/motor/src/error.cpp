@@ -39,8 +39,14 @@ class motor_error_category_t : public std::error_category {
         return "Positioning unstable";
       case positioning_missing_event:
         return "Positioning missing event";
+      case positioning_AA_BB_events:
+        return "Positioning pair of AA events and BB events, should be ABABAB ...";
       case positioning_request_out_of_range:
         return "Positioning request out of range";
+      case positioning_positive_limit_reached:
+        return "Positioning positive limit reached";
+      case positioning_negative_limit_reached:
+        return "Positioning negative limit reached";
       case permission_denied:
         return "Permission to execute operation not allowed";
       case operation_canceled:

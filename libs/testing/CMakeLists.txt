@@ -1,7 +1,7 @@
 project(testing)
 
 add_library(testing
-  src/asio_clock.cpp
+  src/clock.cpp
 )
 add_library(tfc::testing ALIAS testing)
 
@@ -14,4 +14,7 @@ target_include_directories(testing
 include(tfc_install)
 tfc_install_lib(testing)
 
-add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
+

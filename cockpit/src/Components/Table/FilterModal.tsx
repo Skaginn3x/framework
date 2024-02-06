@@ -78,6 +78,7 @@ export default function FilterModal({
             <FormGenerator
               inputSchema={schema}
               key={dbusFilterName}
+              intKey={dbusFilterName}
               onSubmit={(data: any) => {
                 const newdata = handleNullValue(data.values.config);
                 updateFormData(

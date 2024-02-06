@@ -4,7 +4,7 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/stubs/confman.hpp>
-#include <tfc/testing/asio_clock.hpp>
+#include <tfc/testing/clock.hpp>
 
 #include <fmt/chrono.h>
 #include <fmt/core.h>

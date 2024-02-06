@@ -100,10 +100,18 @@ public:
 
   [[nodiscard]] auto full_name() const noexcept -> std::string { return slot_->full_name(); }
 
+  /**
+   * @brief Get the connected signal name
+   * Can be used to compare two connection of two slots or check whether the slot is connected in general.
+   */
+  [[nodiscard]] auto connection() const noexcept -> auto const& { return connected_signal_; }
+
 private:
   void client_init(std::string_view description) {
-    client_.register_connection_change_callback(
-        full_name(), [this](std::string_view signal_name) { slot_->connect(signal_name, filters_); });
+    client_.register_connection_change_callback(full_name(), [this](std::string_view signal_name) {
+      connected_signal_ = signal_name;
+      slot_->connect(signal_name, filters_);
+    });
 
     client_.register_slot_retry(full_name(), description, type_desc::value_e);
 
@@ -116,6 +124,7 @@ private:
   details::dbus_ipc<value_t, details::ipc_type_e::slot> dbus_slot_;
   manager_client_type client_;
   filter::filters<value_t, std::function<void(value_t const&)>> filters_;
+  std::optional<std::string> connected_signal_{ std::nullopt };
 };
 
 /**
