@@ -18,21 +18,23 @@
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 
+// #include "../inc/endpoint_mock.hpp"
+
 namespace tfc::mqtt {
 
 namespace asio = boost::asio;
 
 template <class config_t, class mqtt_client_t>
-spark_plug_interface<config_t, mqtt_client_t>::spark_plug_interface(asio::io_context& io_ctx)
-    : io_ctx_(io_ctx), ncmd_topic_(topic_formatter({ constants::namespace_element, config_.value().group_id, constants::ncmd,
-                                                     config_.value().node_id })),
+spark_plug_interface<config_t, mqtt_client_t>::spark_plug_interface(asio::io_context& io_ctx, config_t& config)
+    : io_ctx_(io_ctx), config_(config), ncmd_topic_(topic_formatter({ constants::namespace_element, config_.value().group_id,
+                                                                      constants::ncmd, config_.value().node_id })),
       mqtt_will_topic_(topic_formatter(
           { constants::namespace_element, config_.value().group_id, constants::ndeath, config_.value().node_id })),
       ndata_topic_(topic_formatter(
           { constants::namespace_element, config_.value().group_id, constants::ndata, config_.value().node_id })) {
   const std::string_view mqtt_will_payload{ make_will_payload() };
 
-  mqtt_client_ = std::make_unique<mqtt_client_t>(io_ctx_, mqtt_will_topic_, mqtt_will_payload);
+  mqtt_client_ = std::make_unique<mqtt_client_t>(io_ctx_, mqtt_will_topic_, mqtt_will_payload, config_);
 }
 
 template <class config_t, class mqtt_client_t>
@@ -316,12 +318,8 @@ auto spark_plug_interface<config_t, mqtt_client_t>::wait_for_payloads(
   co_await mqtt_client_->wait_for_payloads(process_payload, restart_needed);
 }
 
+template class spark_plug_interface<confman::config<config::bridge>, client_n>;
+template class spark_plug_interface<config::bridge_mock, client_mock>;
+template class spark_plug_interface<config::bridge_mock, client_semi_normal>;
+
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::spark_plug_interface<
-    tfc::mqtt::config::spark_plug_b_mock,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
-
-template class tfc::mqtt::spark_plug_interface<
-    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>>;
