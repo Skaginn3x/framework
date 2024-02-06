@@ -64,8 +64,6 @@ namespace tfc::mqtt {
                         set_value_change_callback(
                             std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_.value()));
 
-                co_await asio::steady_timer{io_ctx_, std::chrono::seconds{1}}.async_wait(asio::use_awaitable);
-
                 asio::cancellation_signal cancel_signal{};
 
                 co_spawn(
@@ -74,8 +72,6 @@ namespace tfc::mqtt {
                         std::bind_front(&spark_plug::process_payload, &sp_interface_.value()),
                         restart_needed_),
                     bind_cancellation_slot(cancel_signal.slot(), asio::detached));
-
-                io_ctx_.run_for(std::chrono::seconds{1});
 
                 while (!restart_needed_) {
                     co_await asio::steady_timer{sp_interface_->strand(), std::chrono::seconds{1}}.async_wait(
