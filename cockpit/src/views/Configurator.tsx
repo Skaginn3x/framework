@@ -109,8 +109,6 @@ const Configurator: React.FC = () => {
 
   const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
   const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
-  // const [form, setForm] = React.useState<React.JSX.Element>(<div />);
-
   const onSelect = (selectedItem: {
     groupId: string | number;
     itemId: string | number;
