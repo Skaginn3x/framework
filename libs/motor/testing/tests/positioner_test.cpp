@@ -378,6 +378,42 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     expect(test.encoder.position_ == 2) << test.encoder.position_;
   };
 
+  {
+    enum event_e {
+      off = 0,
+      a,
+      b,
+      ab
+    };
+
+    "going reverse"_test = [](std::vector<event_e> const& pulse_train) {
+
+    } |
+      // clang-format off
+    std::vector<std::vector<event_e>>{
+      // A _|‾‾|__|‾‾|_|‾‾|__|‾‾|
+      // B __|‾‾|__|‾‾‾‾‾|__|‾‾|_
+      { off, a, ab, b, off, a, ab, b, ab, a, off, b, ab, a, off },
+      // A __|‾‾|__|‾‾‾‾‾|__|‾‾|_
+      // B _|‾‾|__|‾‾|_|‾‾|__|‾‾|
+      { off, b, ab, a, off, b, ab, a, ab, b, off, a, ab, b, off },
+      // A ‾‾|__|‾‾|_____|‾‾|__|‾
+      // B ‾|__|‾‾|__|‾|__|‾‾|__|
+      { ab, a, off, b, ab, a, off, b, off, a, ab, b, off, a, ab },
+      // A ‾|__|‾‾|__|‾|__|‾‾|__|
+      // B ‾‾|__|‾‾|_____|‾‾|__|‾
+      { ab, b, off, a, ab, b, off, a, off, b, ab, a, off, b, ab },
+      // A ‾|__|‾‾|____|‾‾|__|‾‾|__
+      // B ‾‾|__|‾‾|_|‾‾|__|‾‾|__|‾
+      { ab, b, off, a, ab, b, off, b, ab, a, off, b, ab, a, off, b },
+      // A ‾‾|__|‾‾|_|‾‾|__|‾‾|__|‾
+      // B ‾|__|‾‾|____|‾‾|__|‾‾|__
+      { ab, a, off, b, ab, a, off, a, ab, b, off, a, ab, b, off, a },
+    };
+    // clang-format on
+  }
+
+
   // we do expect that the encoder will receive event on first sensor than the second and so forth
   "missing event"_test = [](auto event) {
     bool called{};
