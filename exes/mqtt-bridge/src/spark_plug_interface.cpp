@@ -101,7 +101,23 @@ namespace tfc::mqtt {
 
         logger_.trace("Sending message on topic: {}", ndata_topic_);
 
-        co_await mqtt_client_->send_message(ndata_topic_, payload_string, async_mqtt::qos::at_most_once);
+        // this topic is needed for mass signal
+        // spvB1.0/GroupName/EdgeGatewayName.(TemplateName).value.template.(MemberName).value
+        // OR
+        // spvB1.0/GroupName/EdgeGatewayName/DeviceName.(TemplateName).value.template.(MemberName).value
+        // template name: milligram
+
+        std::string topic_name = ndata_topic_;
+
+        if (variable.datatype == DataType::Template) {
+            topic_name += ".(milligram).value.template.(" + variable.name + ").value";
+        }
+
+        logger_.trace("\n\n\n\n\n\n\n");
+        logger_.trace("topic name: {}", topic_name);
+        logger_.trace("\n\n\n\n\n\n\n");
+
+        co_await mqtt_client_->send_message(topic_name, payload_string, async_mqtt::qos::at_most_once);
     }
 
     template<class config_t, class mqtt_client_t>
