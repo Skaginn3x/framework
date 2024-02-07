@@ -258,6 +258,7 @@ struct controller {
   }
 
   void on_positive_limit_switch(bool new_v) {
+    positive_limit_value_ = new_v;
     logger_.trace("New positive limit switch value: {}", new_v);
     if (pos_.positive_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
       if (pos_.positive_limit_switch().value().connection() == pos_.homing_sensor().value().connection()) {
@@ -268,6 +269,7 @@ struct controller {
   }
 
   void on_negative_limit_switch(bool new_v) {
+    negative_limit_value_ = new_v;
     logger_.trace("New negative limit switch value: {}", new_v);
     if (pos_.negative_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
       if (pos_.negative_limit_switch().value().connection() == pos_.homing_sensor().value().connection()) {
@@ -308,10 +310,16 @@ struct controller {
 private:
   auto on_limit_switch(bool new_v, motor::errors::err_enum limit_error) {
     using enum motor::errors::err_enum;
+    // If we get a new value, the error is assigned to the limit_error_ and every token
+    // Which has awaitable attached to drive_error_subscriptable_ will be notified.
+    // And the limit error will be applied to that token.
     if (new_v) {
       limit_error_ = limit_error;
       drive_error_subscriptable_.notify_all();
-    } else if (limit_error_ == limit_error) {
+      return;
+    }
+    // If both inputs are false, the limit_error_ is cleared.
+    if (!positive_limit_value_ && !negative_limit_value_) {
       limit_error_ = success;
     }
   }
@@ -688,6 +696,8 @@ private:
   // Motor status
   motor::errors::err_enum drive_error_{};
   motor::errors::err_enum limit_error_{ motor::errors::err_enum::success };
+  bool positive_limit_value_{ false };
+  bool negative_limit_value_{ false };
   decifrequency_signed motor_frequency_{};
 };
 
