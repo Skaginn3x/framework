@@ -78,6 +78,10 @@ void state_machine_owner<signal_t, slot_t, sml_t>::leave_stopped() {
     if (err)
       logger_.info("Unable to send stopped signal false, error: {}", err.message());
   });
+  stop_reason_str_.async_send(std::string{ "" }, [this](auto err, auto) {
+    if (err)
+      logger_.info("Unable to send stop reason str: none, error: {}", err.message());
+  });
 }
 // clang-format off
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t, template <typename, typename...> typename sml_t>

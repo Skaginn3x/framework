@@ -26,6 +26,11 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
   dbus_interface_->register_method(operation::dbus::method::set_mode.data(),
                                    [this](operation::mode_e new_mode) { set_mode(new_mode); });
 
+  dbus_interface_->register_method(operation::dbus::method::stop_w_reason.data(), [this](const std::string& reason) {
+    logger_.info("stop_w_reason called with reason: '{}'", reason);
+    state_machine_->set_stop_reason(reason);
+    set_mode(operation::mode_e::stopped);
+  });
   dbus_interface_->register_property_r<operation::mode_e>(
       std::string{ operation::dbus::property::mode }, sdbusplus::vtable::property_::emits_change,
       [this]([[maybe_unused]] operation::mode_e const& value) -> operation::mode_e {  // getter

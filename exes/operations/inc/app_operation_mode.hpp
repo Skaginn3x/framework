@@ -32,6 +32,8 @@ public:
 
   auto set_mode(tfc::operation::mode_e new_mode) -> void;
 
+  auto state_machine() -> const operation::state_machine_owner<signal_t, slot_t, boost::sml::sm>& { return *state_machine_; }
+
 private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
   std::unique_ptr<sdbusplus::asio::object_server, std::function<void(sdbusplus::asio::object_server*)>> dbus_object_server_;

@@ -19,6 +19,14 @@ add_test(
   COMMAND
     positioner_test
 )
+add_executable(stub_test stub_test.cpp)
+target_link_libraries(stub_test PRIVATE Boost::ut tfc::motor tfc::base tfc::testing)
+add_test(
+  NAME
+    stub_test
+  COMMAND
+    stub_test
+)
 # todo remove when sdbusplus starts behaving
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(positioner_test PRIVATE DEBUG)

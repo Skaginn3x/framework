@@ -12,6 +12,7 @@
 #include <tfc/motor/atv320motor.hpp>
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
+#include <tfc/motor/stub.hpp>
 #include <tfc/motor/virtual_motor.hpp>
 #include <tfc/stx/function_traits.hpp>
 
@@ -31,8 +32,8 @@ using micrometre_t = dbus::types::micrometre_t;
 
 class api {
 public:
-  using config_t =
-      confman::observable<std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t>>;
+  using config_t = confman::observable<
+      std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t, types::stub::config_t>>;
 
 private:
   using config_internal_t = std::variant<confman::config<config_t>, std::shared_ptr<config_t>>;
@@ -64,7 +65,7 @@ public:
         config_(std::in_place_type<confman::config<config_t>>, connection_, name), logger_{ name } {
     std::visit(
         [this](auto& conf) {
-          if constexpr (std::is_same_v<confman::config<config_internal_t>, std::decay_t<decltype(conf)>>) {
+          if constexpr (std::is_same_v<confman::config<config_t>, std::decay_t<decltype(conf)>>) {
             initalize_configuration(conf.value());
           } else {
             assert(false && "This should never happen");
@@ -312,11 +313,14 @@ public:
   auto reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type;
 
+  /// \brief accessor to the motor impl if the impl is a stub.
+  /// only to be used for tests.
+  auto stub() -> types::stub& { return std::get<types::stub>(impl_); }
+
 private:
   asio::io_context& ctx_;
   std::shared_ptr<sdbusplus::asio::connection> connection_;
-
-  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor>;  //, types::stub>;
+  using implementations = std::variant<std::monostate, types::virtual_motor, types::atv320motor, types::stub>;
   implementations impl_;
   config_internal_t config_;
   logger::logger logger_;
