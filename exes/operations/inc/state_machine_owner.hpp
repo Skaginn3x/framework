@@ -84,7 +84,7 @@ public:
   auto mode_signal() const noexcept -> auto const& { return mode_; }
   auto mode_str_signal() const noexcept -> auto const& { return mode_str_; }
   auto stop_reason_str_signal() const noexcept -> auto const& { return stop_reason_str_; }
-  auto set_stop_reason(std::string_view reason) -> void {
+  auto set_stop_reason(const std::string& reason) -> void {
     stop_reason_str_.async_send(reason, [this](const std::error_code& err, std::size_t) {
       if (err) {
         logger_.error("Error sending stop reason: '{}'", err.message());
