@@ -33,6 +33,7 @@ const Configurator: React.FC = () => {
   const { isDark } = useDarkMode();
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
+  const [formSubmissionCount, setFormSubmissionCount] = useState(0);
 
   const toggleDrawer = () => {
     setIsDrawerExpanded(!isDrawerExpanded);
@@ -108,7 +109,7 @@ const Configurator: React.FC = () => {
 
   const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
   const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
-  const [form, setForm] = React.useState<React.JSX.Element>(<div />);
+  // const [form, setForm] = React.useState<React.JSX.Element>(<div />);
 
   const onSelect = (selectedItem: {
     groupId: string | number;
@@ -133,9 +134,6 @@ const Configurator: React.FC = () => {
     data = handleNullValue(data);
     // Find interface name from dbus name
     const interfaceName = names.get(activeItem) ?? activeItem;
-    console.log('Submitting data:', data);
-    console.log('Active Item:', activeItem);
-    console.log('Interface Name:', interfaceName);
     updateFormData(
       activeItem, // Process name
       interfaceName, // Interface name
@@ -175,21 +173,7 @@ const Configurator: React.FC = () => {
 
   useEffect(() => {
     if (!schemas || !activeItem) return;
-    setForm(
-      <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }}>
-        <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
-          {removeOrg(activeItem) || 'Error - Unknown name'}
-        </Title>
-        <FormGenerator
-          inputSchema={schemas[activeItem]}
-          key={activeItem}
-          onSubmit={(data: any) => handleSubmit(data.values.config)}
-          values={formData[activeItem]}
-        />
-        <div style={{ marginBottom: '2rem' }} />
-      </div>,
-    );
-    console.log('Rerendering Form');
+    setFormSubmissionCount((count) => count + 1);
   }, [activeItem, schemas]);
 
   const panelContent = (
@@ -199,7 +183,6 @@ const Configurator: React.FC = () => {
       }}
       >
         <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
-          {/* Remove this group to get rid of demo data */}
           <NavGroup title="Processes">
             <NavItem
               preventDefault
@@ -222,12 +205,9 @@ const Configurator: React.FC = () => {
               </NavItem>
             ))}
           </NavGroup>
-          {/* End Remove */}
           <NavGroup title="Schemas">
-            {/* Might want to remove this slice too, if demoData is removed from state */}
             {Object.keys(schemas)
               .filter((name) => !activeItemFilter || name.includes(activeItemFilter))
-              // .slice(4)
               .map((name: string) => (
                 <NavItem
                   preventDefault
@@ -289,7 +269,24 @@ const Configurator: React.FC = () => {
                 width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: isDark ? '#EEE' : '#111',
               }}
               >
-                {form}
+                {activeItem
+                  ? (
+                    <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }} key={`${activeItem}div`}>
+                      <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
+                        {removeOrg(activeItem) || 'Error - Unknown name'}
+                      </Title>
+                      <FormGenerator
+                        inputSchema={schemas[activeItem]}
+                        key={`${activeItem}-form-${formSubmissionCount}`}
+                        onSubmit={(data: any) => handleSubmit(data.values.config)}
+                        values={formData[activeItem]}
+                        intKey={formSubmissionCount}
+                      />
+                      <div style={{ marginBottom: '2rem' }} />
+                    </div>
+                  )
+                  : <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }} key="emptyDiv" />}
+
               </div>
             </div>
           </DrawerContentBody>
