@@ -355,7 +355,7 @@ private:
         token);
   }
 
-  auto run_limitted(bool positive_speedratio) -> bool {
+  auto is_forbidden(bool positive_speedratio) -> bool {
     using enum motor::errors::err_enum;
     if (limit_error_ != success) {
       if (positive_speedratio) {
@@ -389,7 +389,7 @@ private:
           switch (state) {
             case state_e::run_until_stopped: {
               state = state_e::wait_till_stop;
-              if (run_limitted(positive_speedratio)) {
+              if (is_forbidden(positive_speedratio)) {
                 self(motor::motor_error(limit_error_));
                 return;
               }
