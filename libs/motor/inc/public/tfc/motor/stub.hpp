@@ -30,7 +30,7 @@ namespace asio = boost::asio;
 
 struct stub {
   struct config {
-    explicit config() = default;
+    config() = default;
     using impl = stub;
     static constexpr std::string_view name{ "stub" };
     struct glaze {
@@ -43,7 +43,6 @@ struct stub {
   using config_t = config;
   explicit stub(asio::io_context& ctx, config_t) : tokens{ ctx.get_executor() }, logger_{ "stub" } {}
 
-  ~stub() {}
   template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
             typename signature_t = void(std::error_code, travel_t)>
   auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
