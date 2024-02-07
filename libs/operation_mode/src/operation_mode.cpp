@@ -86,6 +86,17 @@ void interface::set(tfc::operation::mode_e new_mode) const {
       new_mode);
 }
 
+void interface::stop(const std::string_view reason) const {
+  dbus_connection_->async_method_call(
+      [this](std::error_code err) {
+        if (err) {
+          logger_.warn("Error from stop : {}", err.message());
+        }
+      },
+      dbus_service_name_, std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::stop_w_reason },
+      std::string(reason));
+}
+
 void interface::mode_update(sdbusplus::message::message msg) noexcept {
   mode_update_impl(msg.unpack<update_message>());
 }

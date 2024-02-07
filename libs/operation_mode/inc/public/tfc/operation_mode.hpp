@@ -43,6 +43,11 @@ public:
   /// \note take care since this will affect the whole system
   void set(mode_e) const;
 
+  /// \brief stop operation mode controller
+  /// \param reason reason for stopping
+  /// \note the reason can be very useful if components are stopping due to an error.
+  void stop(const std::string_view reason) const;
+
   using uuid_t = std::uint64_t;
   using new_mode_e = mode_e;
   using old_mode_e = mode_e;
