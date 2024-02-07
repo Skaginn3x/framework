@@ -48,6 +48,7 @@ struct stub {
   auto convey(QuantityOf<mp_units::isq::velocity> auto, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -57,6 +58,7 @@ struct stub {
                   self_m.complete(err, value_cast<typename travel_t::rep, travel_t::reference>(length));
                   return;
                 }
+                running = false;
                 self_m.complete(code, value_cast<typename travel_t::rep, travel_t::reference>(length));
               }));
         },
@@ -67,6 +69,7 @@ struct stub {
   auto convey(QuantityOf<mp_units::isq::velocity> auto, travel_t, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -76,6 +79,7 @@ struct stub {
                   self_m.complete(err, value_cast<typename travel_t::rep, travel_t::reference>(length));
                   return;
                 }
+                running = false;
                 self_m.complete(code, value_cast<typename travel_t::rep, travel_t::reference>(length));
               }));
         },
@@ -89,6 +93,7 @@ struct stub {
               asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -98,6 +103,7 @@ struct stub {
                   self_m.complete(err, value_cast<typename travel_t::rep, travel_t::reference>(length));
                   return;
                 }
+                running = false;
                 self_m.complete(code, value_cast<typename travel_t::rep, travel_t::reference>(length));
               }));
         },
@@ -108,6 +114,7 @@ struct stub {
             typename signature_t = void(std::error_code, travel_t)>
   auto convey(travel_t, asio::completion_token_for<signature_t> auto&& token) {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -117,6 +124,7 @@ struct stub {
                   self_m.complete(err, value_cast<typename travel_t::rep, travel_t::reference>(length));
                   return;
                 }
+                running = false;
                 self_m.complete(code, value_cast<typename travel_t::rep, travel_t::reference>(length));
               }));
         },
@@ -168,32 +176,7 @@ struct stub {
   auto stop(asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
-    return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
-  }
-
-  template <typename signature_t = void(std::error_code)>
-  auto stop(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    signal.emit(asio::cancellation_type::all);
-    return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
-  }
-
-  template <typename signature_t = void(std::error_code)>
-  auto quick_stop(asio::completion_token_for<signature_t> auto&& token) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    signal.emit(asio::cancellation_type::all);
-    return asio::async_compose<decltype(token), signature_t>(
-        [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
-  }
-
-  auto is_running() const -> bool { return false; }
-
-  template <typename signature_t = void(std::error_code)>
-  auto run(asio::completion_token_for<signature_t> auto&& token, direction_e) ->
-      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
-    signal.emit(asio::cancellation_type::all);
+    running = false;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -203,6 +186,69 @@ struct stub {
                   self_m.complete(err);
                   return;
                 }
+                self_m.complete(code);
+              }));
+        },
+        token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto stop(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    signal.emit(asio::cancellation_type::all);
+    running = false;
+    return asio::async_compose<decltype(token), signature_t>(
+        [this](auto& self) mutable {
+          tokens.async_wait(asio::bind_cancellation_slot(
+              signal.slot(), [this, self_m = std::move(self)](const std::error_code& err) mutable {
+                // Try to be true to the behavior of the motor, if someone cancels this operation we should return that error
+                if (err) {
+                  self_m.complete(err);
+                  return;
+                }
+                self_m.complete(code);
+              }));
+        },
+        token);
+  }
+
+  template <typename signature_t = void(std::error_code)>
+  auto quick_stop(asio::completion_token_for<signature_t> auto&& token) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    signal.emit(asio::cancellation_type::all);
+    running = false;
+    return asio::async_compose<decltype(token), signature_t>(
+        [this](auto& self) mutable {
+          tokens.async_wait(asio::bind_cancellation_slot(
+              signal.slot(), [this, self_m = std::move(self)](const std::error_code& err) mutable {
+                // Try to be true to the behavior of the motor, if someone cancels this operation we should return that error
+                if (err) {
+                  self_m.complete(err);
+                  return;
+                }
+                self_m.complete(code);
+              }));
+        },
+        token);
+  }
+
+  auto is_running() const -> bool { return running; }
+
+  template <typename signature_t = void(std::error_code)>
+  auto run(asio::completion_token_for<signature_t> auto&& token, direction_e) ->
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+    signal.emit(asio::cancellation_type::all);
+    running = true;
+    return asio::async_compose<decltype(token), signature_t>(
+        [this](auto& self) mutable {
+          tokens.async_wait(asio::bind_cancellation_slot(
+              signal.slot(), [this, self_m = std::move(self)](const std::error_code& err) mutable {
+                // Try to be true to the behavior of the motor, if someone cancels this operation we should return that error
+                if (err) {
+                  self_m.complete(err);
+                  return;
+                }
+                running = false;
                 self_m.complete(code);
               }));
         },
@@ -213,6 +259,7 @@ struct stub {
   auto run([[maybe_unused]] speedratio_t speedratio, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -222,6 +269,7 @@ struct stub {
                   self_m.complete(err);
                   return;
                 }
+                running = false;
                 self_m.complete(code);
               }));
         },
@@ -232,6 +280,7 @@ struct stub {
   auto run(speedratio_t, QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -241,6 +290,7 @@ struct stub {
                   self_m.complete(err);
                   return;
                 }
+                running = false;
                 self_m.complete(code);
               }));
         },
@@ -251,6 +301,7 @@ struct stub {
   auto run(QuantityOf<mp_units::isq::time> auto, asio::completion_token_for<signature_t> auto&& token, direction_e) ->
       typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
+    running = true;
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait(asio::bind_cancellation_slot(
@@ -260,6 +311,7 @@ struct stub {
                   self_m.complete(err);
                   return;
                 }
+                running = false;
                 self_m.complete(code);
               }));
         },
@@ -281,5 +333,6 @@ struct stub {
   std::error_code code{};
   micrometre_t length{};               // Used both for position and travel
   asio::cancellation_signal signal{};  // Used for canceling async operations
+  bool running{ false };
 };
 }  // namespace tfc::motor::types
