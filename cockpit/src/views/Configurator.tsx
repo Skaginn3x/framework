@@ -189,7 +189,8 @@ const Configurator: React.FC = () => {
         <div style={{ marginBottom: '2rem' }} />
       </div>,
     );
-  }, [activeItem]);
+    console.log('Rerendering Form');
+  }, [activeItem, schemas]);
 
   const panelContent = (
     <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
