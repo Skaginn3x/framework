@@ -593,13 +593,13 @@ auto main(int, char const* const* argv) -> int {
   "positive limit same as homing sensor"_test = [] {
     instance inst;
     inst.populate_homing_sensor();
-
+    inst.sig.send(false);
+    inst.ctx.run_for(1ms);
     inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), inst.sig.full_name(), [](std::error_code) {});
     inst.manager.connect(inst.ctrl.positioner().positive_limit_switch()->full_name(), inst.sig.full_name(),
                          [](std::error_code) {});
 
     // Duplicate of move home test almost, but using limit switch
-    inst.sig.send(false);
     inst.ctrl.move_home([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[0] = true;
@@ -607,23 +607,20 @@ auto main(int, char const* const* argv) -> int {
     });
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
-    inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
     inst.ctrl.on_positive_limit_switch(true);  // explicit limit switch activation
-    // inst.sig.send(true);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
   "negative limit same as homing sensor"_test = [] {
     instance inst;
     inst.populate_homing_sensor();
-
+    inst.sig.send(false);
+    inst.ctx.run_for(1ms);
     inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), inst.sig.full_name(), [](std::error_code) {});
     inst.manager.connect(inst.ctrl.positioner().negative_limit_switch()->full_name(), inst.sig.full_name(),
                          [](std::error_code) {});
 
     // Duplicate of move home test almost, but using limit switch
-    inst.sig.send(false);
     inst.ctrl.move_home([&inst](const std::error_code& err) {
       expect(!err);
       inst.ran[0] = true;
@@ -631,10 +628,7 @@ auto main(int, char const* const* argv) -> int {
     });
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
-    inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
     inst.ctrl.on_negative_limit_switch(true);  // explicit limit switch activation
-    // inst.sig.send(true);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };

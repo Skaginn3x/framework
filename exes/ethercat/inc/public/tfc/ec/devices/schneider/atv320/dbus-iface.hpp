@@ -269,6 +269,11 @@ struct controller {
 
   void on_negative_limit_switch(bool new_v) {
     logger_.trace("New negative limit switch value: {}", new_v);
+    if (pos_.negative_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
+      if (pos_.negative_limit_switch().value().connection() == pos_.homing_sensor().value().connection()) {
+        homing_complete_.notify_all();
+      }
+    }
     on_limit_switch(new_v, motor::errors::err_enum::positioning_negative_limit_reached);
   }
 
