@@ -8,7 +8,8 @@
 #include <tfc/stubs/confman.hpp>
 #include <tfc/testing/asio_clock.hpp>
 
-using namespace mp_units::si::unit_symbols;
+using mp_units::si::unit_symbols::mm;
+using mp_units::si::unit_symbols::ms;
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 using ut::expect;
@@ -379,21 +380,34 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   {
-    enum event_e {
-      off = 0,
-      a,
-      b,
-      ab
-    };
+    enum event_e { off = 0, aoff, boff, a, b };
 
-    "going reverse"_test = [](std::vector<event_e> const& pulse_train) {
+    "change direction"_test =
+        [](std::vector<event_e> const& pulse_train) {
+          encoder_test test{};
 
-    } |
-      // clang-format off
+          for (auto const& event : pulse_train) {
+            switch (event) {
+              case off:
+                break;
+              case a:
+                test.encoder.first_tacho_update(true);
+                break;
+              case b:
+                test.encoder.second_tacho_update(true);
+                break;
+              case ab:
+                test.encoder.first_tacho_update(true);
+                test.encoder.second_tacho_update(true);
+                break;
+            }
+          }
+        } |
+        // clang-format off
     std::vector<std::vector<event_e>>{
       // A _|‾‾|__|‾‾|_|‾‾|__|‾‾|
       // B __|‾‾|__|‾‾‾‾‾|__|‾‾|_
-      { off, a, ab, b, off, a, ab, b, ab, a, off, b, ab, a, off },
+      { off, a, b, aoff, boff, a, b, aoff, a, boff, aoff, b, a, boff },
       // A __|‾‾|__|‾‾‾‾‾|__|‾‾|_
       // B _|‾‾|__|‾‾|_|‾‾|__|‾‾|
       { off, b, ab, a, off, b, ab, a, ab, b, off, a, ab, b, off },
@@ -412,7 +426,6 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     };
     // clang-format on
   }
-
 
   // we do expect that the encoder will receive event on first sensor than the second and so forth
   "missing event"_test = [](auto event) {
