@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string_view>
 #include <variant>
@@ -85,6 +86,21 @@ struct circular_buffer {
   /// \return const reference to oldest inserted item
   constexpr auto back() const noexcept -> storage_t const& { return *insert_pos_; }
 
+  /// \brief Access the n-th item from the front
+  /// example: buffer[0] is the most recently inserted item
+  /// buffer[1] is the second most recently inserted item
+  /// buffer[len - 1] is the oldest inserted item
+  constexpr auto operator[](std::size_t n) const noexcept -> storage_t const& {
+    assert(n < len && "Index out of bounds");
+    auto idx{ std::ranges::distance(std::cbegin(buffer_), front_) };
+    idx -= n;
+    if (idx < 0) {
+      idx += len;
+    }
+    assert(idx >= 0 && "Something weird occured");
+    return buffer_[static_cast<std::size_t>(idx)];
+  }
+
   std::array<storage_t, len> buffer_{};
   // front is invalid when there has no item been inserted yet, but should not matter much
   typename std::array<storage_t, len>::iterator front_{ std::begin(buffer_) };
@@ -134,15 +150,6 @@ struct time_series_statistics {
   circular_buffer<event_storage, circular_buffer_len> buffer_{};
 };
 
-auto detect_deviation_from_average(auto interval, auto average) {
-  auto err{ errors::err_enum::success };
-  // check if interval is greater than 180% of average
-  if (interval * 10 > average * 18) {
-    err = errors::err_enum::positioning_missing_event;
-  }
-  return err;
-}
-
 template <typename manager_client_t = ipc_ruler::ipc_manager_client&,
           typename bool_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t>,
           typename clock_t = asio::steady_timer::time_point::clock,
@@ -168,8 +175,14 @@ struct tachometer {
     statistics_.update(now);
     auto constexpr increment{ 1 };
     position_ += increment;
-    std::invoke(position_update_callback_, increment, statistics().average(), statistics().stddev(),
-                detect_deviation_from_average(statistics_.last_interval(), statistics_.average()));
+    auto err{ errors::err_enum::success };
+    // check if interval is greater than 180% of average and less than 400% of average
+    // todo is 400% good strategy to detect when stopped and started again?
+    if (statistics_.last_interval() * 10 > statistics_.average() * 18 &&
+        statistics_.last_interval() < statistics_.average() * 4) {
+      err = errors::err_enum::positioning_missing_event;
+    }
+    std::invoke(position_update_callback_, increment, statistics().average(), statistics().stddev(), err);
   }
 
   auto statistics() const noexcept -> auto const& { return statistics_; }
@@ -226,8 +239,9 @@ struct encoder {
     auto const now{ clock_t::now() };
     position_ += increment;
     fmt::println(stderr, "Encoder position: {}", position_);  // todo remove
-    auto err{ detect_deviation_from_average(statistics_.last_interval(), statistics_.average()) };
-    if (buffer_.front().last_event == event) {
+    errors::err_enum err{ errors::err_enum::success };
+    if (buffer_[0].last_event == event && buffer_[1].last_event == event) {
+      // 3 consecutive same events indicate that there is a missing pulse on other sensor
       err = errors::err_enum::positioning_missing_event;
     }
     statistics_.update(now);
