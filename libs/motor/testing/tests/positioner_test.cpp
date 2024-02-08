@@ -473,7 +473,6 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.encoder.second_tacho_update(false);
     test.encoder.first_tacho_update(false);
   };
-
 };
 
 // clang-format off
