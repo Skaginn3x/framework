@@ -183,6 +183,7 @@ namespace tfc::mqtt {
                 auto *variable_metric = payload.add_metrics();
 
                 if (variable.datatype == DataType::Template) {
+                    variable_metric->set_datatype(19);
                     org::eclipse::tahu::protobuf::Payload_Template *templ = variable_metric->mutable_template_value();
 
                     std::string *templ_ref = new std::string("milligram");
