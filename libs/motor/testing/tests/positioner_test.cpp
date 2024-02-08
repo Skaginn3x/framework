@@ -627,9 +627,9 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "positive limit switch enabled call callback"_test = [] {
     using tfc::confman::observable;
     using tfc::motor::positioner::speedratio_t;
-    using tfc::motor::positioner::limit_switch_e;
     bool called{};
-    notification_test test{ .config = { .limit_switches = observable{ limit_switch_e::limit_switches_optional } },
+    notification_test test{ .config = { .homing_travel_speed =
+                                            observable<std::optional<speedratio_t>>{ 2 * mp_units::percent } },
                             .positive_limit_cb = [&called](bool new_v) { called = new_v; } };
     expect(test.positioner.positive_limit_switch().has_value() >> ut::fatal);
     test.positioner.positive_limit_switch()->callback(true);
@@ -639,9 +639,9 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   "negative limit switch enabled call callback"_test = [] {
     using tfc::confman::observable;
     using tfc::motor::positioner::speedratio_t;
-    using tfc::motor::positioner::limit_switch_e;
     bool called{};
-    notification_test test{ .config = { .limit_switches = observable{ limit_switch_e::limit_switches_optional } },
+    notification_test test{ .config = { .homing_travel_speed =
+                                            observable<std::optional<speedratio_t>>{ 2 * mp_units::percent } },
                             .negative_limit_cb = [&called](bool new_v) { called = new_v; } };
     expect(test.positioner.negative_limit_switch().has_value() >> ut::fatal);
     test.positioner.negative_limit_switch()->callback(true);

@@ -106,34 +106,27 @@ public:
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
-    auto const make_homing_sensor{ [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+    auto const make_homing_slots{ [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
       if (new_v.has_value() && !homing_sensor_.has_value()) {
         homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
                                "Homing sensor for position management", home_cb_);
         missing_home_ = true;
       }
-    } };
-    make_homing_sensor(config_->homing_travel_speed, {});
-    config_->homing_travel_speed.observe(std::move(make_homing_sensor));
-
-    auto const make_positive_limit_switch{ [this](limit_switch_e new_v, limit_switch_e) {
-      if (new_v != limit_switch_e::not_used) {
-        if (!positive_limit_switch_.has_value()) {
-          positive_limit_switch_.emplace(
-              ctx_, manager_, fmt::format("positive_limit_{}", name_),
-              "Positive limit switch, can be used when motor cannot exceed this switch while going in positive speedratio",
-              positive_limit_cb_);
-        }
-        if (!negative_limit_switch_.has_value()) {
-          negative_limit_switch_.emplace(
-              ctx_, manager_, fmt::format("negative_limit_{}", name_),
-              "Negative limit switch, can be used when motor cannot exceed this switch while going in negative speedratio",
-              negative_limit_cb_);
-        }
+      if (new_v.has_value() && !positive_limit_switch_.has_value()) {
+        positive_limit_switch_.emplace(
+            ctx_, manager_, fmt::format("positive_limit_{}", name_),
+            "Positive limit switch, can be used when motor cannot exceed this switch while going in positive speedratio",
+            positive_limit_cb_);
+      }
+      if (new_v.has_value() && !negative_limit_switch_.has_value()) {
+        negative_limit_switch_.emplace(
+            ctx_, manager_, fmt::format("negative_limit_{}", name_),
+            "Negative limit switch, can be used when motor cannot exceed this switch while going in negative speedratio",
+            negative_limit_cb_);
       }
     } };
-    make_positive_limit_switch(config_->limit_switches, {});
-    config_->limit_switches.observe(std::move(make_positive_limit_switch));
+    make_homing_slots(config_->homing_travel_speed, {});
+    config_->homing_travel_speed.observe(std::move(make_homing_slots));
   }
 
   positioner(positioner const&) = delete;

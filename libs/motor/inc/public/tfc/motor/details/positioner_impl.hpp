@@ -49,8 +49,6 @@ using position_mode_config = std::variant<std::monostate,
                                           encoder_config<reference>,
                                           freq_config<deduce_velocity_t<reference>>>;
 
-enum struct limit_switch_e : std::uint8_t { not_used, limit_switches_optional };
-
 template <mp_units::Reference auto reference>
 struct config {
   using unsigned_dimension_t = mp_units::quantity<reference, std::uint64_t>;
@@ -59,7 +57,6 @@ struct config {
   confman::observable<std::optional<speedratio_t>> homing_travel_speed{
     std::nullopt
   };  // todo should this be outside this config?
-  confman::observable<limit_switch_e> limit_switches{ limit_switch_e::not_used };
 };
 
 namespace detail {
