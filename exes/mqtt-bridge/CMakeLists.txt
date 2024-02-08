@@ -35,6 +35,10 @@ target_compile_definitions(mqtt_bridge
     ASYNC_MQTT_USE_TLS
 )
 
+include(tfc_split_debug_info)
+tfc_allow_debug_symbols(mqtt_bridge)
+tfc_split_debug_info(mqtt_bridge)
+
 include(GNUInstallDirs)
 install(
   TARGETS

@@ -28,6 +28,10 @@ target_link_libraries(operations
     PkgConfig::SDBUSPLUS
 )
 
+include(tfc_split_debug_info)
+tfc_allow_debug_symbols(operations)
+tfc_split_debug_info(operations)
+
 if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()

@@ -21,6 +21,10 @@ target_link_libraries(ipc-ruler
     unofficial::sqlite3::sqlite3
 )
 
+include(tfc_split_debug_info)
+tfc_allow_debug_symbols(ipc-ruler)
+tfc_split_debug_info(ipc-ruler)
+
 include(GNUInstallDirs)
 
 install(
