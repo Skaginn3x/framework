@@ -428,43 +428,52 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     };
     // clang-format on
   }
-
-  // we do expect that the encoder will receive event on first sensor than the second and so forth
-  "missing event"_test = [](auto event) {
-    bool called{};
-    encoder_test test{ .cb = [&called, first_call = true](auto, auto, auto, tfc::motor::errors::err_enum err) mutable {
-      if (first_call) {
-        first_call = false;
-        return;
-      }
-      called = true;
-      auto const expected{ tfc::motor::errors::err_enum::positioning_missing_event };
-      expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+  "B missing event"_test = [] {
+    auto expected_err{ tfc::motor::errors::err_enum::success };
+    encoder_test test{ .cb = [&expected_err](auto, auto, auto, tfc::motor::errors::err_enum err) {
+      expect(err == expected_err) << fmt::format("expected {}, got {}\n", expected_err, err);
     } };
+    // A _|‾‾‾‾|____|‾‾‾‾|____|‾‾‾‾|___
+    // B ___|‾‾‾‾|______________|‾‾‾‾|_
+    //   A  B  A B A     A    A B A  B
+    //                        ^ missing event
+    test.encoder.first_tacho_update(true);
+    test.encoder.second_tacho_update(true);
+    test.encoder.first_tacho_update(false);
+    test.encoder.second_tacho_update(false);
+    test.encoder.first_tacho_update(true);
+    test.encoder.first_tacho_update(false);
+    expected_err = tfc::motor::errors::err_enum::positioning_missing_event;
+    test.encoder.first_tacho_update(true);
+    expected_err = tfc::motor::errors::err_enum::success;
+    test.encoder.second_tacho_update(true);
+    test.encoder.first_tacho_update(false);
+    test.encoder.second_tacho_update(false);
+  };
 
-    test.encoder.update(1, true, false, event);
-    test.encoder.update(1, true, false, event);
-
-    expect(called);
-  } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };
-
-  "NOT missing event if going forward and then backwards"_test = [](auto event) {
-    bool called{};
-    encoder_test test{ .cb = [&called, first_call = true](auto, auto, auto, tfc::motor::errors::err_enum err) mutable {
-      if (first_call) {
-        first_call = false;
-        return;
-      }
-      called = true;
-      auto const expected{ tfc::motor::errors::err_enum::success };
-      expect(err == expected) << fmt::format("expected: {}, got: {}\n", enum_name(expected), enum_name(err));
+  "A missing event"_test = [] {
+    auto expected_err{ tfc::motor::errors::err_enum::success };
+    encoder_test test{ .cb = [&expected_err](auto, auto, auto, tfc::motor::errors::err_enum err) {
+      expect(err == expected_err) << fmt::format("expected {}, got {}\n", expected_err, err);
     } };
+    // A ___|‾‾‾‾|______________|‾‾‾‾|_
+    // B _|‾‾‾‾|____|‾‾‾‾|____|‾‾‾‾|___
+    //   B  A  B A B     B    B A B  A
+    //                        ^ missing event
+    test.encoder.second_tacho_update(true);
+    test.encoder.first_tacho_update(true);
+    test.encoder.second_tacho_update(false);
+    test.encoder.first_tacho_update(false);
+    test.encoder.second_tacho_update(true);
+    test.encoder.second_tacho_update(false);
+    expected_err = tfc::motor::errors::err_enum::positioning_missing_event;
+    test.encoder.second_tacho_update(true);
+    expected_err = tfc::motor::errors::err_enum::success;
+    test.encoder.first_tacho_update(true);
+    test.encoder.second_tacho_update(false);
+    test.encoder.first_tacho_update(false);
+  };
 
-    test.encoder.update(1, true, false, event);
-    test.encoder.update(-1, true, false, event);
-
-    expect(called);
-  } | std::vector{ encoder_t::last_event_t::first, encoder_t::last_event_t::second };
 };
 
 // clang-format off
@@ -744,6 +753,28 @@ int main(int argc, char** argv) {
     expect(buff.emplace(5) == 2);
     expect(buff.emplace(6) == 3);
     expect(buff.emplace(7) == 4);
+  };
+
+  "circular_buffer_test operator[]"_test = [] {
+    static constexpr std::size_t len{ 3 };
+    circular_buffer<int, len> buff{};
+    buff.emplace(1);
+    expect(buff[0] == 1);
+    buff.emplace(2);
+    expect(buff[1] == 1);
+    expect(buff[0] == 2);
+    buff.emplace(3);
+    expect(buff[2] == 1);
+    expect(buff[1] == 2);
+    expect(buff[0] == 3);
+    buff.emplace(4);
+    expect(buff[2] == 2);
+    expect(buff[1] == 3);
+    expect(buff[0] == 4);
+    buff.emplace(5);
+    expect(buff[2] == 3);
+    expect(buff[1] == 4);
+    expect(buff[0] == 5);
   };
 
   return EXIT_SUCCESS;

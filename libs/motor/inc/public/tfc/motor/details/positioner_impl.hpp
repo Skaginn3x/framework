@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string_view>
 #include <variant>
@@ -85,12 +86,19 @@ struct circular_buffer {
   /// \return const reference to oldest inserted item
   constexpr auto back() const noexcept -> storage_t const& { return *insert_pos_; }
 
-  constexpr auto operator[](std::size_t n) noexcept -> storage_t& {
-    auto it{ front_ + n };
-    if (it >= std::end(buffer_)) {
-      it -= len;
+  /// \brief Access the n-th item from the front
+  /// example: buffer[0] is the most recently inserted item
+  /// buffer[1] is the second most recently inserted item
+  /// buffer[len - 1] is the oldest inserted item
+  constexpr auto operator[](std::size_t n) const noexcept -> storage_t const& {
+    assert(n < len && "Index out of bounds");
+    auto idx{ std::ranges::distance(std::cbegin(buffer_), front_) };
+    idx -= n;
+    if (idx < 0) {
+      idx += len;
     }
-    return *it;
+    assert(idx >= 0 && "Something weird occured");
+    return buffer_[static_cast<std::size_t>(idx)];
   }
 
   std::array<storage_t, len> buffer_{};
@@ -232,21 +240,16 @@ struct encoder {
     position_ += increment;
     fmt::println(stderr, "Encoder position: {}", position_);  // todo remove
     errors::err_enum err{ errors::err_enum::success };
-    if (buffer_.front().last_event == event) {
-      // if positioning is still going to the same direction, we should have gotten a new event
-      // needs revisement if increment is dynamic, as in not always 1 or -1
-      if (increment == last_increment_) {
-        err = errors::err_enum::positioning_missing_event;
-      }
+    if (buffer_[0].last_event == event && buffer_[1].last_event == event) {
+      // 3 consecutive same events indicate that there is a missing pulse on other sensor
+      err = errors::err_enum::positioning_missing_event;
     }
-    last_increment_ = increment;
     statistics_.update(now);
     buffer_.emplace(first, second, event);
     std::invoke(position_update_callback_, increment, statistics_.average(), statistics_.stddev(), err);
   }
 
   std::int64_t position_{};  // todo now this is only for testing purposes, need to refactor tests
-  std::int8_t last_increment_{};
   circular_buffer<storage, circular_buffer_len> buffer_{};
   time_series_statistics<clock_t, circular_buffer_len> statistics_{};
   std::function<tick_signature_t> position_update_callback_;
