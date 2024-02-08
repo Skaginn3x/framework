@@ -380,15 +380,20 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
   };
 
   {
-    enum event_e { off = 0, aoff, boff, a, b };
-
+    enum struct event_e : std::uint8_t { aoff = 0, boff, a, b };
+    using enum event_e;
     "change direction"_test =
         [](std::vector<event_e> const& pulse_train) {
-          encoder_test test{};
-
+          encoder_test test{ .cb = [](auto, auto, auto, tfc::motor::errors::err_enum err) {
+            expect(err == tfc::motor::errors::err_enum::success) << fmt::format("expected success, got {}\n", err);
+          } };
           for (auto const& event : pulse_train) {
             switch (event) {
-              case off:
+              case aoff:
+                test.encoder.first_tacho_update(false);
+                break;
+              case boff:
+                test.encoder.second_tacho_update(false);
                 break;
               case a:
                 test.encoder.first_tacho_update(true);
@@ -396,33 +401,30 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
               case b:
                 test.encoder.second_tacho_update(true);
                 break;
-              case ab:
-                test.encoder.first_tacho_update(true);
-                test.encoder.second_tacho_update(true);
-                break;
             }
           }
+          expect(test.encoder.position_ == 0) << fmt::format("expected 0, got {}\n", test.encoder.position_);
         } |
         // clang-format off
     std::vector<std::vector<event_e>>{
-      // A _|‾‾|__|‾‾|_|‾‾|__|‾‾|
-      // B __|‾‾|__|‾‾‾‾‾|__|‾‾|_
-      { off, a, b, aoff, boff, a, b, aoff, a, boff, aoff, b, a, boff },
+      // A _|‾‾|__|‾‾|_|‾‾|__|‾‾|_
+      // B __|‾‾|__|‾‾‾‾‾|__|‾‾|__
+      { a, b, aoff, boff, a, b, aoff, a, boff, aoff, b, a, boff, aoff },
       // A __|‾‾|__|‾‾‾‾‾|__|‾‾|_
       // B _|‾‾|__|‾‾|_|‾‾|__|‾‾|
-      { off, b, ab, a, off, b, ab, a, ab, b, off, a, ab, b, off },
-      // A ‾‾|__|‾‾|_____|‾‾|__|‾
-      // B ‾|__|‾‾|__|‾|__|‾‾|__|
-      { ab, a, off, b, ab, a, off, b, off, a, ab, b, off, a, ab },
-      // A ‾|__|‾‾|__|‾|__|‾‾|__|
-      // B ‾‾|__|‾‾|_____|‾‾|__|‾
-      { ab, b, off, a, ab, b, off, a, off, b, ab, a, off, b, ab },
-      // A ‾|__|‾‾|____|‾‾|__|‾‾|__
-      // B ‾‾|__|‾‾|_|‾‾|__|‾‾|__|‾
-      { ab, b, off, a, ab, b, off, b, ab, a, off, b, ab, a, off, b },
-      // A ‾‾|__|‾‾|_|‾‾|__|‾‾|__|‾
-      // B ‾|__|‾‾|____|‾‾|__|‾‾|__
-      { ab, a, off, b, ab, a, off, a, ab, b, off, a, ab, b, off, a },
+      { b, a, boff, aoff, b, a, boff, b, aoff, boff, a, b, aoff, boff },
+      // A _|‾‾|__|‾‾|_____|‾‾|__|‾‾|_
+      // B |‾‾|__|‾‾|__|‾|__|‾‾|__|‾‾|
+      { b, a, boff, aoff, b, a, boff, aoff, b, boff, a, b, aoff, boff, a, b, aoff, boff },
+      // A |‾‾|__|‾‾|__|‾|__|‾‾|__|‾‾|
+      // B _|‾‾|__|‾‾|_____|‾‾|__|‾‾|_
+      { a, b, aoff, boff, a, b, aoff, boff, a, aoff, b, a, boff, aoff, b, a, boff, aoff },
+      // A |‾‾|__|‾‾|___|‾‾|__|‾‾|_
+      // B _|‾‾|__|‾‾|_|‾‾|__|‾‾|__
+      { a, b, aoff, boff, a, b, aoff, boff, b, a, boff, aoff, b, a, boff, aoff },
+      // A _|‾‾|__|‾‾|_|‾‾|__|‾‾|__
+      // B |‾‾|__|‾‾|___|‾‾|__|‾‾|_
+      { b, a, boff, aoff, b, a, boff, aoff, a, b, aoff, boff, a, b, aoff, boff },
     };
     // clang-format on
   }
