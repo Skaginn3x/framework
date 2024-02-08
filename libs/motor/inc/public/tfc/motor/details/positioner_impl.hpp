@@ -44,16 +44,16 @@ struct freq_config {
   bool operator==(freq_config const&) const noexcept = default;
 };
 
+struct not_used : std::monostate {};
+
 template <mp_units::Reference auto reference>
-using position_mode_config = std::variant<std::monostate,
-                                          tachometer_config<reference>,
-                                          encoder_config<reference>,
-                                          freq_config<deduce_velocity_t<reference>>>;
+using position_mode_config = std::
+    variant<not_used, tachometer_config<reference>, encoder_config<reference>, freq_config<deduce_velocity_t<reference>>>;
 
 template <mp_units::Reference auto reference>
 struct config {
   using unsigned_dimension_t = mp_units::quantity<reference, std::uint64_t>;
-  confman::observable<position_mode_config<reference>> mode{ std::monostate{} };
+  confman::observable<position_mode_config<reference>> mode{ not_used{} };
   confman::observable<std::optional<unsigned_dimension_t>> needs_homing_after{ std::nullopt };
   confman::observable<std::optional<speedratio_t>> homing_travel_speed{
     std::nullopt
@@ -312,6 +312,11 @@ constexpr auto make_between_callable(unsigned_t before, unsigned_t now, bool for
 }  // namespace detail
 
 }  // namespace tfc::motor::positioner
+
+template <>
+struct glz::meta<tfc::motor::positioner::not_used> {
+  static constexpr std::string_view name{ "Not used" };
+};
 
 template <mp_units::Reference auto reference>
 struct glz::meta<tfc::motor::positioner::increment_config<reference>> {
