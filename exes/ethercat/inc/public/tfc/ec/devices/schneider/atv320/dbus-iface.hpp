@@ -260,9 +260,12 @@ struct controller {
   void on_positive_limit_switch(bool new_v) {
     positive_limit_value_ = new_v;
     logger_.trace("New positive limit switch value: {}", new_v);
-    if (pos_.positive_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
-      if (pos_.positive_limit_switch().value().connection() == pos_.homing_sensor().value().connection()) {
-        homing_complete_.notify_all();
+    if (new_v && pos_.positive_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
+      if (pos_.positive_limit_switch()->connection() == pos_.homing_sensor()->connection()) {
+        // If something is waiting for homing to complete, return early and don't notify the limit error
+        if (homing_complete_.notify_all() > 0) {
+          return;
+        }
       }
     }
     on_limit_switch(new_v, motor::errors::err_enum::positioning_positive_limit_reached);
@@ -271,9 +274,12 @@ struct controller {
   void on_negative_limit_switch(bool new_v) {
     negative_limit_value_ = new_v;
     logger_.trace("New negative limit switch value: {}", new_v);
-    if (pos_.negative_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
-      if (pos_.negative_limit_switch().value().connection() == pos_.homing_sensor().value().connection()) {
-        homing_complete_.notify_all();
+    if (new_v && pos_.negative_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
+      if (pos_.negative_limit_switch()->connection() == pos_.homing_sensor()->connection()) {
+        // If something is waiting for homing to complete, return early and don't notify the limit error
+        if (homing_complete_.notify_all() > 0) {
+          return;
+        }
       }
     }
     on_limit_switch(new_v, motor::errors::err_enum::positioning_negative_limit_reached);

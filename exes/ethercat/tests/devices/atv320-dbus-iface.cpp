@@ -605,6 +605,8 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    // Limit not active shouldn't trigger completion
+    inst.ctrl.on_positive_limit_switch(false);
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
     inst.ctrl.on_positive_limit_switch(true);  // explicit limit switch activation
@@ -626,6 +628,8 @@ auto main(int, char const* const* argv) -> int {
       inst.ran[0] = true;
       inst.ctx.stop();
     });
+    // Limit not active shouldn't trigger completion
+    inst.ctrl.on_negative_limit_switch(false);
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
     inst.ctrl.on_negative_limit_switch(true);  // explicit limit switch activation
