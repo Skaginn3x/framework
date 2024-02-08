@@ -4,11 +4,11 @@ on:
     branches: ["main"]
     paths:
       - '.github/workflows/tfc-toolchain.yml'
-      - 'containers/tfc-toolchain'
+      - 'containers/tfc-toolchain/*'
   pull_request:
     paths:
       - '.github/workflows/tfc-toolchain.yml'
-      - 'containers/tfc-toolchain'
+      - 'containers/tfc-toolchain/*'
   workflow_dispatch:
 
 concurrency:
