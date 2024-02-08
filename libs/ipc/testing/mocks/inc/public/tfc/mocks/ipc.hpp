@@ -68,9 +68,11 @@ struct mock_slot {
     ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
   }
 
-  MOCK_METHOD((std::optional<value_t> const&), value, (), (const));  // NOLINT
+  MOCK_METHOD((std::optional<value_t> const&), value, (), (const));           // NOLINT
+  MOCK_METHOD((std::optional<std::string> const&), connection, (), (const));  // NOLINT
   std::optional<value_t> value_{ std::nullopt };
   std::function<void(value_t const&)> callback;
+  std::optional<std::string> connected_signal_{ std::nullopt };
 };
 
 }  // namespace tfc::ipc

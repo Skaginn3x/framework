@@ -59,46 +59,74 @@ public:
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t manager, std::string_view name)
-      : positioner(connection, manager, name, [](bool) {}) {}
+      : positioner(
+            connection,
+            manager,
+            name,
+            [](bool) {},
+            [](bool) {},
+            [](bool) {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
+  /// \param positive_limit_cb callback to call when positive limit switch is triggered
+  /// \param negative_limit_cb callback to call when negative limit switch is triggered
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              manager_client_t manager,
              std::string_view name,
-             std::function<void(bool)>&& home_cb)
-      : positioner(connection, manager, name, std::move(home_cb), {}) {}
+             std::function<void(bool)>&& home_cb,
+             std::function<void(bool)>&& positive_limit_cb,
+             std::function<void(bool)>&& negative_limit_cb)
+      : positioner(connection,
+                   manager,
+                   name,
+                   std::move(home_cb),
+                   std::move(positive_limit_cb),
+                   std::move(negative_limit_cb),
+                   {}) {}
 
   /// \param connection strictly valid dbus connection
   /// \param name to concatenate to slot names, example atv320_12 where 12 is slave id
   /// \param home_cb callback to call when homing sensor is triggered
+  /// \param positive_limit_cb callback to call when positive limit switch is triggered
+  /// \param negative_limit_cb callback to call when negative limit switch is triggered
   /// \param default_value configuration default, useful for special cases and testing
   positioner(std::shared_ptr<sdbusplus::asio::connection> connection,
              manager_client_t manager,
              std::string_view name,
              std::function<void(bool)>&& home_cb,
+             std::function<void(bool)>&& positive_limit_cb,
+             std::function<void(bool)>&& negative_limit_cb,
              config_t&& default_value)
       : name_{ name }, ctx_{ connection->get_io_context() }, dbus_{ connection }, manager_{ manager }, home_cb_{ home_cb },
-        config_{ ctx_, /*dbus_, TODO apply dbus_ once frontend is fixed */ fmt::format("positioner_{}", name_),
-                 std::move(default_value) } {
+        positive_limit_cb_{ std::move(positive_limit_cb) }, negative_limit_cb_{ std::move(negative_limit_cb) },
+        config_{ dbus_, fmt::format("positioner_{}", name_), std::move(default_value) } {
     config_->mode.observe(std::bind_front(&positioner::construct_implementation, this));
     construct_implementation(config_->mode, {});
     config_->needs_homing_after.observe(
         [this](auto const& new_v, auto const& old_v) { missing_home_ = !old_v.has_value() && new_v.has_value(); });
-    config_->homing_travel_speed.observe(
-        [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
-          if (new_v.has_value() && !homing_sensor_.has_value()) {
-            homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
-                                   "Homing sensor for position management, consider adding time off delay", home_cb_);
-            missing_home_ = true;
-          }
-        });
-    if (config_->homing_travel_speed->has_value()) {
-      // todo duplicate
-      homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
-                             "Homing sensor for position management, consider adding time off delay", home_cb_);
-    }
+    auto const make_homing_slots{ [this](std::optional<speedratio_t> const& new_v, std::optional<speedratio_t> const&) {
+      if (new_v.has_value() && !homing_sensor_.has_value()) {
+        homing_sensor_.emplace(ctx_, manager_, fmt::format("homing_sensor_{}", name_),
+                               "Homing sensor for position management", home_cb_);
+        missing_home_ = true;
+      }
+      if (new_v.has_value() && !positive_limit_switch_.has_value()) {
+        positive_limit_switch_.emplace(
+            ctx_, manager_, fmt::format("positive_limit_{}", name_),
+            "Positive limit switch, can be used when motor cannot exceed this switch while going in positive speedratio",
+            positive_limit_cb_);
+      }
+      if (new_v.has_value() && !negative_limit_switch_.has_value()) {
+        negative_limit_switch_.emplace(
+            ctx_, manager_, fmt::format("negative_limit_{}", name_),
+            "Negative limit switch, can be used when motor cannot exceed this switch while going in negative speedratio",
+            negative_limit_cb_);
+      }
+    } };
+    make_homing_slots(config_->homing_travel_speed, {});
+    config_->homing_travel_speed.observe(std::move(make_homing_slots));
   }
 
   positioner(positioner const&) = delete;
@@ -265,6 +293,8 @@ public:
   }
 
   auto homing_sensor() const noexcept -> auto const& { return homing_sensor_; }
+  auto positive_limit_switch() const noexcept -> auto const& { return positive_limit_switch_; }
+  auto negative_limit_switch() const noexcept -> auto const& { return negative_limit_switch_; }
 
   auto homing_travel_speed() const noexcept -> auto const& { return config_->homing_travel_speed.value(); }
 
@@ -392,7 +422,11 @@ private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
   manager_client_t manager_;
   std::optional<bool_slot_t> homing_sensor_{};
+  std::optional<bool_slot_t> negative_limit_switch_{};
+  std::optional<bool_slot_t> positive_limit_switch_{};
   std::function<void(bool)> home_cb_{ [this](bool) {} };
+  std::function<void(bool)> positive_limit_cb_{ [this](bool) {} };
+  std::function<void(bool)> negative_limit_cb_{ [this](bool) {} };
   logger::logger logger_{ name_ };
   confman_t<config_t, confman::file_storage<config_t>, confman::detail::config_dbus_client> config_;
   std::variant<std::monostate,

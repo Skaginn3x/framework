@@ -64,8 +64,9 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 
 template <typename completion_token_t>
 struct drive_error_first {
-  drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error)
-      : drive_err{ drive_error }, self{ std::move(token) }, slot{ asio::get_associated_cancellation_slot(self) } {}
+  drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error, motor::errors::err_enum& limit_error)
+      : drive_err{ drive_error }, limit_err{ limit_error }, self{ std::move(token) },
+        slot{ asio::get_associated_cancellation_slot(self) } {}
 
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
@@ -73,6 +74,10 @@ struct drive_error_first {
   void operator()(auto const& order, std::error_code const& err1, std::error_code const& err2) {
     if (drive_err != motor::errors::err_enum::success) {
       std::invoke(self, motor::motor_error(drive_err));
+      return;
+    }
+    if (limit_err != motor::errors::err_enum::success) {
+      std::invoke(self, motor::motor_error(limit_err));
       return;
     }
     switch (order[0]) {
@@ -90,6 +95,7 @@ struct drive_error_first {
   cancellation_slot_type get_cancellation_slot() const noexcept { return slot; }
 
   motor::errors::err_enum& drive_err;
+  motor::errors::err_enum& limit_err;
   completion_token_t self;
   asio::cancellation_slot slot;
 };
@@ -109,9 +115,12 @@ template <typename manager_client_t = ipc_ruler::ipc_manager_client,
 struct controller {
   controller(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& manager, const uint16_t slave_id)
       : slave_id_{ slave_id }, ctx_{ connection->get_io_context() },
-        pos_{ connection, manager, fmt::format("{}_{}", impl_name, slave_id_),
-              std::bind_front(&controller::on_homing_sensor, this) } {}
-
+        pos_{ connection,
+              manager,
+              fmt::format("{}_{}", impl_name, slave_id_),
+              std::bind_front(&controller::on_homing_sensor, this),
+              std::bind_front(&controller::on_positive_limit_switch, this),
+              std::bind_front(&controller::on_negative_limit_switch, this) } {}
   static constexpr auto atv320_reset_time = std::chrono::seconds(5);
 
   auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -248,10 +257,39 @@ struct controller {
     }
   }
 
+  void on_positive_limit_switch(bool new_v) {
+    positive_limit_value_ = new_v;
+    logger_.trace("New positive limit switch value: {}", new_v);
+    if (new_v && pos_.positive_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
+      if (pos_.positive_limit_switch()->connection() == pos_.homing_sensor()->connection()) {
+        // If something is waiting for homing to complete, return early and don't notify the limit error
+        if (homing_complete_.notify_all() > 0) {
+          return;
+        }
+      }
+    }
+    on_limit_switch(new_v, motor::errors::err_enum::positioning_positive_limit_reached);
+  }
+
+  void on_negative_limit_switch(bool new_v) {
+    negative_limit_value_ = new_v;
+    logger_.trace("New negative limit switch value: {}", new_v);
+    if (new_v && pos_.negative_limit_switch().has_value() && pos_.homing_sensor().has_value()) {
+      if (pos_.negative_limit_switch()->connection() == pos_.homing_sensor()->connection()) {
+        // If something is waiting for homing to complete, return early and don't notify the limit error
+        if (homing_complete_.notify_all() > 0) {
+          return;
+        }
+      }
+    }
+    on_limit_switch(new_v, motor::errors::err_enum::positioning_negative_limit_reached);
+  }
+
   void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
 
   auto positioner() noexcept -> auto& { return pos_; }
   auto driver_error() const noexcept -> motor::errors::err_enum { return drive_error_; }
+  auto limit_error() const noexcept -> motor::errors::err_enum { return limit_error_; }
   auto set_motor_nominal_freq(decifrequency nominal_motor_frequency) { motor_nominal_frequency_ = nominal_motor_frequency; }
   speedratio_t speed_ratio() const noexcept { return speed_ratio_; }
 
@@ -276,8 +314,24 @@ struct controller {
   cia_402::transition_action action() const noexcept { return action_; }
 
 private:
+  auto on_limit_switch(bool new_v, motor::errors::err_enum limit_error) {
+    using enum motor::errors::err_enum;
+    // If we get a new value, the error is assigned to the limit_error_ and every token
+    // Which has awaitable attached to drive_error_subscriptable_ will be notified.
+    // And the limit error will be applied to that token.
+    if (new_v) {
+      limit_error_ = limit_error;
+      drive_error_subscriptable_.notify_all();
+      return;
+    }
+    // If both inputs are false, the limit_error_ is cleared.
+    if (!positive_limit_value_ && !negative_limit_value_) {
+      limit_error_ = success;
+    }
+  }
+
   auto stop_impl(bool use_quick_stop,
-                 [[maybe_unused]] std::error_code stop_reason,
+                 std::error_code stop_reason,
                  asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
     using enum cia_402::transition_action;
@@ -292,8 +346,8 @@ private:
     }
     if (motor_frequency_ == 0 * mp_units::si::hertz) {
       logger_.trace("Drive already stopped");
-      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>([](auto& self) { self.complete({}); },
-                                                                                       token);
+      return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
+          [stop_reason](auto& self) { self.complete(stop_reason); }, token);
     }
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
         [this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
@@ -302,7 +356,8 @@ private:
             asio::experimental::make_parallel_group(
                 [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                 [this](auto inner_token) { return this->stop_complete_.async_wait(inner_token); })
-                .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
+                .async_wait(asio::experimental::wait_for_one(),
+                            detail::drive_error_first(std::move(self), drive_error_, limit_error_));
             return;
           }
           if (stop_reason) {
@@ -312,6 +367,17 @@ private:
           self.complete(err);
         },
         token);
+  }
+
+  auto is_forbidden(bool positive_speedratio) -> bool {
+    using enum motor::errors::err_enum;
+    if (limit_error_ != success) {
+      if (positive_speedratio) {
+        return limit_error_ == positioning_positive_limit_reached;
+      }
+      return limit_error_ == positioning_negative_limit_reached;
+    }
+    return false;
   }
 
   auto run_impl(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -331,15 +397,21 @@ private:
     action_ = cia_402::transition_action::run;
     speed_ratio_ = speedratio;
     enum struct state_e : std::uint8_t { run_until_stopped = 0, wait_till_stop, complete };
+    bool const positive_speedratio{ speedratio > 0 * mp_units::percent };
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
-        [this, state = state_e::run_until_stopped](auto& self, std::error_code err = {}) mutable {
+        [this, state = state_e::run_until_stopped, positive_speedratio](auto& self, std::error_code err = {}) mutable {
           switch (state) {
             case state_e::run_until_stopped: {
               state = state_e::wait_till_stop;
+              if (is_forbidden(positive_speedratio)) {
+                self(motor::motor_error(limit_error_));
+                return;
+              }
               asio::experimental::make_parallel_group(
                   [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                   [this](auto inner_token) { return this->run_blocker_.async_wait(inner_token); })
-                  .async_wait(asio::experimental::wait_for_one(), detail::drive_error_first(std::move(self), drive_error_));
+                  .async_wait(asio::experimental::wait_for_one(),
+                              detail::drive_error_first(std::move(self), drive_error_, limit_error_));
               return;
             }
             case state_e::wait_till_stop: {
@@ -583,9 +655,7 @@ private:
             }
             case state_e::wait_till_stop: {
               state = state_e::complete;
-              if (homing_sensor->value().value_or(false)) {
-                // let's continue to stopping the conveyor since the value of home sensor is high
-              } else if (err == std::errc::operation_canceled) {
+              if (err == std::errc::operation_canceled) {
                 logger_.trace("Move home got cancelled");
                 self.complete(err);
                 return;
@@ -631,6 +701,9 @@ private:
 
   // Motor status
   motor::errors::err_enum drive_error_{};
+  motor::errors::err_enum limit_error_{ motor::errors::err_enum::success };
+  bool positive_limit_value_{ false };
+  bool negative_limit_value_{ false };
   decifrequency_signed motor_frequency_{};
 };
 

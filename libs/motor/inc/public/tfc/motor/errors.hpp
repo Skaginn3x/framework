@@ -32,6 +32,8 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   positioning_unstable = 20,
   positioning_missing_event = 21,
   positioning_request_out_of_range = 22,
+  positioning_positive_limit_reached = 23,
+  positioning_negative_limit_reached = 24,
   permission_denied = 30,
   operation_canceled = 31,  // only used between client and server, user should use std::errc::operation_canceled
   frequency_drive_reports_fault = 32,
