@@ -6,7 +6,7 @@
 #include <tfc/motor/positioner.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stubs/confman.hpp>
-#include <tfc/testing/asio_clock.hpp>
+#include <tfc/testing/clock.hpp>
 
 using mp_units::si::unit_symbols::mm;
 using mp_units::si::unit_symbols::ms;
