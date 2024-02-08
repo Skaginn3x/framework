@@ -47,10 +47,8 @@ struct freq_config {
 struct not_used : std::monostate {};
 
 template <mp_units::Reference auto reference>
-using position_mode_config = std::variant<not_used,
-                                          tachometer_config<reference>,
-                                          encoder_config<reference>,
-                                          freq_config<deduce_velocity_t<reference>>>;
+using position_mode_config = std::
+    variant<not_used, tachometer_config<reference>, encoder_config<reference>, freq_config<deduce_velocity_t<reference>>>;
 
 template <mp_units::Reference auto reference>
 struct config {
