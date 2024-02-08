@@ -1,3 +1,4 @@
+// Used as a tool to verify front-end behaviour see: https://github.com/Skaginn3x/framework/pull/386
 // inspired by useless box
 #include <chrono>
 #include <cstdint>
@@ -16,7 +17,7 @@ namespace asio = boost::asio;
 
 struct simple_config {
   tfc::confman::observable<int> a{ 1337 };
-  tfc::confman::observable<std::string> b{ "try to edit me" };
+  tfc::confman::observable<std::string> b{ "Try to edit me" };
   tfc::confman::observable<bool> c{ false };
   tfc::confman::observable<std::vector<int>> d{ { 1, 2, 3, 4, 5 } };
   tfc::confman::observable<std::chrono::nanoseconds> sec{ std::chrono::nanoseconds{ 42 } };
