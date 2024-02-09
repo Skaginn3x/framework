@@ -36,10 +36,10 @@ jobs:
           fetch-depth: 0
 
           # pip install cloudsmith-cli --break-system-packages
+          # pip install cloudsmith-cli
       - name: Install python3-pip and cloudsmith-cli
         run: |
-          apt-get install -y python3-pip
-          pip install cloudsmith-cli
+          apt-get install -y python3
 
 #       - name: Get release
 #         if: github.event_name == 'release' && github.event.action == 'created'
