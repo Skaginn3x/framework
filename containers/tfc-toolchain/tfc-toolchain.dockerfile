@@ -107,3 +107,5 @@ RUN ./build-node.sh 21.1.0
 #RUN apt remove -y gcc
 RUN apt autoremove -y
 RUN apt clean all
+
+RUN pip install cloudsmith-cli --break-system-packages
