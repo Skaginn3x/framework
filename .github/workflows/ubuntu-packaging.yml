@@ -31,9 +31,9 @@ jobs:
         architecture: [ x86_64, aarch64 ]
     steps:
       - name: Set Swap Space
-        uses: pierotofy/set-swap-space@master
+        uses: actionhippie/swap-space@v1
         with:
-          swap-size-gb: 32
+          size: 32G
       - uses: actions/checkout@v4
         with:
           submodules: true
