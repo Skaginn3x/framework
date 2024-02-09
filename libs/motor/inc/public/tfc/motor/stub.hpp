@@ -44,9 +44,9 @@ struct stub {
   explicit stub(asio::io_context& ctx, config_t) : tokens{ ctx.get_executor() }, logger_{ "stub" } {}
 
   template <QuantityOf<mp_units::isq::length> travel_t = micrometre_t,
-      typename signature_t = void(std::error_code, travel_t)>
+            typename signature_t = void(std::error_code, travel_t)>
   auto move_convey_impl(asio::completion_token_for<signature_t> auto&& token) ->
-  typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
     running = true;
     return asio::async_compose<decltype(token), signature_t>(
@@ -132,10 +132,10 @@ struct stub {
     return asio::async_compose<decltype(token), signature_t>(
         [this](auto& self) mutable {
           tokens.async_wait([this, self_m = std::move(self)](const std::error_code&) mutable {
-                // Try to be true to the behavior of the motor, if someone cancels this operation we should return that error
-                if (!code)
-                self_m.complete(code, !homed);
-              });
+            // Try to be true to the behavior of the motor, if someone cancels this operation we should return that error
+            if (!code)
+              self_m.complete(code, !homed);
+          });
         },
         token);
   }
@@ -154,7 +154,7 @@ struct stub {
 
   template <typename signature_t = void(std::error_code)>
   auto stop_impl(asio::completion_token_for<signature_t> auto&& token) ->
-  typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
     running = false;
     return asio::async_compose<decltype(token), signature_t>(
@@ -194,7 +194,7 @@ struct stub {
 
   template <typename signature_t = void(std::error_code)>
   auto run_impl(asio::completion_token_for<signature_t> auto&& token, direction_e) ->
-  typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
+      typename asio::async_result<std::decay_t<decltype(token)>, signature_t>::return_type {
     signal.emit(asio::cancellation_type::all);
     running = true;
     return asio::async_compose<decltype(token), signature_t>(

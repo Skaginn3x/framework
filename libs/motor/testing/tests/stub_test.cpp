@@ -238,7 +238,7 @@ int main(int, char** argv) {
     stub.homed = false;
 
     motor_api.needs_homing([&](auto ec, auto needs) {
-      expect(!ec)<< ec.message();
+      expect(!ec) << ec.message();
       expect(needs);
       i.ran[0] = true;
     });
@@ -248,7 +248,7 @@ int main(int, char** argv) {
     expect(i.ran[0]);
 
     motor_api.move_home([&](auto ec) {
-      expect(!ec)<< ec.message();
+      expect(!ec) << ec.message();
       i.ran[1] = true;
     });
     expect(stub.is_running());
@@ -260,7 +260,7 @@ int main(int, char** argv) {
     expect(stub.homed);
 
     motor_api.needs_homing([&](auto ec, auto needs) {
-      expect(!ec)<< ec.message();
+      expect(!ec) << ec.message();
       expect(!needs);
       i.ran[2] = true;
     });
