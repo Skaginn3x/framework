@@ -39,6 +39,9 @@ target_link_libraries(ethercat
     Boost::coroutine
 )
 
+include(tfc_split_debug_info)
+tfc_split_debug_info(ethercat)
+
 if (BUILD_TESTING)
   add_subdirectory(tests)
 endif ()
