@@ -5,5 +5,4 @@ target_link_libraries(example_throw
 )
 
 include(tfc_split_debug_info)
-tfc_allow_debug_symbols(example_throw)
 tfc_split_debug_info(example_throw)

@@ -12,6 +12,9 @@ target_link_libraries(button
     tfc::logger
 )
 
+include(tfc_split_debug_info)
+tfc_split_debug_info(button)
+
 include(GNUInstallDirs)
 install(
   TARGETS

@@ -40,7 +40,6 @@ target_link_libraries(ethercat
 )
 
 include(tfc_split_debug_info)
-tfc_allow_debug_symbols(ethercat)
 tfc_split_debug_info(ethercat)
 
 if (BUILD_TESTING)
