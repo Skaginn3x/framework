@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(tfc-framework
   VERSION
-    "2023.11.1"
+    "2024.02.1"
   DESCRIPTION
     "The tfc framework eases the integration of often used components in different context with mappable IPC and config."
   HOMEPAGE_URL
