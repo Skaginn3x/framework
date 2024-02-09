@@ -13,6 +13,9 @@ User=tfc
 AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
 Restart=always
 RestartSec=1s
+RuntimeDirectory=tfc
+ConfigurationDirectory=tfc
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
