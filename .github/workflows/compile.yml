@@ -22,7 +22,10 @@ jobs:
   build:
     name: 'build and run tests'
     runs-on: ubuntu-22.04
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:latest
+    container:
+      image: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:latest
+      options: --memory="16g" --memory-swap="16g"
+
     strategy:
       fail-fast: false
       matrix:
