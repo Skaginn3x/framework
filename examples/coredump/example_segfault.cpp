@@ -7,5 +7,5 @@ int main(int argc, char** argv) {
 
   produce_segfault();
 
-  throw std::runtime_error("This is a test"); // NOSONAR
+  throw std::runtime_error("This is a test");  // NOSONAR
 }
