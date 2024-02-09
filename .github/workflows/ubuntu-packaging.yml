@@ -35,143 +35,151 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Get release
-        if: github.event_name == 'release' && github.event.action == 'created'
-        id: get_release
-        uses: bruceadams/get-release@v1.3.2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: '/opt/vcpkg'
-          vcpkgGitCommitId: '50bffcc62d7f6571eb32bc1a0b1807e77af1166c'
-          vcpkgJsonGlob: 'vcpkg.json'
-
-      - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
-        uses: lukka/run-cmake@v10.3
-        with:
-          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-          workflowPreset: '${{ matrix.architecture }}-gcc-${{matrix.build_type}}'
-
-      - name: Upload vcpkg log
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: vcpkg-build-fail-logs
-          path: /opt/vcpkg/**/*out.log
-
-      - name: Upload vcpkg log
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: vcpkg-build-fail-logs
-          path: /opt/vcpkg/**/*err.log
-
-      - name: Test install
-        if: matrix.architecture == 'x86_64'
+          # pip install cloudsmith-cli --break-system-packages
+      - name: Install python3-pip and cloudsmith-cli
         run: |
           apt-get update
-          apt-get install -y ./build/pack-gcc-${{matrix.build_type}}/*.deb
+          apt-get install -y python3-pip
+          pip install cloudsmith-cli
 
-      - id: find-location
-        name: Find location
-        shell: bash
-        run: |
-          echo "tar-location=$(ls build/*/*.tar.gz)" >> "$GITHUB_OUTPUT"
-          echo "deb-location=$(ls build/*/*.deb)" >> "$GITHUB_OUTPUT"
-          echo "rpm-location=$(ls build/*/*.rpm)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload debian package
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-*/*.deb
-          retention-days: 1
-
-      - name: Upload Release deb file
-        if: github.event_name == 'release' && github.event.action == 'created'
-        id: upload-release-asset-deb
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ${{ steps.find-location.outputs.deb-location }}
-          asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.deb
-          asset_content_type: application/x-tar
-
-      - name: Upload rpm package
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-*/*.rpm
-          retention-days: 1
-
-
-      - name: Upload Release rpm file
-        if: github.event_name == 'release' && github.event.action == 'created'
-        id: upload-release-asset-rpm
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ${{ steps.find-location.outputs.rpm-location }}
-          asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.rpm
-          asset_content_type: application/x-cpio
-
-      - name: Upload tar package
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfc-framework-${{matrix.build_type}}
-          path: build/pack-*/*.tar.gz
-          retention-days: 1
-
-
-      - name: Upload Release tar file
-        if: github.event_name == 'release' && github.event.action == 'created'
-        id: upload-release-asset-tar
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ${{ steps.find-location.outputs.tar-location }}
-          asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
-          asset_content_type: application/x-tar
-
-      - name: Make debug symbols tar
-        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
-        run: |
-          cd build
-          tar -czf tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz */*/*.sym
-
-      - name: Upload debug symbols
-        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
-        id: upload-release-symbols-tar
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: build/tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
-          asset_name: tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
-          asset_content_type: application/x-tar
-
-      # Upload non debug packages to cloudsmith
-      - name: Cloudsmith upload
-        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
-        id: push
-        uses: cloudsmith-io/action@master
-        with:
-          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
-          command: 'push'
-          format: 'deb'
-          owner: 'skaginn3x'             # Your Cloudsmith account name or org name (namespace)
-          repo: 'tfc-repo'         # Your Cloudsmith Repository name (slug)
-          distro: 'otherdeb'     # Your Distribution  (i.e Debian, Ubuntu)
-          release: 'any-version'         # Your Distribution Release (i.e xenial, buster)
-          republish: 'true'          # needed ONLY if version is not changing
-          file: 'build/*/*.deb'  # debian package filename
+#       - name: Get release
+#         if: github.event_name == 'release' && github.event.action == 'created'
+#         id: get_release
+#         uses: bruceadams/get-release@v1.3.2
+#         env:
+#           GITHUB_TOKEN: ${{ github.token }}
+#
+#       - name: Restore artifacts, or setup vcpkg (do not install any package)
+#         uses: lukka/run-vcpkg@v11
+#         with:
+#           vcpkgDirectory: '/opt/vcpkg'
+#           vcpkgGitCommitId: '50bffcc62d7f6571eb32bc1a0b1807e77af1166c'
+#           vcpkgJsonGlob: 'vcpkg.json'
+#
+#       - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
+#         uses: lukka/run-cmake@v10.3
+#         with:
+#           cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+#           workflowPreset: '${{ matrix.architecture }}-gcc-${{matrix.build_type}}'
+#
+#       - name: Upload vcpkg log
+#         if: failure()
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: vcpkg-build-fail-logs
+#           path: /opt/vcpkg/**/*out.log
+#
+#       - name: Upload vcpkg log
+#         if: failure()
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: vcpkg-build-fail-logs
+#           path: /opt/vcpkg/**/*err.log
+#
+#       - name: Test install
+#         if: matrix.architecture == 'x86_64'
+#         run: |
+#           apt-get update
+#           apt-get install -y ./build/pack-gcc-${{matrix.build_type}}/*.deb
+#
+#       - id: find-location
+#         name: Find location
+#         shell: bash
+#         run: |
+#           echo "tar-location=$(ls build/*/*.tar.gz)" >> "$GITHUB_OUTPUT"
+#           echo "deb-location=$(ls build/*/*.deb)" >> "$GITHUB_OUTPUT"
+#           echo "rpm-location=$(ls build/*/*.rpm)" >> "$GITHUB_OUTPUT"
+#
+#       - name: Upload debian package
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: tfc-framework-${{matrix.build_type}}
+#           path: build/pack-*/*.deb
+#           retention-days: 1
+#
+#       - name: Upload Release deb file
+#         if: github.event_name == 'release' && github.event.action == 'created'
+#         id: upload-release-asset-deb
+#         uses: actions/upload-release-asset@v1
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           upload_url: ${{ steps.get_release.outputs.upload_url }}
+#           asset_path: ${{ steps.find-location.outputs.deb-location }}
+#           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.deb
+#           asset_content_type: application/x-tar
+#
+#       - name: Upload rpm package
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: tfc-framework-${{matrix.build_type}}
+#           path: build/pack-*/*.rpm
+#           retention-days: 1
+#
+#
+#       - name: Upload Release rpm file
+#         if: github.event_name == 'release' && github.event.action == 'created'
+#         id: upload-release-asset-rpm
+#         uses: actions/upload-release-asset@v1
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           upload_url: ${{ steps.get_release.outputs.upload_url }}
+#           asset_path: ${{ steps.find-location.outputs.rpm-location }}
+#           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.rpm
+#           asset_content_type: application/x-cpio
+#
+#       - name: Upload tar package
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: tfc-framework-${{matrix.build_type}}
+#           path: build/pack-*/*.tar.gz
+#           retention-days: 1
+#
+#
+#       - name: Upload Release tar file
+#         if: github.event_name == 'release' && github.event.action == 'created'
+#         id: upload-release-asset-tar
+#         uses: actions/upload-release-asset@v1
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           upload_url: ${{ steps.get_release.outputs.upload_url }}
+#           asset_path: ${{ steps.find-location.outputs.tar-location }}
+#           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
+#           asset_content_type: application/x-tar
+#
+#       - name: Make debug symbols tar
+#         if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
+#         run: |
+#           cd build
+#           tar -czf tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz */*/*.sym
+#
+#       - name: Upload debug symbols
+#         if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
+#         id: upload-release-symbols-tar
+#         uses: actions/upload-release-asset@v1
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           upload_url: ${{ steps.get_release.outputs.upload_url }}
+#           asset_path: build/tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
+#           asset_name: tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
+#           asset_content_type: application/x-tar
+#
+#       # Upload non debug packages to cloudsmith
+#       - name: Cloudsmith upload
+#         if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
+#         id: push
+#         uses: cloudsmith-io/action@master
+#         with:
+#           api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+#           command: 'push'
+#           format: 'deb'
+#           owner: 'skaginn3x'             # Your Cloudsmith account name or org name (namespace)
+#           repo: 'tfc-repo'         # Your Cloudsmith Repository name (slug)
+#           distro: 'otherdeb'     # Your Distribution  (i.e Debian, Ubuntu)
+#           release: 'any-version'         # Your Distribution Release (i.e xenial, buster)
+#           republish: 'true'          # needed ONLY if version is not changing
+#           file: 'build/*/*.deb'  # debian package filename
+#
