@@ -29,6 +29,10 @@ jobs:
         presets: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
 
     steps:
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 32
       - uses: actions/checkout@v4
         with:
           submodules: true

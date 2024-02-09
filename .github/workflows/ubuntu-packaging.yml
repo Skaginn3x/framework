@@ -30,6 +30,10 @@ jobs:
         build_type: [debug, release]
         architecture: [ x86_64, aarch64 ]
     steps:
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 32
       - uses: actions/checkout@v4
         with:
           submodules: true
