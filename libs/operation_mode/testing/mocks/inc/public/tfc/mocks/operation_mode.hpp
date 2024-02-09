@@ -1,45 +1,29 @@
 #pragma once
-
-#include <concepts>
-#include <cstdint>
 #include <functional>
+#include <string_view>
 #include <system_error>
-#include <vector>
 
-#include <tfc/dbus/sdbusplus_fwd.hpp>
-#include <tfc/logger.hpp>
-#include <tfc/operation_mode/common.hpp>
+#include <gmock/gmock.h>
+#include <boost/asio/io_context.hpp>
 
-namespace boost::asio {
-class io_context;
-}
+#include <tfc/operation_mode.hpp>
 
 namespace tfc::operation {
 
-using new_mode_e = mode_e;
-using old_mode_e = mode_e;
-
 namespace asio = boost::asio;
 
-namespace concepts {
-
-template <typename callback_t>
-concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>;
-}  // namespace concepts
-
-class interface {
-public:
-  explicit interface(asio::io_context& ctx) : interface(ctx, "operation") {}
-  interface(asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
+struct mock_interface {
+  explicit mock_interface(asio::io_context& ctx) : mock_interface(ctx, "operation") {}
+  mock_interface(asio::io_context& ctx, std::string_view log_key) : mock_interface(ctx, log_key, dbus::service_name) {}
   /// \brief construct an interface to operation mode controller
   /// \param ctx context to run in
   /// \param log_key key to use for logging
   /// \param dbus_service_name name of the service to connect to
-  interface(asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name);
-  interface(interface const&) = delete;
-  auto operator=(interface const&) -> interface& = delete;
-  interface(interface&&) noexcept;
-  auto operator=(interface&&) noexcept -> interface&;
+  mock_interface(asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name);
+  mock_interface(mock_interface const&) = delete;
+  auto operator=(mock_interface const&) -> mock_interface& = delete;
+  mock_interface(mock_interface&&) noexcept;
+  auto operator=(mock_interface&&) noexcept -> mock_interface&;
 
   /// \brief set operation mode controller to new state
   /// \note take care since this will affect the whole system
@@ -50,7 +34,6 @@ public:
   /// \note the reason can be very useful if components are stopping due to an error.
   void stop(const std::string_view reason) const;
 
-  using uuid_t = std::uint64_t;
   using new_mode_e = mode_e;
   using old_mode_e = mode_e;
 
@@ -135,12 +118,7 @@ private:
   void mode_update(sdbusplus::message::message) noexcept;
   void mode_update_impl(update_message) noexcept;
 
-  uuid_t next_uuid_{};
-  std::string dbus_service_name_{};
   std::vector<callback_item> callbacks_{};
-  std::unique_ptr<sdbusplus::asio::connection, std::function<void(sdbusplus::asio::connection*)>> dbus_connection_{};
-  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> mode_updates_{};
-  tfc::logger::logger logger_;
 };
 
-}  // namespace tfc::operation
+}  // namespace tfc::ipc
