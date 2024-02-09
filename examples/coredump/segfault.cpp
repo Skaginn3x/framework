@@ -2,6 +2,6 @@
 
 void produce_segfault() {
   int* ptr = nullptr;
-  *ptr = 42;
+  *ptr = 42; // NOSONAR
 }
 
