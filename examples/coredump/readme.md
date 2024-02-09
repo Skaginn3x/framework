@@ -1,1 +1,1 @@
-Refer to <git root>/docs/coredumps/info_learned.md for more information.
+Refer to https://skaginn3x.github.io/framework/coredumps/info_learned.html for more information.
