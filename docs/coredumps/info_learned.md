@@ -43,7 +43,7 @@ String dump of section '.gnu_debuglink':
 
 Notice that the symbol file is the executable, the debug link will take care of the actual symbol file.
 
-![img.png](clion_coredump_setup.png)
+![CLion coredump setup](../assets/images/clion_coredump_setup.png "CLion coredump setup")
 
 # Useful commands
 
