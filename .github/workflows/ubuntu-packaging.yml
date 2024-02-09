@@ -38,7 +38,6 @@ jobs:
           # pip install cloudsmith-cli --break-system-packages
       - name: Install python3-pip and cloudsmith-cli
         run: |
-          apt-get update
           apt-get install -y python3-pip
           pip install cloudsmith-cli
 
