@@ -50,7 +50,7 @@ struct mock_slot {
             tfc::stx::invocable<value_t> auto&& cb)
     requires std::is_lvalue_reference_v<manager_client_type>
       : callback{ std::forward<decltype(cb)>(cb) } {
-    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
+    ON_CALL(*this, value()).WillByDefault(::testing::ReturnRef(value_));
   }
   mock_slot(asio::io_context const& ctx,
             manager_client_type client,
@@ -65,7 +65,7 @@ struct mock_slot {
             tfc::stx::invocable<value_t> auto&& cb)
     requires(!std::is_lvalue_reference_v<manager_client_type>)
       : callback{ std::forward<decltype(cb)>(cb) } {
-    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(value_));
+    ON_CALL(*this, value()).WillByDefault(::testing::ReturnRef(value_));
   }
 
   MOCK_METHOD((std::optional<value_t> const&), value, (), (const));           // NOLINT
