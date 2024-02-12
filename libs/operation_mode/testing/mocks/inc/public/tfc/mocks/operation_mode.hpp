@@ -78,7 +78,7 @@ private:
 
   auto append_callback_impl(mode_e mode_value, transition_e transition, std::function<void(new_mode_e, old_mode_e)> callback) -> uuid_t;
   auto append_callback(mode_e mode_value, transition_e transition, concepts::transition_callback auto&& callback) -> uuid_t {
-    return append_callback_impl(mode_value, transition, callback);
+    return append_callback_impl(mode_value, transition, std::forward<decltype(callback)>(callback));
   }
 
   void mode_update_impl(update_message) noexcept;

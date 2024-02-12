@@ -44,7 +44,7 @@ uuid_t mock_interface::append_callback_impl(mode_e mode_value, transition_e tran
     uuid_t const uuid{ get_next_uuid() };
     callbacks_.emplace_back(callback_item{ .mode = mode_value,
                                            .transition = transition,
-                                           .callback = std::forward<decltype(callback)>(callback),
+                                           .callback = callback,
                                            .uuid = uuid });
     return uuid;
 }
