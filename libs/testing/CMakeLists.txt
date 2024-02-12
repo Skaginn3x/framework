@@ -1,7 +1,7 @@
 project(testing)
 
 add_library(testing
-  src/asio_clock.cpp
+  src/clock.cpp
 )
 add_library(tfc::testing ALIAS testing)
 
