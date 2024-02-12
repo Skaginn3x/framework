@@ -30,9 +30,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
   static void op(auto& s, auto&) noexcept {
     s.oneOf = std::vector<tfc::json::detail::schematic>{};
 
-    auto interfaces{ tfc::ec::common::get_interfaces() };
-
-    for (auto const& interface : interfaces) {
+    for (auto const& interface : ec::common::get_interfaces()) {
       s.oneOf->emplace_back(tfc::json::detail::schematic{
           .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
     }
@@ -41,7 +39,7 @@ struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
 
 namespace tfc::ec::config {
 struct ethercat {
-  network_interface primary_interface{ tfc::ec::common::get_interfaces().at(0) };
+  network_interface primary_interface{ common::get_interfaces().at(0) };
   confman::observable<std::optional<std::size_t>> required_slave_count{ std::nullopt };
   struct glaze {
     // clang-format off
