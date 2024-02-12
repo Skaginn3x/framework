@@ -34,7 +34,6 @@ struct callback_item {
   uuid_t uuid{};
 };
 
-
 namespace asio = boost::asio;
 
 namespace concepts {
@@ -65,7 +64,6 @@ public:
   /// \param reason reason for stopping
   /// \note the reason can be very useful if components are stopping due to an error.
   void stop(const std::string_view reason) const;
-
 
   /// \brief remove callback subscription
   /// \param uuid given id from return value of subscription
