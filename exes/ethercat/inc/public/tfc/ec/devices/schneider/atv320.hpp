@@ -115,7 +115,7 @@ public:
                                                                       fmt::format("atv320.s{}.run", slave_index),
                                                                       "Turn on motor",
                                                                       [this](bool value) { ipc_running_ = value; }),
-        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
+        config_{ ctx_, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
                                  fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
