@@ -39,13 +39,7 @@ struct mock_interface {
 
   /// \brief remove callback subscription
   /// \param uuid given id from return value of subscription
-  auto remove_callback(uuid_t uuid) -> std::error_code {
-    auto number_of_erased_items{ std::erase_if(callbacks_, [uuid](auto const& item) -> bool { return item.uuid == uuid; }) };
-    if (number_of_erased_items == 0) {
-      return std::make_error_code(std::errc::argument_out_of_domain);
-    }
-    return {};
-  }
+  auto remove_callback(uuid_t uuid) -> std::error_code;
 
   /// \brief subscribe to events when entering new mode
   /// \param mode mode to subscribe to
@@ -80,45 +74,15 @@ struct mock_interface {
   }
 
 private:
-  enum struct transition_e : std::uint8_t {
-    unknown = 0,
-    enter,
-    leave,
-  };
+  auto get_next_uuid() -> uuid_t;
 
-  struct callback_item {
-    mode_e mode{ mode_e::unknown };
-    transition_e transition{ transition_e::unknown };
-    std::function<void(new_mode_e, old_mode_e)> callback{};
-    uuid_t uuid{};
-  };
-
+  auto append_callback_impl(mode_e mode_value, transition_e transition, std::function<void(new_mode_e, old_mode_e)> callback) -> uuid_t;
   auto append_callback(mode_e mode_value, transition_e transition, concepts::transition_callback auto&& callback) -> uuid_t {
-    uuid_t const uuid{ next_uuid_++ };
-    callbacks_.emplace_back(callback_item{ .mode = mode_value,
-                                           .transition = transition,
-                                           .callback = std::forward<decltype(callback)>(callback),
-                                           .uuid = uuid });
-    return uuid;
+    return append_callback_impl(mode_value, transition, callback);
   }
 
-  auto once_callback_wrapper(concepts::transition_callback auto&& callback, std::shared_ptr<uuid_t> uuid) {
-    return [this, cb = callback, copy_uuid = uuid](new_mode_e new_mode, old_mode_e old_mode) {
-      cb(new_mode, old_mode);
-      if (copy_uuid == nullptr) {
-        logger_.warn("Weird error occurred, unable to clean up callback");
-        return;
-      }
-      if (remove_callback(*copy_uuid)) {
-        logger_.info("Unable to remove callback from callbacks");
-      }
-    };
-  }
-
-  void mode_update(sdbusplus::message::message) noexcept;
   void mode_update_impl(update_message) noexcept;
 
-  std::vector<callback_item> callbacks_{};
 };
 
 }  // namespace tfc::ipc

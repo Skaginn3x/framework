@@ -12,7 +12,8 @@ target_include_directories(mock_operation
 
 find_package(GTest CONFIG REQUIRED COMPONENTS gmock)
 target_link_libraries(mock_operation
-  INTERFACE
+  PUBLIC
+    Boost::boost
     tfc::operation_mode
     GTest::gmock
 )

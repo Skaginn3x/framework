@@ -1,48 +1,52 @@
+#include <ranges>
+#include <fmt/printf.h>
 #include "../inc/public/tfc/mocks/operation_mode.hpp"
 
-
 namespace {
-  using uuid_t = std::uint64_t;
-  thread_local uuid_t next_uuid_;
+  thread_local tfc::operation::uuid_t next_uuid_;
+  thread_local std::vector<tfc::operation::callback_item> callbacks_{};
+  thread_local tfc::operation::mode_e current_mode_{ tfc::operation::mode_e::unknown };
 }
 
 namespace tfc::operation {
-mock_interface::mock_interface(asio::io_context& ctx, std::string_view log_key, std::string_view) {
+mock_interface::mock_interface(asio::io_context&, std::string_view, std::string_view) {
 }
 
-mock_interface::mock_interface(mock_interface&& to_be_erased) noexcept : logger_{ std::move(to_be_erased.logger_) } {
+mock_interface::mock_interface(mock_interface&&) noexcept {
 }
 
-auto mock_interface::operator=(mock_interface&& to_be_erased) noexcept -> mock_interface& {
-  logger_ = std::move(to_be_erased.logger_);
+auto mock_interface::operator=(mock_interface&&) noexcept -> mock_interface& {
   return *this;
 }
 
-void mock_interface::set(tfc::operation::mode_e new_mode) const {
-  // todo add handler to set function call, for callee
-  dbus_connection_->async_method_call(
-      [this](std::error_code err) {
-        if (err) {
-          logger_.warn("Error from set mode: {}", err.message());
-        }
-      },
-      dbus_service_name_, std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::set_mode },
-      new_mode);
+void mock_interface::set(mode_e new_mode) const {
+  auto old_mode = current_mode_;
+  current_mode_ = new_mode;
+  const_cast<mock_interface*>(this)->mode_update_impl(update_message{ .new_mode = new_mode, .old_mode = old_mode });
 }
 
-void mock_interface::stop(const std::string_view reason) const {
-  dbus_connection_->async_method_call(
-      [this](std::error_code err) {
-        if (err) {
-          logger_.warn("Error from stop : {}", err.message());
-        }
-      },
-      dbus_service_name_, std::string{ dbus::path }, std::string{ dbus::name }, std::string{ dbus::method::stop_w_reason },
-      std::string(reason));
+auto mock_interface::get_next_uuid() -> uuid_t {
+  return next_uuid_++;
 }
 
-void mock_interface::mode_update(sdbusplus::message::message msg) noexcept {
-  mode_update_impl(msg.unpack<update_message>());
+void mock_interface::stop(const std::string_view /*reason*/) const {
+  set(mode_e::stopped);
+}
+
+std::error_code mock_interface::remove_callback(uuid_t uuid) {
+    auto number_of_erased_items{ std::erase_if(callbacks_, [uuid](auto const& item) -> bool { return item.uuid == uuid; }) };
+    if (number_of_erased_items == 0) {
+      return std::make_error_code(std::errc::argument_out_of_domain);
+    }
+    return {};
+}
+uuid_t mock_interface::append_callback_impl(mode_e mode_value, transition_e transition, std::function<void(new_mode_e, old_mode_e)> callback) {
+    uuid_t const uuid{ get_next_uuid() };
+    callbacks_.emplace_back(callback_item{ .mode = mode_value,
+                                           .transition = transition,
+                                           .callback = std::forward<decltype(callback)>(callback),
+                                           .uuid = uuid });
+    return uuid;
 }
 void mock_interface::mode_update_impl(update_message const update_msg) noexcept {
   constexpr auto make_transition_filter{ [](transition_e trans) noexcept {
@@ -57,7 +61,7 @@ void mock_interface::mode_update_impl(update_message const update_msg) noexcept 
       try {
         std::invoke(itm.callback, update_msg.new_mode, update_msg.old_mode);
       } catch ([[maybe_unused]] std::exception const& exc) {
-        logger_.warn(R"(Exception from callback id: "{}", what: "{}")", itm.uuid, exc.what());
+        fmt::println(stderr, R"(Exception from callback id: "{}", what: "{}")", itm.uuid, exc.what());
       }
     }
   } };

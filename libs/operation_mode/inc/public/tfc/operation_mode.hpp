@@ -19,6 +19,22 @@ namespace tfc::operation {
 using new_mode_e = mode_e;
 using old_mode_e = mode_e;
 
+using uuid_t = std::uint64_t;
+
+enum struct transition_e : std::uint8_t {
+  unknown = 0,
+  enter,
+  leave,
+};
+
+struct callback_item {
+  mode_e mode{ mode_e::unknown };
+  transition_e transition{ transition_e::unknown };
+  std::function<void(new_mode_e, old_mode_e)> callback{};
+  uuid_t uuid{};
+};
+
+
 namespace asio = boost::asio;
 
 namespace concepts {
@@ -50,9 +66,6 @@ public:
   /// \note the reason can be very useful if components are stopping due to an error.
   void stop(const std::string_view reason) const;
 
-  using uuid_t = std::uint64_t;
-  using new_mode_e = mode_e;
-  using old_mode_e = mode_e;
 
   /// \brief remove callback subscription
   /// \param uuid given id from return value of subscription
@@ -97,19 +110,6 @@ public:
   }
 
 private:
-  enum struct transition_e : std::uint8_t {
-    unknown = 0,
-    enter,
-    leave,
-  };
-
-  struct callback_item {
-    mode_e mode{ mode_e::unknown };
-    transition_e transition{ transition_e::unknown };
-    std::function<void(new_mode_e, old_mode_e)> callback{};
-    uuid_t uuid{};
-  };
-
   auto append_callback(mode_e mode_value, transition_e transition, concepts::transition_callback auto&& callback) -> uuid_t {
     uuid_t const uuid{ next_uuid_++ };
     callbacks_.emplace_back(callback_item{ .mode = mode_value,
