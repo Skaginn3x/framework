@@ -1,0 +1,7 @@
+if(BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()
+if(BUILD_TESTS)
+endif()
+add_subdirectory(tests)
+add_subdirectory(mocks)
