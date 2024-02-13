@@ -20,6 +20,8 @@ using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
 using std::chrono::steady_clock;
 
+static constexpr auto long_press_upper_bound = 7s;
+
 // Events
 struct high {};
 struct low {};
@@ -42,7 +44,7 @@ struct my_deps {
 constexpr auto initial_time_set = [](my_deps& deps) { deps.initial_time = steady_clock::now(); };
 constexpr auto long_press = [](my_deps& deps) {
   auto delta = steady_clock::now() - deps.initial_time;
-  return delta > 1000ms && delta < 2500ms;
+  return delta > 1000ms && delta < long_press_upper_bound;
 };
 
 constexpr auto short_press = [](my_deps& deps) {
@@ -52,7 +54,7 @@ constexpr auto short_press = [](my_deps& deps) {
 
 constexpr auto too_long_press = [](my_deps& deps) {
   auto delta = steady_clock::now() - deps.initial_time;
-  return delta >= 7s;
+  return delta >= long_press_upper_bound;
 };
 
 // actions
