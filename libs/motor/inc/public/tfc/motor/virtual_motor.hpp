@@ -47,7 +47,7 @@ private:
                                                 "nominal",
                                                 &T::nominal,
                                                 "Speed of virtual motor in physical quantities while at 50Hz");
-      static constexpr std::string_view name{ "printing_motor" };
+      static constexpr std::string_view name{ "Virtual motor" };
     };
 
     auto operator==(const config&) const noexcept -> bool = default;
