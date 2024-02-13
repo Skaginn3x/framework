@@ -1,5 +1,5 @@
 
-add_executable(motor_example motor_example.cxx)
+add_executable(motor_example motor_example.cpp)
 
 target_link_libraries(motor_example
     tfc::base
