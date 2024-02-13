@@ -43,7 +43,7 @@ auto main(int argc, char** argv) -> int {
     co_spawn(ctx, blink(ctx, blink_duration, client), asio::detached);
   }
 
-  ctx.run();
+  tfc::base::run(ctx);
 
   return EXIT_SUCCESS;
 }

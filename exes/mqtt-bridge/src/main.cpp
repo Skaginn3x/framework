@@ -76,7 +76,7 @@ auto main(int argc, char* argv[]) -> int {
 
   asio::co_spawn(io_ctx, start(io_ctx), asio::detached);
 
-  io_ctx.run();
+  tfc::base::run(io_ctx);
 
   return 0;
 }

@@ -166,6 +166,6 @@ auto main(int argc, char** argv) -> int {
     }(signal_connect));
   }
 
-  ctx.run();
+  tfc::base::run(ctx);
   return 0;
 }

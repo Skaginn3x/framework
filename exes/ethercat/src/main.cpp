@@ -36,7 +36,7 @@ auto main(int argc, char* argv[]) -> int {
 
   ctx.async_start();
 
-  io_ctx.run();
+  tfc::base::run(io_ctx);
 
   return 0;
 }

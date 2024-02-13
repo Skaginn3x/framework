@@ -10,5 +10,5 @@ auto main(int argc, char** argv) -> int {
 
   tfc::ipc_ruler::ipc_manager_server const dbus_ipc_server(ctx, std::move(ipc_manager));
 
-  ctx.run();
+  tfc::base::run(ctx);
 }

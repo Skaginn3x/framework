@@ -170,4 +170,16 @@ auto exit_signals(asio::io_context& ctx) -> asio::awaitable<void> {
   fmt::print("\nShutting down gracefully.\nMay you have a pleasant remainder of your day.\n");
   ctx.stop();
 }
+
+auto run(asio::io_context& ctx) -> void {
+  try {
+    ctx.run();
+  }
+  catch (...) {
+    boost::stacktrace::stacktrace const trace{};
+    fmt::println("Exception thrown in run\nStacktrace:\n{}", to_string(trace).data());
+    std::rethrow_exception(std::current_exception());
+  }
+}
+
 }  // namespace tfc::base

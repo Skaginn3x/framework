@@ -24,7 +24,7 @@ auto main(int argc, char** argv) -> int {
 
   asio::co_spawn(ctx, tfc::base::exit_signals(ctx), asio::detached);
 
-  ctx.run();
+  tfc::base::run(ctx);
 
   return EXIT_SUCCESS;
 }

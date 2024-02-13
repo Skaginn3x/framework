@@ -70,4 +70,6 @@ void init(int argc, char const* const* argv);
 /// \brief stop context for predefined exit signals
 auto exit_signals(boost::asio::io_context&) -> boost::asio::awaitable<void, boost::asio::any_io_executor>;
 
+/// \brief run context and print stacktrace on unhandled exception
+auto run(boost::asio::io_context&) -> void;
 }  // namespace tfc::base

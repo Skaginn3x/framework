@@ -145,7 +145,7 @@ auto main(int argc, char** argv) -> int {
                                    }
                                  } };
 
-  ctx.run();
+  tfc::base::run(ctx);
 
   return EXIT_SUCCESS;
 }
