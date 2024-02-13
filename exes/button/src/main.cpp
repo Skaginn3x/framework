@@ -38,6 +38,7 @@ struct my_deps {
   tfc::ipc::bool_signal double_signal;
   tfc::ipc::bool_signal long_signal;
   tfc::ipc::bool_signal touch_signal;
+  std::chrono::nanoseconds delta{};
   std::chrono::time_point<steady_clock, std::chrono::nanoseconds> initial_time;
 };
 
@@ -45,13 +46,11 @@ struct my_deps {
 constexpr auto initial_time_set = [](my_deps& deps) { deps.initial_time = steady_clock::now(); };
 
 constexpr auto short_press = [](my_deps& deps) {
-  auto delta = steady_clock::now() - deps.initial_time;
-  return delta <= short_press_lower_bound;
+  return deps.delta <= short_press_lower_bound;
 };
 
 constexpr auto too_long_press = [](my_deps& deps) {
-  auto delta = steady_clock::now() - deps.initial_time;
-  return delta >= long_press_upper_bound;
+  return deps.delta >= long_press_upper_bound;
 };
 
 constexpr auto long_press = [](my_deps& deps) {
@@ -144,6 +143,7 @@ auto main(int argc, char** argv) -> int {
                                        logger.warn("Failed to send raw_value, {}", err.message());
                                      }
                                    });
+                                   deps.delta = steady_clock::now() - deps.initial_time;
                                    if (value) {
                                      sm.process_event(sml::event<high>());
                                    } else {
