@@ -1,5 +1,5 @@
 # boost-build requires newer compiler than gcc 8
-FROM ubuntu:23.04 AS base
+FROM ubuntu:23.10 AS base
 
 ENV DEBIAN_FRONTEND noninteractive
 
