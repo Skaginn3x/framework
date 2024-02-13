@@ -30,10 +30,17 @@ using mp_units::QuantityOf;
 using speedratio_t = dbus::types::speedratio_t;
 using micrometre_t = dbus::types::micrometre_t;
 
+namespace details {
+struct not_used {
+  static constexpr std::string_view value{ "No motor configured" };
+  auto operator==(const not_used&) const noexcept -> bool { return true; }
+};
+} // namespace details
+
 class api {
 public:
-  using config_t = confman::observable<
-      std::variant<std::monostate, types::virtual_motor::config_t, types::atv320motor::config_t, types::stub::config_t>>;
+  using tagged_variant = std::variant<details::not_used, types::virtual_motor::config_t, types::atv320motor::config_t, types::stub::config_t>;
+  using config_t = confman::observable<tagged_variant>;
 
 private:
   using config_internal_t = std::variant<confman::config<config_t>, std::shared_ptr<config_t>>;
@@ -78,7 +85,7 @@ public:
     std::visit(
         [this](auto& conf) {
           using conf_t = std::decay_t<decltype(conf)>;
-          if constexpr (!std::same_as<std::monostate, conf_t>) {
+          if constexpr (!std::same_as<details::not_used, conf_t>) {
             if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
                                                   const conf_t&>) {
               impl_.emplace<typename conf_t::impl>(connection_, conf);
@@ -100,7 +107,7 @@ public:
       std::visit(
           [this](auto& vst_new, auto& vst_old) {
             using conf_t = std::decay_t<decltype(vst_new)>;
-            if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<std::monostate, conf_t>) {
+            if constexpr (!std::same_as<decltype(vst_new), decltype(vst_old)> && !std::same_as<details::not_used, conf_t>) {
               logger_.info("Switching running motor config");
               if constexpr (std::is_constructible_v<typename conf_t::impl, std::shared_ptr<sdbusplus::asio::connection>,
                                                     conf_t>) {
@@ -563,3 +570,15 @@ auto api::reset(asio::completion_token_for<void(std::error_code)> auto&& token) 
 }
 
 }  // namespace tfc::motor
+
+template <>
+struct glz::meta<tfc::motor::api::tagged_variant> {
+  static constexpr std::string_view tag{ "Selected motor variant" };
+};
+
+template <>
+struct glz::meta<tfc::motor::details::not_used> {
+  using self = tfc::motor::details::not_used;
+  static constexpr std::string_view name{ "Not used" };
+  static constexpr auto value{ glz::object("value", &self::value, tfc::json::schema{ .read_only = true }) };
+};

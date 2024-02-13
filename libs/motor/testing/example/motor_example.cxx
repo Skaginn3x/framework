@@ -13,8 +13,9 @@ using mp_units::percent;
 
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
-  boost::asio::io_context ctx;
-  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+  asio::io_context ctx;
+  std::shared_ptr dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
   motor::api my_motor {
     dbus, "my_motor"
   };

@@ -59,7 +59,7 @@ private:
     struct glaze {
       using T = config;
       static constexpr auto value = glz::object("slave_id", &T::slave_id);
-      static constexpr std::string_view name{ "atv320" };
+      static constexpr std::string_view name{ "Schneider ATV320" };
     };
     auto operator==(const config&) const noexcept -> bool = default;
   };

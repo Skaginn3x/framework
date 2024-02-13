@@ -36,6 +36,7 @@ struct stub {
     struct glaze {
       using T = config;
       static constexpr auto value = glz::object("name", &T::name);
+      // Todo use tfc::json::schema meta and expose variant without this type to UI
       static constexpr std::string_view name{ "stub DONT PICK" };
     };
     auto operator==(const config&) const noexcept -> bool = default;
