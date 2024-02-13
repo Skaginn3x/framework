@@ -21,6 +21,7 @@ using std::chrono_literals::operator""ms;
 using std::chrono::steady_clock;
 
 static constexpr auto long_press_upper_bound = 7s;
+static constexpr auto short_press_lower_bound = 1s;
 
 // Events
 struct high {};
@@ -42,19 +43,19 @@ struct my_deps {
 
 // guards
 constexpr auto initial_time_set = [](my_deps& deps) { deps.initial_time = steady_clock::now(); };
-constexpr auto long_press = [](my_deps& deps) {
-  auto delta = steady_clock::now() - deps.initial_time;
-  return delta > 1000ms && delta < long_press_upper_bound;
-};
 
 constexpr auto short_press = [](my_deps& deps) {
   auto delta = steady_clock::now() - deps.initial_time;
-  return delta < 1000ms;
+  return delta <= short_press_lower_bound;
 };
 
 constexpr auto too_long_press = [](my_deps& deps) {
   auto delta = steady_clock::now() - deps.initial_time;
   return delta >= long_press_upper_bound;
+};
+
+constexpr auto long_press = [](my_deps& deps) {
+  return !short_press(deps) && !too_long_press(deps);
 };
 
 // actions
@@ -109,15 +110,18 @@ constexpr auto send_double_tap = [](my_deps& deps) { return send_signal(deps.ctx
 /// A state machine for turning boolean signals into button events.
 struct button_state {
   auto operator()() {
+    // clang-format off
     return sml::make_transition_table(
         *"start"_s + sml::event<high> / initial_time_set = "choose"_s,
         "choose"_s + sml::event<low>[long_press] / send_long_press = "start"_s,
         "choose"_s + sml::event<low>[short_press] / start_timeout = "wait"_s,
         "choose"_s + sml::event<low>[too_long_press] = "start"_s,
         "wait"_s + sml::event<high>[short_press] = "send_double"_s,  // Wait for low also on double tap
-        "wait"_s + sml::event<high>[long_press] = "start"_s, "wait"_s + sml::event<timeout> / send_touch = "start"_s,
+        "wait"_s + sml::event<high>[long_press] = "start"_s,
+        "wait"_s + sml::event<timeout> / send_touch = "start"_s,
         "send_double"_s + sml::event<low> / send_double_tap = "start"_s);
   }
+  // clang-format on
 };
 
 auto main(int argc, char** argv) -> int {
