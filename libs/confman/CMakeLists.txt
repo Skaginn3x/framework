@@ -36,9 +36,7 @@ target_link_libraries(confman
 )
 add_library_to_docs(tfc::confman)
 
-if (BUILD_TESTING)
-  add_subdirectory(testing)
-endif ()
+add_subdirectory(testing)
 
 include(tfc_install)
 tfc_install_lib(confman)

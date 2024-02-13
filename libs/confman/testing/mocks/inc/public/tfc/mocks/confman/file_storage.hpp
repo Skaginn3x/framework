@@ -17,12 +17,12 @@ struct mock_file_storage : public file_storage<storage_t> {
   using change = detail::change<mock_file_storage>;
 
   mock_file_storage(asio::io_context& ctx, std::filesystem::path const&) : file_storage<storage_t>{ ctx } {
-    ON_CALL(*this, error()).WillByDefault(testing::ReturnRef(this->error_));
-    ON_CALL(*this, file()).WillByDefault(testing::ReturnRef(this->config_file_));
-    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(this->storage_));
-    ON_CALL(*this, access()).WillByDefault(testing::ReturnRef(this->storage_));
-    ON_CALL(*this, make_change()).WillByDefault(testing::Return(change{ *this }));
-    ON_CALL(*this, set_changed()).WillByDefault(testing::Return(std::error_code{}));
+    ON_CALL(*this, error()).WillByDefault(::testing::ReturnRef(this->error_));
+    ON_CALL(*this, file()).WillByDefault(::testing::ReturnRef(this->config_file_));
+    ON_CALL(*this, value()).WillByDefault(::testing::ReturnRef(this->storage_));
+    ON_CALL(*this, access()).WillByDefault(::testing::ReturnRef(this->storage_));
+    ON_CALL(*this, make_change()).WillByDefault(::testing::Return(change{ *this }));
+    ON_CALL(*this, set_changed()).WillByDefault(::testing::Return(std::error_code{}));
   }
   mock_file_storage(asio::io_context& ctx, std::filesystem::path const& path, [[maybe_unused]] auto&& default_value)
       : mock_file_storage{ ctx, path } {
