@@ -35,11 +35,12 @@ struct not_used {
   static constexpr std::string_view value{ "No motor configured" };
   auto operator==(const not_used&) const noexcept -> bool { return true; }
 };
-} // namespace details
+}  // namespace details
 
 class api {
 public:
-  using tagged_variant = std::variant<details::not_used, types::virtual_motor::config_t, types::atv320motor::config_t, types::stub::config_t>;
+  using tagged_variant =
+      std::variant<details::not_used, types::virtual_motor::config_t, types::atv320motor::config_t, types::stub::config_t>;
   using config_t = confman::observable<tagged_variant>;
 
 private:
