@@ -232,7 +232,7 @@ public:
 
     for (size_t i = 0; i < atv320_di_count; i++) {
       di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
-                                                          fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
+                                                          fmt::format("atv320.s{}.DI{}", slave_index, i + 1), "Digital Input"));
     }
   }
 
