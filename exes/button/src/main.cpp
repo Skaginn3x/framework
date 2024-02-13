@@ -45,17 +45,11 @@ struct my_deps {
 // guards
 constexpr auto initial_time_set = [](my_deps& deps) { deps.initial_time = steady_clock::now(); };
 
-constexpr auto short_press = [](my_deps& deps) {
-  return deps.delta <= short_press_lower_bound;
-};
+constexpr auto short_press = [](my_deps& deps) { return deps.delta <= short_press_lower_bound; };
 
-constexpr auto too_long_press = [](my_deps& deps) {
-  return deps.delta >= long_press_upper_bound;
-};
+constexpr auto too_long_press = [](my_deps& deps) { return deps.delta >= long_press_upper_bound; };
 
-constexpr auto long_press = [](my_deps& deps) {
-  return !short_press(deps) && !too_long_press(deps);
-};
+constexpr auto long_press = [](my_deps& deps) { return !short_press(deps) && !too_long_press(deps); };
 
 // actions
 constexpr auto start_timeout = [](const auto&, auto& state_machine, auto& deps, const auto& subs) {
