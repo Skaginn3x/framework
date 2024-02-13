@@ -14,7 +14,7 @@ namespace tfc::confman {
 
 namespace asio = boost::asio;
 
-template <typename storage_t>
+template <typename storage_t, typename = void, typename = void>
 struct mock_config : public config<storage_t, mock_file_storage<storage_t>, detail::mock_config_dbus_client> {
   using type = storage_t;
   using change = detail::change<mock_config>;
