@@ -245,14 +245,17 @@ struct stub {
         [](auto& self) { self.complete(motor_error(errors::err_enum::motor_method_not_implemented)); }, token);
   }
 
+  // NOTE: signal needs to be declared before the condition_variable
+  // for destruct order to be correct
+  asio::cancellation_signal signal{};  // Used for canceling async operations
+
   // User logic callbacks for motor procedures
-  tfc::asio::condition_variable<asio::any_io_executor> tokens;
+  tfc::asio::condition_variable tokens;
   logger::logger logger_;
 
   // Values to return
   std::error_code code{};
-  micrometre_t length{};               // Used both for position and travel
-  asio::cancellation_signal signal{};  // Used for canceling async operations
+  micrometre_t length{};  // Used both for position and travel
   bool running{ false };
   bool homed{ false };
 };
