@@ -98,8 +98,6 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    * @returns true if the value is invalid, false otherwise.
    */
   function isWarning() { // NOSONAR
-    console.log(`VALUE IS: ${value}`);
-    console.log(`VALUE IS2: ${value?.toString()}`);
     if (required && (value === undefined || value.toString() === '')) {
       if (errText !== 'Required') setErrText('Required');
       return true;
