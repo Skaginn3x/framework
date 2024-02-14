@@ -163,7 +163,9 @@ const Configurator: React.FC = () => {
       setFormData,
       addAlert,
     );
-    getData();
+    setTimeout(() => {
+      getData();
+    }, 100);
   }
 
   /**

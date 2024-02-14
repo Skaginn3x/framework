@@ -78,7 +78,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     storeValue = undefined;
   }
 
-  if (!storeValue) {
+  if (storeValue === undefined) {
     storeValue = schema.get('default');
   }
 
@@ -98,7 +98,9 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    * @returns true if the value is invalid, false otherwise.
    */
   function isWarning() { // NOSONAR
-    if (required && (!value || value.toString() === '')) {
+    console.log(`VALUE IS: ${value}`);
+    console.log(`VALUE IS2: ${value?.toString()}`);
+    if (required && (value === undefined || value.toString() === '')) {
       if (errText !== 'Required') setErrText('Required');
       return true;
     }
