@@ -370,10 +370,15 @@ PRAGMA_GCC_WARNING_POP
   }
 
   void process_data(std::span<std::byte> in, [[maybe_unused]] std::span<std::byte> out) final {
-    if (in.size() != sizeof(pdo_input)) {
-      this->logger_.warn("Invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
+    if (in.size() != sizeof(pdo_input) && !invalid_size_logged_) {
+      invalid_size_logged_ = true;
+      this->logger_.warn("4x60a weight head invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
       return;
     }
+    if (in.size() != sizeof(pdo_input)) {
+      return;
+    }
+    invalid_size_logged_ = false;
     [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
 
     // todo support multiple variations
@@ -438,6 +443,7 @@ PRAGMA_CLANG_WARNING_POP
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
+  bool invalid_size_logged_{ false };
   confman::config<config> config_{ ctx_, fmt::format("eilersen_4x60a.s{}", slave_index_) };
   // todo make section struct to cover the config, for now only one output is generated
   std::int64_t last_cumilated_signal_{};
