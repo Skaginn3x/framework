@@ -255,7 +255,7 @@ struct stub {
 
   // Values to return
   std::error_code code{};
-  micrometre_t length{};               // Used both for position and travel
+  micrometre_t length{};  // Used both for position and travel
   bool running{ false };
   bool homed{ false };
 };
