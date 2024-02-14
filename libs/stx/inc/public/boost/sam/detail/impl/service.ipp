@@ -1,3 +1,4 @@
+#pragma once
 // clang-format off
 //
 // Copyright (c) 2022 Klemens Morgenstern (klemens.morgenstern@gmx.net)
