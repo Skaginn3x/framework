@@ -149,6 +149,7 @@ struct controller {
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: stop");
     cancel_pending_operation();
     return stop_impl(false, {}, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
@@ -157,6 +158,7 @@ struct controller {
               micrometre_t travel,
               asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    logger_.trace("Command: convey at speedratio: {} to: {}", speedratio, travel);
     cancel_pending_operation();
     return convey_impl(speedratio, travel,
                        asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
@@ -166,6 +168,7 @@ struct controller {
             micrometre_t travel,
             asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    logger_.trace("Command: move at speedratio: {} to: {}", speedratio, travel);
     cancel_pending_operation();
     return move_impl(speedratio, travel,
                      asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
@@ -173,24 +176,28 @@ struct controller {
 
   auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: move_home");
     cancel_pending_operation();
     return move_home_impl(asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
 
   auto notify_after(micrometre_t travel, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Notify at: {}", travel);
     cancel_pending_operation();
     return pos_.notify_after(travel, std::forward<decltype(token)>(token));
   }
 
   auto notify_from_home(micrometre_t position, asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token)
       -> typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    logger_.trace("Notify from home: {}", position);
     cancel_pending_operation();
     return pos_.notify_from_home(position, std::forward<decltype(token)>(token));
   }
 
   auto reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: reset");
     using cia_402::states_e;
     using motor::errors::err_enum;
     // Reset has no effect as the drive is not in a fault state.
@@ -354,6 +361,7 @@ private:
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
         [this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
           if (first_call) {
+            logger_.trace("Will stop motor, reason: {}", stop_reason);
             first_call = false;
             asio::experimental::make_parallel_group(
                 [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
@@ -362,6 +370,7 @@ private:
                             detail::drive_error_first(std::move(self), drive_error_, limit_error_));
             return;
           }
+          logger_.trace("Motor should be stopped");
           if (stop_reason) {
             self.complete(stop_reason);
             return;
