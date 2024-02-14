@@ -30,9 +30,13 @@ template <typename manager_client_type,
 void el2xxx<manager_client_type, size, entries, pc, name>::process_data(std::span<std::byte>,
                                                                         std::span<std::byte> output) noexcept {
   if (output.size() == 0) {
-    logger_.info("No output buffer provided for EL2xxx {}", name);
+    if (output_buffer_valid_) {
+      logger_.info("No output buffer provided for EL2xxx {}", name);
+    }
+    output_buffer_valid_ = false;
     return;
   }
+  output_buffer_valid_ = true;
   output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
   if constexpr (size > 8) {
     output[1] = static_cast<std::byte>(output_states_.to_ulong() >> 8);
