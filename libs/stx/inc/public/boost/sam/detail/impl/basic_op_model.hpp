@@ -1,3 +1,4 @@
+// clang-format off
 //
 // Copyright (c) 2021 Richard Hodges (hodges.r@gmail.com)
 //

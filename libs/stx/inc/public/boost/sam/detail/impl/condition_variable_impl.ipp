@@ -30,17 +30,21 @@ BOOST_SAM_DECL void condition_variable_impl::notify_one()
     op->complete(error_code());
 }
 
-BOOST_SAM_DECL void condition_variable_impl::notify_all()
+BOOST_SAM_DECL std::size_t condition_variable_impl::notify_all()
 {
   lock_type lock{this->mtx_};
   // release a pending operations
+  std::size_t count{};
   for (auto c = waiters_.next_; c != &waiters_;)
   {
     auto op = static_cast<detail::predicate_wait_op *>(c);
     c       = c->next_;
-    if (op->done())
+    if (op->done()) {
       op->complete(error_code());
+      count++;
+    }
   }
+  return count;
 }
 
 } // namespace detail

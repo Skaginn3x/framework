@@ -1,3 +1,4 @@
+// clang-format off
 //
 // Copyright (c) 2023 Klemens Morgenstern (klemens.morgenstern@gmx.net)
 //

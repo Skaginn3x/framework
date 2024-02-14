@@ -1,3 +1,4 @@
+// clang-format off
 // Copyright (c) 2022 Klemens D. Morgenstern
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -44,7 +45,7 @@ struct condition_variable_impl : detail::service_member
   }
 
   BOOST_SAM_DECL void notify_one();
-  BOOST_SAM_DECL void notify_all();
+  BOOST_SAM_DECL std::size_t notify_all();
 
   BOOST_SAM_DECL void add_waiter(detail::predicate_wait_op *waiter) noexcept;
 

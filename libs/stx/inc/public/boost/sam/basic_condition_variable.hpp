@@ -1,3 +1,4 @@
+// clang-format off
 // Copyright (c) 2022 Klemens D. Morgenstern
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -105,7 +106,7 @@ struct basic_condition_variable
   void notify_one() { impl_.notify_one(); }
 
   /// Notify/wake up all waiting operations.
-  void notify_all() { impl_.notify_all(); }
+  auto notify_all() -> std::size_t { return impl_.notify_all(); }
 
   /// Rebinds the mutex type to another executor.
   template <typename Executor1>

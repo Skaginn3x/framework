@@ -1,3 +1,4 @@
+// clang-format off
 // Copyright (c) 2022 Klemens D. Morgenstern, Ricahrd Hodges
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
