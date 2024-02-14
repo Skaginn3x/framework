@@ -361,7 +361,7 @@ private:
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
         [this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
           if (first_call) {
-            logger_.trace("Will stop motor, reason: {}", stop_reason);
+            logger_.trace("Will stop motor, reason: {}", stop_reason.message());
             first_call = false;
             asio::experimental::make_parallel_group(
                 [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
