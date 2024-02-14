@@ -443,7 +443,7 @@ PRAGMA_CLANG_WARNING_POP
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
-  bool invalid_size_logged_ { false };
+  bool invalid_size_logged_{ false };
   confman::config<config> config_{ ctx_, fmt::format("eilersen_4x60a.s{}", slave_index_) };
   // todo make section struct to cover the config, for now only one output is generated
   std::int64_t last_cumilated_signal_{};
