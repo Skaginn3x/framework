@@ -243,8 +243,7 @@ struct encoder {
     if (buffer_[0].last_event == event && buffer_[1].last_event == event) {
       // 3 consecutive same events indicate that there is a missing pulse on other sensor
       err = errors::err_enum::positioning_missing_event;
-    }
-    else if (buffer_[0].last_event == event && buffer_[1].last_event == buffer_[2].last_event) {
+    } else if (buffer_[0].last_event == event && buffer_[1].last_event == buffer_[2].last_event) {
       err = errors::err_enum::positioning_AA_BB_events;
     }
     statistics_.update(now);
