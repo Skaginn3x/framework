@@ -78,12 +78,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     storeValue = undefined;
   }
 
-  if (!storeValue) {
+  if (storeValue === undefined) {
     storeValue = schema.get('default');
   }
 
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
-  const [stringValue, setStringValue] = React.useState<string>(storeValue?.toString() ?? '');
+  const [stringValue, setStringValue] = React.useState<string>(storeValue !== undefined ? storeValue.toString() : '');
   const [value, setValue] = React.useState<Qty | undefined>(
     storeValue !== undefined
       ? Qty(`${storeValue}${initialUnit ?? ''}`)
@@ -98,7 +98,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    * @returns true if the value is invalid, false otherwise.
    */
   function isWarning() { // NOSONAR
-    if (required && (!value || value.toString() === '')) {
+    if (required && (value === undefined || value.toString() === '')) {
       if (errText !== 'Required') setErrText('Required');
       return true;
     }
