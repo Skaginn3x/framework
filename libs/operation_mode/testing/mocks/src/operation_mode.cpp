@@ -45,8 +45,8 @@ std::error_code mock_interface::remove_callback(uuid_t uuid) {
   return {};
 }
 std::error_code mock_interface::remove_all_callbacks() {
-    callbacks_.clear();
-    return {};
+  callbacks_.clear();
+  return {};
 }
 uuid_t mock_interface::append_callback_impl(mode_e mode_value,
                                             transition_e transition,
