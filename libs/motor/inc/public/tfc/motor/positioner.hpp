@@ -222,9 +222,6 @@ public:
     home_ = new_home_position;
     travel_since_homed_ = 0 * reference;
     missing_home_ = false;
-    if (last_error_ == errors::err_enum::motor_missing_home_reference) {
-      last_error_ = errors::err_enum::success;
-    }
   }
 
   /// \brief home is used in method notify_from_home to determine the notification position
@@ -237,15 +234,15 @@ public:
 
   /// \brief return current error state
   /// \return error code
-  [[nodiscard]] auto error() const noexcept -> errors::err_enum {
-    using enum errors::err_enum;
-    // special case when we have not yet homed and we recovered from some other error
-    // it might be beneficial to refactor error to being bitset struct of error bool flags
-    if (config_->needs_homing_after->has_value() && last_error_ == success && missing_home_) {
-      return motor_missing_home_reference;
-    }
-    return last_error_;
-  }
+  // [[nodiscard]] auto error() const noexcept -> errors::err_enum {
+  //   using enum errors::err_enum;
+  //   // special case when we have not yet homed and we recovered from some other error
+  //   // it might be beneficial to refactor error to being bitset struct of error bool flags
+  //   if (config_->needs_homing_after->has_value() && last_error_ == success && missing_home_) {
+  //     return motor_missing_home_reference;
+  //   }
+  //   return last_error_;
+  // }
 
   void freq_update(hertz_t hertz) {
     std::visit(
@@ -263,9 +260,7 @@ public:
     absolute_position_ += increment;
     velocity_ = velocity;
     if (needs_homing(increment)) {
-      if (last_error_ == errors::err_enum::success) {
-        last_error_ = errors::err_enum::motor_missing_home_reference;
-      }
+      apply_error_to_pending_notifications(errors::err_enum::motor_missing_home_reference);
     }
     notify_if_applicable(old_position, forward);
   }
@@ -276,7 +271,9 @@ public:
             errors::err_enum err) {
     auto const increment{ displacement_per_increment_ * increment_counts };
     stddev_ = stddev;
-    last_error_ = err;
+    if (err != errors::err_enum::success) {
+      apply_error_to_pending_notifications(err);
+    }
     // if (stddev_ >= standard_deviation_threshold_) {
     // last_error_ = errors::err_enum::positioning_unstable;
     // }
@@ -325,6 +322,13 @@ public:
   }
 
 private:
+  auto apply_error_to_pending_notifications(errors::err_enum err) -> void {
+    for (auto const& notification : notifications_) {
+      if (notification->err_ == errors::err_enum::success) {
+        notification->err_ = err;
+      }
+    }
+  }
   auto needs_homing(displacement_t increment) -> bool {
     if (!config_->needs_homing_after->has_value()) {
       return false;
@@ -391,10 +395,9 @@ private:
 
   void notify_if_applicable(absolute_position_t old_position, bool forward) {
     auto const comparator{ detail::make_between_callable(old_position, absolute_position_, forward) };
-    std::erase_if(notifications_, [this, &comparator](auto& n) {
+    std::erase_if(notifications_, [&comparator](auto& n) {
       auto const pos{ n->abs_notify_pos_ };
       if (comparator(pos)) {
-        n->err_ = last_error_;
         n->cv_.notify_all();
         return true;
       }
@@ -409,7 +412,6 @@ private:
     auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };
 
-  errors::err_enum last_error_{ errors::err_enum::success };
   absolute_position_t absolute_position_{};
   absolute_position_t travel_since_homed_{};
   absolute_position_t home_{};
