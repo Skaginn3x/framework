@@ -83,7 +83,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   }
 
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
-  const [stringValue, setStringValue] = React.useState<string>(storeValue?.toString() ?? '');
+  const [stringValue, setStringValue] = React.useState<string>(storeValue !== undefined ? storeValue.toString() : '');
   const [value, setValue] = React.useState<Qty | undefined>(
     storeValue !== undefined
       ? Qty(`${storeValue}${initialUnit ?? ''}`)
