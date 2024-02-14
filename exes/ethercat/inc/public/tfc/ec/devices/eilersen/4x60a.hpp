@@ -372,7 +372,10 @@ PRAGMA_GCC_WARNING_POP
   void process_data(std::span<std::byte> in, [[maybe_unused]] std::span<std::byte> out) final {
     if (in.size() != sizeof(pdo_input) && !invalid_size_logged_) {
       invalid_size_logged_ = true;
-      this->logger_.warn("Invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
+      this->logger_.warn("4x60a weight head invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
+      return;
+    }
+    if (in.size() != sizeof(pdo_input)) {
       return;
     }
     invalid_size_logged_ = false;
