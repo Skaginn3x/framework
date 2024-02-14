@@ -754,13 +754,14 @@ struct dbus_iface {
             timeout_.cancel();
             timeout_.expires_after(long_living_ping ? std::chrono::hours(1) : std::chrono::milliseconds(1500));
             timeout_.async_wait([this](std::error_code err) {
-              if (err)
+              if (err) {
                 return;  // The timer was canceled or deconstructed.
+              }
               // Stop the drive from running since the peer has disconnected
-              ctrl_.stop([this](const std::error_code& time_err) {
-                // TODO: IS THIS RIGHT
-                if (time_err) {
-                  logger_.error("Stop failed after peer disconnect : {}", time_err.message());
+              logger_.info("Peer: {} has disconnected will stop motor. Will make myself available to anyone", peer_);
+              ctrl_.stop([this](const std::error_code& stop_err) {
+                if (stop_err) {
+                  logger_.error("Stop failed after peer disconnect : {}", stop_err.message());
                 }
               });
               peer_ = "";
