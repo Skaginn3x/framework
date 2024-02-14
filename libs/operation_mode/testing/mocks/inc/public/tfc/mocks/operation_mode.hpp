@@ -41,6 +41,9 @@ struct mock_interface {
   /// \param uuid given id from return value of subscription
   auto remove_callback(uuid_t uuid) -> std::error_code;
 
+  /// \brief remove all callback subscriptions
+  auto remove_all_callbacks() -> std::error_code;
+
   /// \brief subscribe to events when entering new mode
   /// \param mode mode to subscribe to
   /// \param callback invocable<new_mode_e, old_mode_e>
