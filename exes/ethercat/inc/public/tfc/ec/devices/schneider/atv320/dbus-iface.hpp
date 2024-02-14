@@ -678,13 +678,14 @@ private:
 
   std::uint16_t slave_id_;
   asio::io_context& ctx_;
+  // Note: cancellation signals need to be declared before the objects that use them
+  asio::cancellation_signal cancel_signal_{};
+  asio::cancellation_signal no_drive_error_{};
   motor::positioner::positioner<mp_units::si::metre, manager_client_t&, pos_config_t, pos_slot_t> pos_;
   tfc::asio::condition_variable run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable stop_complete_{ ctx_.get_executor() };
   tfc::asio::condition_variable drive_error_subscriptable_{ ctx_.get_executor() };
   tfc::asio::condition_variable homing_complete_{ ctx_.get_executor() };
-  asio::cancellation_signal cancel_signal_{};
-  asio::cancellation_signal no_drive_error_{};
   logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
 
   // Motor control parameters
