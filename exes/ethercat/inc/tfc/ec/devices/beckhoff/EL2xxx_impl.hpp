@@ -31,7 +31,7 @@ void el2xxx<manager_client_type, size, entries, pc, name>::process_data(std::spa
                                                                         std::span<std::byte> output) noexcept {
   if (output.size() == 0) {
     if (output_buffer_valid_) {
-      logger_.info("No output buffer provided for EL2xxx {}", name);
+      logger_.info("No output buffer provided for EL2xxx {}", name.view());
     }
     output_buffer_valid_ = false;
     return;
