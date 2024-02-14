@@ -172,8 +172,21 @@ struct controller {
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
     logger_.trace("Command: move at speedratio: {} to: {}", speedratio, travel);
     cancel_pending_operation();
-    return move_impl(speedratio, travel,
-                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    return asio::async_compose<decltype(token), void(std::error_code, micrometre_t)>([this, speedratio, travel, first_call = true, second_call = false](auto& self, std::error_code err = {}, micrometre_t travelled = {}) mutable {
+      if (first_call) {
+        first_call = false;
+        second_call = true;
+        asio::post(std::move(self));
+        return;
+      }
+      if (second_call) {
+        second_call = false;
+        move_impl(speedratio, travel,
+                       asio::bind_cancellation_slot(cancel_signal_.slot(), std::move(self)));
+        return;
+      }
+      self.complete(err, travelled);
+    }, token);
   }
 
   auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
