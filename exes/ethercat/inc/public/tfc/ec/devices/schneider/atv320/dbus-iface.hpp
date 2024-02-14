@@ -125,6 +125,7 @@ struct controller {
 
   auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: run at speedratio: {}", speedratio);
     cancel_pending_operation();
     return run_impl(speedratio, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
@@ -133,6 +134,7 @@ struct controller {
            mp_units::QuantityOf<mp_units::isq::time> auto time,
            asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: run at speedratio: {} for: {}", speedratio, time);
     cancel_pending_operation();
     return run_impl(speedratio, time,
                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
@@ -140,6 +142,7 @@ struct controller {
 
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: quick_stop");
     cancel_pending_operation();
     return stop_impl(true, {}, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
   }
