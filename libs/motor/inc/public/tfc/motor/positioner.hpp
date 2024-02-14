@@ -150,7 +150,7 @@ public:
   /// \todo implicitly allow motor::errors::err_enum as param in token
   auto notify_at(absolute_position_t position, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
-    using cv = tfc::asio::condition_variable<asio::any_io_executor>;
+    using cv = tfc::asio::condition_variable;
     auto new_notification = std::make_shared<notification>(position, cv{ ctx_.get_executor() });
     notifications_.emplace_back(new_notification);
     return asio::async_compose<decltype(token), void(std::error_code)>(
@@ -407,7 +407,7 @@ private:
 
   struct notification {
     absolute_position_t abs_notify_pos_{};
-    tfc::asio::condition_variable<asio::any_io_executor> cv_;
+    tfc::asio::condition_variable cv_;
     errors::err_enum err_{ errors::err_enum::success };
     auto operator<=>(notification const& other) const noexcept { return abs_notify_pos_ <=> other.abs_notify_pos_; }
   };

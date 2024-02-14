@@ -246,7 +246,7 @@ struct stub {
   }
 
   // User logic callbacks for motor procedures
-  tfc::asio::condition_variable<asio::any_io_executor> tokens;
+  tfc::asio::condition_variable tokens;
   logger::logger logger_;
 
   // Values to return

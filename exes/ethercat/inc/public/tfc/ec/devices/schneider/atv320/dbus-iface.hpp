@@ -221,8 +221,7 @@ struct controller {
     motor_frequency_ = in.frequency;
     pos_.freq_update(motor_frequency_);
     if (in.frequency == 0 * mp_units::si::hertz) {
-      [[maybe_unused]] boost::system::error_code err{};
-      stop_complete_.notify_all(err);
+      stop_complete_.notify_all();
     }
     auto state = status_word_.parse_state();
     using enum motor::errors::err_enum;
@@ -680,10 +679,10 @@ private:
   std::uint16_t slave_id_;
   asio::io_context& ctx_;
   motor::positioner::positioner<mp_units::si::metre, manager_client_t&, pos_config_t, pos_slot_t> pos_;
-  tfc::asio::condition_variable<asio::any_io_executor> run_blocker_{ ctx_.get_executor() };
-  tfc::asio::condition_variable<asio::any_io_executor> stop_complete_{ ctx_.get_executor() };
-  tfc::asio::condition_variable<asio::any_io_executor> drive_error_subscriptable_{ ctx_.get_executor() };
-  tfc::asio::condition_variable<asio::any_io_executor> homing_complete_{ ctx_.get_executor() };
+  tfc::asio::condition_variable run_blocker_{ ctx_.get_executor() };
+  tfc::asio::condition_variable stop_complete_{ ctx_.get_executor() };
+  tfc::asio::condition_variable drive_error_subscriptable_{ ctx_.get_executor() };
+  tfc::asio::condition_variable homing_complete_{ ctx_.get_executor() };
   asio::cancellation_signal cancel_signal_{};
   asio::cancellation_signal no_drive_error_{};
   logger::logger logger_{ fmt::format("{}_{}", impl_name, slave_id_) };
