@@ -42,6 +42,26 @@ const Configurator: React.FC = () => {
   const [formData, setFormData] = useState<any>({});
   const [schemas, setSchemas] = useState<any>({});
 
+  function sortItems(items:string[]) {
+    return items.sort((a, b) => {
+      const regex = /([^\d]+)(\d+)$/;
+      const matchA = regex.exec(a);
+      const matchB = regex.exec(b);
+
+      if (matchA && matchB) {
+        // Compare non-numeric parts
+        if (matchA[1] < matchB[1]) return -1;
+        if (matchA[1] > matchB[1]) return 1;
+
+        // Compare numeric parts
+        return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+      }
+
+      // Fallback to regular string comparison if one or both don't match the pattern
+      return a.localeCompare(b);
+    });
+  }
+
   useEffect(() => {
     loadExternalScript((allNames) => {
       const filteredNames = allNames.filter(
@@ -51,26 +71,10 @@ const Configurator: React.FC = () => {
         ) && !name.includes('ipc_ruler'),
       );
 
-      filteredNames.sort((a, b) => {
-        const regex = /([^\d]+)(\d+)$/;
-        const matchA = regex.exec(a);
-        const matchB = regex.exec(b);
-
-        if (matchA && matchB) {
-          // Compare non-numeric parts
-          if (matchA[1] < matchB[1]) return -1;
-          if (matchA[1] > matchB[1]) return 1;
-
-          // Compare numeric parts
-          return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
-        }
-
-        // Fallback to regular string comparison if one or both don't match the pattern
-        return a.localeCompare(b);
-      });
+      const sortedNames = sortItems(filteredNames);
 
       // Process each name asynchronously
-      filteredNames.forEach((name) => {
+      sortedNames.forEach((name) => {
         const dbus = window.cockpit.dbus(name);
         const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
         const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
@@ -176,15 +180,7 @@ const Configurator: React.FC = () => {
     // 2. & 3. Filter out unique and non-undefined values
     const uniqueProcesses = extractedProcesses.filter((value, index, self) => value && self.indexOf(value) === index);
     // 4. Sort the list alphabetically
-    return uniqueProcesses.sort((a, b) => {
-      if (a < b) {
-        return -1;
-      }
-      if (a > b) {
-        return 1;
-      }
-      return 0;
-    });
+    return sortItems(uniqueProcesses);
   }
 
   useEffect(() => {
@@ -222,8 +218,8 @@ const Configurator: React.FC = () => {
             ))}
           </NavGroup>
           <NavGroup title="Schemas">
-            {Object.keys(schemas)
-              .filter((name) => !activeItemFilter || name.includes(activeItemFilter))
+            {sortItems(Object.keys(schemas)
+              .filter((name) => !activeItemFilter || name.includes(activeItemFilter)))
               .map((name: string) => (
                 <NavItem
                   preventDefault
