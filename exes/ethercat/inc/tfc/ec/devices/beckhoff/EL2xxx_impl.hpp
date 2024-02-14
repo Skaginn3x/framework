@@ -29,9 +29,13 @@ template <typename manager_client_type,
           tfc::stx::basic_fixed_string name>
 void el2xxx<manager_client_type, size, entries, pc, name>::process_data(std::span<std::byte>,
                                                                         std::span<std::byte> output) noexcept {
-  output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
+  if (output.size() > 0) {
+    output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
+  }
   if constexpr (size > 8) {
-    output[1] = static_cast<std::byte>(output_states_.to_ulong() >> 8);
+    if (output.size() > 1) {
+      output[1] = static_cast<std::byte>(output_states_.to_ulong() >> 8);
+    }
   }
 }
 
