@@ -27,11 +27,8 @@ template <>
 struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
-    // if (!s.oneOf.has_value()) {
-      s.oneOf = std::vector<schematic>{};
-    // }
+    s.oneOf = std::vector<schematic>{};
     for (auto const& signal : global::get_signals()) {
-      // remove maybe uninitialized warning
       PRAGMA_GCC_WARNING_OFF(-Wmaybe-uninitialized)
       s.oneOf->emplace_back(schematic{ .attributes{
           schema{ .title = signal.name, .description = signal.description, .constant = signal.name } } });
