@@ -65,9 +65,7 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 
 template <typename completion_token_t>
 struct drive_error_first {
-  drive_error_first(completion_token_t&& token,
-                    motor::errors::err_enum& drive_error,
-                    motor::errors::err_enum& limit_error)
+  drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error, motor::errors::err_enum& limit_error)
       : drive_err{ drive_error }, limit_err{ limit_error }, self{ std::move(token) },
         slot{ asio::get_associated_cancellation_slot(self) } {}
 
