@@ -722,9 +722,11 @@ private:
                 return;
               }
               stop_impl(true, err, std::move(self));
-              auto const pos{ pos_.position() };
-              logger_.trace("Storing home position: {}", pos);
-              pos_.home(pos);
+              if (!err) { // TODO TEST
+                auto const pos{ pos_.position() };
+                logger_.trace("Storing home position: {}", pos);
+                pos_.home(pos);
+              }
               return;
             }
             case state_e::complete: {
