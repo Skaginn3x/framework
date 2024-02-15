@@ -66,7 +66,6 @@ public:
 
   auto strand() -> asio::strand<asio::io_context::executor_type>& { return strand_; }
 
-
   using package_v_mock = package_v<async_mqtt::v5::suback_packet,
                                    async_mqtt::v5::publish_packet,
                                    async_mqtt::v5::connack_packet,
