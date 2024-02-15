@@ -13,7 +13,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wmissing-noreturn)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wreserved-identifier)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wdocumentation)
-PRAGMA_GCC_WARNING_OFF(-Werror=unused-parameter)
+PRAGMA_GCC_WARNING_PUSH_OFF(-Wunused-parameter)
 // clang-format on
 #include <boost/sam/mutex.hpp>
 #include <boost/sam/guarded.hpp>
