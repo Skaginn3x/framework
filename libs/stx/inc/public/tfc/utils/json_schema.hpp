@@ -449,7 +449,8 @@ struct to_json_schema<T> {
         }
         if constexpr (!glz::tag_v<T>.empty()) {
           (*schema_val.properties)[glz::tag_v<T>] =
-              schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>> };
+              schema{ .ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>>,
+                      .constant = glz::ids_v<T>[I] };
           // TODO use enum or oneOf to get the ids_v to validate type name
         }
       }

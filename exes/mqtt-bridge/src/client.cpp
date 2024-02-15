@@ -194,7 +194,6 @@ auto client<client_t, config_t>::subscribe_to_topic(std::string topic) -> asio::
   co_return true;
 }
 
-// TODO: this crashes when multiple writes are received at the same time
 template <class client_t, class config_t>
 auto client<client_t, config_t>::wait_for_payloads(
     std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload,

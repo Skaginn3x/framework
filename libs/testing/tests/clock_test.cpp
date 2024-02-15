@@ -1,7 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 
-#include <tfc/testing/asio_clock.hpp>
+#include <tfc/testing/clock.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

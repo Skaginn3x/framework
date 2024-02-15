@@ -35,7 +35,8 @@ static constexpr std::string_view name{ tfc::dbus::const_dbus_name<interface_nam
 static constexpr std::string_view path{ tfc::dbus::const_dbus_path<interface_name> };
 namespace method {
 static constexpr std::string_view set_mode{ "SetMode" };
-}
+static constexpr std::string_view stop_w_reason{ "StopWithReason" };
+}  // namespace method
 namespace signal {
 static constexpr std::string_view update{ "Update" };
 }  // namespace signal
