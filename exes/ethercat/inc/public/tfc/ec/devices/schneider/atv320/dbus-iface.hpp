@@ -67,10 +67,9 @@ template <typename completion_token_t>
 struct drive_error_first {
   drive_error_first(completion_token_t&& token,
                     motor::errors::err_enum& drive_error,
-                    motor::errors::err_enum& limit_error,
-                    uint16_t slv_id)
+                    motor::errors::err_enum& limit_error)
       : drive_err{ drive_error }, limit_err{ limit_error }, self{ std::move(token) },
-        slot{ asio::get_associated_cancellation_slot(self) }, slave_id(slv_id) {}
+        slot{ asio::get_associated_cancellation_slot(self) } {}
 
   /// The associated cancellation slot type.
   using cancellation_slot_type = asio::cancellation_slot;
@@ -84,7 +83,6 @@ struct drive_error_first {
       std::invoke(self, motor::motor_error(limit_err));
       return;
     }
-    fmt::println(stderr, "slave_id: {}", slave_id);
     switch (order[0]) {
       case 0:  // first parallel job has finished
         std::invoke(self, err1);
@@ -103,7 +101,6 @@ struct drive_error_first {
   motor::errors::err_enum& limit_err;
   completion_token_t self;
   asio::cancellation_slot slot;
-  volatile uint16_t slave_id;
 };
 
 template <typename completion_token_t>
@@ -392,7 +389,7 @@ private:
                 [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                 [this](auto inner_token) { return this->stop_complete_.async_wait(inner_token); })
                 .async_wait(asio::experimental::wait_for_one(),
-                            detail::drive_error_first(std::move(self), drive_error_, limit_error_, slave_id_));
+                            detail::drive_error_first(std::move(self), drive_error_, limit_error_));
             return;
           }
           logger_.trace("Motor should be stopped");
@@ -447,7 +444,7 @@ private:
                   [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
                   [this](auto inner_token) { return this->run_blocker_.async_wait(inner_token); })
                   .async_wait(asio::experimental::wait_for_one(),
-                              detail::drive_error_first(std::move(self), drive_error_, limit_error_, slave_id_));
+                              detail::drive_error_first(std::move(self), drive_error_, limit_error_));
               return;
             }
             case state_e::wait_till_stop: {
