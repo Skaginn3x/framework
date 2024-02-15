@@ -539,7 +539,7 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
-  "move interupted by stop while stopping"_test = [&] {
+  "move interupted by move interupted by move interupted by move while moving"_test = [&] {
     instance inst;
     inst.populate_homing_sensor();
     inst.ctrl.update_status(get_good_status_running());
