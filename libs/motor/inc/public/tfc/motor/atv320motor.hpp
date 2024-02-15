@@ -99,7 +99,6 @@ private:
       logger_.error("Ping timeout error: {}", err.message());
     } else {
       // In most cases normal but a backup plan if dbus timeout fails
-      // logger_.error("DBus did not respond for slave: {}", slave_id_);
     }
     ping_.expires_after(ping_interval);
     ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
