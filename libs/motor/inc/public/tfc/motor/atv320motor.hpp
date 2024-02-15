@@ -92,6 +92,9 @@ private:
     if (err == std::errc::operation_canceled) {
       // We got response, meaning we did not need to wait as long as this timeout
       // logger_.trace("Received response from slave: {}, is connected: {}", slave_id_, connected_);
+      ping_.expires_after(ping_interval);
+      ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
+      return;
     } else if (err) {
       logger_.error("Ping timeout error: {}", err.message());
     } else {
