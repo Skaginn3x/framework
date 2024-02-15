@@ -13,6 +13,7 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wmissing-noreturn)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wreserved-identifier)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wdocumentation)
+PRAGMA_GCC_WARNING_OFF(-Werror=unused-parameter)
 // clang-format on
 #include <boost/sam/mutex.hpp>
 #include <boost/sam/guarded.hpp>
@@ -24,6 +25,7 @@ PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
+PRAGMA_GCC_WARNING_POP
 
 namespace tfc::asio {
 
