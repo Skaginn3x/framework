@@ -241,7 +241,6 @@ struct encoder {
   void update(std::int8_t increment, bool first, bool second, last_event_t event) noexcept {
     auto const now{ clock_t::now() };
     position_ += increment;
-    // fmt::println(stderr, "Encoder position: {}", position_);  // todo remove
     errors::err_enum err{ errors::err_enum::success };
     if (buffer_[0].last_event == event && buffer_[1].last_event == event) {
       // 3 consecutive same events indicate that there is a missing pulse on other sensor
