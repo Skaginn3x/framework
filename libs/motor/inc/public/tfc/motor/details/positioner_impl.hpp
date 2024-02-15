@@ -68,6 +68,7 @@ struct circular_buffer {
   /// \param args arguments to forward to constructor of storage_t
   /// \return removed item, the oldest item
   constexpr auto emplace(auto&&... args) -> storage_t {
+    // TODO this move is not working for non copyable types
     storage_t removed_item{ std::move(*insert_pos_) };
     front_ = insert_pos_;
     std::construct_at(insert_pos_, std::forward<decltype(args)>(args)...);
@@ -99,6 +100,10 @@ struct circular_buffer {
     }
     assert(idx >= 0 && "Something weird occured");
     return buffer_[static_cast<std::size_t>(idx)];
+  }
+
+  constexpr auto size() const noexcept -> std::size_t {
+    return buffer_.size();
   }
 
   std::array<storage_t, len> buffer_{};

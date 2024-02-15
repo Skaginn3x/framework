@@ -10,8 +10,15 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wnon-virtual-dtor)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wextra-semi-stmt)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wshadow)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wweak-vtables)
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wmissing-noreturn)
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wreserved-identifier)
+PRAGMA_CLANG_WARNING_PUSH_OFF(-Wdocumentation)
 // clang-format on
-#include <boost/sam/condition_variable.hpp>
+#include <boost/sam/mutex.hpp>
+#include <boost/sam/guarded.hpp>
+PRAGMA_CLANG_WARNING_POP
+PRAGMA_CLANG_WARNING_POP
+PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
@@ -20,6 +27,6 @@ PRAGMA_CLANG_WARNING_POP
 
 namespace tfc::asio {
 
-using condition_variable = boost::sam::condition_variable;
+using mutex = boost::sam::mutex;
 
 }  // namespace tfc::asio
