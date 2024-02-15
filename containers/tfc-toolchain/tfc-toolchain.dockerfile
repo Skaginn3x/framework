@@ -11,6 +11,7 @@ ENV LIBRARY_PATH=/cpproot/lib:/cpproot/lib/x86_64-unknown-linux-gnu:$LIBRARY_PAT
 RUN mkdir -p /cpproot/bin
 RUN mkdir /cpproot/include
 RUN mkdir /cpproot/lib
+RUN mkdir /var/run/tfc
 WORKDIR /tmp
 COPY ./shared.sh /tmp/
 

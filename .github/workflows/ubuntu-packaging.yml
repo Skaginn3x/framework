@@ -142,6 +142,24 @@ jobs:
           asset_name: tfc-framework-${{matrix.build_type}}-${{matrix.architecture}}.tar.gz
           asset_content_type: application/x-tar
 
+      - name: Make debug symbols tar
+        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
+        run: |
+          cd build
+          tar -czf tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz */*/*.sym
+
+      - name: Upload debug symbols
+        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
+        id: upload-release-symbols-tar
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: build/tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
+          asset_name: tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
+          asset_content_type: application/x-tar
+
       # Upload non debug packages to cloudsmith
       - name: Cloudsmith upload
         if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'

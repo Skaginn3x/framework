@@ -24,9 +24,20 @@ target_link_libraries(test_atv320_dbus_iface
   Boost::coroutine
 )
 
+# Get access to private headers
+target_include_directories(test_atv320_dbus_iface PRIVATE ${tfc_ec_dirs})
+
+add_test(
+  NAME
+    test_atv320_dbus_iface
+  COMMAND
+    test_atv320_dbus_iface
+)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 find_package(Boost REQUIRED COMPONENTS program_options coroutine)
+
 add_executable(test_atv320_dbus_iface_integration atv320-dbus-iface-integration.cpp)
 target_link_libraries(test_atv320_dbus_iface_integration
   tfc::base
@@ -39,22 +50,11 @@ target_link_libraries(test_atv320_dbus_iface_integration
   Boost::coroutine
 )
 
-# Get access to private headers
-target_include_directories(test_atv320_dbus_iface PRIVATE ${tfc_ec_dirs})
-
 target_include_directories(test_atv320_dbus_iface_integration PRIVATE ${tfc_ec_dirs})
-
-add_test(
-  NAME
-    test_atv320_dbus_iface
-  COMMAND
-    test_atv320_dbus_iface
-)
 
 add_test(
   NAME
     test_atv320_dbus_iface_integration
   COMMAND
-     test_atv320_dbus_iface_integration
+   test_atv320_dbus_iface_integration
 )
-

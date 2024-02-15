@@ -1,7 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 import React, { useEffect, useState } from 'react';
 import {
-  Box, FormControl, FormLabel, Grid, IconButton, Tooltip,
+  Box, FormControl, FormLabel, Grid, IconButton, Tooltip, Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
@@ -30,6 +30,7 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
   const maxItems = schema.get('maxItems') as number | undefined;
   const minItems = schema.get('minItems') as number | undefined;
   const title = schema.get('title') as string | undefined;
+  const description = schema.get('description') as string | undefined;
   const InfoRenderer = widgets?.InfoRenderer;
   const { isDark } = useDarkMode();
 
@@ -105,6 +106,13 @@ export function ArrayWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProp
               <FormLabel component="legend">
                 {title ?? <TransTitle schema={schema} storeKeys={storeKeys} />}
               </FormLabel>
+              {description
+                ? (
+                  <Typography variant="body2" style={{ marginTop: '8px', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                    {description ?? ''}
+                  </Typography>
+                )
+                : null}
             </Box>
 
             {info}

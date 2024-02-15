@@ -20,6 +20,13 @@ Table of Contents
     design/*
 
 .. toctree::
+    :caption: Debugging
+    :maxdepth: 3
+    :glob:
+
+    coredumps/*
+
+.. toctree::
     :caption: Functionality
     :maxdepth: 3
     :glob:
