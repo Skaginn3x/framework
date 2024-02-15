@@ -91,7 +91,7 @@ private:
   void on_ping_timeout(std::error_code const& err) {
     if (err == std::errc::operation_canceled) {
       // We got response, meaning we did not need to wait as long as this timeout
-      logger_.trace("Received response from slave: {}, is connected: {}", slave_id_, connected_);
+      // logger_.trace("Received response from slave: {}, is connected: {}", slave_id_, connected_);
     } else if (err) {
       logger_.error("Ping timeout error: {}", err.message());
     }
@@ -100,7 +100,7 @@ private:
     }
     ping_.expires_after(ping_interval);
     ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
-    connection_->async_method_call_timed([this](std::error_code const& err, bool resp){ this->on_ping_response(err, resp); }, service_name_, path_,
+    connection_->async_method_call_timed([this](std::error_code const& method_err, bool resp){ this->on_ping_response(method_err, resp); }, service_name_, path_,
                                          interface_name_, std::string{ method::ping }, ping_response_timeout.count(), false);
   }
 
