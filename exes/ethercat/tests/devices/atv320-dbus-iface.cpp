@@ -551,31 +551,31 @@ auto main(int, char const* const* argv) -> int {
                      inst.ran[0] = true;
                    });
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-               [&inst](const std::error_code& err, const micrometre_t moved) {
-                 expect(err == std::errc::operation_canceled) << err.message();
-                 expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
-                 inst.ran[1] = true;
-               });
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[1] = true;
+                   });
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-               [&inst](const std::error_code& err, const micrometre_t moved) {
-                 expect(err == std::errc::operation_canceled) << err.message();
-                 expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
-                 inst.ran[2] = true;
-               });
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[2] = true;
+                   });
     inst.ctx.run_for(1ms);
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-               [&inst](const std::error_code& err, const micrometre_t moved) {
-                 expect(err == std::errc::operation_canceled) << err.message();
-                 expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
-                 inst.ran[3] = true;
-               });
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[3] = true;
+                   });
     inst.ctx.run_for(1ms);
     inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
-               [&inst](const std::error_code& err, const micrometre_t moved) {
-                 expect(!err) << err.message();
-                 expect(moved == 1000 * micrometre_t::reference) << fmt::format("{}", moved);
-                 inst.ran[4] = true;
-               });
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(!err) << err.message();
+                     expect(moved == 1000 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[4] = true;
+                   });
     inst.ctx.run_for(1ms);
     inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
     inst.ctx.run_for(1ms);

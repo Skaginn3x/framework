@@ -102,9 +102,7 @@ struct circular_buffer {
     return buffer_[static_cast<std::size_t>(idx)];
   }
 
-  constexpr auto size() const noexcept -> std::size_t {
-    return buffer_.size();
-  }
+  constexpr auto size() const noexcept -> std::size_t { return buffer_.size(); }
 
   std::array<storage_t, len> buffer_{};
   // front is invalid when there has no item been inserted yet, but should not matter much

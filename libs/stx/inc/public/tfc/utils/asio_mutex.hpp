@@ -15,8 +15,8 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wreserved-identifier)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wdocumentation)
 PRAGMA_GCC_WARNING_PUSH_OFF(-Wunused-parameter)
 // clang-format on
-#include <boost/sam/mutex.hpp>
 #include <boost/sam/guarded.hpp>
+#include <boost/sam/mutex.hpp>
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP

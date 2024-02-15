@@ -66,7 +66,10 @@ combine_error_code(completion_token_t&&) -> combine_error_code<completion_token_
 
 template <typename completion_token_t>
 struct drive_error_first {
-  drive_error_first(completion_token_t&& token, motor::errors::err_enum& drive_error, motor::errors::err_enum& limit_error, uint16_t slv_id)
+  drive_error_first(completion_token_t&& token,
+                    motor::errors::err_enum& drive_error,
+                    motor::errors::err_enum& limit_error,
+                    uint16_t slv_id)
       : drive_err{ drive_error }, limit_err{ limit_error }, self{ std::move(token) },
         slot{ asio::get_associated_cancellation_slot(self) }, slave_id(slv_id) {}
 
@@ -161,7 +164,8 @@ struct controller {
     logger_.trace("Command: run at speedratio: {}", speedratio);
     cancel_pending_operation();
     cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
-    return run_impl(speedratio, asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
+    return run_impl(speedratio,
+                    asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto run(speedratio_t speedratio,
@@ -180,7 +184,8 @@ struct controller {
     logger_.trace("Command: quick_stop");
     cancel_pending_operation();
     cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
-    return stop_impl(true, {}, asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
+    return stop_impl(true, {},
+                     asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -188,7 +193,8 @@ struct controller {
     logger_.trace("Command: stop");
     cancel_pending_operation();
     cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
-    return stop_impl(false, {}, asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
+    return stop_impl(false, {},
+                     asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto convey(speedratio_t speedratio,
@@ -209,8 +215,10 @@ struct controller {
     logger_.trace("Command: move at speedratio: {} to: {}", speedratio, travel);
     cancel_pending_operation();
     cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
-    return move_impl(speedratio, travel, asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
-    // return boost::sam::guarded(one_operation_at_a_time_, [this, speedratio, travel]<typename the_token_t>(the_token_t&& the_token) {
+    return move_impl(speedratio, travel,
+                     asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
+    // return boost::sam::guarded(one_operation_at_a_time_, [this, speedratio, travel]<typename the_token_t>(the_token_t&&
+    // the_token) {
     //   return this->move_impl(speedratio, travel,
     //                  asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<the_token_t>(the_token)));
     // }, std::forward<decltype(token)>(token));
@@ -221,7 +229,8 @@ struct controller {
     logger_.trace("Command: move_home");
     cancel_pending_operation();
     cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
-    return move_home_impl(asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
+    return move_home_impl(
+        asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto notify_after(micrometre_t travel, asio::completion_token_for<void(std::error_code)> auto&& token) ->
@@ -722,7 +731,7 @@ private:
                 return;
               }
               stop_impl(true, err, std::move(self));
-              if (!err) { // TODO TEST
+              if (!err) {  // TODO TEST
                 auto const pos{ pos_.position() };
                 logger_.trace("Storing home position: {}", pos);
                 pos_.home(pos);
