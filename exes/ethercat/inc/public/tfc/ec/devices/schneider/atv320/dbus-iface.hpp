@@ -722,7 +722,6 @@ private:
   asio::cancellation_signal no_drive_error_{};
   // TODO THIS IS A HACK, cancellation_signal deconstructs it self on async_compose
   motor::positioner::detail::circular_buffer<std::shared_ptr<asio::cancellation_signal>, 42> cancel_signals_{};
-  tfc::asio::mutex one_operation_at_a_time_{ ctx_ };
   motor::positioner::positioner<mp_units::si::metre, manager_client_t&, pos_config_t, pos_slot_t> pos_;
   tfc::asio::condition_variable run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable stop_complete_{ ctx_.get_executor() };
