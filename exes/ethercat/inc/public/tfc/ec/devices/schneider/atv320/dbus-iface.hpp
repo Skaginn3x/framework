@@ -21,7 +21,6 @@
 #include <tfc/motor/positioner.hpp>
 #include <tfc/stx/concepts.hpp>
 #include <tfc/utils/asio_condition_variable.hpp>
-#include <tfc/utils/asio_mutex.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 namespace asio = boost::asio;
@@ -110,34 +109,6 @@ struct drive_error_first {
 template <typename completion_token_t>
 drive_error_first(completion_token_t&&, motor::errors::err_enum&, uint16_t) -> drive_error_first<completion_token_t>;
 
-struct one_operation_cancel_signal {
-  void emit(asio::cancellation_type_t type) {
-    if (use_first_) {
-      if (signal_first_) {
-        signal_first_->emit(type);
-      }
-    } else {
-      if (signal_second_) {
-        signal_second_->emit(type);
-      }
-    }
-  }
-
-  asio::cancellation_slot slot() noexcept {
-    use_first_ = !use_first_;
-    if (use_first_) {
-      signal_first_.emplace();
-      return signal_first_->slot();
-    }
-    signal_second_.emplace();
-    return signal_second_->slot();
-  }
-
-  std::optional<asio::cancellation_signal> signal_first_{};
-  std::optional<asio::cancellation_signal> signal_second_{};
-  bool use_first_{};
-};
-
 }  // namespace detail
 
 // Handy commands
@@ -217,11 +188,6 @@ struct controller {
     cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
     return move_impl(speedratio, travel,
                      asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
-    // return boost::sam::guarded(one_operation_at_a_time_, [this, speedratio, travel]<typename the_token_t>(the_token_t&&
-    // the_token) {
-    //   return this->move_impl(speedratio, travel,
-    //                  asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<the_token_t>(the_token)));
-    // }, std::forward<decltype(token)>(token));
   }
 
   auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
