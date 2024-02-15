@@ -194,36 +194,80 @@ namespace tfc::mqtt {
 
             logger_.trace("Publish packet received, parsing...");
 
-            auto *publish_packet = publish_recv.template get_if<async_mqtt::v5::publish_packet>();
-
-            if (publish_packet == nullptr) {
-                logger_.error("Received packet is not a PUBLISH packet");
+            if (auto *publish_packet = publish_recv.template get_if<async_mqtt::v5::publish_packet>()) {
+                for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
+                    logger_.trace("Received PUBLISH packet. Parsing payload...");
+                    process_payload(publish_packet->payload()[i], *publish_packet);
+                }
+            } else {
+                if (
+                    auto *puback_packet = publish_recv.template get_if<async_mqtt::v5::puback_packet>()
+                ) {
+                    logger_.error("Received packet is a puback packet");
+                } else if (
+                    auto *pubcomp_packet = publish_recv.template get_if<async_mqtt::v5::pubcomp_packet>()
+                ) {
+                    logger_.error("Received packet is a pubcomp packet");
+                } else if (
+                    auto *pubrec_packet = publish_recv.template get_if<async_mqtt::v5::pubrec_packet>()
+                ) {
+                    logger_.error("Received packet is a pubrec packet");
+                } else if (
+                    auto *pubrel_packet = publish_recv.template get_if<async_mqtt::v5::pubrel_packet>()
+                ) {
+                    logger_.error("Received packet is a pubrel packet");
+                } else if (
+                    auto *suback_packet = publish_recv.template get_if<async_mqtt::v5::suback_packet>()
+                ) {
+                    logger_.error("Received packet is a suback packet");
+                } else if (
+                    auto *subscribe_packet = publish_recv.template get_if<async_mqtt::v5::subscribe_packet>()
+                ) {
+                    logger_.error("Received packet is a subscribe packet");
+                } else if (
+                    auto *unsuback_packet = publish_recv.template get_if<async_mqtt::v5::unsuback_packet>()
+                ) {
+                    logger_.error("Received packet is a unsuback packet");
+                } else if (
+                    auto *unsubscribe_packet = publish_recv.template get_if<async_mqtt::v5::unsubscribe_packet>()
+                ) {
+                    logger_.error("Received packet is a unsubscribe packet");
+                } else {
+                    logger_.error("unknown packet type received");
+                }
                 restart_needed = true;
-                co_return;
-            }
-
-            logger_.trace("Received PUBLISH packet. Parsing payload...");
-
-            for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
-                asio::co_spawn(strand(),
-                               process_payload(publish_packet->payload()[i], *publish_packet), asio::detached);
             }
         }
     }
 
-    template<class client_t, class config_t>
+    template
+    <
+        class client_t
+        ,
+        class config_t
+    >
     auto client<client_t, config_t>::strand() -> asio::strand<asio::any_io_executor> {
         return endpoint_client_->strand();
     }
 
-    template<class client_t, class config_t>
+    template
+    <
+        class client_t
+        ,
+        class config_t
+    >
     auto client<client_t, config_t>::set_initial_message(std::string const &topic,
                                                          std::string const &payload,
                                                          async_mqtt::qos const &qos) -> void {
         initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{topic, payload, qos};
     }
 
-    template<class client_t, class config_t>
+    template
+    <
+        class client_t
+        ,
+        class config_t
+    >
     auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
         if (!std::get<0>(initial_message_).empty()) {
             co_return co_await send_message(std::get<0>(initial_message_), std::get<1>(initial_message_),
