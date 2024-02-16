@@ -40,27 +40,28 @@ struct state_machine_mock {
   template <typename event_t>
   auto process_event(event_t const&) -> bool {
     // clang-format off
-        if constexpr (std::is_same_v<event_t, events::set_starting>) { return process_set_starting(); } else if
-        constexpr (std::is_same_v<event_t, events::run_button>) { return process_run_button(); } else if constexpr (
-            std::is_same_v<event_t, events::starting_timeout>) { return process_starting_timeout(); } else if constexpr
-        (std::is_same_v<event_t, events::starting_finished>) { return process_starting_finished(); } else if constexpr (
-            std::is_same_v<event_t, events::set_stopped>) { return process_set_stopped(); } else if constexpr (
-            std::is_same_v<event_t, events::stopping_timeout>) { return process_stopping_timeout(); } else if constexpr
-        (std::is_same_v<event_t, events::stopping_finished>) { return process_stopping_finished(); } else if constexpr (
-            std::is_same_v<event_t, events::cleaning_button>) { return process_cleaning_button(); } else if constexpr (
-            std::is_same_v<event_t, events::set_cleaning>) { return process_set_cleaning(); } else if constexpr (
-            std::is_same_v<event_t, events::set_emergency>) { return process_set_emergency(); } else if constexpr (
-            std::is_same_v<event_t, events::emergency_on>) { return process_emergency_on(); } else if constexpr (
-            std::is_same_v<event_t, events::emergency_off>) { return process_emergency_off(); } else if constexpr (
-            std::is_same_v<event_t, events::fault_on>) { return process_fault_on(); } else if constexpr (std::is_same_v<
-            event_t, events::set_fault>) { return process_set_fault(); } else if constexpr (std::is_same_v<event_t,
-            events::fault_off>) { return process_fault_off(); } else if constexpr (std::is_same_v<event_t,
-            events::maintenance_button>) { return process_maintenance_button(); } else if constexpr (std::is_same_v<
-            event_t, events::set_maintenance>) { return process_set_maintenance(); } else {
-            []<bool flag = false>() {
-                static_assert(flag, "Unsupported event type");
-            }();
-        }
+    if constexpr (std::is_same_v<event_t, events::set_starting>) { return process_set_starting(); }
+    else if constexpr (std::is_same_v<event_t, events::run_button>) { return process_run_button(); }
+    else if constexpr (std::is_same_v<event_t, events::starting_timeout>) { return process_starting_timeout(); }
+    else if constexpr (std::is_same_v<event_t, events::starting_finished>) { return process_starting_finished(); }
+    else if constexpr (std::is_same_v<event_t, events::set_stopped>) { return process_set_stopped(); }
+    else if constexpr (std::is_same_v<event_t, events::stopping_timeout>) { return process_stopping_timeout(); }
+    else if constexpr (std::is_same_v<event_t, events::stopping_finished>) { return process_stopping_finished(); }
+    else if constexpr (std::is_same_v<event_t, events::cleaning_button>) { return process_cleaning_button(); }
+    else if constexpr (std::is_same_v<event_t, events::set_cleaning>) { return process_set_cleaning(); }
+    else if constexpr (std::is_same_v<event_t, events::set_emergency>) { return process_set_emergency(); }
+    else if constexpr (std::is_same_v<event_t, events::emergency_on>) { return process_emergency_on(); }
+    else if constexpr (std::is_same_v<event_t, events::emergency_off>) { return process_emergency_off(); }
+    else if constexpr (std::is_same_v<event_t, events::fault_on>) { return process_fault_on(); }
+    else if constexpr (std::is_same_v<event_t, events::set_fault>) { return process_set_fault(); }
+    else if constexpr (std::is_same_v<event_t, events::fault_off>) { return process_fault_off(); }
+    else if constexpr (std::is_same_v<event_t, events::maintenance_button>) { return process_maintenance_button(); }
+    else if constexpr (std::is_same_v<event_t, events::set_maintenance>) { return process_set_maintenance(); }
+    else {
+      []<bool flag = false>() {
+        static_assert(flag, "Unsupported event type");
+      }();
+    }
     // clang-format on
   }
 };
