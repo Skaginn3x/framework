@@ -27,12 +27,12 @@ using tfc::ec::util::setting;
 namespace details {
 template <typename signal_t, typename variable_t, typename logger_t>
 inline variable_t async_send_if_new(signal_t& signal,
-                                    const variable_t& old_var,
+                                    const std::optional<variable_t>& old_var,
                                     const variable_t& new_var,
                                     logger_t& logger) {
   // clang-format off
   PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-  if (old_var != new_var) {
+  if (!old_var.has_value() || old_var != new_var) {
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
     signal.async_send(new_var, [&logger](const std::error_code& err, size_t) {
@@ -240,10 +240,10 @@ public:
   void transmit_status(const input_t& input) {
     std::bitset<atv320_di_count> const value(input.digital_inputs);
     for (size_t i = 0; i < atv320_di_count; i++) {
-      last_bool_values_.set(
-          i, details::async_send_if_new(di_transmitters_[i], last_bool_values_.test(i), value.test(i), logger_));
+      last_bool_values_[i] = details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), logger_);
     }
-    last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(hmis_transmitter_, static_cast<uint16_t>(last_hmis_),
+
+    last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(hmis_transmitter_, last_hmis_.has_value() ? static_cast<uint16_t>(last_hmis_.value()) : std::optional<uint16_t>(),
                                                                 static_cast<uint16_t>(input.drive_state), logger_));
     double frequency = static_cast<double>(input.frequency.numerical_value_is_an_implementation_detail_) / 10.0;
     last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
@@ -418,7 +418,7 @@ public:
 
 private:
   asio::io_context& ctx_;
-  std::bitset<atv320_di_count> last_bool_values_;
+  std::array<std::optional<bool>, atv320_di_count> last_bool_values_;
   std::vector<ipc::bool_signal> di_transmitters_;
   ipc::bool_slot run_;
   config_t config_;
@@ -432,10 +432,10 @@ private:
   dbus_iface<manager_client_t> dbus_iface_;
   ipc::bool_slot reset_;
 
-  hmis_e last_hmis_{};
-  double last_frequency_{};
-  double last_current_{};
-  std::uint64_t last_error_{};
+  std::optional<hmis_e> last_hmis_;
+  std::optional<double> last_frequency_;
+  std::optional<double> last_current_;
+  std::optional<std::uint64_t> last_error_;
   bool ipc_running_{};
   decifrequency_signed reference_frequency_{ 0 * dHz };
   std::array<lft_e, 10> last_errors_{};
