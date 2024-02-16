@@ -19,6 +19,23 @@ namespace tfc::operation {
 using new_mode_e = mode_e;
 using old_mode_e = mode_e;
 
+using uuid_t = std::uint64_t;
+
+enum struct transition_e : std::uint8_t {
+  unknown = 0,
+  enter,
+  leave,
+};
+
+struct callback_item {
+  mode_e mode{ mode_e::unknown };
+  transition_e transition{ transition_e::unknown };
+  std::function<void(new_mode_e, old_mode_e)> callback{};
+  uuid_t uuid{};
+};
+
+namespace asio = boost::asio;
+
 namespace concepts {
 
 template <typename callback_t>
@@ -27,13 +44,13 @@ concept transition_callback = std::invocable<callback_t, new_mode_e, old_mode_e>
 
 class interface {
 public:
-  explicit interface(boost::asio::io_context& ctx) : interface(ctx, "operation") {}
-  interface(boost::asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
+  explicit interface(asio::io_context& ctx) : interface(ctx, "operation") {}
+  interface(asio::io_context& ctx, std::string_view log_key) : interface(ctx, log_key, dbus::service_name) {}
   /// \brief construct an interface to operation mode controller
   /// \param ctx context to run in
   /// \param log_key key to use for logging
   /// \param dbus_service_name name of the service to connect to
-  interface(boost::asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name);
+  interface(asio::io_context& ctx, std::string_view log_key, std::string_view dbus_service_name);
   interface(interface const&) = delete;
   auto operator=(interface const&) -> interface& = delete;
   interface(interface&&) noexcept;
@@ -43,9 +60,10 @@ public:
   /// \note take care since this will affect the whole system
   void set(mode_e) const;
 
-  using uuid_t = std::uint64_t;
-  using new_mode_e = mode_e;
-  using old_mode_e = mode_e;
+  /// \brief stop operation mode controller
+  /// \param reason reason for stopping
+  /// \note the reason can be very useful if components are stopping due to an error.
+  void stop(const std::string_view reason) const;
 
   /// \brief remove callback subscription
   /// \param uuid given id from return value of subscription
@@ -90,19 +108,6 @@ public:
   }
 
 private:
-  enum struct transition_e : std::uint8_t {
-    unknown = 0,
-    enter,
-    leave,
-  };
-
-  struct callback_item {
-    mode_e mode{ mode_e::unknown };
-    transition_e transition{ transition_e::unknown };
-    std::function<void(new_mode_e, old_mode_e)> callback{};
-    uuid_t uuid{};
-  };
-
   auto append_callback(mode_e mode_value, transition_e transition, concepts::transition_callback auto&& callback) -> uuid_t {
     uuid_t const uuid{ next_uuid_++ };
     callbacks_.emplace_back(callback_item{ .mode = mode_value,

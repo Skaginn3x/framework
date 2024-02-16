@@ -12,6 +12,9 @@ target_link_libraries(tfcctl
     mp-units::core
 )
 
+include(tfc_split_debug_info)
+tfc_split_debug_info(tfcctl)
+
 include(GNUInstallDirs)
 install(
   TARGETS

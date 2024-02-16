@@ -14,20 +14,20 @@ namespace tfc::confman {
 
 namespace asio = boost::asio;
 
-template <typename storage_t>
+template <typename storage_t, typename = void, typename = void>
 struct mock_config : public config<storage_t, mock_file_storage<storage_t>, detail::mock_config_dbus_client> {
   using type = storage_t;
   using change = detail::change<mock_config>;
 
   mock_config(asio::io_context& ctx, std::string_view key)
       : config<storage_t, mock_file_storage<storage_t>, detail::mock_config_dbus_client>{ ctx, key } {
-    ON_CALL(*this, value()).WillByDefault(testing::ReturnRef(this->storage_.value()));
-    ON_CALL(*this, access()).WillByDefault(testing::ReturnRef(this->storage_.access()));
-    ON_CALL(*this, string()).WillByDefault(testing::Return(""));
-    ON_CALL(*this, schema()).WillByDefault(testing::Return(""));
-    ON_CALL(*this, file()).WillByDefault(testing::ReturnRef(this->storage_.file()));
-    ON_CALL(*this, make_change()).WillByDefault(testing::Return(change{ *this }));
-    ON_CALL(*this, from_string(testing::_)).WillByDefault(testing::Return(std::error_code{}));
+    ON_CALL(*this, value()).WillByDefault(::testing::ReturnRef(this->storage_.value()));
+    ON_CALL(*this, access()).WillByDefault(::testing::ReturnRef(this->storage_.access()));
+    ON_CALL(*this, string()).WillByDefault(::testing::Return(""));
+    ON_CALL(*this, schema()).WillByDefault(::testing::Return(""));
+    ON_CALL(*this, file()).WillByDefault(::testing::ReturnRef(this->storage_.file()));
+    ON_CALL(*this, make_change()).WillByDefault(::testing::Return(change{ *this }));
+    ON_CALL(*this, from_string(::testing::_)).WillByDefault(::testing::Return(std::error_code{}));
   }
   mock_config(asio::io_context& ctx, std::string_view key, [[maybe_unused]] auto&& default_value) : mock_config{ ctx, key } {
     this->storage_ = mock_file_storage<storage_t>{ std::forward<decltype(default_value)>(default_value) };

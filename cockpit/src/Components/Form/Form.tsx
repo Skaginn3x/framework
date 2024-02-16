@@ -35,7 +35,9 @@ import { ArrayWidget } from './ArrayWidget';
 const GridStack = injectPluginStack(GridContainer);
 
 export default function FormGenerator(
-  { inputSchema, onSubmit, values }: { inputSchema: any, onSubmit: (data: any) => void, values: any },
+  {
+    inputSchema, onSubmit, values, intKey,
+  }: { inputSchema: any, onSubmit: (data: any) => void, values: any, intKey: any },
 ) {
   type JsonType = {
     [key: string]: any;
@@ -185,13 +187,15 @@ export default function FormGenerator(
     <UIMetaProvider
       widgets={Customwidgets}
       t={relTranslator}
+      key={`${intKey}-meta-provider`}
     >
       <UIStoreProvider
         store={store}
         onChange={onInternalChange}
         showValidity={false}
+        key={`${intKey}-store-provider`}
       >
-        <GridStack isRoot schema={schema} showValidity={false} />
+        <GridStack isRoot schema={schema} showValidity={false} key={`${intKey}-grid`} />
       </UIStoreProvider>
 
       <Button

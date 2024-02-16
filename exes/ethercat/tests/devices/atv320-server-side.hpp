@@ -10,7 +10,7 @@
 #include <tfc/mocks/ipc.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stubs/confman.hpp>
-#include <tfc/testing/asio_clock.hpp>
+#include <tfc/testing/clock.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

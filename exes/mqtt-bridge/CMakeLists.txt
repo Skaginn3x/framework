@@ -18,9 +18,7 @@ target_link_libraries(mqtt_bridge
   PUBLIC
     tfc::base
     tfc::logger
-    tfc::stx
     tfc::ipc
-    tfc::operation_mode
     tfc::confman
     Boost::boost
     Boost::log
@@ -33,6 +31,9 @@ target_compile_definitions(mqtt_bridge
   PUBLIC
     ASYNC_MQTT_USE_TLS
 )
+
+include(tfc_split_debug_info)
+tfc_split_debug_info(mqtt_bridge)
 
 include(GNUInstallDirs)
 install(

@@ -20,6 +20,9 @@ target_link_libraries(signal_source
     glaze::glaze
 )
 
+include(tfc_split_debug_info)
+tfc_split_debug_info(signal_source)
+
 include(GNUInstallDirs)
 install(
   TARGETS

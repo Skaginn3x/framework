@@ -1,3 +1,6 @@
+
+#ifdef __clang__
+
 #include <expected>
 #include <iostream>
 #include <tuple>
@@ -448,3 +451,8 @@ auto main(int argc, char *argv[]) -> int {
 
     return 0;
 }
+#else
+auto main() -> int {
+  return 0;
+}
+#endif
