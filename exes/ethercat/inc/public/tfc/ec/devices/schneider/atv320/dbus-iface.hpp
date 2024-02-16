@@ -20,6 +20,7 @@
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/positioner.hpp>
 #include <tfc/stx/concepts.hpp>
+#include <tfc/utils/asio_condition_variable.hpp>
 
 namespace tfc::ec::devices::schneider::atv320 {
 namespace asio = boost::asio;
@@ -101,7 +102,8 @@ struct drive_error_first {
 };
 
 template <typename completion_token_t>
-drive_error_first(completion_token_t&&, motor::errors::err_enum&) -> drive_error_first<completion_token_t>;
+drive_error_first(completion_token_t&&, motor::errors::err_enum&, uint16_t) -> drive_error_first<completion_token_t>;
+
 }  // namespace detail
 
 // Handy commands
@@ -125,69 +127,90 @@ struct controller {
 
   auto run(speedratio_t speedratio, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: run at speedratio: {}", speedratio);
     cancel_pending_operation();
-    return run_impl(speedratio, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
+    return run_impl(speedratio,
+                    asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto run(speedratio_t speedratio,
            mp_units::QuantityOf<mp_units::isq::time> auto time,
            asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: run at speedratio: {} for: {}", speedratio, time);
     cancel_pending_operation();
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
     return run_impl(speedratio, time,
-                    asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+                    asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto quick_stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: quick_stop");
     cancel_pending_operation();
-    return stop_impl(true, {}, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
+    return stop_impl(true, {},
+                     asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto stop(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: stop");
     cancel_pending_operation();
-    return stop_impl(false, {}, asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
+    return stop_impl(false, {},
+                     asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto convey(speedratio_t speedratio,
               micrometre_t travel,
               asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    logger_.trace("Command: convey at speedratio: {} to: {}", speedratio, travel);
     cancel_pending_operation();
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
     return convey_impl(speedratio, travel,
-                       asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+                       asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto move(speedratio_t speedratio,
             micrometre_t travel,
             asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    logger_.trace("Command: move at speedratio: {} to: {}", speedratio, travel);
     cancel_pending_operation();
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
     return move_impl(speedratio, travel,
-                     asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+                     asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto move_home(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: move_home");
     cancel_pending_operation();
-    return move_home_impl(asio::bind_cancellation_slot(cancel_signal_.slot(), std::forward<decltype(token)>(token)));
+    cancel_signals_.emplace(std::make_shared<asio::cancellation_signal>());
+    return move_home_impl(
+        asio::bind_cancellation_slot(cancel_signals_.front()->slot(), std::forward<decltype(token)>(token)));
   }
 
   auto notify_after(micrometre_t travel, asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Notify at: {}", travel);
     cancel_pending_operation();
     return pos_.notify_after(travel, std::forward<decltype(token)>(token));
   }
 
   auto notify_from_home(micrometre_t position, asio::completion_token_for<void(std::error_code, micrometre_t)> auto&& token)
       -> typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code, micrometre_t)>::return_type {
+    logger_.trace("Notify from home: {}", position);
     cancel_pending_operation();
     return pos_.notify_from_home(position, std::forward<decltype(token)>(token));
   }
 
   auto reset(asio::completion_token_for<void(std::error_code)> auto&& token) ->
       typename asio::async_result<std::decay_t<decltype(token)>, void(std::error_code)>::return_type {
+    logger_.trace("Command: reset");
     using cia_402::states_e;
     using motor::errors::err_enum;
     // Reset has no effect as the drive is not in a fault state.
@@ -284,7 +307,14 @@ struct controller {
     on_limit_switch(new_v, motor::errors::err_enum::positioning_negative_limit_reached);
   }
 
-  void cancel_pending_operation() { cancel_signal_.emit(asio::cancellation_type::all); }
+  void cancel_pending_operation() {
+    // cancel_signal_.emit(asio::cancellation_type::all);
+    for (std::size_t i = 0; i < cancel_signals_.size(); ++i) {
+      if (cancel_signals_[i]) {
+        cancel_signals_[i]->emit(asio::cancellation_type::all);
+      }
+    }
+  }
 
   auto positioner() noexcept -> auto& { return pos_; }
   auto driver_error() const noexcept -> motor::errors::err_enum { return drive_error_; }
@@ -351,6 +381,7 @@ private:
     return asio::async_compose<std::decay_t<decltype(token)>, void(std::error_code)>(
         [this, stop_reason, first_call = true](auto& self, std::error_code err = {}) mutable {
           if (first_call) {
+            logger_.trace("Will stop motor, reason: {}", stop_reason.message());
             first_call = false;
             asio::experimental::make_parallel_group(
                 [this](auto inner_token) { return this->drive_error_subscriptable_.async_wait(inner_token); },
@@ -359,6 +390,7 @@ private:
                             detail::drive_error_first(std::move(self), drive_error_, limit_error_));
             return;
           }
+          logger_.trace("Motor should be stopped");
           if (stop_reason) {
             self.complete(stop_reason);
             return;
@@ -660,9 +692,11 @@ private:
                 return;
               }
               stop_impl(true, err, std::move(self));
-              auto const pos{ pos_.position() };
-              logger_.trace("Storing home position: {}", pos);
-              pos_.home(pos);
+              if (!err) {  // TODO TEST
+                auto const pos{ pos_.position() };
+                logger_.trace("Storing home position: {}", pos);
+                pos_.home(pos);
+              }
               return;
             }
             case state_e::complete: {
@@ -679,8 +713,10 @@ private:
   std::uint16_t slave_id_;
   asio::io_context& ctx_;
   // Note: cancellation signals need to be declared before the objects that use them
-  asio::cancellation_signal cancel_signal_{};
+  // asio::cancellation_signal cancel_signal_{};
   asio::cancellation_signal no_drive_error_{};
+  // TODO THIS IS A HACK, cancellation_signal deconstructs it self on async_compose
+  motor::positioner::detail::circular_buffer<std::shared_ptr<asio::cancellation_signal>, 42> cancel_signals_{};
   motor::positioner::positioner<mp_units::si::metre, manager_client_t&, pos_config_t, pos_slot_t> pos_;
   tfc::asio::condition_variable run_blocker_{ ctx_.get_executor() };
   tfc::asio::condition_variable stop_complete_{ ctx_.get_executor() };
@@ -754,13 +790,14 @@ struct dbus_iface {
             timeout_.cancel();
             timeout_.expires_after(long_living_ping ? std::chrono::hours(1) : std::chrono::milliseconds(1500));
             timeout_.async_wait([this](std::error_code err) {
-              if (err)
+              if (err) {
                 return;  // The timer was canceled or deconstructed.
+              }
               // Stop the drive from running since the peer has disconnected
-              ctrl_.stop([this](const std::error_code& time_err) {
-                // TODO: IS THIS RIGHT
-                if (time_err) {
-                  logger_.error("Stop failed after peer disconnect : {}", time_err.message());
+              logger_.info("Peer: {} has disconnected will stop motor. Will make myself available to anyone", peer_);
+              ctrl_.stop([this](const std::error_code& stop_err) {
+                if (stop_err) {
+                  logger_.error("Stop failed after peer disconnect : {}", stop_err.message());
                 }
               });
               peer_ = "";

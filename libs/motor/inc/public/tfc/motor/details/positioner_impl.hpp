@@ -68,6 +68,7 @@ struct circular_buffer {
   /// \param args arguments to forward to constructor of storage_t
   /// \return removed item, the oldest item
   constexpr auto emplace(auto&&... args) -> storage_t {
+    // TODO this move is not working for non copyable types
     storage_t removed_item{ std::move(*insert_pos_) };
     front_ = insert_pos_;
     std::construct_at(insert_pos_, std::forward<decltype(args)>(args)...);
@@ -100,6 +101,8 @@ struct circular_buffer {
     assert(idx >= 0 && "Something weird occured");
     return buffer_[static_cast<std::size_t>(idx)];
   }
+
+  constexpr auto size() const noexcept -> std::size_t { return buffer_.size(); }
 
   std::array<storage_t, len> buffer_{};
   // front is invalid when there has no item been inserted yet, but should not matter much
@@ -238,7 +241,6 @@ struct encoder {
   void update(std::int8_t increment, bool first, bool second, last_event_t event) noexcept {
     auto const now{ clock_t::now() };
     position_ += increment;
-    fmt::println(stderr, "Encoder position: {}", position_);  // todo remove
     errors::err_enum err{ errors::err_enum::success };
     if (buffer_[0].last_event == event && buffer_[1].last_event == event) {
       // 3 consecutive same events indicate that there is a missing pulse on other sensor

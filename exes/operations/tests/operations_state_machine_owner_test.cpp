@@ -187,6 +187,17 @@ auto main(int argc, char** argv) -> int {
     instance.owner.leave_cleaning();
   };
 
+  "enter_emergency emits cleaning"_test = [] {
+    test_instance instance{};
+    EXPECT_CALL(instance.owner.emergency_signal(), async_send_cb(true, testing::_)).Times(1);
+    instance.owner.enter_emergency();
+  };
+  "leave_emergency emits cleaning"_test = [] {
+    test_instance instance{};
+    EXPECT_CALL(instance.owner.emergency_signal(), async_send_cb(false, testing::_)).Times(1);
+    instance.owner.leave_emergency();
+  };
+
   "transition call owner"_test = [] {
     test_instance instance{};
     bool called{};

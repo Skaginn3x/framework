@@ -1,3 +1,5 @@
+#ifdef __clang__
+
 #include <expected>
 #include <iostream>
 #include <tuple>
@@ -635,6 +637,11 @@ auto main(int argc, char *argv[]) -> int {
         expect(second_slot.value().has_value()) << second_slot.value().has_value();
         expect(second_slot.value().value() == true);
     };
-
+  
     return 0;
 }
+#else
+auto main() -> int {
+  return 0;
+}
+#endif

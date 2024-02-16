@@ -18,9 +18,7 @@ target_link_libraries(mqtt_bridge
   PUBLIC
     tfc::base
     tfc::logger
-    tfc::stx
     tfc::ipc
-    tfc::operation_mode
     tfc::confman
     Boost::boost
     Boost::log
