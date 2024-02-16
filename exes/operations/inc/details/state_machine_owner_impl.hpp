@@ -182,7 +182,7 @@ template <template <typename, typename> typename signal_t, template <typename, t
 // clang-format on
 void state_machine_owner<signal_t, slot_t, sml_t>::leave_emergency() {
   emergency_out_.async_send(false, [this](std::error_code const& err, std::size_t) {
-    logger_.info("Unable to send emergency signal true, error: {}", err.message());
+    logger_.info("Unable to send emergency signal false, error: {}", err.message());
   });
 }
 // clang-format off
