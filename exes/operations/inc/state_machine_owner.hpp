@@ -17,6 +17,7 @@
 #include <tfc/utils/pragmas.hpp>
 
 namespace tfc::operation {
+
 namespace asio = boost::asio;
 using new_mode = mode_e;
 using old_mode = mode_e;
@@ -28,20 +29,16 @@ struct state_machine;
 struct storage {
   std::optional<std::chrono::milliseconds> startup_time{};
   std::optional<std::chrono::milliseconds> stopping_time{};
-
   struct glaze {
     // clang-format off
-                static constexpr auto value{
-                    glz::object(
-                        "startup_time", &storage::startup_time,
-                        "Delay to run initial sequences to get the equipment ready.",
-                        "stopping_time", &storage::stopping_time,
-                        "Delay to run ending sequences to get the equipment ready for being stopped.")
-                };
+    static constexpr auto value{ glz::object(
+        "startup_time", &storage::startup_time, "Delay to run initial sequences to get the equipment ready.",
+        "stopping_time", &storage::stopping_time, "Delay to run ending sequences to get the equipment ready for being stopped.") };
     // clang-format on
     static constexpr std::string_view name{ "state_machine" };
   };
 };
+
 }  // namespace detail
 
 template <template <typename description_t, typename manager_client_t = ipc_ruler::ipc_manager_client&> typename signal_t =
@@ -56,41 +53,25 @@ public:
   auto set_mode(tfc::operation::mode_e new_mode) -> std::error_code;
 
   void enter_stopped();
-
   void leave_stopped();
-
   void enter_starting();
-
   void leave_starting();
-
   void enter_running();
-
   void leave_running();
-
   void enter_stopping();
-
   void leave_stopping();
-
   void enter_cleaning();
-
   void leave_cleaning();
-
   void enter_emergency();
-
   void leave_emergency();
-
   void enter_fault();
-
   void leave_fault();
-
   void enter_maintenance();
-
   void leave_maintenance();
 
   void on_new_mode(tfc::stx::invocable<new_mode, old_mode> auto&& callback) {
     on_new_state_ = std::forward<decltype(callback)>(callback);
   }
-
   void transition(mode_e new_mode, mode_e old_mode);
 
   // accessors for testing
@@ -100,11 +81,9 @@ public:
   auto running_signal() const noexcept -> auto const& { return running_; }
   auto stopping_signal() const noexcept -> auto const& { return stopping_; }
   auto cleaning_signal() const noexcept -> auto const& { return cleaning_; }
-  auto emergency_signal() const noexcept -> auto const& { return emergency_out_; }
   auto mode_signal() const noexcept -> auto const& { return mode_; }
   auto mode_str_signal() const noexcept -> auto const& { return mode_str_; }
   auto stop_reason_str_signal() const noexcept -> auto const& { return stop_reason_str_; }
-
   auto set_stop_reason(const std::string& reason) -> void {
     stop_reason_str_.async_send(reason, [this](const std::error_code& err, std::size_t) {
       if (err) {
@@ -114,21 +93,15 @@ public:
   }
 
   void on_starting_timer_expired(std::error_code const&);
-
   void on_stopping_timer_expired(std::error_code const&);
 
   void starting_finished_new_state(bool);
-
   void stopping_finished_new_state(bool);
-
   void running_new_state(bool);
-
   void cleaning_new_state(bool);
-
   void maintenance_new_state(bool);
 
   void emergency(bool);
-
   void fault(bool);
 
 private:
@@ -146,7 +119,6 @@ private:
   bool_signal_t running_{ ctx_, mclient_, "running" };
   bool_signal_t stopping_{ ctx_, mclient_, "stopping" };
   bool_signal_t cleaning_{ ctx_, mclient_, "cleaning" };
-  bool_signal_t emergency_out_{ ctx_, mclient_, "emergency_out" };
   bool_signal_t fault_out_{ ctx_, mclient_, "fault" };
   uint_signal_t mode_{ ctx_, mclient_, "mode" };
   string_signal_t mode_str_{ ctx_, mclient_, "mode" };
@@ -169,10 +141,13 @@ private:
                                                  detail::storage{ .startup_time = std::chrono::milliseconds{ 0 },
                                                                   .stopping_time = std::chrono::milliseconds{ 0 } } };
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
-  tfc::dbus::sml::interface sml_interface_{ dbus_interface_ };
-  using state_machine_t = sml_t<detail::state_machine<state_machine_owner>, boost::sml::logger<tfc::dbus::sml::interface> >;
+  tfc::dbus::sml::interface sml_interface_ {
+    dbus_interface_
+  };
+  using state_machine_t = sml_t<detail::state_machine<state_machine_owner>, boost::sml::logger<tfc::dbus::sml::interface>>;
   std::shared_ptr<state_machine_t> states_;
 };
 
 extern template class state_machine_owner<>;
+
 }  // namespace tfc::operation
