@@ -243,8 +243,9 @@ public:
       last_bool_values_[i] = details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), logger_);
     }
 
-    last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(hmis_transmitter_, last_hmis_.has_value() ? static_cast<uint16_t>(last_hmis_.value()) : std::optional<uint16_t>(),
-                                                                static_cast<uint16_t>(input.drive_state), logger_));
+    last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(
+        hmis_transmitter_, last_hmis_.has_value() ? static_cast<uint16_t>(last_hmis_.value()) : std::optional<uint16_t>(),
+        static_cast<uint16_t>(input.drive_state), logger_));
     double frequency = static_cast<double>(input.frequency.numerical_value_is_an_implementation_detail_) / 10.0;
     last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
 
