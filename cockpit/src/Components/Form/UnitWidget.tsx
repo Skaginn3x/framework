@@ -237,12 +237,10 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   */
   const handleChange = (e: any) => {
     const val = e.target.value as string;
-    // if there is already a decimal point, ignore any more
-    if (val && e.nativeEvent.data === '.' && val.slice(0, -1).indexOf('.') !== -1) {
-      return;
-    }
-    if (e.nativeEvent.data && !e.nativeEvent.data.match(/[0-9.]/)) {
-      // If anything other than a number or a decimal point is entered, ignore it.
+    const isValidNumber = /^-?\d*(\.\d*)?$/.test(val);
+
+    if (!isValidNumber) {
+      setErrText('Invalid input');
       return;
     }
 
@@ -252,12 +250,15 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       handleEmptyValue();
       return;
     }
-    if (parseFloat(val) === undefined || Number.isNaN(parseFloat(val))) {
+    // Attempt to parse the value as a float
+    const parsedValue = parseFloat(val);
+
+    if (parsedValue === undefined || Number.isNaN(parsedValue)) {
       setErrText('Invalid number');
       setValue(undefined);
       return;
     }
-    handleUnitValue(parseFloat(val));
+    handleUnitValue(parsedValue);
   };
 
   const disabled = schema.get('readOnly') as boolean || (parentSchema && parentSchema.get('readOnly') as boolean);
