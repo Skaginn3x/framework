@@ -120,7 +120,7 @@ private:
   bool_signal_t running_{ ctx_, mclient_, "running" };
   bool_signal_t stopping_{ ctx_, mclient_, "stopping" };
   bool_signal_t cleaning_{ ctx_, mclient_, "cleaning" };
-  bool_signal_t emergency_out_{ ctx_, mclient_, "emergency_out" };
+  bool_signal_t emergency_out_{ ctx_, mclient_, "emergency" };
   bool_signal_t fault_out_{ ctx_, mclient_, "fault" };
   uint_signal_t mode_{ ctx_, mclient_, "mode" };
   string_signal_t mode_str_{ ctx_, mclient_, "mode" };
