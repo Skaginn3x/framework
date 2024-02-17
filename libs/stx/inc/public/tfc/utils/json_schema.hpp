@@ -435,6 +435,7 @@ struct to_json_schema<T> {
     static constexpr auto N = std::variant_size_v<T>;
     s.type = { "number", "string", "boolean", "object", "array", "null" };
     s.oneOf = std::vector<schematic>(N);
+    s.attributes.title = glz::name_v<T>;
     glz::for_each<N>([&](auto I) {
       using V = std::decay_t<std::variant_alternative_t<I, T>>;
       auto& schema_val = (*s.oneOf)[I.value];
