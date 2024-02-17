@@ -17,7 +17,8 @@ RuntimeDirectory=tfc
 RuntimeDirectoryPreserve=yes
 ConfigurationDirectory=tfc
 PrivateTmp=true
-ProtectSystem=yes # Cannot be set to full or strict, requires acess to /etc/tfc to facilitate configuration changes
+# Cannot be set to full or strict, requires access to /etc/tfc to facilitate configuration changes
+ProtectSystem=yes
 
 [Install]
 WantedBy=multi-user.target
