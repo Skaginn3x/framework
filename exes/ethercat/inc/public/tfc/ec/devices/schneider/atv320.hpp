@@ -311,9 +311,11 @@ public:
     dbus_iface_.update_status(*in);
     ctrl_.update_status(*in);
 
-    bool auto_reset_allowed =
+    bool auto_reset_allowed = false;
+    if (drive_in_fault_state) {
         std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end() ||
         allow_reset_;
+    }
 
     if (!dbus_iface_.has_peer()) {
       // Quick stop if frequncy set to 0
@@ -393,6 +395,9 @@ public:
     // Clear internal ATV Functionality for outputs and inputs
     sdo_write(assignment_R1{ .value = psl_e::not_assigned });
     sdo_write(assignment_AQ1{ .value = psa_e::not_configured });
+
+    // Enable us to reset more faults from scada
+    sdo_write(extended_fault_reset_activation_HRFC{ .value = n_y_e::yes });
 
     // test writing alias address - this does not seem to work. Direct eeprom writing also possible working.
     // sdo_write<uint16_t>({ 0x2024, 0x92 }, 1337);  // 2 - Current
