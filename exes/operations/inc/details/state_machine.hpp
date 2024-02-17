@@ -167,7 +167,6 @@ struct state_machine {
             , state<states::fault> + on_entry<_> / [this](){ owner_.enter_fault(); }
             , state<states::fault> + on_exit<_> / [this](){ owner_.leave_fault(); }
             , state<states::fault> + event<events::fault_off> / [this](){ owner_.transition(stopped, fault); } = state<states::stopped>
-            , state<states::fault> + event<events::set_stopped> / [this](){ owner_.transition(stopped, fault); } = state<states::stopped>
             , state<states::stopped> + event<events::maintenance_button> / [this](){ owner_.transition(maintenance, stopped); } = state<states::maintenance>
             , state<states::stopped> + event<events::set_maintenance> / [this](){ owner_.transition(maintenance, stopped); } = state<states::maintenance>
             , state<states::maintenance> + on_entry<_> / [this](){ owner_.enter_maintenance(); }
