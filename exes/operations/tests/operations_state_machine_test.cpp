@@ -78,7 +78,7 @@ auto main(int argc, char** argv) -> int {
     ut::expect(instance.sm.is(state<states::stopped>));
   } | std::tuple<events::stopping_timeout, events::stopping_finished>{};
 
-  "fault -> stopped"_test = []<typename event_t> {
+  "fault -> stopped ( fault off )"_test = []<typename event_t> {
     test_instance instance;
     instance.sm.set_current_states(state<states::fault>);
     EXPECT_CALL(instance.owner, leave_fault());
@@ -86,7 +86,17 @@ auto main(int argc, char** argv) -> int {
     EXPECT_CALL(instance.owner, transition(stopped, fault));
     instance.sm.process_event(event_t{});
     ut::expect(instance.sm.is(state<states::stopped>));
-  } | std::tuple<events::fault_off, events::set_stopped>{};
+  } | std::tuple<events::fault_off>{};
+
+  "fault -> stopped ( using transition to stop )"_test = []<typename event_t> {
+    test_instance instance;
+    instance.sm.set_current_states(state<states::fault>);
+    EXPECT_CALL(instance.owner, leave_fault()).Times(0);
+    EXPECT_CALL(instance.owner, enter_stopped()).Times(0);
+    EXPECT_CALL(instance.owner, transition(stopped, fault)).Times(0);
+    instance.sm.process_event(event_t{});
+    ut::expect(instance.sm.is(state<states::fault>));
+  } | std::tuple<events::set_stopped>{};
 
   "maintenance -> stopped"_test = []<typename event_t> {
     test_instance instance;
