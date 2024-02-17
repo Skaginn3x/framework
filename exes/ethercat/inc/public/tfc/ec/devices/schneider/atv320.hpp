@@ -313,7 +313,9 @@ public:
 
     bool auto_reset_allowed = false;
     if (drive_in_fault_state) {
-        auto_reset_allowed = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end() || allow_reset_;
+      auto_reset_allowed = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) !=
+                               errors_to_auto_reset.end() ||
+                           allow_reset_;
     }
 
     if (!dbus_iface_.has_peer()) {
