@@ -55,6 +55,11 @@ struct with_variant {
   constexpr auto operator==(with_variant const& rhs) const noexcept -> bool = default;
 };
 
+template <>
+struct glz::meta<std::variant<std::monostate, option_1, option_2>> {
+  static constexpr std::string_view name{ "select_option" };
+};
+
 int main(int argc, char** argv) {
   tfc::base::init(argc, argv);
 

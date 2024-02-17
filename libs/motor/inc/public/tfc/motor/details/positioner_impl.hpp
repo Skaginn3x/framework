@@ -373,6 +373,7 @@ struct glz::meta<tfc::motor::positioner::freq_config<velocity_t>> {
 template <mp_units::Reference auto reference>
 struct glz::meta<tfc::motor::positioner::position_mode_config<reference>> {
   static constexpr std::string_view tag{ "mode" };
+  static constexpr std::string_view name{ "positioning_method" };
 };
 
 template <mp_units::Reference auto reference>

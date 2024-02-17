@@ -527,7 +527,7 @@ inline auto write_json_schema() noexcept {
   detail::schematic s{};
   s.defs.emplace();
   detail::to_json_schema<std::decay_t<T>>::template op<glz::opts{}>(s, *s.defs);
-  glz::write<glz::opts{ .write_type_info = false }>(std::move(s), buffer);
+  glz::write<glz::opts{ .prettify = true, .write_type_info = false, }>(std::move(s), buffer);
   return buffer;
 }
 }  // namespace tfc::json
