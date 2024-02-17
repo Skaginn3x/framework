@@ -116,13 +116,13 @@ public:
         positive_limit_switch_.emplace(
             ctx_, manager_, fmt::format("positive_limit_{}", name_),
             "Positive limit switch, can be used when motor cannot exceed this switch while going in positive speedratio",
-            positive_limit_cb_);
+            std::bind_front(&positioner::on_limit_switch, this, positive_limit_cb_));
       }
       if (new_v.has_value() && !negative_limit_switch_.has_value()) {
         negative_limit_switch_.emplace(
             ctx_, manager_, fmt::format("negative_limit_{}", name_),
             "Negative limit switch, can be used when motor cannot exceed this switch while going in negative speedratio",
-            negative_limit_cb_);
+            std::bind_front(&positioner::on_limit_switch, this, negative_limit_cb_));
       }
     } };
     make_homing_slots(config_->homing_travel_speed, {});
@@ -131,8 +131,8 @@ public:
 
   positioner(positioner const&) = delete;
   auto operator=(positioner const&) -> positioner& = delete;
-  positioner(positioner&&) noexcept = default;
-  auto operator=(positioner&&) noexcept -> positioner& = default;
+  positioner(positioner&&) noexcept = delete;
+  auto operator=(positioner&&) noexcept -> positioner& = delete;
   ~positioner() = default;
 
   /// Function only for testing the positioner
@@ -342,6 +342,13 @@ private:
       missing_home_ = true;
     }
     return missing_home_;
+  }
+
+  void on_limit_switch(std::function<void(bool)> const& cb, bool value) {
+    if (value) {
+      missing_home_ = true;
+    }
+    std::invoke(cb, value);
   }
 
   auto construct_implementation(position_mode_config<reference> const& mode_to_construct,
