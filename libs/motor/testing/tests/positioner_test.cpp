@@ -729,6 +729,28 @@ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
     test.positioner.negative_limit_switch()->callback(true);
     expect(called);
   };
+
+  "positive limit active sets missing home"_test =
+      [](auto&& limit_switch_getter) {
+        using tfc::confman::observable;
+        using tfc::motor::positioner::speedratio_t;
+        notification_test test{ .config = { .homing_travel_speed =
+                                                observable<std::optional<speedratio_t>>{ 2 * mp_units::percent } } };
+        decltype(auto) limit_switch{ std::invoke(limit_switch_getter, test.positioner) };
+        expect(limit_switch.has_value() >> ut::fatal);
+        expect(test.positioner.homing_sensor().has_value() >> ut::fatal);
+        std::optional value{ true };
+        ON_CALL(test.positioner.homing_sensor().value(), value()).WillByDefault(testing::ReturnRef(value));
+        test.positioner.home();
+        expect(test.positioner.needs_homing() == tfc::motor::errors::err_enum::success)
+            << fmt::format("got {}\n", test.positioner.needs_homing());
+        // All above was pre-setup actual test below
+        limit_switch->callback(true);
+        expect(test.positioner.needs_homing() == tfc::motor::errors::err_enum::motor_missing_home_reference)
+            << fmt::format("got {}\n", test.positioner.needs_homing());
+      } |
+      std::tuple{ &notification_test::positioner_t::positive_limit_switch,
+                  &notification_test::positioner_t::negative_limit_switch };
 };
 #endif
 
