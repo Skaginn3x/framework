@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <map>
-#include <sstream>
 #include <string>
 #include <type_traits>
 #include <variant>

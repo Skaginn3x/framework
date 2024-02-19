@@ -59,13 +59,6 @@ target_link_libraries(mqtt_bridge_integration_tests
     async_mqtt_iface::async_mqtt_iface
 )
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(mqtt_bridge_integration_tests
-    PUBLIC
-      -Os
-  )
-endif()
-
 add_test(
   NAME
     mqtt_bridge_integration_tests
