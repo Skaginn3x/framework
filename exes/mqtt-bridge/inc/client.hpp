@@ -263,8 +263,4 @@ using client_n = client<endpoint_client, confman::config<config::bridge>>;
 using client_semi_normal = client<endpoint_client, config::bridge_mock>;
 using client_mock = client<endpoint_client_mock, config::bridge_mock>;
 
-// extern template class client<endpoint_client, confman::config<config::bridge>>;
-// extern template class client<endpoint_client, config::bridge_mock>;
-// extern template class client<endpoint_client_mock, config::bridge_mock>;
-
 }  // namespace tfc::mqtt
