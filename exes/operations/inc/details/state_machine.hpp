@@ -103,9 +103,7 @@ struct maintenance {
 namespace guard {
 template <typename owner_t>
 struct is_fault {
-  bool operator()() const {
-    return owner.is_fault();
-  }
+  bool operator()() const { return owner.is_fault(); }
   static constexpr std::string_view name{ "is_fault" };
   owner_t& owner;
 };
