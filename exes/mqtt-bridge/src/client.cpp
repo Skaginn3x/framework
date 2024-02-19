@@ -107,7 +107,8 @@
 //                                          async_mqtt::allocate_buffer(config_.value().client_id),
 //                                          async_mqtt::will(async_mqtt::allocate_buffer(mqtt_will_topic_),
 //                                                           async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
-//                                                           { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+//                                                           { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no
+//                                                           }),
 //                                          async_mqtt::allocate_buffer(config_.value().username),
 //                                          async_mqtt::allocate_buffer(config_.value().password),
 //                                          { async_mqtt::property::session_expiry_interval{ 0 } } };
