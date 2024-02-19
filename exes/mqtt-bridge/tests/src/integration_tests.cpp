@@ -139,13 +139,12 @@ auto main(int argc, char* argv[]) -> int {
 
     // start mqtt bridge
     tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
-    // tfc::mqtt::client_semi_normal
+                   // tfc::mqtt::client_semi_normal
 
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>
 
-
-
-    , tfc::ipc_ruler::ipc_manager_client_mock&>
+                   ,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
         running{ io_ctx, ipc_client };
     co_spawn(io_ctx, running.start(), asio::detached);
     io_ctx.run_for(std::chrono::milliseconds{ 50 });
@@ -204,14 +203,11 @@ auto main(int argc, char* argv[]) -> int {
     // start mqtt bridge
     tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
 
+                   // tfc::mqtt::client_semi_normal
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>
 
-    // tfc::mqtt::client_semi_normal
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>
-
-
-
-
-    , tfc::ipc_ruler::ipc_manager_client_mock&>
+                   ,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
         running{ io_ctx, ipc_client2 };
     co_spawn(io_ctx, running.start(), asio::detached);
     io_ctx.run_for(std::chrono::milliseconds{ 50 });
@@ -275,6 +271,6 @@ auto main(int argc, char* argv[]) -> int {
 }
 #else
 auto main() -> int {
-    return 0;
+  return 0;
 }
 #endif
