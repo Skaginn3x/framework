@@ -74,6 +74,8 @@ public:
   }
   void transition(mode_e new_mode, mode_e old_mode);
 
+  auto is_fault() const noexcept -> bool { return fault_.value().value_or(false); }
+
   // accessors for testing
   auto sm() const noexcept { return states_; }
   auto stopped_signal() const noexcept -> auto const& { return stopped_; }
