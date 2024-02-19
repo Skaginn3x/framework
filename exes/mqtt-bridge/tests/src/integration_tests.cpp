@@ -259,6 +259,6 @@ auto main(int argc, char* argv[]) -> int {
 }
 #else
 auto main() -> int {
-  return 0;
+    return 0;
 }
 #endif
