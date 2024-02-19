@@ -1,3 +1,5 @@
+find_package(async_mqtt_iface CONFIG REQUIRED)
+
 add_executable(test_mqtt_bridge
   ../src/spark_plug_interface.cpp
   ../src/signal_names.cpp
@@ -13,17 +15,10 @@ target_include_directories(test_mqtt_bridge
 
 target_link_libraries(test_mqtt_bridge
   PUBLIC
-    tfc::base
-    tfc::logger
-    tfc::stx
     tfc::ipc
-    tfc::operation_mode
-    tfc::confman
     Boost::boost
-    Boost::log
-    Boost::program_options
-    OpenSSL::SSL OpenSSL::Crypto
     tfc::sparkplug::proto
+    async_mqtt_iface::async_mqtt_iface
 )
 
 target_compile_definitions(test_mqtt_bridge
@@ -37,8 +32,6 @@ add_test(
   COMMAND
     test_mqtt_bridge
 )
-
-find_package(async_mqtt_iface CONFIG REQUIRED)
 
 add_executable(mqtt_bridge_integration_tests
   ../src/spark_plug_interface.cpp
