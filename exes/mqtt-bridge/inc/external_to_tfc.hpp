@@ -50,7 +50,7 @@ public:
     if (sig_name.has_value()) {
 
     std::visit(
-        [&value]<typename signal_t>(signal_t& signal) {
+        [this, &value]<typename signal_t>(signal_t& signal) {
           if constexpr (!std::is_same_v<std::remove_cvref_t<signal_t>, std::monostate>) {
             using value_t = typename std::remove_cvref_t<signal_t>::value_t;
 
@@ -61,7 +61,7 @@ public:
             if constexpr (std::is_same_v<value_t, int64_t>) {
               signal.send(static_cast<int64_t>(std::get<uint64_t>(value)));
             } else if constexpr (tfc::stx::is_expected_quantity<value_t>) {
-              // todo
+              logger_.trace("Mass type hasn't been implemented");
             } else {
               signal.send(std::get<value_t>(value));
             }

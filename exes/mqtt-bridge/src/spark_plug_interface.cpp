@@ -18,8 +18,6 @@
 #include <spark_plug_interface.hpp>
 #include <structs.hpp>
 
-// #include "../inc/endpoint_mock.hpp"
-
 namespace tfc::mqtt {
 
 namespace asio = boost::asio;
