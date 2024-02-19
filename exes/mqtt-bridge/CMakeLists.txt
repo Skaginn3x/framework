@@ -1,6 +1,6 @@
 add_executable(mqtt_bridge
   src/spark_plug_interface.cpp
-  src/client.cpp
+  # src/client.cpp
   src/signal_names.cpp
   src/main.cpp
 )

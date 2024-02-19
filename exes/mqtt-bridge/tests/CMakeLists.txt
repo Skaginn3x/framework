@@ -1,5 +1,5 @@
 add_executable(test_mqtt_bridge
-  ../src/client.cpp
+  # ../src/client.cpp
   ../src/spark_plug_interface.cpp
   ../src/signal_names.cpp
   src/test_external_to_tfc.cpp
@@ -42,7 +42,7 @@ add_test(
 find_package(async_mqtt_iface CONFIG REQUIRED)
 
 add_executable(mqtt_bridge_integration_tests
-  ../src/client.cpp
+  # ../src/client.cpp
   ../src/spark_plug_interface.cpp
   ../src/signal_names.cpp
   src/integration_tests.cpp
@@ -56,18 +56,25 @@ target_include_directories(mqtt_bridge_integration_tests
 
 target_link_libraries(mqtt_bridge_integration_tests
   PUBLIC
-    tfc::base
-    tfc::logger
-    tfc::stx
+    # tfc::base
+    # tfc::logger
+    # tfc::stx
     tfc::ipc
-    tfc::confman
-    Boost::boost
-    Boost::log
-    Boost::program_options
-    OpenSSL::SSL OpenSSL::Crypto
+    # tfc::confman
+    # Boost::boost
+    # Boost::log
+    # Boost::program_options
+    # OpenSSL::SSL OpenSSL::Crypto
     tfc::sparkplug::proto
     async_mqtt_iface::async_mqtt_iface
 )
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(mqtt_bridge_integration_tests
+            PUBLIC
+            -Os
+    )
+endif()
 
 add_test(
   NAME
