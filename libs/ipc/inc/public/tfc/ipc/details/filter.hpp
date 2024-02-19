@@ -113,9 +113,14 @@ struct filter<filter_e::timer, bool, clock_type> {
             timer_ = std::nullopt;
             return;
           }
+          auto const timeout{ copy ? time_on : time_off };
+          if (timeout == std::chrono::milliseconds{ 0 }) {
+            self.complete(copy);
+            return;
+          }
           auto executor = asio::get_associated_executor(self);
           timer_ = asio::basic_waitable_timer<clock_type>{ executor };
-          timer_->expires_after(copy ? time_on : time_off);
+          timer_->expires_after(timeout);
           // moving self makes this callback be called once again when expiry is reached or timer is cancelled
           timer_->async_wait(std::move(self));
         },
