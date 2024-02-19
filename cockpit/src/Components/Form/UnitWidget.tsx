@@ -54,7 +54,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   let storeValue = getNestedValue(storeValues, storeKeys.toJS());
   dimension = schema.toJS()['x-tfc']?.dimension ? schema.toJS()['x-tfc'].dimension : undefined;
   const type = schema.get('type') as string | undefined;
-  let initialUnit = schema.toJS()['x-tfc']?.unit.unit_ascii ? schema.toJS()['x-tfc'].unit.unit_ascii : undefined;
+  let initialUnit = schema.toJS()['x-tfc']?.unit ? schema.toJS()['x-tfc']?.unit.unit_ascii : undefined;
   const required = schema.toJS()['x-tfc']?.required ? schema.toJS()['x-tfc'].required : false;
   const { minimum, maximum } = schema.toJS();
   let inputRef = React.useRef();
@@ -78,12 +78,12 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
     storeValue = undefined;
   }
 
-  if (!storeValue) {
+  if (storeValue === undefined) {
     storeValue = schema.get('default');
   }
 
   const [unit, setUnit] = React.useState<string>(initialUnit ?? '');
-  const [stringValue, setStringValue] = React.useState<string>(storeValue?.toString() ?? '');
+  const [stringValue, setStringValue] = React.useState<string>(storeValue !== undefined ? storeValue.toString() : '');
   const [value, setValue] = React.useState<Qty | undefined>(
     storeValue !== undefined
       ? Qty(`${storeValue}${initialUnit ?? ''}`)
@@ -98,7 +98,7 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
    * @returns true if the value is invalid, false otherwise.
    */
   function isWarning() { // NOSONAR
-    if (required && (!value || value.toString() === '')) {
+    if (required && (value === undefined || value.toString() === '')) {
       if (errText !== 'Required') setErrText('Required');
       return true;
     }
@@ -237,12 +237,10 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
   */
   const handleChange = (e: any) => {
     const val = e.target.value as string;
-    // if there is already a decimal point, ignore any more
-    if (val && e.nativeEvent.data === '.' && val.slice(0, -1).indexOf('.') !== -1) {
-      return;
-    }
-    if (e.nativeEvent.data && !e.nativeEvent.data.match(/[0-9.]/)) {
-      // If anything other than a number or a decimal point is entered, ignore it.
+    const isValidNumber = /^-?\d*(\.\d*)?$/.test(val);
+
+    if (!isValidNumber) {
+      setErrText('Invalid input');
       return;
     }
 
@@ -252,12 +250,15 @@ export function UnitWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetProps
       handleEmptyValue();
       return;
     }
-    if (parseFloat(val) === undefined || Number.isNaN(parseFloat(val))) {
+    // Attempt to parse the value as a float
+    const parsedValue = parseFloat(val);
+
+    if (parsedValue === undefined || Number.isNaN(parsedValue)) {
       setErrText('Invalid number');
       setValue(undefined);
       return;
     }
-    handleUnitValue(parseFloat(val));
+    handleUnitValue(parsedValue);
   };
 
   const disabled = schema.get('readOnly') as boolean || (parentSchema && parentSchema.get('readOnly') as boolean);

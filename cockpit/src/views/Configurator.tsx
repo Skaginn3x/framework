@@ -33,6 +33,7 @@ const Configurator: React.FC = () => {
   const { isDark } = useDarkMode();
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
+  const [formSubmissionCount, setFormSubmissionCount] = useState(0);
 
   const toggleDrawer = () => {
     setIsDrawerExpanded(!isDrawerExpanded);
@@ -40,6 +41,26 @@ const Configurator: React.FC = () => {
 
   const [formData, setFormData] = useState<any>({});
   const [schemas, setSchemas] = useState<any>({});
+
+  function sortItems(items:string[]) {
+    return items.sort((a, b) => {
+      const regex = /([^\d]+)(\d+)$/;
+      const matchA = regex.exec(a);
+      const matchB = regex.exec(b);
+
+      if (matchA && matchB) {
+        // Compare non-numeric parts
+        if (matchA[1] < matchB[1]) return -1;
+        if (matchA[1] > matchB[1]) return 1;
+
+        // Compare numeric parts
+        return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+      }
+
+      // Fallback to regular string comparison if one or both don't match the pattern
+      return a.localeCompare(b);
+    });
+  }
 
   useEffect(() => {
     loadExternalScript((allNames) => {
@@ -50,8 +71,10 @@ const Configurator: React.FC = () => {
         ) && !name.includes('ipc_ruler'),
       );
 
+      const sortedNames = sortItems(filteredNames);
+
       // Process each name asynchronously
-      filteredNames.forEach((name) => {
+      sortedNames.forEach((name) => {
         const dbus = window.cockpit.dbus(name);
         const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
         const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
@@ -66,7 +89,7 @@ const Configurator: React.FC = () => {
     });
   }, []);
 
-  useEffect(() => {
+  function getData() {
     if (names.size > 0) {
       names.forEach((interfaceName, processName) => {
         fetchDataFromDBus(
@@ -86,6 +109,10 @@ const Configurator: React.FC = () => {
         });
       });
     }
+  }
+
+  useEffect(() => {
+    getData();
   }, [names]);
 
   /**
@@ -104,8 +131,6 @@ const Configurator: React.FC = () => {
 
   const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
   const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
-  const [form, setForm] = React.useState<React.JSX.Element>(<div />);
-
   const onSelect = (selectedItem: {
     groupId: string | number;
     itemId: string | number;
@@ -129,9 +154,6 @@ const Configurator: React.FC = () => {
     data = handleNullValue(data);
     // Find interface name from dbus name
     const interfaceName = names.get(activeItem) ?? activeItem;
-    console.log('Submitting data:', data);
-    console.log('Active Item:', activeItem);
-    console.log('Interface Name:', interfaceName);
     updateFormData(
       activeItem, // Process name
       interfaceName, // Interface name
@@ -141,6 +163,9 @@ const Configurator: React.FC = () => {
       setFormData,
       addAlert,
     );
+    setTimeout(() => {
+      getData();
+    }, 100);
   }
 
   /**
@@ -157,34 +182,13 @@ const Configurator: React.FC = () => {
     // 2. & 3. Filter out unique and non-undefined values
     const uniqueProcesses = extractedProcesses.filter((value, index, self) => value && self.indexOf(value) === index);
     // 4. Sort the list alphabetically
-    return uniqueProcesses.sort((a, b) => {
-      if (a < b) {
-        return -1;
-      }
-      if (a > b) {
-        return 1;
-      }
-      return 0;
-    });
+    return sortItems(uniqueProcesses);
   }
 
   useEffect(() => {
     if (!schemas || !activeItem) return;
-    setForm(
-      <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }}>
-        <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
-          {removeOrg(activeItem) || 'Error - Unknown name'}
-        </Title>
-        <FormGenerator
-          inputSchema={schemas[activeItem]}
-          key={activeItem}
-          onSubmit={(data: any) => handleSubmit(data.values.config)}
-          values={formData[activeItem]}
-        />
-        <div style={{ marginBottom: '2rem' }} />
-      </div>,
-    );
-  }, [activeItem]);
+    setFormSubmissionCount((count) => count + 1);
+  }, [activeItem, schemas]);
 
   const panelContent = (
     <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
@@ -193,7 +197,6 @@ const Configurator: React.FC = () => {
       }}
       >
         <Nav onSelect={(_, item) => onSelect(item)} aria-label="Grouped global">
-          {/* Remove this group to get rid of demo data */}
           <NavGroup title="Processes">
             <NavItem
               preventDefault
@@ -216,12 +219,9 @@ const Configurator: React.FC = () => {
               </NavItem>
             ))}
           </NavGroup>
-          {/* End Remove */}
           <NavGroup title="Schemas">
-            {/* Might want to remove this slice too, if demoData is removed from state */}
-            {Object.keys(schemas)
-              .filter((name) => !activeItemFilter || name.includes(activeItemFilter))
-              // .slice(4)
+            {sortItems(Object.keys(schemas)
+              .filter((name) => !activeItemFilter || name.includes(activeItemFilter)))
               .map((name: string) => (
                 <NavItem
                   preventDefault
@@ -283,7 +283,24 @@ const Configurator: React.FC = () => {
                 width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: isDark ? '#EEE' : '#111',
               }}
               >
-                {form}
+                {activeItem
+                  ? (
+                    <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }} key={`${activeItem}div`}>
+                      <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
+                        {removeOrg(activeItem) || 'Error - Unknown name'}
+                      </Title>
+                      <FormGenerator
+                        inputSchema={schemas[activeItem]}
+                        key={`${activeItem}-form-${formSubmissionCount}`}
+                        onSubmit={(data: any) => handleSubmit(data.values.config)}
+                        values={formData[activeItem]}
+                        intKey={formSubmissionCount}
+                      />
+                      <div style={{ marginBottom: '2rem' }} />
+                    </div>
+                  )
+                  : <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }} key="emptyDiv" />}
+
               </div>
             </div>
           </DrawerContentBody>

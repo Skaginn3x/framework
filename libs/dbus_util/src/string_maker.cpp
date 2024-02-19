@@ -37,7 +37,7 @@ auto make_dbus_path(std::string_view input_name) -> std::string {
 }
 
 auto make_dbus_process_name() -> std::string {
-  auto postfix{ fmt::format("tfc.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name()) };
+  auto postfix{ fmt::format("tfc.{}.{}", base::get_exe_name(), base::get_proc_name()) };
   return make_dbus_name(postfix);
 }
 

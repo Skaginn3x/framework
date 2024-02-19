@@ -27,12 +27,12 @@ using tfc::ec::util::setting;
 namespace details {
 template <typename signal_t, typename variable_t, typename logger_t>
 inline variable_t async_send_if_new(signal_t& signal,
-                                    const variable_t& old_var,
+                                    const std::optional<variable_t>& old_var,
                                     const variable_t& new_var,
                                     logger_t& logger) {
   // clang-format off
   PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
-  if (old_var != new_var) {
+  if (!old_var.has_value() || old_var != new_var) {
     PRAGMA_CLANG_WARNING_POP
     // clang-format on
     signal.async_send(new_var, [&logger](const std::error_code& err, size_t) {
@@ -115,7 +115,7 @@ public:
                                                                       fmt::format("atv320.s{}.run", slave_index),
                                                                       "Turn on motor",
                                                                       [this](bool value) { ipc_running_ = value; }),
-        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
+        config_{ ctx_, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
                                  fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
@@ -231,8 +231,8 @@ public:
         });
 
     for (size_t i = 0; i < atv320_di_count; i++) {
-      di_transmitters_.emplace_back(tfc::ipc::bool_signal(connection->get_io_context(), client,
-                                                          fmt::format("atv320.s{}.in{}", slave_index, i), "Digital Input"));
+      di_transmitters_.emplace_back(tfc::ipc::bool_signal(
+          connection->get_io_context(), client, fmt::format("atv320.s{}.DI{}", slave_index, i + 1), "Digital Input"));
     }
   }
 
@@ -240,11 +240,12 @@ public:
   void transmit_status(const input_t& input) {
     std::bitset<atv320_di_count> const value(input.digital_inputs);
     for (size_t i = 0; i < atv320_di_count; i++) {
-      last_bool_values_.set(
-          i, details::async_send_if_new(di_transmitters_[i], last_bool_values_.test(i), value.test(i), logger_));
+      last_bool_values_[i] = details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), logger_);
     }
-    last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(hmis_transmitter_, static_cast<uint16_t>(last_hmis_),
-                                                                static_cast<uint16_t>(input.drive_state), logger_));
+
+    last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(
+        hmis_transmitter_, last_hmis_.has_value() ? static_cast<uint16_t>(last_hmis_.value()) : std::optional<uint16_t>(),
+        static_cast<uint16_t>(input.drive_state), logger_));
     double frequency = static_cast<double>(input.frequency.numerical_value_is_an_implementation_detail_) / 10.0;
     last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
 
@@ -310,9 +311,12 @@ public:
     dbus_iface_.update_status(*in);
     ctrl_.update_status(*in);
 
-    bool auto_reset_allowed =
-        std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end() ||
-        allow_reset_;
+    bool auto_reset_allowed = false;
+    if (drive_in_fault_state) {
+      auto_reset_allowed = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) !=
+                               errors_to_auto_reset.end() ||
+                           allow_reset_;
+    }
 
     if (!dbus_iface_.has_peer()) {
       // Quick stop if frequncy set to 0
@@ -393,6 +397,9 @@ public:
     sdo_write(assignment_R1{ .value = psl_e::not_assigned });
     sdo_write(assignment_AQ1{ .value = psa_e::not_configured });
 
+    // Enable us to reset more faults from scada
+    sdo_write(extended_fault_reset_activation_HRFC{ .value = n_y_e::yes });
+
     // test writing alias address - this does not seem to work. Direct eeprom writing also possible working.
     // sdo_write<uint16_t>({ 0x2024, 0x92 }, 1337);  // 2 - Current
 
@@ -418,7 +425,7 @@ public:
 
 private:
   asio::io_context& ctx_;
-  std::bitset<atv320_di_count> last_bool_values_;
+  std::array<std::optional<bool>, atv320_di_count> last_bool_values_;
   std::vector<ipc::bool_signal> di_transmitters_;
   ipc::bool_slot run_;
   config_t config_;
@@ -432,10 +439,10 @@ private:
   dbus_iface<manager_client_t> dbus_iface_;
   ipc::bool_slot reset_;
 
-  hmis_e last_hmis_{};
-  double last_frequency_{};
-  double last_current_{};
-  std::uint64_t last_error_{};
+  std::optional<hmis_e> last_hmis_;
+  std::optional<double> last_frequency_;
+  std::optional<double> last_current_;
+  std::optional<std::uint64_t> last_error_;
   bool ipc_running_{};
   decifrequency_signed reference_frequency_{ 0 * dHz };
   std::array<lft_e, 10> last_errors_{};

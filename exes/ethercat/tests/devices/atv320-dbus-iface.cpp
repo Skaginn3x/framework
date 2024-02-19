@@ -539,6 +539,54 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
+  "move interupted by move interupted by move interupted by move while moving"_test = [&] {
+    instance inst;
+    inst.populate_homing_sensor();
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctx.run_for(1ms);
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[0] = true;
+                   });
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[1] = true;
+                   });
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[2] = true;
+                   });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[3] = true;
+                   });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(!err) << err.message();
+                     expect(moved == 1000 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[4] = true;
+                   });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+    expect(inst.ran[2]);
+    expect(inst.ran[3]);
+    expect(inst.ran[4]);
+  };
   "run cancelled"_test = [] {
     instance inst;
     inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
@@ -551,59 +599,166 @@ auto main(int, char const* const* argv) -> int {
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
-  "run time canceled"_test = [&] {
-    using tfc::testing::clock;
+  "on negative limit, limit error set to negative error"_test = [] {
     instance inst;
-    auto duration = 100 * milli<mp_units::si::second>;
-    speedratio_t ratio = 1.0 * percent;
-    inst.ctrl.run(ratio, duration, [&inst](const std::error_code& err) -> void {
-      expect(err == std::errc::operation_canceled) << err;
+    inst.ctrl.on_negative_limit_switch(true);
+    expect(inst.ctrl.limit_error() == err_enum::positioning_negative_limit_reached);
+  };
+  "on negative limit falling edge, limit error reset"_test = [] {
+    instance inst;
+    inst.ctrl.on_negative_limit_switch(true);
+    inst.ctrl.on_negative_limit_switch(false);
+    expect(inst.ctrl.limit_error() == err_enum::success);
+  };
+  "on positive limit, limit error set to positive error"_test = [] {
+    instance inst;
+    inst.ctrl.on_positive_limit_switch(true);
+    expect(inst.ctrl.limit_error() == err_enum::positioning_positive_limit_reached);
+  };
+  "on positive limit falling edge, limit error reset"_test = [] {
+    instance inst;
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctrl.on_positive_limit_switch(false);
+    expect(inst.ctrl.limit_error() == err_enum::success);
+  };
+  "run to positive limit"_test = [] {
+    instance inst;
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_positive_limit_reached);
+      inst.ran[0] = true;
+    });
+    expect(!inst.ran[0]);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.on_positive_limit_switch(true);
+    // Even though a good update we should not clear the error
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctx.run_for(1ms);
+    // We need to wait till the motor is stopped before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "positive limit same as homing sensor"_test = [] {
+    instance inst;
+    inst.populate_homing_sensor();
+    inst.sig.send(false);
+    inst.ctx.run_for(1ms);
+    inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), inst.sig.full_name(), [](std::error_code) {});
+    inst.manager.connect(inst.ctrl.positioner().positive_limit_switch()->full_name(), inst.sig.full_name(),
+                         [](std::error_code) {});
+
+    // Duplicate of move home test almost, but using limit switch
+    inst.ctrl.move_home([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[0] = true;
       inst.ctx.stop();
-      inst.ran[0] = true;
     });
-    inst.ctrl.update_status(get_good_status_running());
-    clock::set_ticks(clock::now() + 80ms);
+    // Limit not active shouldn't trigger completion
+    inst.ctrl.on_positive_limit_switch(false);
     inst.ctx.run_for(1ms);
     expect(!inst.ran[0]);
-    inst.ctrl.cancel_pending_operation();
+    inst.ctrl.on_positive_limit_switch(true);  // explicit limit switch activation
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
-  "stop cancelled"_test = [] {
+  "negative limit same as homing sensor"_test = [] {
     instance inst;
-    inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.stop([&inst](const std::error_code& err) {
-      expect(err == std::errc::operation_canceled);
-      inst.ran[0] = true;
-    });
-    expect(!inst.ran[0]);
+    inst.populate_homing_sensor();
+    inst.sig.send(false);
     inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
+    inst.manager.connect(inst.ctrl.positioner().homing_sensor()->full_name(), inst.sig.full_name(), [](std::error_code) {});
+    inst.manager.connect(inst.ctrl.positioner().negative_limit_switch()->full_name(), inst.sig.full_name(),
+                         [](std::error_code) {});
+
+    // Duplicate of move home test almost, but using limit switch
+    inst.ctrl.move_home([&inst](const std::error_code& err) {
+      expect(!err);
+      inst.ran[0] = true;
+      inst.ctx.stop();
+    });
+    // Limit not active shouldn't trigger completion
+    inst.ctrl.on_negative_limit_switch(false);
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    inst.ctrl.on_negative_limit_switch(true);  // explicit limit switch activation
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
-  "quick stop cancelled"_test = [] {
+  "run to negative limit"_test = [] {
     instance inst;
-    inst.ctrl.update_status(get_good_status_running());
-    inst.ctrl.quick_stop([&inst](const std::error_code& err) {
-      expect(err == std::errc::operation_canceled);
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_negative_limit_reached);
       inst.ran[0] = true;
     });
     expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
+    inst.ctrl.on_negative_limit_switch(true);
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };
-  "convey micrometre cancelled"_test = [] {
+  "forbid run in limit positive switch"_test = [] {
     instance inst;
-    inst.ctrl.convey(100 * percent, 100 * micrometre_t::reference, [&inst](const std::error_code& err, micrometre_t) {
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_positive_limit_reached);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "allow run in limit positive switch for negative speed"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_positive_limit_switch(true);
+    inst.ctrl.run(-100 * percent, [&inst](const std::error_code& err) {
       expect(err == std::errc::operation_canceled);
       inst.ran[0] = true;
     });
-    expect(!inst.ran[0]);
     inst.ctx.run_for(1ms);
-    inst.ctrl.cancel_pending_operation();
+    // Now we should be out of the limit switch
+    inst.ctrl.on_positive_limit_switch(false);
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
+    inst.ctrl.stop([](std::error_code) {});
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "forbid run in limit negative switch"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_negative_limit_switch(true);
+    inst.ctrl.run(-100 * percent, [&inst](const std::error_code& err) {
+      expect(tfc::motor::motor_enum(err) == err_enum::positioning_negative_limit_reached);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+  };
+  "allow run in limit negative switch for positive speed"_test = [] {
+    instance inst;
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctrl.on_negative_limit_switch(true);
+    inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
+      expect(err == std::errc::operation_canceled);
+      inst.ran[0] = true;
+    });
+    inst.ctx.run_for(1ms);
+    // Now we should be out of the limit switch
+    inst.ctrl.on_negative_limit_switch(false);
+    expect(!inst.ran[0]);
+    // need to stop the motor before the error is propagated
+    inst.ctrl.stop([](std::error_code) {});
+    inst.ctrl.update_status(get_good_status_stopped());
     inst.ctx.run_for(1ms);
     expect(inst.ran[0]);
   };

@@ -103,13 +103,16 @@ public:
     std::span<std::byte> input;
     std::span<std::byte> output;
     for (size_t i = 1; i < slave_count() + 1; i++) {
-      if (slavelist_[i].inputs != nullptr) {
-        input = { reinterpret_cast<std::byte*>(slavelist_[i].inputs), static_cast<size_t>(slavelist_[i].Ibytes) };
+      auto& slave{ slavelist_[i] };
+      if (slave.inputs != nullptr) {
+        std::size_t input_size{ slave.Ibytes == 0 ? !!slave.Ibits : slave.Ibytes };
+        input = { reinterpret_cast<std::byte*>(slave.inputs), input_size };
       }
-      if (slavelist_[i].outputs != nullptr) {
-        output = { reinterpret_cast<std::byte*>(slavelist_[i].outputs), static_cast<size_t>(slavelist_[i].Obytes) };
+      if (slave.outputs != nullptr) {
+        std::size_t output_size{ slave.Obytes == 0 ? !!slave.Obits : slave.Obytes };
+        output = { reinterpret_cast<std::byte*>(slave.outputs), output_size };
       }
-      if (slavelist_[i].islost) {
+      if (slave.islost) {
         slaves_[i]->process_data({}, {});
       } else {
         slaves_[i]->process_data(input, output);

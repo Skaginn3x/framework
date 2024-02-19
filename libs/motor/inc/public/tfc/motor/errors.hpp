@@ -31,7 +31,10 @@ enum struct err_enum : int {  // todo refactor to error_code_e ? or just error_e
   speedratio_out_of_range = 11,
   positioning_unstable = 20,
   positioning_missing_event = 21,
-  positioning_request_out_of_range = 22,
+  positioning_AA_BB_events = 22,
+  positioning_request_out_of_range = 23,
+  positioning_positive_limit_reached = 24,
+  positioning_negative_limit_reached = 25,
   permission_denied = 30,
   operation_canceled = 31,  // only used between client and server, user should use std::errc::operation_canceled
   frequency_drive_reports_fault = 32,
@@ -53,6 +56,9 @@ std::error_category const& category();
 
 /// Get an error code for a Motor error.
 inline std::error_code motor_error(const errors::err_enum error) {
+  if (error == errors::err_enum::operation_canceled) {
+    return std::make_error_code(std::errc::operation_canceled);
+  }
   auto const error_int = static_cast<int>(error);
   return std::error_code(error_int, category());
 }

@@ -124,6 +124,12 @@ public:
   };
 };
 
+template <observable_type conf_param_t>
+observable(conf_param_t&&) -> observable<conf_param_t>;
+
+template <observable_type conf_param_t>
+observable(conf_param_t&) -> observable<conf_param_t>;
+
 }  // namespace tfc::confman
 
 namespace glz::detail {

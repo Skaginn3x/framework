@@ -55,6 +55,8 @@ auto make_dbus_name(std::string_view input_name) -> std::string;
 /// \throws exception::invalid_name if input contains `-` or `//`
 auto make_dbus_path(std::string_view input_name) -> std::string;
 
+/// \brief make dbus name like org.freedesktop.<service_name>
+/// utilizes tfc::base to relize required information
 auto make_dbus_process_name() -> std::string;
 
 /// \brief strip dbus name like org.freedesktop.<service_name> to <service_name>

@@ -20,4 +20,6 @@ add_library_to_docs(tfc::mock_confman)
 include(tfc_install)
 tfc_install_lib(mock_confman)
 
-add_subdirectory(example)
+if(BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()

@@ -1,7 +1,4 @@
-if (BUILD_TESTING)
-  add_subdirectory(testing)
-endif ()
-
+add_subdirectory(testing)
 add_subdirectory(configure_options)
 add_subdirectory(dbus_util)
 add_subdirectory(stx)
