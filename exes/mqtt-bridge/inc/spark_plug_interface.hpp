@@ -7,7 +7,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -16,9 +15,8 @@
 #include <tfc/utils/asio_fwd.hpp>
 
 #include <client.hpp>
-#include <config/broker.hpp>
-#include <config/spark_plug_b.hpp>
-#include <config/spark_plug_b_mock.hpp>
+#include <config/bridge.hpp>
+#include <config/bridge_mock.hpp>
 #include <structs.hpp>
 
 namespace async_mqtt {
@@ -52,7 +50,7 @@ using org::eclipse::tahu::protobuf::Payload_Metric;
 template <class config_t, class mqtt_client_t>
 class spark_plug_interface {
 public:
-  explicit spark_plug_interface(asio::io_context& io_ctx);
+  explicit spark_plug_interface(asio::io_context& io_ctx, config_t& config);
 
   auto make_will_payload() -> std::string;
 
@@ -79,7 +77,7 @@ public:
 
   auto strand() -> asio::strand<asio::any_io_executor>;
 
-  static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, tfc::logger::logger const&) -> void;
+  static auto set_value_payload(Payload_Metric*, std::optional<std::any> const& value, logger::logger const&, std::string name) -> void;
 
   static auto topic_formatter(std::vector<std::string_view> const& topic_vector) -> std::string;
 
@@ -93,11 +91,11 @@ public:
 
 private:
   asio::io_context& io_ctx_;
-  config_t config_{ io_ctx_, "spark_plug_b_config" };
+  config_t& config_;
   std::unique_ptr<mqtt_client_t> mqtt_client_;
   std::vector<structs::spark_plug_b_variable> variables_;
   uint64_t seq_ = 1;
-  tfc::logger::logger logger_{ "spark_plug_interface" };
+  logger::logger logger_{ "spark_plug_interface" };
   std::optional<std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)>>
       value_change_callback_;
   std::string ncmd_topic_;
@@ -106,15 +104,8 @@ private:
   int64_t bdSeq_ = 0;
 };
 
-using spark_plug = spark_plug_interface<tfc::confman::config<config::spark_plug_b>, client_n>;
-using spark_plug_mock = spark_plug_interface<config::spark_plug_b_mock, client_mock>;
-
-extern template class tfc::mqtt::spark_plug_interface<
-    tfc::mqtt::config::spark_plug_b_mock,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>>;
-
-extern template class tfc::mqtt::spark_plug_interface<
-    tfc::confman::config<tfc::mqtt::config::spark_plug_b>,
-    tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>>;
+extern template class spark_plug_interface<confman::config<config::bridge>, client_n>;
+extern template class spark_plug_interface<config::bridge_mock, client_semi_normal>;
+extern template class spark_plug_interface<config::bridge_mock, client_mock>;
 
 }  // namespace tfc::mqtt

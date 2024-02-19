@@ -18,16 +18,17 @@
 #include <boost/asio.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
-#include "endpoint.hpp"
-#include "endpoint_mock.hpp"
+#include <endpoint.hpp>
+#include "../tests/inc/endpoint_mock.hpp"
 
 namespace tfc::mqtt {
 
 template <class client_t, class config_t>
 client<client_t, config_t>::client(asio::io_context& io_ctx,
                                    std::string_view mqtt_will_topic,
-                                   std::string_view mqtt_will_payload)
-    : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload) {
+                                   std::string_view mqtt_will_payload,
+                                   config_t& config)
+    : io_ctx_(io_ctx), mqtt_will_topic_(mqtt_will_topic), mqtt_will_payload_(mqtt_will_payload), config_(config) {
   using enum structs::ssl_active_e;
   if (config_.value().ssl_active == yes) {
     endpoint_client_ = std::make_unique<client_t>(io_ctx_, yes);
@@ -70,21 +71,9 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
 
   co_await endpoint_client_->async_handshake();
 
-  /// SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
-  auto connect_packet =
-      async_mqtt::v5::connect_packet{ true,
-                                      std::chrono::seconds(100).count(),
-                                      async_mqtt::allocate_buffer(config_.value().client_id),
-                                      async_mqtt::will(async_mqtt::allocate_buffer(mqtt_will_topic_),
-                                                       async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
-                                                       { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
-                                      async_mqtt::allocate_buffer(config_.value().username),
-                                      async_mqtt::allocate_buffer(config_.value().password),
-                                      { async_mqtt::property::session_expiry_interval{ 0 } } };
-
   logger_.trace("Sending MQTT connection packet...");
 
-  auto send_error = co_await endpoint_client_->send(connect_packet, asio::use_awaitable);
+  auto send_error = co_await endpoint_client_->send(connect_packet(), asio::use_awaitable);
 
   if (send_error) {
     co_return false;
@@ -96,6 +85,32 @@ auto client<client_t, config_t>::connect_and_handshake(asio::ip::tcp::resolver::
   logger_.trace("CONNACK received: {}", connack);
 
   co_return connack;
+}
+
+/// SparkPlugB spec specifies that clean start must be true and Session Expiry Interval must be 0
+template <class client_t, class config_t>
+auto client<client_t, config_t>::connect_packet() -> async_mqtt::v5::connect_packet {
+  if (config_.value().username.empty() || config_.value().password.empty()) {
+    return async_mqtt::v5::connect_packet{ true,
+                                           std::chrono::seconds(100).count(),
+                                           async_mqtt::allocate_buffer(config_.value().client_id),
+                                           async_mqtt::will(
+                                               async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                               async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                                               { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+                                           async_mqtt::nullopt,
+                                           async_mqtt::nullopt,
+                                           { async_mqtt::property::session_expiry_interval{ 0 } } };
+  }
+  return async_mqtt::v5::connect_packet{ true,
+                                         std::chrono::seconds(100).count(),
+                                         async_mqtt::allocate_buffer(config_.value().client_id),
+                                         async_mqtt::will(async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                                          async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                                                          { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+                                         async_mqtt::allocate_buffer(config_.value().username),
+                                         async_mqtt::allocate_buffer(config_.value().password),
+                                         { async_mqtt::property::session_expiry_interval{ 0 } } };
 }
 
 template <class client_t, class config_t>
@@ -227,8 +242,8 @@ auto client<client_t, config_t>::send_initial() -> asio::awaitable<bool> {
   co_return true;
 }
 
+template class client<endpoint_client, confman::config<config::bridge>>;
+template class client<endpoint_client, config::bridge_mock>;
+template class client<endpoint_client_mock, config::bridge_mock>;
+
 }  // namespace tfc::mqtt
-
-template class tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::broker>>;
-
-template class tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::broker_mock>;

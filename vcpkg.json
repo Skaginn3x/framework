@@ -12,6 +12,7 @@
     "boost-asio",
     "boost-program-options",
     "boost-coroutine2",
+    "boost-uuid",
     "boost-stacktrace",
     "date",
     "fmt",
