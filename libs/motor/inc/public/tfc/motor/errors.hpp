@@ -56,6 +56,9 @@ std::error_category const& category();
 
 /// Get an error code for a Motor error.
 inline std::error_code motor_error(const errors::err_enum error) {
+  if (error == errors::err_enum::operation_canceled) {
+    return std::make_error_code(std::errc::operation_canceled);
+  }
   auto const error_int = static_cast<int>(error);
   return std::error_code(error_int, category());
 }

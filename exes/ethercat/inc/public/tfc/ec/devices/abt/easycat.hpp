@@ -35,7 +35,7 @@ public:
     std::bitset<di_count> const in_bits(static_cast<uint8_t>(input[6]));
     for (size_t i = 0; i < di_count; i++) {
       bool const value = in_bits.test(i);
-      if (value != last_bool_value_[i]) {
+      if (!last_bool_value_[i].has_value() || value != last_bool_value_[i]) {
         bool_transmitters_[i].async_send(value, [this](std::error_code error, size_t) {
           if (error) {
             this->logger_.info("bool error transmitting: {}", error.message().c_str());
@@ -45,8 +45,8 @@ public:
       last_bool_value_[i] = value;
     }
     for (size_t i = 0; i < ai_count; i++) {
-      uint8_t const value = static_cast<uint8_t>(input[i]);
-      if (value != last_analog_value_[i]) {
+      auto const value = static_cast<uint8_t>(input[i]);
+      if (!last_analog_value_[i].has_value() || value != last_analog_value_[i]) {
         analog_transmitters_[i].async_send(value, [this](std::error_code error, size_t) {
           if (error) {
             this->logger_.info("analog error transmitting: {}", error.message().c_str());
@@ -65,12 +65,12 @@ public:
 
 private:
   std::bitset<do_count> output_states_;
-  std::array<bool, di_count> last_bool_value_;
-  std::array<uint8_t, ai_count> last_analog_value_;
-  std::vector<tfc::ipc::bool_signal> bool_transmitters_;
-  std::vector<tfc::ipc::uint_signal> analog_transmitters_;
-  std::array<std::unique_ptr<tfc::ipc::bool_slot>, di_count> bool_receivers_;
-  tfc::ipc::uint_slot servo_;
+  std::array<std::optional<bool>, di_count> last_bool_value_;
+  std::array<std::optional<uint8_t>, ai_count> last_analog_value_;
+  std::vector<ipc::bool_signal> bool_transmitters_;
+  std::vector<ipc::uint_signal> analog_transmitters_;
+  std::array<std::unique_ptr<ipc::bool_slot>, di_count> bool_receivers_;
+  ipc::uint_slot servo_;
 };
 
 }  // namespace tfc::ec::devices::abt
