@@ -10,9 +10,12 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 
-#include <config/publish_signals_mock.hpp>
+// #include <config/publish_signals_mock.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
+#include <config/bridge_mock.hpp>
+// #include <inc/endpoint_mock.hpp>
+#include "endpoint_mock.hpp"
 
 namespace tfc::mqtt {
 
@@ -39,9 +42,12 @@ public:
 
     config::bridge_mock config{ isolated_ctx, "test" };
 
-    spark_plug_interface<config::bridge_mock, client_mock> sp_mock{ isolated_ctx, config };
+    spark_plug_interface<config::bridge_mock,
 
-    tfc_to_external<config::bridge_mock, client_mock, ipc_ruler::ipc_manager_client_mock&> tfc_ext_mock{ isolated_ctx,
+    client<endpoint_client_mock, config::bridge_mock>
+    > sp_mock{ isolated_ctx, config };
+
+    tfc_to_external<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock> , ipc_ruler::ipc_manager_client_mock&> tfc_ext_mock{ isolated_ctx,
                                                                                                          sp_mock, ipc_mock,
                                                                                                          config };
 
