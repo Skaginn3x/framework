@@ -25,6 +25,7 @@ struct the_owner {
   MOCK_METHOD((void), enter_maintenance, (), ());
   MOCK_METHOD((void), leave_maintenance, (), ());
   MOCK_METHOD((void), transition, (tfc::operation::mode_e, tfc::operation::mode_e), ());
+  MOCK_METHOD((bool), is_fault, (), ());
 };
 
 namespace sml = boost::sml;
@@ -202,6 +203,28 @@ auto main(int argc, char** argv) -> int {
       } |
       std::make_tuple(state<states::stopped>, state<states::stopping>, state<states::starting>, state<states::running>,
                       state<states::cleaning>, state<states::fault>, state<states::maintenance>);
+
+  "emergency -> fault"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states(state<states::emergency>);
+    ON_CALL(instance.owner, is_fault()).WillByDefault(testing::Return(true));
+    EXPECT_CALL(instance.owner, leave_emergency()).Times(1);
+    EXPECT_CALL(instance.owner, enter_fault()).Times(1);
+    EXPECT_CALL(instance.owner, transition(fault, emergency)).Times(1);
+    instance.sm.process_event(events::emergency_off{});
+    ut::expect(instance.sm.is(state<states::fault>));
+  };
+
+  "emergency -> stopped"_test = [] {
+    test_instance instance;
+    instance.sm.set_current_states(state<states::emergency>);
+    ON_CALL(instance.owner, is_fault()).WillByDefault(testing::Return(false));
+    EXPECT_CALL(instance.owner, leave_emergency()).Times(1);
+    EXPECT_CALL(instance.owner, enter_stopped()).Times(1);
+    EXPECT_CALL(instance.owner, transition(stopped, emergency)).Times(1);
+    instance.sm.process_event(events::emergency_off{});
+    ut::expect(instance.sm.is(state<states::stopped>));
+  };
 
   return EXIT_SUCCESS;
 }
