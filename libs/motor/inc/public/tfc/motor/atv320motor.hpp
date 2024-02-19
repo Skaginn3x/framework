@@ -213,9 +213,6 @@ public:
                   return;
                 }
                 using enum errors::err_enum;
-                if (msg.err != success && msg.err != motor_missing_home_reference) {
-                  logger_.warn("{} failure: {}", method::needs_homing, msg.err);
-                }
                 self_m.complete(motor_error(msg.err), msg.needs_homing);
               },
               service_name_, path_, interface_name_, std::string(method::needs_homing));
@@ -315,9 +312,6 @@ private:
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
-                }
                 self_m.complete(motor_error(motor_err), length.force_in(second_arg_t::reference));
               },
               service_name_, path_, interface_name_, std::string(method_name), method_call_timeout.count(), args...);
@@ -342,9 +336,6 @@ private:
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
-                }
                 self_m.complete(motor_error(motor_err));
               },
               service_name_, path_, interface_name_, std::string(method_name), timeout.count(), args...);
