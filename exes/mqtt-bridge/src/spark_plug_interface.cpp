@@ -24,7 +24,8 @@
 //
 // template <class config_t, class mqtt_client_t>
 // spark_plug_interface<config_t, mqtt_client_t>::spark_plug_interface(asio::io_context& io_ctx, config_t& config)
-//     : io_ctx_(io_ctx), config_(config), ncmd_topic_(topic_formatter({ constants::namespace_element, config_.value().group_id,
+//     : io_ctx_(io_ctx), config_(config), ncmd_topic_(topic_formatter({ constants::namespace_element,
+//     config_.value().group_id,
 //                                                                       constants::ncmd, config_.value().node_id })),
 //       mqtt_will_topic_(topic_formatter(
 //           { constants::namespace_element, config_.value().group_id, constants::ndeath, config_.value().node_id })),
@@ -177,7 +178,8 @@
 //
 //     mqtt_client_->set_initial_message(topic, payload_string, async_mqtt::qos::at_most_once);
 //
-//     asio::co_spawn(mqtt_client_->strand(), mqtt_client_->send_message(topic, payload_string, async_mqtt::qos::at_most_once),
+//     asio::co_spawn(mqtt_client_->strand(), mqtt_client_->send_message(topic, payload_string,
+//     async_mqtt::qos::at_most_once),
 //                    asio::detached);
 //   }
 // }
@@ -232,7 +234,8 @@
 //
 // template <class config_t, class mqtt_client_t>
 // auto spark_plug_interface<config_t, mqtt_client_t>::set_value_change_callback(
-//     std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)> const& callback) -> void {
+//     std::function<void(std::string, std::variant<bool, double, std::string, int64_t, uint64_t>)> const& callback) -> void
+//     {
 //   value_change_callback_ = callback;
 // }
 //

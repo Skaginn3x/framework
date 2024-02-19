@@ -71,15 +71,14 @@ public:
   }
 
   auto last_word(std::string const& word) const -> std::optional<std::string> {
-       auto rview = std::views::reverse(word);
-        auto result = std::ranges::find(rview, '/');
+    auto rview = std::views::reverse(word);
+    auto result = std::ranges::find(rview, '/');
 
-        if (result != rview.end()) {
-            auto distance = std::distance(rview.begin(), result);
-            return std::string(word.end() - distance, word.end());
-        }
-        return std::nullopt;
-
+    if (result != rview.end()) {
+      auto distance = std::distance(rview.begin(), result);
+      return std::string(word.end() - distance, word.end());
+    }
+    return std::nullopt;
   }
 
 private:

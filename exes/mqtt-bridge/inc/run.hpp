@@ -22,7 +22,7 @@ namespace tfc::mqtt {
 
 // template <class config_t = confman::config<config::bridge>,
 template <class config_t,
-          class mqtt_client_t, //  = client_n,
+          class mqtt_client_t,  //  = client_n,
           class ipc_client_t>
 class run {
 public:
