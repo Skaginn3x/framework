@@ -213,7 +213,7 @@ public:
                   return;
                 }
                 using enum errors::err_enum;
-                if (msg.err != success) {
+                if (msg.err != success && msg.err != motor_missing_home_reference) {
                   logger_.warn("{} failure: {}", method::needs_homing, msg.err);
                 }
                 self_m.complete(motor_error(msg.err), msg.needs_homing);
