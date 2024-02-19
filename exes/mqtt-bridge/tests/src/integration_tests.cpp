@@ -1,4 +1,4 @@
-#ifdef __clang__
+// #ifdef __clang__
 
 #include <expected>
 #include <iostream>
@@ -258,8 +258,9 @@ auto main(int argc, char* argv[]) -> int {
   return 0;
 }
 // #endif
-#else
-auto main() -> int {
-  return 0;
-}
-#endif
+// #else
+// auto main() -> int {
+//   return 0;
+// }
+// #endif
+//

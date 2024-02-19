@@ -45,6 +45,10 @@ public:
   auto receive_new_value(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value) -> void {
     logger_.trace("Received new value for signal: {}", signal_name);
 
+    std::optional<std::string> sig_name{last_word(signal_name)};
+
+    if (sig_name.has_value()) {
+
     std::visit(
         [&value]<typename signal_t>(signal_t& signal) {
           if constexpr (!std::is_same_v<std::remove_cvref_t<signal_t>, std::monostate>) {
@@ -63,22 +67,16 @@ public:
             }
           }
         },
-        outward_signals_.at(last_word(signal_name)));
+        outward_signals_.at(sig_name.value()));
+    }
   }
 
-  auto last_word(std::string const& word) const -> std::string {
-    std::stringstream test(word);
-    std::string segment;
-    std::vector<std::string> seglist;
-
-    while (std::getline(test, segment, '/')) {
-      seglist.push_back(segment);
+  auto last_word(std::string const& word) const -> std::optional<std::string> {
+    auto result = std::ranges::find_last(word, '/');
+    if (result.begin() != std::ranges::end(word)) {
+      return std::string(std::ranges::next(result.begin()), word.end());
     }
-
-    if (!seglist.empty()) {
-      return seglist.back();
-    }
-    return "";
+    return std::nullopt;
   }
 
 private:
