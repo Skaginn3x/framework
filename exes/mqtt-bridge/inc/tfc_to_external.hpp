@@ -1,8 +1,8 @@
 #pragma once
 
+#include <ranges>
 #include <string>
 #include <type_traits>
-#include <ranges>
 #include <variant>
 #include <vector>
 

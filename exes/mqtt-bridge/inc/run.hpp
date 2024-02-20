@@ -8,15 +8,15 @@
 
 #include <tfc/logger.hpp>
 
- #include <external_to_tfc.hpp>
- #include <spark_plug_interface.hpp>
- #include <tfc_to_external.hpp>
+#include <external_to_tfc.hpp>
+#include <spark_plug_interface.hpp>
+#include <tfc_to_external.hpp>
 
 namespace asio = boost::asio;
 
 namespace tfc::mqtt {
 
-template <class config_t,class mqtt_client_t,class ipc_client_t>
+template <class config_t, class mqtt_client_t, class ipc_client_t>
 class run {
 public:
   explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}

@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
 #include <map>
+#include <optional>
+#include <ranges>
 #include <string>
 #include <type_traits>
 #include <variant>
-#include <ranges>
 
 #include <boost/asio.hpp>
 
