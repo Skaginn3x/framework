@@ -196,6 +196,8 @@ auto client<client_t, config_t>::wait_for_payloads(
         process_payload(publish_packet->payload()[i], *publish_packet);
       }
     } else {
+      /// sometimes another type of packet is received, which is not expected
+      /// therefore, it is helpful to know what type of packet was received
       if (auto* puback_packet = publish_recv.template get_if<async_mqtt::v5::puback_packet>()) {
         logger_.error("Received packet is a puback packet");
       } else if (auto* pubcomp_packet = publish_recv.template get_if<async_mqtt::v5::pubcomp_packet>()) {
