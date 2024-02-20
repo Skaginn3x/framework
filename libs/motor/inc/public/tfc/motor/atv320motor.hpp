@@ -67,7 +67,9 @@ private:
   static constexpr std::string_view impl_name{ "atv320" };
 
   asio::io_context& ctx_;
-  asio::steady_timer ping{ ctx_ };
+  asio::steady_timer ping_{ ctx_ };
+  static constexpr std::chrono::milliseconds ping_interval{ 250 };
+  static constexpr std::chrono::microseconds ping_response_timeout{ std::chrono::milliseconds{ 200 } };
   std::shared_ptr<sdbusplus::asio::connection> connection_;
   logger::logger logger_{ "atv320motor" };
   uint16_t slave_id_{ 0 };
@@ -75,44 +77,36 @@ private:
   std::string const path_{ dbus::path };
   std::string interface_name_{ dbus::make_interface_name(impl_name, slave_id_) };
 
-  // Assemble the interface string and start ping-pong sequence.
-  // Only set connected to true if there is an answer on the interface
-  // and it is returning true. Indicating we have control over the motor.
-  void send_ping(uint16_t slave_id) {
-    auto method_timeout_manual = std::make_shared<asio::steady_timer>(ctx_);
-    method_timeout_manual->expires_after(std::chrono::milliseconds(500));
-    connection_->async_method_call_timed(
-        [this, slave_id, method_timeout_manual](const std::error_code& err, bool response) {
-          // It could be that we started before the ethercat network or a configuration
-          // error has occured
-          method_timeout_manual->cancel();
-          if (err) {
-            // This error is returned, it is the users job to notify this failure and or deal with it.
-            logger_.error("connect_to_motor_error: {}", err.message());
-            response = false;
-          }
-          // New id our call chain is invalid
-          if (slave_id_ != slave_id) {
-            return;
-          }
-          connected_ = response;
-          ping.expires_after(std::chrono::milliseconds(250));
-          ping.async_wait([this, slave_id](const std::error_code& timer_fault) {
-            // Deconstructed or canceled, either way we are done
-            if (timer_fault) {
-              return;
-            }
-            send_ping(slave_id);
-          });
-        },
-        service_name_, path_, interface_name_, std::string{ method::ping },
-        std::chrono::microseconds(std::chrono::milliseconds(100)).count(), false);
-    method_timeout_manual->async_wait([this, slave_id](const std::error_code& err) {
-      if (err)
-        return;
-      send_ping(slave_id);
-    });
+  void on_ping_response(std::error_code const& err, bool response) {
+    if (err) {
+      // todo invalid request descriptor is a known error, but we should handle it better
+      // it is when the interface name (motor) is not existent
+      logger_.error("DBus ping response error: {}", err.message());
+      response = false;
+    }
+    connected_ = response;
+    ping_.cancel();
   }
+
+  void on_ping_timeout(std::error_code const& err) {
+    if (err == std::errc::operation_canceled) {
+      // We got response, meaning we did not need to wait as long as this timeout
+      // logger_.trace("Received response from slave: {}, is connected: {}", slave_id_, connected_);
+      ping_.expires_after(ping_interval);
+      ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
+      return;
+    } else if (err) {
+      logger_.error("Ping timeout error: {}", err.message());
+    } else {
+      // In most cases normal but a backup plan if dbus timeout fails
+    }
+    ping_.expires_after(ping_interval);
+    ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
+    connection_->async_method_call_timed(
+        [this](std::error_code const& method_err, bool resp) { this->on_ping_response(method_err, resp); }, service_name_,
+        path_, interface_name_, std::string{ method::ping }, ping_response_timeout.count(), false);
+  }
+
   bool connected_{ false };
   [[nodiscard]] std::error_code motor_seems_valid() const noexcept {
     if (!connected_) {
@@ -127,15 +121,13 @@ public:
 
   atv320motor(std::shared_ptr<sdbusplus::asio::connection> connection, const config_t& conf)
       : ctx_{ connection->get_io_context() }, connection_{ connection }, slave_id_{ conf.slave_id.value() } {
-    send_ping(slave_id_);
+    on_ping_timeout({});
     conf.slave_id.observe([this](const std::uint16_t new_id, const std::uint16_t old_id) {
       logger_.warn("Configuration changed from {} to {}. It is not recomended to switch motors on a running system!", old_id,
                    new_id);
       connected_ = false;
-      ping.cancel();
       slave_id_ = new_id;
       interface_name_ = dbus::make_interface_name(impl_name, slave_id_);
-      send_ping(new_id);
     });
   }
   atv320motor(const atv320motor&) = delete;
@@ -221,9 +213,6 @@ public:
                   return;
                 }
                 using enum errors::err_enum;
-                if (msg.err != success) {
-                  logger_.warn("{} failure: {}", method::needs_homing, msg.err);
-                }
                 self_m.complete(motor_error(msg.err), msg.needs_homing);
               },
               service_name_, path_, interface_name_, std::string(method::needs_homing));
@@ -323,9 +312,6 @@ private:
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
-                }
                 self_m.complete(motor_error(motor_err), length.force_in(second_arg_t::reference));
               },
               service_name_, path_, interface_name_, std::string(method_name), method_call_timeout.count(), args...);
@@ -350,9 +336,6 @@ private:
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
-                }
                 self_m.complete(motor_error(motor_err));
               },
               service_name_, path_, interface_name_, std::string(method_name), timeout.count(), args...);

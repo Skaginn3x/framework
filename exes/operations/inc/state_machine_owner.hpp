@@ -74,6 +74,8 @@ public:
   }
   void transition(mode_e new_mode, mode_e old_mode);
 
+  auto is_fault() const noexcept -> bool { return fault_.value().value_or(false); }
+
   // accessors for testing
   auto sm() const noexcept { return states_; }
   auto stopped_signal() const noexcept -> auto const& { return stopped_; }
@@ -81,6 +83,7 @@ public:
   auto running_signal() const noexcept -> auto const& { return running_; }
   auto stopping_signal() const noexcept -> auto const& { return stopping_; }
   auto cleaning_signal() const noexcept -> auto const& { return cleaning_; }
+  auto emergency_signal() const noexcept -> auto const& { return emergency_out_; }
   auto mode_signal() const noexcept -> auto const& { return mode_; }
   auto mode_str_signal() const noexcept -> auto const& { return mode_str_; }
   auto stop_reason_str_signal() const noexcept -> auto const& { return stop_reason_str_; }
@@ -119,6 +122,7 @@ private:
   bool_signal_t running_{ ctx_, mclient_, "running" };
   bool_signal_t stopping_{ ctx_, mclient_, "stopping" };
   bool_signal_t cleaning_{ ctx_, mclient_, "cleaning" };
+  bool_signal_t emergency_out_{ ctx_, mclient_, "emergency" };
   bool_signal_t fault_out_{ ctx_, mclient_, "fault" };
   uint_signal_t mode_{ ctx_, mclient_, "mode" };
   string_signal_t mode_str_{ ctx_, mclient_, "mode" };

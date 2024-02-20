@@ -199,7 +199,7 @@ struct item {
 
   // dimensions
   // si::kilogram kg;
-  using milligram_64bit = mp_units::quantity<si::milli<si::gram>, uint64_t>;
+  using milligram_64bit = mp_units::quantity<si::milli<si::gram>, int64_t>;
   std::optional<milligram_64bit> item_weight{ std::nullopt };
   std::optional<milligram_64bit> target_weight{ std::nullopt };
   std::optional<milligram_64bit> min_weight{ std::nullopt };

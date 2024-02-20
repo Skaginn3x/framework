@@ -1,6 +1,6 @@
 {
   "name": "tfc-framework",
-  "version": "2024.2.2",
+  "version": "2024.2.6",
   "dependencies": [
     {
       "name": "async-mqtt",

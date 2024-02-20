@@ -539,6 +539,54 @@ auto main(int, char const* const* argv) -> int {
     expect(inst.ran[0]);
     expect(inst.ran[1]);
   };
+  "move interupted by move interupted by move interupted by move while moving"_test = [&] {
+    instance inst;
+    inst.populate_homing_sensor();
+    inst.ctrl.update_status(get_good_status_running());
+    inst.ctx.run_for(1ms);
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[0] = true;
+                   });
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[1] = true;
+                   });
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[2] = true;
+                   });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(err == std::errc::operation_canceled) << err.message();
+                     expect(moved == 0 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[3] = true;
+                   });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.move(10 * speedratio_t::reference, 1000 * micrometre_t::reference,
+                   [&inst](const std::error_code& err, const micrometre_t moved) {
+                     expect(!err) << err.message();
+                     expect(moved == 1000 * micrometre_t::reference) << fmt::format("{}", moved);
+                     inst.ran[4] = true;
+                   });
+    inst.ctx.run_for(1ms);
+    inst.ctrl.positioner().increment_position(1000 * micrometre_t::reference);
+    inst.ctx.run_for(1ms);
+    inst.ctrl.update_status(get_good_status_stopped());
+    inst.ctx.run_for(1ms);
+    expect(inst.ran[0]);
+    expect(inst.ran[1]);
+    expect(inst.ran[2]);
+    expect(inst.ran[3]);
+    expect(inst.ran[4]);
+  };
   "run cancelled"_test = [] {
     instance inst;
     inst.ctrl.run(100 * percent, [&inst](const std::error_code& err) {
