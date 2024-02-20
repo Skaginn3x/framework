@@ -1,15 +1,15 @@
 #pragma once
 
-#include <tfc/utils/asio_fwd.hpp>
+#include <optional>
+#include <string>
 
 namespace tfc::mqtt {
-
-namespace asio = boost::asio;
-
 class test_external_to_tfc {
 public:
-  explicit test_external_to_tfc() = default;
+  test_external_to_tfc() = default;
 
-  static auto test() -> bool;
+  auto test() -> bool;
+
+  auto test_last_word(std::string input_string, std::optional<std::string> output_string) -> bool;
 };
 }  // namespace tfc::mqtt

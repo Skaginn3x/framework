@@ -102,4 +102,8 @@ using rotor_time_constant_TRA = setting<ecx::index_t{ 0x2042, 0x44 },
 using torque_or_current_limitation_stop_SSB =
     setting<ecx::index_t{ 0x203E, 0x29 }, "SSB", "Torque or current limit stop mode", ecfg_e, ecfg_e::no>;
 
+// Enables us to reset more drive faults including OCF, SCF1, SCF3.
+using extended_fault_reset_activation_HRFC =
+    setting<ecx::index_t{ 0x2029, 0x33 }, "HRFC", "Torque or current limit stop mode", n_y_e, n_y_e::yes>;
+
 }  // namespace tfc::ec::devices::schneider::atv320

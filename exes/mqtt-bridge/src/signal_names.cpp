@@ -2,9 +2,9 @@
 
 namespace {
 // clang-format off
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
-thread_local std::vector<tfc::ipc_ruler::signal> signals{};
-PRAGMA_CLANG_WARNING_POP
+ PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
+ thread_local std::vector<tfc::ipc_ruler::signal> signals{};
+ PRAGMA_CLANG_WARNING_POP
 // clang-format on
 }  // namespace
 namespace tfc::global {  // please name better

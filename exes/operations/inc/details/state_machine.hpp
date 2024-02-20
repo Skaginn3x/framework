@@ -100,6 +100,15 @@ struct maintenance {
 };
 }  // namespace states
 
+namespace guard {
+template <typename owner_t>
+struct is_fault {
+  bool operator()() const { return owner.is_fault(); }
+  static constexpr std::string_view name{ "is_fault" };
+  owner_t& owner;
+};
+}  // namespace guard
+
 template <typename owner_t>
 struct state_machine {
   explicit state_machine(owner_t& owner) : owner_{ owner } {}
@@ -110,6 +119,7 @@ struct state_machine {
     using boost::sml::on_entry;
     using boost::sml::on_exit;
     using boost::sml::state;
+    using boost::sml::operator!;
 
     using enum tfc::operation::mode_e;
     // todo meta-program this transition boiler plate code
@@ -159,7 +169,8 @@ struct state_machine {
 
             , state<states::emergency> + on_entry<_> / [this](){ owner_.enter_emergency(); }
             , state<states::emergency> + on_exit<_> / [this](){ owner_.leave_emergency(); }
-            , state<states::emergency> + event<events::emergency_off> / [this](){ owner_.transition(stopped, emergency); } = state<states::stopped>
+            , state<states::emergency> + event<events::emergency_off> [!guard::is_fault{owner_}] / [this](){ owner_.transition(stopped, emergency); } = state<states::stopped>
+            , state<states::emergency> + event<events::emergency_off> [guard::is_fault{owner_}] / [this](){ owner_.transition(fault, emergency); } = state<states::fault>
             , state<states::stopped> + event<events::fault_on> / [this](){ owner_.transition(fault, stopped); } = state<states::fault>
             , state<states::stopped> + event<events::set_fault> / [this](){ owner_.transition(fault, stopped); } = state<states::fault>
             , state<states::running> + event<events::fault_on> / [this](){ owner_.transition(fault, running); } = state<states::fault>
@@ -167,7 +178,6 @@ struct state_machine {
             , state<states::fault> + on_entry<_> / [this](){ owner_.enter_fault(); }
             , state<states::fault> + on_exit<_> / [this](){ owner_.leave_fault(); }
             , state<states::fault> + event<events::fault_off> / [this](){ owner_.transition(stopped, fault); } = state<states::stopped>
-            , state<states::fault> + event<events::set_stopped> / [this](){ owner_.transition(stopped, fault); } = state<states::stopped>
             , state<states::stopped> + event<events::maintenance_button> / [this](){ owner_.transition(maintenance, stopped); } = state<states::maintenance>
             , state<states::stopped> + event<events::set_maintenance> / [this](){ owner_.transition(maintenance, stopped); } = state<states::maintenance>
             , state<states::maintenance> + on_entry<_> / [this](){ owner_.enter_maintenance(); }

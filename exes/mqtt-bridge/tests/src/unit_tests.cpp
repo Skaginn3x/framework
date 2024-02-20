@@ -9,12 +9,13 @@
 #include <tfc/progbase.hpp>
 
 #include <client.hpp>
-#include <config/publish_signals_mock.hpp>
-#include <config/spark_plug_b_mock.hpp>
 #include <constants.hpp>
+#include <endpoint_mock.hpp>
 #include <spark_plug_interface.hpp>
 #include <test_external_to_tfc.hpp>
 #include <test_tfc_to_external.hpp>
+
+#include <config/bridge_mock.hpp>
 
 namespace ut = boost::ut;
 namespace asio = boost::asio;
@@ -22,66 +23,75 @@ namespace asio = boost::asio;
 using ut::operator""_test;
 using ut::expect;
 
-auto main(int argc, char *argv[]) -> int {
-    auto program_description{tfc::base::default_description()};
-    tfc::base::init(argc, argv, program_description);
-    asio::io_context io_ctx;
+auto main(int argc, char* argv[]) -> int {
+  auto program_description{ tfc::base::default_description() };
+  tfc::base::init(argc, argv, program_description);
+  asio::io_context io_ctx;
 
-    "testing tfc to external"_test = [&]() {
-        tfc::mqtt::test_tfc_to_external test_ext{};
+  "testing tfc to external"_test = [&]() {
+    tfc::mqtt::test_tfc_to_external test_ext{};
 
-        bool set_signals;
-        asio::co_spawn(
-            io_ctx,
-            [&]() -> asio::awaitable<void> {
-                set_signals = co_await test_ext.test();
-                io_ctx.stop();
-            },
-            asio::detached);
-        io_ctx.run_for(std::chrono::seconds{10});
-        expect(set_signals);
-    };
+    bool set_signals;
+    co_spawn(
+        io_ctx,
+        [&]() -> asio::awaitable<void> {
+          set_signals = co_await test_ext.test();
+          io_ctx.stop();
+        },
+        asio::detached);
+    io_ctx.run_for(std::chrono::seconds{ 10 });
+    expect(set_signals);
+  };
 
-    "testing constants"_test = [&]() {
-        expect(tfc::mqtt::constants::namespace_element == "spBv1.0");
-        expect(tfc::mqtt::constants::ndata == "NDATA");
-        expect(tfc::mqtt::constants::nbirth == "NBIRTH");
-        expect(tfc::mqtt::constants::ndeath == "NDEATH");
-        expect(tfc::mqtt::constants::ncmd == "NCMD");
-        expect(tfc::mqtt::constants::rebirth_metric == "Node Control/Rebirth");
-    };
+  "testing constants"_test = [&]() {
+    expect(tfc::mqtt::constants::namespace_element == "spBv1.0");
+    expect(tfc::mqtt::constants::ndata == "NDATA");
+    expect(tfc::mqtt::constants::nbirth == "NBIRTH");
+    expect(tfc::mqtt::constants::ndeath == "NDEATH");
+    expect(tfc::mqtt::constants::ncmd == "NCMD");
+    expect(tfc::mqtt::constants::rebirth_metric == "Node Control/Rebirth");
+  };
 
-    "testing spark plug interface"_test = [&]() {
-        tfc::mqtt::config::bridge_mock config{io_ctx, "test"};
-        tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_mock> sp{io_ctx, config};
+  "testing spark plug interface"_test = [&]() {
+    tfc::mqtt::config::bridge_mock config{ io_ctx, "test" };
+    tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock,
+                                    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock> >
+        sp{ io_ctx, config };
 
-        expect(sp.topic_formatter({"first", "second"}) == "first/second");
-    };
+    expect(sp.topic_formatter({ "first", "second" }) == "first/second");
+  };
 
-    "testing tfc to external"_test = [&]() {
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{io_ctx};
+  "testing tfc to external"_test = [&]() {
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_mock{ io_ctx };
 
-        tfc::mqtt::config::bridge_mock config{io_ctx, "test"};
-        tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_mock> sp{io_ctx, config};
+    tfc::mqtt::config::bridge_mock config{ io_ctx, "test" };
+    tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock,
+                                    tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock> >
+        sp{ io_ctx, config };
 
-        bool restart_needed = false;
-        tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_mock,
-                    tfc::ipc_ruler::ipc_manager_client_mock &>
-                test_ext{io_ctx, sp, ipc_mock, config, restart_needed};
+    tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock,
+                               tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock>,
+                               tfc::ipc_ruler::ipc_manager_client_mock&>
+        test_ext{ io_ctx, sp, ipc_mock, config };
 
-        expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
-        expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
-        expect(test_ext.format_signal_name("tfc.bool.test.something") == "tfc/bool/test/something");
+    expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
+    expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
+    expect(test_ext.format_signal_name("tfc.bool.test.something") == "tfc/bool/test/something");
+  };
 
-        config.add_banned_signal("test_mqtt_bridge.bool.test.something");
+  "testing external to tfc"_test = [&]() {
+    tfc::mqtt::test_external_to_tfc test_ext{};
+    expect(test_ext.test());
+  };
 
-        // auto is_publish_signal(std::string signal_name) -> bool {
-        expect(!test_ext.is_publish_signal("test_mqtt_bridge.bool.test.something"));
-        expect(test_ext.is_publish_signal("test_mqtt_bridge.string.test.something"));
-    };
-
-    "testing external to tfc"_test = [&]() {
-        tfc::mqtt::test_external_to_tfc test_ext{};
-        ut::expect(test_ext.test());
-    };
+  "testing external to tfc - last word"_test = [&]() {
+    tfc::mqtt::test_external_to_tfc test_ext{};
+    expect(test_ext.test_last_word("tfc/bool/test/something", "something"));
+    expect(test_ext.test_last_word("tfc/something", "something"));
+    expect(test_ext.test_last_word("trailing/delimiter/", ""));
+    expect(test_ext.test_last_word("", std::nullopt));
+    expect(test_ext.test_last_word("a", std::nullopt));
+    expect(test_ext.test_last_word("/", ""));
+    expect(test_ext.test_last_word("multiple//delimiters", "delimiters"));
+  };
 }

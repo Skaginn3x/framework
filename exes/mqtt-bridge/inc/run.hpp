@@ -4,14 +4,10 @@
 #include <functional>
 #include <type_traits>
 
-#include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
 
-#include <tfc/confman.hpp>
-#include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 
-#include <client.hpp>
 #include <external_to_tfc.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
@@ -27,7 +23,10 @@ namespace tfc::mqtt {
         using ext_to_tfc = external_to_tfc<ipc_client_t &, config_t>;
         using tfc_to_ext = tfc_to_external<config_t, mqtt_client_t, ipc_client_t>;
 
-    public:
+template <class config_t, class mqtt_client_t, class ipc_client_t>
+class run {
+public:
+  explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}
 
         explicit run(asio::io_context &io_ctx, ipc_client_t ipc_client) : io_ctx_(io_ctx), ipc_client_(ipc_client) {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);

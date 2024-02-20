@@ -116,7 +116,7 @@ protected:
   auto read_file() -> std::error_code {
     std::string buffer{};
     if (auto glz_err{ glz::read_file_json(storage_, config_file_.string(), buffer) }; glz_err) {
-      logger_.warn(R"(Error: "{}" reading from file: "{}")", glz::write_json(glz_err.ec), config_file_.string());
+      logger_.warn(R"(Error: "{}" reading from file: "{}")", glz::format_error(glz_err, buffer), config_file_.string());
       return std::make_error_code(std::errc::io_error);
       // todo implicitly convert glaze error_code to std::error_code
     }
