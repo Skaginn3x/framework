@@ -642,16 +642,50 @@ export default function CustomTable({
                           className={isDark ? 'darkSelectionHoverSignal' : 'selectionHoverSignal'}
                           onClick={() => handleMinusClick(slotName)}
                         />
-                        <Tooltip
-                          content={slotName}
-                          enableFlip
-                          distance={5}
-                          entryDelay={1000}
-                        >
-                          <div style={{ width: 'min-content', marginLeft: '1rem' }}>
-                            {removeOrg(slotName)}
+                        <div style={{ width: /* 'min-content' */ '100%', justifyContent: 'space-between', display: 'flex' }}>
+                          <Tooltip
+                            content={slotName}
+                            enableFlip
+                            distance={5}
+                            entryDelay={1000}
+                          >
+                            <div style={{ width: 'min-content' }}>
+                              {removeOrg(slotName) ?? slotName}
+                            </div>
+                          </Tooltip>
+                          <div>
+                            <Tooltip
+                              content={copyStatus ? 'Copied!' : 'Copy to clipboard'}
+                              enableFlip
+                              distance={5}
+                              entryDelay={300}
+                            >
+                              <button
+                                type="button"
+                                className={isDark ? 'darkSelectionHover' : 'selectionHover'}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    navigator.clipboard.writeText(slotName);
+                                    copyClick();
+                                  }
+                                }}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(slotName);
+                                  copyClick();
+                                }}
+                                style={{
+                                  outline: 'none !important',
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                }}
+                              >
+                                <CopyIcon style={{ color: '#DDD' }} />
+                              </button>
+                            </Tooltip>
                           </div>
-                        </Tooltip>
+                        </div>
                       </div>
                     </Td>
 
