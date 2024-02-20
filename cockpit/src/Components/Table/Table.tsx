@@ -525,6 +525,7 @@ export default function CustomTable({
                         >
                           <button
                             type="button"
+                            aria-label={`Copy ${signal.name}`}
                             className={isDark ? 'darkSelectionHover' : 'selectionHover'}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -662,6 +663,7 @@ export default function CustomTable({
                             >
                               <button
                                 type="button"
+                                aria-label={`Copy ${slotName}`}
                                 className={isDark ? 'darkSelectionHover' : 'selectionHover'}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
