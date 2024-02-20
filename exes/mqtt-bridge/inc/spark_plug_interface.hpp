@@ -37,25 +37,6 @@
 #include <config/bridge.hpp>
 #include <structs.hpp>
 
-// namespace async_mqtt {
-//     class buffer;
-//
-//     namespace v5 {
-//         template<std::size_t packet_id_bytes>
-//         class basic_publish_packet;
-//
-//         using publish_packet = basic_publish_packet<2>;
-//     } // namespace v5
-// } // namespace async_mqtt
-//
-// namespace org::eclipse::tahu::protobuf {
-//     enum DataType : int; // NOLINT
-//
-//     class Payload;
-//
-//     class Payload_Metric;
-// } // namespace org::eclipse::tahu::protobuf
-
 namespace tfc::mqtt {
 namespace asio = boost::asio;
 
@@ -344,34 +325,4 @@ private:
   int64_t bdSeq_ = 0;
 };
 
-// extern template class spark_plug_interface<confman::config<config::bridge>, client_n>;
-// extern template class spark_plug_interface<config::bridge_mock, client_semi_normal>;
-// extern template class spark_plug_interface<config::bridge_mock, client_mock>;
 }  // namespace tfc::mqtt
-
-//
-// namespace tfc::mqtt {
-//
-// namespace asio = boost::asio;
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// }  // namespace tfc::mqtt

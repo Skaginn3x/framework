@@ -1,7 +1,6 @@
 find_package(async_mqtt_iface CONFIG REQUIRED)
 
 add_executable(test_mqtt_bridge
-  ../src/spark_plug_interface.cpp
   ../src/signal_names.cpp
   src/test_external_to_tfc.cpp
   src/unit_tests.cpp
@@ -34,7 +33,6 @@ add_test(
 )
 
 add_executable(mqtt_bridge_integration_tests
-  ../src/spark_plug_interface.cpp
   ../src/signal_names.cpp
   src/integration_tests.cpp
 )

@@ -18,13 +18,10 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <config/bridge.hpp>
-// #include <config/bridge_mock.hpp>
 #include <tfc/confman.hpp>
 #include <tfc/logger.hpp>
-#include <tfc/utils/asio_fwd.hpp>
 
 #include <endpoint.hpp>
-// #include "../tests/inc/endpoint_mock.hpp"
 
 namespace tfc::mqtt {
 namespace asio = boost::asio;
@@ -245,7 +242,4 @@ private:
   std::tuple<std::string, std::string, async_mqtt::qos> initial_message_;
 };
 
-// using client_n = client<endpoint_client, confman::config<config::bridge>>;
-// using client_semi_normal = client<endpoint_client, config::bridge_mock>;
-// using client_mock = client<endpoint_client_mock, config::bridge_mock>;
 }  // namespace tfc::mqtt

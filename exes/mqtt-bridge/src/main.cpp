@@ -12,7 +12,6 @@ auto main(int argc, char* argv[]) -> int {
   asio::io_context io_ctx{};
 
   tfc::mqtt::run<
-
       tfc::confman::config<tfc::mqtt::config::bridge>,
       tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::confman::config<tfc::mqtt::config::bridge>>,
       tfc::ipc_ruler::ipc_manager_client>
@@ -24,7 +23,3 @@ auto main(int argc, char* argv[]) -> int {
 
   return 0;
 }
-
-// template class spark_plug_interface<confman::config<config::bridge>, client_n>;
-// template class spark_plug_interface<config::bridge_mock, client_mock>;
-// template class spark_plug_interface<config::bridge_mock, client_semi_normal>;
