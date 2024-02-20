@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable react/no-array-index-key */
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -14,7 +15,7 @@ import {
 } from '@patternfly/react-table';
 import PlusIcon from '@patternfly/react-icons/dist/esm/icons/plus-icon';
 import MinusIcon from '@patternfly/react-icons/dist/esm/icons/minus-icon';
-import { PencilAltIcon } from '@patternfly/react-icons';
+import { CopyIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { SignalType, SlotType, ConnectionType } from '../../Types';
 import { useAlertContext } from '../Alert/AlertContext';
 import './Table.css';
@@ -449,6 +450,15 @@ export default function CustomTable({
   const nonSelectionSlotColor = isDark ? '#313131' : '#f6f6f6';
   const empty = emptyStateComponent(clearAllFilters);
 
+  const [copyStatus, setCopyStatus] = useState(false);
+
+  const copyClick = () => {
+    setCopyStatus(true);
+    setTimeout(() => {
+      setCopyStatus(false);
+    }, 1000);
+  };
+
   return (
     <>
       <ToolBar
@@ -495,16 +505,51 @@ export default function CustomTable({
                   }}
                 >
                   <Td dataLabel={columnNames.name} modifier="truncate" style={{ verticalAlign: 'middle' }}>
-                    <Tooltip
-                      content={signal.name}
-                      enableFlip
-                      distance={5}
-                      entryDelay={1000}
-                    >
-                      <div style={{ width: 'min-content' }}>
-                        {removeOrg(signal.name) ?? signal.name}
+                    <div style={{ width: /* 'min-content' */ '100%', justifyContent: 'space-between', display: 'flex' }}>
+                      <Tooltip
+                        content={signal.name}
+                        enableFlip
+                        distance={5}
+                        entryDelay={1000}
+                      >
+                        <div style={{ width: 'min-content' }}>
+                          {removeOrg(signal.name) ?? signal.name}
+                        </div>
+                      </Tooltip>
+                      <div>
+                        <Tooltip
+                          content={copyStatus ? 'Copied!' : 'Copy to clipboard'}
+                          enableFlip
+                          distance={5}
+                          entryDelay={300}
+                        >
+                          <button
+                            type="button"
+                            aria-label={`Copy ${signal.name}`}
+                            className={isDark ? 'darkSelectionHover' : 'selectionHover'}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                navigator.clipboard.writeText(signal.name);
+                                copyClick();
+                              }
+                            }}
+                            onClick={() => {
+                              navigator.clipboard.writeText(signal.name);
+                              copyClick();
+                            }}
+                            style={{
+                              outline: 'none !important',
+                              background: 'none',
+                              border: 'none',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                            }}
+                          >
+                            <CopyIcon style={{ color: '#DDD' }} />
+                          </button>
+                        </Tooltip>
                       </div>
-                    </Tooltip>
+                    </div>
                   </Td>
                   <Td dataLabel={columnNames.type} modifier="truncate" style={{ verticalAlign: 'middle', paddingLeft: '1rem !important' }}>
                     {signal.type}
@@ -598,16 +643,51 @@ export default function CustomTable({
                           className={isDark ? 'darkSelectionHoverSignal' : 'selectionHoverSignal'}
                           onClick={() => handleMinusClick(slotName)}
                         />
-                        <Tooltip
-                          content={slotName}
-                          enableFlip
-                          distance={5}
-                          entryDelay={1000}
-                        >
-                          <div style={{ width: 'min-content', marginLeft: '1rem' }}>
-                            {removeOrg(slotName)}
+                        <div style={{ width: /* 'min-content' */ '100%', justifyContent: 'space-between', display: 'flex' }}>
+                          <Tooltip
+                            content={slotName}
+                            enableFlip
+                            distance={5}
+                            entryDelay={1000}
+                          >
+                            <div style={{ width: 'min-content' }}>
+                              {removeOrg(slotName) ?? slotName}
+                            </div>
+                          </Tooltip>
+                          <div>
+                            <Tooltip
+                              content={copyStatus ? 'Copied!' : 'Copy to clipboard'}
+                              enableFlip
+                              distance={5}
+                              entryDelay={300}
+                            >
+                              <button
+                                type="button"
+                                aria-label={`Copy ${slotName}`}
+                                className={isDark ? 'darkSelectionHover' : 'selectionHover'}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    navigator.clipboard.writeText(slotName);
+                                    copyClick();
+                                  }
+                                }}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(slotName);
+                                  copyClick();
+                                }}
+                                style={{
+                                  outline: 'none !important',
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                }}
+                              >
+                                <CopyIcon style={{ color: '#DDD' }} />
+                              </button>
+                            </Tooltip>
                           </div>
-                        </Tooltip>
+                        </div>
                       </div>
                     </Td>
 
