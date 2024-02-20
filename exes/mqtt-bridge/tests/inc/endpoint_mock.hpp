@@ -82,7 +82,8 @@ public:
     if (packet_t == async_mqtt::control_packet_type::suback) {
       my_variant.set<async_mqtt::v5::suback_packet>({ 0, { async_mqtt::suback_reason_code::granted_qos_0 } });
       co_return my_variant;
-    } if (packet_t == async_mqtt::control_packet_type::publish) {
+    }
+    if (packet_t == async_mqtt::control_packet_type::publish) {
       my_variant.set<async_mqtt::v5::publish_packet>({ 0,
                                                        async_mqtt::allocate_buffer("topic"),
                                                        async_mqtt::allocate_buffer("payload"),
