@@ -160,10 +160,18 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     width: '100%',
   };
 
+  const keyJS = storeKeys.toJS();
+  const parentProperty = typeof keyJS[keyJS.length - 1] === 'string' ? keyJS[keyJS.length - 1] as string : undefined;
+  let variantLabel = schema.get('title') as string | undefined;
+  if (!variantLabel) {
+    variantLabel = parentProperty ?? 'Choose Variant';
+    variantLabel = variantLabel.slice(0, 1).toUpperCase() + variantLabel.slice(1);
+  }
+
   return (
     <>
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
-        <InputLabel>{schema.get('title') as string ?? 'Choose Variant'}</InputLabel>
+        <InputLabel>{variantLabel}</InputLabel>
         <Select
           value={selectedTitle ?? ''}
           onChange={handleSelectChange}
@@ -181,7 +189,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
           style={textStyle}
-          label={schema.get('title') as string ?? 'Choose Variant'}
+          label={variantLabel}
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (
