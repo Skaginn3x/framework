@@ -190,18 +190,34 @@ auto client<client_t, config_t>::wait_for_payloads(
 
     logger_.trace("Publish packet received, parsing...");
 
-    auto* publish_packet = publish_recv.template get_if<async_mqtt::v5::publish_packet>();
-
-    if (publish_packet == nullptr) {
-      logger_.error("Received packet is not a PUBLISH packet");
+    if (auto* publish_packet = publish_recv.template get_if<async_mqtt::v5::publish_packet>()) {
+      for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
+        logger_.trace("Received PUBLISH packet. Parsing payload...");
+        process_payload(publish_packet->payload()[i], *publish_packet);
+      }
+    } else {
+      /// sometimes another type of packet is received, which is not expected
+      /// therefore, it is helpful to know what type of packet was received
+      if (auto* puback_packet = publish_recv.template get_if<async_mqtt::v5::puback_packet>()) {
+        logger_.error("Received packet is a puback packet");
+      } else if (auto* pubcomp_packet = publish_recv.template get_if<async_mqtt::v5::pubcomp_packet>()) {
+        logger_.error("Received packet is a pubcomp packet");
+      } else if (auto* pubrec_packet = publish_recv.template get_if<async_mqtt::v5::pubrec_packet>()) {
+        logger_.error("Received packet is a pubrec packet");
+      } else if (auto* pubrel_packet = publish_recv.template get_if<async_mqtt::v5::pubrel_packet>()) {
+        logger_.error("Received packet is a pubrel packet");
+      } else if (auto* suback_packet = publish_recv.template get_if<async_mqtt::v5::suback_packet>()) {
+        logger_.error("Received packet is a suback packet");
+      } else if (auto* subscribe_packet = publish_recv.template get_if<async_mqtt::v5::subscribe_packet>()) {
+        logger_.error("Received packet is a subscribe packet");
+      } else if (auto* unsuback_packet = publish_recv.template get_if<async_mqtt::v5::unsuback_packet>()) {
+        logger_.error("Received packet is a unsuback packet");
+      } else if (auto* unsubscribe_packet = publish_recv.template get_if<async_mqtt::v5::unsubscribe_packet>()) {
+        logger_.error("Received packet is a unsubscribe packet");
+      } else {
+        logger_.error("unknown packet type received");
+      }
       restart_needed = true;
-      co_return;
-    }
-
-    logger_.trace("Received PUBLISH packet. Parsing payload...");
-
-    for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
-      process_payload(publish_packet->payload()[i], *publish_packet);
     }
   }
 }

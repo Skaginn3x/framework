@@ -7,6 +7,8 @@
 #include <glaze/core/common.hpp>
 #include <tfc/utils/json_schema.hpp>
 
+#include <tfc/utils/pragmas.hpp>
+
 #include <signal_names.hpp>
 
 namespace tfc::mqtt::config {
@@ -25,13 +27,13 @@ template <>
 struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
-    if (!s.oneOf.has_value()) {
-      s.oneOf = std::vector<tfc::json::detail::schematic>{};
-    }
-    for (auto const& signal : tfc::global::get_signals()) {
-      s.oneOf.value().push_back(tfc::json::detail::schematic{ .attributes{
-          tfc::json::schema{ .title = signal.name, .description = signal.description, .constant = signal.name } } });
+    // the tmp is used to prevent uninitialized warning
+    std::vector<schematic> tmp{};
+    for (auto const& signal : global::get_signals()) {
+      tmp.emplace_back(schematic{
+          .attributes{ schema{ .title = signal.name, .description = signal.description, .constant = signal.name } } });
     };
+    s.oneOf = std::move(tmp);
   }
 };
 

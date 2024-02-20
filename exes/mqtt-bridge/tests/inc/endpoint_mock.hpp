@@ -66,14 +66,24 @@ public:
 
   auto strand() -> asio::strand<asio::io_context::executor_type>& { return strand_; }
 
-  auto recv(async_mqtt::control_packet_type packet_t) -> asio::awaitable<
-      package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet>> {
+  using package_v_mock = package_v<async_mqtt::v5::suback_packet,
+                                   async_mqtt::v5::publish_packet,
+                                   async_mqtt::v5::connack_packet,
+                                   async_mqtt::v5::puback_packet,
+                                   async_mqtt::v5::pubcomp_packet,
+                                   async_mqtt::v5::pubrec_packet,
+                                   async_mqtt::v5::pubrel_packet,
+                                   async_mqtt::v5::subscribe_packet,
+                                   async_mqtt::v5::unsuback_packet,
+                                   async_mqtt::v5::unsubscribe_packet>;
+
+  auto recv(async_mqtt::control_packet_type packet_t) -> asio::awaitable<package_v_mock> {
+    package_v_mock my_variant;
     if (packet_t == async_mqtt::control_packet_type::suback) {
-      package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet> my_variant;
       my_variant.set<async_mqtt::v5::suback_packet>({ 0, { async_mqtt::suback_reason_code::granted_qos_0 } });
       co_return my_variant;
-    } else if (packet_t == async_mqtt::control_packet_type::publish) {
-      package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet> my_variant;
+    }
+    if (packet_t == async_mqtt::control_packet_type::publish) {
       my_variant.set<async_mqtt::v5::publish_packet>({ 0,
                                                        async_mqtt::allocate_buffer("topic"),
                                                        async_mqtt::allocate_buffer("payload"),
@@ -81,7 +91,6 @@ public:
                                                        async_mqtt::properties{} });
       co_return my_variant;
     }
-    package_v<async_mqtt::v5::suback_packet, async_mqtt::v5::publish_packet, async_mqtt::v5::connack_packet> my_variant;
     my_variant.set<async_mqtt::v5::connack_packet>({ true, async_mqtt::connect_reason_code::success });
     co_return my_variant;
   }
