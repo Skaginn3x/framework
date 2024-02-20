@@ -4,26 +4,19 @@
 #include <functional>
 #include <type_traits>
 
-#include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
 
-#include <tfc/confman.hpp>
-#include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 
-#include <client.hpp>
-#include <external_to_tfc.hpp>
-#include <spark_plug_interface.hpp>
-#include <tfc_to_external.hpp>
+ #include <external_to_tfc.hpp>
+ #include <spark_plug_interface.hpp>
+ #include <tfc_to_external.hpp>
 
 namespace asio = boost::asio;
 
 namespace tfc::mqtt {
 
-// template <class config_t = confman::config<config::bridge>,
-template <class config_t,
-          class mqtt_client_t,  //  = client_n,
-          class ipc_client_t>
+template <class config_t,class mqtt_client_t,class ipc_client_t>
 class run {
 public:
   explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}
@@ -66,7 +59,7 @@ public:
           sp_interface_.wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_), restart_needed),
           bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
-      io_ctx_.run_for(std::chrono::seconds{ 100 });
+      io_ctx_.run_for(std::chrono::seconds{ 1 });
 
       while (!restart_needed) {
         co_await asio::steady_timer{ sp_interface_.strand(), std::chrono::seconds{ 5 } }.async_wait(asio::use_awaitable);

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <concepts>
-#include <optional>
 #include <string>
 #include <type_traits>
+#include <ranges>
 #include <variant>
 #include <vector>
 
@@ -11,10 +10,11 @@
 
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
-#include <tfc/progbase.hpp>
+// #include <tfc/progbase.hpp>
 
 #include <signal_names.hpp>
 #include <spark_plug_interface.hpp>
+#include <structs.hpp>
 
 namespace tfc::mqtt {
 

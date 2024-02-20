@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <map>
-#include <ranges>
 #include <string>
 #include <type_traits>
 #include <variant>
-#include <vector>
+#include <ranges>
 
 #include <boost/asio.hpp>
 
@@ -45,7 +45,7 @@ public:
   auto receive_new_value(std::string signal_name, std::variant<bool, double, std::string, int64_t, uint64_t> value) -> void {
     logger_.trace("Received new value for signal: {}", signal_name);
 
-    std::optional<std::string> sig_name{ last_word(signal_name) };
+    auto sig_name{ last_word(signal_name) };
 
     if (sig_name.has_value()) {
       std::visit(

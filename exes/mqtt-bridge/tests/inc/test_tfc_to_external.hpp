@@ -10,11 +10,9 @@
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 
-// #include <config/publish_signals_mock.hpp>
 #include <config/bridge_mock.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
-// #include <inc/endpoint_mock.hpp>
 #include "endpoint_mock.hpp"
 
 namespace tfc::mqtt {

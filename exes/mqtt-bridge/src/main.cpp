@@ -1,8 +1,13 @@
 #include <boost/asio.hpp>
 
 #include <tfc/progbase.hpp>
+#include <tfc/confman.hpp>
+#include <tfc/ipc.hpp>
 
 #include <run.hpp>
+#include <config/bridge.hpp>
+#include <client.hpp>
+#include <endpoint.hpp>
 
 namespace asio = boost::asio;
 

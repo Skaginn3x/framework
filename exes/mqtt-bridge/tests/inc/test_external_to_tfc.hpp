@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <optional>
+
 namespace tfc::mqtt {
 class test_external_to_tfc {
 public:
