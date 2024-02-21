@@ -162,9 +162,9 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
 
   const keyJS = storeKeys.toJS();
   const parentProperty = typeof keyJS[keyJS.length - 1] === 'string' ? keyJS[keyJS.length - 1] as string : undefined;
-  let variantLabel = schema.get('title') as string | undefined;
+  let variantLabel = parentProperty;
   if (!variantLabel) {
-    variantLabel = parentProperty ?? 'Choose Variant';
+    variantLabel = schema.get('title') as string ?? 'Choose Variant' as string;
     variantLabel = variantLabel.slice(0, 1).toUpperCase() + variantLabel.slice(1);
   }
 
