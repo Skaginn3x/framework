@@ -54,6 +54,7 @@ public:
 
     metric->set_name("bdSeq");
     metric->set_timestamp(timestamp_milliseconds().count());
+    /// Set datatype to 8 (uint64)
     metric->set_datatype(8);
 
     metric->set_long_value(static_cast<uint64_t>(get_bd_seq()));
@@ -85,6 +86,7 @@ public:
       auto* node_rebirth = payload.add_metrics();
       node_rebirth->set_name(constants::rebirth_metric.data());
       node_rebirth->set_timestamp(timestamp_milliseconds().count());
+      /// Set datatype to 11 (uint64)
       node_rebirth->set_datatype(11);
       node_rebirth->set_boolean_value(false);
       node_rebirth->set_is_transient(false);
