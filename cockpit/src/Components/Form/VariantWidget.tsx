@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import {
   PluginStack,
+  TransTitle,
   WidgetProps, WithValue, useUIStore,
 } from '@ui-schema/ui-schema';
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
@@ -160,18 +161,10 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
     width: '100%',
   };
 
-  const keyJS = storeKeys.toJS();
-  const parentProperty = typeof keyJS[keyJS.length - 1] === 'string' ? keyJS[keyJS.length - 1] as string : undefined;
-  let variantLabel = parentProperty;
-  if (!variantLabel) {
-    variantLabel = schema.get('title') as string ?? 'Choose Variant' as string;
-    variantLabel = variantLabel.slice(0, 1).toUpperCase() + variantLabel.slice(1);
-  }
-
   return (
     <>
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
-        <InputLabel>{variantLabel}</InputLabel>
+        <InputLabel><TransTitle schema={schema} storeKeys={storeKeys} /></InputLabel>
         <Select
           value={selectedTitle ?? ''}
           onChange={handleSelectChange}
@@ -189,7 +182,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
           style={textStyle}
-          label={variantLabel}
+          label={<TransTitle schema={schema} storeKeys={storeKeys} />}
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (
