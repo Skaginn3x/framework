@@ -15,16 +15,13 @@
 namespace asio = boost::asio;
 
 namespace tfc::mqtt {
-    template<class config_t = confman::config<config::bridge>,
-        class mqtt_client_t = client_n,
-        class ipc_client_t = ipc_ruler::ipc_manager_client&>
-    class run {
-        using spark_plug = spark_plug_interface<config_t, mqtt_client_t>;
-        using ext_to_tfc = external_to_tfc<ipc_client_t &, config_t>;
-        using tfc_to_ext = tfc_to_external<config_t, mqtt_client_t, ipc_client_t>;
+
 
 template <class config_t, class mqtt_client_t, class ipc_client_t>
 class run {
+        using spark_plug = spark_plug_interface<config_t, mqtt_client_t>;
+        using ext_to_tfc = external_to_tfc<ipc_client_t &, config_t>;
+        using tfc_to_ext = tfc_to_external<config_t, mqtt_client_t, ipc_client_t>;
 public:
   explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}
 
@@ -97,3 +94,4 @@ public:
         std::optional<ext_to_tfc> exter_to_tfc_;
     };
 } // namespace tfc::mqtt
+

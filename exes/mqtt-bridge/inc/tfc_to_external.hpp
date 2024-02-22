@@ -10,7 +10,6 @@
 
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
-// #include <tfc/progbase.hpp>
 
 #include <signal_names.hpp>
 #include <spark_plug_interface.hpp>

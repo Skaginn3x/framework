@@ -54,7 +54,7 @@ public:
 
     metric->set_name("bdSeq");
     metric->set_timestamp(timestamp_milliseconds().count());
-    metric->set_datatype(8);
+    metric->set_datatype(DataType::UInt64);
 
     metric->set_long_value(static_cast<uint64_t>(get_bd_seq()));
 
@@ -85,7 +85,7 @@ public:
       auto* node_rebirth = payload.add_metrics();
       node_rebirth->set_name(constants::rebirth_metric.data());
       node_rebirth->set_timestamp(timestamp_milliseconds().count());
-      node_rebirth->set_datatype(11);
+      node_rebirth->set_datatype(DataType::Boolean);
       node_rebirth->set_boolean_value(false);
       node_rebirth->set_is_transient(false);
       node_rebirth->set_is_historical(false);
@@ -95,7 +95,7 @@ public:
 
       bd_seq_metric->set_name("bdSeq");
       bd_seq_metric->set_timestamp(timestamp_milliseconds().count());
-      bd_seq_metric->set_datatype(8);
+      bd_seq_metric->set_datatype(DataType::UInt64);
       bd_seq_metric->set_long_value(0);
 
       for (auto const& variable : variables_) {

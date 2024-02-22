@@ -44,10 +44,11 @@ public:
     
     spark_plug_interface<config::bridge_mock,
 
-    tfc_to_external<config::bridge_mock, client_mock, ipc_ruler::ipc_manager_client_mock&> tfc_ext_mock{ isolated_ctx,
+    tfc_to_external<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock>, ipc_ruler::ipc_manager_client_mock&> tfc_ext_mock{ isolated_ctx,
                                                                                                          sp_mock, ipc_mock,
                                                                                                          config, restart_needed };
     client<endpoint_client_mock, config::bridge_mock> >
+
         sp_mock{ isolated_ctx, config };
 
     tfc_to_external<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock>,

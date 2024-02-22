@@ -76,8 +76,8 @@ struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
       s.oneOf = std::vector<schematic>{};
     }
     for (auto const& signal : global::get_signals()) {
-      s.oneOf.value().push_back(schematic{ .attributes{
-          schema{ .title = signal.name, .description = signal.description, .constant = signal.name } } });
+      s.oneOf.value().push_back(schematic{
+          .attributes{ schema{ .title = signal.name, .description = signal.description, .constant = signal.name } } });
     }
   }
 };

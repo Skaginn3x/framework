@@ -1,4 +1,3 @@
-
 #ifdef __clang__
 
 #include <expected>
@@ -28,91 +27,95 @@ namespace asio = boost::asio;
 
 class mqtt_broker {
 public:
-    explicit mqtt_broker(asio::io_context &io_ctx) : io_ctx_(io_ctx) { mqtt_async_accept(); }
 
-    auto mqtt_async_accept() -> void {
-        endpoint_ = async_mqtt::endpoint<async_mqtt::role::server, async_mqtt::protocol::mqtt>::create(
-            async_mqtt::protocol_version::undetermined, io_ctx_.get_executor());
+  explicit mqtt_broker(asio::io_context& io_ctx) : io_ctx_(io_ctx) { mqtt_async_accept(); }
 
-        auto &lowest_layer = endpoint_->lowest_layer();
-        mqtt_acceptor_.async_accept(lowest_layer, [this](boost::system::error_code const &ec) mutable {
-            if (!ec) {
-                broker_.handle_accept(epv_t{std::move(endpoint_)});
-                mqtt_async_accept();
-            } else {
-                std::cerr << "TCP accept error: " << ec.message() << std::endl;
-            }
-        });
-    }
+  auto mqtt_async_accept() -> void {
+    endpoint_ = async_mqtt::endpoint<async_mqtt::role::server, async_mqtt::protocol::mqtt>::create(
+        async_mqtt::protocol_version::undetermined, io_ctx_.get_executor());
 
-    asio::io_context &io_ctx_;
-    asio::ip::tcp::endpoint mqtt_endpoint_{asio::ip::tcp::v4(), 1965};
-    asio::ip::tcp::acceptor mqtt_acceptor_{io_ctx_, mqtt_endpoint_};
+    auto& lowest_layer = endpoint_->lowest_layer();
+    mqtt_acceptor_.async_accept(lowest_layer, [this](boost::system::error_code const& ec) mutable {
+      if (!ec) {
+        broker_.handle_accept(epv_t{ std::move(endpoint_) });
+        mqtt_async_accept();
+      } else {
+        std::cerr << "TCP accept error: " << ec.message() << std::endl;
+      }
+    });
+  }
 
-    using epv_t = async_mqtt::endpoint_variant<async_mqtt::role::server, async_mqtt::protocol::mqtt>;
-    async_mqtt::broker<epv_t> broker_{io_ctx_};
+  asio::io_context& io_ctx_;
+  asio::ip::tcp::endpoint mqtt_endpoint_{ asio::ip::tcp::v4(), 1965 };
+  asio::ip::tcp::acceptor mqtt_acceptor_{ io_ctx_, mqtt_endpoint_ };
 
-    decltype(async_mqtt::endpoint<async_mqtt::role::server, async_mqtt::protocol::mqtt>::create(
-        async_mqtt::protocol_version::undetermined)) endpoint_;
+  using epv_t = async_mqtt::endpoint_variant<async_mqtt::role::server, async_mqtt::protocol::mqtt>;
+  async_mqtt::broker<epv_t> broker_{ io_ctx_ };
+
+  decltype(async_mqtt::endpoint<async_mqtt::role::server, async_mqtt::protocol::mqtt>::create(
+      async_mqtt::protocol_version::undetermined)) endpoint_;
 };
 
 class mqtt_client {
 public:
-    mqtt_client(asio::io_context &io_ctx, std::vector<async_mqtt::buffer> &messages, std::string &topic)
-        : io_ctx_(io_ctx), messages_(messages), topic_(topic),
-          amep_(async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>::create(
-              async_mqtt::protocol_version::v5,
-              io_ctx.get_executor())) {
-        resolver_.async_resolve("127.0.0.1", "1965",
-                                [this](boost::system::error_code, asio::ip::tcp::resolver::results_type eps) {
-                                    co_spawn(io_ctx_, handle_resolve(eps), asio::detached);
-                                });
-    }
 
-    auto handle_resolve(asio::ip::tcp::resolver::results_type eps) -> asio::awaitable<void> {
-        std::ignore = co_await async_connect(amep_->lowest_layer(), eps, asio::use_awaitable);
-        co_await amep_->send(
-            async_mqtt::v5::connect_packet{
-                true,
-                0x1234,
-                async_mqtt::allocate_buffer("cid2"),
-                async_mqtt::nullopt,
-                async_mqtt::nullopt,
-                async_mqtt::nullopt,
-            },
-            asio::use_awaitable);
-        co_await amep_->recv(async_mqtt::filter::match, {async_mqtt::control_packet_type::connack},
-                             asio::use_awaitable);
-        co_await send_subscribe();
-    }
+  mqtt_client(asio::io_context& io_ctx, std::vector<async_mqtt::buffer>& messages, std::string& topic)
+      : io_ctx_(io_ctx), messages_(messages), topic_(topic),
+        amep_(async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>::create(
+            async_mqtt::protocol_version::v5,
+            io_ctx.get_executor())) {
+    resolver_.async_resolve("127.0.0.1", "1965",
+                            [this](boost::system::error_code, asio::ip::tcp::resolver::results_type eps) {
+                              co_spawn(io_ctx_, handle_resolve(eps), asio::detached);
+                            });
+  }
 
-    auto send_subscribe() -> asio::awaitable<void> {
-        std::optional<async_mqtt::packet_id_t> packet_id = amep_->acquire_unique_packet_id();
-        auto sub_packet =
-                async_mqtt::v5::subscribe_packet{
-                    packet_id.value(),
-                    {{async_mqtt::allocate_buffer(topic_), async_mqtt::qos::at_most_once}}
-                };
-        co_await amep_->send(sub_packet, asio::use_awaitable);
-        co_await amep_->recv(async_mqtt::filter::match, {async_mqtt::control_packet_type::suback}, asio::use_awaitable);
-        co_await receive_publish_packets();
-    }
+  auto handle_resolve(asio::ip::tcp::resolver::results_type eps) -> asio::awaitable<void> {
+    std::ignore = co_await async_connect(amep_->lowest_layer(), eps, asio::use_awaitable);
+    co_await amep_->send(
+        async_mqtt::v5::connect_packet{
+            true,
+            0x1234,
+            async_mqtt::allocate_buffer("cid2"),
+            async_mqtt::nullopt,
+            async_mqtt::nullopt,
+            async_mqtt::nullopt,
+        },
+        asio::use_awaitable);
+    co_await amep_->recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::connack }, asio::use_awaitable);
+    co_await send_subscribe();
+  }
 
-    auto receive_publish_packets() -> asio::awaitable<void> {
-        while (true) {
-            auto p =
-                    co_await amep_->recv(async_mqtt::filter::match, {async_mqtt::control_packet_type::publish},
-                                         asio::use_awaitable);
-            async_mqtt::v5::publish_packet const &p2 = p.template get<async_mqtt::v5::publish_packet>();
-            for (auto &payload: p2.payload()) {
-                messages_.push_back(payload);
-            }
-        }
-    asio::io_context &io_ctx_;
-    std::vector<async_mqtt::buffer> &messages_;
-    std::string &topic_;
-    }
+  auto send_subscribe() -> asio::awaitable<void> {
+    std::optional<async_mqtt::packet_id_t> packet_id = amep_->acquire_unique_packet_id();
+    auto sub_packet =
+        async_mqtt::v5::subscribe_packet{ packet_id.value(),
+                                          { { async_mqtt::allocate_buffer(topic_), async_mqtt::qos::at_most_once } } };
+    co_await amep_->send(sub_packet, asio::use_awaitable);
+    co_await amep_->recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::suback }, asio::use_awaitable);
+    co_await receive_publish_packets();
+  }
 
+  auto receive_publish_packets() -> asio::awaitable<void> {
+    while (true) {
+      auto p =
+          co_await amep_->recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
+      async_mqtt::v5::publish_packet const& p2 = p.template get<async_mqtt::v5::publish_packet>();
+      for (auto& payload : p2.payload()) {
+        messages_.push_back(payload);
+      }
+    }
+  }
+
+  asio::io_context& io_ctx_;
+  std::vector<async_mqtt::buffer>& messages_;
+  std::string& topic_;
+
+  decltype(async_mqtt::endpoint<async_mqtt::role::client, async_mqtt::protocol::mqtt>::create(
+      async_mqtt::protocol_version::v5)) amep_;
+
+  asio::ip::tcp::resolver resolver_{ io_ctx_ };
+};
 
 auto main(int argc, char* argv[]) -> int {
   tfc::base::init(argc, argv);

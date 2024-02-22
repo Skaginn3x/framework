@@ -105,12 +105,7 @@ public:
     auto pub_packet = async_mqtt::v5::publish_packet{ p_id.value(), async_mqtt::allocate_buffer(topic),
                                                       async_mqtt::allocate_buffer(payload), qos };
 
-    auto send_error = co_await endpoint_client_->send(pub_packet, asio::use_awaitable);
-
-    if (send_error) {
-      co_return false;
-    }
-    co_return true;
+    co_return !(co_await endpoint_client_->send(pub_packet, asio::use_awaitable));
   }
 
   auto subscribe_to_topic(std::string topic) -> asio::awaitable<bool> {
