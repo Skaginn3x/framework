@@ -13,6 +13,7 @@
     "boost-program-options",
     "boost-coroutine2",
     "boost-stacktrace",
+    "boost-uuid",
     "date",
     "fmt",
     {

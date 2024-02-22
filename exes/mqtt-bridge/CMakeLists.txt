@@ -1,7 +1,4 @@
 add_executable(mqtt_bridge
-  src/spark_plug_interface.cpp
-  src/client.cpp
-  src/external_to_tfc.cpp
   src/signal_names.cpp
   src/main.cpp
 )
@@ -12,21 +9,13 @@ find_package(OpenSSL REQUIRED)
 target_include_directories(mqtt_bridge
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/inc
 )
 
 target_link_libraries(mqtt_bridge
   PUBLIC
-    tfc::base
-    tfc::logger
-    tfc::stx
     tfc::ipc
-    tfc::operation_mode
-    tfc::confman
     Boost::boost
-    Boost::log
-    Boost::program_options
-    OpenSSL::SSL OpenSSL::Crypto
+    OpenSSL::SSL
     tfc::sparkplug::proto
 )
 
