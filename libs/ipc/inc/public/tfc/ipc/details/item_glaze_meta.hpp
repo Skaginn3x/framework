@@ -101,7 +101,6 @@ struct meta<tfc::ipc::item::item> {
                                            "entry_timestamp", &type::entry_timestamp, "First entry timestamp of item appearing in system",
                                            "production_date", &type::production_date, "Production date of item",
                                            "expiration_date", &type::expiration_date, "Expiration date of item",
-                                           "last_exchange", &type::last_exchange, "Last time item changed hands",
                                            "description", &type::description, "Description of item, some kind of metadata",
                                            "supplier", &type::supplier, "Supplier information of item",
 //                                           "destination", &type::destination, "Routing destination of item",
