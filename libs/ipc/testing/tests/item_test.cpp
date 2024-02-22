@@ -36,7 +36,7 @@ auto main(int, char**) -> int {
     auto remake = item::item::from_json(item.to_json()).value();
     // last_exchange is updated when from_json is called
     expect(item.id() == remake.id());
-    expect(item.entry_timestamp == remake.entry_timestamp);  
+    expect(item.entry_timestamp == remake.entry_timestamp);
   };
 
   return 0;
