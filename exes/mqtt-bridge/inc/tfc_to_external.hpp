@@ -27,7 +27,10 @@ namespace tfc::mqtt {
             restart_needed_(restart_needed) {
             static_assert(std::is_lvalue_reference<ipc_client_t>::value);
             match_object_ = ipc_client_.register_properties_change_callback(
-                std::bind_front(&tfc_to_external::foo, this));
+                [this](sdbusplus::message_t &) {
+                    restart_needed_ = true;
+                }
+            );
         }
 
         /// This function converts tfc types to Spark Plug B types
@@ -71,14 +74,6 @@ namespace tfc::mqtt {
                 [this](std::vector<ipc_ruler::signal> const &signals) {
                     handle_incoming_signals_from_ipc_client(signals);
                 });
-        }
-
-
-        //         auto register_signal_change_callback() -> void {
-        //         }
-
-        auto foo(sdbusplus::message_t &) -> void {
-            restart_needed_ = true;
         }
 
         auto is_publish_signal(std::string signal_name) -> bool {
