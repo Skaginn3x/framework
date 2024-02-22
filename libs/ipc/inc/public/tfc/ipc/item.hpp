@@ -222,6 +222,7 @@ struct item {
   std::optional<time_point> entry_timestamp{ std::nullopt };
   std::optional<time_point> production_date{ std::nullopt };
   std::optional<time_point> expiration_date{ std::nullopt };
+  std::optional<time_point> last_exchange{ std::nullopt }; // Last time that the item was exchanged between systems, i.e. parsed from json
   std::optional<std::string> description{ std::nullopt };
   std::optional<details::supplier> supplier{ std::nullopt };
   std::optional<details::destination> destination{ std::nullopt };
