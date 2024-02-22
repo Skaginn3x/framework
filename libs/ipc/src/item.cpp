@@ -29,6 +29,9 @@ auto make() -> item {
 }
 auto item::from_json(std::string_view json) -> std::expected<item, glz::parse_error> {
   auto temporary = glz::read_json<item>(json);
+  if (!temporary.has_value()) {
+    return temporary;
+  }
   // We are reciving this item, update exchange
   temporary->last_exchange = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
   return temporary;
