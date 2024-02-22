@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import {
   PluginStack,
+  TransTitle,
   WidgetProps, WithValue, useUIStore,
 } from '@ui-schema/ui-schema';
 import { MuiWidgetBinding } from '@ui-schema/ds-material/widgetsBinding';
@@ -163,7 +164,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
   return (
     <>
       <FormControl style={{ width: '100%', marginBottom: '1.2rem' }}>
-        <InputLabel>{schema.get('title') as string ?? 'Choose Variant'}</InputLabel>
+        <InputLabel><TransTitle schema={schema} storeKeys={storeKeys} /></InputLabel>
         <Select
           value={selectedTitle ?? ''}
           onChange={handleSelectChange}
@@ -181,7 +182,7 @@ export function VariantWidget<P extends WidgetProps<MuiWidgetBinding> = WidgetPr
           size={schema.getIn(['view', 'dense']) ? 'small' : 'medium'}
           id={`uis-${uid}`}
           style={textStyle}
-          label={schema.get('title') as string ?? 'Choose Variant'}
+          label={<TransTitle schema={schema} storeKeys={storeKeys} />}
           inputProps={inputProps}
         >
           {oneOfSchema.map((item: any) => (
