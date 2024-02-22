@@ -22,6 +22,7 @@
 namespace ut = boost::ut;
 using ut::operator""_test;
 using ut::expect;
+using org::eclipse::tahu::protobuf::DataType;
 
 namespace asio = boost::asio;
 
@@ -157,7 +158,7 @@ auto main(int argc, char* argv[]) -> int {
 
     // rebirth metric
     expect(nbirth_message.metrics()[0].name() == "Node Control/Rebirth");
-    expect(nbirth_message.metrics()[0].datatype() == 11);
+    expect(nbirth_message.metrics()[0].datatype() == DataType::Boolean);
     expect(!nbirth_message.metrics()[0].is_historical());
     expect(!nbirth_message.metrics()[0].is_transient());
     expect(!nbirth_message.metrics()[0].is_null());
@@ -166,7 +167,7 @@ auto main(int argc, char* argv[]) -> int {
 
     // bdSeq metric
     expect(nbirth_message.metrics()[1].name() == "bdSeq");
-    expect(nbirth_message.metrics()[1].datatype() == 8);
+    expect(nbirth_message.metrics()[1].datatype() == DataType::UInt64);
     expect(nbirth_message.metrics()[1].has_long_value());
     expect(nbirth_message.metrics()[1].long_value() == 0);
   };
@@ -221,42 +222,42 @@ auto main(int argc, char* argv[]) -> int {
     org::eclipse::tahu::protobuf::Payload first_message;
     first_message.ParseFromArray(messages2[0].data(), messages2[0].size());
     expect(first_message.metrics()[0].name() == "mqtt_bridge_integration_tests/def/bool/test");
-    expect(first_message.metrics()[0].datatype() == 11);
+    expect(first_message.metrics()[0].datatype() == DataType::Boolean);
     expect(first_message.metrics()[0].has_boolean_value());
     expect(first_message.metrics()[0].boolean_value());
 
     org::eclipse::tahu::protobuf::Payload second_message;
     second_message.ParseFromArray(messages2[1].data(), messages2[1].size());
     expect(second_message.metrics()[0].name() == "mqtt_bridge_integration_tests/def/string/test");
-    expect(second_message.metrics()[0].datatype() == 12);
+    expect(second_message.metrics()[0].datatype() == DataType::String);
     expect(second_message.metrics()[0].has_string_value());
     expect(second_message.metrics()[0].string_value() == "Initial");
 
     org::eclipse::tahu::protobuf::Payload third_message;
     third_message.ParseFromArray(messages2[2].data(), messages2[2].size());
     expect(third_message.metrics()[0].name() == "mqtt_bridge_integration_tests/def/bool/test");
-    expect(third_message.metrics()[0].datatype() == 11);
+    expect(third_message.metrics()[0].datatype() == DataType::Boolean);
     expect(third_message.metrics()[0].has_boolean_value());
     expect(!third_message.metrics()[0].boolean_value());
 
     org::eclipse::tahu::protobuf::Payload fourth_message;
     fourth_message.ParseFromArray(messages2[3].data(), messages2[3].size());
     expect(fourth_message.metrics()[0].name() == "mqtt_bridge_integration_tests/def/string/test");
-    expect(fourth_message.metrics()[0].datatype() == 12);
+    expect(fourth_message.metrics()[0].datatype() == DataType::String);
     expect(fourth_message.metrics()[0].has_string_value());
     expect(fourth_message.metrics()[0].string_value() == "number_2");
 
     org::eclipse::tahu::protobuf::Payload fifth_message;
     fifth_message.ParseFromArray(messages2[4].data(), messages2[4].size());
     expect(fifth_message.metrics()[0].name() == "mqtt_bridge_integration_tests/def/bool/test");
-    expect(fifth_message.metrics()[0].datatype() == 11);
+    expect(fifth_message.metrics()[0].datatype() == DataType::Boolean);
     expect(fifth_message.metrics()[0].has_boolean_value());
     expect(fifth_message.metrics()[0].boolean_value());
 
     org::eclipse::tahu::protobuf::Payload sixth_message;
     sixth_message.ParseFromArray(messages2[5].data(), messages2[5].size());
     expect(sixth_message.metrics()[0].name() == "mqtt_bridge_integration_tests/def/string/test");
-    expect(sixth_message.metrics()[0].datatype() == 12);
+    expect(sixth_message.metrics()[0].datatype() == DataType::String);
     expect(sixth_message.metrics()[0].has_string_value());
     expect(sixth_message.metrics()[0].string_value() == "number_3");
   };
@@ -265,7 +266,7 @@ auto main(int argc, char* argv[]) -> int {
         asio::io_context io_ctx{};
 
         // start broker
-        mqtt_broker broker2{io_ctx};
+        mqtt_broker broker{io_ctx};
         io_ctx.run_for(std::chrono::milliseconds{5});
 
         // start client
@@ -279,8 +280,9 @@ auto main(int argc, char* argv[]) -> int {
         io_ctx.run_for(std::chrono::milliseconds{5});
 
         // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal,
-                    tfc::ipc_ruler::ipc_manager_client_mock &>
+        tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                       tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                       tfc::ipc_ruler::ipc_manager_client_mock&>
                 running{io_ctx, ipc_client};
         co_spawn(io_ctx, running.start(), asio::detached);
         io_ctx.run_for(std::chrono::milliseconds{50});
@@ -295,7 +297,7 @@ auto main(int argc, char* argv[]) -> int {
 
         // rebirth metric
         expect(nbirth_message.metrics()[0].name() == "Node Control/Rebirth");
-        expect(nbirth_message.metrics()[0].datatype() == 11);
+        expect(nbirth_message.metrics()[0].datatype() == DataType::Boolean);
         expect(!nbirth_message.metrics()[0].is_historical());
         expect(!nbirth_message.metrics()[0].is_transient());
         expect(!nbirth_message.metrics()[0].is_null());
@@ -304,18 +306,16 @@ auto main(int argc, char* argv[]) -> int {
 
         // bdSeq metric
         expect(nbirth_message.metrics()[1].name() == "bdSeq");
-        expect(nbirth_message.metrics()[1].datatype() == 8);
+        expect(nbirth_message.metrics()[1].datatype() == DataType::UInt64);
         expect(nbirth_message.metrics()[1].has_long_value());
         expect(nbirth_message.metrics()[1].long_value() == 0);
-
-        io_ctx.run_for(std::chrono::seconds{1});
 
         tfc::ipc::signal<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock &> sig_b{
             io_ctx, ipc_client,
             "test"
         };
 
-        io_ctx.run_for(std::chrono::seconds{5});
+        io_ctx.run_for(std::chrono::milliseconds{110});
 
         expect(messages.size() == 2);
 
@@ -356,7 +356,7 @@ auto main(int argc, char* argv[]) -> int {
 
         // rebirth metric
         expect(second_message.metrics()[0].name() == "Node Control/Rebirth");
-        expect(second_message.metrics()[0].datatype() == 11);
+        expect(second_message.metrics()[0].datatype() == DataType::Boolean);
         expect(!second_message.metrics()[0].is_historical());
         expect(!second_message.metrics()[0].is_transient());
         expect(!second_message.metrics()[0].is_null());
@@ -365,13 +365,13 @@ auto main(int argc, char* argv[]) -> int {
 
         // bdSeq metric
         expect(second_message.metrics()[1].name() == "bdSeq");
-        expect(second_message.metrics()[1].datatype() == 8);
+        expect(second_message.metrics()[1].datatype() == DataType::UInt64);
         expect(second_message.metrics()[1].has_long_value());
         expect(second_message.metrics()[1].long_value() == 0);
 
         // new signal
         expect(second_message.metrics()[2].name() == "mqtt_bridge_integration_tests/def/bool/test");
-        expect(second_message.metrics()[2].datatype() == 11);
+        expect(second_message.metrics()[2].datatype() == DataType::Boolean);
         expect(!second_message.metrics()[2].is_historical());
         expect(!second_message.metrics()[2].is_transient());
         expect(second_message.metrics()[2].is_null());
@@ -404,8 +404,9 @@ auto main(int argc, char* argv[]) -> int {
         io_ctx.run_for(std::chrono::milliseconds{5});
 
         // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal,
-                    tfc::ipc_ruler::ipc_manager_client_mock &>
+        tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                       tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                       tfc::ipc_ruler::ipc_manager_client_mock&>
                 running{io_ctx, ipc_client};
 
         running.config().add_banned_signal("mqtt_bridge_integration_tests.def.bool.test");
@@ -423,7 +424,7 @@ auto main(int argc, char* argv[]) -> int {
 
         // rebirth metric
         expect(nbirth_message.metrics()[0].name() == "Node Control/Rebirth");
-        expect(nbirth_message.metrics()[0].datatype() == 11);
+        expect(nbirth_message.metrics()[0].datatype() == DataType::Boolean);
         expect(!nbirth_message.metrics()[0].is_historical());
         expect(!nbirth_message.metrics()[0].is_transient());
         expect(!nbirth_message.metrics()[0].is_null());
@@ -432,13 +433,13 @@ auto main(int argc, char* argv[]) -> int {
 
         // bdSeq metric
         expect(nbirth_message.metrics()[1].name() == "bdSeq");
-        expect(nbirth_message.metrics()[1].datatype() == 8);
+        expect(nbirth_message.metrics()[1].datatype() == DataType::UInt64);
         expect(nbirth_message.metrics()[1].has_long_value());
         expect(nbirth_message.metrics()[1].long_value() == 0);
 
         // new signal
         expect(nbirth_message.metrics()[2].name() == "mqtt_bridge_integration_tests/def/string/test");
-        expect(nbirth_message.metrics()[2].datatype() == 12);
+        expect(nbirth_message.metrics()[2].datatype() == DataType::String);
         expect(!nbirth_message.metrics()[2].is_historical());
         expect(!nbirth_message.metrics()[2].is_transient());
         expect(nbirth_message.metrics()[2].is_null());
@@ -446,8 +447,8 @@ auto main(int argc, char* argv[]) -> int {
 
     return 0;
 }
-#else
-auto main() -> int {
-  return 0;
-}
-#endif
+ #else
+ auto main() -> int {
+   return 0;
+ }
+ #endif

@@ -69,10 +69,12 @@ auto main(int argc, char* argv[]) -> int {
                                     tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock> >
         sp{ io_ctx, config };
 
-    tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock,
-                               tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock>,
-                               tfc::ipc_ruler::ipc_manager_client_mock&>
-        test_ext{ io_ctx, sp, ipc_mock, config };
+    bool restart = false;
+
+     tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock,
+                                tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock>,
+                                tfc::ipc_ruler::ipc_manager_client_mock&>
+        test_ext{ io_ctx, sp, ipc_mock, config, restart };
 
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_double_t) == 10);
