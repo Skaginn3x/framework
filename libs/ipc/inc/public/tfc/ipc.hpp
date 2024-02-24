@@ -183,6 +183,22 @@ public:
     return signal_->async_send(value, std::forward<completion_token_t>(token));
   }
 
+  template <typename logger_t>
+  auto async_send(std::shared_ptr<logger_t> logger) -> std::function<void(value_t)> {
+    auto weak_logger = std::weak_ptr<logger_t>(logger);
+
+    return [this, weak_logger](value_t value) {
+      signal_->async_send(value, [this, weak_logger](std::error_code const& send_error, size_t) {
+        if (send_error) {
+          auto logger_ = weak_logger.lock();
+          if (logger_) {
+            logger_->error("{}: Failed to send: {}", signal_->name(), send_error.message());
+          }
+        }
+      });
+    };
+  }
+
   [[nodiscard]] auto name() const noexcept -> std::string_view { return signal_->name(); }
 
   [[nodiscard]] auto full_name() const noexcept -> std::string { return signal_->full_name(); }
