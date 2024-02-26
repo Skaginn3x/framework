@@ -106,10 +106,7 @@ set_target_properties(ReadTheDocs PROPERTIES
 include(GNUInstallDirs)
 
 # ReadTheDocs needs to be executed before tfc-docs is installed because Doxygen needs to be executed in order for documentation to be generated
-add_custom_target(InstallDocumentation ALL
-        COMMAND ${CMAKE_COMMAND} -DCOMPONENT=Documentation -P cmake_install.cmake
-        DEPENDS ReadTheDocs
-)
+add_custom_target(InstallDocumentation ALL DEPENDS ReadTheDocs)
 
 install(
   DIRECTORY
