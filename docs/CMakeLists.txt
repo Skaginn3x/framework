@@ -102,8 +102,48 @@ set_target_properties(ReadTheDocs PROPERTIES
   EXCLUDE_FROM_ALL ON
 )
 
+# install(
+#         DIRECTORY
+#         ${CMAKE_CURRENT_BINARY_DIR}/build/
+#         DESTINATION
+#         ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/tfc
+#         CONFIGURATIONS Release
+# )
+
+# ls ${SPHINX_BUILD} this file
+message("\n\n\n\n")
+message("---------------------------------------------------------")
+message("sphinx build: ${SPHINX_BUILD}")
+# Set the SPHINX_BUILD variable to the Sphinx build directory
+# set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
+
+# Use execute_process to run the ls command and list the contents of SPHINX_BUILD
+execute_process(COMMAND ls ${SPHINX_BUILD}
+        RESULT_VARIABLE LS_RESULT
+        OUTPUT_VARIABLE LS_OUTPUT)
+
+# Log the output of the ls command
+message(STATUS "Listing the contents of ${SPHINX_BUILD}:")
+message(STATUS "${LS_OUTPUT}")
+message("---------------------------------------------------------")
+
+message(STATUS "Building documentation with ${SPHINX_EXECUTABLE}")
+message(STATUS "Doxygen XML directory: ${DOXYGEN_OUTPUT_DIR}/xml")
+message(STATUS "Sphinx source directory: ${SPHINX_SOURCE}")
+message(STATUS "Sphinx build directory: ${SPHINX_BUILD}")
+message("---------------------------------------------------------")
+
+message("\n\n\n\n")
+
 # Add an install target to install the docs
 include(GNUInstallDirs)
+
+# ReadTheDocs needs to be executed before tfc-docs is installed because Doxygen needs to be executed in order for documentation to be generated
+add_custom_target(InstallDocumentation ALL
+        COMMAND ${CMAKE_COMMAND} -DCOMPONENT=Documentation -P cmake_install.cmake
+        DEPENDS ReadTheDocs
+)
+
 install(
   DIRECTORY
     ${SPHINX_BUILD}/
@@ -118,3 +158,8 @@ install(
     ${CMAKE_INSTALL_DATAROOTDIR}/cockpit/${PROJECT_NAME}/
   CONFIGURATIONS Release
 )
+
+message("\n\n\n\n\n")
+message("sphinx build: ${SPHINX_BUILD}")
+message("sphinx executable: ${SPHINX_EXECUTABLE}")
+message("\n\n\n\n\n")

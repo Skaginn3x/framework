@@ -15,6 +15,26 @@ add_custom_target(cockpit-build ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build)
 
 include(GNUInstallDirs)
 
+message("\n\n\n\n")
+message("\n\n\n\n")
+message("---------------------------------------------------------")
+message("sphinx build: ${SPHINX_BUILD}")
+# Set the SPHINX_BUILD variable to the Sphinx build directory
+# set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
+
+# Use execute_process to run the ls command and list the contents of SPHINX_BUILD
+execute_process(COMMAND ls ${CMAKE_CURRENT_BINARY_DIR}/build
+        RESULT_VARIABLE LS_RESULT
+        OUTPUT_VARIABLE LS_OUTPUT)
+
+# Log the output of the ls command
+message(STATUS "Listing the contents of ${CMAKE_CURRENT_BINARY_DIR}/build")
+message(STATUS "${LS_OUTPUT}")
+message("---------------------------------------------------------")
+
+message("\n\n\n\n")
+message("\n\n\n\n")
+
 install(
   DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR}/build/
