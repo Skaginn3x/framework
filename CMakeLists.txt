@@ -34,9 +34,9 @@ endif()
 
 add_subdirectory(libs)
 
-# if (BUILD_DOCS)
+if (BUILD_DOCS)
   add_subdirectory(docs)
-# endif()
+endif()
 
 if (BUILD_EXAMPLES)
   add_subdirectory(examples)
