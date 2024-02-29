@@ -33,22 +33,16 @@ const RouterElem:React.FC<DarkModeInterface> = ({ isDark }) => {
   const id = query.get('service')?.replace('.html', '') ?? 'default';
   console.log('Found service: ', id);
 
-  const includeIODebug = process.env.REACT_APP_INCLUDE_DEBUG === 'true';
-  console.log('Include IO Debug: ', includeIODebug);
-
   switch (id) {
     case 'connect': return <Connections />;
     case 'configure': return <Configurator />;
     case 'list': return <ListDBUS />;
     case 'debug':
-      if (includeIODebug) {
-        return (
-          <Suspense fallback={<div>Loading...</div>}>
-            <IODebugLazy />
-          </Suspense>
-        );
-      }
-      return <div style={{ color: isDark ? '#EEE' : '#222' }}>The build does not contain the IODebug feature.</div>;
+      return (
+        <Suspense fallback={<div>Loading...</div>}>
+          <IODebugLazy />
+        </Suspense>
+      );
     case 'state_machine': return <StateMachine />;
     default: return <NotFoundPage />;
   }

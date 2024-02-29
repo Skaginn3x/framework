@@ -1,3 +1,4 @@
+// import 'cockpit-dark-theme'; todo this is available, can we use it?
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
