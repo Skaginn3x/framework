@@ -77,7 +77,7 @@ public:
     on_connect_cb_ = std::move(on_connect_cb);
   }
 
-  auto register_signal(const std::string_view name, const std::string_view description, type_e type) -> void {
+  auto register_signal(std::string_view sender, const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_signal called name: {}, type: {}", name, enum_name(type));
     auto timestamp_now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 
@@ -87,13 +87,13 @@ public:
       db_ << "SELECT count(*) FROM signals WHERE name = ?;" << std::string(name) >> count;
       if (count != 0) {
         // update the signal
-        db_ << fmt::format("UPDATE signals SET last_registered = {}, description = '{}', type = {}  WHERE name = '{}';",
-                           timestamp_now.time_since_epoch().count(), description, static_cast<std::uint8_t>(type), name);
+        db_ << fmt::format("UPDATE signals SET last_registered = {}, description = '{}', type = {}, created_by = '{}'  WHERE name = '{}';",
+                           timestamp_now.time_since_epoch().count(), description, static_cast<std::uint8_t>(type), sender, name);
       } else {
         // Insert the signal
         db_ << fmt::format(
-            "INSERT INTO signals (name, type, created_at, last_registered, description) VALUES ('{}',{},{},{},'{}');", name,
-            static_cast<std::uint8_t>(type), timestamp_now.time_since_epoch().count(),
+            "INSERT INTO signals (name, type, created_by, created_at, last_registered, description) VALUES ('{}',{},'{}',{},{},'{}');", name,
+            static_cast<std::uint8_t>(type), sender, timestamp_now.time_since_epoch().count(),
             timestamp_now.time_since_epoch().count(), description);
       }
     } catch (const std::exception& e) {
@@ -101,7 +101,7 @@ public:
     }
   }
 
-  auto register_slot(const std::string_view name, const std::string_view description, type_e type) -> void {
+  auto register_slot(std::string_view sender, const std::string_view name, const std::string_view description, type_e type) -> void {
     logger_.trace("register_slot called name: {}, type: {}", name, enum_name(type));
     auto timestamp_now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
     auto timestamp_never = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{};
@@ -119,14 +119,14 @@ public:
           };
       if (found) {
         // update the signal
-        db_ << fmt::format("UPDATE slots SET last_registered = {}, description = '{}', type = {}  WHERE name = '{}';",
-                           timestamp_now.time_since_epoch().count(), description, static_cast<std::uint8_t>(type), name);
+        db_ << fmt::format("UPDATE slots SET last_registered = {}, description = '{}', type = {}, created_by = '{}'  WHERE name = '{}';",
+                           timestamp_now.time_since_epoch().count(), description, static_cast<std::uint8_t>(type), sender, name);
       } else {
         // Insert the signal
         db_ << fmt::format(
-            "INSERT INTO slots (name, type, created_at, last_registered, last_modified, description) VALUES "
-            "('{}',{},{},{},{},'{}');",
-            name, static_cast<std::uint8_t>(type), timestamp_now.time_since_epoch().count(),
+            "INSERT INTO slots (name, type, created_by, created_at, last_registered, last_modified, description) VALUES "
+            "('{}',{},'{}',{},{},{},'{}');",
+            name, static_cast<std::uint8_t>(type), sender, timestamp_now.time_since_epoch().count(),
             timestamp_now.time_since_epoch().count(), timestamp_never.time_since_epoch().count(), description);
       }
 
@@ -264,13 +264,13 @@ public:
     });
 
     dbus_interface_->register_method(std::string(consts::register_signal),
-                                     [&](const std::string& name, const std::string& description, uint8_t type) {
-                                       ipc_manager_->register_signal(name, description, static_cast<type_e>(type));
+                                     [&](const sdbusplus::message_t& msg, const std::string& name, const std::string& description, uint8_t type) {
+                                       ipc_manager_->register_signal(msg.get_sender(), name, description, static_cast<type_e>(type));
                                        dbus_interface_->signal_property(std::string(consts::signals_property));
                                      });
     dbus_interface_->register_method(std::string(consts::register_slot),
-                                     [&](const std::string& name, const std::string& description, uint8_t type) {
-                                       ipc_manager_->register_slot(name, description, static_cast<type_e>(type));
+                                     [&](const sdbusplus::message_t& msg, const std::string& name, const std::string& description, uint8_t type) {
+                                       ipc_manager_->register_slot(msg.get_sender(), name, description, static_cast<type_e>(type));
                                        dbus_interface_->signal_property(std::string(consts::slots_property));
                                      });
 

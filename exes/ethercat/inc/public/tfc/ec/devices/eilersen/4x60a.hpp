@@ -447,7 +447,7 @@ PRAGMA_CLANG_WARNING_POP
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
   bool invalid_size_logged_{ false };
-  confman::config<config> config_{ ctx_, fmt::format("eilersen_4x60a.s{}", slave_index_) };
+  confman::config<config> config_{ client_.connection(), fmt::format("eilersen_4x60a.s{}", slave_index_) };
   // todo make section struct to cover the config, for now only one output is generated
   std::int64_t last_cumilated_signal_{};
   ipc_signal_t<ipc::details::type_mass, ipc_ruler::ipc_manager_client&> mass_{

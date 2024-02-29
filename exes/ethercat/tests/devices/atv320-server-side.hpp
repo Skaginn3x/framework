@@ -131,7 +131,7 @@ struct instance {
     assert(manager.slots_.size() > 1);
     assert(manager.signals_.size() == 1);
     manager.connect(
-        fmt::format("{}.{}.bool.homing_sensor_atv320_{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), slave_id),
+        fmt::format("{}.{}.bool.homing_sensor_ATV320_{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), slave_id),
         fmt::format("{}.{}.bool.homing_sensor", tfc::base::get_exe_name(), tfc::base::get_proc_name()),
         [&](const std::error_code&) {});
     ctx.run_for(5ms);

@@ -26,7 +26,7 @@ class bridge_mock {
   bridge_owner_mock owner_;
 
 public:
-  bridge_mock(asio::io_context const&, std::string const&) {
+  bridge_mock(auto const&, std::string const&) {
     owner_.address = "localhost";
     owner_.ssl_active = structs::ssl_active_e::no;
     owner_.username = "";
