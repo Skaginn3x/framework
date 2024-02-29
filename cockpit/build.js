@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // todo https://eisenbergeffect.medium.com/an-esbuild-setup-for-typescript-3b24852479fe
+// todo https://github.com/evanw/esbuild/issues/802#issuecomment-778598217
 
 import fs from 'node:fs';
 import path from 'node:path';

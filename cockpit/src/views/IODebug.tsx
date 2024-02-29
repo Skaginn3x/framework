@@ -2,6 +2,7 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 /* eslint-disable react/jsx-no-undef */
 /* eslint-disable react/no-unstable-nested-components */
+import cockpit from 'cockpit';
 import React, {
   useEffect, useRef, useState,
 } from 'react';
@@ -38,57 +39,23 @@ const IODebug: React.FC = () => {
   const dbusInterfaceRef = useRef<any[]>([]);
 
   useEffect(() => {
+    const client = cockpit.dbus(null, { bus: 'system', superuser: 'try' });
+    const proxy = client.proxy(null, '/com/skaginn3x/Slots');
+    proxy.wait().then(() => {
+      console.log('mofo!!!', proxy);
+    });
     loadExternalScript((allNames: string[]) => {
       setProcesses(
         allNames.filter((name: string) => name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.`)),
       );
-      setProcessDBUS(window.cockpit.dbus(null, { bus: 'system', superuser: 'try' }));
+      setProcessDBUS(cockpit.dbus(null, { bus: 'system', superuser: 'try' }));
     });
   }, []);
-
-  const notifyHandler = (data: any) => {
-    const removePath = data.detail[Object.keys(data.detail)[0]];
-    if (!removePath) return;
-    const ifaceName = Object.keys(removePath)[0];
-    const changedIndex = dbusInterfaceRef.current.findIndex((iface) => iface.interfaceName === ifaceName);
-    if (changedIndex !== -1 && dbusInterfaceRef.current[changedIndex].listener) {
-      setDbusInterfaces((prevState) => {
-        const newState = [...prevState];
-        const index = newState.findIndex((iface) => iface.interfaceName === ifaceName);
-        if (index !== -1) {
-          newState[index].data = removePath[ifaceName].Value;
-        }
-        return newState;
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (!processDBUS || !loading) return;
-
-    const match = {
-      path_namespace: `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}`,
-    };
-    processDBUS.watch(match);
-
-    // Ensure only one listener is active at a time
-    processDBUS.removeEventListener('notify', notifyHandler);
-    console.log('Adding Event listener');
-    processDBUS.addEventListener('notify', notifyHandler);
-
-    setLoading(false);
-
-    // eslint-disable-next-line consistent-return
-    return () => {
-      console.log('Removing Event listener');
-      processDBUS.removeEventListener('notify', notifyHandler);
-    };
-  }, [processDBUS]);
 
   const subscribe = async (interfaceName: string) => {
     const interfaceIndex = dbusInterfaces.findIndex((iface) => iface.interfaceName === interfaceName);
     if (interfaceIndex === -1) return;
-    const client = window.cockpit.dbus(dbusInterfaces[interfaceIndex].process, { bus: 'system', superuser: 'try' });
+    const client = cockpit.dbus(dbusInterfaces[interfaceIndex].process, { bus: 'system', superuser: 'try' });
     const proxy = client.proxy(interfaceName, dbusInterfaces[interfaceIndex].direction === 'slot' ? slotPath : signalPath);
     await proxy.wait().then(() => {
       setDbusInterfaces((prevState) => {
@@ -157,7 +124,7 @@ const IODebug: React.FC = () => {
 
   const getInterfaceDataForProcess = async (process: any) => {
     const interfaces: any[] = [];
-    const tempDBUS = window.cockpit.dbus(process, { bus: 'system', superuser: 'try' });
+    const tempDBUS = cockpit.dbus(process, { bus: 'system', superuser: 'try' });
     try {
       await getInterfaceData(interfaces, tempDBUS, slotPath, 'slot', process);
     } catch (e) {

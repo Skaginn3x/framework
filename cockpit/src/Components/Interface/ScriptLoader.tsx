@@ -1,6 +1,43 @@
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import cockpit from 'cockpit';
 
+// class DBusInterface {
+//     private dbus: any;
+//     private proxy: any;
+//     private name: string;
+//
+//     constructor(dbus: any, name: string) {
+//         this.name = name;
+//         this.dbus = dbus;
+//         this.proxy = this.dbus.proxy(name);
+//     }
+//
+//     public getProxy() {
+//         return this.proxy;
+//     }
+//
+//     public getName() {
+//         return this.name;
+//     }
+//
+// }
+//
+// enum BusType {
+//     SYSTEM = 'system',
+//     SESSION = 'session'
+// }
+//
+// class DBus {
+//     private dbus: any;
+//
+//     constructor(bus: BusType = BusType.SYSTEM) {
+//         this.dbus = cockpit.dbus(null, );
+//     }
+//
+//
+// }
+
+
 type ScriptLoadCallback = (allNames: string[]) => void;
 
 export const loadExternalScript = (callback: ScriptLoadCallback) => {

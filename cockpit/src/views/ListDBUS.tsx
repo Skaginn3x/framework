@@ -1,3 +1,4 @@
+import cockpit from 'cockpit';
 import React, { useEffect, useState } from 'react';
 import { Title } from '@patternfly/react-core';
 import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
@@ -24,7 +25,7 @@ const ListDBUS:React.FC = () => {
 
   useEffect(() => {
     const callback = (allNames: string[]) => {
-      const dbus = window.cockpit.dbus('org.freedesktop.DBus');
+      const dbus = cockpit.dbus('org.freedesktop.DBus');
       const filteredNames = allNames.filter((name: string) => name.includes('config'));
       const proxies = connectToDBusNames(filteredNames, dbus);
       setDbusInterfaces(proxies);
