@@ -36,7 +36,7 @@ enum struct type_e : std::uint8_t {
 
 };
 
-static constexpr std::array<std::string_view, 8> type_e_iterable{ "unknown", "bool",   "int64_t", "uint64_t",
+static constexpr std::array<std::string_view, 8> type_e_iterable{ "unknown", "bool",   "i64", "u64",
                                                                   "double",  "string", "json",    "mass" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
@@ -74,16 +74,16 @@ inline auto format_as(mass_error_e err) -> std::string_view {  // for fmt
 static_assert(enum_cast("blabb") == type_e::unknown);
 static_assert(enum_cast("unknown") == type_e::unknown);
 static_assert(enum_cast("bool") == type_e::_bool);
-static_assert(enum_cast("int64_t") == type_e::_int64_t);
-static_assert(enum_cast("uint64_t") == type_e::_uint64_t);
+static_assert(enum_cast("i64") == type_e::_int64_t);
+static_assert(enum_cast("u64") == type_e::_uint64_t);
 static_assert(enum_cast("double") == type_e::_double_t);
 static_assert(enum_cast("string") == type_e::_string);
 static_assert(enum_cast("json") == type_e::_json);
 
 static_assert(enum_name(type_e::unknown) == "unknown");
 static_assert(enum_name(type_e::_bool) == "bool");
-static_assert(enum_name(type_e::_int64_t) == "int64_t");
-static_assert(enum_name(type_e::_uint64_t) == "uint64_t");
+static_assert(enum_name(type_e::_int64_t) == "i64");
+static_assert(enum_name(type_e::_uint64_t) == "u64");
 static_assert(enum_name(type_e::_double_t) == "double");
 static_assert(enum_name(type_e::_string) == "string");
 static_assert(enum_name(type_e::_json) == "json");

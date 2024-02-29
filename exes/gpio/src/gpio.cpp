@@ -3,7 +3,7 @@
 namespace tfc {
 
 gpio::gpio(asio::io_context& ctx, std::filesystem::path const& char_device)
-    : ctx_{ ctx }, chip_{ char_device }, config_{ ctx, "lines", config_t::storage_t{ chip_.get_info().num_lines() } },
+    : ctx_{ ctx }, chip_{ char_device }, config_{ dbus_, "lines", config_t::storage_t{ chip_.get_info().num_lines() } },
       manager_client_(ctx_), pins_{ config_->size() }, logger_{ "gpio" }, chip_asio_{ ctx, chip_.fd() } {
   for (std::size_t idx{ 0 }; auto const& pin_config : config_.value()) {
     pin_config.direction.observe(std::bind_front(&gpio::pin_direction_change, this, idx));

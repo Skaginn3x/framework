@@ -61,12 +61,13 @@ auto main(int argc, char** argv) -> int {
 
   "ipc_manager correctness check"_test = []() {
     auto ipc_manager = std::make_unique<manager_t>(true);
-    ipc_manager->register_signal("some_signal", "Test signal description", tfc::ipc::details::type_e::_bool);
+    ipc_manager->register_signal("sender", "some_signal", "Test signal description", tfc::ipc::details::type_e::_bool);
     ut::expect(ipc_manager->get_all_signals().size() == 1);
     ut::expect(ipc_manager->get_all_slots().empty());
     ut::expect(ipc_manager->get_all_signals()[0].description == "Test signal description")
         << ipc_manager->get_all_signals()[0].description;
     ut::expect(ipc_manager->get_all_signals()[0].name == "some_signal");
+    ut::expect(ipc_manager->get_all_signals()[0].created_by == "sender");
   };
 
   "get signals empty"_test = [] {
@@ -343,7 +344,7 @@ auto main(int argc, char** argv) -> int {
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
                         [](const std::error_code& err) { ut::expect(!err); });
 
-    std::array<std::string, 1> slot_names = { "ipc_manager_test.def.int64_t.bool_slot" };
+    std::array<std::string, 1> slot_names = { "ipc_manager_test.def.i64.bool_slot" };
 
     mock_client.slots([&](auto slots) {
       std::size_t counter = 0;
@@ -357,7 +358,7 @@ auto main(int argc, char** argv) -> int {
       }
     });
 
-    std::array<std::string, 1> signal_names = { "ipc_manager_test.def.int64_t.bool_signal" };
+    std::array<std::string, 1> signal_names = { "ipc_manager_test.def.i64.bool_signal" };
 
     mock_client.signals([&](auto signals) {
       std::size_t counter = 0;

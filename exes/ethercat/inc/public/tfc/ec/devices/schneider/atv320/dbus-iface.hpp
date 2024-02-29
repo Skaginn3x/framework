@@ -30,7 +30,7 @@ using speedratio_t = motor::dbus::types::speedratio_t;
 using micrometre_t = motor::dbus::types::micrometre_t;
 using velocity_t = motor::dbus::types::velocity_t;
 using microsecond_t = motor::dbus::types::microsecond_t;
-static constexpr std::string_view impl_name{ "atv320" };
+static constexpr std::string_view impl_name{ tfc::motor::dbus::detail::atv320 };
 
 namespace detail {
 template <typename completion_token_t>
@@ -748,6 +748,7 @@ template <typename manager_client_t = ipc_ruler::ipc_manager_client,
           typename steady_timer_t = asio::steady_timer,
           typename pos_slot_t = ipc::slot<ipc::details::type_bool, manager_client_t&>>
 struct dbus_iface {
+  const uint16_t slave_id_{};
   // Properties
   const std::string connected_peer{ "connected_peer" };
   const std::string frequency{ "frequency" };
@@ -755,6 +756,9 @@ struct dbus_iface {
   const std::string current{ "current" };
   const std::string last_error{ "last_error" };
   const std::string hmis{ "hmis" };  // todo change to more readable form
+  // DBus
+  const std::string interface_{ tfc::dbus::make_dbus_name(impl_name) };
+  const std::string path_{ tfc::motor::dbus::make_path_name(impl_name, slave_id_) };
 
   dbus_iface(const dbus_iface&) = delete;
   dbus_iface(dbus_iface&&) = delete;
@@ -765,12 +769,10 @@ struct dbus_iface {
   dbus_iface(controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl,
              std::shared_ptr<sdbusplus::asio::connection> connection,
              const uint16_t slave_id)
-      : ctx_(connection->get_io_context()), slave_id_{ slave_id }, ctrl_{ ctrl }, manager_(connection),
-
+      :  slave_id_{ slave_id }, ctx_(connection->get_io_context()), ctrl_{ ctrl }, manager_(connection),
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection, false);
-    dbus_interface_ = object_server_->add_unique_interface(std::string{ motor::dbus::path },
-                                                           motor::dbus::make_interface_name(impl_name, slave_id_));
+    dbus_interface_ = object_server_->add_unique_interface(path_, interface_);
 
     /**
      * Never set long_living_ping from a program. This parameter is only here
@@ -1007,7 +1009,6 @@ struct dbus_iface {
   asio::steady_timer timeout_{ ctx_ };
   std::string peer_{ "" };
 
-  const uint16_t slave_id_;
   controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl_;
   speedratio_t config_speedratio_{ 0.0 * mp_units::percent };
   motor::errors::err_enum drive_error_{};

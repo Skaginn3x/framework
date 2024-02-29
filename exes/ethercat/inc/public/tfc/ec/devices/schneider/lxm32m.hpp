@@ -181,7 +181,7 @@ public:
   static constexpr uint32_t product_code = 0x16440;
 
   explicit lxm32m([[maybe_unused]] asio::io_context& ctx, [[maybe_unused]] manager_client_type& client, uint16_t slave_index)
-      : base(slave_index), config_(ctx, fmt::format("lxm32m.{}", slave_index)) {}
+      : base(slave_index), config_(client.connection(), fmt::format("lxm32m.{}", slave_index)) {}
 
   void process_data(std::span<std::byte> input, std::span<std::byte> output) final {
     // clang-format off

@@ -86,10 +86,22 @@ const Configurator: React.FC = () => {
       );
 
       const sortedNames = sortItems(filteredNames);
-
+      console.log('sortedNames:', sortedNames);
       // Process each name asynchronously
       sortedNames.forEach((name) => {
         const dbus = window.cockpit.dbus(name);
+        const proxies = dbus.proxies(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`);
+
+        console.log('proxies:', proxies);
+        // Don't ask me why
+        const keys = Object.keys(JSON.parse(JSON.stringify(proxies)));
+        setTimeout(() => {
+          const keys2 = Object.keys(JSON.parse(JSON.stringify(proxies)));
+          console.log('timeout keys:', keys, keys2);
+        }, 1000);
+        console.log('keys:', keys);
+        console.log('keys:', Object.getOwnPropertyNames(proxies));
+
         const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
         const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
 
@@ -101,6 +113,10 @@ const Configurator: React.FC = () => {
         });
       });
     });
+  }, []);
+
+  useEffect(() => {
+    console.log('names:', names);
   }, []);
 
   function getData() {
@@ -302,7 +318,7 @@ const Configurator: React.FC = () => {
         variant="medium"
         header={(
           <Title headingLevel="h1" size="3xl" style={{ color: isDark ? '#EEE' : '#333' }}>
-            {`Edit Raw - ${activeItem ? removeOrg(activeItem) : 'Error - Unknown name'}`}
+            {`Edit Raw - ${activeItem && activeItemProcess ? activeItemProcess.split('.').slice(3).join('.') : 'Error - Unknown name'}`}
           </Title>
         )}
         actions={[
