@@ -1,3 +1,48 @@
+import cockpit from 'cockpit';
+
+
+export class DBusService {
+
+}
+
+/**
+ * @param serviceName
+ * @param interfaceName
+ * @param dbusPath
+ */
+export class DBusEndpoint {
+  // todo can I make these const?
+  service?: string;
+  interface?: string;
+  path?: string;
+  // todo static assert one of them needing to be defined
+
+  client?: any; // todo type wrap cockpit dbus
+  proxy?: any; // todo type wrap cockpit proxy
+
+  public constructor(init?:Partial<DBusEndpoint>) {
+    Object.assign(this, init);
+  }
+
+  // connect can be called with .then or .catch
+  async connect() {
+    if (this.proxy && this.proxy.valid) {
+      return;
+    }
+    this.client = cockpit.dbus(this.service, { bus: 'system', superuser: 'try' });
+    await this.client.wait();
+    // this.proxy = this.client.proxy(this.interface, this.path);
+    // await this.proxy.wait();
+    return;
+  }
+
+  async call(method: string, ...args: any[]) {
+    await this.connect();
+    return this.client.call(this.path, this.interface, method, args);
+    // return this.proxy[method](...args);
+  }
+}
+
 /**
  * @param problem The problem of the error
  * @param name The name of the error

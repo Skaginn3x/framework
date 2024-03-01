@@ -23,10 +23,11 @@
     "rootDir": ".",
     "paths": {
       "@app/*": [
-        "src/app/*"
+        "src/app/*",
+        "pkg/lib/cockpit.js"
       ],
       "@assets/*": [
-        "node_modules/@patternfly/react-core/dist/styles/assets/*"
+        "node_modules/@patternfly/react-core/dist/styles/assets/*",
       ]
     },
   },
