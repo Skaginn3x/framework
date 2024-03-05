@@ -26,13 +26,16 @@ auto make_dbus_name(std::string_view input_name) -> std::string {
 }
 
 auto make_dbus_path(std::string_view input_name) -> std::string {
-  auto return_value{ detail::make<detail::dbus_path_prefix>(input_name) };
+  std::string inp{ input_name };
+  std::ranges::replace(inp, '.', '/');
+  auto return_value{ detail::make<detail::dbus_path_prefix>(inp) };
   if (return_value.contains('-')) {
     throw exception::invalid_name{ "{} contains illegal dbus character '-'", input_name };
   }
   if (return_value.contains("//")) {
     throw exception::invalid_name{ "{} contains illegal dbus characters \"//\"", input_name };
   }
+
   return return_value;
 }
 

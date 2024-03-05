@@ -52,7 +52,7 @@ public:
        stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
       : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ client.connection(), full_name() },
-        client_{ client }, filters_{ dbus_slot_.interface(),
+        client_{ client }, filters_{ dbus_slot_.interface(), name,
                                      // store the callers callback in this lambda
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                                        callb(new_value);
@@ -69,7 +69,7 @@ public:
     requires(!std::is_lvalue_reference_v<manager_client_type>)
       : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, full_name() },
         client_{ connection },
-        filters_{ dbus_slot_.interface(),
+        filters_{ dbus_slot_.interface(), name,
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                     callb(new_value);

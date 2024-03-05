@@ -101,9 +101,7 @@ public:
       : client_{ interface, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
                  std::bind_front(&config::from_string, this) },
         storage_{ client_.get_io_context(),
-                  tfc::base::make_config_file_name(
-                      fmt::format("{}.{}", tfc::dbus::strip_dbus_name(client_.get_dbus_interface_name()), key),
-                      "json"),
+                  tfc::base::make_config_file_name(key, "json"),
                   std::forward<storage_type>(def) },
         logger_(fmt::format("config.{}", key)) {
     init();
