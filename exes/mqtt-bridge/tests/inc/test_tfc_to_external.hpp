@@ -42,12 +42,12 @@ public:
 
     bool restart_needed = false;
 
-    spark_plug_interface<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock> >
-        sp_mock{ isolated_ctx, config };
+    spark_plug_interface<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock> > sp_mock{ isolated_ctx,
+                                                                                                           config };
 
-    tfc_to_external<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock>, ipc_ruler::ipc_manager_client_mock&> tfc_ext_mock{ isolated_ctx,
-                                                                                                         sp_mock, ipc_mock,
-                                                                                                         config, restart_needed };
+    tfc_to_external<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock>,
+                    ipc_ruler::ipc_manager_client_mock&>
+        tfc_ext_mock{ isolated_ctx, sp_mock, ipc_mock, config, restart_needed };
 
     isolated_ctx.run_for(milliseconds{ 1 });
 

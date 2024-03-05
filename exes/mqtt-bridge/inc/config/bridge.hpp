@@ -97,7 +97,7 @@ struct bridge {
 
   struct glaze {
     static constexpr auto value{ glz::object(
-      // clang-format off
+        // clang-format off
        "node_id", &bridge::node_id, json::schema{ .description = "Spark Plug B Node ID, used to identify which node is sending information", .pattern = "[^+#/]" },
         "group_id", &bridge::group_id, json::schema{ .description = "Spark Plug B Group ID, used to identify which group the node belongs to", .pattern = "[^+#/]" },
         "banned_signals", &bridge::banned_signals, "Signals not to publish",

@@ -71,9 +71,9 @@ auto main(int argc, char* argv[]) -> int {
 
     bool restart = false;
 
-     tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock,
-                                tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock>,
-                                tfc::ipc_ruler::ipc_manager_client_mock&>
+    tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock,
+                               tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock>,
+                               tfc::ipc_ruler::ipc_manager_client_mock&>
         test_ext{ io_ctx, sp, ipc_mock, config, restart };
 
     expect(test_ext.type_enum_convert(tfc::ipc::details::type_e::_bool) == 11);
