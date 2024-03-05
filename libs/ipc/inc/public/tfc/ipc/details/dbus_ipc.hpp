@@ -17,13 +17,17 @@ namespace tfc::ipc::details {
 
 namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };
-static constexpr std::string_view signal{ "Signals" };
+static constexpr std::string_view slot{ "Slot" };
+static constexpr std::string_view signal{ "Signal" };
 static constexpr std::string_view tinker{ "Tinker" };
 static constexpr std::string_view type{ "Type" };
-static constexpr std::string_view interface{ tfc::dbus::const_dbus_name<tinker> };
+static constexpr std::string_view slot_interface{ tfc::dbus::const_dbus_name<slot> };
+static constexpr std::string_view signal_interface{ tfc::dbus::const_dbus_name<signal> };
 }  // namespace dbus::tags
 
+
 enum struct ipc_type_e : std::uint8_t { slot, signal };
+
 
 template <typename slot_value_t, ipc_type_e type>
 class dbus_ipc {
@@ -33,7 +37,7 @@ public:
   explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name)
       : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
                                                                       tfc::dbus::make_dbus_path(slot_name),
-                                                                      std::string{ dbus::tags::interface }) } {}
+                                                                      std::string{ type == ipc_type_e::signal ? dbus::tags::signal_interface : dbus::tags::slot_interface }) } {}
 
   dbus_ipc(dbus_ipc const&) = delete;
   dbus_ipc(dbus_ipc&&) noexcept = default;

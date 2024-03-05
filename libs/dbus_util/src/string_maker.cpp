@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <fmt/format.h>
 
 #include <tfc/dbus/exception.hpp>
