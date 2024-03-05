@@ -14,6 +14,7 @@
 #include "eilersen/4x60a.hpp"
 #include "schneider/atv320.hpp"
 #include "schneider/lxm32m.hpp"
+#include "lenze/i550.hpp"
 
 namespace tfc::ec::devices {
 
@@ -37,7 +38,8 @@ using devices_list = devices_type<
   beckhoff::el4002,
   schneider::atv320::device<manager_client_t>,
   schneider::lxm32m<manager_client_t>,
-  eilersen::e4x60a::e4x60a<manager_client_t>
+  eilersen::e4x60a::e4x60a<manager_client_t>,
+  lenze::i550::i550
 >;
 // clang-format on
 

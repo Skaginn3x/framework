@@ -1,5 +1,5 @@
-#include <tfc/ec/devices/schneider/atv320/settings.hpp>
 #pragma once
+#include <tfc/ec/devices/schneider/atv320/settings.hpp>
 namespace tfc::ec::devices::schneider::atv320 {
 
 struct input_t {
