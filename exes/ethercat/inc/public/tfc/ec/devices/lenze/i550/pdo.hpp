@@ -7,6 +7,8 @@ namespace tfc::ec::devices::lenze::i550 {
 struct input_t {
   cia_402::status_word status_word{};
   std::uint16_t rpm{};
+  std::uint16_t error{};
+
   //decifrequency_signed frequency{};
   /*uint16_t current{};
   uint16_t digital_inputs{};
@@ -17,7 +19,6 @@ struct input_t {
 struct output_t {
   cia_402::control_word control{};
   std::uint16_t rpm{};
-  std::uint16_t error{};
   /*decifrequency_signed frequency{};
   uint16_t digital_outputs{};
   deciseconds acc{};

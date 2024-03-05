@@ -193,9 +193,13 @@ inline auto transition(states_e current_state, transition_action action, bool au
     case states_e::switch_on_disabled:
       return commands::shutdown();
     case states_e::switched_on:
-    case states_e::ready_to_switch_on:
       if (transition_action::run == action) {
         return commands::enable_operation();  // This is a shortcut marked as 3B in ethercat manual for atv320
+      }
+      return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
+    case states_e::ready_to_switch_on:
+      if (transition_action::run == action) {
+        return commands::switch_on();  // This is a shortcut marked as 3B in ethercat manual for atv320
       }
       return commands::disable_operation();  // Stay in this state if in ready to switch on else transition to switched on
     case states_e::operation_enabled:
