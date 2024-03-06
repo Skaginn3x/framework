@@ -287,9 +287,9 @@ public:
   auto subscribe_to_ncmd() -> asio::awaitable<bool> { co_return co_await mqtt_client_->subscribe_to_topic(ncmd_topic_); }
 
   auto wait_for_payloads(
-      std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload,
-      bool& restart_needed) -> asio::awaitable<void> {
-    co_await mqtt_client_->wait_for_payloads(process_payload, restart_needed);
+      std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload
+      ) -> asio::awaitable<void> {
+    co_await mqtt_client_->wait_for_payloads(process_payload);
   }
 
 private:

@@ -154,8 +154,7 @@ public:
   }
 
   auto wait_for_payloads(
-      std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload,
-      bool& restart_needed) -> asio::awaitable<void> {
+      std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload) -> asio::awaitable<void> {
     while (true) {
       logger_.trace("Waiting for Publish packets");
 
@@ -167,8 +166,7 @@ public:
 
       if (publish_packet == nullptr) {
         logger_.error("Received packet is not a PUBLISH packet");
-        restart_needed = true;
-        co_return;
+        continue;
       }
 
       logger_.trace("Received PUBLISH packet. Parsing payload...");

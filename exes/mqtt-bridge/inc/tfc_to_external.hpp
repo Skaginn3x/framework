@@ -24,10 +24,10 @@ public:
   explicit tfc_to_external(asio::io_context& io_ctx,
                            spark_plug_interface<config_t, mqtt_client_t>& spark_plug_i,
                            ipc_client_t ipc_client,
-                           config_t& config,
-                           bool& restart_needed)
-      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client), config_(config),
-        restart_needed_(restart_needed) {
+                           config_t& config
+                           )
+      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client), config_(config)
+  {
     static_assert(std::is_lvalue_reference<ipc_client_t>::value);
     match_object_ =
         ipc_client_.register_properties_change_callback([this](sdbusplus::message_t&) { restart_needed_ = true; });
@@ -169,7 +169,7 @@ private:
   spark_plug_interface<config_t, mqtt_client_t>& spark_plug_interface_;
   ipc_client_t ipc_client_;
   config_t& config_;
-  bool& restart_needed_;
+  bool restart_needed_ {false};
   logger::logger logger_{ "tfc_to_external" };
   std::vector<ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;

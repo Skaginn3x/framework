@@ -30,8 +30,6 @@ public:
 
   auto start() -> asio::awaitable<void> {
     while (true) {
-      restart_needed_ = false;
-
       logger.trace("----------------------------------------------------------------------------");
       logger.trace("Event loop started");
 
@@ -48,7 +46,7 @@ public:
       exter_to_tfc_.emplace(io_ctx_, config_, ipc_client_);
       exter_to_tfc_->create_outward_signals();
 
-      tfc_to_exter_.emplace(io_ctx_, sp_interface_.value(), ipc_client_, config_, restart_needed_);
+      tfc_to_exter_.emplace(io_ctx_, sp_interface_.value(), ipc_client_, config_);
       tfc_to_exter_->set_signals();
 
       sp_interface_->set_value_change_callback(std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_.value()));
@@ -56,8 +54,7 @@ public:
       asio::cancellation_signal cancel_signal{};
 
       co_spawn(sp_interface_->strand(),
-               sp_interface_->wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_.value()),
-                                                restart_needed_),
+               sp_interface_->wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_.value())),
                bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
       co_await tfc_to_exter_->wait_for_restart(asio::use_awaitable);
@@ -75,7 +72,6 @@ public:
 private:
   asio::io_context& io_ctx_;
   ipc_client_t ipc_client_;
-  bool restart_needed_{ false };
   config_t config_{ io_ctx_, "mqtt" };
   logger::logger logger{ "run_loop" };
 
