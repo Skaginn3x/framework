@@ -24,33 +24,31 @@ public:
   explicit tfc_to_external(asio::io_context& io_ctx,
                            spark_plug_interface<config_t, mqtt_client_t>& spark_plug_i,
                            ipc_client_t ipc_client,
-                           config_t& config
-                           )
-      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client), config_(config)
-  {
+                           config_t& config)
+      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client), config_(config) {
     static_assert(std::is_lvalue_reference<ipc_client_t>::value);
     match_object_ =
         ipc_client_.register_properties_change_callback([this](sdbusplus::message_t&) { restart_needed_ = true; });
   }
 
-   template <typename CompletionToken>
-   auto wait_for_restart(CompletionToken&& token) {
-     return asio::async_compose<CompletionToken, void(std::error_code)>(
-         [this](auto& self, std::error_code err = {}, std::size_t = 0) mutable {
-             if (err) {
-                 self.complete(err);
-                 return;
-             }
-             if (restart_needed_) {
-                 self.complete({});
-                 return;
-             }
-             // Re-arm the timer for another check
-             timer_.expires_after( std::chrono::milliseconds{ 100 });
-             timer_.async_wait(std::move(self));
-         },
-         token, timer_);
-   }
+  template <typename CompletionToken>
+  auto wait_for_restart(CompletionToken&& token) {
+    return asio::async_compose<CompletionToken, void(std::error_code)>(
+        [this](auto& self, std::error_code err = {}, std::size_t = 0) mutable {
+          if (err) {
+            self.complete(err);
+            return;
+          }
+          if (restart_needed_) {
+            self.complete({});
+            return;
+          }
+          // Re-arm the timer for another check
+          timer_.expires_after(std::chrono::milliseconds{ 100 });
+          timer_.async_wait(std::move(self));
+        },
+        token, timer_);
+  }
 
   /// This function converts tfc types to Spark Plug B types
   /// More information can be found (page 76) in the spec under section 6.4.16 data types:
@@ -169,12 +167,12 @@ private:
   spark_plug_interface<config_t, mqtt_client_t>& spark_plug_interface_;
   ipc_client_t ipc_client_;
   config_t& config_;
-  bool restart_needed_ {false};
+  bool restart_needed_{ false };
   logger::logger logger_{ "tfc_to_external" };
   std::vector<ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
   std::unique_ptr<sdbusplus::bus::match::match> match_object_;
-  asio::steady_timer timer_{io_ctx_};
+  asio::steady_timer timer_{ io_ctx_ };
 
   friend class test_tfc_to_external;
 };

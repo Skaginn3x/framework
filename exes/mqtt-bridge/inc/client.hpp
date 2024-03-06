@@ -154,7 +154,8 @@ public:
   }
 
   auto wait_for_payloads(
-      std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload) -> asio::awaitable<void> {
+      std::function<void(async_mqtt::buffer const& data, async_mqtt::v5::publish_packet publish_packet)> process_payload)
+      -> asio::awaitable<void> {
     while (true) {
       logger_.trace("Waiting for Publish packets");
 
