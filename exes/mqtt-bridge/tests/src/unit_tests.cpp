@@ -68,7 +68,7 @@ auto main(int argc, char* argv[]) -> int {
     tfc::mqtt::spark_plug_interface<tfc::mqtt::config::bridge_mock,
                                     tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock> >
         sp{ io_ctx, config };
-    
+
     tfc::mqtt::tfc_to_external<tfc::mqtt::config::bridge_mock,
                                tfc::mqtt::client<tfc::mqtt::endpoint_client_mock, tfc::mqtt::config::bridge_mock>,
                                tfc::ipc_ruler::ipc_manager_client_mock&>
