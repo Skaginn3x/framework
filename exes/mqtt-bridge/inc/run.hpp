@@ -60,13 +60,12 @@ public:
                                                 restart_needed_),
                bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
-      while (!restart_needed_) {
-        co_await asio::steady_timer{ sp_interface_->strand(), std::chrono::milliseconds{ 100 } }.async_wait(
-            asio::use_awaitable);
-      }
+      co_await tfc_to_exter_->wait_for_restart(asio::use_awaitable);
 
       cancel_signal.emit(asio::cancellation_type::all);
 
+      /// allow sockets to clear up and connections to close
+      /// if this is skipped the next run will fail
       io_ctx_.run_for(std::chrono::milliseconds{ 10 });
     }
   }

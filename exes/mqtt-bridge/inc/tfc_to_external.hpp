@@ -33,6 +33,25 @@ public:
         ipc_client_.register_properties_change_callback([this](sdbusplus::message_t&) { restart_needed_ = true; });
   }
 
+   template <typename CompletionToken>
+   auto wait_for_restart(CompletionToken&& token) {
+     return asio::async_compose<CompletionToken, void(std::error_code)>(
+         [this](auto& self, std::error_code err = {}, std::size_t = 0) mutable {
+             if (err) {
+                 self.complete(err);
+                 return;
+             }
+             if (restart_needed_) {
+                 self.complete({});
+                 return;
+             }
+             // Re-arm the timer for another check
+             timer_.expires_after( std::chrono::milliseconds{ 100 });
+             timer_.async_wait(std::move(self));
+         },
+         token, timer_);
+   }
+
   /// This function converts tfc types to Spark Plug B types
   /// More information can be found (page 76) in the spec under section 6.4.16 data types:
   /// https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf
@@ -155,6 +174,7 @@ private:
   std::vector<ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
   std::unique_ptr<sdbusplus::bus::match::match> match_object_;
+  asio::steady_timer timer_{io_ctx_};
 
   friend class test_tfc_to_external;
 };
