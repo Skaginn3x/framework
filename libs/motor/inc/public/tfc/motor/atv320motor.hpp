@@ -1,10 +1,9 @@
 #pragma once
+#include <mp-units/chrono.h>
 
 #include <string>
 #include <string_view>
 
-#include <fmt/chrono.h>
-#include <mp-units/chrono.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -77,14 +76,12 @@ private:
   std::string const service_name_{ dbus::service_name };
   std::string const path_{ dbus::path };
   std::string interface_name_{ dbus::make_interface_name(impl_name, slave_id_) };
-  std::chrono::steady_clock::time_point last_ping_{};
 
   void on_ping_response(std::error_code const& err, bool response) {
     if (err) {
       // todo invalid request descriptor is a known error, but we should handle it better
       // it is when the interface name (motor) is not existent
-      auto const now{ std::chrono::steady_clock::now() };
-      logger_.error("DBus ping response error: {}, time since ping: {}", err.message(), now - last_ping_);
+      logger_.error("DBus ping response error: {}", err.message());
       response = false;
     }
     connected_ = response;
@@ -103,7 +100,6 @@ private:
     } else {
       // In most cases normal but a backup plan if dbus timeout fails
     }
-    last_ping_ = std::chrono::steady_clock::now();
     ping_.expires_after(ping_interval);
     ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
     connection_->async_method_call_timed(
