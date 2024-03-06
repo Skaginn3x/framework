@@ -3,10 +3,10 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/chrono.h>
 #include <mp-units/chrono.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
-#include <fmt/chrono.h>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
