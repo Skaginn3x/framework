@@ -1,16 +1,18 @@
 #include <chrono>
 #include <string>
 
-#include <tfc/ipc.hpp>
-#include <tfc/ipc/details/filter.hpp>
-#include <tfc/stubs/confman.hpp>
-#include <tfc/testing/clock.hpp>
-
 #include <fmt/chrono.h>
 #include <fmt/core.h>
 #include <boost/asio.hpp>
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
+#include <sdbusplus/asio/connection.hpp>
+
+#include <tfc/ipc.hpp>
+#include <tfc/ipc/details/filter.hpp>
+#include <tfc/stubs/confman.hpp>
+#include <tfc/testing/clock.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -130,7 +132,8 @@ auto main(int, char**) -> int {
   "confman integrated timer filter"_test = [](bool test_value) {
     bool finished{ false };
     asio::io_context ctx{};
-    tfc::confman::stub_config<filter<filter_e::timer, bool, tfc::testing::clock>> config{ ctx, "my_key" };
+    auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+    tfc::confman::stub_config<filter<filter_e::timer, bool, tfc::testing::clock>> config{ dbus, "my_key" };
     config.make_change()->time_on = std::chrono::milliseconds{ 10 };
     config.make_change()->time_off = std::chrono::milliseconds{ 10 };
     asio::co_spawn(

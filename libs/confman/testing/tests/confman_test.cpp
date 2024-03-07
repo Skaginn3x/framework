@@ -35,48 +35,47 @@ struct glz::meta<storage> {
 };
 
 template <typename storage_t>
-class config_testable : public tfc::confman::config<storage_t> {
-public:
+struct config_testable : public tfc::confman::config<storage_t> {
   using tfc::confman::config<storage_t>::config;
-
   ~config_testable() {
     std::error_code ignore{};
     std::filesystem::remove(this->file(), ignore);
   }
 };
 
+struct instance {
+  boost::asio::io_context ctx{};
+  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  std::string const key{ "bar" };
+  std::string const service_name{ tfc::dbus::make_dbus_process_name() };
+  // duplicate from config_dbus_client.cpp
+  std::filesystem::path const interface_path{ tfc::dbus::make_dbus_path(key) };
+  std::string const interface_name{ tfc::confman::detail::dbus::interface };
+  storage const storage_{};
+  config_testable<storage> config{ dbus, key, storage{ storage_ } };
+};
+
 auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
+  using tfc::confman::detail::dbus::property_value_name;
 
-  boost::asio::io_context ignore{};
-
-  std::string const key{ "bar" };
-
-  // duplicate from config_dbus_client.cpp
-  std::filesystem::path interface_path{ tfc::confman::detail::dbus::path };
-  auto interface_name{ tfc::dbus::make_dbus_name(
-      fmt::format("config.{}.{}.{}", tfc::base::get_exe_name(), tfc::base::get_proc_name(), key)) };
-
-  using tfc::confman::detail::config_property;
-  using tfc::confman::detail::dbus::property_name;
-
-  "default values"_test = [&] {
-    config_testable<storage> const conf{
-      ignore, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
+  "default values"_test = [] {
+    instance const test{
+      .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
-    ut::expect(1 == conf->a);
-    ut::expect(2 == conf->b);
-    ut::expect("bar" == conf->c);
-    ut::expect(1 == conf.value().a);
-    ut::expect(2 == conf.value().b);
-    ut::expect("bar" == conf.value().c);
+    ut::expect(1 == test.config->a);
+    ut::expect(2 == test.config->b);
+    ut::expect("bar" == test.config->c);
+    ut::expect(1 == test.config.value().a);
+    ut::expect(2 == test.config.value().b);
+    ut::expect("bar" == test.config.value().c);
   };
 
-  "to json"_test = [&] {
-    config_testable<storage> const conf{
-      ignore, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
+  "to json"_test = [] {
+    instance const test{
+        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
-    auto const json_str{ conf.string() };
+    auto const json_str{ test.config.string() };
     glz::json_t json{};
     std::ignore = glz::read_json(json, json_str);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
@@ -84,39 +83,39 @@ auto main(int argc, char** argv) -> int {
     ut::expect(json["c"].get<std::string>() == "bar");
   };
 
-  "change value internally"_test = [&] {
-    config_testable<storage> conf{
-      ignore, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
+  "change value internally"_test = [] {
+    instance test{
+        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
     uint8_t a_called_once{};
-    conf->a.observe([&a_called_once](int new_val, int old_val) {
+    test.config->a.observe([&a_called_once](int new_val, int old_val) {
       ut::expect(new_val == 3);
       ut::expect(old_val == 1);
       a_called_once++;
     });
-    conf.make_change()->a = 3;
+    test.config.make_change()->a = 3;
     ut::expect(a_called_once == 1);
   };
 
-  "from json"_test = [&] {
-    config_testable<storage> conf{ ignore, key };
+  "from json"_test = [] {
+    instance test{};
     glz::json_t json{};
     json["a"] = 11;
     json["b"] = 22;
     json["c"] = "meeoow";
-    conf.from_string(glz::write_json(json));
-    ut::expect(11 == conf->a);
-    ut::expect(22 == conf->b);
-    ut::expect("meeoow" == conf->c);
+    test.config.from_string(glz::write_json(json));
+    ut::expect(11 == test.config->a);
+    ut::expect(22 == test.config->b);
+    ut::expect("meeoow" == test.config->c);
   };
 
-  "from json calls observers"_test = [&] {
-    config_testable<storage> conf{
-      ignore, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
+  "from json calls observers"_test = [] {
+    instance test{
+        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
 
     uint32_t c_called{};
-    conf->c.observe([&c_called](std::string const& new_val, std::string const& old_val) {
+    test.config->c.observe([&c_called](std::string const& new_val, std::string const& old_val) {
       ut::expect("meeoow" == new_val);
       ut::expect("bar" == old_val);
       c_called++;
@@ -126,104 +125,77 @@ auto main(int argc, char** argv) -> int {
     json["a"] = 11;
     json["b"] = 22;
     json["c"] = "meeoow";
-    conf.from_string(glz::write_json(json));
+    test.config.from_string(glz::write_json(json));
 
     ut::expect(1 == c_called);
   };
 
-  "integration get_config"_test = [&] {
-    boost::asio::io_context ctx{};
-    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
-    config_testable<storage> const conf{
-      ctx, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
+  "integration get_config"_test = [] {
+    instance test{
+        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
+    test.dbus->request_name(test.service_name.c_str());
 
     uint32_t called{};
-    sdbusplus::asio::getProperty<config_property>(
-        dbus, interface_name, interface_path.string(), interface_name,
-        std::string{ property_name.data(), property_name.size() },
-        [&called]([[maybe_unused]] std::error_code err, [[maybe_unused]] config_property prop) {
+    sdbusplus::asio::getProperty<std::string>(
+        *test.dbus, test.service_name, test.interface_path.string(), test.interface_name,
+        std::string{ property_value_name },
+        [&called]([[maybe_unused]] std::error_code err, [[maybe_unused]] std::string prop) {
           ut::expect(!err) << err.message();
           called++;
           glz::json_t json{};
-          std::ignore = glz::read_json(json, prop.value);
+          std::ignore = glz::read_json(json, prop);
           ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
           ut::expect(static_cast<int>(json["b"].get<double>()) == 2);
           ut::expect(json["c"].get<std::string>() == "bar");
         });
 
-    ctx.run_for(std::chrono::milliseconds(10));
+    test.ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);
   };
 
-  "integration set_config"_test = [&] {
-    boost::asio::io_context ctx{};
-    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
-    config_testable<storage> const conf{
-      ctx, key, storage{ .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
+  "integration set_config"_test = [] {
+    instance test{
+        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
     };
+    test.dbus->request_name(test.service_name.c_str());
 
     uint32_t a_called{};
-    conf->a.observe([&a_called](int new_a, int old_a) {
+    test.config->a.observe([&a_called](int new_a, int old_a) {
       a_called++;
       ut::expect(new_a == 11);
       ut::expect(old_a == 1);
     });
 
     uint32_t called{};
-    sdbusplus::asio::setProperty<config_property>(
-        dbus, interface_name, interface_path.string(), interface_name, std::string{ property_name },
-        config_property{ R"({"a":11,"b":12,"c":"a"})", "" }, [&called, &conf]([[maybe_unused]] std::error_code err) {
+    sdbusplus::asio::setProperty<std::string>(
+        *test.dbus, test.service_name, test.interface_path.string(), test.interface_name, std::string{ property_value_name },
+        std::string{ R"({"a":11,"b":12,"c":"a"})" }, [&called, &test]([[maybe_unused]] std::error_code err) {
           if (err) {
             fmt::print(stderr, "Set property error: '{}'", err.message());
           }
           called++;
-          ut::expect(conf->a == 11);
-          ut::expect(conf->b == 12);
-          ut::expect(conf->c == "a");
+          ut::expect(test.config->a == 11);
+          ut::expect(test.config->b == 12);
+          ut::expect(test.config->c == "a");
         });
 
-    ctx.run_for(std::chrono::milliseconds(10));
+    test.ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);
     ut::expect(a_called == 1);
   };
 
-  "integration await property changed internally"_test = [&] {
-    boost::asio::io_context ctx{};
-    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
-
-    config_testable<storage> conf{ ctx, key };
+  "integration await property changed internally"_test = [] {
+    instance test{};
 
     uint32_t called{};
-    auto match = fmt::format("type='signal',member='PropertiesChanged',path='{}'", interface_path.string());
-    sdbusplus::bus::match_t const awaiter{ dbus, match,
+    auto match = fmt::format("type='signal',member='PropertiesChanged',path='{}'", test.interface_path.string());
+    sdbusplus::bus::match_t const awaiter{ *test.dbus, match,
                                            [&called]([[maybe_unused]] sdbusplus::message::message& msg) { called++; } };
 
-    conf.make_change()->a = 42;
+    test.config.make_change()->a = 42;
 
-    ctx.run_for(std::chrono::milliseconds(10));
-    ut::expect(called == 1);
-  };
-
-  // Todo implement
-  ut::skip / "integration await property file is changed"_test = [&] {
-    boost::asio::io_context ctx{};
-    sdbusplus::asio::connection dbus{ ctx, tfc::dbus::sd_bus_open_system() };
-
-    config_testable<storage> const conf{ ctx, key };
-
-    uint32_t called{};
-    auto match = fmt::format("type='signal',member='PropertiesChanged',path='{}'", interface_path.string());
-    sdbusplus::bus::match_t const awaiter{ dbus, match,
-                                           [&called]([[maybe_unused]] sdbusplus::message::message& msg) { called++; } };
-
-    glz::json_t json{};
-    std::ignore = glz::read_json(json, conf.string());
-    json["a"] = 27;
-    std::string buffer{};
-    std::ignore = glz::write_file_json(json, tfc::base::make_config_file_name(key, "json"), buffer);
-
-    ctx.run_for(std::chrono::milliseconds(10));
+    test.ctx.run_for(std::chrono::milliseconds(10));
     ut::expect(called == 1);
   };
 

@@ -7,6 +7,7 @@
 #include <sdbusplus/asio/connection.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;
@@ -46,13 +47,14 @@ auto main(int argc, char** argv) -> int {
     // 250
 
     asio::io_context ctx{};
+    auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
     print_fd_limit();
     std::vector<std::shared_ptr<config_testable<config_t>>> instances{};
-    // this line in sdbusplus  _intf->sd_bus_get_unique_name(_bus.get(), &unique);
-    // returns null as unique name for the 241 iteration
-    for (auto i = 0; i < 240; ++i) {
+
+    // Let's put a large number and hope for the best
+    for (auto i = 0; i < 10000; ++i) {
       instances.emplace_back(std::make_shared<config_testable<config_t>>(
-          ctx, fmt::format("foo{}", i), config_t{ { { "a", "1" }, { "b", "2" }, { "c", "bar" } } }));
+          dbus, fmt::format("foo{}", i), config_t{ { { "a", "1" }, { "b", "2" }, { "c", "bar" } } }));
       ctx.run_for(std::chrono::milliseconds{ 1 });
     }
     fmt::println("All done");

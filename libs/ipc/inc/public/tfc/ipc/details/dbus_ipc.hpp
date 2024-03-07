@@ -33,11 +33,10 @@ template <typename slot_value_t, ipc_type_e type>
 class dbus_ipc {
 public:
   using value_t = slot_value_t;
+  std::string const interface_name{ type == ipc_type_e::signal ? dbus::tags::signal_interface : dbus::tags::slot_interface };
 
-  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name)
-      : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
-                                                                      tfc::dbus::make_dbus_path(slot_name),
-                                                                      std::string{ type == ipc_type_e::signal ? dbus::tags::signal_interface : dbus::tags::slot_interface }) } {}
+  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
+      : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn, tfc::dbus::make_dbus_path(key), interface_name) } {}
 
   dbus_ipc(dbus_ipc const&) = delete;
   dbus_ipc(dbus_ipc&&) noexcept = default;
@@ -52,7 +51,6 @@ public:
 
     interface_->initialize();
   }
-  [[nodiscard]] auto interface() const noexcept -> std::shared_ptr<sdbusplus::asio::dbus_interface> { return interface_; }
 
   void emit_value(value_t const& value) {
     if (interface_) {

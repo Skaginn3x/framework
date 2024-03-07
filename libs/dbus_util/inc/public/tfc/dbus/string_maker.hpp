@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/format.h>
+
 #include <tfc/configure_options.hpp>
 #include <tfc/stx/string_view_join.hpp>
 
@@ -53,7 +55,13 @@ auto make_dbus_name(std::string_view input_name) -> std::string;
 /// \param input_name name postfix
 /// \note the prefix is cmake configure option, refer to libs/configure_options for more info
 /// \throws exception::invalid_name if input contains `-` or `//`
+/// Will replace all `.` with `/`
 auto make_dbus_path(std::string_view input_name) -> std::string;
+
+template<typename... args_t>
+auto make_dbus_path(fmt::format_string<args_t...> fmt_literal, args_t&&... args) -> std::string {
+  return make_dbus_path(fmt::format(fmt_literal, std::forward<args_t>(args)...));
+}
 
 /// \brief make dbus name like org.freedesktop.<service_name>
 /// utilizes tfc::base to relize required information

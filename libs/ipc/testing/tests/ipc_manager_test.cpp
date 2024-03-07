@@ -61,12 +61,13 @@ auto main(int argc, char** argv) -> int {
 
   "ipc_manager correctness check"_test = []() {
     auto ipc_manager = std::make_unique<manager_t>(true);
-    ipc_manager->register_signal("some_signal", "Test signal description", tfc::ipc::details::type_e::_bool);
+    ipc_manager->register_signal("sender", "some_signal", "Test signal description", tfc::ipc::details::type_e::_bool);
     ut::expect(ipc_manager->get_all_signals().size() == 1);
     ut::expect(ipc_manager->get_all_slots().empty());
     ut::expect(ipc_manager->get_all_signals()[0].description == "Test signal description")
         << ipc_manager->get_all_signals()[0].description;
     ut::expect(ipc_manager->get_all_signals()[0].name == "some_signal");
+    ut::expect(ipc_manager->get_all_signals()[0].created_by == "sender");
   };
 
   "get signals empty"_test = [] {

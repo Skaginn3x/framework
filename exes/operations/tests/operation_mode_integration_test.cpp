@@ -36,7 +36,7 @@ auto main(int argc, char** argv) -> int {
 
     operation_mode_test test{};
     sdbusplus::asio::connection dbus{ test.ctx, tfc::dbus::sd_bus_open_system() };
-    tfc::confman::set_config(dbus, "state_machine",
+    tfc::confman::set_config(dbus, tfc::dbus::make_dbus_process_name(), "state_machine",
                              tfc::operation::detail::storage{ .startup_time = std::chrono::milliseconds{ 3 } },
                              [](std::error_code) {});
 
@@ -79,7 +79,7 @@ auto main(int argc, char** argv) -> int {
 
     operation_mode_test test{};
     sdbusplus::asio::connection dbus{ test.ctx, tfc::dbus::sd_bus_open_system() };
-    tfc::confman::set_config(dbus, "state_machine",
+    tfc::confman::set_config(dbus, tfc::dbus::make_dbus_process_name(), "state_machine",
                              tfc::operation::detail::storage{ .startup_time = std::chrono::milliseconds{ 3 } },
                              [](std::error_code) {});
 

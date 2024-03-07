@@ -141,7 +141,7 @@ private:
   bool_slot_t fault_{ ctx_, mclient_, "fault", "Fault active, like trip signal from motor driver",
                       std::bind_front(&state_machine_owner::fault, this) };
   tfc::logger::logger logger_{ "state_machine" };
-  tfc::confman::config<detail::storage> config_{ ctx_, "state_machine",
+  tfc::confman::config<detail::storage> config_{ dbus_, "state_machine",
                                                  detail::storage{ .startup_time = std::chrono::milliseconds{ 0 },
                                                                   .stopping_time = std::chrono::milliseconds{ 0 } } };
   std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
