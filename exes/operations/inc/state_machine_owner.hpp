@@ -144,10 +144,7 @@ private:
   tfc::confman::config<detail::storage> config_{ dbus_, "state_machine",
                                                  detail::storage{ .startup_time = std::chrono::milliseconds{ 0 },
                                                                   .stopping_time = std::chrono::milliseconds{ 0 } } };
-  std::shared_ptr<sdbusplus::asio::dbus_interface> dbus_interface_{};
-  tfc::dbus::sml::interface sml_interface_ {
-    dbus_interface_
-  };
+  tfc::dbus::sml::interface sml_interface_ { dbus_, "OperationState" };
   using state_machine_t = sml_t<detail::state_machine<state_machine_owner>, boost::sml::logger<tfc::dbus::sml::interface>>;
   std::shared_ptr<state_machine_t> states_;
 };
