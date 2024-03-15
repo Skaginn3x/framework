@@ -32,22 +32,42 @@ const ListItem: React.FC<ListItemProps> = ({
   let [data, setData] = useState<any>();
 
   useEffect(() => {
-    endpoint.connect().then(() => {
-      console.log('connected to endpoint: ', endpoint.interface);
-      endpoint.client.subscribe({ path_namespace: endpoint.path, member: 'PropertiesChanged' }, (path, intf, signal, args) => {
-        console.log('signal: ', path, intf, signal, args);
+    if (enabled) {
+      endpoint.connect().then(() => {
+        console.log('connected to endpoint: ', endpoint.displayName);
+        endpoint.client.call(endpoint.path, 'org.freedesktop.DBus.Properties', 'Get', endpoint.interface, 'Value').then((value: any) => {
+          console.log(value);
+        }).catch((e: any) => {
+          console.error(`error getting value for ${endpoint.interface}: `, e);
+        });
+        endpoint.client.subscribe({ path_namespace: endpoint.path, member: 'PropertiesChanged' }, (path, intf, signal, args) => {
+          // check if args have the right format
+          if (!args[0] || args[0] !== endpoint.interface) {
+            console.error('invalid interface in args: ', args);
+            return;
+          }
+          if (!args[1] || !('Value' in args[1]) || !('v' in args[1]['Value'])) {
+            console.error('invalid value in args: ', args);
+            return;
+          }
+          setData(args[1]['Value']['v']);
+          // console.log('signal: ', path, intf, signal, args, args[1]['Value']['v']);
+        });
+        // endpoint.proxy.addEventListener('changed', (event, data) => {
+        //   console.log('signal: ', event, data);
+        // });
+        // endpoint.client.watch({ path_namespace: endpoint.path, interface: endpoint.interface }).then((data: any) => {
+        //   console.log('watched data: ', data);
+        // });
+        // endpoint.client.addEventListener('notify', (data: any) => {
+        //   console.log('notified data: ', data, endpoint.interface);
+        // });
       });
-      // endpoint.proxy.addEventListener('changed', (event, data) => {
-      //   console.log('signal: ', event, data);
-      // });
-      // endpoint.client.watch({ path_namespace: endpoint.path, interface: endpoint.interface }).then((data: any) => {
-      //   console.log('watched data: ', data);
-      // });
-      // endpoint.client.addEventListener('notify', (data: any) => {
-      //   console.log('notified data: ', data, endpoint.interface);
-      // });
-    });
-  }, [endpoint, endpoint.client]);
+    }
+    else {
+      endpoint.disconnect();
+    }
+  }, [endpoint, endpoint.client, enabled]);
 
   /**
   * Handles the content of the secondary column for booleans
@@ -222,7 +242,7 @@ const ListItem: React.FC<ListItemProps> = ({
         <DataListItemCells
           dataListCells={[
             <DataListCell key="primary content" style={{ textAlign: 'left' }}>
-              <p className="PrimaryText">{removeSlotOrg(endpoint.interface)}</p>
+              <p className="PrimaryText">{endpoint.displayName}</p>
             </DataListCell>,
             enabled ? (<DataListCell
               key={`${endpoint.interface}-secondary-content`}

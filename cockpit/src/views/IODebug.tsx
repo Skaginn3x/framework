@@ -23,18 +23,17 @@ import MultiSelectAttribute from 'src/Components/Table/ToolbarItems/MultiSelectA
 import ToolBar, { FilterConfig } from 'src/Components/Table/Toolbar';
 import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 import useDbusInterface from "../Components/Interface/DbusInterface";
-import {DBusEndpoint, SlotType} from "../Types";
+import {DBusEndpoint, SlotType, ipcDBusPath, SlotInterface} from "../Types";
 
 // eslint-disable-next-line react/function-component-definition
 const IODebug: React.FC = () => {
-  // todo this is duplicate
-  const serviceName = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.ipc_ruler`;
-  const interfaceName = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.manager`;
-  const dbusPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/ipc_ruler`;
-  const dbusInterface = useDbusInterface(serviceName, interfaceName, dbusPath);
-  // todo end of duplicate
-  const slotPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Slots`;
-  const signalPath = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Signals`;
+  const serviceManager = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.ipc_ruler`;
+  const interfaceManager = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.manager`;
+  const pathManager = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/ipc_ruler`;
+  const dbusInterface = useDbusInterface(serviceManager, interfaceManager, pathManager);
+
+  const interfaceSlot = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Slot`;
+  const interfaceSignal = `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Signal`;
 
   const { signalList, slotList } = dbusInterface;
 
@@ -79,7 +78,7 @@ const IODebug: React.FC = () => {
             { slotList.map((slot: SlotType) => {
                 return (
                   <ListItem
-                    endpoint={new DBusEndpoint({ service: slot.created_by, interface: `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot.name}`, path: slotPath })}
+                    endpoint={new SlotInterface(slot)}
                     dataType={slot.type}
                     tinker={true}
                     key={`${slot.name}-${slot.created_by}-List-Slot`}
