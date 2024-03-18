@@ -2,6 +2,7 @@
 /* eslint-disable no-param-reassign */
 import React, {ChangeEvent, ReactElement, useEffect, useState} from 'react';
 import {
+  AlertVariant,
   ClipboardCopy,
   ClipboardCopyVariant,
   DataListCell,
@@ -16,6 +17,7 @@ import StringTinker from 'src/Components/Tinker/StringTinker';
 import BoolTinker from 'src/Components/Tinker/BoolTinker';
 import NumberTinker from 'src/Components/Tinker/NumberTinker';
 import {DBusEndpoint} from "../../Types";
+import {useAlertContext} from "../Alert/AlertContext";
 
 interface ListItemProps {
   endpoint: DBusEndpoint,
@@ -30,15 +32,18 @@ const ListItem: React.FC<ListItemProps> = ({
   const isMobile = window.innerWidth < 768;
   let [enabled, setEnabled] = useState(false);
   let [data, setData] = useState<any>();
+  const { addAlert } = useAlertContext();
+  let [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (enabled) {
       endpoint.connect().then(() => {
         console.log('connected to endpoint: ', endpoint.displayName);
-        endpoint.client.call(endpoint.path, 'org.freedesktop.DBus.Properties', 'Get', endpoint.interface, 'Value').then((value: any) => {
-          console.log(value);
+        endpoint.client.call(endpoint.path, 'org.freedesktop.DBus.Properties', 'Get', [ endpoint.interface, 'Value' ]).then((value: any) => {
+          setData(value[0]['v'])
+          setReady(true);
         }).catch((e: any) => {
-          console.error(`error getting value for ${endpoint.interface}: `, e);
+          addAlert(`Error getting value for ${endpoint.interface}: ${e}`, AlertVariant.danger);
         });
         endpoint.client.subscribe({ path_namespace: endpoint.path, member: 'PropertiesChanged' }, (path, intf, signal, args) => {
           // check if args have the right format
@@ -53,18 +58,10 @@ const ListItem: React.FC<ListItemProps> = ({
           setData(args[1]['Value']['v']);
           // console.log('signal: ', path, intf, signal, args, args[1]['Value']['v']);
         });
-        // endpoint.proxy.addEventListener('changed', (event, data) => {
-        //   console.log('signal: ', event, data);
-        // });
-        // endpoint.client.watch({ path_namespace: endpoint.path, interface: endpoint.interface }).then((data: any) => {
-        //   console.log('watched data: ', data);
-        // });
-        // endpoint.client.addEventListener('notify', (data: any) => {
-        //   console.log('notified data: ', data, endpoint.interface);
-        // });
       });
     }
     else {
+      setReady(false);
       endpoint.disconnect();
     }
   }, [endpoint, endpoint.client, enabled]);
@@ -235,7 +232,6 @@ const ListItem: React.FC<ListItemProps> = ({
             checked={enabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
               setEnabled(e.target.checked);
-              console.log('checked', e.target.checked, enabled);
             }}
           />
         </DataListCell>
@@ -244,7 +240,7 @@ const ListItem: React.FC<ListItemProps> = ({
             <DataListCell key="primary content" style={{ textAlign: 'left' }}>
               <p className="PrimaryText">{endpoint.displayName}</p>
             </DataListCell>,
-            enabled ? (<DataListCell
+            ready && enabled ? (<DataListCell
               key={`${endpoint.interface}-secondary-content`}
               className="SecondaryText"
               style={{
@@ -256,7 +252,7 @@ const ListItem: React.FC<ListItemProps> = ({
             >
               {getSecondaryContent(data, dataType)}
             </DataListCell>) : null,
-            tinker && enabled
+            tinker && ready && enabled
               ? (
                 <DataListCell
                   key={`${endpoint.interface}-tinker-content`}
