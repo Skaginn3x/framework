@@ -15,6 +15,7 @@
     "boost-stacktrace",
     "boost-uuid",
     "date",
+    "ftxui",
     "fmt",
     {
       "name": "glaze",
