@@ -95,7 +95,7 @@ public:
     // check if signal is a writeable signal
     for (const auto& banned_signal : config_.value().banned_signals) {
       if (banned_signal.value == signal_name) {
-        logger_.trace("Signal {} is in the list of banned signals", signal_name);
+        logger_.info("Signal {} is in the list of banned signals", signal_name);
         return false;
       }
     }
