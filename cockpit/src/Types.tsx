@@ -1,60 +1,3 @@
-import cockpit from 'cockpit';
-import {TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION} from "./variables";
-
-
-export class DBusService {
-
-}
-
-/**
- * @param serviceName
- * @param interfaceName
- * @param dbusPath
- */
-export class DBusEndpoint {
-  // todo can I make these const?
-  service?: string;
-  interface?: string;
-  path?: string;
-  // todo static assert one of them needing to be defined
-
-  client?: any; // todo type wrap cockpit dbus
-  proxy?: any; // todo type wrap cockpit proxy
-
-  displayName?: string;
-  displayHover?: string;
-  public constructor(init?:Partial<DBusEndpoint>) {
-    Object.assign(this, init);
-  }
-
-  // connect can be called with .then or .catch
-  async connect() {
-    if (this.proxy && this.proxy.valid) {
-      return;
-    }
-    this.client = cockpit.dbus(this.service, { bus: 'system', superuser: 'try' });
-    await this.client.wait();
-    // this.proxy = this.client.proxy(this.interface, this.path);
-    // await this.proxy.wait();
-    return;
-  }
-
-  disconnect(): void {
-    if (this.proxy && this.proxy.valid) {
-      this.proxy.close();
-    }
-    if (this.client && this.client.valid) {
-      this.client.close();
-    }
-  }
-
-  async call(method: string, ...args: any[]) {
-    await this.connect();
-    return this.client.call(this.path, this.interface, method, args);
-    // return this.proxy[method](...args);
-  }
-}
-
 /**
  * @param problem The problem of the error
  * @param name The name of the error
@@ -103,29 +46,6 @@ export interface SlotType {
   last_modified: string,
   connected_to: string,
   modified_by: string,
-}
-
-function prependOrgPath(path: string) : string {
-  return `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`;
-}
-
-function ipcDBusPath(ipc :SignalType | SlotType) : string {
-  // strip off until the second period
-  return prependOrgPath(ipc.name.split('.').slice(2).join('/'));
-}
-
-export class SlotInterface extends DBusEndpoint {
-  slot: SlotType;
-  public constructor(slot: SlotType) {
-    super({
-      service: slot.created_by,
-      interface: `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Slot`,
-      path: ipcDBusPath(slot),
-      displayName: slot.name,
-      displayHover: slot.description,
-    });
-    this.slot = slot;
-  }
 }
 
 /**

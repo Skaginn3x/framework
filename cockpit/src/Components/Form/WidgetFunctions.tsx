@@ -50,8 +50,7 @@ export function removeOrg(name: string) {
    * @param name  string
    * @returns string
    */
-export function removeSlotOrg(name: string | undefined) {
-  if (name === undefined) return undefined;
+export function removeSlotOrg(name: string) {
   // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
   // return etc.tfc.operation_mode.def.state_machine
   if (name.split('.').length > 4) {

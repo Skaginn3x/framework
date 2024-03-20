@@ -1,12 +1,4 @@
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/pkg/lib)
-  include(cmake/CPM.cmake)
-
-  CPMAddPackage("gh:cockpit-project/cockpit#312")
-
-  file(COPY ${cockpit_SOURCE_DIR}/pkg/lib DESTINATION ${CMAKE_CURRENT_LIST_DIR}/pkg/)
-endif ()
-
 configure_file(${CMAKE_CURRENT_LIST_DIR}/src/variables.js.in ${CMAKE_CURRENT_LIST_DIR}/src/variables.js @ONLY)
 
 add_custom_command(

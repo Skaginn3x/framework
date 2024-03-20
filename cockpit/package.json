@@ -2,7 +2,6 @@
   "name": "tfc_ipc",
   "version": "2024.2.9",
   "description": "",
-  "type": "module",
   "homepage": "./",
   "dependencies": {
     "@babel/core": "7.21.8",
@@ -47,7 +46,6 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "watch": "ln -sf $(pwd)/dist ~/.local/share/cockpit/tfc && ESBUILD_WATCH='true' ./build.js",
     "start": "react-scripts start",
     "build": "GENERATE_SOURCEMAP=false BUILD_PATH='./build' react-scripts build && cp manifest.json ./build/manifest.json",
     "dev": "GENERATE_SOURCEMAP=false react-scripts build && react-scripts start",
@@ -82,10 +80,6 @@
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jsx-a11y": "^6.7.1",
     "eslint-plugin-react": "^7.32.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "esbuild-plugin-copy": "^2.1.1",
-    "esbuild-plugin-replace": "^1.4.0",
-    "esbuild-plugin-tsc": "^0.4.0",
-    "esbuild-sass-plugin": "^3.1.0"
+    "eslint-plugin-react-hooks": "^4.6.0"
   }
 }
