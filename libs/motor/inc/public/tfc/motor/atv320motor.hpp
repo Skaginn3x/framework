@@ -3,10 +3,10 @@
 #include <string>
 #include <string_view>
 
-#include <fmt/chrono.h>
 #include <mp-units/chrono.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
+#include <fmt/chrono.h>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
@@ -73,7 +73,7 @@ private:
   static constexpr std::chrono::microseconds ping_response_timeout{ std::chrono::milliseconds{ 200 } };
   std::shared_ptr<sdbusplus::asio::connection> connection_;
   uint16_t slave_id_{ 0 };
-  logger::logger logger_{ fmt::format("atv320motor.{}", slave_id_) };
+  logger::logger logger_{ fmt::format("atv320motor.{}", slave_id_)  };
   std::string const service_name_{ dbus::service_name };
   std::string const path_{ dbus::path };
   std::string interface_name_{ dbus::make_interface_name(impl_name, slave_id_) };
