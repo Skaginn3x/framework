@@ -17,7 +17,7 @@ process.chdir(targetDir);
 // Get the root module dir. Assumes we are in /install
 const moduleRootDir = path.dirname(__dirname);
 // Gets the folder name for a symlink name
-const moduleFolderName = path.basename(moduleRootDir);
+const moduleFolderName = 'tfc';
 
 // Check if symlink already exists
 if (fs.existsSync(moduleFolderName)) {
