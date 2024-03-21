@@ -51,8 +51,8 @@ public:
        std::string_view description,
        stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ client.connection(), full_name() },
-        client_{ client }, filters_{ dbus_slot_.interface(),
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ client.connection(), slot_->type_name() },
+        client_{ client }, filters_{ client.connection(), slot_->type_name(),
                                      // store the callers callback in this lambda
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                                        callb(new_value);
@@ -67,9 +67,9 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires(!std::is_lvalue_reference_v<manager_client_type>)
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, full_name() },
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, slot_->type_name() },
         client_{ connection },
-        filters_{ dbus_slot_.interface(),
+        filters_{ connection, slot_->type_name(),
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                     callb(new_value);
@@ -148,7 +148,7 @@ public:
    */
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
-      : client_{ client }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
+      : client_{ client }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), signal_->type_name() } {
     client_.register_signal_retry(signal_->full_name(), description, type_desc::value_e);
     dbus_signal_.initialize();
   }
@@ -158,7 +158,7 @@ public:
          std::string_view name,
          std::string_view description = "")
     requires(!std::is_lvalue_reference_v<manager_client_type>)
-      : client_{ connection }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
+      : client_{ connection }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), signal_->type_name() } {
     client_.register_signal_retry(signal_->full_name(), description, type_desc::value_e);
     dbus_signal_.initialize();
   }

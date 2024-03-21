@@ -76,7 +76,7 @@ public:
 private:
   asio::io_context& io_ctx_;
   ipc_client_t ipc_client_;
-  config_t config_{ io_ctx_, "mqtt" };
+  config_t config_{ ipc_client_.connection(), "mqtt" };
   logger::logger logger{ "run_loop" };
 
   using spark_plug = spark_plug_interface<config_t, mqtt_client_t>;

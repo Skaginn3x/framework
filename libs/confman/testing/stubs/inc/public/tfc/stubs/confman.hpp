@@ -24,14 +24,6 @@ public:
   using type = config_storage_t;
   using storage_t = config_storage_t;
 
-  stub_config(asio::io_context& ctx, std::string_view key) : stub_config{ ctx, key, config_storage_t{} } {}
-
-  template <typename storage_type>
-    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
-  stub_config(asio::io_context& ctx, std::string_view key, storage_type&& def)
-      : detail::stubbed_config<config_storage_t>{ ctx, key, std::forward<storage_type>(def) },
-        storage_{ std::forward<storage_type>(def) } {}
-
   stub_config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
       : stub_config{ conn, key, config_storage_t{} } {}
 
