@@ -184,8 +184,12 @@ public:
       : base(slave_index), config_(ctx, fmt::format("lxm32m.{}", slave_index)) {}
 
   void process_data(std::span<std::byte> input, std::span<std::byte> output) final {
+    // clang-format off
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    // clang-format on
     [[maybe_unused]] auto* out = std::launder(reinterpret_cast<output_pdo*>(output.data()));
     auto* in = std::launder(reinterpret_cast<input_pdo*>(input.data()));
+    PRAGMA_CLANG_WARNING_POP
 
     [[maybe_unused]] auto state = in->status.parse_state();
 
