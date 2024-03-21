@@ -17,11 +17,11 @@ public:
     point_ = std::chrono::high_resolution_clock::now();
 
     // Cast pointer type to uint16_t
-// clang-format off
+    // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-// clang-format on
+    // clang-format on
     std::span<uint16_t> const output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
-PRAGMA_CLANG_WARNING_POP
+    PRAGMA_CLANG_WARNING_POP
     for (size_t i = 0; i < size; i++) {
       output_aligned[i] = value_[i];
     }
