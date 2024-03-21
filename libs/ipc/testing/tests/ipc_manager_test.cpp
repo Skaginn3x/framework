@@ -344,7 +344,7 @@ auto main(int argc, char** argv) -> int {
     mock_client.connect(mock_client.slots_[0].name, mock_client.signals_[0].name,
                         [](const std::error_code& err) { ut::expect(!err); });
 
-    std::array<std::string, 1> slot_names = { "ipc_manager_test.def.int64_t.bool_slot" };
+    std::array<std::string, 1> slot_names = { "ipc_manager_test.def.i64.bool_slot" };
 
     mock_client.slots([&](auto slots) {
       std::size_t counter = 0;
@@ -358,7 +358,7 @@ auto main(int argc, char** argv) -> int {
       }
     });
 
-    std::array<std::string, 1> signal_names = { "ipc_manager_test.def.int64_t.bool_signal" };
+    std::array<std::string, 1> signal_names = { "ipc_manager_test.def.i64.bool_signal" };
 
     mock_client.signals([&](auto signals) {
       std::size_t counter = 0;

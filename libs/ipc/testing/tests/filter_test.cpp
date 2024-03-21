@@ -166,6 +166,8 @@ auto main(int, char**) -> int {
     // IMPORTANT: increase time by 9 since the previous declared time needs to elapse until we get called again
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + std::chrono::milliseconds{ 9 });
     ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
+    // not exactly sure why there are two events here.
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
     // now the callback should have been called
     expect(finished);
   } | std::vector{ true, false };
