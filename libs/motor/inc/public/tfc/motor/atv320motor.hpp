@@ -1,9 +1,10 @@
 #pragma once
-#include <mp-units/chrono.h>
 
 #include <string>
 #include <string_view>
 
+#include <fmt/chrono.h>
+#include <mp-units/chrono.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -71,17 +72,19 @@ private:
   static constexpr std::chrono::milliseconds ping_interval{ 250 };
   static constexpr std::chrono::microseconds ping_response_timeout{ std::chrono::milliseconds{ 200 } };
   std::shared_ptr<sdbusplus::asio::connection> connection_;
-  logger::logger logger_{ "atv320motor" };
   uint16_t slave_id_{ 0 };
+  logger::logger logger_{ fmt::format("atv320motor.{}", slave_id_) };
   std::string const service_name_{ dbus::service_name };
   std::string const path_{ dbus::path };
   std::string interface_name_{ dbus::make_interface_name(impl_name, slave_id_) };
+  std::chrono::steady_clock::time_point last_ping_{};
 
   void on_ping_response(std::error_code const& err, bool response) {
     if (err) {
       // todo invalid request descriptor is a known error, but we should handle it better
       // it is when the interface name (motor) is not existent
-      logger_.error("DBus ping response error: {}", err.message());
+      auto const now{ std::chrono::steady_clock::now() };
+      logger_.error("DBus ping response error: {}, time since ping: {}", err.message(), now - last_ping_);
       response = false;
     }
     connected_ = response;
@@ -100,6 +103,7 @@ private:
     } else {
       // In most cases normal but a backup plan if dbus timeout fails
     }
+    last_ping_ = std::chrono::steady_clock::now();
     ping_.expires_after(ping_interval);
     ping_.async_wait(std::bind_front(&atv320motor::on_ping_timeout, this));
     connection_->async_method_call_timed(
@@ -128,6 +132,7 @@ public:
       connected_ = false;
       slave_id_ = new_id;
       interface_name_ = dbus::make_interface_name(impl_name, slave_id_);
+      logger_ = logger::logger{ fmt::format("atv320motor.{}", slave_id_) };
     });
   }
   atv320motor(const atv320motor&) = delete;
@@ -213,9 +218,6 @@ public:
                   return;
                 }
                 using enum errors::err_enum;
-                if (msg.err != success) {
-                  logger_.warn("{} failure: {}", method::needs_homing, msg.err);
-                }
                 self_m.complete(motor_error(msg.err), msg.needs_homing);
               },
               service_name_, path_, interface_name_, std::string(method::needs_homing));
@@ -315,9 +317,6 @@ private:
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
-                }
                 self_m.complete(motor_error(motor_err), length.force_in(second_arg_t::reference));
               },
               service_name_, path_, interface_name_, std::string(method_name), method_call_timeout.count(), args...);
@@ -342,9 +341,6 @@ private:
                   return;
                 }
                 using enum errors::err_enum;
-                if (motor_err != success) {
-                  logger_.warn("{} failure: {}", method_name, motor_err);
-                }
                 self_m.complete(motor_error(motor_err));
               },
               service_name_, path_, interface_name_, std::string(method_name), timeout.count(), args...);

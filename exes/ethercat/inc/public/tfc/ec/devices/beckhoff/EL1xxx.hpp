@@ -19,7 +19,7 @@ template <typename manager_client_type,
           size_t size,
           std::array<std::size_t, size> entries,
           uint32_t pc,
-          tfc::stx::basic_fixed_string name_v,
+          stx::basic_fixed_string name_v,
           template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
 class el1xxx final : public base {
 public:
@@ -35,9 +35,9 @@ public:
   auto transmitters() const noexcept -> auto const& { return transmitters_; }
 
 private:
-  std::array<bool, size> last_values_{};
+  std::array<std::optional<bool>, size> last_values_{};
   using bool_signal_t = signal_t<ipc::details::type_bool, manager_client_type&>;
-  std::vector<std::shared_ptr<bool_signal_t>> transmitters_;
+  std::array<std::shared_ptr<bool_signal_t>, size> transmitters_;
 };
 
 template <typename manager_client_type, template <typename, typename> typename signal_t = ipc::signal>

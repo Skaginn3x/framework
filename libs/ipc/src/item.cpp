@@ -20,7 +20,7 @@ auto make(pcg_extras::seed_seq_from<std::random_device>& seed_source) -> item {
   auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
   pcg64 random_engine(seed_source);  // result_type uint64_t
   uuids::basic_uuid_random_generator<pcg64> random_generator{ random_engine };
-  return { .item_id = random_generator(), .entry_timestamp = now };
+  return { .item_id = random_generator(), .entry_timestamp = now, .last_exchange = now };
 }
 
 auto make() -> item {
@@ -28,7 +28,13 @@ auto make() -> item {
   return make(seed_source);
 }
 auto item::from_json(std::string_view json) -> std::expected<item, glz::parse_error> {
-  return glz::read_json<item>(json);
+  auto temporary = glz::read_json<item>(json);
+  if (!temporary.has_value()) {
+    return temporary;
+  }
+  // We are reciving this item, update exchange
+  temporary->last_exchange = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+  return temporary;
 }
 auto item::to_json() const -> std::string {
   return glz::write_json(*this);

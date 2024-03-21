@@ -4,14 +4,10 @@
 #include <functional>
 #include <type_traits>
 
-#include <async_mqtt/all.hpp>
 #include <boost/asio.hpp>
 
-#include <tfc/confman.hpp>
-#include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
 
-#include <client.hpp>
 #include <external_to_tfc.hpp>
 #include <spark_plug_interface.hpp>
 #include <tfc_to_external.hpp>
@@ -19,82 +15,68 @@
 namespace asio = boost::asio;
 
 namespace tfc::mqtt {
-    template<class config_t = confman::config<config::bridge>,
-        class mqtt_client_t = client_n,
-        class ipc_client_t = ipc_ruler::ipc_manager_client&>
-    class run {
-        using spark_plug = spark_plug_interface<config_t, mqtt_client_t>;
-        using ext_to_tfc = external_to_tfc<ipc_client_t &, config_t>;
-        using tfc_to_ext = tfc_to_external<config_t, mqtt_client_t, ipc_client_t>;
+template <class config_t, class mqtt_client_t, class ipc_client_t>
+class run {
+  using spark_plug = spark_plug_interface<config_t, mqtt_client_t>;
+  using ext_to_tfc = external_to_tfc<ipc_client_t&, config_t>;
+  using tfc_to_ext = tfc_to_external<config_t, mqtt_client_t, ipc_client_t>;
 
-    public:
+public:
+  explicit run(asio::io_context& io_ctx) : io_ctx_(io_ctx), ipc_client_(io_ctx) {}
 
-        explicit run(asio::io_context &io_ctx, ipc_client_t ipc_client) : io_ctx_(io_ctx), ipc_client_(ipc_client) {
-            static_assert(std::is_lvalue_reference<ipc_client_t>::value);
-        }
+  explicit run(asio::io_context& io_ctx, ipc_client_t ipc_client) : io_ctx_(io_ctx), ipc_client_(ipc_client) {
+    static_assert(std::is_lvalue_reference<ipc_client_t>::value);
+  }
 
-        auto start() -> asio::awaitable<void> {
-            while (true) {
-                restart_needed_ = false;
+  auto start() -> asio::awaitable<void> {
+    while (true) {
+      logger.trace("----------------------------------------------------------------------------");
+      logger.trace("Event loop started");
 
-                logger.trace("----------------------------------------------------------------------------");
-                logger.trace("Event loop started");
+      sp_interface_.emplace(io_ctx_, config_);
 
-                sp_interface_.emplace(io_ctx_, config_);
-                tfc_to_exter_.emplace(io_ctx_, sp_interface_.value(), ipc_client_, config_, restart_needed_);
-                exter_to_tfc_.emplace(io_ctx_, config_, ipc_client_);
+      if (!co_await sp_interface_->connect_mqtt_client()) {
+        continue;
+      }
 
-                bool connection_success = co_await sp_interface_->connect_mqtt_client();
+      if (!co_await sp_interface_->subscribe_to_ncmd()) {
+        continue;
+      }
 
-                if (!connection_success) {
-                    continue;
-                }
+      exter_to_tfc_.emplace(io_ctx_, config_, ipc_client_);
+      exter_to_tfc_->create_outward_signals();
 
-                bool subscribe_success = co_await sp_interface_->subscribe_to_ncmd();
+      tfc_to_exter_.emplace(io_ctx_, sp_interface_.value(), ipc_client_, config_);
+      tfc_to_exter_->set_signals();
 
-                if (!subscribe_success) {
-                    continue;
-                }
+      sp_interface_->set_value_change_callback(std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_.value()));
 
-                exter_to_tfc_->create_outward_signals();
+      asio::cancellation_signal cancel_signal{};
 
-                tfc_to_exter_->set_signals();
+      co_spawn(sp_interface_->strand(),
+               sp_interface_->wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_.value())),
+               bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
-                sp_interface_->
-                        set_value_change_callback(
-                            std::bind_front(&ext_to_tfc::receive_new_value, &exter_to_tfc_.value()));
+      co_await tfc_to_exter_->wait_for_restart(asio::use_awaitable);
 
-                asio::cancellation_signal cancel_signal{};
+      cancel_signal.emit(asio::cancellation_type::all);
 
-                co_spawn(
-                    sp_interface_->strand(),
-                    sp_interface_->wait_for_payloads(
-                        std::bind_front(&spark_plug::process_payload, &sp_interface_.value()),
-                        restart_needed_),
-                    bind_cancellation_slot(cancel_signal.slot(), asio::detached));
+      /// allow sockets to clear up and connections to close
+      /// if this is skipped the next run will fail
+      io_ctx_.run_for(std::chrono::milliseconds{ 10 });
+    }
+  }
 
-                while (!restart_needed_) {
-                    co_await asio::steady_timer{sp_interface_->strand(), std::chrono::seconds{1}}.async_wait(
-                        asio::use_awaitable);
-                }
+  auto config() -> config_t& { return config_; }
 
-                cancel_signal.emit(asio::cancellation_type::all);
+private:
+  asio::io_context& io_ctx_;
+  ipc_client_t ipc_client_;
+  config_t config_{ io_ctx_, "mqtt" };
+  logger::logger logger{ "run_loop" };
 
-                io_ctx_.run_for(std::chrono::seconds{1});
-            }
-        }
-
-        auto config() -> config_t & { return config_; }
-
-    private:
-        asio::io_context &io_ctx_;
-        ipc_client_t ipc_client_;
-        bool restart_needed_{false};
-        config_t config_{io_ctx_, "mqtt"};
-        logger::logger logger{"run_loop"};
-
-        std::optional<spark_plug> sp_interface_;
-        std::optional<tfc_to_ext> tfc_to_exter_;
-        std::optional<ext_to_tfc> exter_to_tfc_;
-    };
-} // namespace tfc::mqtt
+  std::optional<spark_plug> sp_interface_;
+  std::optional<tfc_to_ext> tfc_to_exter_;
+  std::optional<ext_to_tfc> exter_to_tfc_;
+};
+}  // namespace tfc::mqtt

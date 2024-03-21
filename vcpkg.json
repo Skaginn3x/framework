@@ -1,6 +1,6 @@
 {
   "name": "tfc-framework",
-  "version": "2024.2.2",
+  "version": "2024.2.9",
   "dependencies": [
     {
       "name": "async-mqtt",
@@ -12,8 +12,8 @@
     "boost-asio",
     "boost-program-options",
     "boost-coroutine2",
-    "boost-uuid",
     "boost-stacktrace",
+    "boost-uuid",
     "date",
     "fmt",
     {

@@ -184,13 +184,12 @@ public:
     auto configured_slave_count = config_->value().required_slave_count.value();
 
     if (configured_slave_count.has_value()) {
-      if (slave_count() == configured_slave_count.value()) {
+      if (slave_count() != configured_slave_count.value()) {
         logger_.error("Slave count is wrong, current slave count: {}, required slave count: {}", slave_count(),
                       configured_slave_count.value());
         return async_start();
       }
-      logger_.trace("Slave count is correct, current slave count: {}, minimum slave count: {}", slave_count(),
-                    configured_slave_count.value());
+      logger_.trace("Slave count is correct, current slave count: {}", slave_count());
     }
 
     ecx::config_overlap_map_group(&context_, std::span(io_.data(), io_.size()), 0);

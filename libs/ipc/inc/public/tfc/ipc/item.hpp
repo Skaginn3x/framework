@@ -199,7 +199,7 @@ struct item {
 
   // dimensions
   // si::kilogram kg;
-  using milligram_64bit = mp_units::quantity<si::milli<si::gram>, uint64_t>;
+  using milligram_64bit = mp_units::quantity<si::milli<si::gram>, int64_t>;
   std::optional<milligram_64bit> item_weight{ std::nullopt };
   std::optional<milligram_64bit> target_weight{ std::nullopt };
   std::optional<milligram_64bit> min_weight{ std::nullopt };
@@ -222,6 +222,9 @@ struct item {
   std::optional<time_point> entry_timestamp{ std::nullopt };
   std::optional<time_point> production_date{ std::nullopt };
   std::optional<time_point> expiration_date{ std::nullopt };
+  std::optional<time_point> last_exchange{
+    std::nullopt
+  };  // Last time that the item was exchanged between systems, i.e. parsed from json
   std::optional<std::string> description{ std::nullopt };
   std::optional<details::supplier> supplier{ std::nullopt };
   std::optional<details::destination> destination{ std::nullopt };
