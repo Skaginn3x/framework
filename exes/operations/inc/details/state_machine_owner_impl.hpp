@@ -19,6 +19,40 @@ state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_conte
                                                                          std::string{ tfc::dbus::sml::tags::path },
                                                                          tfc::dbus::make_dbus_name("Operations")) },
       states_{ std::make_shared<state_machine_t>(detail::state_machine<state_machine_owner>{ *this }, sml_interface_) } {
+
+starting_.async_send(false, [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send starting_ signal false, error: {}", err.message());
+});
+running_.async_send(false, [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send running_ signal false, error: {}", err.message());
+});
+stopping_.async_send(false, [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send stopping_ signal false, error: {}", err.message());
+});
+cleaning_.async_send(false, [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send cleaning_ signal false, error: {}", err.message());
+});
+emergency_out_.async_send(false, [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send emergency_out_ signal false, error: {}", err.message());
+});
+fault_out_.async_send(false, [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send fault_out_ signal false, error: {}", err.message());
+});
+mode_str_.async_send("", [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send mode_ signal false, error: {}", err.message());
+});
+stop_reason_str_.async_send("", [&](std::error_code const& err,  std::size_t) {
+  if (err)
+    logger_.info("Unable to send stop_reason_str_ signal false, error: {}", err.message());
+});
+
   dbus_interface_->initialize();
 }
 
