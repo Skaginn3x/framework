@@ -44,18 +44,22 @@ public:
   auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = default;
 
   void initialize() {
-    interface_->register_property<value_t>(std::string{ dbus::tags::value }, value_t{});
+    interface_->register_signal<value_t>(std::string{ dbus::tags::value });
+    interface_->register_property_r<value_t>(std::string{dbus::tags::value}, sdbusplus::vtable::property_::none, [this](const auto&){
+      return value_;
+    });
     interface_->register_property_r<std::string>(
-        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
+        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::const_,
         []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
 
     interface_->initialize();
   }
 
   void emit_value(value_t const& value) {
-    if (interface_) {
-      interface_->set_property(std::string{ dbus::tags::value }, value);
-    }
+    value_ = value;
+    auto message = interface_->new_signal(dbus::tags::value.data());
+    message.append(value);
+    message.signal_send();
   }
 
   void on_set(tfc::stx::invocable<value_t&&> auto&& callback) {
@@ -66,6 +70,7 @@ public:
 
 private:
   std::shared_ptr<sdbusplus::asio::dbus_interface> interface_{};
+  value_t value_{};
 };
 
 }  // namespace tfc::ipc::details
