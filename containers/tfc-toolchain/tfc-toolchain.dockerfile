@@ -34,14 +34,14 @@ RUN ln -sf /usr/include/aarch64-linux-gnu /cpproot/include/aarch64-linux-gnu
 RUN ln -sf /usr/lib/aarch64-linux-gnu /cpproot/lib/aarch64-linux-gnu
 
 COPY install-cmake.sh /tmp/
-RUN ./install-cmake.sh 3.28.1
+RUN ./install-cmake.sh 3.29.0
 
 COPY build-ninja.sh /tmp/
 RUN ./build-ninja.sh 1.11.1
 
 # This has to happen after gcc-13 and cmake
 COPY build-mold.sh /tmp/
-RUN ./build-mold.sh 2.4.0
+RUN ./build-mold.sh 2.30.0
 
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 
