@@ -76,6 +76,23 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
   }
 }
 
+template <typename slot_type>
+void create_and_run_slot(asio::io_context& ctx, tfc::ipc_ruler::ipc_manager_client& client, const std::string& slot, const std::string& description) {
+  slot_type slot_{ctx, client, slot, description,
+                 [](typename slot_type::value_t new_value) {
+                   if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
+                     if (new_value.has_value()) {
+                       fmt::println("New value on slot: {}", new_value.value());
+                     } else {
+                       fmt::println("Error on slot: {}", new_value.error());
+                     }
+                   } else {
+                     fmt::println("New value on slot: {}", new_value);
+                   }
+  }};
+  ctx.run();
+}
+
 auto main(int argc, char** argv) -> int {
   auto description{ tfc::base::default_description() };
 
@@ -175,40 +192,19 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc_ruler::ipc_manager_client client(ctx);
 
     if (type == ipc::details::type_e::_bool) {
-      ipc::slot<ipc::details::type_bool> slot_{ ctx, client, slot, "description",
-                                                [](bool new_value) { fmt::println("New value on slot: {}", new_value); } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_bool>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_double_t) {
-      ipc::slot<ipc::details::type_double> slot_{ ctx, client, slot, "description", [](double new_value) {
-                                                   fmt::println("New value on slot: {}", new_value);
-                                                 } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_double>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_int64_t) {
-      ipc::slot<ipc::details::type_int> slot_{ ctx, client, slot, "description",
-                                               [](int64_t new_value) { fmt::println("New value on slot: {}", new_value); } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_int>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_uint64_t) {
-      ipc::slot<ipc::details::type_uint> slot_{ ctx, client, slot, "description", [](uint64_t new_value) {
-                                                 fmt::println("New value on slot: {}", new_value);
-                                               } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_uint>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_string) {
-      ipc::slot<ipc::details::type_string> slot_{ ctx, client, slot, "description", [](std::string new_value) {
-                                                   fmt::println("New value on slot: {}", new_value);
-                                                 } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_string>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_json) {
-      ipc::slot<ipc::details::type_string> slot_{ ctx, client, slot, "description", [](std::string new_value) {
-                                                   fmt::println("New value on slot: {}", new_value);
-                                                 } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_json>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_mass) {
-      ipc::slot<ipc::details::type_mass> slot_{ ctx, client, slot, "description", [](ipc::details::mass_t new_value) {
-                                                 if (new_value.has_value()) {
-                                                   fmt::println("New value on slot: {}", new_value.value());
-                                                 }
-                                               } };
-      ctx.run();
+        create_and_run_slot<ipc::slot<ipc::details::type_mass>>(ctx, client, slot, "description");
     }
   }
 
