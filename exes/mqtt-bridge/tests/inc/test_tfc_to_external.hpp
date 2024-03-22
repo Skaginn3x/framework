@@ -40,10 +40,8 @@ public:
 
     config::bridge_mock config{ isolated_ctx, "test" };
 
-    spark_plug_interface<config::bridge_mock,
-
-                         client<endpoint_client_mock, config::bridge_mock> >
-        sp_mock{ isolated_ctx, config };
+    spark_plug_interface<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock> > sp_mock{ isolated_ctx,
+                                                                                                           config };
 
     tfc_to_external<config::bridge_mock, client<endpoint_client_mock, config::bridge_mock>,
                     ipc_ruler::ipc_manager_client_mock&>

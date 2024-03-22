@@ -84,7 +84,7 @@ struct tfc::json::detail::to_json_schema<tfc::mqtt::config::signal_name> {
 
 namespace tfc::mqtt::config {
 struct bridge {
-  std::vector<signal_name> publish_signals{};
+  std::vector<signal_name> banned_signals{};
   std::string node_id{ "tfc_unconfigured_node_id" };
   std::string group_id{ "tfc_unconfigured_group_id" };
   std::string address{ "localhost" };
@@ -100,7 +100,7 @@ struct bridge {
         // clang-format off
        "node_id", &bridge::node_id, json::schema{ .description = "Spark Plug B Node ID, used to identify which node is sending information", .pattern = "[^+#/]" },
         "group_id", &bridge::group_id, json::schema{ .description = "Spark Plug B Group ID, used to identify which group the node belongs to", .pattern = "[^+#/]" },
-        "publish_signals", &bridge::publish_signals, "Signals to publish",
+        "banned_signals", &bridge::banned_signals, "Signals not to publish",
         "address", &bridge::address, "Hostname or IP address of the MQTT broker",
         "port", &bridge::port, "Port of the MQTT broker. Possible values are: mqtt, mqtts or a custom port number",
         "ssl_active", &bridge::ssl_active, "Whether or not to use SSL to connect to the MQTT broker",

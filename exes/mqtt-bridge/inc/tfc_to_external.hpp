@@ -16,7 +16,6 @@
 #include <structs.hpp>
 
 namespace tfc::mqtt {
-
 namespace asio = boost::asio;
 
 template <class config_t, class mqtt_client_t, class ipc_client_t>
@@ -24,15 +23,31 @@ class tfc_to_external {
 public:
   explicit tfc_to_external(asio::io_context& io_ctx,
                            spark_plug_interface<config_t, mqtt_client_t>& spark_plug_i,
-                           config_t& config)
-      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), config_(config), ipc_client_(io_ctx_) {}
-
-  explicit tfc_to_external(asio::io_context& io_ctx,
-                           spark_plug_interface<config_t, mqtt_client_t>& spark_plug_i,
                            ipc_client_t ipc_client,
                            config_t& config)
-      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), config_(config), ipc_client_(ipc_client) {
+      : io_ctx_(io_ctx), spark_plug_interface_(spark_plug_i), ipc_client_(ipc_client), config_(config) {
     static_assert(std::is_lvalue_reference<ipc_client_t>::value);
+    match_object_ =
+        ipc_client_.register_properties_change_callback([this](sdbusplus::message_t&) { restart_needed_ = true; });
+  }
+
+  template <typename CompletionToken>
+  auto wait_for_restart(CompletionToken&& token) {
+    return asio::async_compose<CompletionToken, void(std::error_code)>(
+        [this](auto& self, std::error_code err = {}, std::size_t = 0) mutable {
+          if (err) {
+            self.complete(err);
+            return;
+          }
+          if (restart_needed_) {
+            self.complete({});
+            return;
+          }
+          // Re-arm the timer for another check
+          timer_.expires_after(std::chrono::milliseconds{ 100 });
+          timer_.async_wait(std::move(self));
+        },
+        token, timer_);
   }
 
   /// This function converts tfc types to Spark Plug B types
@@ -78,19 +93,18 @@ public:
 
   auto is_publish_signal(std::string signal_name) -> bool {
     // check if signal is a writeable signal
+    for (const auto& banned_signal : config_.value().banned_signals) {
+      if (banned_signal.value == signal_name) {
+        logger_.info("Signal {} is in the list of banned signals", signal_name);
+        return false;
+      }
+    }
     if (signal_name.starts_with(base::get_exe_name())) {
       logger_.trace("Signal is a writeable signal");
       return true;
     }
-
-    for (const auto& publish_signal : config_.value().publish_signals) {
-      if (publish_signal.value == signal_name) {
-        logger_.trace("Signal {} is in the list of signals to publish", signal_name);
-        return true;
-      }
-    }
-    logger_.trace("Signal {} is not in the list of signals to publish", signal_name);
-    return false;
+    logger_.trace("Signal {} is not in the banned list", signal_name);
+    return true;
   }
 
   auto handle_incoming_signals_from_ipc_client(std::vector<ipc_ruler::signal> const& signals) -> void {
@@ -146,20 +160,20 @@ public:
     spark_plug_interface_.send_current_values();
   }
 
-  auto get_signals() -> std::vector<ipc::details::any_slot_cb>& { return signals_; }
-
-  auto clear_signals() -> void { signals_.clear(); }
+  auto get_signals() -> std::vector<tfc::ipc::details::any_slot_cb>& { return signals_; }
 
 private:
   asio::io_context& io_ctx_;
   spark_plug_interface<config_t, mqtt_client_t>& spark_plug_interface_;
-  config_t& config_;
   ipc_client_t ipc_client_;
+  config_t& config_;
+  bool restart_needed_{ false };
   logger::logger logger_{ "tfc_to_external" };
   std::vector<ipc::details::any_slot_cb> signals_;
   std::vector<structs::spark_plug_b_variable> spb_variables_;
+  std::unique_ptr<sdbusplus::bus::match::match> match_object_;
+  asio::steady_timer timer_{ io_ctx_ };
 
   friend class test_tfc_to_external;
 };
-
 }  // namespace tfc::mqtt
