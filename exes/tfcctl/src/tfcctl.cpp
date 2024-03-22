@@ -42,7 +42,7 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
 
     std::visit(
         [buffer_str]<typename signal_t>(signal_t&& my_signal) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<signal_t> >) {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<signal_t>>) {
             using signal_type = std::remove_cvref_t<signal_t>;
             using value_t = typename signal_type::value_t;
             std::string buff{ buffer_str };
@@ -77,19 +77,21 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
 }
 
 template <typename slot_type>
-void create_and_run_slot(asio::io_context& ctx, tfc::ipc_ruler::ipc_manager_client& client, const std::string& slot, const std::string& description) {
-  slot_type slot_{ctx, client, slot, description,
-                 [](typename slot_type::value_t new_value) {
-                   if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
-                     if (new_value.has_value()) {
-                       fmt::println("New value on slot: {}", new_value.value());
-                     } else {
-                       fmt::println("Error on slot: {}", new_value.error());
-                     }
-                   } else {
-                     fmt::println("New value on slot: {}", new_value);
-                   }
-  }};
+void create_and_run_slot(asio::io_context& ctx,
+                         tfc::ipc_ruler::ipc_manager_client& client,
+                         const std::string& slot,
+                         const std::string& description) {
+  slot_type slot_{ ctx, client, slot, description, [](typename slot_type::value_t new_value) {
+                    if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
+                      if (new_value.has_value()) {
+                        fmt::println("New value on slot: {}", new_value.value());
+                      } else {
+                        fmt::println("Error on slot: {}", new_value.error());
+                      }
+                    } else {
+                      fmt::println("New value on slot: {}", new_value);
+                    }
+                  } };
   ctx.run();
 }
 
@@ -104,7 +106,7 @@ auto main(int argc, char** argv) -> int {
 
   description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
       "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
-      "connect,c", po::value<std::vector<std::string> >(&connect)->multitoken(), "Listen to these slots")(
+      "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots")(
       "list-signals", po::bool_switch(&list_signals), "List all available IPC signals")(
       "list-slots", po::bool_switch(&list_slots), "List all available IPC slots");
   tfc::base::init(argc, argv, description);
@@ -146,11 +148,11 @@ auto main(int argc, char** argv) -> int {
   auto constexpr slot_connect{ [](auto&& receiver_variant, std::string_view signal_name) {
     std::visit(
         [signal_name]<typename receiver_t>(receiver_t&& receiver) {
-          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t> >) {
+          if constexpr (!std::same_as<std::monostate, std::remove_cvref_t<receiver_t>>) {
             fmt::println("Connecting to signal {}", signal_name);
             std::string sig{ signal_name };
             auto error = receiver->connect(signal_name, [sig]<typename val_t>(val_t const& val) {
-              if constexpr (tfc::stx::is_expected<std::remove_cvref_t<val_t> >) {
+              if constexpr (tfc::stx::is_expected<std::remove_cvref_t<val_t>>) {
                 if (val.has_value()) {
                   fmt::println("{}: {}", sig, val.value());
                 } else {
@@ -192,19 +194,19 @@ auto main(int argc, char** argv) -> int {
     tfc::ipc_ruler::ipc_manager_client client(ctx);
 
     if (type == ipc::details::type_e::_bool) {
-        create_and_run_slot<ipc::slot<ipc::details::type_bool>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_bool>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_double_t) {
-        create_and_run_slot<ipc::slot<ipc::details::type_double>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_double>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_int64_t) {
-        create_and_run_slot<ipc::slot<ipc::details::type_int>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_int>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_uint64_t) {
-        create_and_run_slot<ipc::slot<ipc::details::type_uint>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_uint>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_string) {
-        create_and_run_slot<ipc::slot<ipc::details::type_string>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_string>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_json) {
-        create_and_run_slot<ipc::slot<ipc::details::type_json>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_json>>(ctx, client, slot, "description");
     } else if (type == ipc::details::type_e::_mass) {
-        create_and_run_slot<ipc::slot<ipc::details::type_mass>>(ctx, client, slot, "description");
+      create_and_run_slot<ipc::slot<ipc::details::type_mass>>(ctx, client, slot, "description");
     }
   }
 
