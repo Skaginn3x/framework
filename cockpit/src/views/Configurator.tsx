@@ -10,14 +10,15 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
+  AlertVariant,
 } from '@patternfly/react-core';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import Hamburger from 'hamburger-react';
-import { loadExternalScript, parseXMLInterfaces } from 'src/Components/Interface/ScriptLoader';
+import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import {
-  fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
+  handleNullValue, updateFormData,
 } from 'src/Components/Form/WidgetFunctions';
 import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 import FormGenerator from '../Components/Form/Form';
@@ -31,7 +32,7 @@ declare global {
 const Configurator: React.FC = () => {
   const { addAlert } = useAlertContext();
   const { isDark } = useDarkMode();
-  const [names, setNames] = useState<Map<string, string>>(new Map());
+  // const [names, setNames] = useState<Map<string, string>>(new Map());
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
   const [formSubmissionCount, setFormSubmissionCount] = useState(0);
 
@@ -62,7 +63,30 @@ const Configurator: React.FC = () => {
     });
   }
 
-  useEffect(() => {
+  function getDataFromProxies(proxies: any, paths: string[]) {
+    const allData = { schemas: {}, data: {} } as any;
+    paths.forEach((path) => {
+      if (!path.includes('/Filter')) {
+        console.log(`Path: ${path}`);
+        console.log(`Schema ${proxies[path].Schema}`);
+        try {
+          let parsedData = JSON.parse(proxies[path].Value.replace('\\"', '"'));
+          const parsedSchema = JSON.parse(proxies[path].Schema.replace('\\"', '"'));
+          if ((parsedData === null && proxies[path].Value.length > 3) || !Object.keys(parsedData).includes('config')) {
+            parsedData = { config: parsedData };
+          }
+          allData.schemas[path] = parsedSchema;
+          allData.data[path] = parsedData;
+        } catch (error) {
+          console.error('Error parsing data:', error, proxies[path].Value, proxies[path].Schema);
+          addAlert('Error parsing data', AlertVariant.warning);
+        }
+      }
+    });
+    return allData;
+  }
+
+  function getData() {
     loadExternalScript((allNames) => {
       const filteredNames = allNames.filter(
         (name) => (
@@ -80,73 +104,32 @@ const Configurator: React.FC = () => {
 
         console.log('proxies:', proxies);
         // Don't ask me why
-        const keys = Object.keys(JSON.parse(JSON.stringify(proxies)));
-        setTimeout(() => {
-          const keys2 = Object.keys(JSON.parse(JSON.stringify(proxies)));
-          console.log('timeout keys:', keys, keys2);
-        }, 1000);
-        console.log('keys:', keys);
-        console.log('keys:', Object.getOwnPropertyNames(proxies));
+        setTimeout(() => { // NOSONAR
+          const paths = Object.keys(proxies).filter((path) => !path.includes('/Filter'));
+          // eslint-disable-next-line guard-for-in, no-restricted-syntax
+          const allProcessData = getDataFromProxies(proxies, paths);
 
-        const path = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/Config`;
-        const processProxy = dbus.proxy('org.freedesktop.DBus.Introspectable', path);
-
-        processProxy.call('Introspect').then((data: string) => {
-          const interfacesData = parseXMLInterfaces(data);
-          setNames((prevNames) => new Map(prevNames).set(name, interfacesData[0].name));
-        }).catch((e: any) => {
-          console.error('Error in getInterfaceData:', e);
-        });
+          setSchemas((prevState: any) => {
+            const newSchemas = { ...prevState };
+            newSchemas[name] = allProcessData.schemas;
+            return newSchemas;
+          });
+          setFormData((prevState: any) => {
+            const newFormData = { ...prevState };
+            newFormData[name] = allProcessData.data;
+            return newFormData;
+          });
+        }, 100);
       });
     });
-  }, []);
-
-  useEffect(() => {
-    console.log('names:', names);
-  }, []);
-
-  function getData() {
-    if (names.size > 0) {
-      names.forEach((interfaceName, processName) => {
-        fetchDataFromDBus(
-          processName,
-          interfaceName,
-          'Config', // path
-          'config', // property
-        ).then(({ parsedData, parsedSchema }) => {
-          setSchemas((prevState: any) => ({
-            ...prevState,
-            [processName]: parsedSchema,
-          }));
-          setFormData((prevState: any) => ({
-            ...prevState,
-            [processName]: parsedData,
-          }));
-        });
-      });
-    }
   }
 
   useEffect(() => {
     getData();
-  }, [names]);
-
-  /**
-   * Get title from dbus name
-   * @param name  string
-   * @returns string
-   */
-  function getTitle(name: string) {
-    // com.skaginn3x.config.etc.tfc.operation_mode.def.state_machine
-    // return operation_mode.def.state_machine if there are more than 5 dots
-    if (name.split('.').length > 5) {
-      return name.split('.').slice(5).join('.');
-    }
-    return name;
-  }
+  }, []);
 
   const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
-  const [activeItemFilter, setActiveItemFilter] = React.useState<string | undefined>(undefined);
+  const [activeItemProcess, setActiveItemProcess] = React.useState<string | undefined>(undefined);
   const onSelect = (selectedItem: {
     groupId: string | number;
     itemId: string | number;
@@ -154,10 +137,12 @@ const Configurator: React.FC = () => {
     if (selectedItem.itemId) {
       setActiveItem(selectedItem.itemId as string);
       setIsDrawerExpanded(false);
-    } else if (selectedItem.groupId) {
-      setActiveItemFilter(selectedItem.groupId as string);
-    } else {
-      setActiveItemFilter(undefined);
+    }
+    if (selectedItem.groupId) {
+      setActiveItemProcess(selectedItem.groupId as string);
+    }
+    if (!selectedItem.groupId && !selectedItem.itemId) {
+      setActiveItemProcess(undefined);
     }
   };
 
@@ -169,12 +154,13 @@ const Configurator: React.FC = () => {
     // eslint-disable-next-line no-param-reassign
     data = handleNullValue(data);
     // Find interface name from dbus name
-    const interfaceName = names.get(activeItem) ?? activeItem;
+    if (!activeItem) return;
+
     updateFormData(
-      activeItem, // Process name
-      interfaceName, // Interface name
-      'Config', // Path
-      'config', // property
+      activeItemProcess, // Process name
+      `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`, // Interface name
+      activeItem, // path
+      'Value', // property
       data, // Data
       setFormData,
       addAlert,
@@ -190,15 +176,23 @@ const Configurator: React.FC = () => {
    * @returns string[] of processes
    */
   function getProcesses(): string[] {
-    // 1. Extract processes from schema keys
-    const extractedProcesses = Object.keys(schemas).map((schema) => {
-      const parts = schema.split('.');
-      return parts.slice(3, 5).join('.');
-    });
-    // 2. & 3. Filter out unique and non-undefined values
-    const uniqueProcesses = extractedProcesses.filter((value, index, self) => value && self.indexOf(value) === index);
+    const fullNameUnique = Object.keys(schemas).filter((value, index, self) => value && self.indexOf(value) === index);
     // 4. Sort the list alphabetically
-    return sortItems(uniqueProcesses);
+    return sortItems(fullNameUnique);
+  }
+
+  function getPaths(process:string): string[] {
+    if (Object.keys(schemas).includes(process)) {
+      return sortItems(Object.keys(schemas[process]));
+    }
+    return [];
+  }
+
+  function prettify(name: string) {
+    if (!name) return '';
+    let newName = name.replaceAll('_', ' ');
+    newName = newName.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return newName;
   }
 
   useEffect(() => {
@@ -219,25 +213,24 @@ const Configurator: React.FC = () => {
               to="#all"
               key="all-navItem"
               groupId={undefined}
-              isActive={activeItemFilter === undefined}
+              isActive={activeItemProcess === undefined}
             >
               All
             </NavItem>
-            {getProcesses().map((name: string) => (
+            {getProcesses().map((name) => (
               <NavItem
                 preventDefault
                 to={`#${name}`}
                 key={`${name}-navItem`}
                 groupId={name}
-                isActive={activeItemFilter === name}
+                isActive={activeItemProcess === name}
               >
-                {name}
+                {name.split('.').slice(3).join('.')}
               </NavItem>
             ))}
           </NavGroup>
           <NavGroup title="Schemas">
-            {sortItems(Object.keys(schemas)
-              .filter((name) => !activeItemFilter || name.includes(activeItemFilter)))
+            {activeItemProcess ? sortItems(getPaths(activeItemProcess))
               .map((name: string) => (
                 <NavItem
                   preventDefault
@@ -246,8 +239,22 @@ const Configurator: React.FC = () => {
                   itemId={name}
                   isActive={activeItem === name}
                 >
-                  {activeItemFilter ? getTitle(name) : removeOrg(name)}
+                  {name ? prettify(name.split('/').splice(-1)[0]) : name}
                 </NavItem>
+              ))
+              : sortItems(Object.keys(schemas)).map((process) => (
+                sortItems(Object.keys(schemas[process])).map((path) => (
+                  <NavItem
+                    preventDefault
+                    to={`#${path}`}
+                    key={`${process}-${path}-navItem`}
+                    groupId={process}
+                    itemId={path}
+                    isActive={activeItem === path && activeItemProcess === process}
+                  >
+                    {path ? `${process.split('.').slice(3).join('.')} ${prettify(path.split('/').splice(-1)[0])}` : path }
+                  </NavItem>
+                ))
               ))}
           </NavGroup>
         </Nav>
@@ -299,17 +306,17 @@ const Configurator: React.FC = () => {
                 width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: isDark ? '#EEE' : '#111',
               }}
               >
-                {activeItem
+                {activeItem && activeItemProcess
                   ? (
                     <div style={{ minWidth: '350px', width: '50vw', maxWidth: '600px' }} key={`${activeItem}div`}>
                       <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
-                        {removeOrg(activeItem) || 'Error - Unknown name'}
+                        {`${activeItemProcess.split('.').slice(3).join('.')} ${prettify(activeItem.split('/').splice(-1)[0])}`}
                       </Title>
                       <FormGenerator
-                        inputSchema={schemas[activeItem]}
+                        inputSchema={schemas[activeItemProcess][activeItem]}
                         key={`${activeItem}-form-${formSubmissionCount}`}
                         onSubmit={(data: any) => handleSubmit(data.values.config)}
-                        values={formData[activeItem]}
+                        values={formData[activeItemProcess][activeItem]}
                         intKey={formSubmissionCount}
                       />
                       <div style={{ marginBottom: '2rem' }} />

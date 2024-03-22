@@ -1,6 +1,4 @@
 import { AlertVariant } from '@patternfly/react-core';
-import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-
 /* eslint-disable import/prefer-default-export */
 function determineDefaultValue(nextKey: any): any {
   return typeof nextKey === 'number' ? [] : {};
@@ -93,13 +91,13 @@ export const updateFormData = (
   }));
 
   // set dbus property config to data
-  console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
+  console.log('stringdata: (s) ', JSON.stringify(newData));
   const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-  const propProxy = newdbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
+  const propProxy = newdbus.proxy(iface, path);
 
   propProxy.wait().then(() => {
-    const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`, 'org.freedesktop.DBus.Properties', 'Set', [
+    const stringdata = window.cockpit.variant('s', JSON.stringify(newData));
+    newdbus.call(path, 'org.freedesktop.DBus.Properties', 'Set', [
       iface, // The interface name
       property, // The property name
       stringdata, // The new value
@@ -123,27 +121,26 @@ export const updateFormData = (
  * @param property  DBUS Property Name
  * @returns Data and Schema { parsedData: any, parsedSchema: any}
  */
-export async function fetchDataFromDBus(name: string, iface: string, path: string, property: string) {
+export async function fetchDataFromDBus(name: string, iface: string, path: string) {
   if (!name) return {};
   if (!iface) return {};
   if (!path) return {};
-  if (!property) return {};
   const dbus = window.cockpit.dbus(name);
-  const OBJproxy = dbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
+  const OBJproxy = dbus.proxy(iface, path);
   await OBJproxy.wait();
   let parsedData;
   let parsedSchema;
 
   const { data } = OBJproxy;
   try {
-    parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
-    parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
+    parsedData = JSON.parse(data.Value.replace('\\"', '"'));
+    parsedSchema = JSON.parse(data.Schema.replace('\\"', '"'));
   } catch (error) {
-    console.error('Error parsing data:', error, data[property][0], data[property][1]);
+    console.error('Error parsing data:', error, data.Value, data.Schema);
     return {};
   }
 
-  if ((parsedData === null && data[property][0].length > 3) || !Object.keys(parsedData).includes(property)) {
+  if ((parsedData === null && data.Value.length > 3) || !Object.keys(parsedData).includes('config')) {
     parsedData = { config: parsedData };
   }
 

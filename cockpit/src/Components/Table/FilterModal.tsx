@@ -52,7 +52,7 @@ export default function FilterModal({
         dbusFilterName, // Process name
         `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`, // Interface name
         'Slots', // Path
-        'Filter', // Property
+        // 'Filter', // Property
       ).then(({ parsedData, parsedSchema }) => {
         setSchema(parsedSchema);
         setFormData(parsedData);
