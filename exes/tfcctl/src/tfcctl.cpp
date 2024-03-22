@@ -217,10 +217,11 @@ auto main(int argc, char **argv) -> int {
         }
         tfc::ipc_ruler::ipc_manager_client client(ctx);
 
-        if (type == tfc::ipc::details::type_e::_bool) {
+
+        if (type == ipc::details::type_e::_bool) {
             ipc::slot<ipc::details::type_bool> my_bool_slot{
                 ctx, client, slot, "description", [](bool new_value) {
-                    fmt::println("New value: {}", new_value);
+                    fmt::println("New value on slot: {}", new_value);
                 }
             };
             ctx.run();
