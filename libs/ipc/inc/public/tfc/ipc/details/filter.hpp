@@ -254,8 +254,8 @@ struct any_filter_decl<std::string> {
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
 template <>
-struct any_filter_decl<details::mass_t> {
-  using value_t = details::mass_t;
+struct any_filter_decl<ipc::details::mass_t> {
+  using value_t = ipc::details::mass_t;
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
 // json?
@@ -263,12 +263,12 @@ template <typename value_t>
 using any_filter_decl_t = any_filter_decl<value_t>::type;
 }  // namespace detail
 
-template <typename value_t, stx::invocable<value_t> callback_t>
+template <typename value_t, tfc::stx::invocable<value_t> callback_t>
 class filters {
 public:
   using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
 
-  filters(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, stx::invocable<value_t> auto&& callback)
+  filters(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, tfc::stx::invocable<value_t> auto&& callback)
       : ctx_{ interface->connection()->get_io_context() }, filters_{ interface, "Filter" },
         callback_{ std::forward<decltype(callback)>(callback) } {}
 
@@ -324,7 +324,7 @@ public:
 
 private:
   asio::io_context& ctx_;
-  confman::config<config_t> filters_;
+  tfc::confman::config<config_t> filters_;
   callback_t callback_;
   std::optional<value_t> last_value_{};
 };

@@ -77,13 +77,8 @@ public:
         [callb = std::forward<decltype(callback)>(callback)](value_t const& set_value) { callb(value_t{ set_value }); });
   }
 
-  // std::string get_object_path(void)
-  // std::string get_interface_name(void)
-  // set up subscriber on here
   auto register_properties_change_callback(const std::function<void(sdbusplus::message_t&)>& callback, std::shared_ptr<sdbusplus::asio::connection> connection_)
     -> std::unique_ptr<sdbusplus::bus::match::match> {
-    // return std::make_unique<sdbusplus::bus::match::match>(*connection_, sdbusplus::bus::match::rules::propertiesChanged("/com/skaginn3x/Slots", "com.skaginn3x.tfcctl.def.bool.connecting_to_other.bool"), callback);
-    // return std::make_unique<sdbusplus::bus::match::match>(*connection_, sdbusplus::bus::match::rules::propertiesChanged("/com/skaginn3x/Slots", interface_->get_interface_name()), callback);
     return std::make_unique<sdbusplus::bus::match::match>(*connection_, sdbusplus::bus::match::rules::propertiesChanged(interface_->get_object_path(), interface_->get_interface_name()), callback);
   }
 
