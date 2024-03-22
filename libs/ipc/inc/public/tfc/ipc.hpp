@@ -57,6 +57,14 @@ public:
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                                        callb(new_value);
                                        dbus_slot_.emit_value(new_value);
+                                       matcher_.emplace(
+                                       dbus_slot_.register_properties_change_callback([this](sdbusplus::message_t&) {
+                                         if (slot_->value().has_value()) {
+                                           filters_.operator()(slot_->value().value());
+                                         }
+                                       }, client_.connection())
+                                       );
+
                                      } } {
     client_init(description);
   }
@@ -65,7 +73,7 @@ public:
        std::shared_ptr<sdbusplus::asio::connection> connection,
        std::string_view name,
        std::string_view description,
-       tfc::stx::invocable<value_t> auto&& callback)
+       stx::invocable<value_t> auto&& callback)
     requires(!std::is_lvalue_reference_v<manager_client_type>)
       : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, full_name() },
         client_{ connection },
@@ -74,6 +82,13 @@ public:
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                     callb(new_value);
                     dbus_slot_.emit_value(new_value);
+                                       matcher_.emplace(
+                                       dbus_slot_.register_properties_change_callback([this](sdbusplus::message_t&) {
+                                         if (slot_->value().has_value()) {
+                                           filters_.operator()(slot_->value().value());
+                                         }
+                                       }, client_.connection())
+                                       );
                   } } {
     client_init(description);
   }
@@ -81,7 +96,7 @@ public:
   slot(asio::io_context& ctx,
        manager_client_type client,
        std::string_view name,
-       tfc::stx::invocable<value_t> auto&& callback)
+       stx::invocable<value_t> auto&& callback)
       : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
 
   slot(slot&) = delete;
@@ -125,6 +140,7 @@ private:
   manager_client_type client_;
   filter::filters<value_t, std::function<void(value_t const&)>> filters_;
   std::optional<std::string> connected_signal_{ std::nullopt };
+  std::optional<std::unique_ptr<sdbusplus::bus::match::match>> matcher_;
 };
 
 /**

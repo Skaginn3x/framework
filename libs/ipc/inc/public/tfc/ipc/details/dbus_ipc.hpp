@@ -59,7 +59,7 @@ public:
     interface_->register_property<value_t>(std::string{ dbus::tags::value }, value_t{});
     interface_->register_property_r<std::string>(
         std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
-        []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
+        []([[maybe_unused]] std::string& old_value) { return json::write_json_schema<value_t>(); });
 
     interface_->initialize();
   }
@@ -75,6 +75,11 @@ public:
     interface_->register_method(
         std::string{ dbus::tags::tinker },
         [callb = std::forward<decltype(callback)>(callback)](value_t const& set_value) { callb(value_t{ set_value }); });
+  }
+
+  auto register_properties_change_callback(const std::function<void(sdbusplus::message_t&)>& callback, std::shared_ptr<sdbusplus::asio::connection> connection_)
+    -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return std::make_unique<sdbusplus::bus::match::match>(*connection_, sdbusplus::bus::match::rules::propertiesChanged(interface_->get_object_path(), interface_->get_interface_name()), callback);
   }
 
 private:
