@@ -1,6 +1,6 @@
 import { AlertVariant } from '@patternfly/react-core';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
-
+import { loadExternalScript } from '../Interface/ScriptLoader';
 /* eslint-disable import/prefer-default-export */
 function determineDefaultValue(nextKey: any): any {
   return typeof nextKey === 'number' ? [] : {};
@@ -93,13 +93,13 @@ export const updateFormData = (
   }));
 
   // set dbus property config to data
-  console.log('stringdata: (ss) ', [JSON.stringify(newData), '']);
+  console.log('stringdata: (s) ', JSON.stringify(newData));
   const newdbus = window.cockpit.dbus(name, { superuser: 'try' });
-  const propProxy = newdbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
+  const propProxy = newdbus.proxy(iface, path);
 
   propProxy.wait().then(() => {
-    const stringdata = window.cockpit.variant('(ss)', [JSON.stringify(newData), '']);
-    newdbus.call(`/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`, 'org.freedesktop.DBus.Properties', 'Set', [
+    const stringdata = window.cockpit.variant('s', JSON.stringify(newData));
+    newdbus.call(path, 'org.freedesktop.DBus.Properties', 'Set', [
       iface, // The interface name
       property, // The property name
       stringdata, // The new value
@@ -116,6 +116,91 @@ export const updateFormData = (
 };
 
 /**
+ *  Gets Schemas and Data from proxies
+ * @param proxies Cockpit Proxies object
+ * @param paths Array of strings
+ * @returns {schemas: {}, data: {}}
+ */
+export function getDataFromProxies(proxies: any, paths: string[]) {
+  const allData = { schemas: {}, data: {} } as any;
+  paths.forEach((path) => {
+    try {
+      let parsedData = JSON.parse(proxies[path].Value.replace('\\"', '"'));
+      const parsedSchema = JSON.parse(proxies[path].Schema.replace('\\"', '"'));
+      if ((parsedData === null && proxies[path].Value.length > 3) || !Object.keys(parsedData).includes('config')) {
+        parsedData = { config: parsedData };
+      }
+      allData.schemas[path] = parsedSchema;
+      allData.data[path] = parsedData;
+    } catch (error) {
+      console.error('Error parsing data:', error, proxies[path].Value, proxies[path].Schema);
+    }
+  });
+  return allData;
+}
+
+/**
+ *  Sorts strings with numbers
+ * @param items List of strings to sort
+ * @returns Sorted List of strings
+ */
+export function sortItems(items:string[]) {
+  return items.sort((a, b) => {
+    const regex = /([^\d]+)(\d+)$/;
+    const matchA = regex.exec(a);
+    const matchB = regex.exec(b);
+
+    if (matchA && matchB) {
+      // Compare non-numeric parts
+      if (matchA[1] < matchB[1]) return -1;
+      if (matchA[1] > matchB[1]) return 1;
+
+      // Compare numeric parts
+      return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+    }
+
+    // Fallback to regular string comparison if one or both don't match the pattern
+    return a.localeCompare(b);
+  });
+}
+
+interface ProxyData {
+  schemas: any;
+  data: any;
+}
+interface NameDataPair {
+  name: string;
+  data: ProxyData;
+}
+/**
+ * Gets data from dbus
+ * @returns Promise of NameDataPair[]
+ */
+export function getData(): Promise<NameDataPair[]> {
+  return new Promise((resolve, reject) => {
+    loadExternalScript((allNames: string[]) => {
+      const filteredNames = allNames.filter((name) => (name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.config`)
+        || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`))
+        && !name.includes('ipc_ruler'));
+
+      const sortedNames = sortItems(filteredNames);
+      const proxyPromises: Promise<NameDataPair>[] = sortedNames.map((name) => new Promise((resolveProxy) => {
+        const dbus = window.cockpit.dbus(name);
+        const proxies = dbus.proxies(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`);
+
+        setTimeout(() => {
+          const paths = Object.keys(proxies);
+          const allProcessData: ProxyData = getDataFromProxies(proxies, paths);
+          resolveProxy({ name, data: allProcessData });
+        }, 100);
+      }));
+
+      Promise.all(proxyPromises).then(resolve).catch(reject);
+    });
+  });
+}
+
+/**
  * Fetches jsonschema and data from dbus
  * @param name Process Name
  * @param iface Interface Name
@@ -123,27 +208,26 @@ export const updateFormData = (
  * @param property  DBUS Property Name
  * @returns Data and Schema { parsedData: any, parsedSchema: any}
  */
-export async function fetchDataFromDBus(name: string, iface: string, path: string, property: string) {
+export async function fetchDataFromDBus(name: string, iface: string, path: string) {
   if (!name) return {};
   if (!iface) return {};
   if (!path) return {};
-  if (!property) return {};
   const dbus = window.cockpit.dbus(name);
-  const OBJproxy = dbus.proxy(iface, `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${path}`);
+  const OBJproxy = dbus.proxy(iface, path);
   await OBJproxy.wait();
   let parsedData;
   let parsedSchema;
 
   const { data } = OBJproxy;
   try {
-    parsedData = JSON.parse(data[property][0].replace('\\"', '"'));
-    parsedSchema = JSON.parse(data[property][1].replace('\\"', '"'));
+    parsedData = JSON.parse(data.Value.replace('\\"', '"'));
+    parsedSchema = JSON.parse(data.Schema.replace('\\"', '"'));
   } catch (error) {
-    console.error('Error parsing data:', error, data[property][0], data[property][1]);
+    console.error('Error parsing data:', error, data.Value, data.Schema);
     return {};
   }
 
-  if ((parsedData === null && data[property][0].length > 3) || !Object.keys(parsedData).includes(property)) {
+  if ((parsedData === null && data.Value.length > 3) || !Object.keys(parsedData).includes('config')) {
     parsedData = { config: parsedData };
   }
 
