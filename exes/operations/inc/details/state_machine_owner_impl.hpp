@@ -19,7 +19,7 @@ state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_conte
                                                                          std::string{ tfc::dbus::sml::tags::path },
                                                                          tfc::dbus::make_dbus_name("Operations")) },
       states_{ std::make_shared<state_machine_t>(detail::state_machine<state_machine_owner>{ *this }, sml_interface_) } {
-  auto constexpr print_error = [&](std::string signal_name) {
+  auto print_error = [&](std::string signal_name) {
     return [this, signal_name](std::error_code const& err, std::size_t) {
       if (err) {
         logger_.info("Unable to send {} signal false, error: {}", signal_name, err.message());
