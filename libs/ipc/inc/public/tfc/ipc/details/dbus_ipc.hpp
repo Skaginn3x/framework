@@ -77,9 +77,13 @@ public:
         [callb = std::forward<decltype(callback)>(callback)](value_t const& set_value) { callb(value_t{ set_value }); });
   }
 
-  auto register_properties_change_callback(const std::function<void(sdbusplus::message_t&)>& callback, std::shared_ptr<sdbusplus::asio::connection> connection_)
-    -> std::unique_ptr<sdbusplus::bus::match::match> {
-    return std::make_unique<sdbusplus::bus::match::match>(*connection_, sdbusplus::bus::match::rules::propertiesChanged(interface_->get_object_path(), interface_->get_interface_name()), callback);
+  auto register_properties_change_callback(const std::function<void(sdbusplus::message_t&)>& callback,
+                                           std::shared_ptr<sdbusplus::asio::connection> connection_)
+      -> std::unique_ptr<sdbusplus::bus::match::match> {
+    return std::make_unique<sdbusplus::bus::match::match>(
+        *connection_,
+        sdbusplus::bus::match::rules::propertiesChanged(interface_->get_object_path(), interface_->get_interface_name()),
+        callback);
   }
 
 private:
