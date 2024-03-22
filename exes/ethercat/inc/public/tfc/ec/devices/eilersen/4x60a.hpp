@@ -379,8 +379,11 @@ PRAGMA_GCC_WARNING_POP
       return;
     }
     invalid_size_logged_ = false;
+    // clang-format off
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    // clang-format on
     [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
-
+    PRAGMA_CLANG_WARNING_POP
     // todo support multiple variations
     auto& group_1{ config_->variations.at(0) };
     auto value{ std::visit(
