@@ -1,7 +1,6 @@
 #pragma once
 
 #include <system_error>
-#include <iostream>
 
 #include <fmt/format.h>
 
@@ -81,7 +80,6 @@ public:
         filters_{ connection, slot_->type_name(),
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
-                    std::cout << "callback is being called" << std::endl;
                     callb(new_value);
                     dbus_slot_.emit_value(new_value);
                                        matcher_.emplace(
@@ -98,9 +96,8 @@ public:
   slot(asio::io_context& ctx,
        manager_client_type client,
        std::string_view name,
-       tfc::stx::invocable<value_t> auto&& callback)
-      : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {
-  }
+       stx::invocable<value_t> auto&& callback)
+      : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
 
   slot(slot&) = delete;
 
