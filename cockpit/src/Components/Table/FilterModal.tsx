@@ -1,92 +1,84 @@
 import React, { useEffect } from 'react';
-import { AlertVariant, Spinner, Title } from '@patternfly/react-core';
+import { Spinner, Title } from '@patternfly/react-core';
 import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
 import FormGenerator from '../Form/Form';
 import { useAlertContext } from '../Alert/AlertContext';
-import { loadExternalScript } from '../Interface/ScriptLoader';
 import {
-  fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
+  getData, handleNullValue, removeOrg, updateFormData,
 } from '../Form/WidgetFunctions';
 
 interface ModalType {
-  slot: string | undefined;
-
+  slot: string;
 }
 
-export default function FilterModal({
-  slot,
-}: ModalType) {
+export default function FilterModal({ slot }: ModalType) {
   const { addAlert } = useAlertContext();
 
   const [isLoading, setIsLoading] = React.useState(true); // Declare new state variable
-  const [error, setError] = React.useState<string[] | undefined>(undefined); // Declare new state variable
-  const [dbusFilterName, setDbusFilterName] = React.useState<string | undefined>(undefined);
-  const [schema, setSchema] = React.useState<any>(undefined);
+  const [schemas, setSchemas] = React.useState<any>(undefined);
   const [formData, setFormData] = React.useState<any>(undefined);
+  const [processName, setProcessName] = React.useState<string>('');
+  const activeSlot = `/${TFC_DBUS_DOMAIN}/${TFC_DBUS_ORGANIZATION}/${slot.split('.').splice(2).join('/')}/Filter`;
 
-  useEffect(() => {
-    if (!slot) { return; }
-    loadExternalScript((allNames) => {
-      // If process in in slotname is found in DBUS, use it
-      const filteredName = allNames.filter(
-        (name: string) => name
-        === `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc.${slot.split('.').slice(0, name.split('.').slice(3).length).join('.')}`,
-      );
+  function loadData() {
+    getData().then((allData) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      allData.forEach(({ name, data }) => {
+        setSchemas(() => {
+          const filteredSchemas = Object.keys(data.schemas).reduce((acc: any, key: string) => {
+            if (key.includes(activeSlot)) {
+              // eslint-disable-next-line no-param-reassign
+              acc = data.schemas[key];
+            }
+            return acc;
+          }, {});
+          return filteredSchemas;
+        });
 
-      if (filteredName.length > 1) {
-        console.log('Ambiguity in filter name', filteredName, 'Selecting first one');
-        addAlert(`Ambiguity in filtername "${filteredName}". Selecting first`, AlertVariant.danger);
-      }
-      if (!filteredName[0] || filteredName[0].length === 0) { // If not found, notify user
-        addAlert(`DBUS-Name-Error: No BUS interface with name "${slot}"`, AlertVariant.danger);
-        setError(['DBUS-Name-Error:', 'No BUS interface with name ', `"${slot}`, 'Please make sure the process is running']);
-      }
-      setDbusFilterName(filteredName[0]);
-    });
-  }, [slot]);
-
-  useEffect(() => {
-    if (!slot) { return; }
-    if (dbusFilterName) {
-      fetchDataFromDBus(
-        dbusFilterName, // Process name
-        `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`, // Interface name
-        'Slots', // Path
-        'Filter', // Property
-      ).then(({ parsedData, parsedSchema }) => {
-        setSchema(parsedSchema);
-        setFormData(parsedData);
+        setFormData(() => {
+          const filteredData = Object.keys(data.data).reduce((acc: any, key: string) => {
+            if (key.includes(activeSlot)) {
+              // eslint-disable-next-line no-param-reassign
+              acc = data.data[key];
+            }
+            return acc;
+          }, {});
+          return filteredData;
+        });
+        setProcessName(name);
         setIsLoading(false);
-      }).catch((err) => {
-        addAlert(err.message, AlertVariant.danger);
-        setError([err.message]);
       });
-    }
-  }, [dbusFilterName]);
+    });
+  }
+
+  useEffect(() => {
+    if (!slot) { return; }
+    loadData();
+  }, [slot]);
 
   return (
     <div style={{
       width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 2rem',
     }}
     >
-      {!isLoading && schema && slot && !error
+      {!isLoading && schemas && slot
         ? (
           <>
             <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
               {removeOrg(slot) || 'Error - Unknown name'}
             </Title>
             <FormGenerator
-              inputSchema={schema}
-              key={dbusFilterName}
-              intKey={dbusFilterName}
+              inputSchema={schemas}
+              key={slot}
+              intKey={slot}
               onSubmit={(data: any) => {
                 const newdata = handleNullValue(data.values.config);
                 updateFormData(
-                  dbusFilterName,
-                  `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.${slot}`,
-                  'Slots',
-                  'Filter',
-                  newdata,
+                  processName, // Process name
+                  `${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`, // Interface name
+                  activeSlot, // path
+                  'Value', // property
+                  newdata, // Data
                   setFormData,
                   addAlert,
                 );
@@ -95,9 +87,7 @@ export default function FilterModal({
             />
           </>
         ) : null }
-      {(error && isLoading)
-        ? error.map((err) => <Title headingLevel="h3" key={err} size="md">{err}</Title>)
-        : isLoading && <Spinner /> }
+      {isLoading && <Spinner /> }
     </div>
   );
 }

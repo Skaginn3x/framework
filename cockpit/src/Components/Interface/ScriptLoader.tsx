@@ -11,6 +11,7 @@ export const loadExternalScript = (callback: ScriptLoadCallback) => {
     const proxy = dbus.proxy();
     proxy.wait().then(() => {
       proxy.call('ListNames').then((Allnames: any[]) => {
+        console.log(Allnames);
         callback(Allnames[0]);
       });
     });

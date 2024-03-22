@@ -868,7 +868,7 @@ export default function CustomTable({
         aria-label="Edit Signals Modal"
         style={{ backgroundColor: isDark ? '#26292d' : '#EEE', color: isDark ? '#EEE' : '#333' }}
       >
-        <FilterModal slot={selectedSlot} />
+        <FilterModal slot={selectedSlot!} />
       </Modal>
 
     </>
