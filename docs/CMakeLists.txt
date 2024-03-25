@@ -104,6 +104,10 @@ set_target_properties(ReadTheDocs PROPERTIES
 
 # Add an install target to install the docs
 include(GNUInstallDirs)
+
+# ReadTheDocs needs to be executed before tfc-docs is installed because Doxygen needs to be executed in order for documentation to be generated
+add_custom_target(InstallDocumentation ALL DEPENDS ReadTheDocs)
+
 install(
   DIRECTORY
     ${SPHINX_BUILD}/
