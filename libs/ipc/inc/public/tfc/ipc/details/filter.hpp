@@ -324,12 +324,7 @@ public:
   [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return last_value_; }
 
   auto set_observeable() -> void {
-
-  filters_->observe(
-    [](auto , auto) {
-      fmt::print("new value: , old value: \n");
-    });
-
+    filters_->observe([](auto, auto) { fmt::print("new value: , old value: \n"); });
   }
 
 private:

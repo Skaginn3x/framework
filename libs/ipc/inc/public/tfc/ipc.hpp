@@ -67,7 +67,6 @@ public:
                                        //   }
                                        // }, client_.connection())
                                        // );
-
                                      } } {
     client_init(description);
   }
@@ -85,21 +84,18 @@ public:
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                     callb(new_value);
                     dbus_slot_.emit_value(new_value);
-                                       matcher_.emplace(
-                                       dbus_slot_.register_properties_change_callback([this](sdbusplus::message_t&) {
-                                         if (slot_->value().has_value()) {
-                                           filters_.operator()(slot_->value().value());
-                                         }
-                                       }, client_.connection())
-                                       );
+                    matcher_.emplace(dbus_slot_.register_properties_change_callback(
+                        [this](sdbusplus::message_t&) {
+                          if (slot_->value().has_value()) {
+                            filters_.operator()(slot_->value().value());
+                          }
+                        },
+                        client_.connection()));
                   } } {
     client_init(description);
   }
 
-  slot(asio::io_context& ctx,
-       manager_client_type client,
-       std::string_view name,
-       stx::invocable<value_t> auto&& callback)
+  slot(asio::io_context& ctx, manager_client_type client, std::string_view name, stx::invocable<value_t> auto&& callback)
       : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
 
   slot(slot&) = delete;
