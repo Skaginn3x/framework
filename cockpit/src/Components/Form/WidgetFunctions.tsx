@@ -1,4 +1,6 @@
 import { AlertVariant } from '@patternfly/react-core';
+import { TFC_DBUS_DOMAIN, TFC_DBUS_ORGANIZATION } from 'src/variables';
+import { loadExternalScript } from '../Interface/ScriptLoader';
 /* eslint-disable import/prefer-default-export */
 function determineDefaultValue(nextKey: any): any {
   return typeof nextKey === 'number' ? [] : {};
@@ -112,6 +114,96 @@ export const updateFormData = (
     console.error('Failed to get DBUS proxy:', error);
   });
 };
+
+/**
+ *  Gets Schemas and Data from proxies
+ * @param proxies Cockpit Proxies object
+ * @param paths Array of strings
+ * @returns {schemas: {}, data: {}}
+ */
+export function getDataFromProxies(proxies: any, paths: string[]) {
+  const allData = { schemas: {}, data: {} } as any;
+  paths.forEach((path) => {
+    console.log(`Path: ${path}`);
+    console.log(`Schema ${proxies[path].Schema}`);
+    try {
+      let parsedData = JSON.parse(proxies[path].Value.replace('\\"', '"'));
+      const parsedSchema = JSON.parse(proxies[path].Schema.replace('\\"', '"'));
+      if ((parsedData === null && proxies[path].Value.length > 3) || !Object.keys(parsedData).includes('config')) {
+        parsedData = { config: parsedData };
+      }
+      allData.schemas[path] = parsedSchema;
+      allData.data[path] = parsedData;
+    } catch (error) {
+      console.error('Error parsing data:', error, proxies[path].Value, proxies[path].Schema);
+    }
+  });
+  return allData;
+}
+
+/**
+ *  Sorts strings with numbers
+ * @param items List of strings to sort
+ * @returns Sorted List of strings
+ */
+export function sortItems(items:string[]) {
+  return items.sort((a, b) => {
+    const regex = /([^\d]+)(\d+)$/;
+    const matchA = regex.exec(a);
+    const matchB = regex.exec(b);
+
+    if (matchA && matchB) {
+      // Compare non-numeric parts
+      if (matchA[1] < matchB[1]) return -1;
+      if (matchA[1] > matchB[1]) return 1;
+
+      // Compare numeric parts
+      return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+    }
+
+    // Fallback to regular string comparison if one or both don't match the pattern
+    return a.localeCompare(b);
+  });
+}
+
+interface ProxyData {
+  schemas: any;
+  data: any;
+}
+interface NameDataPair {
+  name: string;
+  data: ProxyData;
+}
+/**
+ * Gets data from dbus
+ * @returns Promise of NameDataPair[]
+ */
+export function getData(): Promise<NameDataPair[]> {
+  return new Promise((resolve, reject) => {
+    loadExternalScript((allNames: string[]) => {
+      const filteredNames = allNames.filter((name) => (name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.config`)
+        || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`))
+        && !name.includes('ipc_ruler'));
+
+      const sortedNames = sortItems(filteredNames);
+      console.log('sortedNames:', sortedNames);
+
+      const proxyPromises: Promise<NameDataPair>[] = sortedNames.map((name) => new Promise((resolveProxy) => {
+        const dbus = window.cockpit.dbus(name);
+        const proxies = dbus.proxies(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`);
+
+        console.log('proxies:', proxies);
+        setTimeout(() => {
+          const paths = Object.keys(proxies);
+          const allProcessData: ProxyData = getDataFromProxies(proxies, paths);
+          resolveProxy({ name, data: allProcessData });
+        }, 100);
+      }));
+
+      Promise.all(proxyPromises).then(resolve).catch(reject);
+    });
+  });
+}
 
 /**
  * Fetches jsonschema and data from dbus

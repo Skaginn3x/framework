@@ -10,15 +10,13 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
-  AlertVariant,
 } from '@patternfly/react-core';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
 import Hamburger from 'hamburger-react';
-import { loadExternalScript } from 'src/Components/Interface/ScriptLoader';
 import {
-  handleNullValue, updateFormData,
+  getData, handleNullValue, sortItems, updateFormData,
 } from 'src/Components/Form/WidgetFunctions';
 import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
 import FormGenerator from '../Components/Form/Form';
@@ -43,89 +41,49 @@ const Configurator: React.FC = () => {
   const [formData, setFormData] = useState<any>({});
   const [schemas, setSchemas] = useState<any>({});
 
-  function sortItems(items:string[]) {
-    return items.sort((a, b) => {
-      const regex = /([^\d]+)(\d+)$/;
-      const matchA = regex.exec(a);
-      const matchB = regex.exec(b);
-
-      if (matchA && matchB) {
-        // Compare non-numeric parts
-        if (matchA[1] < matchB[1]) return -1;
-        if (matchA[1] > matchB[1]) return 1;
-
-        // Compare numeric parts
-        return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
-      }
-
-      // Fallback to regular string comparison if one or both don't match the pattern
-      return a.localeCompare(b);
-    });
-  }
-
-  function getDataFromProxies(proxies: any, paths: string[]) {
-    const allData = { schemas: {}, data: {} } as any;
-    paths.forEach((path) => {
-      if (!path.includes('/Filter')) {
-        console.log(`Path: ${path}`);
-        console.log(`Schema ${proxies[path].Schema}`);
-        try {
-          let parsedData = JSON.parse(proxies[path].Value.replace('\\"', '"'));
-          const parsedSchema = JSON.parse(proxies[path].Schema.replace('\\"', '"'));
-          if ((parsedData === null && proxies[path].Value.length > 3) || !Object.keys(parsedData).includes('config')) {
-            parsedData = { config: parsedData };
+  function loadData() {
+    getData().then((allData) => {
+      // data is an array of { name, data: { schemas, data } }
+      console.log('Data:', allData);
+      allData.forEach(({ name, data }) => {
+        console.log('schemaz:', data.schemas);
+        setSchemas((prevState: any) => {
+          const newSchemas = { ...prevState };
+          const filteredSchemas = Object.keys(data.schemas).reduce((acc: any, key: string) => {
+            if (!key.includes('/Filter')) {
+              acc[key] = data.schemas[key];
+            }
+            return acc;
+          }, {});
+          if (newSchemas[name]) {
+            newSchemas[name] = { ...newSchemas[name], ...filteredSchemas };
+          } else {
+            newSchemas[name] = filteredSchemas;
           }
-          allData.schemas[path] = parsedSchema;
-          allData.data[path] = parsedData;
-        } catch (error) {
-          console.error('Error parsing data:', error, proxies[path].Value, proxies[path].Schema);
-          addAlert('Error parsing data', AlertVariant.warning);
-        }
-      }
-    });
-    return allData;
-  }
+          return newSchemas;
+        });
 
-  function getData() {
-    loadExternalScript((allNames) => {
-      const filteredNames = allNames.filter(
-        (name) => (
-          name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.config`)
-              || name.includes(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.tfc`)
-        ) && !name.includes('ipc_ruler'),
-      );
-
-      const sortedNames = sortItems(filteredNames);
-      console.log('sortedNames:', sortedNames);
-      // Process each name asynchronously
-      sortedNames.forEach((name) => {
-        const dbus = window.cockpit.dbus(name);
-        const proxies = dbus.proxies(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`);
-
-        console.log('proxies:', proxies);
-        // Don't ask me why
-        setTimeout(() => { // NOSONAR
-          const paths = Object.keys(proxies).filter((path) => !path.includes('/Filter'));
-          // eslint-disable-next-line guard-for-in, no-restricted-syntax
-          const allProcessData = getDataFromProxies(proxies, paths);
-
-          setSchemas((prevState: any) => {
-            const newSchemas = { ...prevState };
-            newSchemas[name] = allProcessData.schemas;
-            return newSchemas;
-          });
-          setFormData((prevState: any) => {
-            const newFormData = { ...prevState };
-            newFormData[name] = allProcessData.data;
-            return newFormData;
-          });
-        }, 100);
+        setFormData((prevState: any) => {
+          const newFormData = { ...prevState };
+          const filteredData = Object.keys(data.data).reduce((acc: any, key: string) => {
+            if (!key.includes('/Filter')) {
+              acc[key] = data.data[key];
+            }
+            return acc;
+          }, {});
+          if (newFormData[name]) {
+            newFormData[name] = { ...newFormData[name], ...filteredData };
+          } else {
+            newFormData[name] = filteredData;
+          }
+          return newFormData;
+        });
       });
     });
   }
 
   useEffect(() => {
-    getData();
+    loadData();
   }, []);
 
   const [activeItem, setActiveItem] = React.useState(Object.keys(schemas)[0]);
@@ -166,7 +124,7 @@ const Configurator: React.FC = () => {
       addAlert,
     );
     setTimeout(() => {
-      getData();
+      loadData();
     }, 100);
   }
 
@@ -183,7 +141,7 @@ const Configurator: React.FC = () => {
 
   function getPaths(process:string): string[] {
     if (Object.keys(schemas).includes(process)) {
-      return sortItems(Object.keys(schemas[process]));
+      return sortItems(Object.keys(schemas[process] || []));
     }
     return [];
   }
@@ -243,7 +201,7 @@ const Configurator: React.FC = () => {
                 </NavItem>
               ))
               : sortItems(Object.keys(schemas)).map((process) => (
-                sortItems(Object.keys(schemas[process])).map((path) => (
+                sortItems(Object.keys(schemas[process] || {})).map((path) => (
                   <NavItem
                     preventDefault
                     to={`#${path}`}
