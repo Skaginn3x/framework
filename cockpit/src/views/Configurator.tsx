@@ -44,9 +44,7 @@ const Configurator: React.FC = () => {
   function loadData() {
     getData().then((allData) => {
       // data is an array of { name, data: { schemas, data } }
-      console.log('Data:', allData);
       allData.forEach(({ name, data }) => {
-        console.log('schemaz:', data.schemas);
         setSchemas((prevState: any) => {
           const newSchemas = { ...prevState };
           const filteredSchemas = Object.keys(data.schemas).reduce((acc: any, key: string) => {

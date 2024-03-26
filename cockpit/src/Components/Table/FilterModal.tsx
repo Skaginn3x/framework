@@ -9,13 +9,9 @@ import {
 
 interface ModalType {
   slot: string;
-  // process: string;
-
 }
 
-export default function FilterModal({
-  slot,
-}: ModalType) {
+export default function FilterModal({ slot }: ModalType) {
   const { addAlert } = useAlertContext();
 
   const [isLoading, setIsLoading] = React.useState(true); // Declare new state variable
@@ -26,9 +22,6 @@ export default function FilterModal({
 
   function loadData() {
     getData().then((allData) => {
-      // data is an array of { name, data: { schemas, data } }
-      console.log('Data:', allData);
-      console.log('Filter:', slot);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       allData.forEach(({ name, data }) => {
         setSchemas(() => {

@@ -124,8 +124,6 @@ export const updateFormData = (
 export function getDataFromProxies(proxies: any, paths: string[]) {
   const allData = { schemas: {}, data: {} } as any;
   paths.forEach((path) => {
-    console.log(`Path: ${path}`);
-    console.log(`Schema ${proxies[path].Schema}`);
     try {
       let parsedData = JSON.parse(proxies[path].Value.replace('\\"', '"'));
       const parsedSchema = JSON.parse(proxies[path].Schema.replace('\\"', '"'));
@@ -186,13 +184,10 @@ export function getData(): Promise<NameDataPair[]> {
         && !name.includes('ipc_ruler'));
 
       const sortedNames = sortItems(filteredNames);
-      console.log('sortedNames:', sortedNames);
-
       const proxyPromises: Promise<NameDataPair>[] = sortedNames.map((name) => new Promise((resolveProxy) => {
         const dbus = window.cockpit.dbus(name);
         const proxies = dbus.proxies(`${TFC_DBUS_DOMAIN}.${TFC_DBUS_ORGANIZATION}.Config`);
 
-        console.log('proxies:', proxies);
         setTimeout(() => {
           const paths = Object.keys(proxies);
           const allProcessData: ProxyData = getDataFromProxies(proxies, paths);
