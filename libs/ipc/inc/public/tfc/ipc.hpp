@@ -57,13 +57,16 @@ public:
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                                        callb(new_value);
                                        dbus_slot_.emit_value(new_value);
-                                       matcher_.emplace(
-                                       dbus_slot_.register_properties_change_callback([this](sdbusplus::message_t&) {
-                                         if (slot_->value().has_value()) {
-                                           filters_.operator()(slot_->value().value());
-                                         }
-                                       }, client_.connection())
-                                       );
+                                       // matcher_.emplace(
+
+                                       filters_.set_observeable();
+
+                                       // dbus_slot_.register_properties_change_callback([this](sdbusplus::message_t&) {
+                                       //   if (slot_->value().has_value()) {
+                                       //     filters_.operator()(slot_->value().value());
+                                       //   }
+                                       // }, client_.connection())
+                                       // );
 
                                      } } {
     client_init(description);

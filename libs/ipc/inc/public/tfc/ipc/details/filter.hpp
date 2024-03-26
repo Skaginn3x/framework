@@ -12,6 +12,7 @@
 #include <glaze/core/common.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/stx/glaze_meta.hpp>
@@ -322,9 +323,18 @@ public:
 
   [[nodiscard]] auto value() const noexcept -> std::optional<value_t> const& { return last_value_; }
 
+  auto set_observeable() -> void {
+
+  filters_->observe(
+    [](auto , auto) {
+      fmt::print("new value: , old value: \n");
+    });
+
+  }
+
 private:
   asio::io_context& ctx_;
-  tfc::confman::config<config_t> filters_;
+  confman::config<confman::observable<config_t>> filters_;
   callback_t callback_;
   std::optional<value_t> last_value_{};
 };
