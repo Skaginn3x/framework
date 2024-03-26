@@ -312,7 +312,6 @@ const Configurator: React.FC = () => {
           name={`ace-editor-${activeItem || 'unknown'}`}
           fontSize={14}
           lineHeight={19}
-          showPrintMargin
           showGutter
           highlightActiveLine
           style={{ width: '100%', height: '35rem' }}
