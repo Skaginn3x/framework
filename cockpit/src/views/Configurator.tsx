@@ -10,6 +10,9 @@ import {
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
+  Button,
+  Modal,
+  AlertVariant,
 } from '@patternfly/react-core';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -20,8 +23,16 @@ import {
   fetchDataFromDBus, handleNullValue, removeOrg, updateFormData,
 } from 'src/Components/Form/WidgetFunctions';
 import { useDarkMode } from 'src/Components/Simple/DarkModeContext';
+import AceEditor from 'react-ace';
 import FormGenerator from '../Components/Form/Form';
 import { useAlertContext } from '../Components/Alert/AlertContext';
+
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/snippets/json';
+import 'ace-builds/src-noconflict/theme-twilight';
+import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-github_dark';
+import 'ace-builds/src-noconflict/ext-language_tools';
 
 declare global {
   interface Window { cockpit: any; }
@@ -34,7 +45,9 @@ const Configurator: React.FC = () => {
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(true);
   const [formSubmissionCount, setFormSubmissionCount] = useState(0);
-
+  const [isRawModalOpen, setIsRawModalOpen] = useState(false);
+  const [rawData, setRawData] = useState<string>('{}');
+  const [rawErrorMessage, setRawErrorMessage] = useState<string>('');
   const toggleDrawer = () => {
     setIsDrawerExpanded(!isDrawerExpanded);
   };
@@ -190,6 +203,12 @@ const Configurator: React.FC = () => {
     setFormSubmissionCount((count) => count + 1);
   }, [activeItem, schemas]);
 
+  useEffect(() => {
+    if (activeItem && schemas[activeItem]) {
+      setRawData(JSON.stringify(formData[activeItem], null, 2));
+    }
+  }, [activeItem]);
+
   const panelContent = (
     <DrawerPanelContent style={{ backgroundColor: '#212427' }}>
       <div style={{
@@ -246,6 +265,77 @@ const Configurator: React.FC = () => {
       width: '100%',
     }}
     >
+      <Modal
+        isOpen={isRawModalOpen}
+        aria-label="Raw edit modal"
+        onClose={() => setIsRawModalOpen(false)}
+        onEscapePress={() => setIsRawModalOpen(false)}
+        disableFocusTrap
+        style={{ color: isDark ? '#EEE' : '#111' }}
+        variant="medium"
+        header={(
+          <Title headingLevel="h1" size="3xl" style={{ color: isDark ? '#EEE' : '#333' }}>
+            {`Edit Raw - ${activeItem ? removeOrg(activeItem) : 'Error - Unknown name'}`}
+          </Title>
+        )}
+        actions={[
+          <Button
+            key="sendbtn"
+            variant="primary"
+            onClick={() => {
+              try {
+                const result = JSON.parse(rawData);
+                handleSubmit(result.config);
+                setIsRawModalOpen(false);
+              } catch (e: any) {
+                console.error('Error parsing JSON:', e);
+                setRawErrorMessage(e.message);
+                addAlert(`Parsing Error: ${e.message}`, AlertVariant.danger);
+              }
+            }}
+          >
+            Send
+          </Button>,
+          <Button
+            key="closebtn"
+            variant="link"
+            onClick={() => setIsRawModalOpen(false)}
+          >
+            Close
+          </Button>,
+        ]}
+      >
+        <AceEditor
+          placeholder="Data"
+          mode="json"
+          theme={isDark ? 'github_dark' : 'github'}
+          name={`ace-editor-${activeItem || 'unknown'}`}
+          fontSize={14}
+          lineHeight={19}
+          showPrintMargin
+          showGutter
+          highlightActiveLine
+          style={{ width: '100%', height: '35rem' }}
+          value={rawData}
+          onChange={(value) => {
+            setRawData(value);
+            try {
+              JSON.parse(value);
+              setRawErrorMessage('');
+            } catch (e: any) {
+              setRawErrorMessage(e.message);
+            }
+          }}
+          enableBasicAutocompletion
+          enableLiveAutocompletion
+          enableSnippets
+          // showLineNumbers
+          tabSize={2}
+        />
+        <p style={{ color: '#EE1111', margin: '0rem' }}>
+          {rawErrorMessage}
+        </p>
+      </Modal>
       <Drawer isExpanded={isDrawerExpanded} position="right">
         <DrawerContent panelContent={panelContent}>
           <DrawerContentBody>
@@ -289,6 +379,13 @@ const Configurator: React.FC = () => {
                       <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem', padding: '0.5rem' }}>
                         {removeOrg(activeItem) || 'Error - Unknown name'}
                       </Title>
+                      <Button
+                        variant="tertiary"
+                        onClick={() => setIsRawModalOpen(true)}
+                        style={{ marginBottom: '1rem' }}
+                      >
+                        Edit Raw
+                      </Button>
                       <FormGenerator
                         inputSchema={schemas[activeItem]}
                         key={`${activeItem}-form-${formSubmissionCount}`}
