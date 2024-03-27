@@ -357,6 +357,7 @@ const Configurator: React.FC = () => {
           lineHeight={19}
           showGutter
           highlightActiveLine
+          showPrintMargin={false}
           style={{ width: '100%', height: '35rem' }}
           value={rawData}
           onChange={(value) => {
