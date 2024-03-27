@@ -14,6 +14,7 @@ import {
   Modal,
   AlertVariant,
 } from '@patternfly/react-core';
+import { DownloadIcon, UploadIcon } from '@patternfly/react-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './Configurator.css';
@@ -257,6 +258,32 @@ const Configurator: React.FC = () => {
       </div>
     </DrawerPanelContent>
   );
+  function saveRawJSON(data: string) {
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeItem}-${now.toISOString()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function openRawDataJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (event: any) => {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        console.log(e);
+        setRawData(e.target.result);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
 
   return (
     <div style={{
@@ -302,6 +329,22 @@ const Configurator: React.FC = () => {
             onClick={() => setIsRawModalOpen(false)}
           >
             Close
+          </Button>,
+          <Button
+            key="save-btn"
+            variant="plain"
+            onClick={() => saveRawJSON(rawData)}
+          >
+            <DownloadIcon style={{ width: '1.2rem', height: '1.2rem', marginRight: '0.5rem' }} />
+            Save
+          </Button>,
+          <Button
+            key="open-btn"
+            variant="plain"
+            onClick={() => openRawDataJSON()}
+          >
+            <UploadIcon style={{ width: '1.2rem', height: '1.2rem', marginRight: '0.5rem' }} />
+            Open
           </Button>,
         ]}
       >
