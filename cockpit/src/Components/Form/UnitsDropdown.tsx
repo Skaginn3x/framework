@@ -54,6 +54,7 @@ const UnitsDropdown: React.FC<UnitsDropdownProps> = ({
           <FormControl style={{ width: '25%', marginLeft: '0.5rem' }}>
             <InputLabel id="unit-select-label">Unit</InputLabel>
             <Select
+              label="Unit"
               labelId="unit-select-label"
               id="unit-select"
               // eslint-disable-next-line no-underscore-dangle
