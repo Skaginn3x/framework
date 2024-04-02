@@ -284,8 +284,12 @@ public:
 
     // Reset no data bit
     no_data_ = false;
+    // clang-format off
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    // clang-format on
     const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
     output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
+    PRAGMA_CLANG_WARNING_POP
 
     // Check if the drive is in error state
     auto state = in->status_word.parse_state();
