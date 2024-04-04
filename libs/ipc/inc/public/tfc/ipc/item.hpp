@@ -163,6 +163,8 @@ static_assert(damaged.to_int() == 20093);
 static_assert(damaged == species::from_int(damaged.to_int()));
 static_assert(gigolo.to_int() == 22172);
 static_assert(gigolo == species::from_int(gigolo.to_int()));
+static_assert(empty == species::from_int(empty.to_int()));
+static_assert(empty.to_int() == 20831);
 
 }  // namespace test
 
