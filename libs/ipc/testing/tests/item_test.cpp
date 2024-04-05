@@ -1,5 +1,7 @@
 #include <tfc/ipc/item.hpp>
 
+#include <string>
+#include <cstdint>
 #include <fmt/core.h>
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
@@ -37,6 +39,13 @@ auto main(int, char**) -> int {
     // last_exchange is updated when from_json is called
     expect(item.id() == remake.id());
     expect(item.entry_timestamp == remake.entry_timestamp);
+  };
+  struct fao {
+    std::string marking;
+    std::uint16_t numbering;
+  };
+  "full database verification"_test = [](){
+    glz::read_csv();
   };
 
   return 0;

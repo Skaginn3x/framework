@@ -71,7 +71,18 @@ namespace fao {
 struct species {
   bool outside_spec{ false };  // if struct is used for outside the specification, represented with `!` as first character
   tfc::stx::basic_fixed_string<char, 3> code{};
-
+  static constexpr auto from_3a(const std::string_view markedCode) -> std::optional<species> {
+    if (markedCode.length() != 3 && markedCode.length() != 4) {
+      return std::nullopt;
+    }
+    if (markedCode.length() == 4){
+      if (markedCode[0] != '!') {
+        return std::nullopt;
+      }
+      return species{.outside_spec = true, .code = {markedCode[1], markedCode[2], markedCode[3]}};
+    }
+    return species{.outside_spec = false, .code = {markedCode[0], markedCode[1], markedCode[2]}};
+  }
   static constexpr auto from_int(std::uint16_t input) -> std::optional<species> {
     species res{};
     if (input >= offset) {
