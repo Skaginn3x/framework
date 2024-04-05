@@ -8,9 +8,10 @@
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "158a95b4f5741535452360cf3af74e0982612737",
+      "baseline": "1fdcdb95a02b35164c459fbd40f609a62c4cb1ed",
       "packages": [
-        "sdbusplus"
+        "sdbusplus",
+        "liblzma"
       ]
     }
   ],
