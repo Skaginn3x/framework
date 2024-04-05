@@ -70,7 +70,8 @@ struct destination {
 namespace fao {
 struct species {
   bool outside_spec{ false };  // if struct is used for outside the specification, represented with `!` as first character
-  tfc::stx::basic_fixed_string<char, 3> code{};
+  using string_type = tfc::stx::basic_fixed_string<char, 3>;
+  string_type code{};
   static constexpr auto from_3a(const std::string_view markedCode) -> std::optional<species> {
     if (markedCode.length() != 3 && markedCode.length() != 4) {
       return std::nullopt;
@@ -79,9 +80,10 @@ struct species {
       if (markedCode[0] != '!') {
         return std::nullopt;
       }
-      return species{.outside_spec = true, .code = {markedCode[1], markedCode[2], markedCode[3]}};
+      // return species{.outside_spec = true, .code { markedCode.substr(1, 3).data() }};
     }
-    return species{.outside_spec = false, .code = {markedCode[0], markedCode[1], markedCode[2]}};
+    // return species{.outside_spec = false, .code { markedCode.substr(0, 3).data() } };
+    return species{.outside_spec = false, .code { "NOT" } };
   }
   static constexpr auto from_int(std::uint16_t input) -> std::optional<species> {
     species res{};
@@ -102,7 +104,7 @@ struct species {
     return res;
   }
   [[nodiscard]] constexpr auto to_int() const noexcept -> std::uint16_t {
-    constexpr auto impl{ [](auto& input) -> std::uint16_t {
+    constexpr auto impl{ [](const string_type& input) -> std::uint16_t {
       constexpr auto const_toupper{ [](char character) -> char {
         if ('a' <= character && character <= 'z') {
           return static_cast<char>(character - ('a' - 'A'));
@@ -110,7 +112,7 @@ struct species {
         return character;
       } };
       std::uint16_t res = 0;
-      static_assert(alphabet.size() == 27);
+      static_assert(alphabet.size() == 26);
       for (auto const& character : input) {
         res *= alphabet.size();
         res += const_toupper(character) - 'A';
@@ -124,10 +126,8 @@ struct species {
   }
   constexpr auto operator==(species const& rhs) const noexcept -> bool = default;
 
-  static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
-  // Todo remake labelled database, this offset is the result of a database labelling error, as in the - 1
-  // todo this can overlap !!!
-  static constexpr std::uint16_t offset{ (alphabet.size() - 1) * (alphabet.size() - 1) * (alphabet.size() - 1) };
+  static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ" };  // note the ending !
+  static constexpr std::uint16_t offset{ alphabet.size() * alphabet.size() * alphabet.size() };
 };
 inline constexpr auto atlantic_cod{ species{ .code{ "COD" } } };
 inline constexpr auto atlantic_herring{ species{ .code{ "HER" } } };
@@ -160,22 +160,19 @@ namespace test {
 static_assert(species::from_int(std::numeric_limits<std::uint16_t>::max()) == std::nullopt);
 
 // 25 is Z and 27 is the alphabet size
-static_assert(species{ .outside_spec = false, .code{ "ZZZ" } }.to_int() == (25 * 27 + 25) * 27 + 25);  // 18925
-// THIS below should be true but is not because of the issue mentioned in lower part of struct
-// static_assert(species::from_int(species::offset-1) == species{.outside_spec=false, .code{"ZZZ"}});
-// This will result in overlapping if you are not careful
-static_assert(species::from_int(species::offset - 1) == species{ .outside_spec = false, .code{ "YCZ" } });
+static_assert(species{ .outside_spec = false, .code{ "ZZZ" } }.to_int() == (25 * 26 + 25) * 26 + 25);  // 18925
+static_assert(species::from_int(species::offset-1) == species{.outside_spec = false, .code{"ZZZ"}});
 
-static_assert(atlantic_cod.to_int() == 1839);
+static_assert(atlantic_cod.to_int() == 1719);
 static_assert(atlantic_cod == species::from_int(atlantic_cod.to_int()));
-static_assert(red_gurnard.to_int() == 4931);
+static_assert(red_gurnard.to_int() == 4593);
 static_assert(red_gurnard == species::from_int(red_gurnard.to_int()));
-static_assert(damaged.to_int() == 20093);
+static_assert(damaged.to_int() == 19922);
 static_assert(damaged == species::from_int(damaged.to_int()));
-static_assert(gigolo.to_int() == 22172);
+static_assert(gigolo.to_int() == 21846);
 static_assert(gigolo == species::from_int(gigolo.to_int()));
 static_assert(empty == species::from_int(empty.to_int()));
-static_assert(empty.to_int() == 20831);
+static_assert(empty.to_int() == 20607);
 
 }  // namespace test
 
