@@ -34,14 +34,14 @@ RUN ln -sf /usr/include/aarch64-linux-gnu /cpproot/include/aarch64-linux-gnu
 RUN ln -sf /usr/lib/aarch64-linux-gnu /cpproot/lib/aarch64-linux-gnu
 
 COPY install-cmake.sh /tmp/
-RUN ./install-cmake.sh 3.28.1
+RUN ./install-cmake.sh 3.29.0
 
 COPY build-ninja.sh /tmp/
 RUN ./build-ninja.sh 1.11.1
 
 # This has to happen after gcc-13 and cmake
 COPY build-mold.sh /tmp/
-RUN ./build-mold.sh 2.4.0
+RUN ./build-mold.sh 2.30.0
 
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 
@@ -73,11 +73,11 @@ RUN apt clean all
 RUN rm -rf /var/lib/apt/lists/*
 RUN rm -rf /tmp/*
 
-FROM gcc-13 as clang-17
+FROM gcc-13 as clang-18
 
 COPY shared.sh /tmp/
 COPY build-clang.sh /tmp/
-RUN ./build-clang.sh 17.0.6
+RUN ./build-clang.sh 18.1.2
 
 #ENV CC=clang
 #ENV CXX=clang++
@@ -94,14 +94,14 @@ RUN apt clean all
 RUN rm -rf /var/lib/apt/lists/*
 RUN rm -rf /tmp/*
 
-FROM clang-17 as packaging
+FROM clang-18 as packaging
 
 # Why does nodejs need gcc, relates to atomic but atomic only is not enough why?
 RUN apt update && apt install -y --no-install-recommends libatomic1
 
 COPY build-node.sh /tmp/
 COPY ./shared.sh /tmp/
-RUN ./build-node.sh 21.1.0
+RUN ./build-node.sh 21.7.1
 
 # THIS is so much crap, boost-build vcpkg port strictly requires gcc, need to fix port to bypass
 #RUN apt remove -y gcc
