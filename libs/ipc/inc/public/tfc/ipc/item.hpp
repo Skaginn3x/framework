@@ -81,7 +81,7 @@ struct species {
       if (markedCode[0] != '!') {
         return std::nullopt;
       }
-      ret_value.outside_spec = true; // .code { markedCode.substr(1, 3).data() }};
+      ret_value.outside_spec = true;
       for (unsigned int i = 0; i < 3; i++){
         ret_value.code[i] = markedCode[i+1];
       }
