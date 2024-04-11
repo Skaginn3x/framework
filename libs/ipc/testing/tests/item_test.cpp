@@ -6,8 +6,6 @@
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
 
-static constexpr std::string_view fao_database_location = FAO_DATABASE_LOCATION;
-
 auto main(int, char**) -> int {
   namespace ut = boost::ut;
 
@@ -42,7 +40,6 @@ auto main(int, char**) -> int {
     expect(item.id() == remake.id());
     expect(item.entry_timestamp == remake.entry_timestamp);
   };
-  std::cout << fao_database_location << std::endl;
   // "full database verification"_test = [](){
   //   std::ifstream fin(fao_database_location);
   //   std::string mark;
@@ -64,8 +61,8 @@ auto main(int, char**) -> int {
       using tfc::ipc::item::fao::species;
       auto item_from_int = species::from_int(i);
       ut::expect(item_from_int.has_value());
-      ut::expect(i == item_from_int->to_int());
-      ut::expect(species::from_3a(item_from_int->code.view()).value() == item_from_int.value());
+      ut::expect(i == item_from_int->to_int()) << " i: " << i << " gen i: " << item_from_int->to_int() << " ";
+      ut::expect(species::from_3a(item_from_int->code.view()).value() == item_from_int.value()) << " i: " << species::from_3a(item_from_int->code.view()).value().to_int() << " gen i: " << item_from_int->to_int() << " ";
     }
   };
   return 0;

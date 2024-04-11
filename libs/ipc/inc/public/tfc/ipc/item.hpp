@@ -73,6 +73,7 @@ struct species {
   using string_type = tfc::stx::basic_fixed_string<char, 3>;
   string_type code{};
   static constexpr auto from_3a(const std::string_view markedCode) -> std::optional<species> {
+    species ret_value;
     if (markedCode.length() != 3 && markedCode.length() != 4) {
       return std::nullopt;
     }
@@ -80,10 +81,17 @@ struct species {
       if (markedCode[0] != '!') {
         return std::nullopt;
       }
-      // return species{.outside_spec = true, .code { markedCode.substr(1, 3).data() }};
+      ret_value.outside_spec = true; // .code { markedCode.substr(1, 3).data() }};
+      for (unsigned int i = 0; i < 3; i++){
+        ret_value.code[i] = markedCode[i+1];
+      }
+      return ret_value;
     }
-    // return species{.outside_spec = false, .code { markedCode.substr(0, 3).data() } };
-    return species{.outside_spec = false, .code { "NOT" } };
+    ret_value.outside_spec = false;
+    for (unsigned int i = 0; i < 3; i++){
+      ret_value.code[i] = markedCode[i];
+    }
+    return ret_value;
   }
   static constexpr auto from_int(std::uint16_t input) -> std::optional<species> {
     species res{};
@@ -96,6 +104,10 @@ struct species {
       --cnt;
       res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
+    }
+    while(cnt > 0){
+      --cnt;
+      res.code[cnt] = 'A';
     }
     if (input != 0) {
       // remainder is left so the input was too big
@@ -173,6 +185,9 @@ static_assert(gigolo.to_int() == 21846);
 static_assert(gigolo == species::from_int(gigolo.to_int()));
 static_assert(empty == species::from_int(empty.to_int()));
 static_assert(empty.to_int() == 20607);
+
+static_assert(species{.code = "AZS"}.to_int() == 668);
+static_assert(species::from_int(668)->code == stx::basic_fixed_string<char, 3>("AZS"));
 
 }  // namespace test
 
