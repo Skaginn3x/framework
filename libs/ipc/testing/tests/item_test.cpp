@@ -1,10 +1,10 @@
 #include <tfc/ipc/item.hpp>
 
-#include <string>
-#include <cstdint>
 #include <fmt/core.h>
 #include <boost/ut.hpp>
+#include <cstdint>
 #include <glaze/glaze.hpp>
+#include <string>
 
 auto main(int, char**) -> int {
   namespace ut = boost::ut;
@@ -41,17 +41,19 @@ auto main(int, char**) -> int {
     expect(item.entry_timestamp == remake.entry_timestamp);
   };
   "Fish species is transitive"_test = [] {
-    for(std::uint16_t i = 0; i < 17576; i++){
+    for (std::uint16_t i = 0; i < 17576; i++) {
       using tfc::ipc::item::fao::species;
       auto item_from_int = species::from_int(i);
       ut::expect(item_from_int.has_value());
       ut::expect(i == item_from_int->to_int()) << " i: " << i << " gen i: " << item_from_int->to_int() << " ";
-      ut::expect(species::from_3a(item_from_int->code.view()).value() == item_from_int.value()) << " i: " << species::from_3a(item_from_int->code.view()).value().to_int() << " gen i: " << item_from_int->to_int() << " ";
+      ut::expect(species::from_3a(item_from_int->code.view()).value() == item_from_int.value())
+          << " i: " << species::from_3a(item_from_int->code.view()).value().to_int() << " gen i: " << item_from_int->to_int()
+          << " ";
     }
   };
-  "full database verification"_test = [](){
-    //TODO: Add static asserts here that verify the results from our species encoder
-    // against our implementation in python
+  "full database verification"_test = []() {
+    // TODO: Add static asserts here that verify the results from our species encoder
+    //  against our implementation in python
     ut::expect(true);
   };
   return 0;

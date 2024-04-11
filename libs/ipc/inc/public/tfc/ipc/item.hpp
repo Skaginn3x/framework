@@ -77,18 +77,18 @@ struct species {
     if (markedCode.length() != 3 && markedCode.length() != 4) {
       return std::nullopt;
     }
-    if (markedCode.length() == 4){
+    if (markedCode.length() == 4) {
       if (markedCode[0] != '!') {
         return std::nullopt;
       }
       ret_value.outside_spec = true;
-      for (unsigned int i = 0; i < 3; i++){
-        ret_value.code[i] = markedCode[i+1];
+      for (unsigned int i = 0; i < 3; i++) {
+        ret_value.code[i] = markedCode[i + 1];
       }
       return ret_value;
     }
     ret_value.outside_spec = false;
-    for (unsigned int i = 0; i < 3; i++){
+    for (unsigned int i = 0; i < 3; i++) {
       ret_value.code[i] = markedCode[i];
     }
     return ret_value;
@@ -105,7 +105,7 @@ struct species {
       res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
     }
-    while(cnt > 0){
+    while (cnt > 0) {
       --cnt;
       res.code[cnt] = 'A';
     }
@@ -173,7 +173,7 @@ static_assert(species::from_int(std::numeric_limits<std::uint16_t>::max()) == st
 
 // 25 is Z and 27 is the alphabet size
 static_assert(species{ .outside_spec = false, .code{ "ZZZ" } }.to_int() == (25 * 26 + 25) * 26 + 25);  // 18925
-static_assert(species::from_int(species::offset-1) == species{.outside_spec = false, .code{"ZZZ"}});
+static_assert(species::from_int(species::offset - 1) == species{ .outside_spec = false, .code{ "ZZZ" } });
 
 static_assert(atlantic_cod.to_int() == 1719);
 static_assert(atlantic_cod == species::from_int(atlantic_cod.to_int()));
@@ -186,7 +186,7 @@ static_assert(gigolo == species::from_int(gigolo.to_int()));
 static_assert(empty == species::from_int(empty.to_int()));
 static_assert(empty.to_int() == 20607);
 
-static_assert(species{.code = "AZS"}.to_int() == 668);
+static_assert(species{ .code = "AZS" }.to_int() == 668);
 static_assert(species::from_int(668)->code == stx::basic_fixed_string<char, 3>("AZS"));
 
 }  // namespace test
