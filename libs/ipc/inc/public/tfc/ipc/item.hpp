@@ -72,24 +72,24 @@ struct species {
   bool outside_spec{ false };  // if struct is used for outside the specification, represented with `!` as first character
   using string_type = tfc::stx::basic_fixed_string<char, 3>;
   string_type code{};
-  static constexpr auto from_3a(const std::string_view markedCode) -> std::optional<species> {
+  static constexpr auto from_3a(const std::string_view marked_code) -> std::optional<species> {
     species ret_value;
-    if (markedCode.length() != 3 && markedCode.length() != 4) {
+    if (marked_code.length() != 3 && marked_code.length() != 4) {
       return std::nullopt;
     }
-    if (markedCode.length() == 4) {
-      if (markedCode[0] != '!') {
+    if (marked_code.length() == 4) {
+      if (marked_code[0] != '!') {
         return std::nullopt;
       }
       ret_value.outside_spec = true;
       for (unsigned int i = 0; i < 3; i++) {
-        ret_value.code[i] = markedCode[i + 1];
+        ret_value.code[i] = marked_code[i + 1];
       }
       return ret_value;
     }
     ret_value.outside_spec = false;
     for (unsigned int i = 0; i < 3; i++) {
-      ret_value.code[i] = markedCode[i];
+      ret_value.code[i] = marked_code[i];
     }
     return ret_value;
   }
@@ -105,6 +105,8 @@ struct species {
       res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
     }
+    // If the string remainder is only as the input value is 0, but
+    // we need to reach our length
     while (cnt > 0) {
       --cnt;
       res.code[cnt] = 'A';
