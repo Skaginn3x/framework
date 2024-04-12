@@ -138,7 +138,7 @@ struct species {
   }
   constexpr auto operator==(species const& rhs) const noexcept -> bool = default;
 
-  static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ" };  // note the ending !
+  static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
   static constexpr std::uint16_t offset{ alphabet.size() * alphabet.size() * alphabet.size() };
 };
 inline constexpr auto atlantic_cod{ species{ .code{ "COD" } } };
