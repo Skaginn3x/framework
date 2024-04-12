@@ -186,7 +186,7 @@ static_assert(gigolo == species::from_int(gigolo.to_int()));
 static_assert(empty == species::from_int(empty.to_int()));
 static_assert(empty.to_int() == 20607);
 
-static_assert(species{ .code = "AZS" }.to_int() == 668);
+static_assert(species::from_3a("AZS")->to_int() == 668);
 static_assert(species::from_int(668)->code == stx::basic_fixed_string<char, 3>("AZS"));
 
 }  // namespace test

@@ -18,7 +18,7 @@ target_link_libraries(ipc_test PRIVATE Boost::ut tfc::ipc tfc::base)
 add_test(NAME ipc_test COMMAND ipc_test)
 
 add_executable(item_test item_test.cpp)
-target_link_libraries(item_test PRIVATE Boost::ut tfc::ipc tfc::base)
+target_link_libraries(item_test PRIVATE Boost::ut tfc::ipc tfc::base tfc::stx)
 add_test(NAME item_test COMMAND item_test)
 
 add_executable(filter_test filter_test.cpp)
