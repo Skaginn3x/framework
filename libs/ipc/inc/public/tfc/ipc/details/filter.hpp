@@ -12,6 +12,7 @@
 #include <glaze/core/common.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/stx/glaze_meta.hpp>
@@ -50,6 +51,7 @@ struct filter;
 template <>
 struct filter<filter_e::invert, bool> {
   static constexpr filter_e const_value{ filter_e::invert };
+  constexpr bool operator==(filter const&) const = default;
 
   auto async_process(bool&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -72,6 +74,9 @@ struct filter<filter_e::timer, bool, clock_type> {
   std::chrono::milliseconds time_on{ 0 };
   std::chrono::milliseconds time_off{ 0 };
   static constexpr filter_e type{ filter_e::timer };
+  constexpr bool operator==(filter const& other) const {
+    return time_on == other.time_on && time_off == other.time_off;
+  }
 
   filter() = default;
   // if the filter is moved everything is moved
@@ -149,6 +154,7 @@ template <typename value_t>
 struct filter<filter_e::offset, value_t> {
   value_t offset{};
   static constexpr filter_e type{ filter_e::offset };
+  constexpr bool operator==(filter const&) const = default;
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -172,6 +178,7 @@ template <typename value_t>
 struct filter<filter_e::multiply, value_t> {
   value_t multiply{};
   static constexpr filter_e type{ filter_e::multiply };
+  constexpr bool operator==(filter const&) const = default;
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -194,6 +201,7 @@ template <typename value_t>
 struct filter<filter_e::filter_out, value_t> {
   value_t filter_out{};
   static constexpr filter_e type{ filter_e::filter_out };
+  constexpr bool operator==(filter const&) const = default;
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     auto executor{ asio::get_associated_executor(completion_token) };
@@ -270,13 +278,15 @@ public:
 
   filters(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view key, tfc::stx::invocable<value_t> auto&& callback)
       : ctx_{ connection->get_io_context() }, filters_{ connection, fmt::format("{}.Filter", key) },
-        callback_{ std::forward<decltype(callback)>(callback) } {}
+        callback_{ std::forward<decltype(callback)>(callback) } {
+    filters_->observe(std::bind_front(&filters::config_updated, this));
+  }
 
   /// \brief changes internal last_value state when filters have been processed
   void operator()(auto&& value)
     requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
   {
-    if (filters_->empty()) {
+    if (filters_->value().empty()) {
       last_value_ = std::forward<decltype(value)>(value);
       std::invoke(callback_, last_value_.value());
       return;
@@ -285,7 +295,7 @@ public:
     asio::co_spawn(
         ctx_,
         [this, return_val = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
-          for (auto const& filter : filters_.value()) {
+          for (auto const& filter : filters_->value()) {
             // move the value into the filter and the filter will return the value modified or not
             return_val = co_await std::visit(
                 [return_v = std::move(return_val)](auto&& arg) mutable -> auto {  // mutable to move return_value
@@ -312,6 +322,26 @@ public:
         });
   }
 
+  void config_updated(config_t const& new_filters, config_t const& old_filters) {
+    auto constexpr count_invert = [](auto const& filters) {
+      return std::count_if(filters.begin(), filters.end(), [](auto const& filt) {
+        return std::holds_alternative<filter<filter_e::invert, value_t>>(filt);
+      });
+    };
+    auto const old_filters_invert_count = count_invert(old_filters);
+    auto const new_filters_invert_count = count_invert(new_filters);
+    // check if invert count diff is odd number, if so we need to reprocess the last value
+    if (std::abs(new_filters_invert_count - old_filters_invert_count) % 2 == 1 && last_value_.has_value()) {
+      // undo invert filters of last value
+      auto last_inverted_value = last_value_.value();
+      for (auto cnt = 0; cnt < old_filters_invert_count; ++cnt) {
+        last_inverted_value = !last_inverted_value;
+      }
+      // invert filter count has changed, need to reprocess input of last value
+      operator()(last_inverted_value);
+    }
+  }
+
   /// \brief bypass filters and set value directly
   void set(auto&& value)
     requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
@@ -324,7 +354,7 @@ public:
 
 private:
   asio::io_context& ctx_;
-  tfc::confman::config<config_t> filters_;
+  tfc::confman::config<tfc::confman::observable<config_t>> filters_;
   callback_t callback_;
   std::optional<value_t> last_value_{};
 };
