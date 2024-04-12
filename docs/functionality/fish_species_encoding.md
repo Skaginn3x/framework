@@ -10,7 +10,7 @@ to transmit to plc controllers and any other system that requires knowledge
 of the product being processed.
 
 Due to our requirement of plc's having an easy time understanding the
-encoding we limited the size of this integer to 16-bits. This makes it
+encoding, we limited the size of this integer to 16-bits. This makes it
 easier to transmit over modbus and matches the word size for most plc controllers.
 
 ### Examples
