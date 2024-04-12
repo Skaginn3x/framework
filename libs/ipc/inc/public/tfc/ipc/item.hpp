@@ -105,7 +105,7 @@ struct species {
       res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
     }
-    // If the string remainder is only as the input value is 0, but
+    // If the string remainder is only a's the input value is 0, but
     // we need to reach our length
     while (cnt > 0) {
       --cnt;
