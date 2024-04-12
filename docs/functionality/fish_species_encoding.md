@@ -60,7 +60,7 @@ Here is an example for the fish species `HAD`
 
 ## Speciality markings
 Anybody can see from this example and the fact that we limited the size of our integer to ```2^16```
-that there is still some space. We have created `metadata` that can also be sent as a specie.
+that there is still some space. We have created `metadata` that can also be sent as a species.
 
 The highest three letter code we have to create is `ZZZ` with a value of `17575` so the lowest speciality
 code we can use is `17576`. The following metadata has been defined and used in our systems.
