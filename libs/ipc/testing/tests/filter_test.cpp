@@ -17,6 +17,8 @@
 namespace asio = boost::asio;
 namespace ut = boost::ut;
 
+using std::chrono::operator""s;
+
 using tfc::ipc::filter::filter;
 using tfc::ipc::filter::filter_e;
 
@@ -244,6 +246,49 @@ auto main(int, char**) -> int {
         },
         asio::detached);
     ctx.run_one_for(std::chrono::seconds{ 1 });
+  };
+
+  [[maybe_unused]] ut::suite<"filter invert config changes"> invert_config = [] {
+    struct invert_config_test {
+      asio::io_context ctx{};
+      std::shared_ptr<sdbusplus::asio::connection> connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
+      std::shared_ptr<sdbusplus::asio::dbus_interface> interface{ std::make_shared<sdbusplus::asio::dbus_interface>(
+          connection, "/com/skaginn3x/foo", "com.skaginn3x.bar") };
+      std::function<void(bool)> callback{ [](bool) {} };
+      tfc::ipc::filter::filters<bool, decltype(callback), tfc::confman::stub_config<bool>> filters{ interface, callback };
+    };
+    "add invert doesn't call owner when no value has been received"_test = [] {
+      invert_config_test test{ .callback = [](bool) {
+        expect(false);
+      } };
+      {
+        auto config = test.filters.config()->value();
+        config.emplace_back(filter<filter_e::invert, bool>{});
+        test.filters.config().make_change().value() = config;
+      }
+    };
+    "add invert calls owner with inverted value"_test = [] {
+      std::size_t call_count{ 0 };
+      invert_config_test test{ .callback = [&call_count](bool value) {
+        if (call_count == 0) {
+          expect(!value); // initialize value
+        }
+        else {
+          expect(value);
+        }
+        call_count++;
+      } };
+      test.filters(false); // initial value
+      test.ctx.run_one_for(1s);
+      test.ctx.run_one_for(1s);
+      expect(call_count == 1);
+      {
+        auto config = test.filters.config()->value();
+        config.emplace_back(filter<filter_e::invert, bool>{});
+        test.filters.config().make_change().value() = config;
+      }
+      expect(call_count == 2);
+    };
   };
 
   return 0;
