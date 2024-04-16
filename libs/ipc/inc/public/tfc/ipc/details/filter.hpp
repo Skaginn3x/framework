@@ -69,8 +69,8 @@ struct filter<filter_e::invert, bool> {
 
 /// \brief behaviour time on delay and or time off delay
 /// \note IMPORTANT: delay changes take effect on next event
-template <typename clock_type>  // example std::chrono::steady_clock
-struct filter<filter_e::timer, bool, clock_type> {
+template <typename timer_type>  // example asio::steady_timer
+struct filter<filter_e::timer, bool, timer_type> {
   std::chrono::milliseconds time_on{ 0 };
   std::chrono::milliseconds time_off{ 0 };
   static constexpr filter_e type{ filter_e::timer };
@@ -124,7 +124,7 @@ struct filter<filter_e::timer, bool, clock_type> {
             return;
           }
           auto executor = asio::get_associated_executor(self);
-          timer_ = asio::basic_waitable_timer<clock_type>{ executor };
+          timer_ = timer_type{ executor };
           timer_->expires_after(timeout);
           // moving self makes this callback be called once again when expiry is reached or timer is cancelled
           timer_->async_wait(std::move(self));
@@ -134,11 +134,11 @@ struct filter<filter_e::timer, bool, clock_type> {
 
 private:
   // mutable is required since async_process is const
-  mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
+  mutable std::optional<timer_type> timer_{ std::nullopt };
 
 public:
   struct glaze {
-    using type = filter<filter_e::timer, bool, clock_type>;
+    using type = filter;
     static constexpr std::string_view name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
@@ -248,7 +248,7 @@ struct any_filter_decl;
 template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
-  using type = std::variant<filter<filter_e::invert, value_t>, filter<filter_e::timer, value_t, std::chrono::steady_clock>>;
+  using type = std::variant<filter<filter_e::invert, value_t>, filter<filter_e::timer, value_t, asio::steady_timer>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
