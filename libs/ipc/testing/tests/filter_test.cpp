@@ -170,6 +170,7 @@ auto main(int, char**) -> int {
     ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
     // not exactly sure why there are two events here.
     ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
+    ctx.run_one_for(std::chrono::seconds{ 1 });  // poll timer once more, `now` should be at this moment
     // now the callback should have been called
     expect(finished);
   } | std::vector{ true, false };
@@ -252,10 +253,8 @@ auto main(int, char**) -> int {
     struct invert_config_test {
       asio::io_context ctx{};
       std::shared_ptr<sdbusplus::asio::connection> connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
-      std::shared_ptr<sdbusplus::asio::dbus_interface> interface{ std::make_shared<sdbusplus::asio::dbus_interface>(
-          connection, "/com/skaginn3x/foo", "com.skaginn3x.bar") };
       std::function<void(bool)> callback{ [](bool) {} };
-      tfc::ipc::filter::filters<bool, decltype(callback), tfc::confman::stub_config<bool>> filters{ interface, callback };
+      tfc::ipc::filter::filters<bool, decltype(callback), tfc::confman::stub_config<tfc::ipc::filter::observable_config_t<bool>>> filters{ connection, "foo", callback };
     };
     "add invert doesn't call owner when no value has been received"_test = [] {
       invert_config_test test{ .callback = [](bool) {
@@ -287,6 +286,8 @@ auto main(int, char**) -> int {
         config.emplace_back(filter<filter_e::invert, bool>{});
         test.filters.config().make_change().value() = config;
       }
+      test.ctx.run_one_for(1s);
+      test.ctx.run_one_for(1s);
       expect(call_count == 2);
     };
   };

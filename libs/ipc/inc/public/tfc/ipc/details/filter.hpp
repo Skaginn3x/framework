@@ -285,8 +285,10 @@ using any_filter_decl_t = any_filter_decl<value_t>::type;
 
 template <typename value_t>
 using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
+template <typename value_t>
+using observable_config_t = tfc::confman::observable<config_t<value_t>>;
 
-template <typename value_t, tfc::stx::invocable<value_t> callback_t, typename confman_t = tfc::confman::config<config_t<value_t>>>
+template <typename value_t, tfc::stx::invocable<value_t> callback_t, typename confman_t = tfc::confman::config<observable_config_t<value_t>>>
 class filters {
 public:
   filters(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view key, tfc::stx::invocable<value_t> auto&& callback)
@@ -358,7 +360,7 @@ public:
   }
 
   // solely for testing
-  [[nodiscard]] auto config() noexcept -> auto& {
+  [[nodiscard]] auto config() noexcept -> confman_t& {
     return filters_;
   }
 
