@@ -27,3 +27,6 @@ add_test(NAME filter_test COMMAND filter_test)
 
 add_executable(generate_python_unit_test generate_python_unit_test.cpp)
 target_link_libraries(generate_python_unit_test PRIVATE tfc::ipc)
+
+add_executable(enums_test enums_test.cpp)
+target_link_libraries(enums_test PRIVATE Boost::ut tfc::ipc tfc::base tfc::testing tfc::stub_confman)

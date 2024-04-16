@@ -38,7 +38,10 @@ struct meta<tfc::ipc::details::type_e> {
     tfc::ipc::details::type_e_iterable[std::to_underlying(_double_t)], _double_t, "Double",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_string)], _string, "String",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_json)], _json, "Json",
-    tfc::ipc::details::type_e_iterable[std::to_underlying(_mass)], _mass, "Mass in milligrams"
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_mass)], _mass, "Mass in milligrams",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_length)], _length, "Length in micrometers",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_pressure)], _pressure, "Pressure in millipascals",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_temperature)], _temperature, "Temperature in microkelvin"
   ) };
   // clang-format on
 };
@@ -62,6 +65,22 @@ struct meta<tfc::ipc::details::mass_error_e> {
     ) };
   // clang-format on
   static constexpr std::string_view name{ "ipc::mass_error_e" };
+};
+
+template <>
+struct meta<tfc::ipc::details::sensor_error_e> {
+  using enum tfc::ipc::details::sensor_error_e;
+  // clang-format off
+  static auto constexpr value{ glz::enumerate(
+    "no_error", no_error, "Not an error",
+    "sensor_fault", sensor_fault, "General sensor fault",
+    "over_range", over_range, "Over range",
+    "under_range", under_range, "Under range",
+    "bad_connection", bad_connection, "Bad connection to module",
+    "unknown_error", unknown_error, "Unknown error"
+    ) };
+  // clang-format on
+  static constexpr std::string_view name{ "ipc::sensor_error_e" };
 };
 
 }  // namespace glz

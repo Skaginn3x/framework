@@ -36,15 +36,10 @@ auto main(int argc, char** argv) -> int {
   /// Raw dbus connection, ipc_client also has a dbus connection which can be used through ipc_client.connection()
   auto const dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
 
-  std::shared_ptr<sdbusplus::asio::dbus_interface> const interface {
-    std::make_shared<sdbusplus::asio::dbus_interface>(dbus_connection,
-                                                      std::string{ tfc::dbus::sml::tags::path },
-                                                      tfc::dbus::make_dbus_name("example_state_machine"))
-  };
+  std::shared_ptr<sdbusplus::asio::dbus_interface> const interface{ std::make_shared<sdbusplus::asio::dbus_interface>(
+      dbus_connection, std::string{ tfc::dbus::sml::tags::path }, tfc::dbus::make_dbus_name("example_state_machine")) };
 
-  tfc::dbus::sml::interface sml_interface {
-    interface, "Log key"
-  };  // optional log key
+  tfc::dbus::sml::interface sml_interface{ interface, "Log key" };  // optional log key
 
   using state_machine_t = boost::sml::sm<control_modes, boost::sml::logger<tfc::dbus::sml::interface> >;
 

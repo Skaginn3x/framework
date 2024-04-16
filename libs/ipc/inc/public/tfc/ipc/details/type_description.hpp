@@ -35,5 +35,13 @@ using type_string = type_description<std::string, type_e::_string>;
 using type_json = type_description<std::string, type_e::_json>;
 using mass_t = std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::gram>, std::int64_t>, mass_error_e>;
 using type_mass = type_description<mass_t, type_e::_mass>;
+using length_t = std::expected<mp_units::quantity<mp_units::si::micro<mp_units::si::metre>, std::int64_t>, sensor_error_e>;
+using type_length = type_description<length_t, type_e::_length>;
+using pressure_t =
+    std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::pascal>, std::int64_t>, sensor_error_e>;
+using type_pressure = type_description<pressure_t, type_e::_pressure>;
+using temperature_t =
+    std::expected<mp_units::quantity<mp_units::si::micro<mp_units::si::kelvin>, std::uint64_t>, sensor_error_e>;
+using type_temperature = type_description<temperature_t, type_e::_temperature>;
 
 }  // namespace tfc::ipc::details

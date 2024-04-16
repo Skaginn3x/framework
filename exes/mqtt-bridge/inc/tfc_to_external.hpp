@@ -55,6 +55,9 @@ public:
       case _json:
         return DataType::String;
       case _mass:
+      case _length:
+      case _pressure:
+      case _temperature:
         return DataType::Template;
     }
     return DataType::Unknown;
