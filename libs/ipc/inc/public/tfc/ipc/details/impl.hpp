@@ -397,6 +397,10 @@ struct make_any_ptr {
         return ipc_base_t<type_pressure>::create(std::forward<decltype(args)>(args)...);
       case type_e::_temperature:
         return ipc_base_t<type_temperature>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_voltage:
+        return ipc_base_t<type_voltage>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_current:
+        return ipc_base_t<type_current>::create(std::forward<decltype(args)>(args)...);
       case type_e::unknown:
         return std::monostate{};
     }
@@ -414,6 +418,8 @@ using mass_signal_ptr = std::shared_ptr<signal<type_mass>>;
 using length_signal_ptr = std::shared_ptr<signal<type_length>>;
 using pressure_signal_ptr = std::shared_ptr<signal<type_pressure>>;
 using temperature_signal_ptr = std::shared_ptr<signal<type_temperature>>;
+using voltage_signal_ptr = std::shared_ptr<signal<type_voltage>>;
+using current_signal_ptr = std::shared_ptr<signal<type_current>>;
 using any_signal = std::variant<std::monostate,
                                 bool_signal_ptr,
                                 int_signal_ptr,
@@ -424,7 +430,9 @@ using any_signal = std::variant<std::monostate,
                                 mass_signal_ptr,
                                 length_signal_ptr,
                                 pressure_signal_ptr,
-                                temperature_signal_ptr>;
+                                temperature_signal_ptr,
+                                voltage_signal_ptr,
+                                current_signal_ptr>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, "name");
 using make_any_signal = make_any_ptr<any_signal, signal>;
 
@@ -438,6 +446,8 @@ using mass_slot_ptr = std::shared_ptr<slot<type_mass>>;
 using length_slot_ptr = std::shared_ptr<slot<type_length>>;
 using pressure_slot_ptr = std::shared_ptr<slot<type_pressure>>;
 using temperature_slot_ptr = std::shared_ptr<slot<type_temperature>>;
+using voltage_slot_ptr = std::shared_ptr<slot<type_voltage>>;
+using current_slot_ptr = std::shared_ptr<slot<type_current>>;
 using any_slot = std::variant<std::monostate,
                               bool_slot_ptr,
                               int_slot_ptr,
@@ -448,7 +458,10 @@ using any_slot = std::variant<std::monostate,
                               mass_slot_ptr,
                               length_slot_ptr,
                               pressure_slot_ptr,
-                              temperature_slot_ptr>;
+                              temperature_slot_ptr,
+                              voltage_slot_ptr,
+
+                              current_slot_ptr>;
 /// \brief any_slot foo = make_any_slot::make(type_e::bool, ctx, "name");
 using make_any_slot = make_any_ptr<any_slot, slot>;
 
@@ -462,6 +475,8 @@ using mass_slot_cb_ptr = std::shared_ptr<slot_callback<type_mass>>;
 using length_slot_cb_ptr = std::shared_ptr<slot_callback<type_length>>;
 using pressure_slot_cb_ptr = std::shared_ptr<slot_callback<type_pressure>>;
 using temperature_slot_cb_ptr = std::shared_ptr<slot_callback<type_temperature>>;
+using voltage_slot_cb_ptr = std::shared_ptr<slot_callback<type_voltage>>;
+using current_slot_cb_ptr = std::shared_ptr<slot_callback<type_current>>;
 using any_slot_cb = std::variant<std::monostate,
                                  bool_slot_cb_ptr,
                                  int_slot_cb_ptr,
@@ -472,7 +487,9 @@ using any_slot_cb = std::variant<std::monostate,
                                  mass_slot_cb_ptr,
                                  length_slot_cb_ptr,
                                  pressure_slot_cb_ptr,
-                                 temperature_slot_cb_ptr>;
+                                 temperature_slot_cb_ptr,
+                                 voltage_slot_cb_ptr,
+                                 current_slot_cb_ptr>;
 /// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
 using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 

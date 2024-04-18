@@ -216,6 +216,8 @@ using mass_slot = slot<details::type_mass>;
 using length_slot = slot<details::type_length>;
 using pressure_slot = slot<details::type_pressure>;
 using temperature_slot = slot<details::type_temperature>;
+using voltage_slot = slot<details::type_voltage>;
+using current_slot = slot<details::type_current>;
 using any_slot = std::variant<std::monostate,
                               bool_slot,
                               int_slot,
@@ -226,7 +228,9 @@ using any_slot = std::variant<std::monostate,
                               mass_slot,
                               length_slot,
                               pressure_slot,
-                              temperature_slot>;
+                              temperature_slot,
+                              voltage_slot,
+                              current_slot>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
 using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client&, slot>;
 
@@ -240,6 +244,8 @@ using mass_signal = signal<details::type_mass>;
 using length_signal = signal<details::type_length>;
 using pressure_signal = signal<details::type_pressure>;
 using temperature_signal = signal<details::type_temperature>;
+using voltage_signal = signal<details::type_voltage>;
+using current_signal = signal<details::type_current>;
 using any_signal = std::variant<std::monostate,
                                 bool_signal,
                                 int_signal,
@@ -250,7 +256,9 @@ using any_signal = std::variant<std::monostate,
                                 mass_signal,
                                 length_signal,
                                 pressure_signal,
-                                temperature_signal>;
+                                temperature_signal,
+                                voltage_signal,
+                                current_signal>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, signal>;
 
@@ -280,6 +288,10 @@ struct make_any {
         return ipc_base_t<details::type_pressure, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case _temperature:
         return ipc_base_t<details::type_temperature, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _voltage:
+        return ipc_base_t<details::type_voltage, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _current:
+        return ipc_base_t<details::type_current, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case unknown:
         return std::monostate{};
     }
