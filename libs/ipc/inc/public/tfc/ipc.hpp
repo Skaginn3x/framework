@@ -216,7 +216,7 @@ using mass_slot = slot<details::type_mass>;
 using length_slot = slot<details::type_length>;
 using pressure_slot = slot<details::type_pressure>;
 using temperature_slot = slot<details::type_temperature>;
-using potential_slot = slot<details::type_potential>;
+using voltage_slot = slot<details::type_voltage>;
 using current_slot = slot<details::type_current>;
 using any_slot = std::variant<std::monostate,
                               bool_slot,
@@ -229,7 +229,7 @@ using any_slot = std::variant<std::monostate,
                               length_slot,
                               pressure_slot,
                               temperature_slot,
-potential_slot,
+voltage_slot,
 current_slot
 >;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
@@ -245,7 +245,7 @@ using mass_signal = signal<details::type_mass>;
 using length_signal = signal<details::type_length>;
 using pressure_signal = signal<details::type_pressure>;
 using temperature_signal = signal<details::type_temperature>;
-using potential_signal = signal<details::type_potential>;
+using voltage_signal = signal<details::type_voltage>;
 using current_signal = signal<details::type_current>;
 using any_signal = std::variant<std::monostate,
                                 bool_signal,
@@ -259,7 +259,7 @@ using any_signal = std::variant<std::monostate,
                                 pressure_signal,
                                 temperature_signal
 ,
-potential_signal,
+voltage_signal,
 current_signal
 >;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
@@ -291,8 +291,8 @@ struct make_any {
         return ipc_base_t<details::type_pressure, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case _temperature:
         return ipc_base_t<details::type_temperature, manager_client_t>{ std::forward<decltype(args)>(args)... };
-      case _potential:
-        return ipc_base_t<details::type_potential, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _voltage:
+        return ipc_base_t<details::type_voltage, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case _current:
         return ipc_base_t<details::type_current, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case unknown:

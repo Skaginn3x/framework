@@ -42,7 +42,7 @@ struct meta<tfc::ipc::details::type_e> {
     tfc::ipc::details::type_e_iterable[std::to_underlying(_length)], _length, "Length in micrometers",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_pressure)], _pressure, "Pressure in millipascals",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_temperature)], _temperature, "Temperature in microkelvin",
-    tfc::ipc::details::type_e_iterable[std::to_underlying(_potential)], _potential, "Potential in nanovolts",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_voltage)], _voltage, "Potential in nanovolts",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_current)], _current, "Current in nanoamperes"
   ) };
   // clang-format on
@@ -86,8 +86,8 @@ struct meta<tfc::ipc::details::sensor_error_e> {
 };
 
 template <>
-struct meta<tfc::ipc::details::potential_error_e> {
-  using enum tfc::ipc::details::potential_error_e;
+struct meta<tfc::ipc::details::voltage_error_e> {
+  using enum tfc::ipc::details::voltage_error_e;
   // clang-format off
   static auto constexpr value{ glz::enumerate(
     "no_error", no_error, "Not an error",

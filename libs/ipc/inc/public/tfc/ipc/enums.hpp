@@ -29,7 +29,7 @@ enum struct type_e : std::uint8_t {
   _length = 8,        // NOLINT
   _pressure = 9,      // NOLINT
   _temperature = 10,  // NOLINT
-  _potential = 11,    // NOLINT
+  _voltage = 11,    // NOLINT
   _current = 12,      // NOLINT
   // TODO: Add
   //  Standard units
@@ -41,7 +41,7 @@ enum struct type_e : std::uint8_t {
 
 static constexpr std::array<std::string_view, 13> type_e_iterable{ "unknown", "bool",     "int64_t",    "uint64_t",
                                                                    "double",  "string",   "json",       "mass",
-                                                                   "length",  "pressure", "temperature", "potential", "current" };
+                                                                   "length",  "pressure", "temperature", "voltage", "current" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];
@@ -80,7 +80,7 @@ enum struct sensor_error_e : std::uint8_t {
 };
 
 // Voltage
-enum struct potential_error_e : std::uint8_t {
+enum struct voltage_error_e : std::uint8_t {
   no_error = 0,
   over_range,
   under_range,
@@ -100,7 +100,7 @@ enum struct current_error_e : std::uint8_t {
 // todo use https://github.com/arturbac/simple_enum/
 auto enum_name(mass_error_e) -> std::string_view;
 auto enum_name(sensor_error_e) -> std::string_view;
-auto enum_name(potential_error_e) -> std::string_view;
+auto enum_name(voltage_error_e) -> std::string_view;
 auto enum_name(current_error_e) -> std::string_view;
 // for fmt
 inline auto format_as(mass_error_e err) -> std::string_view {
@@ -109,7 +109,7 @@ inline auto format_as(mass_error_e err) -> std::string_view {
 inline auto format_as(sensor_error_e err) -> std::string_view {
   return enum_name(err);
 }
-inline auto format_as(potential_error_e err) -> std::string_view {
+inline auto format_as(voltage_error_e err) -> std::string_view {
   return enum_name(err);
 }
 inline auto format_as(current_error_e err) -> std::string_view {

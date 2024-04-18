@@ -58,7 +58,7 @@ public:
       case _length:
       case _pressure:
       case _temperature:
-      case _potential:
+      case _voltage:
       case _current:
         return DataType::Template;
     }

@@ -12,7 +12,7 @@ auto enum_name(sensor_error_e err) -> std::string_view {
   return magic_enum::enum_name(err);
 }
 
-auto enum_name(potential_error_e err) -> std::string_view {
+auto enum_name(voltage_error_e err) -> std::string_view {
   return magic_enum::enum_name(err);
 }
 
