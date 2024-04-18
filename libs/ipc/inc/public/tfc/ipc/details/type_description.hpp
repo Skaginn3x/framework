@@ -40,9 +40,9 @@ using type_length = type_description<length_t, type_e::_length>;
 using pressure_t =
     std::expected<mp_units::quantity<mp_units::si::milli<mp_units::si::pascal>, std::int64_t>, sensor_error_e>;
 using type_pressure = type_description<pressure_t, type_e::_pressure>;
-inline constexpr struct celsius : mp_units::named_unit<mp_units::basic_symbol_text{"°C", "`C"}, mp_units::si::kelvin> {} celsius;
-using temperature_t =
-    std::expected<mp_units::quantity<mp_units::si::micro<celsius>, std::int64_t>, sensor_error_e>;
+inline constexpr struct celsius : mp_units::named_unit<mp_units::basic_symbol_text{ "°C", "`C" }, mp_units::si::kelvin> {
+} celsius;
+using temperature_t = std::expected<mp_units::quantity<mp_units::si::micro<celsius>, std::int64_t>, sensor_error_e>;
 using type_temperature = type_description<temperature_t, type_e::_temperature>;
 using voltage_t = std::expected<mp_units::quantity<mp_units::si::nano<mp_units::si::volt>, std::int64_t>, voltage_error_e>;
 using type_voltage = type_description<voltage_t, type_e::_voltage>;

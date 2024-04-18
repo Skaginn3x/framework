@@ -35,9 +35,8 @@ public:
                                 ipc::signal<ipc::details::type_length, ipc_client_t>,
                                 ipc::signal<ipc::details::type_pressure, ipc_client_t>,
                                 ipc::signal<ipc::details::type_temperature, ipc_client_t>,
-  ipc::signal<ipc::details::type_voltage, ipc_client_t>,
-        ipc::signal<ipc::details::type_current, ipc_client_t>
-  >;
+                                ipc::signal<ipc::details::type_voltage, ipc_client_t>,
+                                ipc::signal<ipc::details::type_current, ipc_client_t> >;
 
   auto create_outward_signals() -> void {
     for (auto const& sig : config_.value().writeable_signals) {

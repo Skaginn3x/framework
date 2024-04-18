@@ -431,9 +431,8 @@ using any_signal = std::variant<std::monostate,
                                 length_signal_ptr,
                                 pressure_signal_ptr,
                                 temperature_signal_ptr,
-voltage_signal_ptr,
-current_signal_ptr
->;
+                                voltage_signal_ptr,
+                                current_signal_ptr>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, "name");
 using make_any_signal = make_any_ptr<any_signal, signal>;
 
@@ -460,10 +459,9 @@ using any_slot = std::variant<std::monostate,
                               length_slot_ptr,
                               pressure_slot_ptr,
                               temperature_slot_ptr,
-voltage_slot_ptr,
+                              voltage_slot_ptr,
 
-current_slot_ptr
->;
+                              current_slot_ptr>;
 /// \brief any_slot foo = make_any_slot::make(type_e::bool, ctx, "name");
 using make_any_slot = make_any_ptr<any_slot, slot>;
 
@@ -490,9 +488,8 @@ using any_slot_cb = std::variant<std::monostate,
                                  length_slot_cb_ptr,
                                  pressure_slot_cb_ptr,
                                  temperature_slot_cb_ptr,
-voltage_slot_cb_ptr,
-current_slot_cb_ptr
->;
+                                 voltage_slot_cb_ptr,
+                                 current_slot_cb_ptr>;
 /// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
 using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 

@@ -115,5 +115,4 @@ struct meta<tfc::ipc::details::current_error_e> {
   static constexpr std::string_view name{ "ipc::current_error_e" };
 };
 
-
 }  // namespace glz

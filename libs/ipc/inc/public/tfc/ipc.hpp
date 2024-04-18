@@ -229,9 +229,8 @@ using any_slot = std::variant<std::monostate,
                               length_slot,
                               pressure_slot,
                               temperature_slot,
-voltage_slot,
-current_slot
->;
+                              voltage_slot,
+                              current_slot>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
 using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client&, slot>;
 
@@ -257,11 +256,9 @@ using any_signal = std::variant<std::monostate,
                                 mass_signal,
                                 length_signal,
                                 pressure_signal,
-                                temperature_signal
-,
-voltage_signal,
-current_signal
->;
+                                temperature_signal,
+                                voltage_signal,
+                                current_signal>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, signal>;
 

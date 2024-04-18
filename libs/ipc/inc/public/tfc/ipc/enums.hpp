@@ -29,7 +29,7 @@ enum struct type_e : std::uint8_t {
   _length = 8,        // NOLINT
   _pressure = 9,      // NOLINT
   _temperature = 10,  // NOLINT
-  _voltage = 11,    // NOLINT
+  _voltage = 11,      // NOLINT
   _current = 12,      // NOLINT
   // TODO: Add
   //  Standard units
@@ -39,9 +39,10 @@ enum struct type_e : std::uint8_t {
   //  _humitidy = 11,
 };
 
-static constexpr std::array<std::string_view, 13> type_e_iterable{ "unknown", "bool",     "int64_t",    "uint64_t",
-                                                                   "double",  "string",   "json",       "mass",
-                                                                   "length",  "pressure", "temperature", "voltage", "current" };
+static constexpr std::array<std::string_view, 13> type_e_iterable{ "unknown", "bool",     "int64_t",     "uint64_t",
+                                                                   "double",  "string",   "json",        "mass",
+                                                                   "length",  "pressure", "temperature", "voltage",
+                                                                   "current" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];
@@ -115,6 +116,5 @@ inline auto format_as(voltage_error_e err) -> std::string_view {
 inline auto format_as(current_error_e err) -> std::string_view {
   return enum_name(err);
 }
-
 
 }  // namespace tfc::ipc::details

@@ -19,7 +19,9 @@ using boost::ut::operator""_test;
 struct operation_mode_test {
   asio::io_context ctx{};
   tfc::app_operation_mode<tfc::ipc::mock_signal, tfc::ipc::mock_slot> app{ ctx };
-  tfc::operation::interface lib{ ctx, "operation", tfc::dbus::make_dbus_process_name() };
+  tfc::operation::interface lib {
+    ctx, "operation", tfc::dbus::make_dbus_process_name()
+  };
   ~operation_mode_test() {
     std::error_code code;
     std::filesystem::remove_all(tfc::base::make_config_file_name("", ""), code);
