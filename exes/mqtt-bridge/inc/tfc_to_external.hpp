@@ -58,6 +58,8 @@ public:
       case _length:
       case _pressure:
       case _temperature:
+      case _potential:
+      case _current:
         return DataType::Template;
     }
     return DataType::Unknown;

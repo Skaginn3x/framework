@@ -41,7 +41,9 @@ struct meta<tfc::ipc::details::type_e> {
     tfc::ipc::details::type_e_iterable[std::to_underlying(_mass)], _mass, "Mass in milligrams",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_length)], _length, "Length in micrometers",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_pressure)], _pressure, "Pressure in millipascals",
-    tfc::ipc::details::type_e_iterable[std::to_underlying(_temperature)], _temperature, "Temperature in microkelvin"
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_temperature)], _temperature, "Temperature in microkelvin",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_potential)], _potential, "Potential in nanovolts",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_current)], _current, "Current in nanoamperes"
   ) };
   // clang-format on
 };
@@ -82,5 +84,36 @@ struct meta<tfc::ipc::details::sensor_error_e> {
   // clang-format on
   static constexpr std::string_view name{ "ipc::sensor_error_e" };
 };
+
+template <>
+struct meta<tfc::ipc::details::potential_error_e> {
+  using enum tfc::ipc::details::potential_error_e;
+  // clang-format off
+  static auto constexpr value{ glz::enumerate(
+    "no_error", no_error, "Not an error",
+    "over_range", over_range, "Over range",
+    "under_range", under_range, "Under range",
+    "short_circuit", short_circuit, "Short circuit",
+    "unknown_error", unknown_error, "Unknown error"
+    ) };
+  // clang-format on
+  static constexpr std::string_view name{ "ipc::potential_error_e" };
+};
+
+template <>
+struct meta<tfc::ipc::details::current_error_e> {
+  using enum tfc::ipc::details::current_error_e;
+  // clang-format off
+  static auto constexpr value{ glz::enumerate(
+    "no_error", no_error, "Not an error",
+    "over_range", over_range, "Over range",
+    "under_range", under_range, "Under range",
+    "short_circuit", short_circuit, "Short circuit",
+    "unknown_error", unknown_error, "Unknown error"
+    ) };
+  // clang-format on
+  static constexpr std::string_view name{ "ipc::current_error_e" };
+};
+
 
 }  // namespace glz

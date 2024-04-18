@@ -29,18 +29,19 @@ enum struct type_e : std::uint8_t {
   _length = 8,        // NOLINT
   _pressure = 9,      // NOLINT
   _temperature = 10,  // NOLINT
+  _potential = 11,    // NOLINT
+  _current = 12,      // NOLINT
   // TODO: Add
   //  Standard units
   //  _duration = 7,
   //  _timepoint = 8,
   //  _velocity = 9,
   //  _humitidy = 11,
-
 };
 
-static constexpr std::array<std::string_view, 11> type_e_iterable{ "unknown", "bool",     "int64_t",    "uint64_t",
+static constexpr std::array<std::string_view, 13> type_e_iterable{ "unknown", "bool",     "int64_t",    "uint64_t",
                                                                    "double",  "string",   "json",       "mass",
-                                                                   "length",  "pressure", "temperature" };
+                                                                   "length",  "pressure", "temperature", "potential", "current" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];
@@ -78,8 +79,29 @@ enum struct sensor_error_e : std::uint8_t {
   unknown_error,
 };
 
+// Voltage
+enum struct potential_error_e : std::uint8_t {
+  no_error = 0,
+  over_range,
+  under_range,
+  short_circuit,
+  unknown_error,
+};
+
+// Ampere
+enum struct current_error_e : std::uint8_t {
+  no_error = 0,
+  over_range,
+  under_range,
+  short_circuit,
+  unknown_error,
+};
+
+// todo use https://github.com/arturbac/simple_enum/
 auto enum_name(mass_error_e) -> std::string_view;
 auto enum_name(sensor_error_e) -> std::string_view;
+auto enum_name(potential_error_e) -> std::string_view;
+auto enum_name(current_error_e) -> std::string_view;
 // for fmt
 inline auto format_as(mass_error_e err) -> std::string_view {
   return enum_name(err);
@@ -87,5 +109,12 @@ inline auto format_as(mass_error_e err) -> std::string_view {
 inline auto format_as(sensor_error_e err) -> std::string_view {
   return enum_name(err);
 }
+inline auto format_as(potential_error_e err) -> std::string_view {
+  return enum_name(err);
+}
+inline auto format_as(current_error_e err) -> std::string_view {
+  return enum_name(err);
+}
+
 
 }  // namespace tfc::ipc::details

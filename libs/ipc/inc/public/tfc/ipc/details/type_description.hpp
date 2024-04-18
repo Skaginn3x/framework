@@ -44,5 +44,9 @@ inline constexpr struct celsius : mp_units::named_unit<mp_units::basic_symbol_te
 using temperature_t =
     std::expected<mp_units::quantity<mp_units::si::micro<celsius>, std::int64_t>, sensor_error_e>;
 using type_temperature = type_description<temperature_t, type_e::_temperature>;
+using potential_t = std::expected<mp_units::quantity<mp_units::si::nano<mp_units::si::volt>, std::int64_t>, potential_error_e>;
+using type_potential = type_description<potential_t, type_e::_potential>;
+using current_T = std::expected<mp_units::quantity<mp_units::si::nano<mp_units::si::ampere>, std::int64_t>, current_error_e>;
+using type_current = type_description<current_T, type_e::_current>;
 
 }  // namespace tfc::ipc::details
