@@ -55,7 +55,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-toolchain
-          push: ${{ github.ref == 'refs/haeds/main' }}
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }},latest
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-toolchain/tfc-toolchain.dockerfile
