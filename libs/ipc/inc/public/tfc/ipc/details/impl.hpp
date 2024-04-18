@@ -391,6 +391,12 @@ struct make_any_ptr {
         return ipc_base_t<type_json>::create(std::forward<decltype(args)>(args)...);
       case type_e::_mass:
         return ipc_base_t<type_mass>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_length:
+        return ipc_base_t<type_length>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_pressure:
+        return ipc_base_t<type_pressure>::create(std::forward<decltype(args)>(args)...);
+      case type_e::_temperature:
+        return ipc_base_t<type_temperature>::create(std::forward<decltype(args)>(args)...);
       case type_e::unknown:
         return std::monostate{};
     }
@@ -405,14 +411,20 @@ using double_signal_ptr = std::shared_ptr<signal<type_double>>;
 using string_signal_ptr = std::shared_ptr<signal<type_string>>;
 using json_signal_ptr = std::shared_ptr<signal<type_json>>;
 using mass_signal_ptr = std::shared_ptr<signal<type_mass>>;
-using any_signal = std::variant<std::monostate,     //
-                                bool_signal_ptr,    //
-                                int_signal_ptr,     //
-                                uint_signal_ptr,    //
-                                double_signal_ptr,  //
-                                string_signal_ptr,  //
+using length_signal_ptr = std::shared_ptr<signal<type_length>>;
+using pressure_signal_ptr = std::shared_ptr<signal<type_pressure>>;
+using temperature_signal_ptr = std::shared_ptr<signal<type_temperature>>;
+using any_signal = std::variant<std::monostate,
+                                bool_signal_ptr,
+                                int_signal_ptr,
+                                uint_signal_ptr,
+                                double_signal_ptr,
+                                string_signal_ptr,
                                 json_signal_ptr,
-                                mass_signal_ptr>;
+                                mass_signal_ptr,
+                                length_signal_ptr,
+                                pressure_signal_ptr,
+                                temperature_signal_ptr>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, "name");
 using make_any_signal = make_any_ptr<any_signal, signal>;
 
@@ -423,14 +435,20 @@ using double_slot_ptr = std::shared_ptr<slot<type_double>>;
 using string_slot_ptr = std::shared_ptr<slot<type_string>>;
 using json_slot_ptr = std::shared_ptr<slot<type_json>>;
 using mass_slot_ptr = std::shared_ptr<slot<type_mass>>;
-using any_slot = std::variant<std::monostate,   //
-                              bool_slot_ptr,    //
-                              int_slot_ptr,     //
-                              uint_slot_ptr,    //
-                              double_slot_ptr,  //
-                              string_slot_ptr,  //
+using length_slot_ptr = std::shared_ptr<slot<type_length>>;
+using pressure_slot_ptr = std::shared_ptr<slot<type_pressure>>;
+using temperature_slot_ptr = std::shared_ptr<slot<type_temperature>>;
+using any_slot = std::variant<std::monostate,
+                              bool_slot_ptr,
+                              int_slot_ptr,
+                              uint_slot_ptr,
+                              double_slot_ptr,
+                              string_slot_ptr,
                               json_slot_ptr,
-                              mass_slot_ptr>;
+                              mass_slot_ptr,
+                              length_slot_ptr,
+                              pressure_slot_ptr,
+                              temperature_slot_ptr>;
 /// \brief any_slot foo = make_any_slot::make(type_e::bool, ctx, "name");
 using make_any_slot = make_any_ptr<any_slot, slot>;
 
@@ -441,14 +459,20 @@ using double_slot_cb_ptr = std::shared_ptr<slot_callback<type_double>>;
 using string_slot_cb_ptr = std::shared_ptr<slot_callback<type_string>>;
 using json_slot_cb_ptr = std::shared_ptr<slot_callback<type_json>>;
 using mass_slot_cb_ptr = std::shared_ptr<slot_callback<type_mass>>;
-using any_slot_cb = std::variant<std::monostate,      //
-                                 bool_slot_cb_ptr,    //
-                                 int_slot_cb_ptr,     //
-                                 uint_slot_cb_ptr,    //
-                                 double_slot_cb_ptr,  //
-                                 string_slot_cb_ptr,  //
+using length_slot_cb_ptr = std::shared_ptr<slot_callback<type_length>>;
+using pressure_slot_cb_ptr = std::shared_ptr<slot_callback<type_pressure>>;
+using temperature_slot_cb_ptr = std::shared_ptr<slot_callback<type_temperature>>;
+using any_slot_cb = std::variant<std::monostate,
+                                 bool_slot_cb_ptr,
+                                 int_slot_cb_ptr,
+                                 uint_slot_cb_ptr,
+                                 double_slot_cb_ptr,
+                                 string_slot_cb_ptr,
                                  json_slot_cb_ptr,
-                                 mass_slot_cb_ptr>;
+                                 mass_slot_cb_ptr,
+                                 length_slot_cb_ptr,
+                                 pressure_slot_cb_ptr,
+                                 temperature_slot_cb_ptr>;
 /// \brief any_slot_cb foo = make_any_slot_cb::make(type_e::bool, ctx, "name", [](bool new_state){});
 using make_any_slot_cb = make_any_ptr<any_slot_cb, slot_callback>;
 
