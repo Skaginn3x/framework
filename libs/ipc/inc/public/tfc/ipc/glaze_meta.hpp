@@ -41,7 +41,7 @@ struct meta<tfc::ipc::details::type_e> {
     tfc::ipc::details::type_e_iterable[std::to_underlying(_mass)], _mass, "Mass in milligrams",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_length)], _length, "Length in micrometers",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_pressure)], _pressure, "Pressure in millipascals",
-    tfc::ipc::details::type_e_iterable[std::to_underlying(_temperature)], _temperature, "Temperature in microkelvin",
+    tfc::ipc::details::type_e_iterable[std::to_underlying(_temperature)], _temperature, "Temperature in microcelsius",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_voltage)], _voltage, "Potential in nanovolts",
     tfc::ipc::details::type_e_iterable[std::to_underlying(_current)], _current, "Current in nanoamperes"
   ) };
