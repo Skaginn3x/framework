@@ -23,10 +23,11 @@ template <typename manager_client_type,
           std::array<std::size_t, size> entries,
           uint32_t pc,
           tfc::stx::basic_fixed_string name>
-class el2xxx final : public base {
+class el2xxx final : public base<el2xxx<manager_client_type, size, entries, pc, name>> {
 public:
   static_assert(size == 4 || size == 8 || size == 16, "Invalid size");
   el2xxx(asio::io_context& ctx, manager_client_type& client, uint16_t slave_index);
+  using output_pdo = std::array<std::uint8_t, (size / 9) + 1>;
 
   static constexpr auto size_v = size;
   static constexpr auto entries_v = entries;
@@ -34,14 +35,13 @@ public:
   static constexpr auto product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
-  void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept override;
+  void pdo_cycle(std::span<std::uint8_t>, output_pdo& output) noexcept;
 
   auto set_output(size_t position, bool value) -> void { output_states_.set(position, value); }
 
 private:
   std::bitset<size> output_states_;
   std::vector<std::shared_ptr<ipc::slot<ipc::details::type_bool, manager_client_type&>>> bool_receivers_;
-  bool output_buffer_valid_{ true };
 };
 
 template <typename manager_client_type>
@@ -59,5 +59,11 @@ using el2809 = el2xxx<manager_client_type,
                       std::to_array<std::size_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 }),
                       0xaf93052,
                       "EL2809">;
+
+using imc = tfc::ipc_ruler::ipc_manager_client;
+extern template class el2xxx<imc, el2794<imc>::size_v, el2794<imc>::entries_v, el2794<imc>::product_code, el2794<imc>::name_v>;
+extern template class el2xxx<imc, el2004<imc>::size_v, el2004<imc>::entries_v, el2004<imc>::product_code, el2004<imc>::name_v>;
+extern template class el2xxx<imc, el2008<imc>::size_v, el2008<imc>::entries_v, el2008<imc>::product_code, el2008<imc>::name_v>;
+extern template class el2xxx<imc, el2809<imc>::size_v, el2809<imc>::entries_v, el2809<imc>::product_code, el2809<imc>::name_v>;
 
 }  // namespace tfc::ec::devices::beckhoff

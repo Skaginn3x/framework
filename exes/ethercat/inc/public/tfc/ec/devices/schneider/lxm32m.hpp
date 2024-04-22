@@ -175,77 +175,71 @@ struct config {
 };
 
 template <typename manager_client_type>
-class lxm32m final : public base {
+class lxm32m final : public base<lxm32m<manager_client_type>> {
 public:
   static constexpr uint32_t vendor_id = 0x800005a;
   static constexpr uint32_t product_code = 0x16440;
 
   explicit lxm32m([[maybe_unused]] asio::io_context& ctx, [[maybe_unused]] manager_client_type& client, uint16_t slave_index)
-      : base(slave_index), config_(client.connection(), fmt::format("lxm32m.{}", slave_index)) {}
+      : base<lxm32m>(slave_index), config_(client.connection(), fmt::format("lxm32m.{}", slave_index)) {}
 
-  void process_data(std::span<std::byte> input, std::span<std::byte> output) final {
-    // clang-format off
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-    // clang-format on
-    [[maybe_unused]] auto* out = std::launder(reinterpret_cast<output_pdo*>(output.data()));
-    auto* in = std::launder(reinterpret_cast<input_pdo*>(input.data()));
-    PRAGMA_CLANG_WARNING_POP
+  void pdo_cycle(input_pdo const& in, output_pdo& out) {
 
-    [[maybe_unused]] auto state = in->status.parse_state();
+    [[maybe_unused]] auto state = in.status.parse_state();
 
-    out->ctrl_word = cia_402::transition(state, cia_402::transition_action::run, true);
+    out.ctrl_word = cia_402::transition(state, cia_402::transition_action::run, true);
 
-    out->velocity.value = 100;  // todo
+    out.velocity.value = 100;  // todo
   }
 
-  auto setup() -> int final {
-    logger_.trace("Setup of lxm32m");
+  auto setup_driver() -> int {
+    this->logger_.trace("Setup of lxm32m");
 
-    base::sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 0);  // write access
-    base::sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);  // write access
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 0);  // write access
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);  // write access
 
     // adapt RxPDO
     // Subindexes can be written if SI0 is set as 0
-    base::sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
 
     static_assert(ecx::make_mapping_value<cia_402::control_word>() == 0x60400010);  // move tests to function definition
-    base::sdo_write(ecx::rx_pdo_mapping<0x01>, ecx::make_mapping_value<cia_402::control_word>());
-    base::sdo_write(ecx::rx_pdo_mapping<0x02>, ecx::make_mapping_value<operation_mode>());
-    base::sdo_write(ecx::rx_pdo_mapping<0x03>, ecx::make_mapping_value<operation_mode>());
-    base::sdo_write(ecx::rx_pdo_mapping<0x04>, ecx::make_mapping_value<target_velocity>());
-    base::sdo_write(ecx::rx_pdo_mapping<0x05>, ecx::make_mapping_value<acceleration_ramp>());
-    base::sdo_write(ecx::rx_pdo_mapping<0x06>, ecx::make_mapping_value<deceleration_ramp>());
-    base::sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 6);
+    this->sdo_write(ecx::rx_pdo_mapping<0x01>, ecx::make_mapping_value<cia_402::control_word>());
+    this->sdo_write(ecx::rx_pdo_mapping<0x02>, ecx::make_mapping_value<operation_mode>());
+    this->sdo_write(ecx::rx_pdo_mapping<0x03>, ecx::make_mapping_value<operation_mode>());
+    this->sdo_write(ecx::rx_pdo_mapping<0x04>, ecx::make_mapping_value<target_velocity>());
+    this->sdo_write(ecx::rx_pdo_mapping<0x05>, ecx::make_mapping_value<acceleration_ramp>());
+    this->sdo_write(ecx::rx_pdo_mapping<0x06>, ecx::make_mapping_value<deceleration_ramp>());
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 6);
 
     // adapt TxPDO
     // Subindexes can be written if SI0 is set as 0
-    base::sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
-    base::sdo_write(ecx::tx_pdo_mapping<0x01>, ecx::make_mapping_value<cia_402::status_word>());
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
+    this->template sdo_write(ecx::tx_pdo_mapping<0x01>, ecx::make_mapping_value<cia_402::status_word>());
     // todo _DCOMopmd_act is 0x6061 but the example says it is 0x6060
-    //    base::sdo_write(ecx::tx_pdo_mapping<0x02>, ecx::make_mapping_value<operation_mode>());
-    //    base::sdo_write(ecx::tx_pdo_mapping<0x03>, ecx::make_mapping_value<operation_mode>());
-    base::sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 1);
+    //    this->template sdo_write(ecx::tx_pdo_mapping<0x02>, ecx::make_mapping_value<operation_mode>());
+    //    this->template sdo_write(ecx::tx_pdo_mapping<0x03>, ecx::make_mapping_value<operation_mode>());
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 1);
 
     // Assign pdo's to mappings
     // todo why is this needed
-    base::sdo_write<uint16_t>(ecx::rx_pdo_assign<0x01>, ecx::rx_pdo_mapping<>.first);
-    base::sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 1);
+    this->template sdo_write<uint16_t>(ecx::rx_pdo_assign<0x01>, ecx::rx_pdo_mapping<>.first);
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 1);
 
-    base::sdo_write<uint16_t>(ecx::tx_pdo_assign<0x01>, ecx::tx_pdo_mapping<>.first);
-    base::sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 1);
+    this->template sdo_write<uint16_t>(ecx::tx_pdo_assign<0x01>, ecx::tx_pdo_mapping<>.first);
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 1);
 
     // setup parameters
     // values from schneider example
-    sdo_write(compatibility_for_synchronous_motor{ .value = compatibility_for_synchronous_motor_e::off });
-    sdo_write(modulo_enable{ .value = modulo_enable_e::off });
-    sdo_write(quick_stop_option{ .value = quick_stop_option_e::deceleration_ramp });
-    sdo_write(response_to_active_limit{ .value = response_to_active_limit_e::error });
-    sdo_write(position_scaling_denom{ .value = 16384 });
-    sdo_write(position_scaling_num{ .value = 1 });
-    sdo_write(velocity_feed_forward_control_1{ .value = 1000 });
-    sdo_write(velocity_feed_forward_control_2{ .value = 1000 });
-    sdo_write(operation_mode{ .value = operation_mode_e::profile_velocity });
-    sdo_write(input_shift_time{});
+    this->sdo_write(compatibility_for_synchronous_motor{ .value = compatibility_for_synchronous_motor_e::off });
+    this->sdo_write(modulo_enable{ .value = modulo_enable_e::off });
+    this->sdo_write(quick_stop_option{ .value = quick_stop_option_e::deceleration_ramp });
+    this->sdo_write(response_to_active_limit{ .value = response_to_active_limit_e::error });
+    this->sdo_write(position_scaling_denom{ .value = 16384 });
+    this->sdo_write(position_scaling_num{ .value = 1 });
+    this->sdo_write(velocity_feed_forward_control_1{ .value = 1000 });
+    this->sdo_write(velocity_feed_forward_control_2{ .value = 1000 });
+    this->sdo_write(operation_mode{ .value = operation_mode_e::profile_velocity });
+    this->sdo_write(input_shift_time{});
 
     return 1;
   }

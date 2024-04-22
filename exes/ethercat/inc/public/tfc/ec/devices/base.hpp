@@ -45,15 +45,190 @@ concept mp_units_quantity_setting_c = requires {
   requires setting_c<setting_t>;
 };
 
+namespace details {
+// General arg_type for function types
+template<std::size_t N, typename>
+struct arg_type;
+
+// Specialization for free function types
+template<std::size_t N, typename Ret, typename... Args>
+struct arg_type<N, Ret(Args...)> {
+  static_assert(N < sizeof...(Args), "Argument index out of range.");
+  using type = std::tuple_element_t<N, std::tuple<Args...>>;
+};
+
+// Specialization for member function types
+template<std::size_t N, typename Ret, typename Class, typename... Args>
+struct arg_type<N, Ret(Class::*)(Args...)> {
+  static_assert(N < sizeof...(Args), "Argument index out of range.");
+  using type = std::tuple_element_t<N, std::tuple<Args...>>;
+};
+
+// Specialization for noexcept member function types
+template<std::size_t N, typename Ret, typename Class, typename... Args>
+struct arg_type<N, Ret(Class::*)(Args...) noexcept> {
+  static_assert(N < sizeof...(Args), "Argument index out of range.");
+  using type = std::tuple_element_t<N, std::tuple<Args...>>;
+};
+
+template<typename some_t>
+using first_arg_t = typename arg_type<0, some_t>::type;
+template<typename some_t>
+using second_arg_t = typename arg_type<1, some_t>::type;
+
+template<typename some_t>
+concept is_first_arg_const_ref = std::is_reference_v<first_arg_t<some_t>> && std::is_const_v<std::remove_reference_t<first_arg_t<some_t>>>;
+
+template<typename some_t>
+concept is_second_arg_ref = std::is_reference_v<second_arg_t<some_t>> && !std::is_const_v<std::remove_reference_t<second_arg_t<some_t>>>;
+
+template<typename some_t>
+using pdo_error_t = decltype(std::declval<some_t>().pdo_error());
+
+template<typename some_t>
+using setup_driver_t = decltype(std::declval<some_t>().setup_driver());
+
+struct Foo {
+  void foo(int, double){}
+  void bar(int&, double&){}
+  void foobar(int const&, double const&){}
+};
+static_assert(std::same_as<first_arg_t<decltype(&Foo::foo)>, int>);
+static_assert(std::same_as<first_arg_t<decltype(&Foo::bar)>, int&>);
+static_assert(std::same_as<first_arg_t<decltype(&Foo::foobar)>, int const&>);
+static_assert(std::same_as<second_arg_t<decltype(&Foo::foo)>, double>);
+static_assert(std::same_as<second_arg_t<decltype(&Foo::bar)>, double&>);
+static_assert(std::same_as<second_arg_t<decltype(&Foo::foobar)>, double const&>);
+
+static_assert(!is_first_arg_const_ref<decltype(&Foo::foo)>);
+static_assert(!is_first_arg_const_ref<decltype(&Foo::bar)>);
+static_assert(is_first_arg_const_ref<decltype(&Foo::foobar)>);
+static_assert(!is_second_arg_ref<decltype(&Foo::foo)>);
+static_assert(is_second_arg_ref<decltype(&Foo::bar)>);
+static_assert(!is_second_arg_ref<decltype(&Foo::foobar)>);
+
+}  // namespace details
+
+template <typename impl_t>
 class base {
 public:
-  virtual ~base();
+  using default_t = std::span<std::uint8_t>;
+  base(base const&) = delete;
+  auto operator=(base const&) -> base& = delete;
+  base(base&&) = default;
+  base& operator=(base&&) = default;
 
   // Default behaviour no data processing
-  virtual void process_data(std::span<std::byte>, std::span<std::byte>) = 0;
+  void process_data(std::span<std::uint8_t> input, std::span<std::uint8_t> output) {
+    static_assert(std::is_member_function_pointer_v<decltype(&impl_t::pdo_cycle)>, "impl_t must have method pdo_cycle");
+    using pdo_cycle_func_t = decltype(&impl_t::pdo_cycle); // is function pointer
+    using input_pdo = std::decay_t<details::first_arg_t<pdo_cycle_func_t>>;
+    using output_pdo = std::decay_t<details::second_arg_t<pdo_cycle_func_t>>;
+
+    // Verify that the declaration of arguments are correct
+    if constexpr (!std::same_as<input_pdo, default_t>) {
+      static_assert(stx::is_constexpr_default_constructible_v<input_pdo>);
+      static_assert(details::is_first_arg_const_ref<pdo_cycle_func_t>, "impl_t::pdo_cycle must have first argument as const reference");
+    }
+    if constexpr (!std::same_as<output_pdo, default_t>) {
+      static_assert(stx::is_constexpr_default_constructible_v<output_pdo>);
+      static_assert(details::is_second_arg_ref<pdo_cycle_func_t>, "impl_t::pdo_cycle must have second argument as reference, const is not allowed");
+    }
+
+    // todo simplify
+
+    // Both input and output are default types
+    if constexpr(std::same_as<input_pdo, default_t> && std::same_as<output_pdo, default_t>) {
+      static_cast<impl_t*>(this)->pdo_cycle(input, output);
+    }
+    // input is default type, output is not
+    else if constexpr(std::same_as<input_pdo, default_t>) {
+      if (output.size() != sizeof(output_pdo)) {
+        if (output_buffer_valid_) {
+          logger_.info("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
+        }
+        output_buffer_valid_ = false;
+
+        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+          static_cast<impl_t*>(this)->pdo_error();
+        }
+        return;
+      }
+      output_buffer_valid_ = true;
+
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+      // clang-format on
+      auto* output_casted = reinterpret_cast<output_pdo*>(output.data());
+      PRAGMA_CLANG_WARNING_POP
+      static_cast<impl_t*>(this)->pdo_cycle(input, *output_casted);
+    }
+    // output is default type, input is not
+    else if constexpr(std::same_as<output_pdo, default_t>) {
+      if (input.size() != sizeof(input_pdo)) {
+        if (input_buffer_valid_) {
+          logger_.info("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
+        }
+        input_buffer_valid_ = false;
+        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+          static_cast<impl_t*>(this)->pdo_error();
+        }
+        return;
+      }
+      input_buffer_valid_ = true;
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+      // clang-format on
+      auto* input_casted = reinterpret_cast<input_pdo*>(input.data());
+      PRAGMA_CLANG_WARNING_POP
+      static_cast<impl_t*>(this)->pdo_cycle(*input_casted, output);
+    }
+    // Both input and output are not default types
+    else {
+      if (output.size() != sizeof(output_pdo)) {
+        if (output_buffer_valid_) {
+          logger_.info("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
+        }
+        output_buffer_valid_ = false;
+        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+          static_cast<impl_t*>(this)->pdo_error();
+        }
+        return;
+      }
+      output_buffer_valid_ = true;
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+      // clang-format on
+      auto* output_casted = reinterpret_cast<output_pdo*>(output.data());
+      PRAGMA_CLANG_WARNING_POP
+      if (input.size() != sizeof(input_pdo)) {
+        if (input_buffer_valid_) {
+          logger_.info("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
+        }
+        input_buffer_valid_ = false;
+        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+          static_cast<impl_t*>(this)->pdo_error();
+        }
+        return;
+      }
+      input_buffer_valid_ = true;
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+      // clang-format on
+      auto* input_casted = reinterpret_cast<input_pdo*>(input.data());
+      PRAGMA_CLANG_WARNING_POP
+      static_cast<impl_t*>(this)->pdo_cycle(*input_casted, *output_casted);
+    }
+  }
 
   // Default behaviour, no setup
-  virtual auto setup() -> int { return 1; }
+  auto setup() -> int {
+    // If impl_t has method setup_driver, call it
+    if constexpr (stx::is_detected_v<details::setup_driver_t, impl_t>) {
+      return static_cast<impl_t*>(this)->setup_driver();
+    }
+    return 1;
+  }
 
   void set_sdo_write_cb(auto&& cb) { sdo_write_ = std::forward<decltype(cb)>(cb); }
 
@@ -121,18 +296,20 @@ private:
   std::function<
       ecx::working_counter_t(ecx::index_t, ecx::complete_access_t, std::span<std::byte>, std::chrono::microseconds)>
       sdo_write_{};
+  bool output_buffer_valid_{ true };
+  bool input_buffer_valid_{ true };
 };
 
-class default_device final : public base {
+class default_device final : public base<default_device> {
 public:
-  ~default_device() final;
-
   explicit default_device(uint16_t const slave_index) : base(slave_index) {
     logger_.warn("No device found for slave {}", slave_index);
   }
 
-  void process_data(std::span<std::byte>, std::span<std::byte>) noexcept final {}
-
-  auto setup() -> int final { return TRUE; }
+  void pdo_cycle(std::span<std::uint8_t>, std::span<std::uint8_t>) noexcept {}
 };
+
+using foo = details::first_arg_t<decltype(&default_device::pdo_cycle)>;
+static_assert(std::same_as<foo, std::span<std::uint8_t>>);
+
 }  // namespace tfc::ec::devices

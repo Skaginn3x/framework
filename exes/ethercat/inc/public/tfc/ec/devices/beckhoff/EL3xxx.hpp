@@ -13,15 +13,15 @@ struct siemens_status {
 };
 
 template <uint8_t size, auto p_code>
-class el305x : public base {
+class el305x : public base<el305x<size, p_code>> {
 public:
-  explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base(slave_index) {}
+  explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base<el305x>(slave_index) {}
   static constexpr uint32_t product_code = p_code;
   static constexpr uint32_t vendor_id = 0x2;
 
-  auto setup() -> int final {
+  auto setup_driver() -> int {
     // Clean rx pdo assign
-    sdo_write(ecx::rx_pdo_assign<0x00>, uint8_t{ 0 });
+    this->sdo_write(ecx::rx_pdo_assign<0x00>, uint8_t{ 0 });
     // Set siemens bits true
     // and enable compact mode
     // Each input settings field is in 0x8000 + offset * 0x10
@@ -31,13 +31,13 @@ public:
     // This depends on size
     for (uint8_t i = 0; i < size; i++) {
       // Set rx pdo to compact mode
-      sdo_write({ 0x1C13, i + 1 }, static_cast<uint16_t>(0x1A00 + (i * 2) + 1));
+      this->sdo_write({ 0x1C13, i + 1 }, static_cast<uint16_t>(0x1A00 + (i * 2) + 1));
 
       uint16_t const settings_index = 0x8000 + (static_cast<uint16_t>(i) * 0x10);
-      sdo_write({ settings_index, 0x05 }, static_cast<uint8_t>(true));  // Enable - siemens mode
+      this->sdo_write({ settings_index, 0x05 }, static_cast<uint8_t>(true));  // Enable - siemens mode
     }
     // Set rx pdo size to size
-    sdo_write(ecx::rx_pdo_assign<0x00>, size);
+    this->sdo_write(ecx::rx_pdo_assign<0x00>, size);
 
     // printf("Processdatasize: %d", context->slavelist[slave].Obytes);
     // This is can be used to restore default parameters
@@ -45,7 +45,7 @@ public:
     return 1;
   }
 
-  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept final {
+  void pdo_cycle(std::span<std::byte> input, std::span<std::byte>) noexcept {
     // Cast pointer type to uint16_t
     std::span<uint16_t> input_aligned(reinterpret_cast<uint16_t*>(input.data()), input.size() / 2);
 

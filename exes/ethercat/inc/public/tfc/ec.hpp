@@ -98,22 +98,22 @@ public:
   auto processdata(std::chrono::microseconds timeout) -> ecx::working_counter_t {
     ecx_send_overlap_processdata(&context_);
     auto wkc = ecx::recieve_processdata(&context_, timeout);
-    std::span<std::byte> input;
-    std::span<std::byte> output;
+    std::span<std::uint8_t> input;
+    std::span<std::uint8_t> output;
     for (size_t i = 1; i < slave_count() + 1; i++) {
       auto& slave{ slavelist_[i] };
       if (slave.inputs != nullptr) {
         std::size_t input_size{ slave.Ibytes == 0 ? !!slave.Ibits : slave.Ibytes };
-        input = { reinterpret_cast<std::byte*>(slave.inputs), input_size };
+        input = std::span{ slave.inputs, input_size };
       }
       if (slave.outputs != nullptr) {
         std::size_t output_size{ slave.Obytes == 0 ? !!slave.Obits : slave.Obytes };
-        output = { reinterpret_cast<std::byte*>(slave.outputs), output_size };
+        output = std::span{ slave.outputs, output_size };
       }
       if (slave.islost) {
-        slaves_[i]->process_data({}, {});
+        slaves_[i].process_data({}, {});
       } else {
-        slaves_[i]->process_data(input, output);
+        slaves_[i].process_data(input, output);
       }
     }
 
@@ -130,16 +130,16 @@ public:
       return false;
     }
     // Insert the base device into the vector.
-    slaves_ = std::vector<std::unique_ptr<devices::base>>();
+    slaves_.clear();
     slaves_.reserve(slave_count() + 1);
-    slaves_.emplace_back(std::make_unique<devices::default_device>(0));
+    slaves_.emplace_back(std::in_place_type<devices::default_device>, 0);
     // Attach the callback to each slave
     for (size_t i = 1; i <= slave_count(); i++) {
       slaves_.emplace_back(
           devices::get(dbus_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
-      slaves_.back()->set_sdo_write_cb([this, i](ecx::index_t idx, ecx::complete_access_t acc, std::span<std::byte> data,
-                                                 std::chrono::microseconds microsec) -> ecx::working_counter_t {
-        return ecx::sdo_write(&context_, static_cast<uint16_t>(i), idx, acc, data, microsec);
+      slaves_.back().set_sdo_write_cb([this, i](ecx::index_t idx, ecx::complete_access_t acc, std::span<std::byte> data,
+      std::chrono::microseconds microsec) -> ecx::working_counter_t {
+      return ecx::sdo_write(&context_, static_cast<uint16_t>(i), idx, acc, data, microsec);
       });
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }
@@ -167,7 +167,7 @@ public:
     /// Config might have changed since last run
     if (!ecx::init(&context_, config_->primary_interface.value)) {
       // TODO: switch for error_code
-      throw std::runtime_error("Failed to init, no socket connection");
+      throw std::runtime_error(fmt::format("Failed to connect to interface: {}", config_->value().primary_interface.value));
     }
 
     if (!config_init(false)) {
@@ -352,7 +352,7 @@ private:
         "{}\nSupportes CoE Complete access: {}\n",
         sl.eep_id, sl.eep_man, slave_index, sl.name, sl.aliasadr, sl.hasdc, sl.state,
         (sl.CoEdetails & ECT_COEDET_SDOCA) != 0);
-    return self->slaves_[slave_index]->setup();
+    return self->slaves_[slave_index].setup();
   }
 
   [[nodiscard]] auto slave_list_as_span() -> std::span<ec_slave> {
@@ -368,7 +368,7 @@ private:
 
   boost::asio::io_context& ctx_;
   ecx_contextt context_{};
-  std::vector<std::unique_ptr<devices::base>> slaves_;
+  std::vector<devices::device<ipc_ruler::ipc_manager_client>> slaves_;
 
   // Stack allocations for pointers inside ec_contextt.
   ecx_portt port_;

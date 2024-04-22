@@ -1,34 +1,34 @@
 #pragma once
 
+#include <array>
+#include <chrono>
+#include <cstdint>
+
 #include <tfc/utils/pragmas.hpp>
 
 namespace tfc::ec::devices::beckhoff {
-template <size_t size, auto p_code>
-class el400x : public base {
+template <std::size_t size, auto p_code>
+class el400x : public base<el400x<size, p_code>> {
 public:
-  explicit el400x(boost::asio::io_context&, uint16_t const slave_index) : base(slave_index) {}
-  static constexpr uint32_t product_code = p_code;
-  static constexpr uint32_t vendor_id = 0x2;
+  explicit el400x(boost::asio::io_context&, std::uint16_t const slave_index) : base<el400x>(slave_index) {}
+  static constexpr std::uint32_t product_code = p_code;
+  static constexpr std::uint32_t vendor_id = 0x2;
+  using output_pdo = std::array<std::uint16_t, size>;
 
-  void process_data(std::span<std::byte>, std::span<std::byte> output) noexcept final {
+  void pdo_cycle(std::span<std::uint8_t>, [[maybe_unused]] output_pdo& output) noexcept {
     for (size_t i = 0; i < size; i++) {
       value_[i] += 50;
     }
     point_ = std::chrono::high_resolution_clock::now();
 
-    // Cast pointer type to uint16_t
-    // clang-format off
-PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-    // clang-format on
-    std::span<uint16_t> const output_aligned(reinterpret_cast<uint16_t*>(output.data()), output.size() / 2);
-    PRAGMA_CLANG_WARNING_POP
-    for (size_t i = 0; i < size; i++) {
-      output_aligned[i] = value_[i];
-    }
+    // for (size_t i = 0; i < size; i++) {
+    //   output_aligned[i] = value_[i];
+    // }
   }
 
+
 private:
-  std::array<uint16_t, size> value_;
+  std::array<std::uint16_t, size> value_;
   std::chrono::time_point<std::chrono::high_resolution_clock> point_ = std::chrono::high_resolution_clock::now();
 };
 

@@ -8,10 +8,10 @@
 
 namespace tfc::ec::devices::abt {
 template <typename manager_client_type>
-class easyecat final : public base {
+class easyecat final : public base<easyecat<manager_client_type>> {
 public:
   explicit easyecat(boost::asio::io_context& ctx_, manager_client_type& client, uint16_t const slave_index)
-      : base(slave_index), servo_{ ctx_, client, fmt::format("easyecat{}.servo", slave_index), "Servo", [](auto) {} } {
+      : base<easyecat>(slave_index), servo_{ ctx_, client, fmt::format("easyecat{}.servo", slave_index), "Servo", [](auto) {} } {
     for (size_t i = 0; i < 4; i++) {
       bool_transmitters_.emplace_back(ctx_, client, fmt::format("easyecat{}.in{}", slave_index, i), "Digital input");
       bool_receivers_[i] =
@@ -31,8 +31,8 @@ public:
   static constexpr size_t do_count = 4;  // Number of digital outputs
   static constexpr size_t ai_count = 2;  // Number of analog inputs
 
-  auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
-    std::bitset<di_count> const in_bits(static_cast<uint8_t>(input[6]));
+  auto pdo_cycle(std::span<std::uint8_t> input, std::span<std::uint8_t> output) noexcept -> void {
+    std::bitset<di_count> const in_bits(input[6]);
     for (size_t i = 0; i < di_count; i++) {
       bool const value = in_bits.test(i);
       if (!last_bool_value_[i].has_value() || value != last_bool_value_[i]) {
@@ -45,7 +45,7 @@ public:
       last_bool_value_[i] = value;
     }
     for (size_t i = 0; i < ai_count; i++) {
-      auto const value = static_cast<uint8_t>(input[i]);
+      auto const value = input[i];
       if (!last_analog_value_[i].has_value() || value != last_analog_value_[i]) {
         analog_transmitters_[i].async_send(value, [this](std::error_code error, size_t) {
           if (error) {
@@ -55,11 +55,11 @@ public:
       }
       last_analog_value_[i] = value;
     }
-    output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0x0f);
+    output[0] = output_states_.to_ulong() & 0x0f;
     if (auto const servo_value = servo_.value(); servo_value.has_value()) {
-      output[1] = static_cast<std::byte>(servo_value.value());
+      output[1] = static_cast<std::uint8_t>(servo_value.value());
     } else {
-      output[1] = static_cast<std::byte>(0);
+      output[1] = 0;
     }
   }
 
