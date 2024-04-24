@@ -270,7 +270,11 @@ auto main(int, char**) -> int {
         test.filters.config().make_change().value() = config;
       }
     };
-    "add invert calls owner with inverted value"_test = [] {
+    struct parameters {
+      std::size_t invert_count{};
+      std::size_t expected_call_count{};
+    };
+    "add invert calls owner with inverted value"_test = [](parameters const& param) {
       std::size_t call_count{ 0 };
       invert_config_test test{ .callback = [&call_count](bool value) {
         if (call_count == 0) {
@@ -287,64 +291,16 @@ auto main(int, char**) -> int {
       expect(call_count == 1);
       {
         auto config = test.filters.config()->value();
-        config.emplace_back(filter<filter_e::invert, bool>{});
+        for (std::size_t i{}; i < param.invert_count; i++) {
+          config.emplace_back(filter<filter_e::invert, bool>{});
+        }
         test.filters.config().make_change().value() = config;
       }
       test.ctx.run_one_for(1ms);
       test.ctx.run_one_for(1ms);
-      expect(call_count == 2);
-    };
-    "adding 2 inverts does NOT call owner with value"_test = [] {
-      std::size_t call_count{ 0 };
-      invert_config_test test{ .callback = [&call_count](bool value) {
-        if (call_count == 0) {
-          expect(!value); // initialize value
-        }
-        else {
-          expect(value);
-        }
-        call_count++;
-      } };
-      test.filters(false); // initial value
-      test.ctx.run_one_for(1ms);
-      test.ctx.run_one_for(1ms);
-      expect(call_count == 1);
-      {
-        auto config = test.filters.config()->value();
-        config.emplace_back(filter<filter_e::invert, bool>{});
-        config.emplace_back(filter<filter_e::invert, bool>{});
-        test.filters.config().make_change().value() = config;
-      }
-      test.ctx.run_one_for(1ms);
-      test.ctx.run_one_for(1ms);
-      expect(call_count == 1);
-    };
-    "adding 3 inverts DOES call owner with inverted value"_test = [] {
-      std::size_t call_count{ 0 };
-      invert_config_test test{ .callback = [&call_count](bool value) {
-        if (call_count == 0) {
-          expect(!value); // initialize value
-        }
-        else {
-          expect(value);
-        }
-        call_count++;
-      } };
-      test.filters(false); // initial value
-      test.ctx.run_one_for(1ms);
-      test.ctx.run_one_for(1ms);
-      expect(call_count == 1);
-      {
-        auto config = test.filters.config()->value();
-        config.emplace_back(filter<filter_e::invert, bool>{});
-        config.emplace_back(filter<filter_e::invert, bool>{});
-        config.emplace_back(filter<filter_e::invert, bool>{});
-        test.filters.config().make_change().value() = config;
-      }
-      test.ctx.run_one_for(1ms);
-      test.ctx.run_one_for(1ms);
-      expect(call_count == 2);
-    };
+      expect(call_count == param.expected_call_count);
+    } | std::vector{ parameters{ .invert_count = 1, .expected_call_count = 2 }, parameters{ .invert_count = 2, .expected_call_count = 1 }, parameters{ .invert_count = 3, .expected_call_count = 2 } };
+    
     "remove invert DOES call owner with inverted value"_test = [] {
       // Duplicate of adding 2 inverts
       std::size_t call_count{ 0 };
