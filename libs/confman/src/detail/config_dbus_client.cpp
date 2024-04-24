@@ -58,7 +58,7 @@ void config_dbus_client::initialize() {
           return this->value_call_();
         });
     dbus_interface_->register_property_r<std::string>(
-        schema_property_name_, sdbusplus::vtable::property_::emits_change,
+        schema_property_name_, sdbusplus::vtable::property_::const_,
         [this]([[maybe_unused]] std::string const& value) -> std::string {  // getter
           return this->schema_call_();
         });
