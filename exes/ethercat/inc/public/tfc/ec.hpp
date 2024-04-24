@@ -67,6 +67,12 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
+    auto interfaces = common::get_interfaces();
+    // Check if current config exists in the list of interfaces, if not overwrite with first interface
+    if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_.value().primary_interface.value) !=
+          interfaces.end())) {
+      config_.make_change()->primary_interface = config::network_interface{ interfaces[0] };
+    }
     logger_.trace("Network interface used: {}", config_->primary_interface.value);
   }
 
