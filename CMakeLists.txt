@@ -42,10 +42,6 @@ if (BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
-if (BUILD_FRONTEND)
-  add_subdirectory(cockpit)
-endif ()
-
 # Clang format all files
 
 file(GLOB_RECURSE ALL_SOURCE_FILES libs/**/*.cpp libs/**/*.hpp exes/**/*.cpp exes/**/*.hpp)

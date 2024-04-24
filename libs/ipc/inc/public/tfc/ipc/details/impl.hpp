@@ -49,6 +49,9 @@ public:
   [[nodiscard]] auto name() const noexcept -> std::string_view { return name_; }
 
   /// \return <type>.<name>
+  [[nodiscard]] auto type_name() const -> std::string { return fmt::format("{}.{}", type_desc::type_name, name_); }
+
+  /// \return <type>.<name>
   [[nodiscard]] auto full_name() const -> std::string {
     return fmt::format("{}.{}.{}.{}", base::get_exe_name(), base::get_proc_name(), type_desc::type_name, name_);
   }
@@ -324,6 +327,8 @@ public:
   [[nodiscard]] auto value() const -> std::optional<value_t> { return last_value_; }
 
   [[nodiscard]] auto name() const noexcept -> std::string_view { return slot_.name(); }
+
+  [[nodiscard]] auto type_name() const -> std::string { return slot_.type_name(); }
 
   [[nodiscard]] auto full_name() const -> std::string { return slot_.full_name(); }
 

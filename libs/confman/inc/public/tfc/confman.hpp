@@ -42,38 +42,10 @@ public:
   ~config() = default;
 
   /// \brief construct config and expose it via dbus
-  /// \param ctx context ref to which the config shall run in
-  /// \param key identification of this config storage, requires to be unique
-  config(asio::io_context& ctx, std::string_view key) : config{ ctx, key, config_storage_t{} } {}
-
-  /// \brief construct config and expose it via dbus
   /// \param conn valid dbus connection
   /// \param key identification of this config storage, requires to be unique
   config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
       : config{ conn, key, config_storage_t{} } {}
-
-  /// \brief construct config and expose it via dbus
-  /// \param interface valid dbus interface
-  /// \param key identification of this config storage, requires to be unique
-  /// \note the config will be accessible via dbus property on the `interface` using the given `key`
-  /// Take care that via this construction the frontend won't detect the config and show it automatically
-  config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key)
-      : config{ interface, key, config_storage_t{} } {}
-
-  /// \brief construct config and expose it via dbus
-  /// \param ctx context ref to which the config shall run in
-  /// \param key identification of this config storage, requires to be unique
-  /// \param def default values of given storage type
-  template <typename storage_type>
-    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
-  config(asio::io_context& ctx, std::string_view key, storage_type&& def)
-      : client_{ ctx, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
-                 std::bind_front(&config::from_string, this) },
-        storage_{ ctx, tfc::base::make_config_file_name(key, "json"), std::forward<storage_type>(def) },
-        logger_(fmt::format("config.{}", key)) {
-    logger_.trace("Create config stored in file: {}", storage_.file().string());
-    init();
-  }
 
   /// \brief construct config and expose it via dbus
   /// \param conn valid dbus connection
@@ -89,32 +61,12 @@ public:
     init();
   }
 
-  /// \brief construct config and expose it via dbus
-  /// \param interface valid dbus interface
-  /// \param key identification of this config storage, requires to be unique
-  /// \param def default values of given storage type
-  /// \note the config will be accessible via dbus property on the `interface` using the given `key`
-  /// Take care that via this construction the frontend won't detect the config and show it automatically
-  template <typename storage_type>
-    requires std::same_as<storage_t, std::remove_cvref_t<storage_type>>
-  config(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view key, storage_type&& def)
-      : client_{ interface, key, std::bind_front(&config::string, this), std::bind_front(&config::schema, this),
-                 std::bind_front(&config::from_string, this) },
-        storage_{ client_.get_io_context(),
-                  tfc::base::make_config_file_name(
-                      fmt::format("{}.{}", tfc::dbus::strip_dbus_name(client_.get_dbus_interface_name()), key),
-                      "json"),
-                  std::forward<storage_type>(def) },
-        logger_(fmt::format("config.{}", key)) {
-    init();
-  }
-
   /// \brief Advanced constructor providing file storage interface and dbus client
   /// \param key identification of this config storage, requires to be unique
   /// \param file_storage lvalue reference to file storage implementation
   /// \param dbus_client rvalue reference to constructed dbus client
   /// \note This constructor is good for testing! Since you can disable underlying functions by the substitutions.
-  config(asio::io_context&, std::string_view key, file_storage_t file_storage, config_dbus_client_t dbus_client)
+  config(config_dbus_client_t dbus_client, std::string_view key, file_storage_t file_storage)
       : client_{ dbus_client }, storage_{ file_storage }, logger_{ fmt::format("config.{}", key) } {
     static_assert(std::is_lvalue_reference_v<file_storage_t>);
     static_assert(std::is_lvalue_reference_v<config_dbus_client_t>);
@@ -147,7 +99,7 @@ public:
   }
 
   auto set_changed() const noexcept -> std::error_code {
-    client_.set(detail::config_property{ .value = string(), .schema = schema() });
+    client_.set(this->string());
     return storage_.set_changed();
   }
 

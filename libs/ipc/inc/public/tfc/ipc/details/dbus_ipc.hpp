@@ -17,12 +17,12 @@ namespace tfc::ipc::details {
 
 namespace dbus::tags {
 static constexpr std::string_view value{ "Value" };
-static constexpr std::string_view slot{ "Slots" };
-static constexpr std::string_view signal{ "Signals" };
+static constexpr std::string_view slot{ "Slot" };
+static constexpr std::string_view signal{ "Signal" };
 static constexpr std::string_view tinker{ "Tinker" };
 static constexpr std::string_view type{ "Type" };
-static constexpr std::string_view path_slot{ tfc::dbus::const_dbus_path<slot> };
-static constexpr std::string_view path_signal{ tfc::dbus::const_dbus_path<signal> };
+static constexpr std::string_view slot_interface{ tfc::dbus::const_dbus_name<slot> };
+static constexpr std::string_view signal_interface{ tfc::dbus::const_dbus_name<signal> };
 }  // namespace dbus::tags
 
 enum struct ipc_type_e : std::uint8_t { slot, signal };
@@ -31,24 +31,12 @@ template <typename slot_value_t, ipc_type_e type>
 class dbus_ipc {
 public:
   using value_t = slot_value_t;
+  std::string const interface_name{ type == ipc_type_e::signal ? dbus::tags::signal_interface : dbus::tags::slot_interface };
 
-  [[nodiscard]] constexpr auto path() const noexcept -> std::string_view {
-    if constexpr (type == ipc_type_e::slot) {
-      return dbus::tags::path_slot;
-    } else if constexpr (type == ipc_type_e::signal) {
-      return dbus::tags::path_signal;
-    } else {
-      []<bool flag = false>() {
-        static_assert(flag, "Unknown ipc type");
-      }
-      ();
-    }
-  }
-
-  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view slot_name)
-      : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
-                                                                      std::string{ path() },
-                                                                      tfc::dbus::make_dbus_name(slot_name)) } {}
+  explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
+      : interface_{
+          std::make_shared<sdbusplus::asio::dbus_interface>(conn, tfc::dbus::make_dbus_path(key), interface_name)
+        } {}
 
   dbus_ipc(dbus_ipc const&) = delete;
   dbus_ipc(dbus_ipc&&) noexcept = default;
@@ -56,19 +44,21 @@ public:
   auto operator=(dbus_ipc&&) noexcept -> dbus_ipc& = default;
 
   void initialize() {
-    interface_->register_property<value_t>(std::string{ dbus::tags::value }, value_t{});
+    interface_->register_signal<value_t>(std::string{ dbus::tags::value });
+    interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::none,
+                                             [this](const auto&) { return value_; });
     interface_->register_property_r<std::string>(
-        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::emits_change,
+        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::const_,
         []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
 
     interface_->initialize();
   }
-  [[nodiscard]] auto interface() const noexcept -> std::shared_ptr<sdbusplus::asio::dbus_interface> { return interface_; }
 
   void emit_value(value_t const& value) {
-    if (interface_) {
-      interface_->set_property(std::string{ dbus::tags::value }, value);
-    }
+    value_ = value;
+    auto message = interface_->new_signal(dbus::tags::value.data());
+    message.append(value);
+    message.signal_send();
   }
 
   void on_set(tfc::stx::invocable<value_t&&> auto&& callback) {
@@ -79,6 +69,7 @@ public:
 
 private:
   std::shared_ptr<sdbusplus::asio::dbus_interface> interface_{};
+  value_t value_{};
 };
 
 }  // namespace tfc::ipc::details
