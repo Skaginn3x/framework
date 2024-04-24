@@ -8,11 +8,11 @@
 #include <glaze/glaze.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/ipc/details/filter.hpp>
 #include <tfc/stubs/confman.hpp>
 #include <tfc/testing/clock.hpp>
-#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

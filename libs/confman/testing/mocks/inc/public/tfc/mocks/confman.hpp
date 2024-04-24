@@ -29,7 +29,8 @@ struct mock_config : public config<storage_t, mock_file_storage<storage_t>, deta
     ON_CALL(*this, make_change()).WillByDefault(::testing::Return(change{ *this }));
     ON_CALL(*this, from_string(::testing::_)).WillByDefault(::testing::Return(std::error_code{}));
   }
-  mock_config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key, auto&& default_value) : mock_config{ conn, key } {
+  mock_config(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key, auto&& default_value)
+      : mock_config{ conn, key } {
     this->storage_ = mock_file_storage<storage_t>{ std::forward<decltype(default_value)>(default_value) };
   }
 

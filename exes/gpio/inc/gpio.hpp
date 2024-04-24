@@ -15,9 +15,9 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/logger.hpp>
-#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 
@@ -179,7 +179,9 @@ private:
   void chip_ready_to_read(std::error_code const&) noexcept;
 
   asio::io_context& ctx_;
-  std::shared_ptr<sdbusplus::asio::connection> dbus_{ std::make_shared<sdbusplus::asio::connection>(ctx_, tfc::dbus::sd_bus_open_system()) };
+  std::shared_ptr<sdbusplus::asio::connection> dbus_{
+    std::make_shared<sdbusplus::asio::connection>(ctx_, tfc::dbus::sd_bus_open_system())
+  };
   gpiod::chip chip_;
   config_t config_;
   tfc::ipc_ruler::ipc_manager_client manager_client_;

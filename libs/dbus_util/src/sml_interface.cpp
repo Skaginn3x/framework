@@ -12,7 +12,10 @@ static constexpr std::string_view dot_format{ "DotFormat" };
 
 namespace detail {
 
-interface_impl::interface_impl(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_key) : dbus_interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn, dbus::make_dbus_path(unique_key), std::string{ tags::interface }) } {
+interface_impl::interface_impl(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_key)
+    : dbus_interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn,
+                                                                         dbus::make_dbus_path(unique_key),
+                                                                         std::string{ tags::interface }) } {
   dbus_interface_->register_property_r<std::string>(
       std::string{ tags::state }, sdbusplus::vtable::property_::emits_change,
       [this]([[maybe_unused]] std::string& old_value) -> std::string { return destination_state_; });

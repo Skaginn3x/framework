@@ -25,9 +25,7 @@ static constexpr std::string_view slot_interface{ tfc::dbus::const_dbus_name<slo
 static constexpr std::string_view signal_interface{ tfc::dbus::const_dbus_name<signal> };
 }  // namespace dbus::tags
 
-
 enum struct ipc_type_e : std::uint8_t { slot, signal };
-
 
 template <typename slot_value_t, ipc_type_e type>
 class dbus_ipc {
@@ -36,7 +34,9 @@ public:
   std::string const interface_name{ type == ipc_type_e::signal ? dbus::tags::signal_interface : dbus::tags::slot_interface };
 
   explicit dbus_ipc(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view key)
-      : interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(conn, tfc::dbus::make_dbus_path(key), interface_name) } {}
+      : interface_{
+          std::make_shared<sdbusplus::asio::dbus_interface>(conn, tfc::dbus::make_dbus_path(key), interface_name)
+        } {}
 
   dbus_ipc(dbus_ipc const&) = delete;
   dbus_ipc(dbus_ipc&&) noexcept = default;
@@ -45,9 +45,8 @@ public:
 
   void initialize() {
     interface_->register_signal<value_t>(std::string{ dbus::tags::value });
-    interface_->register_property_r<value_t>(std::string{dbus::tags::value}, sdbusplus::vtable::property_::none, [this](const auto&){
-      return value_;
-    });
+    interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::none,
+                                             [this](const auto&) { return value_; });
     interface_->register_property_r<std::string>(
         std::string{ dbus::tags::type }, sdbusplus::vtable::property_::const_,
         []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });

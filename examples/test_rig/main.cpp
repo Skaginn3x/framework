@@ -6,12 +6,12 @@
 #include <sdbusplus/asio/connection.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/ipc.hpp>
 #include <tfc/operation_mode.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/json_schema.hpp>
-#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 
@@ -43,7 +43,9 @@ struct app {
     // }
   }
   asio::io_context& ctx;
-  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  std::shared_ptr<sdbusplus::asio::connection> dbus{
+    std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())
+  };
   tfc::confman::config<config_struct> config{ dbus, "test_rig_config",
                                               config_struct{ .servo_cycle = std::chrono::seconds{ 1 }, .count = 10 } };
   tfc::operation::interface operation_mode {

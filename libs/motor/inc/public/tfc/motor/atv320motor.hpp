@@ -12,11 +12,11 @@
 #include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
 #include <tfc/stx/function_traits.hpp>
-#include <tfc/dbus/string_maker.hpp>
 
 namespace tfc::motor::types {
 

@@ -27,9 +27,9 @@ config_dbus_client::config_dbus_client(dbus_connection_t conn,
                                        value_call_t&& value_call,
                                        schema_call_t&& schema_call,
                                        change_call_t&& change_call)
-    : interface_path_{ tfc::dbus::make_dbus_path(key) },
-      value_call_{ std::move(value_call) }, schema_call_{ std::move(schema_call) }, change_call_{ std::move(change_call) },
-      dbus_connection_{ std::move(conn) }, dbus_interface_{
+    : interface_path_{ tfc::dbus::make_dbus_path(key) }, value_call_{ std::move(value_call) },
+      schema_call_{ std::move(schema_call) }, change_call_{ std::move(change_call) }, dbus_connection_{ std::move(conn) },
+      dbus_interface_{
         std::make_unique<sdbusplus::asio::dbus_interface>(dbus_connection_, interface_path_.string(), interface_name_)
       } {}
 
@@ -60,7 +60,7 @@ void config_dbus_client::initialize() {
     dbus_interface_->register_property_r<std::string>(
         schema_property_name_, sdbusplus::vtable::property_::emits_change,
         [this]([[maybe_unused]] std::string const& value) -> std::string {  // getter
-            return this->schema_call_();
+          return this->schema_call_();
         });
 
     // If the provided interface is created by this class we initialize it here,

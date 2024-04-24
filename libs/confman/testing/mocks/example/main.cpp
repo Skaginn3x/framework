@@ -2,10 +2,10 @@
 #include <boost/ut.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/mocks/confman.hpp>
 #include <tfc/mocks/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
-#include <tfc/dbus/sd_bus.hpp>
 
 namespace asio = boost::asio;
 namespace ut = boost::ut;

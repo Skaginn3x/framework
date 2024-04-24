@@ -45,7 +45,9 @@ struct config_testable : public tfc::confman::config<storage_t> {
 
 struct instance {
   boost::asio::io_context ctx{};
-  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  std::shared_ptr<sdbusplus::asio::connection> dbus{
+    std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())
+  };
   std::string const key{ "bar" };
   std::string const service_name{ tfc::dbus::make_dbus_process_name() };
   // duplicate from config_dbus_client.cpp
@@ -60,9 +62,8 @@ auto main(int argc, char** argv) -> int {
   using tfc::confman::detail::dbus::property_value_name;
 
   "default values"_test = [] {
-    instance const test{
-      .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-    };
+    instance const test{ .storage_ = {
+                             .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
     ut::expect(1 == test.config->a);
     ut::expect(2 == test.config->b);
     ut::expect("bar" == test.config->c);
@@ -72,9 +73,8 @@ auto main(int argc, char** argv) -> int {
   };
 
   "to json"_test = [] {
-    instance const test{
-        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-    };
+    instance const test{ .storage_ = {
+                             .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
     auto const json_str{ test.config.string() };
     glz::json_t json{};
     std::ignore = glz::read_json(json, json_str);
@@ -84,9 +84,8 @@ auto main(int argc, char** argv) -> int {
   };
 
   "change value internally"_test = [] {
-    instance test{
-        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-    };
+    instance test{ .storage_ = {
+                       .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
     uint8_t a_called_once{};
     test.config->a.observe([&a_called_once](int new_val, int old_val) {
       ut::expect(new_val == 3);
@@ -110,9 +109,8 @@ auto main(int argc, char** argv) -> int {
   };
 
   "from json calls observers"_test = [] {
-    instance test{
-        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-    };
+    instance test{ .storage_ = {
+                       .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
 
     uint32_t c_called{};
     test.config->c.observe([&c_called](std::string const& new_val, std::string const& old_val) {
@@ -131,15 +129,13 @@ auto main(int argc, char** argv) -> int {
   };
 
   "integration get_config"_test = [] {
-    instance test{
-        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-    };
+    instance test{ .storage_ = {
+                       .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
     test.dbus->request_name(test.service_name.c_str());
 
     uint32_t called{};
     sdbusplus::asio::getProperty<std::string>(
-        *test.dbus, test.service_name, test.interface_path.string(), test.interface_name,
-        std::string{ property_value_name },
+        *test.dbus, test.service_name, test.interface_path.string(), test.interface_name, std::string{ property_value_name },
         [&called]([[maybe_unused]] std::error_code err, [[maybe_unused]] std::string prop) {
           ut::expect(!err) << err.message();
           called++;
@@ -155,9 +151,8 @@ auto main(int argc, char** argv) -> int {
   };
 
   "integration set_config"_test = [] {
-    instance test{
-        .storage_ = { .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } }
-    };
+    instance test{ .storage_ = {
+                       .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
     test.dbus->request_name(test.service_name.c_str());
 
     uint32_t a_called{};

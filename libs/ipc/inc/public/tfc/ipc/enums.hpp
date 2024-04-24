@@ -39,10 +39,9 @@ enum struct type_e : std::uint8_t {
   //  _humitidy = 11,
 };
 
-static constexpr std::array<std::string_view, 13> type_e_iterable{ "unknown", "bool",     "i64",     "u64",
-                                                                   "double",  "string",   "json",        "mass",
-                                                                   "length",  "pressure", "temperature", "voltage",
-                                                                   "current" };
+static constexpr std::array<std::string_view, 13> type_e_iterable{ "unknown",     "bool",    "i64",    "u64",    "double",
+                                                                   "string",      "json",    "mass",   "length", "pressure",
+                                                                   "temperature", "voltage", "current" };
 
 auto constexpr enum_name(type_e type) -> std::string_view {
   return type_e_iterable[std::to_underlying(type)];

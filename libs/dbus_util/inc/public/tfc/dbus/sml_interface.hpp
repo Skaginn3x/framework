@@ -18,7 +18,9 @@ namespace tfc::dbus::sml {
 
 namespace tags {
 static constexpr std::string_view state_machine{ "StateMachine" };
-static constexpr std::string_view interface{ const_dbus_name<state_machine> };
+static constexpr std::string_view interface {
+  const_dbus_name<state_machine>
+};
 }  // namespace tags
 
 namespace detail {
@@ -136,7 +138,8 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 ///   using state_machine_t = boost::sml::sm<control_modes, boost::sml::logger<tfc::dbus::sml::interface> >;
 ///
 ///   // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
-///   std::shared_ptr<state_machine_t> const state_machine{ std::make_shared<state_machine_t>(control_modes{}, sml_interface) };
+///   std::shared_ptr<state_machine_t> const state_machine{ std::make_shared<state_machine_t>(control_modes{}, sml_interface)
+///   };
 ///
 ///   state_machine->process_event(run{});
 ///

@@ -5,10 +5,10 @@
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/mocks/confman/detail/config_dbus_client.hpp>
 #include <tfc/mocks/confman/file_storage.hpp>
 #include <tfc/progbase.hpp>
-#include <tfc/dbus/sd_bus.hpp>
 
 namespace ut = boost::ut;
 namespace asio = boost::asio;
@@ -29,7 +29,9 @@ struct glz::meta<storage> {
 
 struct config_test {
   asio::io_context ctx{};
-  std::shared_ptr<sdbusplus::asio::connection> dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
+  std::shared_ptr<sdbusplus::asio::connection> dbus{
+    std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system())
+  };
   using mock_file_storage_t = testing::NiceMock<tfc::confman::mock_file_storage<storage>>;
   mock_file_storage_t mock_file_storage{ ctx, "bar" };
   using mock_dbus_config_client_t = testing::NiceMock<tfc::confman::detail::config_dbus_client>;

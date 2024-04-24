@@ -268,7 +268,9 @@ class filters {
 public:
   using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
 
-  filters(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view key, tfc::stx::invocable<value_t> auto&& callback)
+  filters(std::shared_ptr<sdbusplus::asio::connection> connection,
+          std::string_view key,
+          tfc::stx::invocable<value_t> auto&& callback)
       : ctx_{ connection->get_io_context() }, filters_{ connection, fmt::format("{}.Filter", key) },
         callback_{ std::forward<decltype(callback)>(callback) } {}
 

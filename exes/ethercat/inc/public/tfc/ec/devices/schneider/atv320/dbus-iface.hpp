@@ -769,7 +769,7 @@ struct dbus_iface {
   dbus_iface(controller<manager_client_t, pos_config_t, steady_timer_t, pos_slot_t>& ctrl,
              std::shared_ptr<sdbusplus::asio::connection> connection,
              const uint16_t slave_id)
-      :  slave_id_{ slave_id }, ctx_(connection->get_io_context()), ctrl_{ ctrl }, manager_(connection),
+      : slave_id_{ slave_id }, ctx_(connection->get_io_context()), ctrl_{ ctrl }, manager_(connection),
         logger_(fmt::format("{}_{}", impl_name, slave_id_)) {
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection, false);
     dbus_interface_ = object_server_->add_unique_interface(path_, interface_);

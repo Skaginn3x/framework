@@ -58,7 +58,7 @@ auto make_dbus_name(std::string_view input_name) -> std::string;
 /// Will replace all `.` with `/`
 auto make_dbus_path(std::string_view input_name) -> std::string;
 
-template<typename... args_t>
+template <typename... args_t>
 auto make_dbus_path(fmt::format_string<args_t...> fmt_literal, args_t&&... args) -> std::string {
   return make_dbus_path(fmt::format(fmt_literal, std::forward<args_t>(args)...));
 }

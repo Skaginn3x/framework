@@ -21,7 +21,9 @@ namespace dbus {
 static constexpr std::string_view property_value_name{ "Value" };
 static constexpr std::string_view property_schema_name{ "Schema" };
 static constexpr std::string_view intent_name{ "Config" };
-static constexpr std::string_view interface{ tfc::dbus::const_dbus_name<intent_name> };
+static constexpr std::string_view interface {
+  tfc::dbus::const_dbus_name<intent_name>
+};
 }  // namespace dbus
 
 class config_dbus_client {

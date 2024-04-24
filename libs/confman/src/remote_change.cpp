@@ -19,10 +19,9 @@ namespace tfc::confman {
                                       std::function<void(std::error_code)> handler) {
   auto const interface_path{ tfc::dbus::make_dbus_path(key) };
   std::string const interface_name{ tfc::confman::detail::dbus::interface };
-  sdbusplus::asio::setProperty<std::string>(
-      dbus, std::string{ service }, interface_path, interface_name,
-      std::string{ tfc::confman::detail::dbus::property_value_name },
-      std::string{ value }, std::move(handler));
+  sdbusplus::asio::setProperty<std::string>(dbus, std::string{ service }, interface_path, interface_name,
+                                            std::string{ tfc::confman::detail::dbus::property_value_name },
+                                            std::string{ value }, std::move(handler));
 }
 
 }  // namespace tfc::confman

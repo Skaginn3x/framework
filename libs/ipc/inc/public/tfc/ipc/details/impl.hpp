@@ -49,9 +49,7 @@ public:
   [[nodiscard]] auto name() const noexcept -> std::string_view { return name_; }
 
   /// \return <type>.<name>
-  [[nodiscard]] auto type_name() const -> std::string {
-    return fmt::format("{}.{}", type_desc::type_name, name_);
-  }
+  [[nodiscard]] auto type_name() const -> std::string { return fmt::format("{}.{}", type_desc::type_name, name_); }
 
   /// \return <type>.<name>
   [[nodiscard]] auto full_name() const -> std::string {
