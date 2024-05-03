@@ -6,9 +6,11 @@
 
 #include <mp-units/systems/si/si.h>
 #include <boost/asio.hpp>
+#include <sdbusplus/asio/connection.hpp>
 
 #include <tfc/confman.hpp>
 #include <tfc/confman/observable.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/stx/glaze_meta.hpp>
 #include <tfc/utils/units_glaze_meta.hpp>
@@ -42,8 +44,9 @@ int main(int argc, char** argv) {
   tfc::base::init(argc, argv);
 
   asio::io_context ctx{};
+  auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
 
-  tfc::confman::config<simple_config> config{ ctx, "key" };
+  tfc::confman::config<simple_config> config{ dbus, "key" };
   // observe all variables and write default value back to it
   simple_config const default_config{};
   config->a.observe([&](auto new_value, auto) {
@@ -79,6 +82,8 @@ int main(int argc, char** argv) {
 
   fmt::println("Schema is: {}", config.schema());
   fmt::println("Config is: {}", config.string());
+
+  dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
 
   ctx.run();
   return 0;

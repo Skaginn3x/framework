@@ -67,15 +67,13 @@ public:
     context_.EOEhook = nullptr;
     context_.manualstatechange = 1;  // Internal SOEM code changes ethercat states if not set.
 
-    config_ = std::make_shared<tfc::confman::config<config::ethercat>>(ctx_, "ethercat");
-
     auto interfaces = common::get_interfaces();
-    if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_->value().primary_interface.value) !=
+    // Check if current config exists in the list of interfaces, if not overwrite with first interface
+    if (!(std::ranges::find(interfaces.begin(), interfaces.end(), config_.value().primary_interface.value) !=
           interfaces.end())) {
-      config_->make_change()->primary_interface = config::network_interface{ interfaces[0] };
+      config_.make_change()->primary_interface = config::network_interface{ interfaces[0] };
     }
-
-    logger_.trace("Network interface used: {}", config_->value().primary_interface.value);
+    logger_.trace("Network interface used: {}", config_->primary_interface.value);
   }
 
   context_t(const context_t&) = delete;
@@ -167,7 +165,7 @@ public:
    */
   auto async_start() -> std::error_code {
     /// Config might have changed since last run
-    if (!ecx::init(&context_, config_->value().primary_interface.value)) {
+    if (!ecx::init(&context_, config_->primary_interface.value)) {
       // TODO: switch for error_code
       throw std::runtime_error("Failed to init, no socket connection");
     }
@@ -175,13 +173,13 @@ public:
     if (!config_init(false)) {
       /// Since the network interface is in a config file which only lives as long as the program is running the user needs
       /// time to configure another interface if this one fails
-      logger_.error("No slaves found for interface: {}", config_->value().primary_interface.value);
+      logger_.error("No slaves found for interface: {}", config_->primary_interface.value);
       logger_.error("Might need to configure another interface?");
       ctx_.run_for(std::chrono::seconds{ 1 });
       return async_start();
     }
 
-    auto configured_slave_count = config_->value().required_slave_count.value();
+    auto configured_slave_count = config_->required_slave_count.value();
 
     if (configured_slave_count.has_value()) {
       if (slave_count() != configured_slave_count.value()) {
@@ -409,7 +407,7 @@ private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_{
     std::make_shared<sdbusplus::asio::connection>(ctx_, dbus::sd_bus_open_system())
   };
-  std::shared_ptr<tfc::confman::config<config::ethercat>> config_;
+  tfc::confman::config<config::ethercat> config_{ dbus_, "ethercat" };
   tfc::logger::logger logger_{ "ethercat" };
 };
 

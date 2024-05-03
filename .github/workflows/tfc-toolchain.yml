@@ -42,6 +42,8 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=true
           tags: |
             type=schedule
             type=ref,event=branch
@@ -55,7 +57,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-toolchain
-          push: ${{ github.ref == 'refs/haeds/main' }}
-          tags: ${{ steps.meta.outputs.tags }},latest
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-toolchain/tfc-toolchain.dockerfile
