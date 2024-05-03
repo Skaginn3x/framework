@@ -243,7 +243,7 @@ auto main(int, char**) -> int {
           filter<filter_e::filter_out, tfc::ipc::details::mass_t> filter_out_test{ .filter_out = 100 * mp_units::si::gram };
           auto return_value = co_await filter_out_test.async_process(100 * mp_units::si::gram, asio::use_awaitable);
           expect(!return_value.has_value());
-          expect(return_value.value().value() != 100 * mp_units::si::gram);
+          expect(return_value.error() == std::errc::bad_message);
           return_value = co_await filter_out_test.async_process(40 * mp_units::si::gram, asio::use_awaitable);
           expect(return_value.has_value());
           expect(return_value.value().value() == 40 * mp_units::si::gram);
@@ -300,7 +300,7 @@ auto main(int, char**) -> int {
       test.ctx.run_one_for(1ms);
       expect(call_count == param.expected_call_count);
     } | std::vector{ parameters{ .invert_count = 1, .expected_call_count = 2 }, parameters{ .invert_count = 2, .expected_call_count = 1 }, parameters{ .invert_count = 3, .expected_call_count = 2 } };
-    
+
     "remove invert DOES call owner with inverted value"_test = [] {
       // Duplicate of adding 2 inverts
       std::size_t call_count{ 0 };
