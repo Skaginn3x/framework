@@ -1046,8 +1046,3 @@ auto main(int argc, char* argv[]) -> int {
 
   return 0;
 }
-// #else
-// auto main() -> int {
-//   return 0;
-// }
-// #endif
