@@ -117,38 +117,35 @@ public:
 };
 
 auto make_ncmd_payload(std::string variable_name) -> async_mqtt::v5::publish_packet {
-    org::eclipse::tahu::protobuf::Payload payload;
-    using std::chrono::duration_cast;
-    using std::chrono::milliseconds;
-    using std::chrono::system_clock;
+  org::eclipse::tahu::protobuf::Payload payload;
+  using std::chrono::duration_cast;
+  using std::chrono::milliseconds;
+  using std::chrono::system_clock;
 
-    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+  auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-    payload.set_timestamp(timestamp);
+  payload.set_timestamp(timestamp);
 
-    payload.set_seq(1);
+  payload.set_seq(1);
 
-    org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+  org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
 
-    metric->set_name(variable_name);
-    metric->set_timestamp(timestamp);
-    metric->set_datatype(DataType::Boolean);
-    metric->set_boolean_value(true);
+  metric->set_name(variable_name);
+  metric->set_timestamp(timestamp);
+  metric->set_datatype(DataType::Boolean);
+  metric->set_boolean_value(true);
 
-    std::string payload_string;
-    payload.SerializeToString(&payload_string);
+  std::string payload_string;
+  payload.SerializeToString(&payload_string);
 
-    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+  std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
 
-    auto pub_packet =
-            async_mqtt::v5::publish_packet{
-                0, async_mqtt::allocate_buffer(ncmd_topic),
-                async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-            };
+  auto pub_packet =
+      async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                      async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
 
-    return pub_packet;
+  return pub_packet;
 }
-
 
 auto main(int argc, char* argv[]) -> int {
   tfc::base::init(argc, argv);
@@ -470,579 +467,544 @@ auto main(int argc, char* argv[]) -> int {
     expect(nbirth_message.metrics()[2].is_null());
   };
 
+  "writeable signal basic test"_test = [&]() {
+    asio::io_context io_ctx{};
 
-    "writeable signal basic test"_test = [&]() {
-        asio::io_context io_ctx{};
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
 
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
 
+                   // tfc::mqtt::client_semi_normal,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_bool);
 
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        // tfc::mqtt::client_semi_normal,
-                    tfc::ipc_ruler::ipc_manager_client_mock &>
-                running{io_ctx, ipc_client};
+    // should be one signal
+    expect(ipc_client.signals_.size() == 1);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.bool.first");
 
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_bool);
+    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> slot{ io_ctx, ipc_client, "first",
+                                                                                                 "first", [](bool) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
+    ipc_client.connect("mqtt_bridge_integration_tests.def.bool.first", "mqtt_bridge_integration_tests.def.bool.first",
+                       [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        // should be one signal
-        expect(ipc_client.signals_.size() == 1);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.bool.first");
+    org::eclipse::tahu::protobuf::Payload payload;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::system_clock;
 
-        tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock &> slot{
-            io_ctx, ipc_client, "first", "first", [](bool) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-        ipc_client.connect("mqtt_bridge_integration_tests.def.bool.first",
-                           "mqtt_bridge_integration_tests.def.bool.first",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    payload.set_timestamp(timestamp);
 
-        org::eclipse::tahu::protobuf::Payload payload;
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        using std::chrono::system_clock;
+    payload.set_seq(1);
 
-        auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
 
-        payload.set_timestamp(timestamp);
+    metric->set_name("mqtt_bridge_integration_tests/def/bool/first");
+    metric->set_timestamp(timestamp);
+    metric->set_datatype(DataType::Boolean);
+    metric->set_boolean_value(true);
 
-        payload.set_seq(1);
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
 
-        org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
 
-        metric->set_name("mqtt_bridge_integration_tests/def/bool/first");
-        metric->set_timestamp(timestamp);
-        metric->set_datatype(DataType::Boolean);
-        metric->set_boolean_value(true);
+    auto pub_packet =
+        async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                        async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
 
-        std::string payload_string;
-        payload.SerializeToString(&payload_string);
+    co_spawn(io_ctx, client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
 
-        std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+    io_ctx.run_for(milliseconds{ 10 });
 
-        auto pub_packet = async_mqtt::v5::publish_packet{
-            0, async_mqtt::allocate_buffer(ncmd_topic),
-            async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-        };
+    std::cout << ipc_client.slots_[0].name << std::endl;
+    std::cout << ipc_client.signals_[0].name << std::endl;
 
-        co_spawn(io_ctx,
-                 client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+    expect(slot.value().has_value()) << slot.value().has_value();
+    expect(slot.value().value() == true);
+  };
 
-        io_ctx.run_for(milliseconds{10});
+  "writeable signal 2 signals"_test = [&]() {
+    asio::io_context io_ctx{};
 
-        std::cout << ipc_client.slots_[0].name << std::endl;
-        std::cout << ipc_client.signals_[0].name << std::endl;
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        expect(slot.value().has_value()) << slot.value().has_value();
-        expect(slot.value().value() == true);
-    };
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-    "writeable signal 2 signals"_test = [&]() {
-        asio::io_context io_ctx{};
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
-
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
-
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock,         tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
-
-                    tfc::ipc_ruler::ipc_manager_client_mock &>
-                running{io_ctx, ipc_client};
-
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_bool);
-        running.config().add_writeable_signal("second", "second", tfc::ipc::details::type_e::_bool);
-
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
-
-        // should be one signal
-        expect(ipc_client.signals_.size() == 2);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.bool.first");
-        expect(ipc_client.signals_[1].name == "mqtt_bridge_integration_tests.def.bool.second");
-
-        tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock &> first_slot{
-            io_ctx, ipc_client,
-            "first", "first",
-            [](bool) {
-            }
-        };
-        tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock &> second_slot{
-            io_ctx, ipc_client,
-            "second", "second",
-            [](bool) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
-
-        ipc_client.connect("mqtt_bridge_integration_tests.def.bool.first",
-                           "mqtt_bridge_integration_tests.def.bool.first",
-                           [](std::error_code) {
-                           });
-        ipc_client.connect("mqtt_bridge_integration_tests.def.bool.second",
-                           "mqtt_bridge_integration_tests.def.bool.second",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
-
-        co_spawn(io_ctx,
-                 client.amep_->send(make_ncmd_payload("mqtt_bridge_integration_tests/def/bool/first"),
-                                    asio::use_awaitable),
-                 asio::detached);
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        co_spawn(io_ctx,
-                 client.amep_->send(make_ncmd_payload("mqtt_bridge_integration_tests/def/bool/second"),
-                                    asio::use_awaitable),
-                 asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
-
-        expect(first_slot.value().has_value()) << first_slot.value().has_value();
-        expect(first_slot.value().value() == true);
-
-        expect(second_slot.value().has_value()) << second_slot.value().has_value();
-        expect(second_slot.value().value() == true);
-    };
-
-
-    "writeable signal - uint64"_test = [&]() {
-        asio::io_context io_ctx{};
-
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_bool);
+    running.config().add_writeable_signal("second", "second", tfc::ipc::details::type_e::_bool);
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    // should be one signal
+    expect(ipc_client.signals_.size() == 2);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.bool.first");
+    expect(ipc_client.signals_[1].name == "mqtt_bridge_integration_tests.def.bool.second");
 
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,tfc::ipc_ruler::ipc_manager_client_mock &>running{io_ctx, ipc_client};
-
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_uint64_t);
-
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
-
-        // should be one signal
-        expect(ipc_client.signals_.size() == 1);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.uint64_t.first");
-
-        tfc::ipc::slot<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock &> slot{
-            io_ctx, ipc_client, "first", "first", [](uint64_t) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> first_slot{ io_ctx, ipc_client,
+                                                                                                       "first", "first",
+                                                                                                       [](bool) {} };
+    tfc::ipc::slot<tfc::ipc::details::type_bool, tfc::ipc_ruler::ipc_manager_client_mock&> second_slot{ io_ctx, ipc_client,
+                                                                                                        "second", "second",
+                                                                                                        [](bool) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        ipc_client.connect("mqtt_bridge_integration_tests.def.uint64_t.first",
-                           "mqtt_bridge_integration_tests.def.uint64_t.first",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    ipc_client.connect("mqtt_bridge_integration_tests.def.bool.first", "mqtt_bridge_integration_tests.def.bool.first",
+                       [](std::error_code) {});
+    ipc_client.connect("mqtt_bridge_integration_tests.def.bool.second", "mqtt_bridge_integration_tests.def.bool.second",
+                       [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        org::eclipse::tahu::protobuf::Payload payload;
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        using std::chrono::system_clock;
+    co_spawn(io_ctx,
+             client.amep_->send(make_ncmd_payload("mqtt_bridge_integration_tests/def/bool/first"), asio::use_awaitable),
+             asio::detached);
 
-        auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    co_spawn(io_ctx,
+             client.amep_->send(make_ncmd_payload("mqtt_bridge_integration_tests/def/bool/second"), asio::use_awaitable),
+             asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        payload.set_timestamp(timestamp);
+    expect(first_slot.value().has_value()) << first_slot.value().has_value();
+    expect(first_slot.value().value() == true);
 
-        payload.set_seq(1);
+    expect(second_slot.value().has_value()) << second_slot.value().has_value();
+    expect(second_slot.value().value() == true);
+  };
 
-        org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+  "writeable signal - uint64"_test = [&]() {
+    asio::io_context io_ctx{};
 
-        metric->set_name("mqtt_bridge_integration_tests/def/uint64_t/first");
-        metric->set_timestamp(timestamp);
-        metric->set_datatype(DataType::UInt64);
-        metric->set_long_value(100);
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string payload_string;
-        payload.SerializeToString(&payload_string);
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        auto pub_packet = async_mqtt::v5::publish_packet{
-            0, async_mqtt::allocate_buffer(ncmd_topic),
-            async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-        };
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        co_spawn(io_ctx,
-                 client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_uint64_t);
 
-        io_ctx.run_for(milliseconds{10});
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        std::cout << ipc_client.slots_[0].name << std::endl;
-        std::cout << ipc_client.signals_[0].name << std::endl;
+    // should be one signal
+    expect(ipc_client.signals_.size() == 1);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.uint64_t.first");
 
-        expect(slot.value().has_value()) << slot.value().has_value();
-        expect(slot.value().value() == 100);
-    };
+    tfc::ipc::slot<tfc::ipc::details::type_uint, tfc::ipc_ruler::ipc_manager_client_mock&> slot{ io_ctx, ipc_client, "first",
+                                                                                                 "first", [](uint64_t) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        "writeable signal - int64"_test = [&]() {
-        asio::io_context io_ctx{};
+    ipc_client.connect("mqtt_bridge_integration_tests.def.uint64_t.first",
+                       "mqtt_bridge_integration_tests.def.uint64_t.first", [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    org::eclipse::tahu::protobuf::Payload payload;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::system_clock;
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_timestamp(timestamp);
 
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,tfc::ipc_ruler::ipc_manager_client_mock &>running{io_ctx, ipc_client};
+    payload.set_seq(1);
 
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_int64_t);
+    org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
 
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
+    metric->set_name("mqtt_bridge_integration_tests/def/uint64_t/first");
+    metric->set_timestamp(timestamp);
+    metric->set_datatype(DataType::UInt64);
+    metric->set_long_value(100);
 
-        // should be one signal
-        expect(ipc_client.signals_.size() == 1);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.int64_t.first");
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
 
-        tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock &> slot{
-            io_ctx, ipc_client, "first", "first", [](int64_t) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
 
-        ipc_client.connect("mqtt_bridge_integration_tests.def.int64_t.first",
-                           "mqtt_bridge_integration_tests.def.int64_t.first",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    auto pub_packet =
+        async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                        async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
 
-        org::eclipse::tahu::protobuf::Payload payload;
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        using std::chrono::system_clock;
+    co_spawn(io_ctx, client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
 
-        auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    io_ctx.run_for(milliseconds{ 10 });
 
-        payload.set_timestamp(timestamp);
+    std::cout << ipc_client.slots_[0].name << std::endl;
+    std::cout << ipc_client.signals_[0].name << std::endl;
 
-        payload.set_seq(1);
+    expect(slot.value().has_value()) << slot.value().has_value();
+    expect(slot.value().value() == 100);
+  };
 
-        org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+  "writeable signal - int64"_test = [&]() {
+    asio::io_context io_ctx{};
 
-        metric->set_name("mqtt_bridge_integration_tests/def/int64_t/first");
-        metric->set_timestamp(timestamp);
-        metric->set_datatype(DataType::Int64);
-        metric->set_int_value(1299);
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string payload_string;
-        payload.SerializeToString(&payload_string);
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        auto pub_packet = async_mqtt::v5::publish_packet{
-            0, async_mqtt::allocate_buffer(ncmd_topic),
-            async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-        };
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        co_spawn(io_ctx,
-                 client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_int64_t);
 
-        io_ctx.run_for(milliseconds{10});
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        std::cout << ipc_client.slots_[0].name << std::endl;
-        std::cout << ipc_client.signals_[0].name << std::endl;
+    // should be one signal
+    expect(ipc_client.signals_.size() == 1);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.int64_t.first");
 
-        expect(slot.value().has_value()) << slot.value().has_value();
-        expect(slot.value().value() == 1299);
-    };
+    tfc::ipc::slot<tfc::ipc::details::type_int, tfc::ipc_ruler::ipc_manager_client_mock&> slot{ io_ctx, ipc_client, "first",
+                                                                                                "first", [](int64_t) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
+    ipc_client.connect("mqtt_bridge_integration_tests.def.int64_t.first", "mqtt_bridge_integration_tests.def.int64_t.first",
+                       [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        "writeable signal - double"_test = [&]() {
-        asio::io_context io_ctx{};
+    org::eclipse::tahu::protobuf::Payload payload;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::system_clock;
 
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_timestamp(timestamp);
 
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_seq(1);
 
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,tfc::ipc_ruler::ipc_manager_client_mock &>running{io_ctx, ipc_client};
+    org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
 
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_double_t);
+    metric->set_name("mqtt_bridge_integration_tests/def/int64_t/first");
+    metric->set_timestamp(timestamp);
+    metric->set_datatype(DataType::Int64);
+    metric->set_int_value(1299);
 
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
 
-        // should be one signal
-        expect(ipc_client.signals_.size() == 1);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.double.first");
+    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
 
-        tfc::ipc::slot<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock &> slot{
-            io_ctx, ipc_client, "first", "first", [](double) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    auto pub_packet =
+        async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                        async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
 
-        ipc_client.connect("mqtt_bridge_integration_tests.def.double.first",
-                           "mqtt_bridge_integration_tests.def.double.first",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    co_spawn(io_ctx, client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
 
-        org::eclipse::tahu::protobuf::Payload payload;
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        using std::chrono::system_clock;
+    io_ctx.run_for(milliseconds{ 10 });
 
-        auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout << ipc_client.slots_[0].name << std::endl;
+    std::cout << ipc_client.signals_[0].name << std::endl;
 
-        payload.set_timestamp(timestamp);
+    expect(slot.value().has_value()) << slot.value().has_value();
+    expect(slot.value().value() == 1299);
+  };
 
-        payload.set_seq(1);
+  "writeable signal - double"_test = [&]() {
+    asio::io_context io_ctx{};
 
-        org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        metric->set_name("mqtt_bridge_integration_tests/def/double_t/first");
-        metric->set_timestamp(timestamp);
-        metric->set_datatype(DataType::Double);
-        metric->set_double_value(111.11);
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string payload_string;
-        payload.SerializeToString(&payload_string);
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        auto pub_packet = async_mqtt::v5::publish_packet{
-            0, async_mqtt::allocate_buffer(ncmd_topic),
-            async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-        };
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_double_t);
 
-        co_spawn(io_ctx,
-                 client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        io_ctx.run_for(milliseconds{10});
+    // should be one signal
+    expect(ipc_client.signals_.size() == 1);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.double.first");
 
-        std::cout << ipc_client.slots_[0].name << std::endl;
-        std::cout << ipc_client.signals_[0].name << std::endl;
+    tfc::ipc::slot<tfc::ipc::details::type_double, tfc::ipc_ruler::ipc_manager_client_mock&> slot{ io_ctx, ipc_client,
+                                                                                                   "first", "first",
+                                                                                                   [](double) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        expect(slot.value().has_value()) << slot.value().has_value();
-        expect(slot.value().value() == 111.11);
-    };
+    ipc_client.connect("mqtt_bridge_integration_tests.def.double.first", "mqtt_bridge_integration_tests.def.double.first",
+                       [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-          "writeable signal - string"_test = [&]() {
-        asio::io_context io_ctx{};
+    org::eclipse::tahu::protobuf::Payload payload;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::system_clock;
 
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_timestamp(timestamp);
 
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_seq(1);
 
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,tfc::ipc_ruler::ipc_manager_client_mock &>running{io_ctx, ipc_client};
+    org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
 
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_string);
+    metric->set_name("mqtt_bridge_integration_tests/def/double_t/first");
+    metric->set_timestamp(timestamp);
+    metric->set_datatype(DataType::Double);
+    metric->set_double_value(111.11);
 
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
 
-        // should be one signal
-        expect(ipc_client.signals_.size() == 1);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.string.first");
+    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
 
-        tfc::ipc::slot<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock &> slot{
-            io_ctx, ipc_client, "first", "first", [](std::string) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    auto pub_packet =
+        async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                        async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
 
-        ipc_client.connect("mqtt_bridge_integration_tests.def.string.first",
-                           "mqtt_bridge_integration_tests.def.string.first",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    co_spawn(io_ctx, client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
 
-        org::eclipse::tahu::protobuf::Payload payload;
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        using std::chrono::system_clock;
+    io_ctx.run_for(milliseconds{ 10 });
 
-        auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout << ipc_client.slots_[0].name << std::endl;
+    std::cout << ipc_client.signals_[0].name << std::endl;
 
-        payload.set_timestamp(timestamp);
+    expect(slot.value().has_value()) << slot.value().has_value();
+    expect(slot.value().value() == 111.11);
+  };
 
-        payload.set_seq(1);
+  "writeable signal - string"_test = [&]() {
+    asio::io_context io_ctx{};
 
-        org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        metric->set_name("mqtt_bridge_integration_tests/def/string_t/first");
-        metric->set_timestamp(timestamp);
-        metric->set_datatype(DataType::String);
-        metric->set_string_value("some_val");
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string payload_string;
-        payload.SerializeToString(&payload_string);
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        auto pub_packet = async_mqtt::v5::publish_packet{
-            0, async_mqtt::allocate_buffer(ncmd_topic),
-            async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-        };
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_string);
 
-        co_spawn(io_ctx,
-                 client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        io_ctx.run_for(milliseconds{10});
+    // should be one signal
+    expect(ipc_client.signals_.size() == 1);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.string.first");
 
-        std::cout << ipc_client.slots_[0].name << std::endl;
-        std::cout << ipc_client.signals_[0].name << std::endl;
+    tfc::ipc::slot<tfc::ipc::details::type_string, tfc::ipc_ruler::ipc_manager_client_mock&> slot{ io_ctx, ipc_client,
+                                                                                                   "first", "first",
+                                                                                                   [](std::string) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        expect(slot.value().has_value()) << slot.value().has_value();
-        expect(slot.value().value() == "some_val");
-    };
+    ipc_client.connect("mqtt_bridge_integration_tests.def.string.first", "mqtt_bridge_integration_tests.def.string.first",
+                       [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-              "writeable signal - json"_test = [&]() {
-        asio::io_context io_ctx{};
+    org::eclipse::tahu::protobuf::Payload payload;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::system_clock;
 
-        // start broker
-        mqtt_broker broker{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-        // start client
-        std::string topic = "";
-        std::vector<async_mqtt::buffer> messages;
-        mqtt_client client{io_ctx, messages, topic};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_timestamp(timestamp);
 
-        // start mock ipc client
-        tfc::ipc_ruler::ipc_manager_client_mock ipc_client{io_ctx};
-        io_ctx.run_for(std::chrono::milliseconds{5});
+    payload.set_seq(1);
 
-        // start mqtt bridge
-        tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,tfc::ipc_ruler::ipc_manager_client_mock &>running{io_ctx, ipc_client};
+    org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
 
-        running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_json);
+    metric->set_name("mqtt_bridge_integration_tests/def/string_t/first");
+    metric->set_timestamp(timestamp);
+    metric->set_datatype(DataType::String);
+    metric->set_string_value("some_val");
 
-        co_spawn(io_ctx, running.start(), asio::detached);
-        io_ctx.run_for(std::chrono::milliseconds{100});
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
 
-        // should be one signal
-        expect(ipc_client.signals_.size() == 1);
-        expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.json.first");
+    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
 
-        tfc::ipc::slot<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock &> slot{
-            io_ctx, ipc_client, "first", "first", [](std::string) {
-            }
-        };
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    auto pub_packet =
+        async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                        async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
 
-        ipc_client.connect("mqtt_bridge_integration_tests.def.json.first",
-                           "mqtt_bridge_integration_tests.def.json.first",
-                           [](std::error_code) {
-                           });
-        io_ctx.run_for(std::chrono::milliseconds{1});
+    co_spawn(io_ctx, client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
 
-        org::eclipse::tahu::protobuf::Payload payload;
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        using std::chrono::system_clock;
+    io_ctx.run_for(milliseconds{ 10 });
 
-        auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout << ipc_client.slots_[0].name << std::endl;
+    std::cout << ipc_client.signals_[0].name << std::endl;
 
-        payload.set_timestamp(timestamp);
+    expect(slot.value().has_value()) << slot.value().has_value();
+    expect(slot.value().value() == "some_val");
+  };
 
-        payload.set_seq(1);
+  "writeable signal - json"_test = [&]() {
+    asio::io_context io_ctx{};
 
-        org::eclipse::tahu::protobuf::Payload_Metric *metric = payload.add_metrics();
+    // start broker
+    mqtt_broker broker{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        metric->set_name("mqtt_bridge_integration_tests/def/json_t/first");
-        metric->set_timestamp(timestamp);
-        metric->set_datatype(DataType::String);
-        metric->set_string_value("some_val");
+    // start client
+    std::string topic = "";
+    std::vector<async_mqtt::buffer> messages;
+    mqtt_client client{ io_ctx, messages, topic };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string payload_string;
-        payload.SerializeToString(&payload_string);
+    // start mock ipc client
+    tfc::ipc_ruler::ipc_manager_client_mock ipc_client{ io_ctx };
+    io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
-        std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+    // start mqtt bridge
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
+                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
+                   tfc::ipc_ruler::ipc_manager_client_mock&>
+        running{ io_ctx, ipc_client };
 
-        auto pub_packet = async_mqtt::v5::publish_packet{
-            0, async_mqtt::allocate_buffer(ncmd_topic),
-            async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once
-        };
+    running.config().add_writeable_signal("first", "first", tfc::ipc::details::type_e::_json);
 
-        co_spawn(io_ctx,
-                 client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+    co_spawn(io_ctx, running.start(), asio::detached);
+    io_ctx.run_for(std::chrono::milliseconds{ 100 });
 
-        io_ctx.run_for(milliseconds{10});
+    // should be one signal
+    expect(ipc_client.signals_.size() == 1);
+    expect(ipc_client.signals_[0].name == "mqtt_bridge_integration_tests.def.json.first");
 
-        std::cout << ipc_client.slots_[0].name << std::endl;
-        std::cout << ipc_client.signals_[0].name << std::endl;
+    tfc::ipc::slot<tfc::ipc::details::type_json, tfc::ipc_ruler::ipc_manager_client_mock&> slot{ io_ctx, ipc_client, "first",
+                                                                                                 "first",
+                                                                                                 [](std::string) {} };
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
-        expect(slot.value().has_value()) << slot.value().has_value();
-        expect(slot.value().value() == "some_val");
-    };
+    ipc_client.connect("mqtt_bridge_integration_tests.def.json.first", "mqtt_bridge_integration_tests.def.json.first",
+                       [](std::error_code) {});
+    io_ctx.run_for(std::chrono::milliseconds{ 1 });
 
+    org::eclipse::tahu::protobuf::Payload payload;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::system_clock;
+
+    auto timestamp = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+
+    payload.set_timestamp(timestamp);
+
+    payload.set_seq(1);
+
+    org::eclipse::tahu::protobuf::Payload_Metric* metric = payload.add_metrics();
+
+    metric->set_name("mqtt_bridge_integration_tests/def/json_t/first");
+    metric->set_timestamp(timestamp);
+    metric->set_datatype(DataType::String);
+    metric->set_string_value("some_val");
+
+    std::string payload_string;
+    payload.SerializeToString(&payload_string);
+
+    std::string ncmd_topic = "spBv1.0/tfc_unconfigured_group_id/NCMD/tfc_unconfigured_node_id";
+
+    auto pub_packet =
+        async_mqtt::v5::publish_packet{ 0, async_mqtt::allocate_buffer(ncmd_topic),
+                                        async_mqtt::allocate_buffer(payload_string), async_mqtt::qos::at_most_once };
+
+    co_spawn(io_ctx, client.amep_->send(pub_packet, asio::use_awaitable), asio::detached);
+
+    io_ctx.run_for(milliseconds{ 10 });
+
+    std::cout << ipc_client.slots_[0].name << std::endl;
+    std::cout << ipc_client.signals_[0].name << std::endl;
+
+    expect(slot.value().has_value()) << slot.value().has_value();
+    expect(slot.value().value() == "some_val");
+  };
 
   return 0;
 }
