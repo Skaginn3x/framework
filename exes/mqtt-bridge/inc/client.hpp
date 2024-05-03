@@ -217,6 +217,8 @@ public:
                                            { async_mqtt::property::session_expiry_interval{ 0 } } };
   }
 
+  auto connect_packet() -> async_mqtt::v5::connect_packet;
+
 private:
   asio::io_context& io_ctx_;
   std::string mqtt_will_topic_;
