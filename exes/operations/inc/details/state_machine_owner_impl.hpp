@@ -32,6 +32,8 @@ state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_conte
   fault_out_.async_send(false, print_error("fault_out"));
   mode_str_.async_send("", print_error("mode_str"));
   stop_reason_str_.async_send("", print_error("stop_reason_str"));
+
+  dbus_interface_->initialize();
 }
 
 // clang-format off
