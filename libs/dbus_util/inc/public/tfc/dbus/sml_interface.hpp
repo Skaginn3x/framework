@@ -17,21 +17,20 @@
 namespace tfc::dbus::sml {
 
 namespace tags {
-static constexpr std::string_view sub_path{ "StateMachines" };
-static constexpr std::string_view path{ const_dbus_path<sub_path> };
+static constexpr std::string_view state_machine{ "StateMachine" };
+static constexpr std::string_view interface {
+  const_dbus_name<state_machine>
+};
 }  // namespace tags
 
 namespace detail {
 
 struct interface_impl {
-  explicit interface_impl(std::shared_ptr<sdbusplus::asio::dbus_interface>);
+  interface_impl(std::shared_ptr<sdbusplus::asio::connection>, std::string_view unique_key);
 
   interface_impl(interface_impl const&) = delete;
-
   interface_impl(interface_impl&&) noexcept = default;
-
   auto operator=(interface_impl const&) -> interface_impl& = delete;
-
   auto operator=(interface_impl&&) noexcept -> interface_impl& = default;
 
   void on_state_change(std::string_view source_state, std::string_view destination_state, std::string_view event);
@@ -99,13 +98,11 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 /// \example example_sml_interface.cpp
 /// \code{.cpp}
 /// #include <memory>
-/// #include <string>
 /// #include <string_view>
 ///
 /// #include <boost/asio.hpp>
 /// #include <boost/sml.hpp>
 /// #include <sdbusplus/asio/connection.hpp>
-/// #include <sdbusplus/asio/object_server.hpp>
 ///
 /// #include <tfc/dbus/sml_interface.hpp>
 /// #include <tfc/dbus/string_maker.hpp>
@@ -133,27 +130,16 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 ///   tfc::base::init(argc, argv);
 ///   boost::asio::io_context ctx{};
 ///
-///   /// Raw dbus connection, ipc_client also has a dbus connection which can be used through ipc_client.connection()
-///   std::shared_ptr<sdbusplus::asio::connection> const dbus_connection{ std::make_shared<sdbusplus::asio::connection>(ctx)
-///   };
+///   // Raw dbus connection, ipc_client also has a dbus connection which can be used through ipc_client.connection()
+///   auto const dbus{ std::make_shared<sdbusplus::asio::connection>(ctx) };
 ///
-///   std::shared_ptr<sdbusplus::asio::dbus_interface> const interface {
-///     std::make_shared<sdbusplus::asio::dbus_interface>(dbus_connection,
-///                                                       std::string{ tfc::dbus::sml::tags::path },
-///                                                       tfc::dbus::make_dbus_name("example_state_machine"))
-///   };
-///
-///   tfc::dbus::sml::interface sml_interface {
-///     interface, "Log key"
-///   };  // optional log key
-///   // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
+///   tfc::dbus::sml::interface sml_interface { dbus, "unique_key" };
 ///
 ///   using state_machine_t = boost::sml::sm<control_modes, boost::sml::logger<tfc::dbus::sml::interface> >;
 ///
+///   // NOTE! interface struct requires to be passed by l-value like below, so the using code needs to store it like above
 ///   std::shared_ptr<state_machine_t> const state_machine{ std::make_shared<state_machine_t>(control_modes{}, sml_interface)
 ///   };
-///
-///   interface->initialize();
 ///
 ///   state_machine->process_event(run{});
 ///
@@ -168,17 +154,12 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 struct interface : tfc::logger::sml_logger {
   using logger = tfc::logger::sml_logger;
 
-  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface) : impl_{ std::move(interface) } {}
-
-  explicit interface(std::shared_ptr<sdbusplus::asio::dbus_interface> interface, std::string_view log_key)
-      : logger{ log_key }, impl_{ std::move(interface) } {}
+  interface(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_key)
+      : logger{ unique_key }, impl_{ std::move(conn), unique_key } {}
 
   interface(interface const&) = delete;
-
   interface(interface&&) noexcept = default;
-
   auto operator=(interface const&) -> interface& = delete;
-
   auto operator=(interface&&) noexcept -> interface& = default;
 
   template <class state_machine_t, class event_t>

@@ -115,7 +115,7 @@ public:
                                                                       fmt::format("atv320.s{}.run", slave_index),
                                                                       "Turn on motor",
                                                                       [this](bool value) { ipc_running_ = value; }),
-        config_{ ctx_, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
+        config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
                                  fmt::format("atv320.s{}.tmp_config_ratio_out", slave_index),
@@ -284,8 +284,12 @@ public:
 
     // Reset no data bit
     no_data_ = false;
+    // clang-format off
+    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+    // clang-format on
     const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
     output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
+    PRAGMA_CLANG_WARNING_POP
 
     // Check if the drive is in error state
     auto state = in->status_word.parse_state();

@@ -12,6 +12,7 @@
 #include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sd_bus.hpp>
 #include <tfc/dbus/sdbusplus_meta.hpp>
+#include <tfc/dbus/string_maker.hpp>
 #include <tfc/motor/dbus_tags.hpp>
 #include <tfc/motor/enums.hpp>
 #include <tfc/motor/errors.hpp>
@@ -65,7 +66,7 @@ private:
     auto operator==(const config&) const noexcept -> bool = default;
   };
 
-  static constexpr std::string_view impl_name{ "atv320" };
+  static constexpr std::string_view impl_name{ dbus::detail::atv320 };
 
   asio::io_context& ctx_;
   asio::steady_timer ping_{ ctx_ };
@@ -73,10 +74,10 @@ private:
   static constexpr std::chrono::microseconds ping_response_timeout{ std::chrono::milliseconds{ 200 } };
   std::shared_ptr<sdbusplus::asio::connection> connection_;
   uint16_t slave_id_{ 0 };
-  logger::logger logger_{ fmt::format("atv320motor.{}", slave_id_) };
+  logger::logger logger_{ fmt::format("{}.{}", impl_name, slave_id_) };
   std::string const service_name_{ dbus::service_name };
-  std::string const path_{ dbus::path };
-  std::string interface_name_{ dbus::make_interface_name(impl_name, slave_id_) };
+  std::string path_{ dbus::make_path_name(impl_name, slave_id_) };
+  std::string const interface_name_{ tfc::dbus::make_dbus_name(impl_name) };
   std::chrono::steady_clock::time_point last_ping_{};
 
   void on_ping_response(std::error_code const& err, bool response) {
@@ -131,7 +132,7 @@ public:
                    new_id);
       connected_ = false;
       slave_id_ = new_id;
-      interface_name_ = dbus::make_interface_name(impl_name, slave_id_);
+      path_ = dbus::make_path_name(impl_name, slave_id_);
       logger_ = logger::logger{ fmt::format("atv320motor.{}", slave_id_) };
     });
   }

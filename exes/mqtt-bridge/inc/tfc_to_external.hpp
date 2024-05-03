@@ -70,6 +70,11 @@ public:
       case _json:
         return DataType::String;
       case _mass:
+      case _length:
+      case _pressure:
+      case _temperature:
+      case _voltage:
+      case _current:
         return DataType::Template;
     }
     return DataType::Unknown;

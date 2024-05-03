@@ -14,10 +14,6 @@ def read_and_parse(filename: 'string'):
 def vcpkg_version_string():
     return read_and_parse('vcpkg.json')["version"]
 
-# Return the cockpit version string
-def cockpit_version_string():
-    return read_and_parse('cockpit/package.json')["version"]
-
 # Return the base cmake version
 def cmake_project_version():
     cmake_contents = ""
@@ -33,16 +29,10 @@ def cmake_project_version():
     return version_strings[0]
 
 if __name__ == "__main__":
-    cockpit_version   = cockpit_version_string()
     vcpkg_version = vcpkg_version_string()
     cmake_version = cmake_project_version()
-    print(f"Cockpit ipc version {cockpit_version}")
     print(f"vcpkg version {vcpkg_version}")
     print(f"Cmake version {cmake_version}")
-
-    if cockpit_version != vcpkg_version:
-        print("ipc_version and vcpkg_version dont match!")
-        exit(-1)
 
     if cmake_version != vcpkg_version:
         print("cmake_version and vcpkg_version dont match!")

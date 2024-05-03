@@ -70,8 +70,29 @@ struct destination {
 namespace fao {
 struct species {
   bool outside_spec{ false };  // if struct is used for outside the specification, represented with `!` as first character
-  tfc::stx::basic_fixed_string<char, 3> code{};
-
+  using string_type = tfc::stx::basic_fixed_string<char, 3>;
+  string_type code{};
+  static constexpr auto from_3a(const std::string_view marked_code) -> std::optional<species> {
+    species ret_value;
+    if (marked_code.length() != 3 && marked_code.length() != 4) {
+      return std::nullopt;
+    }
+    if (marked_code.length() == 4) {
+      if (marked_code[0] != '!') {
+        return std::nullopt;
+      }
+      ret_value.outside_spec = true;
+      for (unsigned int i = 0; i < 3; i++) {
+        ret_value.code[i] = marked_code[i + 1];
+      }
+      return ret_value;
+    }
+    ret_value.outside_spec = false;
+    for (unsigned int i = 0; i < 3; i++) {
+      ret_value.code[i] = marked_code[i];
+    }
+    return ret_value;
+  }
   static constexpr auto from_int(std::uint16_t input) -> std::optional<species> {
     species res{};
     if (input >= offset) {
@@ -84,6 +105,12 @@ struct species {
       res.code[cnt] = alphabet[input % alphabet.size()];
       input /= alphabet.size();
     }
+    // If the string remainder is only a's the input value is 0, but
+    // we need to reach our length
+    while (cnt > 0) {
+      --cnt;
+      res.code[cnt] = 'A';
+    }
     if (input != 0) {
       // remainder is left so the input was too big
       return std::nullopt;
@@ -91,7 +118,7 @@ struct species {
     return res;
   }
   [[nodiscard]] constexpr auto to_int() const noexcept -> std::uint16_t {
-    constexpr auto impl{ [](auto& input) -> std::uint16_t {
+    constexpr auto impl{ [](const string_type& input) -> std::uint16_t {
       constexpr auto const_toupper{ [](char character) -> char {
         if ('a' <= character && character <= 'z') {
           return static_cast<char>(character - ('a' - 'A'));
@@ -99,7 +126,7 @@ struct species {
         return character;
       } };
       std::uint16_t res = 0;
-      static_assert(alphabet.size() == 27);
+      static_assert(alphabet.size() == 26);
       for (auto const& character : input) {
         res *= alphabet.size();
         res += const_toupper(character) - 'A';
@@ -113,10 +140,8 @@ struct species {
   }
   constexpr auto operator==(species const& rhs) const noexcept -> bool = default;
 
-  static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ!" };  // note the ending !
-  // Todo remake labelled database, this offset is the result of a database labelling error, as in the - 1
-  // todo this can overlap !!!
-  static constexpr std::uint16_t offset{ (alphabet.size() - 1) * (alphabet.size() - 1) * (alphabet.size() - 1) };
+  static constexpr std::string_view alphabet{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
+  static constexpr std::uint16_t offset{ alphabet.size() * alphabet.size() * alphabet.size() };
 };
 inline constexpr auto atlantic_cod{ species{ .code{ "COD" } } };
 inline constexpr auto atlantic_herring{ species{ .code{ "HER" } } };
@@ -149,20 +174,22 @@ namespace test {
 static_assert(species::from_int(std::numeric_limits<std::uint16_t>::max()) == std::nullopt);
 
 // 25 is Z and 27 is the alphabet size
-static_assert(species{ .outside_spec = false, .code{ "ZZZ" } }.to_int() == (25 * 27 + 25) * 27 + 25);  // 18925
-// THIS below should be true but is not because of the issue mentioned in lower part of struct
-// static_assert(species::from_int(species::offset-1) == species{.outside_spec=false, .code{"ZZZ"}});
-// This will result in overlapping if you are not careful
-static_assert(species::from_int(species::offset - 1) == species{ .outside_spec = false, .code{ "YCZ" } });
+static_assert(species{ .outside_spec = false, .code{ "ZZZ" } }.to_int() == (25 * 26 + 25) * 26 + 25);  // 18925
+static_assert(species::from_int(species::offset - 1) == species{ .outside_spec = false, .code{ "ZZZ" } });
 
-static_assert(atlantic_cod.to_int() == 1839);
+static_assert(atlantic_cod.to_int() == 1719);
 static_assert(atlantic_cod == species::from_int(atlantic_cod.to_int()));
-static_assert(red_gurnard.to_int() == 4931);
+static_assert(red_gurnard.to_int() == 4593);
 static_assert(red_gurnard == species::from_int(red_gurnard.to_int()));
-static_assert(damaged.to_int() == 20093);
+static_assert(damaged.to_int() == 19922);
 static_assert(damaged == species::from_int(damaged.to_int()));
-static_assert(gigolo.to_int() == 22172);
+static_assert(gigolo.to_int() == 21846);
 static_assert(gigolo == species::from_int(gigolo.to_int()));
+static_assert(empty == species::from_int(empty.to_int()));
+static_assert(empty.to_int() == 20607);
+
+static_assert(species::from_3a("AZS")->to_int() == 668);
+static_assert(species::from_int(668)->code == stx::basic_fixed_string<char, 3>("AZS"));
 
 }  // namespace test
 

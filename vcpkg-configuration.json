@@ -2,13 +2,13 @@
   "default-registry": {
     "kind": "git",
     "repository": "https://github.com/microsoft/vcpkg",
-    "baseline": "50bffcc62d7f6571eb32bc1a0b1807e77af1166c"
+    "baseline": "a34c873a9717a888f58dc05268dea15592c2f0ff"
   },
   "registries": [
     {
       "kind": "git",
       "repository": "https://github.com/skaginn3x/vcpkg-registry",
-      "baseline": "158a95b4f5741535452360cf3af74e0982612737",
+      "baseline": "1fdcdb95a02b35164c459fbd40f609a62c4cb1ed",
       "packages": [
         "sdbusplus"
       ]

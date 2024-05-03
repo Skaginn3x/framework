@@ -15,9 +15,6 @@ template <template <typename, typename> typename signal_t, template <typename, t
 state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_context& ctx,
                                                                   std::shared_ptr<sdbusplus::asio::connection> conn)
     : ctx_{ ctx }, dbus_{ std::move(conn) },
-      dbus_interface_{ std::make_shared<sdbusplus::asio::dbus_interface>(dbus_,
-                                                                         std::string{ tfc::dbus::sml::tags::path },
-                                                                         tfc::dbus::make_dbus_name("Operations")) },
       states_{ std::make_shared<state_machine_t>(detail::state_machine<state_machine_owner>{ *this }, sml_interface_) } {
   auto print_error = [&](std::string signal_name) {
     return [this, signal_name](std::error_code const& err, std::size_t) {
@@ -35,8 +32,6 @@ state_machine_owner<signal_t, slot_t, sml_t>::state_machine_owner(asio::io_conte
   fault_out_.async_send(false, print_error("fault_out"));
   mode_str_.async_send("", print_error("mode_str"));
   stop_reason_str_.async_send("", print_error("stop_reason_str"));
-
-  dbus_interface_->initialize();
 }
 
 // clang-format off

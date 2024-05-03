@@ -121,9 +121,7 @@ inline consteval auto dimension_name() -> std::string_view {
   // "wavenumber",
   // "unitless",
   // "time",
-  // "temperature",
   // "yank",
-  // "pressure",
   // "force",
   // "energy",
   // "viscosity",
@@ -176,6 +174,10 @@ inline consteval auto dimension_name() -> std::string_view {
     return "inductance";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::ohm)) {
     return "resistance";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::pascal)) {
+    return "pressure";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::kelvin)) {
+    return "temperature";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(tfc-framework
   VERSION
-    "2024.2.9"
+    "2024.4.24"
   DESCRIPTION
     "The tfc framework eases the integration of often used components in different context with mappable IPC and config."
   HOMEPAGE_URL
@@ -41,10 +41,6 @@ endif()
 if (BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
-
-if (BUILD_FRONTEND)
-  add_subdirectory(cockpit)
-endif ()
 
 # Clang format all files
 

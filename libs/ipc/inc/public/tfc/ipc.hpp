@@ -51,8 +51,8 @@ public:
        std::string_view description,
        stx::invocable<value_t> auto&& callback)
     requires std::is_lvalue_reference_v<manager_client_type>
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ client.connection(), full_name() },
-        client_{ client }, filters_{ dbus_slot_.interface(),
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ client.connection(), slot_->type_name() },
+        client_{ client }, filters_{ client.connection(), slot_->type_name(),
                                      // store the callers callback in this lambda
                                      [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                                        callb(new_value);
@@ -67,9 +67,9 @@ public:
        std::string_view description,
        tfc::stx::invocable<value_t> auto&& callback)
     requires(!std::is_lvalue_reference_v<manager_client_type>)
-      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, full_name() },
+      : slot_{ details::slot_callback<type_desc>::create(ctx, name) }, dbus_slot_{ connection, slot_->type_name() },
         client_{ connection },
-        filters_{ dbus_slot_.interface(),
+        filters_{ connection, slot_->type_name(),
                   // store the callers callback in this lambda
                   [this, callb = std::forward<decltype(callback)>(callback)](value_t const& new_value) {
                     callb(new_value);
@@ -148,7 +148,8 @@ public:
    */
   signal(asio::io_context& ctx, manager_client_type client, std::string_view name, std::string_view description = "")
     requires std::is_lvalue_reference_v<manager_client_type>
-      : client_{ client }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
+      : client_{ client }, signal_{ make_impl_signal(ctx, name) },
+        dbus_signal_{ client_.connection(), signal_->type_name() } {
     client_.register_signal_retry(signal_->full_name(), description, type_desc::value_e);
     dbus_signal_.initialize();
   }
@@ -158,7 +159,8 @@ public:
          std::string_view name,
          std::string_view description = "")
     requires(!std::is_lvalue_reference_v<manager_client_type>)
-      : client_{ connection }, signal_{ make_impl_signal(ctx, name) }, dbus_signal_{ client_.connection(), full_name() } {
+      : client_{ connection }, signal_{ make_impl_signal(ctx, name) },
+        dbus_signal_{ client_.connection(), signal_->type_name() } {
     client_.register_signal_retry(signal_->full_name(), description, type_desc::value_e);
     dbus_signal_.initialize();
   }
@@ -213,14 +215,24 @@ using double_slot = slot<details::type_double>;
 using string_slot = slot<details::type_string>;
 using json_slot = slot<details::type_json>;
 using mass_slot = slot<details::type_mass>;
-using any_slot = std::variant<std::monostate,  //
-                              bool_slot,       //
-                              int_slot,        //
-                              uint_slot,       //
-                              double_slot,     //
-                              string_slot,     //
+using length_slot = slot<details::type_length>;
+using pressure_slot = slot<details::type_pressure>;
+using temperature_slot = slot<details::type_temperature>;
+using voltage_slot = slot<details::type_voltage>;
+using current_slot = slot<details::type_current>;
+using any_slot = std::variant<std::monostate,
+                              bool_slot,
+                              int_slot,
+                              uint_slot,
+                              double_slot,
+                              string_slot,
                               json_slot,
-                              mass_slot>;
+                              mass_slot,
+                              length_slot,
+                              pressure_slot,
+                              temperature_slot,
+                              voltage_slot,
+                              current_slot>;
 /// \brief any_slot foo = make_any_slot(type_e::bool, ctx, client, "name", "description", [](bool new_state){});
 using make_any_slot = make_any<any_slot, ipc_ruler::ipc_manager_client&, slot>;
 
@@ -231,14 +243,24 @@ using double_signal = signal<details::type_double>;
 using string_signal = signal<details::type_string>;
 using json_signal = signal<details::type_json>;
 using mass_signal = signal<details::type_mass>;
-using any_signal = std::variant<std::monostate,  //
-                                bool_signal,     //
-                                int_signal,      //
-                                uint_signal,     //
-                                double_signal,   //
-                                string_signal,   //
+using length_signal = signal<details::type_length>;
+using pressure_signal = signal<details::type_pressure>;
+using temperature_signal = signal<details::type_temperature>;
+using voltage_signal = signal<details::type_voltage>;
+using current_signal = signal<details::type_current>;
+using any_signal = std::variant<std::monostate,
+                                bool_signal,
+                                int_signal,
+                                uint_signal,
+                                double_signal,
+                                string_signal,
                                 json_signal,
-                                mass_signal>;
+                                mass_signal,
+                                length_signal,
+                                pressure_signal,
+                                temperature_signal,
+                                voltage_signal,
+                                current_signal>;
 /// \brief any_signal foo = make_any_signal::make(type_e::bool, ctx, client, "name", "description");
 using make_any_signal = make_any<any_signal, ipc_ruler::ipc_manager_client&, signal>;
 
@@ -262,6 +284,16 @@ struct make_any {
         return ipc_base_t<details::type_json, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case _mass:
         return ipc_base_t<details::type_mass, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _length:
+        return ipc_base_t<details::type_length, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _pressure:
+        return ipc_base_t<details::type_pressure, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _temperature:
+        return ipc_base_t<details::type_temperature, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _voltage:
+        return ipc_base_t<details::type_voltage, manager_client_t>{ std::forward<decltype(args)>(args)... };
+      case _current:
+        return ipc_base_t<details::type_current, manager_client_t>{ std::forward<decltype(args)>(args)... };
       case unknown:
         return std::monostate{};
     }

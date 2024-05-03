@@ -12,7 +12,7 @@ using time_point_t = std::chrono::time_point<std::chrono::system_clock, std::chr
 struct signal {
   std::string name;
   ipc::details::type_e type;
-  std::string created_by;
+  std::string created_by;  // dbus_service_name
   time_point_t created_at;
   time_point_t last_registered;
   std::string description;
@@ -21,7 +21,7 @@ struct signal {
 struct slot {
   std::string name;
   ipc::details::type_e type;
-  std::string created_by;
+  std::string created_by;  // dbus_service_name
   time_point_t created_at;
   time_point_t last_registered;
   time_point_t last_modified;
