@@ -142,7 +142,7 @@ struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
   };
 };
 
@@ -152,7 +152,7 @@ struct glz::meta<std::chrono::duration<rep_t, period_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
   };
 };
 
@@ -167,7 +167,7 @@ struct glz::meta<std::chrono::time_point<clock_t, duration_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<clock_t, true>, separator, glz::name_v<duration_t, true>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<clock_t>, separator, glz::name_v<duration_t>, postfix>
   };
 };
 

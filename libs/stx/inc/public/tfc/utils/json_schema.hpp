@@ -400,7 +400,7 @@ struct to_json_schema<T> {
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
     }
-    s.items = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
+    s.items = schema{ glz::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
   }
 };
 
@@ -414,7 +414,7 @@ struct to_json_schema<T> {
     if (!def.type) {
       to_json_schema<V>::template op<Opts>(def, defs);
     }
-    s.additionalProperties = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
+    s.additionalProperties = schema{ glz::join_v<glz::chars<"#/$defs/">, glz::name_v<V>> };
   }
 };
 
@@ -438,7 +438,7 @@ struct to_json_schema<T> {
     glz::for_each<N>([&](auto I) {
       using V = std::decay_t<std::variant_alternative_t<I, T>>;
       auto& schema_val = (*s.oneOf)[I.value];
-      schema_val.attributes.title = glz::name_v<V, true>;  // please MAKE sure you declare name within variants
+      schema_val.attributes.title = glz::name_v<V>;  // please MAKE sure you declare name within variants
       // TODO use ref to avoid duplication in schema
       to_json_schema<V>::template op<Opts>(schema_val, defs);
       constexpr bool glaze_object = glz::detail::glaze_object_t<V>;
@@ -449,7 +449,7 @@ struct to_json_schema<T> {
         }
         if constexpr (!glz::tag_v<T>.empty()) {
           (*schema_val.properties)[glz::tag_v<T>] =
-              schema{ .ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>>,
+              schema{ .ref = glz::join_v<glz::chars<"#/$defs/">, glz::name_v<std::string>>,
                       .constant = glz::ids_v<T>[I] };
           // TODO use enum or oneOf to get the ids_v to validate type name
         }
@@ -488,7 +488,7 @@ struct to_json_schema<T> {
       using val_t = std::decay_t<glz::detail::member_t<V, mptr_t>>;
       auto& def = defs[glz::name_v<val_t>];
       static_assert(!has_slash(glz::name_v<val_t>), "Slashes in json schema references are not allowed");
-      auto ref_val = schema{ glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
+      auto ref_val = schema{ glz::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>> };
       // clang-format off
       if constexpr (std::tuple_size_v<decltype(item)> > 2) {
         // clang-format on
@@ -497,7 +497,7 @@ struct to_json_schema<T> {
           ref_val.description = glz::get<2>(item);
         } else if constexpr (std::is_convertible_v<additional_data_type, schema>) {
           ref_val = glz::get<2>(item);
-          ref_val.ref = glz::detail::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>>;
+          ref_val.ref = glz::join_v<glz::chars<"#/$defs/">, glz::name_v<val_t>>;
         }
       }
       (*s.properties)[glz::get<0>(item)] = ref_val;
