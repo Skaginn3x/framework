@@ -300,6 +300,11 @@ public:
         callback_{ std::forward<decltype(callback)>(callback) } {
     filters_->observe(std::bind_front(&filters::config_updated, this));
   }
+  filters(filters const&) = delete;
+  filters(filters&&) noexcept = delete;
+  auto operator=(filters const&) -> filters& = delete;
+  auto operator=(filters&&) noexcept -> filters& = delete;
+  ~filters() = default;
 
   /// \brief changes internal last_value state when filters have been processed
   void operator()(auto&& value)
@@ -344,6 +349,9 @@ public:
   void config_updated([[maybe_unused]] config_t<value_t> const& new_filters,
                       [[maybe_unused]] config_t<value_t> const& old_filters) {
     if constexpr (std::same_as<value_t, bool>) {
+      if (!last_value_.has_value()) {
+        return;
+      }
       auto constexpr count_invert = [](auto const& filters) {
         return std::count_if(filters.begin(), filters.end(), [](auto const& filt) {
           return std::holds_alternative<filter<filter_e::invert, value_t>>(filt);
@@ -352,14 +360,10 @@ public:
       auto const old_filters_invert_count = count_invert(old_filters);
       auto const new_filters_invert_count = count_invert(new_filters);
       // check if invert count diff is odd number, if so we need to reprocess the last value
-      if (std::abs(new_filters_invert_count - old_filters_invert_count) % 2 == 1 && last_value_.has_value()) {
-        // undo invert filters of last value
-        auto last_inverted_value = last_value_.value();
-        for (auto cnt = 0; cnt < old_filters_invert_count; ++cnt) {
-          last_inverted_value = !last_inverted_value;
-        }
+      if (std::abs(new_filters_invert_count - old_filters_invert_count) % 2 == 1) {
         // invert filter count has changed, need to reprocess input of last value
-        operator()(last_inverted_value);
+        bool unfiltered_value{ old_filters_invert_count % 2 == 0 ? last_value_.value() : !last_value_.value() };
+        operator()(unfiltered_value);
       }
     }
   }
