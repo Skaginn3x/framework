@@ -5,19 +5,19 @@
 #include <tuple>
 
 #include <sparkplug_b/sparkplug_b.pb.h>
+
 #include <async_mqtt/all.hpp>
 #include <async_mqtt/broker/broker.hpp>
 #include <boost/ut.hpp>
+#include <constants.hpp>
+
+#include <config/bridge_mock.hpp>
+#include <tfc/progbase.hpp>
+#include "../inc/endpoint_mock.hpp"
 
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
-#include <tfc/progbase.hpp>
 
-#include <client.hpp>
-#include <config/bridge_mock.hpp>
-#include <constants.hpp>
-#include <endpoint.hpp>
 #include <run.hpp>
-#include "../inc/endpoint_mock.hpp"
 
 namespace ut = boost::ut;
 using ut::operator""_test;
@@ -138,9 +138,7 @@ auto main(int argc, char* argv[]) -> int {
     io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
     // start mqtt bridge
-    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
-                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
-                   tfc::ipc_ruler::ipc_manager_client_mock&>
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal, tfc::ipc_ruler::ipc_manager_client_mock&>
         running{ io_ctx, ipc_client };
     co_spawn(io_ctx, running.start(), asio::detached);
     io_ctx.run_for(std::chrono::milliseconds{ 50 });
@@ -197,9 +195,7 @@ auto main(int argc, char* argv[]) -> int {
     io_ctx.run_for(std::chrono::milliseconds{ 5 });
 
     // start mqtt bridge
-    tfc::mqtt::run<tfc::mqtt::config::bridge_mock,
-                   tfc::mqtt::client<tfc::mqtt::endpoint_client, tfc::mqtt::config::bridge_mock>,
-                   tfc::ipc_ruler::ipc_manager_client_mock&>
+    tfc::mqtt::run<tfc::mqtt::config::bridge_mock, tfc::mqtt::client_semi_normal, tfc::ipc_ruler::ipc_manager_client_mock&>
         running{ io_ctx, ipc_client2 };
     co_spawn(io_ctx, running.start(), asio::detached);
     io_ctx.run_for(std::chrono::milliseconds{ 50 });

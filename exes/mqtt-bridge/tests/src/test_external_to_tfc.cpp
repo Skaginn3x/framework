@@ -12,18 +12,22 @@
 #include <external_to_tfc.hpp>
 #include <test_external_to_tfc.hpp>
 
-auto tfc::mqtt::test_external_to_tfc::test() -> bool {
+namespace tfc::mqtt {
+namespace asio = boost::asio;
+namespace ut = boost::ut;
+
+auto test_external_to_tfc::test() -> bool {
+  asio::io_context isolated_ctx{};
+
   using ipc::signal;
   using ipc::slot;
   using ipc_ruler::ipc_manager_client_mock;
   using namespace tfc::ipc::details;
   using std::chrono::milliseconds;
 
-  asio::io_context isolated_ctx{};
-
   ipc_manager_client_mock ipc_client{ isolated_ctx };
   config::bridge_mock config{ isolated_ctx, "test" };
-  config.add_writeable_signal("test_signal", "test_signal", ipc::details::type_e::_bool);
+  config.add_writeable_signal("test_signal", "test_signal", type_e::_bool);
   isolated_ctx.run_for(milliseconds{ 1 });
 
   external_to_tfc<ipc_manager_client_mock&, config::bridge_mock> ext_test{ isolated_ctx, config, ipc_client };
@@ -82,3 +86,4 @@ auto tfc::mqtt::test_external_to_tfc::test_last_word(std::string input_string, s
 
   return ext_test.last_word(input_string) == std::nullopt;
 }
+}  // namespace tfc::mqtt

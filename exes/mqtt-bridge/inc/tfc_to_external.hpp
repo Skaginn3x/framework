@@ -13,7 +13,6 @@
 
 #include <signal_names.hpp>
 #include <spark_plug_interface.hpp>
-#include <structs.hpp>
 
 namespace tfc::mqtt {
 
