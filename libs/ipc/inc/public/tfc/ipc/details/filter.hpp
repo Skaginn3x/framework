@@ -12,6 +12,7 @@
 #include <glaze/core/common.hpp>
 
 #include <tfc/confman.hpp>
+#include <tfc/confman/observable.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/stx/glaze_meta.hpp>
@@ -50,6 +51,7 @@ struct filter;
 template <>
 struct filter<filter_e::invert, bool> {
   static constexpr filter_e const_value{ filter_e::invert };
+  constexpr auto operator==(filter const&) const noexcept -> bool = default;
 
   auto async_process(bool&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -67,11 +69,14 @@ struct filter<filter_e::invert, bool> {
 
 /// \brief behaviour time on delay and or time off delay
 /// \note IMPORTANT: delay changes take effect on next event
-template <typename clock_type>  // example std::chrono::steady_clock
-struct filter<filter_e::timer, bool, clock_type> {
+template <typename timer_type>  // example asio::steady_timer
+struct filter<filter_e::timer, bool, timer_type> {
   std::chrono::milliseconds time_on{ 0 };
   std::chrono::milliseconds time_off{ 0 };
   static constexpr filter_e type{ filter_e::timer };
+  constexpr auto operator==(filter const& other) const -> bool {
+    return time_on == other.time_on && time_off == other.time_off;
+  }
 
   filter() = default;
   // if the filter is moved everything is moved
@@ -119,7 +124,7 @@ struct filter<filter_e::timer, bool, clock_type> {
             return;
           }
           auto executor = asio::get_associated_executor(self);
-          timer_ = asio::basic_waitable_timer<clock_type>{ executor };
+          timer_ = timer_type{ executor };
           timer_->expires_after(timeout);
           // moving self makes this callback be called once again when expiry is reached or timer is cancelled
           timer_->async_wait(std::move(self));
@@ -129,11 +134,11 @@ struct filter<filter_e::timer, bool, clock_type> {
 
 private:
   // mutable is required since async_process is const
-  mutable std::optional<asio::basic_waitable_timer<clock_type>> timer_{ std::nullopt };
+  mutable std::optional<timer_type> timer_{ std::nullopt };
 
 public:
   struct glaze {
-    using type = filter<filter_e::timer, bool, clock_type>;
+    using type = filter;
     static constexpr std::string_view name{ "tfc::ipc::filter::timer" };
     // clang-format off
     static constexpr auto value{ glz::object(
@@ -149,6 +154,11 @@ template <typename value_t>
 struct filter<filter_e::offset, value_t> {
   value_t offset{};
   static constexpr filter_e type{ filter_e::offset };
+  // clang-format off
+  PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+  // clang-format on
+  constexpr auto operator==(filter const&) const noexcept -> bool = default;
+  PRAGMA_CLANG_WARNING_POP
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -172,6 +182,11 @@ template <typename value_t>
 struct filter<filter_e::multiply, value_t> {
   value_t multiply{};
   static constexpr filter_e type{ filter_e::multiply };
+  // clang-format off
+  PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+  // clang-format on
+  constexpr auto operator==(filter const&) const noexcept -> bool = default;
+  PRAGMA_CLANG_WARNING_POP
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     // todo can we get a compile error if executor is non-existent?
@@ -194,6 +209,11 @@ template <typename value_t>
 struct filter<filter_e::filter_out, value_t> {
   value_t filter_out{};
   static constexpr filter_e type{ filter_e::filter_out };
+  // clang-format off
+  PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
+  // clang-format on
+  constexpr auto operator==(filter const&) const noexcept -> bool = default;
+  PRAGMA_CLANG_WARNING_POP
 
   auto async_process(value_t&& value, auto&& completion_token) const {
     auto executor{ asio::get_associated_executor(completion_token) };
@@ -228,7 +248,7 @@ struct any_filter_decl;
 template <>
 struct any_filter_decl<bool> {
   using value_t = bool;
-  using type = std::variant<filter<filter_e::invert, value_t>, filter<filter_e::timer, value_t, std::chrono::steady_clock>>;
+  using type = std::variant<filter<filter_e::invert, value_t>, filter<filter_e::timer, value_t, asio::steady_timer>>;
 };
 template <>
 struct any_filter_decl<std::int64_t> {
@@ -263,22 +283,34 @@ template <typename value_t>
 using any_filter_decl_t = any_filter_decl<value_t>::type;
 }  // namespace detail
 
-template <typename value_t, tfc::stx::invocable<value_t> callback_t>
+template <typename value_t>
+using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
+template <typename value_t>
+using observable_config_t = tfc::confman::observable<config_t<value_t>>;
+
+template <typename value_t,
+          tfc::stx::invocable<value_t> callback_t,
+          typename confman_t = tfc::confman::config<observable_config_t<value_t>>>
 class filters {
 public:
-  using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
-
   filters(std::shared_ptr<sdbusplus::asio::connection> connection,
           std::string_view key,
           tfc::stx::invocable<value_t> auto&& callback)
       : ctx_{ connection->get_io_context() }, filters_{ connection, fmt::format("{}.Filter", key) },
-        callback_{ std::forward<decltype(callback)>(callback) } {}
+        callback_{ std::forward<decltype(callback)>(callback) } {
+    filters_->observe(std::bind_front(&filters::config_updated, this));
+  }
+  filters(filters const&) = delete;
+  filters(filters&&) noexcept = delete;
+  auto operator=(filters const&) -> filters& = delete;
+  auto operator=(filters&&) noexcept -> filters& = delete;
+  ~filters() = default;
 
   /// \brief changes internal last_value state when filters have been processed
   void operator()(auto&& value)
     requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
   {
-    if (filters_->empty()) {
+    if (filters_->value().empty()) {
       last_value_ = std::forward<decltype(value)>(value);
       std::invoke(callback_, last_value_.value());
       return;
@@ -287,7 +319,7 @@ public:
     asio::co_spawn(
         ctx_,
         [this, return_val = std::move(return_value)] mutable -> asio::awaitable<std::expected<value_t, std::error_code>> {
-          for (auto const& filter : filters_.value()) {
+          for (auto const& filter : filters_->value()) {
             // move the value into the filter and the filter will return the value modified or not
             return_val = co_await std::visit(
                 [return_v = std::move(return_val)](auto&& arg) mutable -> auto {  // mutable to move return_value
@@ -314,6 +346,31 @@ public:
         });
   }
 
+  void config_updated([[maybe_unused]] config_t<value_t> const& new_filters,
+                      [[maybe_unused]] config_t<value_t> const& old_filters) {
+    if constexpr (std::same_as<value_t, bool>) {
+      if (!last_value_.has_value()) {
+        return;
+      }
+      auto constexpr count_invert = [](auto const& filters) {
+        return std::count_if(filters.begin(), filters.end(), [](auto const& filt) {
+          return std::holds_alternative<filter<filter_e::invert, value_t>>(filt);
+        });
+      };
+      auto const old_filters_invert_count = count_invert(old_filters);
+      auto const new_filters_invert_count = count_invert(new_filters);
+      // check if invert count diff is odd number, if so we need to reprocess the last value
+      if (std::abs(new_filters_invert_count - old_filters_invert_count) % 2 == 1) {
+        // invert filter count has changed, need to reprocess input of last value
+        bool unfiltered_value{ old_filters_invert_count % 2 == 0 ? last_value_.value() : !last_value_.value() };
+        operator()(unfiltered_value);
+      }
+    }
+  }
+
+  // solely for testing
+  [[nodiscard]] auto config() noexcept -> confman_t& { return filters_; }
+
   /// \brief bypass filters and set value directly
   void set(auto&& value)
     requires std::same_as<std::remove_cvref_t<decltype(value)>, value_t>
@@ -326,7 +383,7 @@ public:
 
 private:
   asio::io_context& ctx_;
-  tfc::confman::config<config_t> filters_;
+  confman_t filters_;
   callback_t callback_;
   std::optional<value_t> last_value_{};
 };
