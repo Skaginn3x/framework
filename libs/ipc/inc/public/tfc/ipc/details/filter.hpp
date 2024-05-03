@@ -288,10 +288,14 @@ using config_t = std::vector<detail::any_filter_decl_t<value_t>>;
 template <typename value_t>
 using observable_config_t = tfc::confman::observable<config_t<value_t>>;
 
-template <typename value_t, tfc::stx::invocable<value_t> callback_t, typename confman_t = tfc::confman::config<observable_config_t<value_t>>>
+template <typename value_t,
+          tfc::stx::invocable<value_t> callback_t,
+          typename confman_t = tfc::confman::config<observable_config_t<value_t>>>
 class filters {
 public:
-  filters(std::shared_ptr<sdbusplus::asio::connection> connection, std::string_view key, tfc::stx::invocable<value_t> auto&& callback)
+  filters(std::shared_ptr<sdbusplus::asio::connection> connection,
+          std::string_view key,
+          tfc::stx::invocable<value_t> auto&& callback)
       : ctx_{ connection->get_io_context() }, filters_{ connection, fmt::format("{}.Filter", key) },
         callback_{ std::forward<decltype(callback)>(callback) } {
     filters_->observe(std::bind_front(&filters::config_updated, this));
@@ -337,7 +341,8 @@ public:
         });
   }
 
-  void config_updated([[maybe_unused]] config_t<value_t> const& new_filters,[[maybe_unused]] config_t<value_t> const& old_filters) {
+  void config_updated([[maybe_unused]] config_t<value_t> const& new_filters,
+                      [[maybe_unused]] config_t<value_t> const& old_filters) {
     if constexpr (std::same_as<value_t, bool>) {
       auto constexpr count_invert = [](auto const& filters) {
         return std::count_if(filters.begin(), filters.end(), [](auto const& filt) {
@@ -360,9 +365,7 @@ public:
   }
 
   // solely for testing
-  [[nodiscard]] auto config() noexcept -> confman_t& {
-    return filters_;
-  }
+  [[nodiscard]] auto config() noexcept -> confman_t& { return filters_; }
 
   /// \brief bypass filters and set value directly
   void set(auto&& value)

@@ -22,7 +22,8 @@ using std::chrono::operator""s;
 
 using tfc::ipc::filter::filter;
 using tfc::ipc::filter::filter_e;
-using timer_filter = filter<filter_e::timer, bool, asio::basic_waitable_timer<tfc::testing::clock, tfc::testing::wait_traits>>;
+using timer_filter =
+    filter<filter_e::timer, bool, asio::basic_waitable_timer<tfc::testing::clock, tfc::testing::wait_traits>>;
 
 using ut::operator""_test;
 using ut::expect;
@@ -101,7 +102,7 @@ auto main(int, char**) -> int {
     test.ctx.run_one_for(1ms);  // co_spawn
     test.ctx.run_one_for(1ms);  // async_process
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + 42s);
-    test.ctx.run_for( 1ms );  // try polling for this given time
+    test.ctx.run_for(1ms);  // try polling for this given time
   };
 
   "move filter during processing happy path filter edge timer"_test = [](bool test_value) {
@@ -138,9 +139,11 @@ auto main(int, char**) -> int {
     bool finished{ false };
     asio::io_context ctx{};
     auto dbus{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) };
-    tfc::confman::stub_config<filter<filter_e::timer, bool, asio::basic_waitable_timer<tfc::testing::clock, tfc::testing::wait_traits>>> config{ dbus, "my_key" };
-    config.make_change()->time_on = 42s ;
-    config.make_change()->time_off = 42s ;
+    tfc::confman::stub_config<
+        filter<filter_e::timer, bool, asio::basic_waitable_timer<tfc::testing::clock, tfc::testing::wait_traits>>>
+        config{ dbus, "my_key" };
+    config.make_change()->time_on = 42s;
+    config.make_change()->time_off = 42s;
     asio::co_spawn(
         ctx,
         [&finished, &config, test_value, &ctx]() -> asio::awaitable<void> {
@@ -156,7 +159,7 @@ auto main(int, char**) -> int {
     ctx.run_one_for(1ms);  // co_spawn
     ctx.run_one_for(1ms);  // async process (async_compose)
     tfc::testing::clock::set_ticks(tfc::testing::clock::now() + 1s);
-    ctx.run_one_for(1ms );  // poll timer once more, but nothing happens
+    ctx.run_one_for(1ms);  // poll timer once more, but nothing happens
     // down to business, 1 second has elapsed since the timer was made with 42 second wait, let's change the value
     expect(!finished);
 
@@ -258,12 +261,12 @@ auto main(int, char**) -> int {
       asio::io_context ctx{};
       std::shared_ptr<sdbusplus::asio::connection> connection{ std::make_shared<sdbusplus::asio::connection>(ctx) };
       std::function<void(bool)> callback{ [](bool) {} };
-      tfc::ipc::filter::filters<bool, decltype(callback), tfc::confman::stub_config<tfc::ipc::filter::observable_config_t<bool>>> filters{ connection, "foo", callback };
+      tfc::ipc::filter::
+          filters<bool, decltype(callback), tfc::confman::stub_config<tfc::ipc::filter::observable_config_t<bool>>>
+              filters{ connection, "foo", callback };
     };
     "add invert doesn't call owner when no value has been received"_test = [] {
-      invert_config_test test{ .callback = [](bool) {
-        expect(false);
-      } };
+      invert_config_test test{ .callback = [](bool) { expect(false); } };
       {
         auto config = test.filters.config()->value();
         config.emplace_back(filter<filter_e::invert, bool>{});
@@ -274,46 +277,48 @@ auto main(int, char**) -> int {
       std::size_t invert_count{};
       std::size_t expected_call_count{};
     };
-    "add invert calls owner with inverted value"_test = [](parameters const& param) {
-      std::size_t call_count{ 0 };
-      invert_config_test test{ .callback = [&call_count](bool value) {
-        if (call_count == 0) {
-          expect(!value); // initialize value
-        }
-        else {
-          expect(value);
-        }
-        call_count++;
-      } };
-      test.filters(false); // initial value
-      test.ctx.run_one_for(1ms);
-      test.ctx.run_one_for(1ms);
-      expect(call_count == 1);
-      {
-        auto config = test.filters.config()->value();
-        for (std::size_t i{}; i < param.invert_count; i++) {
-          config.emplace_back(filter<filter_e::invert, bool>{});
-        }
-        test.filters.config().make_change().value() = config;
-      }
-      test.ctx.run_one_for(1ms);
-      test.ctx.run_one_for(1ms);
-      expect(call_count == param.expected_call_count);
-    } | std::vector{ parameters{ .invert_count = 1, .expected_call_count = 2 }, parameters{ .invert_count = 2, .expected_call_count = 1 }, parameters{ .invert_count = 3, .expected_call_count = 2 } };
+    "add invert calls owner with inverted value"_test =
+        [](parameters const& param) {
+          std::size_t call_count{ 0 };
+          invert_config_test test{ .callback = [&call_count](bool value) {
+            if (call_count == 0) {
+              expect(!value);  // initialize value
+            } else {
+              expect(value);
+            }
+            call_count++;
+          } };
+          test.filters(false);  // initial value
+          test.ctx.run_one_for(1ms);
+          test.ctx.run_one_for(1ms);
+          expect(call_count == 1);
+          {
+            auto config = test.filters.config()->value();
+            for (std::size_t i{}; i < param.invert_count; i++) {
+              config.emplace_back(filter<filter_e::invert, bool>{});
+            }
+            test.filters.config().make_change().value() = config;
+          }
+          test.ctx.run_one_for(1ms);
+          test.ctx.run_one_for(1ms);
+          expect(call_count == param.expected_call_count);
+        } |
+        std::vector{ parameters{ .invert_count = 1, .expected_call_count = 2 },
+                     parameters{ .invert_count = 2, .expected_call_count = 1 },
+                     parameters{ .invert_count = 3, .expected_call_count = 2 } };
 
     "remove invert DOES call owner with inverted value"_test = [] {
       // Duplicate of adding 2 inverts
       std::size_t call_count{ 0 };
       invert_config_test test{ .callback = [&call_count](bool value) {
         if (call_count == 0) {
-          expect(!value); // initialize value
-        }
-        else {
+          expect(!value);  // initialize value
+        } else {
           expect(value);
         }
         call_count++;
       } };
-      test.filters(false); // initial value
+      test.filters(false);  // initial value
       test.ctx.run_one_for(1ms);
       test.ctx.run_one_for(1ms);
       expect(call_count == 1);
@@ -338,7 +343,6 @@ auto main(int, char**) -> int {
       test.ctx.run_one_for(1ms);
       expect(call_count == 2);
     };
-
   };
 
   return 0;
