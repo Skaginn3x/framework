@@ -32,8 +32,8 @@ template <typename manager_client_type,
           stx::basic_fixed_string name,
           template <typename, typename>
           typename signal_t>
-void el1xxx<manager_client_type, size, entries, pc, name, signal_t>::pdo_cycle(input_pdo const& input, std::span<std::uint8_t>) noexcept {
-
+void el1xxx<manager_client_type, size, entries, pc, name, signal_t>::pdo_cycle(input_pdo const& input,
+                                                                               std::span<std::uint8_t>) noexcept {
   // Loop bytes
   for (auto byte : input) {
     for (size_t bits = 0; bits < 8 && size - ((byte * 8) + bits) > 0; bits++) {

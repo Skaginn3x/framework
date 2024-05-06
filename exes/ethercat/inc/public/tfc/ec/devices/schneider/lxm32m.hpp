@@ -184,7 +184,6 @@ public:
       : base<lxm32m>(slave_index), config_(client.connection(), fmt::format("lxm32m.{}", slave_index)) {}
 
   void pdo_cycle(input_pdo const& in, output_pdo& out) {
-
     [[maybe_unused]] auto state = in.status.parse_state();
 
     out.ctrl_word = cia_402::transition(state, cia_402::transition_action::run, true);

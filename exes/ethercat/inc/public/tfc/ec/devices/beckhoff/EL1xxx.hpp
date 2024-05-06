@@ -6,11 +6,11 @@
 #include <vector>
 
 #include <tfc/ec/devices/base.hpp>
+#include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc_fwd.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/utils/asio_fwd.hpp>
-#include <tfc/ipc/details/dbus_client_iface.hpp>
 
 namespace tfc::ec::devices::beckhoff {
 

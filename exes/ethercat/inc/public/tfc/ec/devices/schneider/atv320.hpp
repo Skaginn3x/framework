@@ -111,10 +111,10 @@ public:
 
   explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& client, uint16_t slave_index)
       : base<device>(slave_index), ctx_{ connection->get_io_context() }, run_(ctx_,
-                                                                      client,
-                                                                      fmt::format("atv320.s{}.run", slave_index),
-                                                                      "Turn on motor",
-                                                                      [this](bool value) { ipc_running_ = value; }),
+                                                                              client,
+                                                                              fmt::format("atv320.s{}.run", slave_index),
+                                                                              "Turn on motor",
+                                                                              [this](bool value) { ipc_running_ = value; }),
         config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
@@ -240,7 +240,8 @@ public:
   void transmit_status(const input_t& input) {
     std::bitset<atv320_di_count> const value(input.digital_inputs);
     for (size_t i = 0; i < atv320_di_count; i++) {
-      last_bool_values_[i] = details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), this->logger_);
+      last_bool_values_[i] =
+          details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), this->logger_);
     }
 
     last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(
@@ -252,8 +253,8 @@ public:
     double current = static_cast<double>(input.current) / 10.0;
     last_current_ = details::async_send_if_new(current_transmit_, last_current_, current, this->logger_);
 
-    last_error_ =
-        details::async_send_if_new(last_error_transmit_, last_error_, static_cast<std::uint64_t>(last_errors_[0]), this->logger_);
+    last_error_ = details::async_send_if_new(last_error_transmit_, last_error_, static_cast<std::uint64_t>(last_errors_[0]),
+                                             this->logger_);
   }
 
   static constexpr auto errors_to_auto_reset = std::array{ lft_e::no_fault, lft_e::cnf };
@@ -288,12 +289,12 @@ public:
       bool auto_reset =
           std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in.last_error) != errors_to_auto_reset.end();
       this->logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in.last_error),
-                    in.last_error, auto_reset);
+                          in.last_error, auto_reset);
     } else if (drive_in_fault_state && in.last_error == lft_e::no_fault) {
       this->logger_.warn("ATV reports fault state but last fault is not set");
     } else if (in.last_error != last_errors_[0]) {
       this->logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in.last_error),
-                   in.last_error, state);
+                         in.last_error, state);
       std::shift_right(last_errors_.begin(), last_errors_.end(), 1);
       last_errors_[0] = in.last_error;
     }
@@ -304,9 +305,9 @@ public:
 
     bool auto_reset_allowed = false;
     if (drive_in_fault_state) {
-      auto_reset_allowed = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in.last_error) !=
-                               errors_to_auto_reset.end() ||
-                           allow_reset_;
+      auto_reset_allowed =
+          std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in.last_error) != errors_to_auto_reset.end() ||
+          allow_reset_;
     }
 
     if (!dbus_iface_.has_peer()) {
@@ -365,7 +366,7 @@ public:
     this->template sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
     // Assign tx variables
     this->template sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x01>,
-                        ecx::make_mapping_value<cia_402::control_word>());  // CMD - CONTROL WORD
+                                       ecx::make_mapping_value<cia_402::control_word>());  // CMD - CONTROL WORD
     this->template sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);             // LFR - REFERENCE SPEED HZ
     this->template sdo_write<uint32_t>(
         ecx::rx_pdo_mapping<0x03>,

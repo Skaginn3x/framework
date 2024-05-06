@@ -47,51 +47,53 @@ concept mp_units_quantity_setting_c = requires {
 
 namespace details {
 // General arg_type for function types
-template<std::size_t N, typename>
+template <std::size_t N, typename>
 struct arg_type;
 
 // Specialization for free function types
-template<std::size_t N, typename Ret, typename... Args>
+template <std::size_t N, typename Ret, typename... Args>
 struct arg_type<N, Ret(Args...)> {
   static_assert(N < sizeof...(Args), "Argument index out of range.");
   using type = std::tuple_element_t<N, std::tuple<Args...>>;
 };
 
 // Specialization for member function types
-template<std::size_t N, typename Ret, typename Class, typename... Args>
-struct arg_type<N, Ret(Class::*)(Args...)> {
+template <std::size_t N, typename Ret, typename Class, typename... Args>
+struct arg_type<N, Ret (Class::*)(Args...)> {
   static_assert(N < sizeof...(Args), "Argument index out of range.");
   using type = std::tuple_element_t<N, std::tuple<Args...>>;
 };
 
 // Specialization for noexcept member function types
-template<std::size_t N, typename Ret, typename Class, typename... Args>
-struct arg_type<N, Ret(Class::*)(Args...) noexcept> {
+template <std::size_t N, typename Ret, typename Class, typename... Args>
+struct arg_type<N, Ret (Class::*)(Args...) noexcept> {
   static_assert(N < sizeof...(Args), "Argument index out of range.");
   using type = std::tuple_element_t<N, std::tuple<Args...>>;
 };
 
-template<typename some_t>
+template <typename some_t>
 using first_arg_t = typename arg_type<0, some_t>::type;
-template<typename some_t>
+template <typename some_t>
 using second_arg_t = typename arg_type<1, some_t>::type;
 
-template<typename some_t>
-concept is_first_arg_const_ref = std::is_reference_v<first_arg_t<some_t>> && std::is_const_v<std::remove_reference_t<first_arg_t<some_t>>>;
+template <typename some_t>
+concept is_first_arg_const_ref =
+    std::is_reference_v<first_arg_t<some_t>> && std::is_const_v<std::remove_reference_t<first_arg_t<some_t>>>;
 
-template<typename some_t>
-concept is_second_arg_ref = std::is_reference_v<second_arg_t<some_t>> && !std::is_const_v<std::remove_reference_t<second_arg_t<some_t>>>;
+template <typename some_t>
+concept is_second_arg_ref =
+    std::is_reference_v<second_arg_t<some_t>> && !std::is_const_v<std::remove_reference_t<second_arg_t<some_t>>>;
 
-template<typename some_t>
+template <typename some_t>
 using pdo_error_t = decltype(std::declval<some_t>().pdo_error());
 
-template<typename some_t>
+template <typename some_t>
 using setup_driver_t = decltype(std::declval<some_t>().setup_driver());
 
 struct Foo {
-  void foo(int, double){}
-  void bar(int&, double&){}
-  void foobar(int const&, double const&){}
+  void foo(int, double) {}
+  void bar(int&, double&) {}
+  void foobar(int const&, double const&) {}
 };
 static_assert(std::same_as<first_arg_t<decltype(&Foo::foo)>, int>);
 static_assert(std::same_as<first_arg_t<decltype(&Foo::bar)>, int&>);
@@ -121,28 +123,30 @@ public:
   // Default behaviour no data processing
   void process_data(std::span<std::uint8_t> input, std::span<std::uint8_t> output) {
     static_assert(std::is_member_function_pointer_v<decltype(&impl_t::pdo_cycle)>, "impl_t must have method pdo_cycle");
-    using pdo_cycle_func_t = decltype(&impl_t::pdo_cycle); // is function pointer
+    using pdo_cycle_func_t = decltype(&impl_t::pdo_cycle);  // is function pointer
     using input_pdo = std::decay_t<details::first_arg_t<pdo_cycle_func_t>>;
     using output_pdo = std::decay_t<details::second_arg_t<pdo_cycle_func_t>>;
 
     // Verify that the declaration of arguments are correct
     if constexpr (!std::same_as<input_pdo, default_t>) {
       static_assert(stx::is_constexpr_default_constructible_v<input_pdo>);
-      static_assert(details::is_first_arg_const_ref<pdo_cycle_func_t>, "impl_t::pdo_cycle must have first argument as const reference");
+      static_assert(details::is_first_arg_const_ref<pdo_cycle_func_t>,
+                    "impl_t::pdo_cycle must have first argument as const reference");
     }
     if constexpr (!std::same_as<output_pdo, default_t>) {
       static_assert(stx::is_constexpr_default_constructible_v<output_pdo>);
-      static_assert(details::is_second_arg_ref<pdo_cycle_func_t>, "impl_t::pdo_cycle must have second argument as reference, const is not allowed");
+      static_assert(details::is_second_arg_ref<pdo_cycle_func_t>,
+                    "impl_t::pdo_cycle must have second argument as reference, const is not allowed");
     }
 
     // todo simplify
 
     // Both input and output are default types
-    if constexpr(std::same_as<input_pdo, default_t> && std::same_as<output_pdo, default_t>) {
+    if constexpr (std::same_as<input_pdo, default_t> && std::same_as<output_pdo, default_t>) {
       static_cast<impl_t*>(this)->pdo_cycle(input, output);
     }
     // input is default type, output is not
-    else if constexpr(std::same_as<input_pdo, default_t>) {
+    else if constexpr (std::same_as<input_pdo, default_t>) {
       if (output.size() != sizeof(output_pdo)) {
         if (output_buffer_valid_) {
           logger_.info("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
@@ -164,7 +168,7 @@ public:
       static_cast<impl_t*>(this)->pdo_cycle(input, *output_casted);
     }
     // output is default type, input is not
-    else if constexpr(std::same_as<output_pdo, default_t>) {
+    else if constexpr (std::same_as<output_pdo, default_t>) {
       if (input.size() != sizeof(input_pdo)) {
         if (input_buffer_valid_) {
           logger_.info("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());

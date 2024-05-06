@@ -61,9 +61,25 @@ using el2809 = el2xxx<manager_client_type,
                       "EL2809">;
 
 using imc = tfc::ipc_ruler::ipc_manager_client;
-extern template class el2xxx<imc, el2794<imc>::size_v, el2794<imc>::entries_v, el2794<imc>::product_code, el2794<imc>::name_v>;
-extern template class el2xxx<imc, el2004<imc>::size_v, el2004<imc>::entries_v, el2004<imc>::product_code, el2004<imc>::name_v>;
-extern template class el2xxx<imc, el2008<imc>::size_v, el2008<imc>::entries_v, el2008<imc>::product_code, el2008<imc>::name_v>;
-extern template class el2xxx<imc, el2809<imc>::size_v, el2809<imc>::entries_v, el2809<imc>::product_code, el2809<imc>::name_v>;
+extern template class el2xxx<imc,
+                             el2794<imc>::size_v,
+                             el2794<imc>::entries_v,
+                             el2794<imc>::product_code,
+                             el2794<imc>::name_v>;
+extern template class el2xxx<imc,
+                             el2004<imc>::size_v,
+                             el2004<imc>::entries_v,
+                             el2004<imc>::product_code,
+                             el2004<imc>::name_v>;
+extern template class el2xxx<imc,
+                             el2008<imc>::size_v,
+                             el2008<imc>::entries_v,
+                             el2008<imc>::product_code,
+                             el2008<imc>::name_v>;
+extern template class el2xxx<imc,
+                             el2809<imc>::size_v,
+                             el2809<imc>::entries_v,
+                             el2809<imc>::product_code,
+                             el2809<imc>::name_v>;
 
 }  // namespace tfc::ec::devices::beckhoff

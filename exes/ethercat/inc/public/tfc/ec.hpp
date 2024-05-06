@@ -138,8 +138,8 @@ public:
       slaves_.emplace_back(
           devices::get(dbus_, client_, static_cast<uint16_t>(i), slavelist_[i].eep_man, slavelist_[i].eep_id));
       slaves_.back().set_sdo_write_cb([this, i](ecx::index_t idx, ecx::complete_access_t acc, std::span<std::byte> data,
-      std::chrono::microseconds microsec) -> ecx::working_counter_t {
-      return ecx::sdo_write(&context_, static_cast<uint16_t>(i), idx, acc, data, microsec);
+                                                std::chrono::microseconds microsec) -> ecx::working_counter_t {
+        return ecx::sdo_write(&context_, static_cast<uint16_t>(i), idx, acc, data, microsec);
       });
       slavelist_[i].PO2SOconfigx = slave_config_callback;
     }

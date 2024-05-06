@@ -11,7 +11,8 @@ template <typename manager_client_type>
 class easyecat final : public base<easyecat<manager_client_type>> {
 public:
   explicit easyecat(boost::asio::io_context& ctx_, manager_client_type& client, uint16_t const slave_index)
-      : base<easyecat>(slave_index), servo_{ ctx_, client, fmt::format("easyecat{}.servo", slave_index), "Servo", [](auto) {} } {
+      : base<easyecat>(slave_index),
+        servo_{ ctx_, client, fmt::format("easyecat{}.servo", slave_index), "Servo", [](auto) {} } {
     for (size_t i = 0; i < 4; i++) {
       bool_transmitters_.emplace_back(ctx_, client, fmt::format("easyecat{}.in{}", slave_index, i), "Digital input");
       bool_receivers_[i] =

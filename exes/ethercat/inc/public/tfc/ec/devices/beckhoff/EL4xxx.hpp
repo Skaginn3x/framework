@@ -26,7 +26,6 @@ public:
     // }
   }
 
-
 private:
   std::array<std::uint16_t, size> value_;
   std::chrono::time_point<std::chrono::high_resolution_clock> point_ = std::chrono::high_resolution_clock::now();
