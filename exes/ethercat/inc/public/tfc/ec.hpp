@@ -167,7 +167,7 @@ public:
     /// Config might have changed since last run
     if (!ecx::init(&context_, config_->primary_interface.value)) {
       // TODO: switch for error_code
-      throw std::runtime_error(fmt::format("Failed to connect to interface: {}", config_->value().primary_interface.value));
+      throw std::runtime_error(fmt::format("Failed to connect to interface: {}", config_->primary_interface.value));
     }
 
     if (!config_init(false)) {
