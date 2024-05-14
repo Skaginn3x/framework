@@ -53,7 +53,7 @@ inline constexpr auto make_ratio_symbol() -> std::string_view {
     return "P";
   } else if constexpr (std::is_same_v<type, std::exa>) {
     return "E";
-      } else if constexpr (std::is_same_v<type, std::ratio<60>>) {
+  } else if constexpr (std::is_same_v<type, std::ratio<60>>) {
     return "minute";
   } else {
     []<bool flag = false>() {
