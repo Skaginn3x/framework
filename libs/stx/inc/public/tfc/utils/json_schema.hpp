@@ -13,7 +13,7 @@
 
 namespace tfc::json {
 
-using schema =
+using schema = glz::schema;
 
 
 namespace detail {

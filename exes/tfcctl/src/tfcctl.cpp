@@ -51,7 +51,7 @@ inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> a
                           signal_type::value_type == ipc::details::type_e::_json) {
               val = buff;
             } else {
-              auto value{ glz::read_json<value_t>(buff) };
+              auto value{ glz::read_json<value_t>(std::string{ buff }) };
               if (!value.has_value()) {
                 fmt::println("Invalid input error: {}", glz::format_error(value.error(), buff));
                 return;
