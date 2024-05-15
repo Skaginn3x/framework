@@ -274,8 +274,13 @@ struct any_filter_decl<std::string> {
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
 template <>
-struct any_filter_decl<ipc::details::mass_t> {
-  using value_t = ipc::details::mass_t;
+struct any_filter_decl<details::mass_t> {
+  using value_t = details::mass_t;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+};
+template <>
+struct any_filter_decl<details::pressure_t> {
+  using value_t = details::pressure_t;
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
 // json?
