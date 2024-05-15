@@ -67,7 +67,7 @@ struct glz::meta<mp_units::quantity<ref_t, rep_t>> {
   static auto constexpr name{ tfc::stx::string_view_join_v<prefix, dimension, separator, glz::name_v<rep_t>, postfix> };
 };
 
-namespace tfc::json::detail {
+namespace glz::detail {
 
 template <typename value_t>
 struct to_json_schema;
@@ -89,20 +89,21 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   template <auto opts>
   static void op(auto& schema, auto& defs) {
-    auto& data = schema.attributes.tfc_metadata;
-    if (!data.has_value()) {
-      data = tfc::json::schema_meta{};
-    }
-    data->unit = schema_meta::unit_meta{ .unit_ascii = unit_ascii, .unit_unicode = unit_unicode };
-    data->dimension = dimension;
-    if constexpr (mp_units::Magnitude<decltype(ref_t)>) {
-      data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = ratio.num, .denominator = ratio.den };
-    }
-    to_json_schema<rep_t>::template op<opts>(schema, defs);
+    // fix in https://github.com/Skaginn3x/framework/issues/555
+    // auto& data = schema.attributes.tfc_metadata;
+    // if (!data.has_value()) {
+    //   data = tfc::json::schema_meta{};
+    // }
+    // data->unit = schema_meta::unit_meta{ .unit_ascii = unit_ascii, .unit_unicode = unit_unicode };
+    // data->dimension = dimension;
+    // if constexpr (mp_units::Magnitude<decltype(ref_t)>) {
+    //   data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = ratio.num, .denominator = ratio.den };
+    // }
+    // to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
 
-}  // namespace tfc::json::detail
+}  // namespace glz::detail
 
 namespace tfc::unit {
 template <mp_units::Reference auto ref_t>
