@@ -151,8 +151,8 @@ auto constexpr extract_event_type(event_t const& event) noexcept -> std::string 
 /// Get from cli example:
 /// busctl --system get-property com.skaginn3x.tfc.operations.def /com/skaginn3x/StateMachines com.skaginn3x.Operations
 /// StateMachine
-struct interface : tfc::logger::sml_logger {
-  using logger = tfc::logger::sml_logger;
+struct interface : logger::sml_logger {
+  using logger = sml_logger;
 
   interface(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_key)
       : logger{ unique_key }, impl_{ std::move(conn), unique_key } {}
