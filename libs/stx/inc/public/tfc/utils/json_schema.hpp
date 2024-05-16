@@ -15,7 +15,6 @@ namespace tfc::json {
 
 using schema = glz::schema;
 
-
 namespace detail {
 //
 // template <typename value_t>
