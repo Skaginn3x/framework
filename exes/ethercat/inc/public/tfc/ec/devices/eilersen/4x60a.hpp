@@ -177,7 +177,7 @@ struct meta<e4x60a::calibration_zero_t> {
   static constexpr std::string_view name{ "4x60a::calibration_zero" };
   // clang-format off
   static constexpr auto value{ glz::object(
-    "signal_read", &type::read, tfc::json::schema{ .description = "The read value of the calibration zero", .read_only = true },
+    "signal_read", &type::read, tfc::json::schema{ .description = "The read value of the calibration zero", .readOnly = true },
     "do_calibrate_zero", &type::do_calibrate, "Set to true to calibrate the zero"
   ) };
   // clang-format on
@@ -189,8 +189,8 @@ struct meta<e4x60a::calibration_weight_t> {
   static constexpr std::string_view name{ "4x60a::calibration_weight" };
   // clang-format off
   static constexpr auto value{ glz::object(
-    "signal_read", &type::read, tfc::json::schema{ .description="The actual value signal from load cell/cells of the calibration weight", .read_only = true },
-    "weight", &type::weight, tfc::json::schema{ .description = "Calibration weight", .default_value = 1UL },
+    "signal_read", &type::read, tfc::json::schema{ .description="The actual value signal from load cell/cells of the calibration weight", .readOnly = true },
+    "weight", &type::weight, tfc::json::schema{ .description = "Calibration weight", .defaultValue = 1UL },
     "do_calibrate_with_load", &type::do_calibrate, "Set to true to calibrate the weight"
   ) };
   // clang-format on
@@ -215,7 +215,7 @@ struct meta<e4x60a::calibration<mode>> {
       "cell/cells", &type::this_cells, "The cells to use for this calibration.",
       "group_name", &type::group_name, tfc::json::schema{
         .description= "The name of this calibration group, used for naming IPC signal. Requires restart of the process.",
-        .min_length = 3, .max_length = 30, .pattern = "^[a-zA-Z0-9_]+$" }
+        .minLength = 3, .maxLength = 30, .pattern = "^[a-zA-Z0-9_]+$" }
       ) };
   // clang-format on
 };
@@ -239,7 +239,7 @@ struct meta<e4x60a::calibration_sealed_config> {
   static constexpr std::string_view name{ "Sealed Calibration Config" };
   static constexpr auto value{ glz::object("calibration",
                                            &type::calibration_v,
-                                           tfc::json::schema{ .read_only = true },
+                                           tfc::json::schema{ .readOnly = true },
                                            "sealed",
                                            &type::sealed,
                                            tfc::json::schema{ .constant = true }) };
