@@ -54,7 +54,7 @@ inline constexpr auto make_ratio_symbol() -> std::string_view {
   } else if constexpr (std::is_same_v<type, std::exa>) {
     return "E";
   } else if constexpr (std::is_same_v<type, std::ratio<60>>) {
-    return "minute";
+    return "ratio<60>";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing ratio symbol, please add it to the list.");
