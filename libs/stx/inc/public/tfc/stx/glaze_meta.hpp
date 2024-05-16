@@ -98,6 +98,8 @@ static constexpr auto make_name() -> std::string_view {
     return "std::peta";
   } else if constexpr (std::is_same_v<type, std::exa>) {
     return "std::exa";
+  } else if constexpr (std::is_same_v<type, std::ratio<60>>) {
+    return "ratio<60>";
   } else if constexpr (num == den) {
     // example std::chrono::seconds
     return "none";
