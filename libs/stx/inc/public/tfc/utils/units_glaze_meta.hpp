@@ -88,7 +88,7 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
   static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   template <auto opts>
-  static void op(auto& schema, auto& defs) {
+  static void op([[maybe_unused]] auto& schema,[[maybe_unused]] auto& defs) {
     // fix in https://github.com/Skaginn3x/framework/issues/555
     // auto& data = schema.attributes.tfc_metadata;
     // if (!data.has_value()) {
