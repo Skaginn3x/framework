@@ -333,12 +333,12 @@ struct glz::meta<tfc::motor::positioner::increment_config<reference>> {
         .description = "Displacement per increment\n"
                        "Mode: tachometer, displacement per pulse or distance between two teeths\n"
                        "Mode: encoder, displacement per edge, distance between two teeths divided by 4",
-        .default_value = self::inch.numerical_value_ref_in(reference),
+        .defaultValue = self::inch.numerical_value_ref_in(reference),
         .minimum = 1UL,
       },
       "standard_deviation_threshold", &self::standard_deviation_threshold, tfc::json::schema{
         .description = "Standard deviation between increments, used to determine if signal is stable",
-        .default_value = 100UL,
+        .defaultValue = 100UL,
         .minimum = 1UL,
       }
     )
@@ -364,7 +364,7 @@ struct glz::meta<tfc::motor::positioner::freq_config<velocity_t>> {
     glz::object(
       "velocity_at_50Hz", &self::velocity_at_50Hz, tfc::json::schema{
         .description = "Velocity at 50Hz",
-        .default_value = 0UL,
+        .defaultValue = 0UL,
       }
     )
   };

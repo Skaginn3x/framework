@@ -581,5 +581,5 @@ template <>
 struct glz::meta<tfc::motor::details::not_used> {
   using self = tfc::motor::details::not_used;
   static constexpr std::string_view name{ "Not used" };
-  static constexpr auto value{ glz::object("value", &self::value, tfc::json::schema{ .read_only = true }) };
+  static constexpr auto value{ glz::object("value", &self::value, tfc::json::schema{ .readOnly = true }) };
 };
