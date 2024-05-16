@@ -113,20 +113,6 @@ struct duration_hack {
 };
 }  // namespace tfc::detail
 
-template <typename value_t, typename error_t>
-struct glz::meta<std::expected<value_t, error_t>> {
-  static constexpr std::string_view prefix{ "std::expected<" };
-  static constexpr std::string_view postfix{ ">" };
-  static constexpr std::string_view delimiter{ ", " };
-  static constexpr std::string_view name{
-    tfc::stx::string_view_join_v<prefix, name_v<value_t>, delimiter, name_v<error_t>, postfix>
-  };
-  static constexpr auto value{ [](auto&& self) -> auto& {
-    // todo this does not support error case
-    return self.value();
-  } };
-};
-
 template <std::intmax_t num, std::intmax_t den>
 struct glz::meta<std::ratio<num, den>> {
   using type = std::ratio<num, den>;

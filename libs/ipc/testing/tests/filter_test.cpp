@@ -167,7 +167,7 @@ auto main(int, char**) -> int {
     expect(generic_config.has_value() >> fatal);
     generic_config->at("time_on") = 1;  // reduce time to only 1 millisecond
     generic_config->at("time_off") = 1;
-    expect(!config.from_string(glz::write_json(generic_config)) >> fatal);
+    expect(!config.from_string(glz::write_json(generic_config.value())) >> fatal);
     expect(config->time_on == 1ms);
     expect(config->time_off == 1ms);
 

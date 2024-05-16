@@ -25,15 +25,16 @@ struct network_interface {
 }  // namespace tfc::ec::config
 
 template <>
-struct tfc::json::detail::to_json_schema<tfc::ec::config::network_interface> {
+struct glz::detail::to_json_schema<tfc::ec::config::network_interface> {
   template <auto Opts>
   static void op(auto& s, auto&) noexcept {
-    s.oneOf = std::vector<tfc::json::detail::schematic>{};
-
-    for (auto const& interface : ec::common::get_interfaces()) {
-      s.oneOf->emplace_back(tfc::json::detail::schematic{
-          .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
-    }
+    s.oneOf = std::vector<glz::detail::schematic>{};
+    // fix in https://github.com/Skaginn3x/framework/issues/555
+    // attributes was added initially
+    // for (auto const& interface : tfc::ec::common::get_interfaces()) {
+    //   s.oneOf->emplace_back(glz::detail::schematic{
+    //       .attributes{ tfc::json::schema{ .title = interface, .description = interface, .constant = interface } } });
+    // }
   }
 };
 
