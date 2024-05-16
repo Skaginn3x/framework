@@ -115,20 +115,6 @@ struct duration_hack {
 };
 }  // namespace tfc::detail
 
-template <typename value_t, typename error_t>
-struct glz::meta<std::expected<value_t, error_t>> {
-  static constexpr std::string_view prefix{ "std::expected<" };
-  static constexpr std::string_view postfix{ ">" };
-  static constexpr std::string_view delimiter{ ", " };
-  static constexpr std::string_view name{
-    tfc::stx::string_view_join_v<prefix, name_v<value_t>, delimiter, name_v<error_t>, postfix>
-  };
-  static constexpr auto value{ [](auto&& self) -> auto& {
-    // todo this does not support error case
-    return self.value();
-  } };
-};
-
 template <std::intmax_t num, std::intmax_t den>
 struct glz::meta<std::ratio<num, den>> {
   using type = std::ratio<num, den>;
@@ -144,7 +130,7 @@ struct glz::meta<tfc::detail::duration_hack<rep_t, period_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
   };
 };
 
@@ -154,7 +140,7 @@ struct glz::meta<std::chrono::duration<rep_t, period_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t, true>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<rep_t>, separator, glz::name_v<period_t>, postfix>
   };
 };
 
@@ -169,7 +155,7 @@ struct glz::meta<std::chrono::time_point<clock_t, duration_t>> {
   static constexpr std::string_view postfix{ ">" };
   static constexpr std::string_view separator{ "," };
   static constexpr auto name{
-    tfc::stx::string_view_join_v<prefix, glz::name_v<clock_t, true>, separator, glz::name_v<duration_t, true>, postfix>
+    tfc::stx::string_view_join_v<prefix, glz::name_v<clock_t>, separator, glz::name_v<duration_t>, postfix>
   };
 };
 
@@ -272,8 +258,9 @@ template <typename clock_t, typename duration_t>
 struct to_json_schema<std::chrono::time_point<clock_t, duration_t>> {
   template <auto opts>
   static void op(auto& schema, auto&) {
-    using enum tfc::json::defined_formats;
-    schema.attributes.format = datetime;
+    // fix in https://github.com/Skaginn3x/framework/issues/555
+    // using enum tfc::json::defined_formats;
+    // schema.attributes.format = datetime;
     schema.type = { "string" };
   }
 };
@@ -288,13 +275,14 @@ struct to_json_schema<std::chrono::duration<rep_t, period_t>> {
 
   template <auto opts>
   static void op(auto& schema, auto& defs) {
-    auto& data = schema.attributes.tfc_metadata;
-    if (!data.has_value()) {
-      data = tfc::json::schema_meta{};
-    }
-    data->unit = schema_meta::unit_meta{ .unit_ascii = unit, .unit_unicode = unit };
-    data->dimension = "time";
-    data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = period_t::num, .denominator = period_t::den };
+    // fix in https://github.com/Skaginn3x/framework/issues/555
+    // auto& data = schema.attributes.tfc_metadata;
+    // if (!data.has_value()) {
+    //   data = tfc::json::schema_meta{};
+    // }
+    // data->unit = schema_meta::unit_meta{ .unit_ascii = unit, .unit_unicode = unit };
+    // data->dimension = "time";
+    // data->ratio = tfc::json::schema_meta::ratio_impl{ .numerator = period_t::num, .denominator = period_t::den };
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };
@@ -303,11 +291,12 @@ template <typename rep_t>
 struct to_json_schema<std::optional<rep_t>> {
   template <auto opts>
   static void op(auto& schema, auto& defs) {
-    auto& data = schema.attributes.tfc_metadata;
-    if (!data.has_value()) {
-      data = tfc::json::schema_meta{};
-    }
-    data->required = false;
+    // fix in https://github.com/Skaginn3x/framework/issues/555
+    // auto& data = schema.attributes.tfc_metadata;
+    // if (!data.has_value()) {
+    //   data = tfc::json::schema_meta{};
+    // }
+    // data->required = false;
     to_json_schema<rep_t>::template op<opts>(schema, defs);
   }
 };

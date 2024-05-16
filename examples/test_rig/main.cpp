@@ -27,12 +27,12 @@ struct glz::meta<config_struct> {
       "servo_cycle",
       &config_struct::servo_cycle,
       tfc::json::schema{ .description = "Duration between moving the servo",
-                         .default_value = 1000,
-                         .minimum = 20,
-                         .maximum = 5000 },
+                         .defaultValue = 1000UL,
+                         .minimum = 20UL,
+                         .maximum = 5000UL },
       "count",
       &config_struct::count,
-      tfc::json::schema{ .description = "Servo wink count", .default_value = 10, .minimum = 1, .maximum = 180 }) };
+      tfc::json::schema{ .description = "Servo wink count", .defaultValue = 10UL, .minimum = 1UL, .maximum = 180UL }) };
 };
 
 struct app {

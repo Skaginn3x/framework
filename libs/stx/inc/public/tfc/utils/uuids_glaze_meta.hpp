@@ -35,11 +35,6 @@ struct to_json<uuids::uuid> {
   }
 };
 
-}  // namespace detail
-}  // namespace glz
-
-namespace tfc::json::detail {
-
 template <typename value_t>
 struct to_json_schema;
 
@@ -47,10 +42,12 @@ template <>
 struct to_json_schema<uuids::uuid> {
   template <auto opts>
   static void op(auto& schema, auto& defs) {
-    using enum tfc::json::defined_formats;
-    schema.attributes.format = uuid;
+    // fix in https://github.com/Skaginn3x/framework/issues/555
+    // using enum tfc::json::defined_formats;
+    // schema.attributes.format = uuid;
     to_json_schema<std::string>::op<opts>(schema, defs);
   }
 };
 
-}  // namespace tfc::json::detail
+}  // namespace detail
+}  // namespace glz
