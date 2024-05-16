@@ -118,7 +118,6 @@ inline consteval auto dimension_name() -> std::string_view {
   // "jolt",
   // "radiation",
   // "viscosity",
-  // "volumetric_flow",
   // "wavenumber",
   // "unitless",
   // "time",
@@ -179,6 +178,8 @@ inline consteval auto dimension_name() -> std::string_view {
     return "pressure";
   } else if constexpr (mp_units::convertible(ref_t, mp_units::si::kelvin)) {
     return "temperature";
+  } else if constexpr (mp_units::convertible(ref_t, mp_units::si::litre / mp_units::si::second)) {
+    return "volumetric_flow";
   } else {
     []<bool flag = false>() {
       static_assert(flag, "Missing dimension name, please add it to the list.");
