@@ -23,9 +23,9 @@ hide_output apt install -y --no-install-recommends \
   python3-distutils \
   python3-jinja2 \
   python3-venv \
-  gcc-13 \
-  g++-13 \
-  g++-13-aarch64-linux-gnu \
+  gcc-14 \
+  g++-14 \
+  g++-14-aarch64-linux-gnu \
   libltdl-dev # Required for autoconf
 
 # Install documentation specific packages
