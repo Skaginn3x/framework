@@ -123,7 +123,7 @@ auto main(int argc, char** argv) -> int {
     file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     glz::json_t json{};
     std::string buffer{};
-    glz::read_file_json(json, file_name.string(), buffer);
+    std::ignore = glz::read_file_json(json, file_name.string(), buffer) ;
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
     ut::expect(json["b"].get<std::string>() == "bar");
 
@@ -131,7 +131,7 @@ auto main(int argc, char** argv) -> int {
     conf.make_change()->b = "test";
 
     buffer = {};
-    glz::read_file_json(json, file_name.string(), buffer);
+    std::ignore = glz::read_file_json(json, file_name.string(), buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 2);
     ut::expect(json["b"].get<std::string>() == "test");
   };
@@ -161,7 +161,7 @@ auto main(int argc, char** argv) -> int {
     if (backup_found) {
       glz::json_t backup_json{};
       std::string buffer{};
-      glz::read_file_json(backup_json, found_file.string(), buffer);
+      std::ignore = glz::read_file_json(backup_json, found_file.string(), buffer);
 
       ut::expect(backup_json["a"].as<int>() == 3) << backup_json["a"].as<int>();
       ut::expect(backup_json["b"].get<std::string>() == "bar") << backup_json["b"].get<std::string>();
