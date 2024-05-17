@@ -18,7 +18,7 @@
     "fmt",
     {
       "name": "glaze",
-      "version>=": "1.9.6"
+      "version>=": "2.6.3"
     },
     "gtest",
     {
@@ -33,7 +33,7 @@
       "features": [
         "use-libfmt"
       ],
-      "version>=": "2.1.0"
+      "version>=": "2.1.1"
     },
     "openssl",
     "pcg",

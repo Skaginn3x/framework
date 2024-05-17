@@ -63,7 +63,7 @@ class motor_error_category_t : public std::error_category {
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wglobal-constructors)
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wexit-time-destructors)
-constinit motor_error_category_t category_instance{};
+thread_local motor_error_category_t category_instance{};
 PRAGMA_CLANG_WARNING_POP
 PRAGMA_CLANG_WARNING_POP
 // clang-format on
