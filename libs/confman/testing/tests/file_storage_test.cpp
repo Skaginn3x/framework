@@ -123,7 +123,7 @@ auto main(int argc, char** argv) -> int {
     file_testable<test_me> conf{ ctx, file_name, test_me{ .a = observable<int>{ 1 }, .b = "bar" } };
     glz::json_t json{};
     std::string buffer{};
-    std::ignore = glz::read_file_json(json, file_name.string(), buffer) ;
+    std::ignore = glz::read_file_json(json, file_name.string(), buffer);
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
     ut::expect(json["b"].get<std::string>() == "bar");
 
