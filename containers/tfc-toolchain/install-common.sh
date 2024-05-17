@@ -20,7 +20,6 @@ hide_output apt install -y --no-install-recommends \
   libtool \
   autopoint \
   gperf \
-  python3-distutils \
   python3-jinja2 \
   python3-venv \
   gcc-14 \
