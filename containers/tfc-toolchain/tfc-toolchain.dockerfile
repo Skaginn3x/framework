@@ -105,7 +105,7 @@ RUN ./build-node.sh 21.7.1
 
 # Todo: separate this into a docs container
 COPY build-doxygen.sh /tmp/
-RUN apt-get install flex bison -y
+RUN apt-get install -y --no-install-recommends flex bison
 RUN ./build-doxygen.sh
 
 # THIS is so much crap, boost-build vcpkg port strictly requires gcc, need to fix port to bypass
