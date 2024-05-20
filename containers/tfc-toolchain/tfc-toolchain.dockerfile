@@ -77,7 +77,7 @@ FROM gcc-14 as clang-18
 
 COPY shared.sh /tmp/
 COPY build-clang.sh /tmp/
-RUN ./build-clang.sh 18.1.2
+RUN ./build-clang.sh 18.1.5
 
 #ENV CC=clang
 #ENV CXX=clang++
@@ -102,6 +102,11 @@ RUN apt update && apt install -y --no-install-recommends libatomic1
 COPY build-node.sh /tmp/
 COPY ./shared.sh /tmp/
 RUN ./build-node.sh 21.7.1
+
+# Todo: separate this into a docs container
+COPY build-doxygen.sh /tmp/
+RUN apt-get install flex bison -y
+RUN ./build-doxygen.sh
 
 # THIS is so much crap, boost-build vcpkg port strictly requires gcc, need to fix port to bypass
 #RUN apt remove -y gcc

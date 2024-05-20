@@ -29,7 +29,6 @@ hide_output apt install -y --no-install-recommends \
 
 # Install documentation specific packages
 hide_output apt install -y --no-install-recommends \
-  doxygen \
   python3-venv \
   python3-jinja2 \
   graphviz
