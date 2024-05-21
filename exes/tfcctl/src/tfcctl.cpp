@@ -176,16 +176,16 @@ auto main(int argc, char** argv) -> int {
       throw std::runtime_error{ fmt::format("Unknown typename in: {}", slot_name) };
     }
     tfc::ipc::make_any_slot::make_impl(slot, type, ctx, client, slot_name, [slot_name](auto new_value) {
-                  if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
-                    if (new_value.has_value()) {
-                      fmt::println("{}: {}", slot_name, new_value.value());
-                    } else {
-                      fmt::println("{}: {}", slot_name, new_value.error());
-                    }
-                  } else {
-                    fmt::println("{}: {}", slot_name, new_value);
-                  }
-                });
+      if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
+        if (new_value.has_value()) {
+          fmt::println("{}: {}", slot_name, new_value.value());
+        } else {
+          fmt::println("{}: {}", slot_name, new_value.error());
+        }
+      } else {
+        fmt::println("{}: {}", slot_name, new_value);
+      }
+    });
   }
 
   ctx.run();
