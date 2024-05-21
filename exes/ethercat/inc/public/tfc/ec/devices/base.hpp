@@ -150,7 +150,7 @@ public:
       if (output.size() != sizeof(output_pdo)) {
         if (output_buffer_valid_) {
           logger_.warn("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
-            output_buffer_valid_ = false;
+          output_buffer_valid_ = false;
         }
 
         if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
@@ -172,7 +172,7 @@ public:
       if (input.size() != sizeof(input_pdo)) {
         if (input_buffer_valid_) {
           logger_.warn("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
-            input_buffer_valid_ = false;
+          input_buffer_valid_ = false;
         }
         if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
           static_cast<impl_t*>(this)->pdo_error();
