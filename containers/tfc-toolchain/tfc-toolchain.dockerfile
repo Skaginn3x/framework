@@ -1,5 +1,5 @@
 # boost-build requires newer compiler than gcc 8
-FROM ubuntu:23.04 AS base
+FROM ubuntu:24.04 AS base
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -21,14 +21,14 @@ RUN ldconfig
 COPY install-common.sh /tmp/
 RUN ./install-common.sh
 
-# Give gcc-13 some better names
-RUN ln -sf /usr/bin/gcc-13 /cpproot/bin/gcc
-RUN ln -sf /usr/bin/g++-13 /cpproot/bin/g++
-RUN ln -sf /usr/bin/gcc-13 /cpproot/bin/cc
-RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-ar-13 /cpproot/bin/aarch64-linux-gnu-ar
+# Give gcc-14 some better names
+RUN ln -sf /usr/bin/gcc-14 /cpproot/bin/gcc
+RUN ln -sf /usr/bin/g++-14 /cpproot/bin/g++
+RUN ln -sf /usr/bin/gcc-14 /cpproot/bin/cc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-ar-14 /cpproot/bin/aarch64-linux-gnu-ar
 RUN ln -sf /usr/bin/aarch64-linux-gnu-strip /cpproot/bin/aarch64-linux-gnu-strip
-RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-13 /cpproot/bin/aarch64-linux-gnu-gcc
-RUN ln -sf /usr/bin/aarch64-linux-gnu-g++-13 /cpproot/bin/aarch64-linux-gnu-g++
+RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-14 /cpproot/bin/aarch64-linux-gnu-gcc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-g++-14 /cpproot/bin/aarch64-linux-gnu-g++
 RUN ln -sf /usr/aarch64-linux-gnu /cpproot/aarch64-linux-gnu
 RUN ln -sf /usr/include/aarch64-linux-gnu /cpproot/include/aarch64-linux-gnu
 RUN ln -sf /usr/lib/aarch64-linux-gnu /cpproot/lib/aarch64-linux-gnu
@@ -39,7 +39,7 @@ RUN ./install-cmake.sh 3.29.0
 COPY build-ninja.sh /tmp/
 RUN ./build-ninja.sh 1.11.1
 
-# This has to happen after gcc-13 and cmake
+# This has to happen after gcc-14 and cmake
 COPY build-mold.sh /tmp/
 RUN ./build-mold.sh 2.30.0
 
@@ -53,7 +53,7 @@ RUN mkdir -p /var/run/dbus/
 RUN sed -i 's|deny own=|allow own=|g' /usr/share/dbus-1/system.conf
 RUN sed -i 's|deny send_type="method_call"|allow send_type="method_call"|g' /usr/share/dbus-1/system.conf
 
-FROM base AS gcc-13
+FROM base AS gcc-14
 
 COPY build-binutils.sh /tmp/
 RUN ./build-binutils.sh 2.40
@@ -61,9 +61,9 @@ RUN ./build-binutils.sh 2.40
 # COPY build-gcc-from-commit.sh /tmp/
 # RUN ./build-gcc-from-commit.sh eb83605be3db9e8246c73755eafcac5df32ddc69
 RUN apt update
-# RUN apt install g++-13-aarch64-linux-gnu -y # Already done in common
-RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-13 /cpproot/bin/aarch64-linux-gnu-gcc
-RUN ln -sf /usr/bin/aarch64-linux-gnu-g++-13 /cpproot/bin/aarch64-linux-gnu-g++
+# RUN apt install g++-14-aarch64-linux-gnu -y # Already done in common
+RUN ln -sf /usr/bin/aarch64-linux-gnu-gcc-14 /cpproot/bin/aarch64-linux-gnu-gcc
+RUN ln -sf /usr/bin/aarch64-linux-gnu-g++-14 /cpproot/bin/aarch64-linux-gnu-g++
 # RUN apt remove -y gcc g++
 
 #RUN apt update && apt install -y --no-install-recommends libisl-dev libmpc-dev libc-dev
@@ -73,11 +73,11 @@ RUN apt clean all
 RUN rm -rf /var/lib/apt/lists/*
 RUN rm -rf /tmp/*
 
-FROM gcc-13 as clang-18
+FROM gcc-14 as clang-18
 
 COPY shared.sh /tmp/
 COPY build-clang.sh /tmp/
-RUN ./build-clang.sh 18.1.2
+RUN ./build-clang.sh 18.1.5
 
 #ENV CC=clang
 #ENV CXX=clang++
@@ -102,6 +102,11 @@ RUN apt update && apt install -y --no-install-recommends libatomic1
 COPY build-node.sh /tmp/
 COPY ./shared.sh /tmp/
 RUN ./build-node.sh 21.7.1
+
+# Todo: separate this into a docs container
+COPY build-doxygen.sh /tmp/
+RUN apt-get install -y --no-install-recommends flex bison
+RUN ./build-doxygen.sh
 
 # THIS is so much crap, boost-build vcpkg port strictly requires gcc, need to fix port to bypass
 #RUN apt remove -y gcc
