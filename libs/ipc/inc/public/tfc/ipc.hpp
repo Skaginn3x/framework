@@ -265,36 +265,53 @@ template <typename return_t, typename manager_client_t, template <typename, type
 struct make_any {
   static_assert(std::is_lvalue_reference_v<manager_client_t>, "manager_client_t must be a reference");
   static auto make(details::type_e type, auto&&... args) -> return_t {
+    return_t res{};
+    make_impl(res, type, std::forward<decltype(args)>(args)...);
+    return res;
+  }
+
+  static auto make_impl(return_t& out, details::type_e type, auto&&... args) -> void {
     switch (type) {
       using enum details::type_e;
       case _bool:
-        return ipc_base_t<details::type_bool, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_bool, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _int64_t:
-        return ipc_base_t<details::type_int, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_int, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _uint64_t:
-        return ipc_base_t<details::type_uint, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_uint, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _double_t:
-        return ipc_base_t<details::type_double, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_double, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _string:
-        return ipc_base_t<details::type_string, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_string, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _json:
-        return ipc_base_t<details::type_json, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_json, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _mass:
-        return ipc_base_t<details::type_mass, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_mass, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _length:
-        return ipc_base_t<details::type_length, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_length, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _pressure:
-        return ipc_base_t<details::type_pressure, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_pressure, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _temperature:
-        return ipc_base_t<details::type_temperature, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_temperature, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _voltage:
-        return ipc_base_t<details::type_voltage, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_voltage, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case _current:
-        return ipc_base_t<details::type_current, manager_client_t>{ std::forward<decltype(args)>(args)... };
+        out.template emplace<ipc_base_t<details::type_current, manager_client_t>>(std::forward<decltype(args)>(args)...);
+        return;
       case unknown:
-        return std::monostate{};
+        return;
     }
-    return {};
   }
 };
 

@@ -288,6 +288,21 @@ struct any_filter_decl<details::temperature_t> {
   using value_t = details::temperature_t;
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
+template <>
+struct any_filter_decl<details::length_t> {
+  using value_t = details::length_t;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+};
+template <>
+struct any_filter_decl<details::voltage_t> {
+  using value_t = details::voltage_t;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+};
+template <>
+struct any_filter_decl<details::current_t> {
+  using value_t = details::current_t;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+};
 // json?
 template <typename value_t>
 using any_filter_decl_t = any_filter_decl<value_t>::type;
