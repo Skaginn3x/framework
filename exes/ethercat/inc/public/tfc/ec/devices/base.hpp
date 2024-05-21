@@ -139,13 +139,15 @@ public:
                     "impl_t::pdo_cycle must have second argument as reference, const is not allowed");
     }
 
-    auto extract_data{ [this]<typename pdo_buffer_t>(pdo_buffer_t* resulting_buffer, default_t actual_buffer, bool& valid_flag) {
+    auto extract_data{ [this]<typename pdo_buffer_t>(pdo_buffer_t* resulting_buffer, default_t actual_buffer,
+                                                     bool& valid_flag) {
       if constexpr (std::same_as<pdo_buffer_t, default_t>) {
         resulting_buffer = &actual_buffer;
       } else {
         if (actual_buffer.size() != sizeof(pdo_buffer_t)) {
           if (valid_flag) {
-            logger_.warn("Pdo buffer size mismatch, expected {} bytes, got {} bytes", sizeof(pdo_buffer_t), actual_buffer.size());
+            logger_.warn("Pdo buffer size mismatch, expected {} bytes, got {} bytes", sizeof(pdo_buffer_t),
+                         actual_buffer.size());
             valid_flag = false;
           }
           if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
@@ -163,11 +165,11 @@ public:
       return true;
     } };
 
-    input_pdo* input_data{nullptr};
+    input_pdo* input_data{ nullptr };
     if (!extract_data(input_data, input, input_buffer_valid_)) {
       return;
     }
-    output_pdo* output_data{nullptr};
+    output_pdo* output_data{ nullptr };
     if (!extract_data(output_data, output, output_buffer_valid_)) {
       return;
     }
