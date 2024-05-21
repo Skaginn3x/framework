@@ -78,10 +78,7 @@ public:
     client_init(description);
   }
 
-  slot(asio::io_context& ctx,
-       manager_client_type client,
-       std::string_view name,
-       stx::invocable<value_t> auto&& callback)
+  slot(asio::io_context& ctx, manager_client_type client, std::string_view name, stx::invocable<value_t> auto&& callback)
       : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
 
   slot(slot&) = delete;
