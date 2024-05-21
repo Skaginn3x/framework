@@ -35,10 +35,10 @@ template <typename manager_client_type,
 void el1xxx<manager_client_type, size, entries, pc, name, signal_t>::pdo_cycle(input_pdo const& input,
                                                                                std::span<std::uint8_t>) noexcept {
   // Loop bytes
-  for (auto byte : input) {
-    for (size_t bits = 0; bits < 8 && size - ((byte * 8) + bits) > 0; bits++) {
-      auto const value = static_cast<bool>(byte & (1 << bits));
-      const size_t bit_index = byte * 8 + bits;
+  for (size_t idx = 0; idx < input.size(); idx++) {
+    for (size_t bits = 0; bits < 8 && size - ((idx * 8) + bits) > 0; bits++) {
+      auto const value = static_cast<bool>(input[idx] & (1 << bits));
+      const size_t bit_index = idx * 8 + bits;
       if (!last_values_[bit_index].has_value() || value != last_values_[bit_index]) {
         transmitters_[bit_index]->async_send(value, [this](std::error_code error, size_t) {
           if (error) {
