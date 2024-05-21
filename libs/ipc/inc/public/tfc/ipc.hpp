@@ -21,7 +21,7 @@ namespace asio = boost::asio;
 
 /// \brief make manager client for the types(signal, slot) below
 [[maybe_unused]] static auto make_manager_client(asio::io_context& ctx) {
-  return tfc::ipc_ruler::ipc_manager_client{ ctx };
+  return ipc_ruler::ipc_manager_client{ ctx };
 }
 
 /**
@@ -78,10 +78,7 @@ public:
     client_init(description);
   }
 
-  slot(asio::io_context& ctx,
-       manager_client_type client,
-       std::string_view name,
-       tfc::stx::invocable<value_t> auto&& callback)
+  slot(asio::io_context& ctx, manager_client_type client, std::string_view name, stx::invocable<value_t> auto&& callback)
       : slot(ctx, client, name, "", std::forward<decltype(callback)>(callback)) {}
 
   slot(slot&) = delete;
@@ -132,7 +129,7 @@ private:
  * ipc-ruler service.
  * @tparam type_desc The type of the signal
  */
-template <typename type_desc, typename manager_client_type = tfc::ipc_ruler::ipc_manager_client&>
+template <typename type_desc, typename manager_client_type = ipc_ruler::ipc_manager_client&>
 class signal {
 public:
   using value_t = typename details::signal<type_desc>::value_t;
