@@ -139,39 +139,50 @@ public:
                     "impl_t::pdo_cycle must have second argument as reference, const is not allowed");
     }
 
-    auto extract_data{ [this]<typename pdo_buffer_t>(pdo_buffer_t** resulting_buffer, default_t& actual_buffer,
-                                                     bool& valid_flag) {
-      if constexpr (std::same_as<pdo_buffer_t, default_t>) {
-        *resulting_buffer = &actual_buffer;
-      } else {
-        if (actual_buffer.size() != sizeof(pdo_buffer_t)) {
-          if (valid_flag) {
-            logger_.warn("Pdo buffer size mismatch, expected {} bytes, got {} bytes", sizeof(pdo_buffer_t),
-                         actual_buffer.size());
-            valid_flag = false;
-          }
-          if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
-            static_cast<impl_t*>(this)->pdo_error();
-          }
-          return false;
-        }
-        valid_flag = true;
-        // clang-format off
-        PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-        // clang-format on
-        *resulting_buffer = reinterpret_cast<pdo_buffer_t*>(actual_buffer.data());
-        PRAGMA_CLANG_WARNING_POP
-      }
-      return true;
-    } };
+    // I tried to make this as common lambda but the clang 18.1.2 crashes
 
     input_pdo* input_data{ nullptr };
-    if (!extract_data(&input_data, input, input_buffer_valid_)) {
-      return;
+    if constexpr (std::same_as<input_pdo, default_t>) {
+      input_data = &input;
+    } else {
+      if (input.size() != sizeof(input_pdo)) {
+            if (input_buffer_valid_) {
+              logger_.warn("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
+              input_buffer_valid_ = false;
+            }
+            if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+              static_cast<impl_t*>(this)->pdo_error();
+            }
+            return;
+      }
+      input_buffer_valid_ = true;
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+      // clang-format on
+      input_data = reinterpret_cast<input_pdo*>(input.data());
+      PRAGMA_CLANG_WARNING_POP
     }
+
     output_pdo* output_data{ nullptr };
-    if (!extract_data(&output_data, output, output_buffer_valid_)) {
-      return;
+    if constexpr (std::same_as<output_pdo, default_t>) {
+      output_data = &output;
+    } else {
+      if (output.size() != sizeof(output_pdo)) {
+        if (output_buffer_valid_) {
+          logger_.warn("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
+          output_buffer_valid_ = false;
+        }
+        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+          static_cast<impl_t*>(this)->pdo_error();
+        }
+        return;
+      }
+      output_buffer_valid_ = true;
+      // clang-format off
+      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+      // clang-format on
+      output_data = reinterpret_cast<output_pdo*>(output.data());
+      PRAGMA_CLANG_WARNING_POP
     }
     assert(input_data != nullptr && "Input data is nullptr");
     assert(output_data != nullptr && "Output data is nullptr");
