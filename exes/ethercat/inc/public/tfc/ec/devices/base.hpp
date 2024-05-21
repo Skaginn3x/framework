@@ -139,90 +139,39 @@ public:
                     "impl_t::pdo_cycle must have second argument as reference, const is not allowed");
     }
 
-    // todo simplify
+    auto extract_data{ [this]<typename pdo_buffer_t>(pdo_buffer_t* resulting_buffer, default_t actual_buffer, bool& valid_flag) {
+      if constexpr (std::same_as<pdo_buffer_t, default_t>) {
+        resulting_buffer = &actual_buffer;
+      } else {
+        if (actual_buffer.size() != sizeof(pdo_buffer_t)) {
+          if (valid_flag) {
+            logger_.warn("Pdo buffer size mismatch, expected {} bytes, got {} bytes", sizeof(pdo_buffer_t), actual_buffer.size());
+            valid_flag = false;
+          }
+          if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+            static_cast<impl_t*>(this)->pdo_error();
+          }
+          return false;
+        }
+        valid_flag = true;
+        // clang-format off
+        PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
+        // clang-format on
+        resulting_buffer = reinterpret_cast<pdo_buffer_t*>(actual_buffer.data());
+        PRAGMA_CLANG_WARNING_POP
+      }
+      return true;
+    } };
 
-    // Both input and output are default types
-    if constexpr (std::same_as<input_pdo, default_t> && std::same_as<output_pdo, default_t>) {
-      static_cast<impl_t*>(this)->pdo_cycle(input, output);
+    input_pdo* input_data{nullptr};
+    if (!extract_data(input_data, input, input_buffer_valid_)) {
+      return;
     }
-    // input is default type, output is not
-    else if constexpr (std::same_as<input_pdo, default_t>) {
-      if (output.size() != sizeof(output_pdo)) {
-        if (output_buffer_valid_) {
-          logger_.warn("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
-          output_buffer_valid_ = false;
-        }
-
-        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
-          static_cast<impl_t*>(this)->pdo_error();
-        }
-        return;
-      }
-      output_buffer_valid_ = true;
-
-      // clang-format off
-      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-      // clang-format on
-      auto* output_casted = reinterpret_cast<output_pdo*>(output.data());
-      PRAGMA_CLANG_WARNING_POP
-      static_cast<impl_t*>(this)->pdo_cycle(input, *output_casted);
+    output_pdo* output_data{nullptr};
+    if (!extract_data(output_data, output, output_buffer_valid_)) {
+      return;
     }
-    // output is default type, input is not
-    else if constexpr (std::same_as<output_pdo, default_t>) {
-      if (input.size() != sizeof(input_pdo)) {
-        if (input_buffer_valid_) {
-          logger_.warn("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
-          input_buffer_valid_ = false;
-        }
-        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
-          static_cast<impl_t*>(this)->pdo_error();
-        }
-        return;
-      }
-      input_buffer_valid_ = true;
-      // clang-format off
-      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-      // clang-format on
-      auto* input_casted = reinterpret_cast<input_pdo*>(input.data());
-      PRAGMA_CLANG_WARNING_POP
-      static_cast<impl_t*>(this)->pdo_cycle(*input_casted, output);
-    }
-    // Both input and output are not default types
-    else {
-      if (output.size() != sizeof(output_pdo)) {
-        if (output_buffer_valid_) {
-          logger_.info("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
-          output_buffer_valid_ = false;
-        }
-        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
-          static_cast<impl_t*>(this)->pdo_error();
-        }
-        return;
-      }
-      output_buffer_valid_ = true;
-      // clang-format off
-      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-      // clang-format on
-      auto* output_casted = reinterpret_cast<output_pdo*>(output.data());
-      PRAGMA_CLANG_WARNING_POP
-      if (input.size() != sizeof(input_pdo)) {
-        if (input_buffer_valid_) {
-          logger_.info("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
-          input_buffer_valid_ = false;
-        }
-        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
-          static_cast<impl_t*>(this)->pdo_error();
-        }
-        return;
-      }
-      input_buffer_valid_ = true;
-      // clang-format off
-      PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-      // clang-format on
-      auto* input_casted = reinterpret_cast<input_pdo*>(input.data());
-      PRAGMA_CLANG_WARNING_POP
-      static_cast<impl_t*>(this)->pdo_cycle(*input_casted, *output_casted);
-    }
+    static_cast<impl_t*>(this)->pdo_cycle(*input_data, *output_data);
   }
 
   // Default behaviour, no setup
