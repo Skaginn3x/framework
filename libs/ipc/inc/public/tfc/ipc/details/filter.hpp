@@ -283,6 +283,11 @@ struct any_filter_decl<details::pressure_t> {
   using value_t = details::pressure_t;
   using type = std::variant<filter<filter_e::filter_out, value_t>>;
 };
+template <>
+struct any_filter_decl<details::temperature_t> {
+  using value_t = details::temperature_t;
+  using type = std::variant<filter<filter_e::filter_out, value_t>>;
+};
 // json?
 template <typename value_t>
 using any_filter_decl_t = any_filter_decl<value_t>::type;
