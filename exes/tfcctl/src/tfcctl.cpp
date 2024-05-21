@@ -80,19 +80,19 @@ auto main(int argc, char** argv) -> int {
   auto description{ tfc::base::default_description() };
 
   std::string signal{};
-  std::string slot{};
+  std::string slot_name{};
   std::vector<std::string> connect;
   bool list_signals{};
   bool list_slots{};
 
   description.add_options()("signal", po::value<std::string>(&signal), "IPC signal channel (output)")(
-      "slot", po::value<std::string>(&slot), "IPC slot channel (input)")(
+      "slot", po::value<std::string>(&slot_name), "IPC slot channel (input)")(
       "connect,c", po::value<std::vector<std::string>>(&connect)->multitoken(), "Listen to these slots")(
       "list-signals", po::bool_switch(&list_signals), "List all available IPC signals")(
       "list-slots", po::bool_switch(&list_slots), "List all available IPC slots");
   tfc::base::init(argc, argv, description);
 
-  bool at_least_one_choice{ !signal.empty() || !slot.empty() || !connect.empty() || list_signals || list_slots };
+  bool at_least_one_choice{ !signal.empty() || !slot_name.empty() || !connect.empty() || list_signals || list_slots };
   if (!at_least_one_choice) {
     std::stringstream out;
     description.print(out);
@@ -155,15 +155,37 @@ auto main(int argc, char** argv) -> int {
   for (auto& signal_connect : connect) {
     // For listening to connections
     connect_slots.emplace_back([&ctx, slot_connect](std::string_view sig) -> tfc::ipc::details::any_slot_cb {
-      std::string const slot_name = fmt::format("tfcctl_slot_{}", sig);
+      std::string const connected_slot_name = fmt::format("tfcctl_slot_{}", sig);
       auto const type{ ipc::details::enum_cast(sig) };
       if (type == ipc::details::type_e::unknown) {
         throw std::runtime_error{ fmt::format("Unknown typename in: {}", sig) };
       }
-      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, slot_name) };
+      auto ipc{ ipc::details::make_any_slot_cb::make(type, ctx, connected_slot_name) };
       slot_connect(ipc, sig);
       return ipc;
     }(signal_connect));
+  }
+
+  auto client{ tfc::ipc::make_manager_client(ctx) };
+  tfc::ipc::any_slot slot;
+
+  if (!slot_name.empty()) {
+    // For listening to connections
+    auto const type{ ipc::details::enum_cast(slot_name) };
+    if (type == ipc::details::type_e::unknown) {
+      throw std::runtime_error{ fmt::format("Unknown typename in: {}", slot_name) };
+    }
+    tfc::ipc::make_any_slot::make_impl(slot, type, ctx, client, slot_name, [slot_name](auto new_value) {
+      if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
+        if (new_value.has_value()) {
+          fmt::println("{}: {}", slot_name, new_value.value());
+        } else {
+          fmt::println("{}: {}", slot_name, new_value.error());
+        }
+      } else {
+        fmt::println("{}: {}", slot_name, new_value);
+      }
+    });
   }
 
   ctx.run();
