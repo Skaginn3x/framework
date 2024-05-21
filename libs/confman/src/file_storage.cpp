@@ -111,7 +111,7 @@ auto write_and_apply_retention_policy(std::string_view file_content, std::filesy
 /// \param file_contents contents of the file
 /// \returns A std::error_code indicating success or failure. If write fails, IO error is returned.
 auto write_to_file(std::filesystem::path const& file_path, std::string_view file_contents) -> std::error_code {
-  auto glz_err{ glz::buffer_to_file(file_contents, file_path) };
+  auto glz_err{ glz::buffer_to_file(file_contents, file_path.string()) };
   if (glz_err != glz::error_code::none) {
     return std::make_error_code(std::errc::io_error);
   }

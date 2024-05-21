@@ -196,12 +196,12 @@ template <typename duration_t>
 constexpr auto parse8601(const std::string& save) -> date::sys_time<duration_t> {
   std::istringstream in{ save };
   date::sys_time<duration_t> tp;
-  in >> date::parse("%FT%TZ", tp);
+  date::from_stream(in, "%FT%TZ", tp);
   if (in.fail()) {
     in.clear();
     in.exceptions(std::ios::failbit);
     in.str(save);
-    in >> date::parse("%FT%T%Ez", tp);
+    date::from_stream(in, "%FT%T%Ez", tp);
   }
   return tp;
 }
