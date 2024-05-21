@@ -146,14 +146,14 @@ public:
       input_data = &input;
     } else {
       if (input.size() != sizeof(input_pdo)) {
-            if (input_buffer_valid_) {
-              logger_.warn("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
-              input_buffer_valid_ = false;
-            }
-            if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
-              static_cast<impl_t*>(this)->pdo_error();
-            }
-            return;
+        if (input_buffer_valid_) {
+          logger_.warn("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
+          input_buffer_valid_ = false;
+        }
+        if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
+          static_cast<impl_t*>(this)->pdo_error();
+        }
+        return;
       }
       input_buffer_valid_ = true;
       // clang-format off
