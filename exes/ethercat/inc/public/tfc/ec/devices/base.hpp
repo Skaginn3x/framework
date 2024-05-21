@@ -121,7 +121,7 @@ public:
   base& operator=(base&&) = default;
 
   // Default behaviour no data processing
-  void process_data(std::span<std::uint8_t> input, std::span<std::uint8_t> output) {
+  void process_data(default_t input, default_t output) {
     static_assert(std::is_member_function_pointer_v<decltype(&impl_t::pdo_cycle)>, "impl_t must have method pdo_cycle");
     using pdo_cycle_func_t = decltype(&impl_t::pdo_cycle);  // is function pointer
     using input_pdo = std::decay_t<details::first_arg_t<pdo_cycle_func_t>>;
@@ -149,9 +149,9 @@ public:
     else if constexpr (std::same_as<input_pdo, default_t>) {
       if (output.size() != sizeof(output_pdo)) {
         if (output_buffer_valid_) {
-          logger_.info("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
+          logger_.warn("Output size mismatch, expected {} bytes, got {} bytes", sizeof(output_pdo), output.size());
+            output_buffer_valid_ = false;
         }
-        output_buffer_valid_ = false;
 
         if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
           static_cast<impl_t*>(this)->pdo_error();
@@ -171,9 +171,9 @@ public:
     else if constexpr (std::same_as<output_pdo, default_t>) {
       if (input.size() != sizeof(input_pdo)) {
         if (input_buffer_valid_) {
-          logger_.info("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
+          logger_.warn("Input size mismatch, expected {} bytes, got {} bytes", sizeof(input_pdo), input.size());
+            input_buffer_valid_ = false;
         }
-        input_buffer_valid_ = false;
         if constexpr (stx::is_detected_v<details::pdo_error_t, impl_t>) {
           static_cast<impl_t*>(this)->pdo_error();
         }

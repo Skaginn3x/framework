@@ -8,7 +8,7 @@
 
 namespace tfc::ec::devices::beckhoff {
 template <std::size_t size, auto p_code>
-class el400x : public base<el400x<size, p_code>> {
+class el400x final : public base<el400x<size, p_code>> {
 public:
   explicit el400x(boost::asio::io_context&, std::uint16_t const slave_index) : base<el400x>(slave_index) {}
   static constexpr std::uint32_t product_code = p_code;

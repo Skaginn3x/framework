@@ -13,7 +13,7 @@ struct siemens_status {
 };
 
 template <uint8_t size, auto p_code>
-class el305x : public base<el305x<size, p_code>> {
+class el305x final : public base<el305x<size, p_code>> {
 public:
   explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base<el305x>(slave_index) {}
   static constexpr uint32_t product_code = p_code;
