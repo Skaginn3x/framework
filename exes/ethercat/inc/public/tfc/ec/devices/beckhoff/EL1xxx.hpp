@@ -22,7 +22,7 @@ template <typename manager_client_type,
           uint32_t pc,
           stx::basic_fixed_string name_v,
           template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
-class el1xxx final : public base<el1xxx<manager_client_type, size, entries, pc, name_v>> {
+class el1xxx final : public base<el1xxx<manager_client_type, size, entries, pc, name_v, signal_t>> {
 public:
   using input_pdo = std::array<std::uint8_t, (size / 9) + 1>;
 
