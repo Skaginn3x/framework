@@ -131,5 +131,10 @@ struct StringLiteral {
 
   char value[N];
 };
+// fmt support
+template <typename CharType, unsigned N>
+inline auto format_as(basic_fixed_string<CharType, N> str) -> std::string_view {
+  return str.view();
+}
 
 }  // namespace tfc::stx

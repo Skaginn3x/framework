@@ -4,7 +4,9 @@
 #include <chrono>
 #include <cstdint>
 
-#include <tfc/utils/pragmas.hpp>
+#include <glaze/util/string_literal.hpp>
+
+#include "tfc/stx/to_string_view.hpp"
 
 namespace tfc::ec::devices::beckhoff {
 template <std::size_t size, auto p_code>
@@ -14,6 +16,7 @@ public:
   static constexpr std::uint32_t product_code = p_code;
   static constexpr std::uint32_t vendor_id = 0x2;
   using output_pdo = std::array<std::uint16_t, size>;
+  static constexpr std::string_view name{ glz::join_v<glz::chars<"EL400">, stx::to_string_view_v<size>> };
 
   void pdo_cycle(std::span<std::uint8_t>, [[maybe_unused]] output_pdo& output) noexcept {
     for (size_t i = 0; i < size; i++) {

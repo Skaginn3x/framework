@@ -301,6 +301,7 @@ template <typename manager_client_type,
           template <typename description_t, typename manager_client_t> typename ipc_signal_t = ipc::signal>
 class e4x60a final : public base<e4x60a<manager_client_type, ipc_signal_t>> {
 public:
+
   e4x60a(asio::io_context& ctx, manager_client_type& client, std::uint16_t slave_index)
       : base<e4x60a>{ slave_index }, ctx_{ ctx }, client_{ client } {
     std::size_t idx{ 0 };  // todo support multiple
@@ -428,6 +429,7 @@ PRAGMA_CLANG_WARNING_POP
     }
   }
 
+  static constexpr std::string_view name{ "Eilersen 4x60a" };
   static constexpr uint32_t product_code = 0x1040;
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;

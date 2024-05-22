@@ -2,8 +2,11 @@
 
 #include <string>
 
+#include <glaze/util/string_literal.hpp>
+
 #include "tfc/ec/devices/util.hpp"
 #include "tfc/ec/soem_interface.hpp"
+#include "tfc/stx/to_string_view.hpp"
 
 namespace tfc::ec::devices::beckhoff {
 struct siemens_status {
@@ -18,6 +21,8 @@ public:
   explicit el305x(boost::asio::io_context&, uint16_t const slave_index) : base<el305x>(slave_index) {}
   static constexpr uint32_t product_code = p_code;
   static constexpr uint32_t vendor_id = 0x2;
+
+  static constexpr std::string_view name{ glz::join_v<glz::chars<"EL305">, stx::to_string_view_v<size>> };
 
   auto setup_driver() -> int {
     // Clean rx pdo assign

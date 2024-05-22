@@ -179,6 +179,7 @@ class lxm32m final : public base<lxm32m<manager_client_type>> {
 public:
   static constexpr uint32_t vendor_id = 0x800005a;
   static constexpr uint32_t product_code = 0x16440;
+  static constexpr std::string_view name{ "LXM32M" };
 
   explicit lxm32m([[maybe_unused]] asio::io_context& ctx, [[maybe_unused]] manager_client_type& client, uint16_t slave_index)
       : base<lxm32m>(slave_index), config_(client.connection(), fmt::format("lxm32m.{}", slave_index)) {}

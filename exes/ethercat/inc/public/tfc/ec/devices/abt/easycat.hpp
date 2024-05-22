@@ -27,6 +27,7 @@ public:
 
   static constexpr uint32_t vendor_id = 0x79a;
   static constexpr uint32_t product_code = 0xdefede;
+  static constexpr std::string_view name{ "easyecat" };
 
   static constexpr size_t di_count = 4;  // Number of digital inputs
   static constexpr size_t do_count = 4;  // Number of digital outputs

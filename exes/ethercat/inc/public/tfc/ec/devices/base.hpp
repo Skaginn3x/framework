@@ -255,10 +255,10 @@ public:
   }
 
 protected:
-  explicit base(uint16_t slave_index) : slave_index_(slave_index), logger_(fmt::format("Ethercat slave {}", slave_index)) {}
+  explicit base(uint16_t slave_index) : slave_index_(slave_index) {}
 
   const uint16_t slave_index_{};
-  tfc::logger::logger logger_;
+  tfc::logger::logger logger_{ fmt::format("{}.{}", impl_t::name, slave_index_) };
 
 private:
   std::function<
@@ -273,7 +273,7 @@ public:
   explicit default_device(uint16_t const slave_index) : base(slave_index) {
     logger_.warn("No device found for slave {}", slave_index);
   }
-
+  static constexpr std::string_view name{ "default_device" };
   void pdo_cycle(std::span<std::uint8_t>, std::span<std::uint8_t>) noexcept {}
 };
 

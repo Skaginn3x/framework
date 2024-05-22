@@ -22,8 +22,8 @@ template <typename manager_client_type,
           std::size_t size,
           std::array<std::size_t, size> entries,
           uint32_t pc,
-          tfc::stx::basic_fixed_string name>
-class el2xxx final : public base<el2xxx<manager_client_type, size, entries, pc, name>> {
+          tfc::stx::basic_fixed_string name_v>
+class el2xxx final : public base<el2xxx<manager_client_type, size, entries, pc, name_v>> {
 public:
   static_assert(size == 4 || size == 8 || size == 16, "Invalid size");
   el2xxx(asio::io_context& ctx, manager_client_type& client, uint16_t slave_index);
@@ -31,7 +31,7 @@ public:
 
   static constexpr auto size_v = size;
   static constexpr auto entries_v = entries;
-  static constexpr auto name_v = name;
+  static constexpr auto name = name_v;
   static constexpr auto product_code = pc;
   static constexpr uint32_t vendor_id = 0x2;
 
@@ -65,21 +65,21 @@ extern template class el2xxx<imc,
                              el2794<imc>::size_v,
                              el2794<imc>::entries_v,
                              el2794<imc>::product_code,
-                             el2794<imc>::name_v>;
+                             el2794<imc>::name>;
 extern template class el2xxx<imc,
                              el2004<imc>::size_v,
                              el2004<imc>::entries_v,
                              el2004<imc>::product_code,
-                             el2004<imc>::name_v>;
+                             el2004<imc>::name>;
 extern template class el2xxx<imc,
                              el2008<imc>::size_v,
                              el2008<imc>::entries_v,
                              el2008<imc>::product_code,
-                             el2008<imc>::name_v>;
+                             el2008<imc>::name>;
 extern template class el2xxx<imc,
                              el2809<imc>::size_v,
                              el2809<imc>::entries_v,
                              el2809<imc>::product_code,
-                             el2809<imc>::name_v>;
+                             el2809<imc>::name>;
 
 }  // namespace tfc::ec::devices::beckhoff

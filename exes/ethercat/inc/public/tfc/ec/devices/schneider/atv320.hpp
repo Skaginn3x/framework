@@ -50,6 +50,7 @@ class device final : public base<device<manager_client_t>> {
 public:
   static constexpr uint32_t vendor_id = 0x0800005a;
   static constexpr uint32_t product_code = 0x389;
+  static constexpr std::string_view name{ "ATV320" };
   static constexpr size_t atv320_di_count = 6;
 
   struct atv_config {
