@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <tfc/ec/devices/base.hpp>
+#include <tfc/ipc/details/dbus_client_iface.hpp>
 #include <tfc/ipc/details/type_description.hpp>
 #include <tfc/ipc_fwd.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
@@ -21,8 +22,10 @@ template <typename manager_client_type,
           uint32_t pc,
           stx::basic_fixed_string name_v,
           template <typename description_t, typename manager_client_t> typename signal_t = ipc::signal>
-class el1xxx final : public base {
+class el1xxx final : public base<el1xxx<manager_client_type, size, entries, pc, name_v, signal_t>> {
 public:
+  using input_pdo = std::array<std::uint8_t, (size / 9) + 1>;
+
   el1xxx(asio::io_context& ctx, manager_client_type& client, uint16_t const slave_index);
   static constexpr auto size_v = size;
   static constexpr auto entries_v = entries;
@@ -30,7 +33,7 @@ public:
   static constexpr uint32_t vendor_id = 0x2;
   static constexpr auto name = name_v;
 
-  void process_data(std::span<std::byte> input, std::span<std::byte>) noexcept override;
+  void pdo_cycle(input_pdo const& input, std::span<std::uint8_t>) noexcept;
 
   auto transmitters() const noexcept -> auto const& { return transmitters_; }
 
@@ -52,4 +55,9 @@ using el1809 = el1xxx<manager_client_type,
                       0x7113052,
                       "el1809",
                       signal_t>;
+
+using imc = tfc::ipc_ruler::ipc_manager_client;
+extern template class el1xxx<imc, el1002<imc>::size_v, el1002<imc>::entries_v, el1002<imc>::product_code, el1002<imc>::name>;
+extern template class el1xxx<imc, el1008<imc>::size_v, el1008<imc>::entries_v, el1008<imc>::product_code, el1008<imc>::name>;
+extern template class el1xxx<imc, el1809<imc>::size_v, el1809<imc>::entries_v, el1809<imc>::product_code, el1809<imc>::name>;
 }  // namespace tfc::ec::devices::beckhoff

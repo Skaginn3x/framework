@@ -46,10 +46,11 @@ inline variable_t async_send_if_new(signal_t& signal,
 };  // namespace details
 
 template <typename manager_client_t>
-class device final : public base {
+class device final : public base<device<manager_client_t>> {
 public:
   static constexpr uint32_t vendor_id = 0x0800005a;
   static constexpr uint32_t product_code = 0x389;
+  static constexpr std::string_view name{ "ATV320" };
   static constexpr size_t atv320_di_count = 6;
 
   struct atv_config {
@@ -110,11 +111,11 @@ public:
   using config_t = confman::config<confman::observable<atv_config>>;
 
   explicit device(std::shared_ptr<sdbusplus::asio::connection> connection, manager_client_t& client, uint16_t slave_index)
-      : base(slave_index), ctx_{ connection->get_io_context() }, run_(ctx_,
-                                                                      client,
-                                                                      fmt::format("atv320.s{}.run", slave_index),
-                                                                      "Turn on motor",
-                                                                      [this](bool value) { ipc_running_ = value; }),
+      : base<device>(slave_index), ctx_{ connection->get_io_context() }, run_(ctx_,
+                                                                              client,
+                                                                              fmt::format("atv320.s{}.run", slave_index),
+                                                                              "Turn on motor",
+                                                                              [this](bool value) { ipc_running_ = value; }),
         config_{ connection, fmt::format("atv320_i{}", slave_index) }, ctrl_(connection, client, slave_index),
         tmp_config_ratio_signal_(ctx_,
                                  client,
@@ -132,7 +133,7 @@ public:
               // write the entire outer observable in order to get a mutable
               // reference to the inner observable.
               if (value > -1 && value < 1) {
-                logger_.warn("Invalid default speedratio value set over slot");
+                this->logger_.warn("Invalid default speedratio value set over slot");
               } else {
                 auto config = config_->value();
                 config.default_speedratio = value * speedratio_t::reference;
@@ -150,57 +151,57 @@ public:
           allow_reset_ = value;
         }) {
     config_->observe([this](auto& new_value, auto& old_value) {
-      logger_.warn(
+      this->logger_.warn(
           "Live motor configuration is discouraged. Large amounts of SDO traffic can delay and disrubt the ethercat cycle. "
           "Please consider turning of the ethercat master and editing the files directly if commisioning the device");
       if (new_value.nominal_motor_power != old_value.nominal_motor_power) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_power); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.nominal_motor_power); });
       }
       if (new_value.nominal_motor_voltage != old_value.nominal_motor_voltage) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_voltage); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.nominal_motor_voltage); });
       }
       if (new_value.nominal_motor_current != old_value.nominal_motor_current) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_current); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.nominal_motor_current); });
       }
       if (new_value.nominal_motor_frequency != old_value.nominal_motor_frequency) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_frequency); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.nominal_motor_frequency); });
         ctrl_.set_motor_nominal_freq(new_value.nominal_motor_frequency.value);
       }
       if (new_value.nominal_motor_speed != old_value.nominal_motor_speed) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.nominal_motor_speed); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.nominal_motor_speed); });
       }
       if (new_value.max_frequency != old_value.max_frequency) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.max_frequency); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.max_frequency); });
       }
       if (new_value.motor_thermal_current != old_value.motor_thermal_current) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.motor_thermal_current); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.motor_thermal_current); });
       }
       if (new_value.current_limitation != old_value.current_limitation) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.current_limitation); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.current_limitation); });
       }
       if (new_value.high_speed != old_value.high_speed) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.high_speed); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.high_speed); });
       }
       if (new_value.low_speed != old_value.low_speed) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.low_speed); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.low_speed); });
       }
       if (new_value.motor_1_cos_phi != old_value.motor_1_cos_phi) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.motor_1_cos_phi); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.motor_1_cos_phi); });
       }
       if (new_value.fast_stop_ramp_divider != old_value.fast_stop_ramp_divider) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.fast_stop_ramp_divider); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.fast_stop_ramp_divider); });
       }
       if (new_value.async_motor_leakage_inductance != old_value.async_motor_leakage_inductance) {
-        asio::post(ctx_, [this, new_value] { sdo_write(new_value.async_motor_leakage_inductance); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(new_value.async_motor_leakage_inductance); });
       }
       if (new_value.async_motor_stator_resistance != old_value.async_motor_stator_resistance) {
-        asio::post(ctx_, [this, new_value] { sdo_write(config_->value().async_motor_stator_resistance); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(config_->value().async_motor_stator_resistance); });
       }
       if (new_value.rotor_time_constant != old_value.rotor_time_constant) {
-        asio::post(ctx_, [this, new_value] { sdo_write(config_->value().rotor_time_constant); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(config_->value().rotor_time_constant); });
       }
       if (new_value.torque_or_current_limitation_stop != old_value.torque_or_current_limitation_stop) {
-        asio::post(ctx_, [this, new_value] { sdo_write(config_->value().torque_or_current_limitation_stop); });
+        asio::post(ctx_, [this, new_value] { this->sdo_write(config_->value().torque_or_current_limitation_stop); });
       }
     });
     config_->value().default_speedratio.observe([this](speedratio_t new_v, auto) {
@@ -210,7 +211,7 @@ public:
       tmp_config_ratio_signal_.async_send(
           new_v.numerical_value_ref_in(speedratio_t::unit), [this](const std::error_code& err, const std::size_t) {
             if (err) {
-              logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
+              this->logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
             }
           });
     });
@@ -226,7 +227,7 @@ public:
         config_->value().default_speedratio.value().numerical_value_ref_in(speedratio_t::unit),
         [this](const std::error_code& err, const std::size_t) {
           if (err) {
-            logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
+            this->logger_.warn("Failed to update signal speedratio in atv320.hpp err: {}", err.message());
           }
         });
 
@@ -240,31 +241,27 @@ public:
   void transmit_status(const input_t& input) {
     std::bitset<atv320_di_count> const value(input.digital_inputs);
     for (size_t i = 0; i < atv320_di_count; i++) {
-      last_bool_values_[i] = details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), logger_);
+      last_bool_values_[i] =
+          details::async_send_if_new(di_transmitters_[i], last_bool_values_[i], value.test(i), this->logger_);
     }
 
     last_hmis_ = static_cast<hmis_e>(details::async_send_if_new(
         hmis_transmitter_, last_hmis_.has_value() ? static_cast<uint16_t>(last_hmis_.value()) : std::optional<uint16_t>(),
-        static_cast<uint16_t>(input.drive_state), logger_));
+        static_cast<uint16_t>(input.drive_state), this->logger_));
     double frequency = static_cast<double>(input.frequency.numerical_value_is_an_implementation_detail_) / 10.0;
-    last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, logger_);
+    last_frequency_ = details::async_send_if_new(frequency_transmit_, last_frequency_, frequency, this->logger_);
 
     double current = static_cast<double>(input.current) / 10.0;
-    last_current_ = details::async_send_if_new(current_transmit_, last_current_, current, logger_);
+    last_current_ = details::async_send_if_new(current_transmit_, last_current_, current, this->logger_);
 
-    last_error_ =
-        details::async_send_if_new(last_error_transmit_, last_error_, static_cast<std::uint64_t>(last_errors_[0]), logger_);
+    last_error_ = details::async_send_if_new(last_error_transmit_, last_error_, static_cast<std::uint64_t>(last_errors_[0]),
+                                             this->logger_);
   }
 
   static constexpr auto errors_to_auto_reset = std::array{ lft_e::no_fault, lft_e::cnf };
 
-  auto process_data(std::span<std::byte> input, std::span<std::byte> output) noexcept -> void final {
-    // All registers in the ATV320 ar uint16, create a pointer to this memory
-    // With the same size
-    // these sizes are in bytes not uint16_t
-    if ((input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) && !no_data_) {
-      // First pdo cycle with no data
-      no_data_ = true;
+  auto pdo_error() noexcept -> void {
+    if (no_data_) {
       input_t status{ .status_word = cia_402::status_word{ .state_fault = true },
                       .frequency = 0 * dHz,
                       .current = 0,
@@ -274,52 +271,44 @@ public:
       transmit_status(status);
       dbus_iface_.update_status(status);
       ctrl_.update_status(status);
-      logger_.error("Frequency drive lost contact");
-      return;
+      this->logger_.error("Frequency drive lost contact");
     }
-    if (input.size() != sizeof(input_t) || output.size() != sizeof(output_t)) {
-      // All following pdo cycles with no data
-      return;
-    }
+    no_data_ = true;
+  }
 
+  auto pdo_cycle(input_t const& in, output_t& out) noexcept -> void {
     // Reset no data bit
     no_data_ = false;
-    // clang-format off
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-    // clang-format on
-    const input_t* in = std::launder(reinterpret_cast<input_t*>(input.data()));
-    output_t* out = std::launder(reinterpret_cast<output_t*>(output.data()));
-    PRAGMA_CLANG_WARNING_POP
 
     // Check if the drive is in error state
-    auto state = in->status_word.parse_state();
+    auto state = in.status_word.parse_state();
     bool drive_in_fault_state = cia_402::states_e::fault == state;
-    if (drive_in_fault_state && last_errors_[0] != in->last_error && in->last_error != lft_e::no_fault) {
+    if (drive_in_fault_state && last_errors_[0] != in.last_error && in.last_error != lft_e::no_fault) {
       // We have a new fault on the drive
       std::shift_right(last_errors_.begin(), last_errors_.end(), 1);
-      last_errors_[0] = in->last_error;
+      last_errors_[0] = in.last_error;
       bool auto_reset =
-          std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) != errors_to_auto_reset.end();
-      logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in->last_error),
-                    in->last_error, auto_reset);
-    } else if (drive_in_fault_state && in->last_error == lft_e::no_fault) {
-      logger_.warn("ATV reports fault state but last fault is not set");
-    } else if (in->last_error != last_errors_[0]) {
-      logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in->last_error),
-                   in->last_error, state);
+          std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in.last_error) != errors_to_auto_reset.end();
+      this->logger_.error("New fault detected {}:{}, will try to auto reset: {}", std::to_underlying(in.last_error),
+                          in.last_error, auto_reset);
+    } else if (drive_in_fault_state && in.last_error == lft_e::no_fault) {
+      this->logger_.warn("ATV reports fault state but last fault is not set");
+    } else if (in.last_error != last_errors_[0]) {
+      this->logger_.warn("Atv not in fault state but reporting fault: {}:{}, state: {}", std::to_underlying(in.last_error),
+                         in.last_error, state);
       std::shift_right(last_errors_.begin(), last_errors_.end(), 1);
-      last_errors_[0] = in->last_error;
+      last_errors_[0] = in.last_error;
     }
 
-    transmit_status(*in);
-    dbus_iface_.update_status(*in);
-    ctrl_.update_status(*in);
+    transmit_status(in);
+    dbus_iface_.update_status(in);
+    ctrl_.update_status(in);
 
     bool auto_reset_allowed = false;
     if (drive_in_fault_state) {
-      auto_reset_allowed = std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in->last_error) !=
-                               errors_to_auto_reset.end() ||
-                           allow_reset_;
+      auto_reset_allowed =
+          std::find(errors_to_auto_reset.begin(), errors_to_auto_reset.end(), in.last_error) != errors_to_auto_reset.end() ||
+          allow_reset_;
     }
 
     if (!dbus_iface_.has_peer()) {
@@ -331,17 +320,17 @@ public:
       if (reference_frequency_ == 0 * dHz) {
         action = cia_402::transition_action::quick_stop;
       }
-      out->acc = config_->value().acceleration.value;
-      out->dec = config_->value().deceleration.value;
-      out->control = cia_402::transition(state, action, auto_reset_allowed);
-      out->frequency = reference_frequency_;
+      out.acc = config_->value().acceleration.value;
+      out.dec = config_->value().deceleration.value;
+      out.control = cia_402::transition(state, action, auto_reset_allowed);
+      out.frequency = reference_frequency_;
     } else {
       auto freq =
           detail::percentage_to_deci_freq(ctrl_.speed_ratio(), config_->value().low_speed, config_->value().high_speed);
-      out->acc = ctrl_.acceleration(config_->value().acceleration.value);
-      out->dec = ctrl_.deceleration(config_->value().deceleration.value);
-      out->frequency = freq;
-      out->control = ctrl_.ctrl(auto_reset_allowed);
+      out.acc = ctrl_.acceleration(config_->value().acceleration.value);
+      out.dec = ctrl_.deceleration(config_->value().deceleration.value);
+      out.frequency = freq;
+      out.control = ctrl_.ctrl(auto_reset_allowed);
 
       // Set running to false. Will need to be set high before the motor starts on ipc
       // after dbus disconnect
@@ -359,71 +348,71 @@ public:
     }
   }
 
-  auto setup() -> int final {
+  auto setup_driver() -> int {
     // Set PDO variables
     // Clean rx and tx prod assign
-    sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 0);
-    sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 0);
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 0);
     // Zero the size
-    sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>, 0x20020510);  // LCR  - CURRENT USAGE ( A
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>, 0x20291610);  // LFT  - Last error occured
-    sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20022910);  // HMIS - Drive state
-    sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 6);
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 0);
+    this->template sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x01>, 0x60410010);  // ETA  - STATUS WORD
+    this->template sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x02>, 0x20020310);  // RFR  - CURRENT SPEED HZ
+    this->template sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x03>, 0x20020510);  // LCR  - CURRENT USAGE ( A
+    this->template sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x04>, 0x20160310);  // 1LIR - DI1-DI6
+    this->template sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x05>, 0x20291610);  // LFT  - Last error occured
+    this->template sdo_write<uint32_t>(ecx::tx_pdo_mapping<0x06>, 0x20022910);  // HMIS - Drive state
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_mapping<0x00>, 6);
 
     // Zero the size
-    sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 0);
     // Assign tx variables
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x01>,
-                        ecx::make_mapping_value<cia_402::control_word>());  // CMD - CONTROL WORD
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);             // LFR - REFERENCE SPEED HZ
-    sdo_write<uint32_t>(
+    this->template sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x01>,
+                                       ecx::make_mapping_value<cia_402::control_word>());  // CMD - CONTROL WORD
+    this->template sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x02>, 0x20370310);             // LFR - REFERENCE SPEED HZ
+    this->template sdo_write<uint32_t>(
         ecx::rx_pdo_mapping<0x03>,
         0x20160D10);  // OL1R - Logic outputs states ( bit0: Relay 1, bit1: Relay 2, bit3 - bit7: unknown, bit8: DQ1 )
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x04>, 0x203C0210);  // ACC - Acceleration
-    sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x05>, 0x203C0310);  // DEC - Deceleration
+    this->template sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x04>, 0x203C0210);  // ACC - Acceleration
+    this->template sdo_write<uint32_t>(ecx::rx_pdo_mapping<0x05>, 0x203C0310);  // DEC - Deceleration
 
     // Set tx size
-    sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 5);
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_mapping<0x00>, 5);
 
     // // Assign pdo's to mappings
-    sdo_write<uint16_t>(ecx::rx_pdo_assign<0x01>, ecx::rx_pdo_mapping<>.first);
-    sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 1);
+    this->template sdo_write<uint16_t>(ecx::rx_pdo_assign<0x01>, ecx::rx_pdo_mapping<>.first);
+    this->template sdo_write<uint8_t>(ecx::rx_pdo_assign<0x00>, 1);
 
-    sdo_write<uint16_t>(ecx::tx_pdo_assign<0x01>, ecx::tx_pdo_mapping<>.first);
-    sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 1);
+    this->template sdo_write<uint16_t>(ecx::tx_pdo_assign<0x01>, ecx::tx_pdo_mapping<>.first);
+    this->template sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, 1);
 
-    sdo_write(configuration_reference_frequency_1_FR1{ .value = psa_e::reference_frequency_via_com_module });
+    this->sdo_write(configuration_reference_frequency_1_FR1{ .value = psa_e::reference_frequency_via_com_module });
     // Clear internal ATV Functionality for outputs and inputs
-    sdo_write(assignment_R1{ .value = psl_e::not_assigned });
-    sdo_write(assignment_AQ1{ .value = psa_e::not_configured });
+    this->sdo_write(assignment_R1{ .value = psl_e::not_assigned });
+    this->sdo_write(assignment_AQ1{ .value = psa_e::not_configured });
 
     // Enable us to reset more faults from scada
-    sdo_write(extended_fault_reset_activation_HRFC{ .value = n_y_e::yes });
+    this->sdo_write(extended_fault_reset_activation_HRFC{ .value = n_y_e::yes });
 
     // test writing alias address - this does not seem to work. Direct eeprom writing also possible working.
     // sdo_write<uint16_t>({ 0x2024, 0x92 }, 1337);  // 2 - Current
 
     // assign motor parameters from config. For now just setup the test motor
-    sdo_write(config_->value().nominal_motor_power);
-    sdo_write(config_->value().nominal_motor_voltage);
-    sdo_write(config_->value().nominal_motor_current);
-    sdo_write(config_->value().nominal_motor_frequency);
-    sdo_write(config_->value().nominal_motor_speed);
-    sdo_write(config_->value().max_frequency);
-    sdo_write(config_->value().motor_thermal_current);
-    sdo_write(config_->value().current_limitation);
-    sdo_write(config_->value().high_speed);
-    sdo_write(config_->value().low_speed);
-    sdo_write(config_->value().motor_1_cos_phi);
-    sdo_write(config_->value().fast_stop_ramp_divider);
-    sdo_write(config_->value().async_motor_leakage_inductance);
-    sdo_write(config_->value().async_motor_stator_resistance);
-    sdo_write(config_->value().rotor_time_constant);
-    sdo_write(config_->value().torque_or_current_limitation_stop);
+    this->sdo_write(config_->value().nominal_motor_power);
+    this->sdo_write(config_->value().nominal_motor_voltage);
+    this->sdo_write(config_->value().nominal_motor_current);
+    this->sdo_write(config_->value().nominal_motor_frequency);
+    this->sdo_write(config_->value().nominal_motor_speed);
+    this->sdo_write(config_->value().max_frequency);
+    this->sdo_write(config_->value().motor_thermal_current);
+    this->sdo_write(config_->value().current_limitation);
+    this->sdo_write(config_->value().high_speed);
+    this->sdo_write(config_->value().low_speed);
+    this->sdo_write(config_->value().motor_1_cos_phi);
+    this->sdo_write(config_->value().fast_stop_ramp_divider);
+    this->sdo_write(config_->value().async_motor_leakage_inductance);
+    this->sdo_write(config_->value().async_motor_stator_resistance);
+    this->sdo_write(config_->value().rotor_time_constant);
+    this->sdo_write(config_->value().torque_or_current_limitation_stop);
     return 1;
   }
 

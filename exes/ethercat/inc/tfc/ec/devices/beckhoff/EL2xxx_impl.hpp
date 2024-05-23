@@ -15,7 +15,7 @@ template <typename manager_client_type,
 el2xxx<manager_client_type, size, entries, pc, name>::el2xxx(asio::io_context& ctx,
                                                              manager_client_type& client,
                                                              uint16_t slave_index)
-    : base(slave_index) {
+    : base<el2xxx>(slave_index) {
   for (size_t i = 0; i < size; i++) {
     bool_receivers_.emplace_back(std::make_shared<tfc::ipc::slot<ipc::details::type_bool, manager_client_type&>>(
         ctx, client, fmt::format("{}.s{}.out{}", name.view(), slave_index, entries[i]),
@@ -27,19 +27,10 @@ template <typename manager_client_type,
           std::array<std::size_t, size> entries,
           uint32_t pc,
           tfc::stx::basic_fixed_string name>
-void el2xxx<manager_client_type, size, entries, pc, name>::process_data(std::span<std::byte>,
-                                                                        std::span<std::byte> output) noexcept {
-  if (output.size() == 0) {
-    if (output_buffer_valid_) {
-      logger_.info("No output buffer provided for EL2xxx {}", name.view());
-    }
-    output_buffer_valid_ = false;
-    return;
-  }
-  output_buffer_valid_ = true;
-  output[0] = static_cast<std::byte>(output_states_.to_ulong() & 0xff);
+void el2xxx<manager_client_type, size, entries, pc, name>::pdo_cycle(std::span<std::uint8_t>, output_pdo& output) noexcept {
+  output[0] = output_states_.to_ulong() & 0xff;
   if constexpr (size > 8) {
-    output[1] = static_cast<std::byte>(output_states_.to_ulong() >> 8);
+    output[1] = static_cast<std::uint8_t>(output_states_.to_ulong() >> 8);
   }
 }
 

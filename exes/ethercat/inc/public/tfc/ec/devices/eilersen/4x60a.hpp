@@ -299,10 +299,10 @@ static_assert(sizeof(pdo_output) == 4);
 
 template <typename manager_client_type,
           template <typename description_t, typename manager_client_t> typename ipc_signal_t = ipc::signal>
-class e4x60a final : public base {
+class e4x60a final : public base<e4x60a<manager_client_type, ipc_signal_t>> {
 public:
   e4x60a(asio::io_context& ctx, manager_client_type& client, std::uint16_t slave_index)
-      : base{ slave_index }, ctx_{ ctx }, client_{ client } {
+      : base<e4x60a>{ slave_index }, ctx_{ ctx }, client_{ client } {
     std::size_t idx{ 0 };  // todo support multiple
     if (auto* itm{ std::get_if<calibration_config>(&config_->variations.at(idx)) }) {
       itm->sealed.observe(std::bind_front(&e4x60a::make_seal, this, idx));
@@ -369,21 +369,7 @@ PRAGMA_GCC_WARNING_POP
     }
   }
 
-  void process_data(std::span<std::byte> in, [[maybe_unused]] std::span<std::byte> out) final {
-    if (in.size() != sizeof(pdo_input) && !invalid_size_logged_) {
-      invalid_size_logged_ = true;
-      this->logger_.warn("4x60a weight head invalid input data size, expected {}, got {}", sizeof(pdo_input), in.size());
-      return;
-    }
-    if (in.size() != sizeof(pdo_input)) {
-      return;
-    }
-    invalid_size_logged_ = false;
-    // clang-format off
-    PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-    // clang-format on
-    [[maybe_unused]] auto* input = std::launder(reinterpret_cast<pdo_input*>(in.data()));
-    PRAGMA_CLANG_WARNING_POP
+  void pdo_cycle(pdo_input const& input, [[maybe_unused]] pdo_output& out) {
     // todo support multiple variations
     auto& group_1{ config_->variations.at(0) };
     auto value{ std::visit(
@@ -393,12 +379,12 @@ PRAGMA_GCC_WARNING_POP
           ipc::details::mass_t result{};
           for (auto using_cell : group_1_cal.get_cells()) {
             if (using_cell) {
-              if (input->status.broken(idx)) {
+              if (input.status.broken(idx)) {
                 return std::unexpected{ ipc::details::mass_error_e::cell_fault };
               }
               // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wunsafe-buffer-usage)
-              last_cumilated_signal_ += input->weight_signals[idx];
+              last_cumilated_signal_ += input.weight_signals[idx];
 PRAGMA_CLANG_WARNING_POP
               // clang-format on
             }
@@ -436,22 +422,22 @@ PRAGMA_CLANG_WARNING_POP
     if (value != mass_.value()) {
       mass_.async_send(value, [this](std::error_code const& err, auto) {
         if (err) {
-          logger_.warn("Unable to send mass signal: {}", err.message());
+          this->logger_.warn("Unable to send mass signal: {}", err.message());
         }
       });
     }
   }
 
+  static constexpr std::string_view name{ "Eilersen 4x60a" };
   static constexpr uint32_t product_code = 0x1040;
   static constexpr uint32_t vendor_id = 0x726;
   asio::io_context& ctx_;
   ipc_ruler::ipc_manager_client& client_;
-  bool invalid_size_logged_{ false };
-  confman::config<config> config_{ client_.connection(), fmt::format("eilersen_4x60a.s{}", slave_index_) };
+  confman::config<config> config_{ client_.connection(), fmt::format("eilersen_4x60a.s{}", this->slave_index_) };
   // todo make section struct to cover the config, for now only one output is generated
   std::int64_t last_cumilated_signal_{};
   ipc_signal_t<ipc::details::type_mass, ipc_ruler::ipc_manager_client&> mass_{
-    ctx_, client_, fmt::format("eilersen_4x60a.s{}.group_1", slave_index_), "Weigher output for group 1"
+    ctx_, client_, fmt::format("eilersen_4x60a.s{}.group_1", this->slave_index_), "Weigher output for group 1"
   };
 };
 }  // namespace tfc::ec::devices::eilersen::e4x60a
