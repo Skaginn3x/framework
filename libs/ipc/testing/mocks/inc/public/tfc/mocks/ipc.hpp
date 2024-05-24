@@ -25,7 +25,6 @@ struct mock_signal {
   auto async_send(value_t const& value, completion_token_t&& token) -> auto {
     if constexpr (std::is_invocable_v<std::remove_cvref_t<completion_token_t>, std::error_code, std::size_t>) {
       async_send_cb(value, std::forward<completion_token_t>(token));
-      return;
     } else {
       []<bool flag = false>() {
         static_assert(flag, "todo implement for other types");
@@ -47,7 +46,7 @@ struct mock_slot {
             manager_client_type,
             std::string_view,
             std::string_view,
-            tfc::stx::invocable<value_t> auto&& cb)
+            stx::invocable<value_t> auto&& cb)
     requires std::is_lvalue_reference_v<manager_client_type>
       : callback{ std::forward<decltype(cb)>(cb) } {
     ON_CALL(*this, value()).WillByDefault(::testing::ReturnRef(value_));
@@ -62,7 +61,7 @@ struct mock_slot {
             std::shared_ptr<sdbusplus::asio::connection>,
             std::string_view,
             std::string_view,
-            tfc::stx::invocable<value_t> auto&& cb)
+            stx::invocable<value_t> auto&& cb)
     requires(!std::is_lvalue_reference_v<manager_client_type>)
       : callback{ std::forward<decltype(cb)>(cb) } {
     ON_CALL(*this, value()).WillByDefault(::testing::ReturnRef(value_));
@@ -74,5 +73,4 @@ struct mock_slot {
   std::function<void(value_t const&)> callback;
   std::optional<std::string> connected_signal_{ std::nullopt };
 };
-
 }  // namespace tfc::ipc
