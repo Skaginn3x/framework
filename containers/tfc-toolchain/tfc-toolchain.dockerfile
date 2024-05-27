@@ -12,7 +12,7 @@ RUN mkdir -p /cpproot/bin
 RUN mkdir /cpproot/include
 RUN mkdir /cpproot/lib
 RUN mkdir /var/run/tfc
-WORKDIR /tmp
+WORKDIR /code
 COPY ./shared.sh /tmp/
 
 COPY ./cpproot.conf /etc/ld.so.conf.d/
