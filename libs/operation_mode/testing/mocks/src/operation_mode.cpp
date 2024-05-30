@@ -48,6 +48,11 @@ std::error_code mock_interface::remove_all_callbacks() {
   callbacks_.clear();
   return {};
 }
+std::error_code mock_interface::reset() {
+  set(mode_e::unknown);
+  auto err = remove_all_callbacks();
+  return err;
+}
 uuid_t mock_interface::append_callback_impl(mode_e mode_value,
                                             transition_e transition,
                                             std::function<void(new_mode_e, old_mode_e)> callback) {

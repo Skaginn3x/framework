@@ -44,6 +44,9 @@ struct mock_interface {
   /// \brief remove all callback subscriptions
   auto remove_all_callbacks() -> std::error_code;
 
+  /// \brief reset operation mode to starting state
+  auto reset() -> std::error_code;
+
   /// \brief subscribe to events when entering new mode
   /// \param mode mode to subscribe to
   /// \param callback invocable<new_mode_e, old_mode_e>
