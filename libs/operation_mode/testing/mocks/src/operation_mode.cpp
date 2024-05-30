@@ -1,4 +1,6 @@
 #include "../inc/public/tfc/mocks/operation_mode.hpp"
+
+#include <bits/fs_dir.h>
 #include <fmt/printf.h>
 #include <ranges>
 
@@ -47,6 +49,11 @@ std::error_code mock_interface::remove_callback(uuid_t uuid) {
 std::error_code mock_interface::remove_all_callbacks() {
   callbacks_.clear();
   return {};
+}
+std::error_code mock_interface::reset() {
+  auto err = remove_all_callbacks();
+  set(mode_e::unknown);
+  return err;
 }
 uuid_t mock_interface::append_callback_impl(mode_e mode_value,
                                             transition_e transition,

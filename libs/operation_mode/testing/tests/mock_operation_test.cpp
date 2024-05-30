@@ -19,6 +19,16 @@ struct instance {
 int main(int, char** argv) {
   std::array<char const*, 4> args{ argv[0], "--log-level", "trace", "--stdout" };
   tfc::base::init(args.size(), args.data());
+
+  "reset function"_test = [] {
+    instance i;
+    i.op.on_leave(tfc::operation::mode_e::running,
+                  [&i](tfc::operation::mode_e, tfc::operation::mode_e) { i.ran[0] = true; });
+    i.op.set(tfc::operation::mode_e::running);
+    i.op.reset();
+    expect(i.ran[0]);
+  };
+
   "mode mock on enter test"_test = [] {
     instance i;
     i.op.on_enter(tfc::operation::mode_e::running,
