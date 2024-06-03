@@ -38,6 +38,27 @@ constexpr auto map(from_t value, from_t in_min, from_t in_max, to_t out_min, to_
                                                   (out_min_d));
 }
 
+template <std::integral from_t, mp_units::Quantity to_t>
+constexpr auto map(from_t value, from_t in_min, from_t in_max, to_t out_min, to_t out_max) noexcept -> to_t {
+  double const value_d{  static_cast<double>(value)};
+  double const in_min_d{ static_cast<double>(in_min) };
+  double const in_max_d{ static_cast<double>(in_max) };
+  mp_units::quantity<to_t::reference, double> const out_min_d{ out_min };
+  mp_units::quantity<to_t::reference, double> const out_max_d{ out_max };
+  return mp_units::value_cast<typename to_t::rep>((std::max(std::min(value_d, in_max_d), in_min_d) - in_min_d) *
+                                                      (out_max_d - out_min_d) / (in_max_d - in_min_d) +
+                                                  (out_min_d));
+}
+
+template <mp_units::Quantity to_t>
+constexpr auto map(double value, double in_min, double in_max, to_t out_min, to_t out_max) noexcept -> to_t {
+  mp_units::quantity<to_t::reference, double> const out_min_d{ out_min };
+  mp_units::quantity<to_t::reference, double> const out_max_d{ out_max };
+  return mp_units::value_cast<typename to_t::rep>((std::max(std::min(value, in_max), in_min) - in_min) *
+                                                      (out_max_d - out_min_d) / (in_max - in_min) +
+                                                  (out_min_d));
+}
+
 // clang-format off
 PRAGMA_CLANG_WARNING_PUSH_OFF(-Wfloat-equal)
 // clang-format on
