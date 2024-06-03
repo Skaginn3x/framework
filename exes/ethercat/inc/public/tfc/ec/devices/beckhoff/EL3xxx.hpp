@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
 #include <cstdint>
+#include <string>
 
-#include <glaze/util/string_literal.hpp>
 #include <mp-units/systems/si/si.h>
 #include <mp-units/systems/si/units.h>
+#include <glaze/util/string_literal.hpp>
 
 #include "tfc/ec/devices/util.hpp"
 #include "tfc/ec/soem_interface.hpp"
@@ -31,7 +31,7 @@ struct compact_value {
   std::uint16_t value : 13;
 };
 
-//TODO: Remove this when compact mode is enabled.
+// TODO: Remove this when compact mode is enabled.
 struct temporary {
   std::uint16_t unused;
   compact_value value;
@@ -39,7 +39,6 @@ struct temporary {
 #pragma pack(pop)
 static_assert(sizeof(compact_value) == 2);
 static_assert(sizeof(temporary) == 4);
-
 
 template <uint8_t size, auto p_code>
 class el305x final : public base<el305x<size, p_code>> {
@@ -52,7 +51,7 @@ public:
 
   auto setup_driver() -> int {
     // set tx pdo assign to 0
-    //this->template sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, uint8_t{ 0 });
+    // this->template sdo_write<uint8_t>(ecx::tx_pdo_assign<0x00>, uint8_t{ 0 });
     // Set siemens bits true
     // and enable compact mode
     // Each input settings field is in 0x8000 + offset * 0x10
@@ -62,7 +61,7 @@ public:
     // This depends on size
     for (uint8_t i = 0; i < size; i++) {
       // Set rx pdo to compact mode
-      //this->sdo_write({0x1C13, i+1}, uint32_t{ 0x1A00U + (i * 2U) + 1U });
+      // this->sdo_write({0x1C13, i+1}, uint32_t{ 0x1A00U + (i * 2U) + 1U });
 
       uint16_t const settings_index = 0x8000 + (static_cast<uint16_t>(i) * 0x10);
       this->template sdo_write<uint8_t>({ settings_index, 0x05 }, static_cast<uint8_t>(true));  // Enable - siemens mode
@@ -84,15 +83,19 @@ public:
   static constexpr auto max_ampere = 20'000'000 * current_t::reference;
 
   void pdo_cycle(const std::array<temporary, size>& input, std::span<std::uint8_t>) noexcept {
-    // TODO: compact mode is not enabling, siemens bits look to be applied correctly but this is wasting half of the transmitted size.
+    // TODO: compact mode is not enabling, siemens bits look to be applied correctly but this is wasting half of the
+    // transmitted size.
     for (auto& raw_value : input) {
       if (!raw_value.value.out_of_range) {
         current_t amps = util::map(raw_value.value.value, 0, 4096, min_ampere, max_ampere);
         using mp_units::si::degree_Celsius;
-        [[maybe_unused]] const auto celsius = util::map<current_t, mp_units::quantity<degree_Celsius>>(amps,  min_ampere, max_ampere, -20 * degree_Celsius, 100 * degree_Celsius);
-        [[maybe_unused]] const auto nice_to_print_amps = mp_units::value_cast<double>(amps).force_in(mp_units::si::milli<mp_units::si::ampere>);
+        [[maybe_unused]] const auto celsius = util::map<current_t, mp_units::quantity<degree_Celsius>>(
+            amps, min_ampere, max_ampere, -20 * degree_Celsius, 100 * degree_Celsius);
+        [[maybe_unused]] const auto nice_to_print_amps =
+            mp_units::value_cast<double>(amps).force_in(mp_units::si::milli<mp_units::si::ampere>);
         // fmt::println("{} {}", nice_to_print_amps, celsius);
-        //mp_units::quantity<mp_units::si::degree_Celsius> const amper = util::map(unscaled, 0, , -20 * si::degree_Celsius, 20000 * si::degree_Celsius);
+        // mp_units::quantity<mp_units::si::degree_Celsius> const amper = util::map(unscaled, 0, , -20 * si::degree_Celsius,
+        // 20000 * si::degree_Celsius);
       }
       // value_[i] = units::isq::si::electric_current<units::isq::si::milliampere>(map<double>(raw_value >> 3, 0, 4096, 4,
       // 20));
