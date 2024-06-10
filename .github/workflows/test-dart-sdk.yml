@@ -22,9 +22,11 @@ jobs:
   build:
     name: 'build and run tests'
     runs-on: ubuntu-latest
-    container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-runtime:latest
     steps:
       - name: what's happening
         run: |
-          apt install -y procps
-          ps aux
+          docker run -it --rm --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:rw --volume=$(pwd):/home/hmi --cgroupns=host --name tfc-run1 tfc-dart-sdk:latest &
+          docker ps
+      - name: still running?
+        run: |
+          docker ps
