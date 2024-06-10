@@ -19,11 +19,6 @@ namespace tfc::ipc {
 
 namespace asio = boost::asio;
 
-/// \brief make manager client for the types(signal, slot) below
-[[maybe_unused]] static auto make_manager_client(asio::io_context& ctx) {
-  return ipc_ruler::ipc_manager_client{ ctx };
-}
-
 /**
  * @brief
  * This is the receiving end for tfc's ipc communications,
