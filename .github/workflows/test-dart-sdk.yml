@@ -23,7 +23,9 @@ jobs:
     name: 'build and run tests'
     runs-on: ubuntu-latest
     container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-runtime:latest
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
     steps:
       - name: what's happening
         run: |
+          apt install -y procps
           ps aux
