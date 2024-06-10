@@ -102,14 +102,13 @@ auto main(int argc, char** argv) -> int {
     std::exit(0);
   }
 
-
   if (list_signals || list_slots) {
     // Creating a manager object creates a match rule that is listened to until the object is deconstructed.
     // This does not look good but is the simplest method of getting the desired effect from the code
     // As it is today
     asio::io_context list_ctx;
     tfc::ipc_ruler::ipc_manager_client manager_client(list_ctx);
-    const auto print_names{[](std::string context, auto const& instances) {
+    const auto print_names{ [](std::string context, auto const& instances) {
       fmt::println("{}", context);
       for (const auto& instance : instances) {
         fmt::println("{}", instance.name);
