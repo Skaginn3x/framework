@@ -1,11 +1,15 @@
 name: tfc-runtime
 on:
-  workflow_run:
-    workflows: ["ubuntu packaging"]
-    branches: [main]
-    types:
-      - completed
-  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+#  workflow_run:
+#    workflows: ["ubuntu packaging"]
+#    branches: [main]
+#    types:
+#      - completed
+#  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
