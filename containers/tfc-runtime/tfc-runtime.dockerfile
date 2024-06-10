@@ -4,7 +4,8 @@
 
 FROM debian:testing-slim
 
-RUN apt-get update && apt-get install -y systemd
+RUN apt-get update && apt-get install -y systemd dbus-broker
+RUN apt-get remove -y dbus-daemon
 
 # Todo can we copy build debian to container and build it in the pipeline
 
@@ -31,12 +32,14 @@ RUN rm -f ./tfc-framework-release-x86_64.deb
 RUN apt remove -y curl wget
 
 RUN apt auto-remove -y
-RUN dpkg -r --force-depends libgpm2 libncursesw6 libpython3-stdlib libpython3.11-minimal libpython3.11-stdlib libreadline8t64 libsqlite3-0 media-types netbase python3 python3-minimal python3.11 python3.11-minimal readline-common
 RUN apt-get clean autoclean
 RUN rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 RUN systemctl enable ipc-ruler@def
 RUN systemctl enable operations@def
+
+# todo remove
+RUN [ -f /usr/local/share/dbus-1/system.d/tfc.conf ] && mv /usr/local/share/dbus-1/system.d/tfc.conf /etc/dbus-1/system.d/
 
 VOLUME [ "/sys/fs/cgroup" ]
 CMD ["/lib/systemd/systemd", "--system"]
