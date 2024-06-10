@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# run with docker run -it --rm --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host --name tfc tfc:v1
+# run with docker run -it --rm --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host --name tfc-runtime ghcr.io/skaginn3x/skaginn3x/framework/tfc-runtime:latest
 
 FROM debian:testing-slim
 
