@@ -22,7 +22,7 @@ env:
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' && github.event_name == 'release'
+#    if: github.event.workflow_run.conclusion == 'success' && github.event_name == 'release'
     permissions:
       contents: read
       packages: write
