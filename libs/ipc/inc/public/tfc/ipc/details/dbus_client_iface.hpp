@@ -61,7 +61,7 @@ public:
                      std::function<void(std::error_code const&)>&& handler) -> void;
 
   /**
-   * Register a slot with the ipc_manager service running on dbus, retry indefinetly on error
+   * Register a slot with the ipc_manager service running on dbus, retry indefinitely on error
    * @param name the name of the slot to be registered
    * @param type  the type enum of the slot to be registered
    */

@@ -15,11 +15,13 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 namespace ipc = tfc::ipc;
 
+using namespace std::chrono_literals;
+
 inline auto stdin_coro(asio::io_context& ctx, std::string_view signal_name) -> asio::awaitable<void> {
   auto executor = co_await asio::this_coro::executor;
   asio::posix::stream_descriptor input_stream(executor, STDIN_FILENO);
 
-  auto client{ tfc::ipc::make_manager_client(ctx) };
+  auto client{ tfc::ipc_ruler::ipc_manager_client(ctx) };
 
   auto type{ ipc::details::enum_cast(signal_name) };
   if (type == ipc::details::type_e::unknown) {
@@ -100,25 +102,29 @@ auto main(int argc, char** argv) -> int {
     std::exit(0);
   }
 
-  asio::io_context ctx;
 
   if (list_signals || list_slots) {
-    auto client{ std::make_shared<tfc::ipc_ruler::ipc_manager_client>(ctx) };
-    const auto print_names{ [client](std::string context, auto const& instances) {
-      [[maybe_unused]] auto foo{ client };  // prevent warnings
+    // Creating a manager object creates a match rule that is listened to until the object is deconstructed.
+    // This does not look good but is the simplest method of getting the desired effect from the code
+    // As it is today
+    asio::io_context list_ctx;
+    tfc::ipc_ruler::ipc_manager_client manager_client(list_ctx);
+    const auto print_names{[](std::string context, auto const& instances) {
       fmt::println("{}", context);
       for (const auto& instance : instances) {
         fmt::println("{}", instance.name);
       }
     } };
     if (list_signals) {
-      client->signals(std::bind_front(print_names, "Signals:"));
+      manager_client.signals(std::bind_front(print_names, "Signals:"));
     }
     if (list_slots) {
-      client->slots(std::bind_front(print_names, "Slots:"));
+      manager_client.slots(std::bind_front(print_names, "Slots:"));
     }
+    list_ctx.run_for(100ms);
   }
 
+  asio::io_context ctx;
   // For sending a signal
   if (!signal.empty()) {
     asio::co_spawn(ctx, stdin_coro(ctx, signal), asio::detached);
@@ -166,16 +172,17 @@ auto main(int argc, char** argv) -> int {
     }(signal_connect));
   }
 
-  auto client{ tfc::ipc::make_manager_client(ctx) };
+  std::shared_ptr<tfc::ipc_ruler::ipc_manager_client> client;
   tfc::ipc::any_slot slot;
 
   if (!slot_name.empty()) {
+    client = std::make_shared<tfc::ipc_ruler::ipc_manager_client>(ctx);
     // For listening to connections
     auto const type{ ipc::details::enum_cast(slot_name) };
     if (type == ipc::details::type_e::unknown) {
       throw std::runtime_error{ fmt::format("Unknown typename in: {}", slot_name) };
     }
-    tfc::ipc::make_any_slot::make_impl(slot, type, ctx, client, slot_name, [slot_name](auto new_value) {
+    tfc::ipc::make_any_slot::make_impl(slot, type, ctx, *client.get(), slot_name, [slot_name](auto new_value) {
       if constexpr (tfc::stx::is_expected<std::remove_cvref_t<decltype(new_value)>>) {
         if (new_value.has_value()) {
           fmt::println("{}: {}", slot_name, new_value.value());
