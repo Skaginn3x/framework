@@ -24,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-runtime:latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-          fetch-depth: 0
+      - name: what's happening
+        run: |
+          ps aux
