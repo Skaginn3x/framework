@@ -26,6 +26,6 @@ jobs:
     steps:
       - name: what's happening
         run: |
-          dbus-broker-launch
+          dbus-broker-launch --scope system --audit
           ipc-ruler &
           operations &
