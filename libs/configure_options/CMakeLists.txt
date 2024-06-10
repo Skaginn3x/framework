@@ -23,7 +23,10 @@ if (${CMAKE_INSTALL_PREFIX} MATCHES "^\/usr")
     FILES
       ${CMAKE_CURRENT_BINARY_DIR}/generated/tfc.conf
     DESTINATION
-      ${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/system.d/
+      # requires sudo privileges when packing, dbus can't read files from like /usr/local/share/dbus-1/system.d
+      # https://gitlab.freedesktop.org/dbus/dbus/-/issues/253
+      # maybe after 5 years it will be fixed
+      /${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d
     CONFIGURATIONS Release
   )
 endif()
