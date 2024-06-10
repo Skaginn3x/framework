@@ -26,6 +26,9 @@ jobs:
       - name: what's happening
         run: |
           docker run -d --rm --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:rw --volume=$(pwd):/home/hmi --cgroupns=host --name tfc-test ghcr.io/skaginn3x/skaginn3x/framework/tfc-runtime:latest
+          docker exec tfc-test "apt install -y procps"
+          docker exec tfc-test "ps aux"
+          docker exec tfc-test "exit 1"
           docker ps
       - name: still running?
         run: |
