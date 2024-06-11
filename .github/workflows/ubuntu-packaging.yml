@@ -160,6 +160,12 @@ jobs:
           asset_name: tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
           asset_content_type: application/x-tar
 
+      - name: Make sure pip is installed even though it should be part of actions/setup-python in cloudsmith action
+        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
+        run: |
+          apt-get update
+          apt-get install -y python3-pip
+
       # Upload non debug packages to cloudsmith
       - name: Cloudsmith upload
         if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
