@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build:
     name: ubuntu packaging
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: ghcr.io/skaginn3x/skaginn3x/framework/tfc-toolchain:latest
     strategy:
       fail-fast: false
@@ -82,7 +82,10 @@ jobs:
           echo "tar-location=$(ls build/*/*.tar.gz)" >> "$GITHUB_OUTPUT"
           echo "deb-location=$(ls build/*/*.deb)" >> "$GITHUB_OUTPUT"
           echo "rpm-location=$(ls build/*/*.rpm)" >> "$GITHUB_OUTPUT"
-
+  upload:
+    name: deploy artifacts
+    runs-on: ubuntu-latest
+    steps:
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
@@ -129,7 +132,6 @@ jobs:
           path: build/pack-*/*.tar.gz
           retention-days: 1
 
-
       - name: Upload Release tar file
         if: github.event_name == 'release' && github.event.action == 'created'
         id: upload-release-asset-tar
@@ -160,12 +162,6 @@ jobs:
           asset_name: tfc-framework-${{matrix.architecture}}-debug-symbols.tar.gz
           asset_content_type: application/x-tar
 
-      - name: Make sure pip is installed even though it should be part of actions/setup-python in cloudsmith action
-        if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
-        run: |
-          apt-get update
-          apt-get install -y python3-pip
-
       # Upload non debug packages to cloudsmith
       - name: Cloudsmith upload
         if: github.event_name == 'release' && github.event.action == 'created' && matrix.build_type == 'release'
@@ -181,3 +177,59 @@ jobs:
           release: 'any-version'         # Your Distribution Release (i.e xenial, buster)
           republish: 'true'          # needed ONLY if version is not changing
           file: 'build/*/*.deb'  # debian package filename
+
+  build-tfc-runtime-docker:
+    name: build tfc runtime docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
+      IMAGE_NAME: tfc-runtime
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=true
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push tfc-runtime
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: ./containers/tfc-runtime
+          push: ${{ github.event_name == 'release' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ./containers/tfc-runtime/tfc-runtime.dockerfile
+
+      - name: Build and push tfc-dart-sdk
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: ./containers/tfc-dart-sdk
+          push: ${{ github.event_name == 'release' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ./containers/tfc-dart-sdk/tfc-dart-sdk.dockerfile
