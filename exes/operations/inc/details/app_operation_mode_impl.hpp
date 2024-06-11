@@ -60,8 +60,9 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
 template <template <typename, typename> typename signal_t, template <typename, typename> typename slot_t>
 auto app_operation_mode<signal_t, slot_t>::set_mode(tfc::operation::mode_e new_mode) -> void {
   if (auto const err_code{ state_machine_->set_mode(new_mode) }) {
-    logger_.info("Unable to set to state: '{}', error: '{}'", enum_name(new_mode), err_code.message());
-    return;
+    auto msg = fmt::format("Unable to set to state: '{}', error: '{}'", enum_name(new_mode), err_code.message());
+    logger_.info(msg);
+    throw std::runtime_error(msg);
   }
   logger_.trace("set_mode to state: '{}'", enum_name(new_mode));
 }
