@@ -2,7 +2,7 @@
 
 # run with docker run -it --rm --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host --name tfc-runtime ghcr.io/skaginn3x/skaginn3x/framework/tfc-runtime:latest
 
-FROM debian:testing-slim
+FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y systemd dbus-broker
 # Let's keep the dbus-daemon for now, it is easier to fork from terminal when using the container in workflows
@@ -37,9 +37,6 @@ RUN rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 RUN systemctl enable ipc-ruler@def
 RUN systemctl enable operations@def
-
-# todo remove
-RUN [ -f /usr/local/share/dbus-1/system.d/tfc.conf ] && mv /usr/local/share/dbus-1/system.d/tfc.conf /etc/dbus-1/system.d/
 
 VOLUME [ "/sys/fs/cgroup" ]
 CMD ["/lib/systemd/systemd", "--system"]
