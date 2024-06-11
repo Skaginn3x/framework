@@ -18,7 +18,7 @@ env:
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' && github.event_name == 'release'
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
@@ -54,7 +54,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-runtime
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: ${{ github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-runtime/tfc-runtime.dockerfile
@@ -63,7 +63,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-dart-sdk
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: ${{ github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-dart-sdk/tfc-dart-sdk.dockerfile
