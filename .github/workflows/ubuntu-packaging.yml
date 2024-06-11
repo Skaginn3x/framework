@@ -86,9 +86,6 @@ jobs:
     name: deploy artifacts
     runs-on: ubuntu-latest
     steps:
-      - uses: yogeshlonkar/wait-for-jobs@v0
-        with:
-          jobs: 'ubuntu packaging'
       - name: Upload debian package
         uses: actions/upload-artifact@v3
         with:
@@ -193,9 +190,6 @@ jobs:
       IMAGE_NAME: tfc-runtime
 
     steps:
-      - uses: yogeshlonkar/wait-for-jobs@v0
-        with:
-          jobs: 'deploy artifacts'
       - name: Checkout repository
         uses: actions/checkout@v4
 
