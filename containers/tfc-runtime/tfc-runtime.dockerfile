@@ -5,9 +5,9 @@
 FROM debian:testing-slim
 
 RUN apt-get update && apt-get install -y systemd dbus-broker
-RUN apt-get remove -y dbus-daemon
-
-# Todo can we copy build debian to container and build it in the pipeline
+# Let's keep the dbus-daemon for now, it is easier to fork from terminal when using the container in workflows
+# $ dbus-daemon --system
+#RUN apt-get remove -y dbus-daemon
 
 RUN ([ -d /lib/systemd/system/sysinit.target.wants ] && cd /lib/systemd/system/sysinit.target.wants/ && for i in *; do [ $i == \
 systemd-tmpfiles-setup.service ] || rm -f $i; done); \
