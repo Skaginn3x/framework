@@ -27,5 +27,6 @@ jobs:
       - name: what's happening
         run: |
           dbus-daemon --system
-          sudo -u tfc ipc-ruler &
-          sudo -u tfc operations &
+          ipc-ruler &
+          sleep 1
+          operations &
