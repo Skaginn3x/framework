@@ -2,7 +2,6 @@ name: tfc-runtime
 on:
   workflow_run:
     workflows: ["ubuntu packaging"]
-    branches: [main]
     types:
       - completed
   workflow_dispatch:
