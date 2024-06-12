@@ -53,7 +53,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-runtime
-          push: ${{ github.event_name == 'release' }}
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-runtime/tfc-runtime.dockerfile
@@ -62,7 +62,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: ./containers/tfc-dart-sdk
-          push: ${{ github.event_name == 'release' }}
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-dart-sdk/tfc-dart-sdk.dockerfile
