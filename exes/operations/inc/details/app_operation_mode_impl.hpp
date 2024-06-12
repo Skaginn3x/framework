@@ -32,7 +32,7 @@ app_operation_mode<signal_t, slot_t>::app_operation_mode(boost::asio::io_context
     set_mode(operation::mode_e::stopped);
   });
   dbus_interface_->register_property_r<operation::mode_e>(
-      std::string{ operation::dbus::property::mode }, sdbusplus::vtable::property_::emits_change,
+      std::string{ operation::dbus::property::mode }, sdbusplus::vtable::property_::explicit_,
       [this]([[maybe_unused]] operation::mode_e const& value) -> operation::mode_e {  // getter
         return mode_;
       });
