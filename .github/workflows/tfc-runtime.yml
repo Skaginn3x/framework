@@ -54,8 +54,8 @@ jobs:
         with:
           context: ./containers/tfc-runtime
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-tfc-runtime.outputs.tags }}
+          labels: ${{ steps.meta-tfc-runtime.outputs.labels }}
           file: ./containers/tfc-runtime/tfc-runtime.dockerfile
 
       - name: Extract metadata (tags, labels) for tfc-dart-sdk
@@ -81,6 +81,6 @@ jobs:
         with:
           context: ./containers/tfc-dart-sdk
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-tfc-dart-sdk.outputs.tags }}
+          labels: ${{ steps.meta-tfc-dart-sdk.outputs.labels }}
           file: ./containers/tfc-dart-sdk/tfc-dart-sdk.dockerfile
