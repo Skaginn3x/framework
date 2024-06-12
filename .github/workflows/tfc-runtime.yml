@@ -11,10 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
-  IMAGE_NAME: tfc-runtime
-
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -33,8 +29,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata (tags, labels) for tfc-runtime
         id: meta
+        env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
+          IMAGE_NAME: tfc-runtime
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
@@ -57,6 +56,25 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./containers/tfc-runtime/tfc-runtime.dockerfile
+
+      - name: Extract metadata (tags, labels) for tfc-dart-sdk
+        id: meta
+        env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
+          IMAGE_NAME: tfc-dart-sdk
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=true
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
 
       - name: Build and push tfc-dart-sdk
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
