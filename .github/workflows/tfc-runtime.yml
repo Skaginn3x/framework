@@ -11,6 +11,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
+
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -32,7 +35,6 @@ jobs:
       - name: Extract metadata (tags, labels) for tfc-runtime
         id: meta-tfc-runtime
         env:
-          REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
           IMAGE_NAME: tfc-runtime
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
@@ -60,7 +62,6 @@ jobs:
       - name: Extract metadata (tags, labels) for tfc-dart-sdk
         id: meta-tfc-dart-sdk
         env:
-          REGISTRY: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
           IMAGE_NAME: tfc-dart-sdk
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
