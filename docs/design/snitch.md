@@ -5,7 +5,7 @@ Handle the registration, activation level and notification of alarms.
 
 ## Alarm template
 Alarm messages have the requirement of being translatable, dynamic sections
-of the message shall be marked with a fmt::formatable string.
+of the message shall be marked with a fmt formattable string.
 Example of message strings 
 ```txt
 "Temperture out of bounds it is greater then {}"
