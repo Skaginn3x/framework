@@ -13,8 +13,9 @@ auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
   "snitches"_test = [] {
-    tfc::snitch::warning_ack warn("info", "info");
-    warn.on_acknowledgement([]{});
+    tfc::snitch::info<"short desc", "long desc"> info(fmt::arg("key1", "value"), fmt::arg("key2", 1));
+    fmt::print("{}", 1);
+    // warn.on_acknowledgement([]{});
 
   };
 }
