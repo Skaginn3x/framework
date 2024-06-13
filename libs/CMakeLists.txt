@@ -10,6 +10,7 @@ add_subdirectory(soem_interface)
 add_subdirectory(operation_mode)
 add_subdirectory(mqtt-sparkplug)
 add_subdirectory(motor)
+add_subdirectory(snitch)
 
 add_library(tfc INTERFACE)
 add_library(tfc::tfc ALIAS tfc)
