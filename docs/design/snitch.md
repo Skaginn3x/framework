@@ -4,7 +4,7 @@
 Handle the registration, activation level and notification of alarms.
 
 ## Alarm template
-Alarm messages have the requirement of being translateable, dynamic sections
+Alarm messages have the requirement of being translatable, dynamic sections
 of the message shall be marked with a fmt::formatable string.
 Example of message strings 
 ```txt
