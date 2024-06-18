@@ -11,6 +11,7 @@
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/snitch/common.hpp>
 #include <tfc/snitch/format_extension.hpp>
+#include <tfc/snitch/details/dbus_client.hpp>
 
 namespace tfc::snitch {
 

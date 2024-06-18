@@ -21,6 +21,7 @@ target_link_libraries(snitch
     Boost::boost
     tfc::stx
     tfc::logger
+    tfc::dbus_util
   PRIVATE
     tfc::base
 )
