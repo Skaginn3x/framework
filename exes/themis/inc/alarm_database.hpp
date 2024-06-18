@@ -5,7 +5,6 @@
 #include <tfc/progbase.hpp>
 #include <sqlite_modern_cpp.h>
 #include <fmt/format.h>
-#include <fmt/printf.h>
 
 namespace tfc::themis {
 inline auto config_file_name_populate_dir() -> std::string {
