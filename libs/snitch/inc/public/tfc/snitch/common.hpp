@@ -14,7 +14,7 @@ enum struct level_e : std::uint8_t {
 namespace api {
 
 using time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
-using alarm_id_t = std::uint32_t;
+using alarm_id_t = std::int64_t;
 
 enum struct active_e : std::int32_t {
   all = -1,
