@@ -10,8 +10,9 @@ namespace tfc::snitch::detail {
 
 class dbus_client {
 public:
-  dbus_client(std::shared_ptr<sdbusplus::asio::connection> conn) : dbus_{ std::move(conn) } {}
+  explicit dbus_client(std::shared_ptr<sdbusplus::asio::connection> conn);
 
+  // todo completion tokens ... std function
   auto register_alarm(std::string_view tfc_id, std::string_view description, std::string_view details, level_e lvl, bool ackable) -> api::alarm_id_t;
 
   auto list_alarms() -> std::vector<api::alarm>;
@@ -25,6 +26,8 @@ public:
   auto ack_alarm(api::alarm_id_t) -> void;
 
   auto ack_all_alarms() -> void;
+
+  auto match_ack_alarm(api::alarm_id_t, std::function<void()> callback) -> void;
 private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
 };
