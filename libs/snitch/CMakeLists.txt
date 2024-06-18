@@ -20,8 +20,8 @@ target_link_libraries(snitch
     fmt::fmt
     Boost::boost
     tfc::stx
-  PRIVATE
     tfc::logger
+  PRIVATE
     tfc::base
 )
 
