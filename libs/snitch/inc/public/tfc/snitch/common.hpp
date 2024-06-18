@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <unordered_map>
 
 namespace tfc::snitch {
 
@@ -23,9 +25,11 @@ enum struct active_e : std::int32_t {
 };
 
 struct alarm {
+  std::uint64_t alarm_id;
+  std::string tfc_id;
   std::string description;
   std::string details;
-  bool active{};
+  std::string sha1sum;
   level_e lvl{ level_e::unknown };
   bool latching{};
   struct translation {
