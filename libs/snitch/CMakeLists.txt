@@ -14,6 +14,8 @@ target_include_directories(snitch
 
 find_package(Boost REQUIRED COMPONENTS )
 find_package(fmt CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDBUSPLUS REQUIRED IMPORTED_TARGET GLOBAL sdbusplus)
 
 target_link_libraries(snitch
   PUBLIC
@@ -24,6 +26,7 @@ target_link_libraries(snitch
     tfc::dbus_util
   PRIVATE
     tfc::base
+    PkgConfig::SDBUSPLUS
 )
 
 add_library_to_docs(tfc::snitch)
