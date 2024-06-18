@@ -17,7 +17,7 @@ namespace tfc::snitch {
 
 struct variance {
   bool requires_acknowledgement{};
-  level lvl{ level::unknown };
+  level_e lvl{ level_e::unknown };
 };
 
 template <typename T>
@@ -63,15 +63,15 @@ private:
 };
 
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using info = alarm<{ .requires_acknowledgement = false, .lvl = level::info }, description, details>;
+using info = alarm<{ .requires_acknowledgement = false, .lvl = level_e::info }, description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using warning = alarm<{ .requires_acknowledgement = false, .lvl = level::warning }, description, details>;
+using warning = alarm<{ .requires_acknowledgement = false, .lvl = level_e::warning }, description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using warning_latched = alarm<{ .requires_acknowledgement = true, .lvl = level::warning }, description, details>;
+using warning_latched = alarm<{ .requires_acknowledgement = true, .lvl = level_e::warning }, description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
 using warning_ack = warning_latched<description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using error = alarm<{ .requires_acknowledgement = false, .lvl = level::error }, description, details>;
+using error = alarm<{ .requires_acknowledgement = false, .lvl = level_e::error }, description, details>;
 
 
 } // namespace tfc::snitch
