@@ -34,7 +34,7 @@ using tfc::ipc::details::type_e;
 using dbus_error = tfc::dbus::exception::runtime;
 
 inline std::string config_file_name_populate_dir() {
-  auto const file{ base::make_config_file_name("ipc-ruler", "db") };
+  auto const file{ base::make_config_file_name(base::get_exe_name(), "db") };
   std::filesystem::create_directories(file.parent_path());
   return file.string();
 }
