@@ -20,7 +20,10 @@ The alarm system is exposed through the `com.skaginn3x.Alarm` interface.
 
 ### Methods
     RegisterAlarm (s: alarm_name, i: alarm_level, b: non_latching) -> i: alarm_id Note errors can only be latched
-    ListAlarms (s: locale, i: start_count, i: count, i: alarm_level, i: active, x: startunixTimestamp, x: endUnixTimestamp) -> a(ssbib) Note active = -1 for all, alarm_level = -1 for all a max size of 100 alarms will be sent at a time
+    # ListAlarms returns boolean true in_locale if translation exists otherwise english
+    ListAlarms () -> s -> json of: std::vector<struct { string description; string details; bool latching; enum alarm_level; std::map<locale, struct translations{ string description; string details}> ; }>
+    # Note active = -1 for all, alarm_level = -1 for all a max size of 100 alarms will be sent at a time
+    ListActivations (s: locale, i: start_count, i: count, i: alarm_level, i: active, x: startunixTimestamp, x: endUnixTimestamp) -> s -> json of: struct { string description; string details; bool latching; enum alarm_level; bool active; std::uint64_t millisec_from_epoch; };
     SetAlarm(i: alarm_id, as: variables)
     ResetAlarm(i: alarm_id)
     AckAlarm(i: alarm_id)
