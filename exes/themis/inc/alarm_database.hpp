@@ -13,6 +13,7 @@
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/snitch/common.hpp>
+#include <map>
 
 namespace tfc::themis {
 
@@ -118,7 +119,7 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
         throw std::runtime_error("Failed to insert alarm into database");
       }
       alarm_id = static_cast<std::uint64_t>(insert_id);
-      add_alarm_translation(sha1_ascii, alarm_id, "en", description, details);
+      add_alarm_translation(alarm_id, "en", description, details);
       db_ << "COMMIT;";
     } catch (std::exception& e) {
       // Rollback the transaction and rethrow
@@ -129,7 +130,8 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
   }
 
   [[nodiscard]] auto list_alarms() -> std::vector<tfc::snitch::api::alarm> {
-    std::unordered_map<std::uint64_t, tfc::snitch::api::alarm> alarms;
+    // std::map to maintain alarm order.
+    std::map<std::uint64_t, tfc::snitch::api::alarm> alarms;
     std::string query = R"(
 SELECT
   Alarms.alarm_id,
@@ -167,14 +169,13 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return alarm_list;
   }
 
-  auto add_alarm_translation(std::string_view sha1sum,
-                             std::uint64_t alarm_id,
+  auto add_alarm_translation(std::uint64_t alarm_id,
                              std::string_view locale,
                              std::string_view description,
                              std::string_view details) -> void {
     auto query = fmt::format(
-        "INSERT INTO AlarmTranslations(sha1sum, alarm_id, locale, description, details) VALUES('{}', {}, '{}','{}','{}');",
-        sha1sum, alarm_id, locale, description, details);
+        "INSERT INTO AlarmTranslations(sha1sum, alarm_id, locale, description, details) SELECT DISTINCT sha1sum, {}, '{}','{}','{}' FROM Alarms where alarm_id = {}",
+        alarm_id, locale, description, details, alarm_id);
     db_ << query;
   }
 
