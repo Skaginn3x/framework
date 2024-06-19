@@ -42,8 +42,8 @@ auto main(int argc, char** argv) -> int {
     expect(alarms.at(0).alarm_id == insert_id);
     auto iterator = alarms.at(0).translations.find("en");
     expect(iterator != alarms.at(0).translations.end());
-    expect(iterator->second.details == "msg") << iterator->second.description;
-    expect(iterator->second.description == "short msg") << iterator->second.details;
+    expect(iterator->second.description == "msg") << iterator->second.description;
+    expect(iterator->second.details == "short msg") << iterator->second.details;
 
     // Translations are attached to alarms
     alarm_db.add_alarm_translation(alarm_db.list_alarms().at(0).sha1sum, alarm_db.list_alarms().at(0).alarm_id, "es", "some spanish maybe",
@@ -92,8 +92,89 @@ auto main(int argc, char** argv) -> int {
     expect(activations.size() == 0);
 
     // Add some activations
-    alarm_db.set_alarm(insert_id, {});
+    for(int i = 0; i < 10; i++){
+      alarm_db.set_alarm(insert_id, {});
+      alarm_db.reset_alarm(insert_id);
+    }
     // Insert an invalid activation
     expect(throws([&]{alarm_db.set_alarm(999, {}); }));
+
+    // Verify our inserts
+    activations = alarm_db.list_activations(
+        "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::all,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 20) << activations.size();
+    activations = alarm_db.list_activations(
+        "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 10) << activations.size();
+    activations = alarm_db.list_activations(
+        "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::inactive,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 10) << activations.size();
+
+  };
+  "Fallback to en if locale is not available"_test = []{
+    tfc::themis::alarm_database alarm_db(true);
+    auto insert_id = alarm_db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    alarm_db.add_alarm_translation(alarm_db.list_alarms().at(0).sha1sum, alarm_db.list_alarms().at(0).alarm_id, "es", "spanish description", "spanish details");
+    alarm_db.set_alarm(insert_id, {});
+    auto activations = alarm_db.list_activations(
+        "is", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 1);
+    expect(activations.at(0).description == "description") << activations.at(0).description;
+    expect(activations.at(0).details == "details") << activations.at(0).details;
+
+    activations = alarm_db.list_activations(
+        "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 1);
+    expect(activations.at(0).description == "spanish description") << activations.at(0).description;
+    expect(activations.at(0).details == "spanish details") << activations.at(0).details;
+  };
+  "String formatting with variables"_test = []{
+    tfc::themis::alarm_database alarm_db(true);
+    // Add a variable alarm
+    auto var_alarm_id = alarm_db.register_alarm_en("tfc_id", "{var}", "{var}", false, tfc::snitch::level_e::info);
+    expect(alarm_db.list_alarms().size() == 1);
+    alarm_db.set_alarm(var_alarm_id, {{ "var", "10.0"}});
+    auto activations = alarm_db.list_activations(
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 1);
+    expect(activations.at(0).alarm_id == var_alarm_id);
+    expect(activations.at(0).description == "10.0");
+    expect(activations.at(0).details == "10.0");
+
+    var_alarm_id = alarm_db.register_alarm_en("tfc_id", "description {var} {var2} {var3}", "details {var} {var2} {var3}", false, tfc::snitch::level_e::warning);
+    expect(alarm_db.list_alarms().size() == 2);
+    alarm_db.set_alarm(var_alarm_id, {{ "var", "10.0"}, {"var2", "20.0"}, {"var3", "30.0"}});
+    activations = alarm_db.list_activations(
+        "en", 0, 10000, tfc::snitch::level_e::warning, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 1);
+    expect(activations.at(0).alarm_id == var_alarm_id);
+    expect(activations.at(0).description == "description 10.0 20.0 30.0") << activations.at(0).description;
+    expect(activations.at(0).details == "details 10.0 20.0 30.0") << activations.at(0).details;
+  };
+  "ACK the alarm"_test = []{
+    //TODO: Do something here.
+    tfc::themis::alarm_database alarm_db(true);
+    auto insert_id = alarm_db.register_alarm_en("tfc_id", "description", "details", true, tfc::snitch::level_e::info);
+    alarm_db.set_alarm(insert_id, {});
+    alarm_db.ack_alarm(insert_id);
+    auto activations = alarm_db.list_activations(
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
+    expect(activations.size() == 1);
   };
 }
