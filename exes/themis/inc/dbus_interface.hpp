@@ -59,13 +59,16 @@ public:
                                      [&](std::uint64_t alarm_id) -> void {
                                        database.reset_alarm(alarm_id);
                                      });
-    dbus_interface_->register_method(std::string(methods::ack_alarm),
+    dbus_interface_->register_method(std::string(methods::try_reset),
                                      [&](std::uint64_t alarm_id) -> void {
-                                       database.ack_alarm(alarm_id);
+                                       auto message = dbus_interface_->new_signal(signals::try_reset_all.data());
+                                       message.append(alarm_id);
+                                       message.signal_send();
                                      });
-    dbus_interface_->register_method(std::string(methods::ack_all_alarms),
+    dbus_interface_->register_method(std::string(methods::try_reset_all),
                                      [&]() -> void {
-                                       database.ack_all_alarms();
+                                       auto message = dbus_interface_->new_signal(signals::try_reset_all.data());
+                                       message.signal_send();
                                      });
     dbus_interface_->register_method(std::string(methods::list_activations),
                                      [&](const std::string& locale, std::uint64_t start_count, std::uint64_t count, int alarm_level, int active, int64_t start, int64_t end) -> std::string {
@@ -75,7 +78,9 @@ public:
                                      });
 
     // Signal alarm_id, current_activation, ack_status
-    dbus_interface_->register_signal<std::tuple<std::uint64_t, bool, bool>>(std::string(signals::alarm_changed));
+    dbus_interface_->register_signal<std::tuple<std::uint64_t, bool, bool>>(std::string(signals::alarm_activation_changed));
+    dbus_interface_->register_signal<std::uint64_t>(std::string(signals::try_reset));
+    dbus_interface_->register_signal<void>(std::string(signals::try_reset_all));
     dbus_interface_->initialize();
   }
 

@@ -129,6 +129,7 @@ auto main(int argc, char** argv) -> int {
     expect(activations.size() == 1);
     expect(activations.at(0).description == "description") << activations.at(0).description;
     expect(activations.at(0).details == "details") << activations.at(0).details;
+    expect(activations.at(0).in_requested_locale == false);
 
     activations = alarm_db.list_activations(
         "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
@@ -137,6 +138,7 @@ auto main(int argc, char** argv) -> int {
     expect(activations.size() == 1);
     expect(activations.at(0).description == "spanish description") << activations.at(0).description;
     expect(activations.at(0).details == "spanish details") << activations.at(0).details;
+    expect(activations.at(0).in_requested_locale == true);
   };
   "String formatting with variables"_test = []{
     tfc::themis::alarm_database alarm_db(true);
@@ -181,17 +183,5 @@ auto main(int argc, char** argv) -> int {
     expect(activations.at(0).alarm_id == var_alarm_id);
     expect(activations.at(0).description == "description 10.0 20.0 30.0") << activations.at(0).description;
     expect(activations.at(0).details == "details 10.0 20.0 30.0") << activations.at(0).details;
-  };
-  "ACK the alarm"_test = []{
-    //TODO: Do something here.
-    tfc::themis::alarm_database alarm_db(true);
-    auto insert_id = alarm_db.register_alarm_en("tfc_id", "description", "details", true, tfc::snitch::level_e::info);
-    alarm_db.set_alarm(insert_id, {});
-    alarm_db.ack_alarm(insert_id);
-    auto activations = alarm_db.list_activations(
-        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
-        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
-        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
-    expect(activations.size() == 1);
   };
 }

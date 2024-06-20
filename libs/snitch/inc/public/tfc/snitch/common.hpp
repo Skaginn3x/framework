@@ -49,6 +49,7 @@ struct activation {
   level_e lvl{ level_e::unknown };
   bool latching{};
   time_point timestamp;
+  bool in_requested_locale;
 };
 namespace dbus {
 static constexpr std::string_view interface_name = "com.skaginn3x.Alarm";
@@ -62,11 +63,13 @@ namespace methods {
   static constexpr std::string_view list_activations = "ListActivations";
   static constexpr std::string_view set_alarm = "SetAlarm";
   static constexpr std::string_view reset_alarm = "ResetAlarm";
-  static constexpr std::string_view ack_alarm = "AckAlarm";
-  static constexpr std::string_view ack_all_alarms = "AckAllAlarms";
+  static constexpr std::string_view try_reset = "TryReset";
+  static constexpr std::string_view try_reset_all = "TryResetAll";
 }
 namespace signals {
-  static constexpr std::string_view alarm_changed = "AlarmChanged";
+  static constexpr std::string_view alarm_activation_changed = "AlarmActivationChanged";
+  static constexpr std::string_view try_reset = methods::try_reset;
+  static constexpr std::string_view try_reset_all = methods::try_reset_all;
 }
 }
 } // namespace api

@@ -19,17 +19,19 @@ dynamic variable count must be the same.
 The alarm system is exposed through the `com.skaginn3x.Alarm` interface.
 
 ### Methods
-    RegisterAlarm (s: alarm_name, i: alarm_level, b: non_latching) -> i: alarm_id Note errors can only be latched
+    RegisterAlarm (s: tfc_id, i: alarm_level, b: latching) -> i: alarm_id Note errors can only be latched
     # ListAlarms returns boolean true in_locale if translation exists otherwise english
     ListAlarms () -> s -> json of: std::vector<struct { string description; string details; bool latching; enum alarm_level; std::map<locale, struct translations{ string description; string details}> ; }>
     # Note active = -1 for all, alarm_level = -1 for all a max size of 100 alarms will be sent at a time
     ListActivations (s: locale, i: start_count, i: count, i: alarm_level, i: active, x: startunixTimestamp, x: endUnixTimestamp) -> s -> json of: struct { string description; string details; bool latching; enum alarm_level; bool active; std::uint64_t millisec_from_epoch; };
     SetAlarm(i: alarm_id, as: variables)
     ResetAlarm(i: alarm_id)
-    AckAlarm(i: alarm_id)
-    AckAllAlarms()
+    TryReset(i: alarm_id) # Transmits a signal to the alarm to reset itself
+    TryResetAll() # Transmits a signal to all alarms to reset themselfs
 ### Signals
-    AlarmChanged(i: alarm_id, b: current_activation, b: ack_status)
+    AlarmActivationChanged(i: alarm_id, b: current_activation)
+    TryReset(i: alarm_id)
+    TryResetAll()
 ### Properties
     As of now there are no properties
 ## Database schema

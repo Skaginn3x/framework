@@ -76,14 +76,6 @@ CREATE TABLE IF NOT EXISTS AlarmActivations(
 );
 )";
     db_ << R"(
-CREATE TABLE IF NOT EXISTS AlarmAcks(
-  activation_id INTEGER,
-  ack_timestamp LONG INTEGER NOT NULL,
-  UNIQUE(activation_id) ON CONFLICT IGNORE,
-  FOREIGN KEY(activation_id) REFERENCES AlarmActivations(activation_id)
-);
-)";
-    db_ << R"(
 CREATE TABLE IF NOT EXISTS AlarmVariables(
   activation_id INTEGER NOT NULL,
   variable_key TEXT NOT NULL,
@@ -206,19 +198,6 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
                        milliseconds_since_epoch(tp));
   }
 
-  auto ack_alarm(std::uint64_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
-    db_ << fmt::format("INSERT INTO AlarmAcks(activation_id, ack_timestamp) VALUES({},{});", activation_id,
-                       milliseconds_since_epoch(tp));
-  }
-
-  auto ack_all_alarms(std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
-    // TODO: This is not 100% but we should be able to do this in a single query. Very fast.
-    //  Gonna build up some more elaborate test cases and dig into this when that is complete
-    db_ << fmt::format(
-        "INSERT INTO AlarmAcks(activation_id, ack_timestamp) SELECT DISTINCT activation_id, {} FROM AlarmActivations;",
-        milliseconds_since_epoch(tp));
-  }
-
   [[nodiscard]] auto list_activations(std::string_view locale,
                                       std::uint64_t start_count,
                                       std::uint64_t count,
@@ -267,9 +246,10 @@ WHERE activation_time >= {} AND activation_time <= {})",
       }
       std::string details = primary_details.value_or(backup_details.value());
       std::string description = primary_description.value_or(backup_description.value());
+      bool in_locale = primary_description.has_value() && primary_details.has_value();
       activations.emplace_back(alarm_id, activation_id, description, details, tlocale.value(),
                                activation_level, static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
-                               timepoint_from_milliseconds(activation_time));
+                               timepoint_from_milliseconds(activation_time), in_locale);
     };
     for(auto& activation : activations) {
       // TODO: This is not great would be better to do this in a large query
