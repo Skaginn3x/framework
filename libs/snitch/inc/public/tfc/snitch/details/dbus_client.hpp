@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <cstdint>
 #include <unordered_map>
 #include <functional>
@@ -26,8 +27,14 @@ public:
   auto try_reset_alarm(api::alarm_id_t, std::function<void(std::error_code const&)>) -> void;
 
   auto try_reset_all_alarms(std::function<void(std::error_code const&)>) -> void;
+
+  auto on_try_reset_alarm(std::function<void(api::alarm_id_t)>) -> void;
+
+  auto on_try_reset_all_alarms(std::function<void()>) -> void;
 private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
+  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> try_reset_;
+  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> try_reset_all_;
   const std::string service_name_{ api::dbus::service_name };
   const std::string interface_name_{ api::dbus::interface_name };
   const std::string object_path_{ api::dbus::object_path };
