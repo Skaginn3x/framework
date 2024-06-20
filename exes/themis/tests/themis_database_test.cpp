@@ -93,8 +93,8 @@ auto main(int argc, char** argv) -> int {
 
     // Add some activations
     for(int i = 0; i < 10; i++){
-      alarm_db.set_alarm(insert_id, {});
-      alarm_db.reset_alarm(insert_id);
+      auto activation_id = alarm_db.set_alarm(insert_id, {});
+      alarm_db.reset_alarm(activation_id);
     }
     // Insert an invalid activation
     expect(throws([&]{alarm_db.set_alarm(999, {}); }));
@@ -104,12 +104,12 @@ auto main(int argc, char** argv) -> int {
         "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::all,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
-    expect(activations.size() == 20) << activations.size();
+    expect(activations.size() == 10) << activations.size();
     activations = alarm_db.list_activations(
         "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()));
-    expect(activations.size() == 10) << activations.size();
+    expect(activations.size() == 0) << activations.size();
     activations = alarm_db.list_activations(
         "es", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::inactive,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),

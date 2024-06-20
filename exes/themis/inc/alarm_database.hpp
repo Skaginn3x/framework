@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS Alarms(
   sha1sum TEXT NOT NULL,
   alarm_level INTEGER NOT NULL,
   alarm_latching BOOLEAN NOT NULL,
+  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(tfc_id, sha1sum) ON CONFLICT IGNORE
 );
              )";
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS AlarmTranslations(
   locale TEXT NOT NULL,
   details TEXT NOT NULL,
   description TEXT NOT NULL,
+  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY(sha1sum, locale) ON CONFLICT REPLACE
   FOREIGN KEY(alarm_id) REFERENCES Alarms(alarm_id)
 );
@@ -71,7 +73,9 @@ CREATE TABLE IF NOT EXISTS AlarmActivations(
   activation_id INTEGER PRIMARY KEY,
   alarm_id INTEGER NOT NULL,
   activation_time LONG INTEGER NOT NULL,
+  reset_time LONG INTEGER,
   activation_level BOOLEAN NOT NULL,
+  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(alarm_id) REFERENCES Alarms(alarm_id)
 );
 )";
@@ -171,31 +175,36 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     db_ << query;
   }
 
+  /**
+   * @brief Set an alarm in the database
+   * @param alarm_id the id of the alarm
+   * @param variables the variables for this activation
+   * @param tp an optional timepoint
+   * @return the activation_id
+   */
   auto set_alarm(snitch::api::alarm_id_t alarm_id,
                  const std::unordered_map<std::string, std::string>& variables,
-                 std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
+                 std::optional<tfc::snitch::api::time_point> tp = {}) -> std::uint64_t {
     db_ << "BEGIN;";
+    std::uint64_t activation_id;
     try {
       db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},1)",
                          alarm_id, milliseconds_since_epoch(tp));
-      std::int64_t last_insert_rowid = db_.last_insert_rowid();
-      if (last_insert_rowid < 0) {
-        throw std::runtime_error("Failed to insert activation into database");
-      }
+      activation_id = static_cast<std::uint64_t>(db_.last_insert_rowid());
 
       for (auto& [key, value] : variables) {
         db_ << fmt::format("INSERT INTO AlarmVariables(activation_id, variable_key, variable_value) VALUES({},'{}','{}');",
-                           last_insert_rowid, key, value);
+                           activation_id, key, value);
       }
     } catch (std::exception& e) {
       db_ << "ROLLBACK;";
       throw e;
     }
     db_ << "COMMIT;";
+    return activation_id;
   }
-  auto reset_alarm(snitch::api::alarm_id_t alarm_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
-    db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},0)", alarm_id,
-                       milliseconds_since_epoch(tp));
+  auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
+    db_ << fmt::format("UPDATE AlarmActivations SET activation_level = 0, reset_time = {} WHERE activation_id = {};", milliseconds_since_epoch(tp), activation_id);
   }
 
   [[nodiscard]] auto list_activations(std::string_view locale,
