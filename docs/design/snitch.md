@@ -60,7 +60,7 @@ Alarm variables
 ## Policy
 Executables must register their alarms on construction. Unregistered alarms cannot be notified.
 
-Once an alarm is registered the Alarm with Themis he will monitor the NameLost signal for the
+Once an alarm is registered the Alarm with Themis he will monitor the NameOwnerChanged signal for the
 name that registered the alarm. If the name is lost the alarm will be deactivated.
 
 If an alarm is registered having changed the level or latching attributes the alarm shall be
