@@ -50,7 +50,25 @@ struct activation {
   bool latching{};
   time_point timestamp;
 };
+namespace dbus {
+static constexpr std::string_view interface_name = "com.skaginn3x.Alarm";
+static constexpr std::string_view object_path = "/com/skaginn3x/Alarm";
+namespace properties {
 
+}
+namespace methods {
+  static constexpr std::string_view register_alarm = "RegisterAlarm";
+  static constexpr std::string_view list_alarms = "ListAlarms";
+  static constexpr std::string_view list_activations = "ListActivations";
+  static constexpr std::string_view set_alarm = "SetAlarm";
+  static constexpr std::string_view reset_alarm = "ResetAlarm";
+  static constexpr std::string_view ack_alarm = "AckAlarm";
+  static constexpr std::string_view ack_all_alarms = "AckAllAlarms";
+}
+namespace signals {
+  static constexpr std::string_view alarm_changed = "AlarmChanged";
+}
+}
 } // namespace api
 
 } // namespace tfc::snitch

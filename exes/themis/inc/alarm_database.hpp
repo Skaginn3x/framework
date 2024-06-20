@@ -180,7 +180,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
   }
 
   auto set_alarm(std::uint64_t alarm_id,
-                 std::unordered_map<std::string_view, std::string_view> variables,
+                 const std::unordered_map<std::string, std::string>& variables,
                  std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
     db_ << "BEGIN;";
     try {
