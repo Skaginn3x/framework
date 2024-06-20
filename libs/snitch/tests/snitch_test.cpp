@@ -1,11 +1,16 @@
 #include <boost/ut.hpp>
 #include <string_view>
 
+#include <boost/asio.hpp>
+#include <glaze/util/string_literal.hpp>
+#include <sdbusplus/asio/connection.hpp>
+
 #include <tfc/progbase.hpp>
 #include <tfc/snitch.hpp>
-#include <glaze/util/string_literal.hpp>
+#include <tfc/dbus/sd_bus.hpp>
 
 using std::string_view_literals::operator""sv;
+namespace asio = boost::asio;
 
 namespace test {
 using tfc::snitch::detail::check_all_arguments_named;
@@ -44,7 +49,9 @@ auto main(int argc, char** argv) -> int {
   tfc::base::init(argc, argv);
 
   "snitches"_test = [] {
-    tfc::snitch::info<"short desc {name}", "long desc {name} {index}"> tank(fmt::arg("name", "hello"), fmt::arg("index", 42));
+    asio::io_context ctx;
+    auto connection = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
+    tfc::snitch::info<"short desc {name}", "long desc {name} {index}"> tank(connection, "unique_id", fmt::arg("name", "hello"), fmt::arg("index", 42));
     tank.set();
 
     // warn.on_ack([]{});

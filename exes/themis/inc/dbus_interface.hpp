@@ -25,7 +25,7 @@ public:
   explicit interface(boost::asio::io_context& ctx, tfc::themis::alarm_database& database) {
     connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
-    connection_->request_name(interface_name.data());
+    connection_->request_name(service_name.data());
     interface_ =
         object_server_->add_unique_interface(object_path.data(), interface_name.data());
 
@@ -35,21 +35,21 @@ public:
                                      });
 
     interface_->register_method(std::string(methods::register_alarm),
-                                     [&](const sdbusplus::message_t& msg, std::string tfc_id, const std::string& description, const std::string& details, bool latching, int alarm_level) -> std::uint64_t {
+                                     [&](const sdbusplus::message_t& msg, std::string tfc_id, const std::string& description, const std::string& details, bool latching, std::underlying_type_t<snitch::level_e> alarm_level) -> std::uint64_t {
                                        // TODO: User supplied alarm_level needs more verification
                                        return database.register_alarm_en(tfc_id, description, details, latching, static_cast<tfc::snitch::level_e>(alarm_level));
                                      });
 
     interface_->register_method(std::string(methods::set_alarm),
-                                     [&](std::uint64_t alarm_id, const std::unordered_map<std::string, std::string>& args) -> void {
+                                     [&](snitch::api::alarm_id_t alarm_id, const std::unordered_map<std::string, std::string>& args) -> void {
                                        database.set_alarm(alarm_id, args);
                                      });
     interface_->register_method(std::string(methods::reset_alarm),
-                                     [&](std::uint64_t alarm_id) -> void {
+                                     [&](snitch::api::alarm_id_t alarm_id) -> void {
                                        database.reset_alarm(alarm_id);
                                      });
     interface_->register_method(std::string(methods::try_reset),
-                                     [&](std::uint64_t alarm_id) -> void {
+                                     [&](snitch::api::alarm_id_t alarm_id) -> void {
                                        auto message = interface_->new_signal(signals::try_reset.data());
                                        message.append(alarm_id);
                                        message.signal_send();

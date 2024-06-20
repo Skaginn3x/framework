@@ -36,11 +36,14 @@ public:
   static constexpr auto keys_count{ std::max(description_arg_keys.size(), details_arg_keys.size()) };
 
   /// \example alarm<{}, "short desc", "long desc"> warn(fmt::arg("key", "value"), fmt::arg("key2", 1));
-  alarm(named_arg auto&& ... default_args) : default_values_{ std::make_pair(default_args.name, fmt::format("{}", default_args.value))... } {
+  /// \param unique_id A unique identifier for the alarm within this process
+  /// \param default_args Default fmt::arg values to populate the alarm with, e.g. fmt::arg("index", 1) for tank 1 etc.
+  alarm(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_id, named_arg auto&& ... default_args) : default_values_{ std::make_pair(default_args.name, fmt::format("{}", default_args.value))... } {
     static_assert(detail::check_all_arguments_named(description), "All arguments must be named");
     static_assert(detail::check_all_arguments_no_format(description), "All arguments may not have format specifiers");
     [[maybe_unused]] static constexpr int num_args = sizeof...(default_args);
     static_assert(num_args <= keys_count, "Too many default arguments");
+
   }
 
   template <stx::invocable callback_t>
@@ -58,20 +61,24 @@ public:
     logger_.debug(fmt::vformat(details, store));
   }
 private:
+  std::optional<api::alarm_id_t> alarm_id_{};
+  std::string my_name_;
   std::unordered_map<std::string, std::string> default_values_;
-  logger::logger logger_{ "snitch" };
+  std::shared_ptr<sdbusplus::asio::connection> conn_;
+  detail::dbus_client dbus_client_{ conn_ };
+  logger::logger logger_{ fmt::format("snitch.{}", my_name_) };
 };
 
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using info = alarm<{ .requires_acknowledgement = false, .lvl = level_e::info }, description, details>;
+using info = alarm<variance{ .requires_acknowledgement = false, .lvl = level_e::info }, description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using warning = alarm<{ .requires_acknowledgement = false, .lvl = level_e::warning }, description, details>;
+using warning = alarm<variance{ .requires_acknowledgement = false, .lvl = level_e::warning }, description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using warning_latched = alarm<{ .requires_acknowledgement = true, .lvl = level_e::warning }, description, details>;
+using warning_latched = alarm<variance{ .requires_acknowledgement = true, .lvl = level_e::warning }, description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
 using warning_ack = warning_latched<description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using error = alarm<{ .requires_acknowledgement = false, .lvl = level_e::error }, description, details>;
+using error = alarm<variance{ .requires_acknowledgement = false, .lvl = level_e::error }, description, details>;
 
 
 } // namespace tfc::snitch

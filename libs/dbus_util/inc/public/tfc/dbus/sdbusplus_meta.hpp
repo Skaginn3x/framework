@@ -23,6 +23,10 @@ namespace sdbusplus::message::types::details {
 template <typename value_t, typename enable_t>
 struct type_id;
 
+template <>
+struct type_id<long long> : tuple_type_id<SD_BUS_TYPE_UINT64>
+{};
+
 template <concepts::dbus_reflectable struct_t>
 struct type_id<struct_t, void> {
   static constexpr auto value{ type_id<decltype(struct_t::dbus_reflection(struct_t{})), void>::value };

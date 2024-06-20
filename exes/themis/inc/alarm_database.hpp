@@ -97,9 +97,9 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
                                        std::string_view description,
                                        std::string_view details,
                                        bool latching,
-                                       tfc::snitch::level_e alarm_level) -> std::uint64_t {
+                                       tfc::snitch::level_e alarm_level) -> snitch::api::alarm_id_t {
     std::string sha1_ascii = get_sha1(fmt::format("{}{}", description, details));
-    std::uint64_t alarm_id = 0;
+    snitch::api::alarm_id_t alarm_id = 0;
     try {
       db_ << "BEGIN;";
       db_ << fmt::format(
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
       if (insert_id < 0) {
         throw std::runtime_error("Failed to insert alarm into database");
       }
-      alarm_id = static_cast<std::uint64_t>(insert_id);
+      alarm_id = static_cast<snitch::api::alarm_id_t>(insert_id);
       add_alarm_translation(alarm_id, "en", description, details);
       db_ << "COMMIT;";
     } catch (std::exception& e) {
@@ -139,7 +139,7 @@ LEFT JOIN AlarmTranslations
 ON Alarms.sha1sum = AlarmTranslations.sha1sum;
 )";
     // Accept the second table paramters as unique ptr's as the values can be null, and we want to preserve that
-    db_ << query >> [&](std::uint64_t alarm_id, std::string tfc_id, std::string sha1sum, std::uint8_t alarm_level,
+    db_ << query >> [&](snitch::api::alarm_id_t alarm_id, std::string tfc_id, std::string sha1sum, std::uint8_t alarm_level,
                         bool alarm_latching, std::optional<std::string> locale,
                         std::optional<std::string> translated_description, std::optional<std::string> translated_details) {
       auto iterator = alarms.find(alarm_id);
@@ -161,7 +161,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return alarm_list;
   }
 
-  auto add_alarm_translation(std::uint64_t alarm_id,
+  auto add_alarm_translation(snitch::api::alarm_id_t alarm_id,
                              std::string_view locale,
                              std::string_view description,
                              std::string_view details) -> void {
@@ -171,7 +171,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     db_ << query;
   }
 
-  auto set_alarm(std::uint64_t alarm_id,
+  auto set_alarm(snitch::api::alarm_id_t alarm_id,
                  const std::unordered_map<std::string, std::string>& variables,
                  std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
     db_ << "BEGIN;";
@@ -193,7 +193,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     }
     db_ << "COMMIT;";
   }
-  auto reset_alarm(std::uint64_t alarm_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
+  auto reset_alarm(snitch::api::alarm_id_t alarm_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
     db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},0)", alarm_id,
                        milliseconds_since_epoch(tp));
   }
@@ -236,7 +236,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
 
     std::vector<tfc::snitch::api::activation> activations;
 
-    db_ << populated_query >> [&](std::uint64_t activation_id, std::uint64_t alarm_id, std::int64_t activation_time,
+    db_ << populated_query >> [&](std::uint64_t activation_id, snitch::api::alarm_id_t alarm_id, std::int64_t activation_time,
                                   bool activation_level, std::optional<std::string> primary_details,
                                   std::optional<std::string> primary_description, std::optional<std::string> backup_details,
                                   std::optional<std::string> backup_description, std::optional<std::string> tlocale,
