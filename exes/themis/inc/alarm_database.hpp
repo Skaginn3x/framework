@@ -8,12 +8,12 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <string>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/snitch/common.hpp>
-#include <map>
 
 namespace tfc::themis {
 
@@ -170,9 +170,30 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
                              std::string_view description,
                              std::string_view details) -> void {
     auto query = fmt::format(
-        "INSERT INTO AlarmTranslations(sha1sum, alarm_id, locale, description, details) SELECT DISTINCT sha1sum, {}, '{}','{}','{}' FROM Alarms where alarm_id = {}",
+        "INSERT INTO AlarmTranslations(sha1sum, alarm_id, locale, description, details) SELECT DISTINCT sha1sum, {}, "
+        "'{}','{}','{}' FROM Alarms where alarm_id = {}",
         alarm_id, locale, description, details, alarm_id);
     db_ << query;
+  }
+
+  [[nodiscard]] auto is_alarm_active(snitch::api::alarm_id_t alarm_id) -> bool {
+    std::int64_t count = 0;
+    db_ << fmt::format("SELECT COUNT(*) FROM AlarmActivations WHERE alarm_id = {} AND activation_level = 1;", alarm_id) >>
+        [&](std::int64_t c) { count = c; };
+    return count > 0;
+  }
+
+  [[nodiscard]] auto is_activation_high(snitch::api::alarm_id_t activation_id) -> bool {
+    bool active = false;
+    db_ << fmt::format("SELECT activation_level FROM AlarmActivations WHERE activation_id = {} AND activation_level = 1;", activation_id) >>
+        [&](bool a) { active = a;};
+    return active;
+  }
+
+  [[nodiscard]] auto active_alarm_count() -> std::uint64_t {
+    std::uint64_t count = 0;
+    db_ << "SELECT COUNT(*) FROM AlarmActivations WHERE activation_level = 1;" >> [&](std::uint64_t c) { count = c; };
+    return count;
   }
 
   /**
@@ -182,9 +203,12 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
    * @param tp an optional timepoint
    * @return the activation_id
    */
-  auto set_alarm(snitch::api::alarm_id_t alarm_id,
+  [[nodiscard]] auto set_alarm(snitch::api::alarm_id_t alarm_id,
                  const std::unordered_map<std::string, std::string>& variables,
                  std::optional<tfc::snitch::api::time_point> tp = {}) -> std::uint64_t {
+    if (is_alarm_active(alarm_id)){
+      throw std::runtime_error("Alarm is already active");
+    }
     db_ << "BEGIN;";
     std::uint64_t activation_id;
     try {
@@ -204,7 +228,11 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return activation_id;
   }
   auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
-    db_ << fmt::format("UPDATE AlarmActivations SET activation_level = 0, reset_time = {} WHERE activation_id = {};", milliseconds_since_epoch(tp), activation_id);
+    if (!is_activation_high(activation_id)){
+      throw std::runtime_error("Cannot reset an inactive activation");
+    }
+    db_ << fmt::format("UPDATE AlarmActivations SET activation_level = 0, reset_time = {} WHERE activation_id = {};",
+                       milliseconds_since_epoch(tp), activation_id);
   }
 
   [[nodiscard]] auto list_activations(std::string_view locale,
@@ -219,6 +247,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
   activation_id,
   Alarms.alarm_id,
   activation_time,
+  reset_time,
   activation_level,
   primary_text.details,
   primary_text.description,
@@ -245,7 +274,8 @@ WHERE activation_time >= {} AND activation_time <= {})",
 
     std::vector<tfc::snitch::api::activation> activations;
 
-    db_ << populated_query >> [&](std::uint64_t activation_id, snitch::api::alarm_id_t alarm_id, std::int64_t activation_time,
+    db_ << populated_query >> [&](std::uint64_t activation_id, snitch::api::alarm_id_t alarm_id,
+                                  std::int64_t activation_time, std::optional<std::int64_t> reset_time,
                                   bool activation_level, std::optional<std::string> primary_details,
                                   std::optional<std::string> primary_description, std::optional<std::string> backup_details,
                                   std::optional<std::string> backup_description, std::optional<std::string> tlocale,
@@ -256,11 +286,15 @@ WHERE activation_time >= {} AND activation_time <= {})",
       std::string details = primary_details.value_or(backup_details.value());
       std::string description = primary_description.value_or(backup_description.value());
       bool in_locale = primary_description.has_value() && primary_details.has_value();
-      activations.emplace_back(alarm_id, activation_id, description, details, tlocale.value(),
-                               activation_level, static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
-                               timepoint_from_milliseconds(activation_time), in_locale);
+      std::optional<time_point> final_reset_time = std::nullopt;
+      if (reset_time.has_value()) {
+        final_reset_time = timepoint_from_milliseconds(reset_time.value());
+      }
+      activations.emplace_back(alarm_id, activation_id, description, details, tlocale.value(), activation_level,
+                               static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
+                               timepoint_from_milliseconds(activation_time), final_reset_time, in_locale);
     };
-    for(auto& activation : activations) {
+    for (auto& activation : activations) {
       // TODO: This is not great would be better to do this in a large query
       // As of now we are doing a query for each activation to get the variables
       std::vector<std::pair<std::string, std::string>> variables;

@@ -50,7 +50,8 @@ struct activation {
   bool active{};
   level_e lvl{ level_e::unknown };
   bool latching{};
-  time_point timestamp;
+  time_point set_timestamp;
+  std::optional<time_point> reset_timestamp;
   bool in_requested_locale;
 };
 namespace dbus {

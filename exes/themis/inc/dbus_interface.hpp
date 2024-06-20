@@ -41,8 +41,8 @@ public:
                                      });
 
     interface_->register_method(std::string(methods::set_alarm),
-                                     [&](snitch::api::alarm_id_t alarm_id, const std::unordered_map<std::string, std::string>& args) -> void {
-                                       database.set_alarm(alarm_id, args);
+                                     [&](snitch::api::alarm_id_t alarm_id, const std::unordered_map<std::string, std::string>& args) -> std::uint64_t {
+                                       return database.set_alarm(alarm_id, args);
                                      });
     interface_->register_method(std::string(methods::reset_alarm),
                                      [&](snitch::api::alarm_id_t alarm_id) -> void {
