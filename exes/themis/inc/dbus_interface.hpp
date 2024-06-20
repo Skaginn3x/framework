@@ -46,7 +46,7 @@ public:
                                      });
 
     dbus_interface_->register_method(std::string(methods::register_alarm),
-                                     [&](std::string tfc_id, const std::string& description, const std::string& details, bool latching, int alarm_level) -> std::uint64_t {
+                                     [&](const sdbusplus::message_t& msg, std::string tfc_id, const std::string& description, const std::string& details, bool latching, int alarm_level) -> std::uint64_t {
                                        // TODO: User supplied alarm_level needs more verification
                                        return database.register_alarm_en(tfc_id, description, details, latching, static_cast<tfc::snitch::level_e>(alarm_level));
                                      });
@@ -61,7 +61,7 @@ public:
                                      });
     dbus_interface_->register_method(std::string(methods::try_reset),
                                      [&](std::uint64_t alarm_id) -> void {
-                                       auto message = dbus_interface_->new_signal(signals::try_reset_all.data());
+                                       auto message = dbus_interface_->new_signal(signals::try_reset.data());
                                        message.append(alarm_id);
                                        message.signal_send();
                                      });
@@ -88,5 +88,6 @@ private:
   std::shared_ptr<sdbusplus::asio::connection> connection_;
   std::unique_ptr<sdbusplus::asio::dbus_interface> dbus_interface_;
   std::unique_ptr<sdbusplus::asio::object_server> object_server_;
+  std::unordered_map<std::string, std::vector<uint64_t>> dbus_ids_to_monitor; // Alarm members and monitoring parties
 };
 }  // namespace tfc::ipc_ruler
