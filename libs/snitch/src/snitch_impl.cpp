@@ -19,7 +19,7 @@ alarm_impl::alarm_impl(std::shared_ptr<sdbusplus::asio::connection> conn,
       conn_{ std::move(conn) }, dbus_client_{ std::make_unique<dbus_client>(conn_) },
       logger_{ std::make_unique<logger::logger>(fmt::format("snitch.{}", given_id_)) },
       retry_timer_{ conn_->get_io_context() } {
-  dbus_client_->on_daemon_alive([this]{ this->on_daemon_alive(); });
+  // dbus_client_->on_daemon_alive([this]{ this->on_daemon_alive(); });
   register_alarm();
 }
 
