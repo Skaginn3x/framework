@@ -59,7 +59,7 @@ void alarm_impl::set(std::unordered_map<std::string, std::string>&& params, std:
     dbus_client_->set_alarm(alarm_id_.value(), params, [this, cb = std::move(on_set_finished)](std::error_code const& ec, api::activation_id_t id) {
       if (ec) {
         logger_->error("Failed to set alarm: {}", ec.message());
-        // todo: should we call test here?
+        // todo: should we call set here?
       }
       else {
         activation_id_ = id;

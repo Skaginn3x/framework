@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <optional>
 
 #include <boost/asio/steady_timer.hpp>
 
