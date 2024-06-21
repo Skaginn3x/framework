@@ -72,8 +72,8 @@ public:
     impl_.set(description_formatted, details_formatted, { std::make_pair(args.name, fmt::format("{}", args.value))... }, std::move(on_set_finished));
   }
 
-  void reset() {
-    impl_.reset();
+  void reset(std::function<void(std::error_code)> on_reset_finished = [](auto){}) {
+    impl_.reset(std::move(on_reset_finished));
   }
 
   auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> {

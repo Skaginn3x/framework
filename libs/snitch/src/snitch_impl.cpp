@@ -19,7 +19,7 @@ alarm_impl::alarm_impl(std::shared_ptr<sdbusplus::asio::connection> conn,
       conn_{ std::move(conn) }, dbus_client_{ std::make_unique<dbus_client>(conn_) },
       logger_{ std::make_unique<logger::logger>(fmt::format("snitch.{}", given_id_)) },
       retry_timer_{ conn_->get_io_context() } {
-  // dbus_client_->on_daemon_alive([this]{ this->on_daemon_alive(); });
+  dbus_client_->on_daemon_alive([this]{ this->on_daemon_alive(); });
   register_alarm();
 }
 
@@ -83,17 +83,19 @@ void alarm_impl::set(std::unordered_map<std::string, std::string>&& params, std:
   }
 }
 
-void alarm_impl::reset() {
+void alarm_impl::reset(std::function<void(std::error_code)>&& on_reset_finished) {
   if (!activation_id_) {
     logger_->info("alarm already inactive, not doing anything");
     return;
   }
-  dbus_client_->reset_alarm(activation_id_.value(), [this](std::error_code const& ec) {
+  dbus_client_->reset_alarm(activation_id_.value(), [this, cb = std::move(on_reset_finished)](std::error_code const& ec) {
     if (ec) {
       logger_->error("Failed to reset alarm: {}", ec.message());
-      return;
     }
-    activation_id_.reset();
+    else {
+      activation_id_.reset();
+    }
+    std::invoke(cb, ec);
   });
 }
 

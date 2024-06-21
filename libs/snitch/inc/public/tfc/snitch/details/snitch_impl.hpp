@@ -33,7 +33,7 @@ public:
   auto default_values() const noexcept -> auto const& { return default_values_; }
   void on_try_reset(std::function<void()> callback);
   void set(std::string_view description_formatted, std::string_view details_formatted, std::unordered_map<std::string, std::string>&& args, std::function<void(std::error_code)>&& on_set_finished);
-  void reset();
+  void reset(std::function<void(std::error_code)>&& on_reset_finished);
 
   auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> { return alarm_id_; }
   auto activation_id() const noexcept -> std::optional<api::activation_id_t> { return activation_id_; }

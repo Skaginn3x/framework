@@ -29,6 +29,7 @@ static constexpr std::string_view path_prefix{ "path=" };
 static constexpr std::string_view path_namespace_prefix{ "path_namespace=" };
 static constexpr std::string_view destination_prefix{ "destination=" };
 static constexpr std::string_view arg_prefix{ "arg" };
+static constexpr std::string_view equal{ "=" };
 
 template <std::string_view const& key, std::string_view const& value>
 static constexpr std::string_view filter{ stx::string_view_join_v<key, detail::quote, value, detail::quote, detail::comma> };
@@ -89,7 +90,7 @@ template <std::string_view const& destination_in>
 static constexpr std::string_view destination{ detail::filter<detail::destination_prefix, destination_in> };
 
 template <std::uint8_t arg_nr, std::string_view const& arg_in>
-static constexpr std::string_view arg{ detail::filter<stx::string_view_join_v<detail::arg_prefix, stx::to_string_view_v<arg_nr>>, arg_in> };
+static constexpr std::string_view arg{ detail::filter<stx::string_view_join_v<detail::arg_prefix, stx::to_string_view_v<arg_nr>, detail::equal>, arg_in> };
 
 /// \brief make complete dbus match rule
 /// \tparam service_name service name
