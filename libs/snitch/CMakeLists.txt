@@ -2,6 +2,7 @@ project(snitch)
 
 add_library(snitch
     src/dbus_client.cpp
+    src/snitch_impl.cpp
 )
 add_library(tfc::snitch ALIAS snitch)
 target_include_directories(snitch

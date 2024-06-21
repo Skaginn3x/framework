@@ -66,13 +66,13 @@ auto dbus_client::list_activations(std::string_view locale,
     , std::string{ locale }, start_count, count, std::to_underlying(lvl), std::to_underlying(active), start.time_since_epoch().count(), end.time_since_epoch().count()
     );
 }
-auto dbus_client::set_alarm(api::alarm_id_t id, const std::unordered_map<std::string, std::string> & args, std::function<void(std::error_code const&)> token)
+auto dbus_client::set_alarm(api::alarm_id_t id, const std::unordered_map<std::string, std::string> & args, std::function<void(std::error_code const&, api::activation_id_t)> token)
     -> void {
   dbus_->async_method_call(std::move(token), service_name_, object_path_, interface_name_, std::string{ api::dbus::methods::set_alarm }
     // arguments
     , id, args);
 }
-auto dbus_client::reset_alarm(api::alarm_id_t id, std::function<void(std::error_code const&)> token) -> void {
+auto dbus_client::reset_alarm(api::activation_id_t id, std::function<void(std::error_code const&)> token) -> void {
   dbus_->async_method_call(std::move(token), service_name_, object_path_, interface_name_, std::string{ api::dbus::methods::reset_alarm }
     // arguments
     , id);

@@ -19,6 +19,7 @@ namespace api {
 
 using time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
 using alarm_id_t = std::uint64_t;
+using activation_id_t = alarm_id_t;
 
 // std::int8_t is not in the dbus spec, so we use std::int16_t instead
 enum struct active_e : std::int16_t {

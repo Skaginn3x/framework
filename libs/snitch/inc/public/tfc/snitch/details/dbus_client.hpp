@@ -20,9 +20,9 @@ public:
 
   auto list_activations(std::string_view locale, std::uint64_t start_count, std::uint64_t count, level_e, api::active_e, api::time_point start, api::time_point end, std::function<void(std::error_code const&, std::vector<api::activation>)> token) -> void;
 
-  auto set_alarm(api::alarm_id_t, const std::unordered_map<std::string, std::string> & args, std::function<void(std::error_code const&)> token = [](auto const&){}) -> void;
+  auto set_alarm(api::alarm_id_t, const std::unordered_map<std::string, std::string> & args, std::function<void(std::error_code const&, api::activation_id_t)> token = [](auto const&, auto){}) -> void;
 
-  auto reset_alarm(api::alarm_id_t, std::function<void(std::error_code const&)> token = [](auto const&){}) -> void;
+  auto reset_alarm(api::activation_id_t, std::function<void(std::error_code const&)> token = [](auto const&){}) -> void;
 
   auto try_reset_alarm(api::alarm_id_t, std::function<void(std::error_code const&)>) -> void;
 
