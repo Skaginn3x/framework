@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS Alarms(
   alarm_level INTEGER NOT NULL,
   alarm_latching BOOLEAN NOT NULL,
   inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  registered_at LONG INTEGER NOT NULL,
   UNIQUE(tfc_id, sha1sum) ON CONFLICT IGNORE
-);
-             )";
+);)";
     db_ << R"(
 CREATE TABLE IF NOT EXISTS AlarmTranslations(
   sha1sum TEXT NOT NULL,
@@ -101,21 +101,29 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
                                        std::string_view description,
                                        std::string_view details,
                                        bool latching,
-                                       tfc::snitch::level_e alarm_level) -> snitch::api::alarm_id_t {
+                                       tfc::snitch::level_e alarm_level,
+                                       std::optional<time_point> registered_at = std::nullopt) -> snitch::api::alarm_id_t {
     std::string sha1_ascii = get_sha1(fmt::format("{}{}", description, details));
     snitch::api::alarm_id_t alarm_id = 0;
+    auto ms_count_registered_at = milliseconds_since_epoch(registered_at);
     try {
       db_ << "BEGIN;";
       db_ << fmt::format(
-          "INSERT INTO Alarms(tfc_id, sha1sum, alarm_level, alarm_latching) "
-          "VALUES('{}','{}',{},{});",
-          tfc_id, sha1_ascii, static_cast<std::uint8_t>(alarm_level), latching ? 1 : 0);
+          "INSERT INTO Alarms(tfc_id, sha1sum, alarm_level, alarm_latching, registered_at) VALUES('{}','{}',{}, {}, {}) ON "
+          "CONFLICT (tfc_id, sha1sum) DO UPDATE SET registered_at={};",
+          tfc_id, sha1_ascii, static_cast<std::uint8_t>(alarm_level), latching ? 1 : 0, ms_count_registered_at,
+          ms_count_registered_at);
       auto insert_id = db_.last_insert_rowid();
       if (insert_id < 0) {
         throw std::runtime_error("Failed to insert alarm into database");
       }
       alarm_id = static_cast<snitch::api::alarm_id_t>(insert_id);
       add_alarm_translation(alarm_id, "en", description, details);
+
+      // Reset the alarm if high on register
+      if (is_alarm_active(alarm_id)){
+        reset_alarm(alarm_id);
+      }
       db_ << "COMMIT;";
     } catch (std::exception& e) {
       // Rollback the transaction and rethrow
@@ -135,6 +143,7 @@ SELECT
   Alarms.sha1sum,
   alarm_level,
   Alarms.alarm_latching,
+  Alarms.registered_at,
   AlarmTranslations.locale,
   AlarmTranslations.description,
   AlarmTranslations.details
@@ -144,14 +153,21 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
 )";
     // Accept the second table paramters as unique ptr's as the values can be null, and we want to preserve that
     db_ << query >> [&](snitch::api::alarm_id_t alarm_id, std::string tfc_id, std::string sha1sum, std::uint8_t alarm_level,
-                        bool alarm_latching, std::optional<std::string> locale,
+                        bool alarm_latching, std::optional<int64_t> registered_at, std::optional<std::string> locale,
                         std::optional<std::string> translated_description, std::optional<std::string> translated_details) {
       auto iterator = alarms.find(alarm_id);
       if (iterator == alarms.end()) {
-        alarms.insert(
-            { alarm_id,
-              tfc::snitch::api::alarm{
-                  alarm_id, tfc_id, sha1sum, static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching, {} } });
+        std::optional<time_point> final_registered_at = std::nullopt;
+        if (registered_at.has_value()) {
+          final_registered_at = timepoint_from_milliseconds(registered_at.value());
+        }
+        alarms.insert({ alarm_id, tfc::snitch::api::alarm{ alarm_id,
+                                                           tfc_id,
+                                                           sha1sum,
+                                                           static_cast<tfc::snitch::level_e>(alarm_level),
+                                                           alarm_latching,
+                                                           final_registered_at,
+                                                           {} } });
       }
       if (locale.has_value() && translated_details.has_value() && translated_description.has_value()) {
         alarms[alarm_id].translations.insert(
@@ -185,8 +201,9 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
 
   [[nodiscard]] auto is_activation_high(snitch::api::alarm_id_t activation_id) -> bool {
     bool active = false;
-    db_ << fmt::format("SELECT activation_level FROM AlarmActivations WHERE activation_id = {} AND activation_level = 1;", activation_id) >>
-        [&](bool a) { active = a;};
+    db_ << fmt::format("SELECT activation_level FROM AlarmActivations WHERE activation_id = {} AND activation_level = 1;",
+                       activation_id) >>
+        [&](bool a) { active = a; };
     return active;
   }
 
@@ -204,9 +221,9 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
    * @return the activation_id
    */
   [[nodiscard]] auto set_alarm(snitch::api::alarm_id_t alarm_id,
-                 const std::unordered_map<std::string, std::string>& variables,
-                 std::optional<tfc::snitch::api::time_point> tp = {}) -> std::uint64_t {
-    if (is_alarm_active(alarm_id)){
+                               const std::unordered_map<std::string, std::string>& variables,
+                               std::optional<tfc::snitch::api::time_point> tp = {}) -> std::uint64_t {
+    if (is_alarm_active(alarm_id)) {
       throw std::runtime_error("Alarm is already active");
     }
     db_ << "BEGIN;";
@@ -228,7 +245,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return activation_id;
   }
   auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
-    if (!is_activation_high(activation_id)){
+    if (!is_activation_high(activation_id)) {
       throw std::runtime_error("Cannot reset an inactive activation");
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = 0, reset_time = {} WHERE activation_id = {};",

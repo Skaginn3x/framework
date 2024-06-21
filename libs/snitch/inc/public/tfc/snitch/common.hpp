@@ -38,6 +38,7 @@ struct alarm {
     std::string details;
   };
   using locale = std::string;
+  std::optional<time_point> registered_at;
   std::unordered_map<locale, translation> translations;
 };
 

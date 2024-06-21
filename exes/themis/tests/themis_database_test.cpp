@@ -225,4 +225,35 @@ auto main(int argc, char** argv) -> int {
     db.reset_alarm(activation_id);
     expect(throws([&]{ db.reset_alarm(activation_id, {}); }));
   };
+  "Verify alarm id when replacing reinstantiating alarms"_test = []{
+    tfc::themis::alarm_database db(true);
+    auto alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    auto new_alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    auto not_the_same = db.register_alarm_en("tfc_id2", "description", "details", false, tfc::snitch::level_e::info);
+    expect(alarm_id == new_alarm_id);
+    expect(alarm_id != not_the_same);
+  };
+  "re-registering the same alarm should update registered_at"_test = []{
+    tfc::themis::alarm_database db(true);
+    auto tp = tfc::themis::alarm_database::timepoint_from_milliseconds(0);
+    [[maybe_unused]] auto alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info, tp);
+    auto alarms = db.list_alarms();
+    expect(alarms.size() == 1);
+    expect(alarms.at(0).registered_at == tp);
+
+    tp = tfc::themis::alarm_database::timepoint_from_milliseconds(1);
+    alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info, tp);
+    alarms = db.list_alarms();
+    expect(alarms.size() == 1);
+    expect(alarms.at(0).registered_at == tp);
+  };
+  "registering an alarm should result in a clean-slate"_test = []{
+    auto db = tfc::themis::alarm_database(true);
+    auto alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    [[maybe_unused]] auto activation_id = db.set_alarm(alarm_id, {});
+    expect(db.is_alarm_active(alarm_id));
+    auto new_alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    expect(alarm_id == new_alarm_id);
+    expect(!db.is_alarm_active(alarm_id));
+  };
 }
