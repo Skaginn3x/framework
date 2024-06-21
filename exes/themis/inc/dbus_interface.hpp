@@ -8,22 +8,21 @@
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
 #include <glaze/json.hpp>
+#include <tfc/stx/glaze_meta.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/asio/property.hpp>
+#include <tfc/dbus/match_rules.hpp>
 
 
 namespace tfc::themis {
-using tfc::ipc::details::type_e;
-
-using dbus_error = tfc::dbus::exception::runtime;
 using namespace tfc::snitch::api::dbus;
 using std::string_view_literals::operator""sv;
 
 class interface {
 public:
-  explicit interface(boost::asio::io_context& ctx, tfc::themis::alarm_database& database) {
-    connection_ = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
+  explicit interface(std::shared_ptr<sdbusplus::asio::connection> connection, tfc::themis::alarm_database& database) {
+    connection_ = connection;
     object_server_ = std::make_unique<sdbusplus::asio::object_server>(connection_);
     connection_->request_name(service_name.data());
     interface_ =

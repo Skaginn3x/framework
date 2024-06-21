@@ -281,7 +281,7 @@ LEFT OUTER JOIN AlarmTranslations as primary_text on (Alarms.alarm_id = primary_
 LEFT OUTER JOIN AlarmTranslations as backup_text on (Alarms.alarm_id = backup_text.alarm_id and backup_text.locale = 'en')
 WHERE activation_time >= {} AND activation_time <= {})",
                                               locale, milliseconds_since_epoch(start), milliseconds_since_epoch(end));
-    if (level != tfc::snitch::level_e::unknown) {
+    if (level != tfc::snitch::level_e::all) {
       populated_query += fmt::format(" AND alarm_level = {}", static_cast<std::uint8_t>(level));
     }
     if (active != tfc::snitch::api::active_e::all) {
@@ -295,8 +295,8 @@ WHERE activation_time >= {} AND activation_time <= {})",
                                   std::int64_t activation_time, std::optional<std::int64_t> reset_time,
                                   bool activation_level, std::optional<std::string> primary_details,
                                   std::optional<std::string> primary_description, std::optional<std::string> backup_details,
-                                  std::optional<std::string> backup_description, std::optional<std::string> tlocale,
-                                  bool alarm_latching, std::uint8_t alarm_level) {
+                                  std::optional<std::string> backup_description,
+                                  bool alarm_latching, std::int8_t alarm_level) {
       if (!backup_description.has_value() || !backup_details.has_value()) {
         throw std::runtime_error("Backup message not found for alarm translation. This should never happen.");
       }
@@ -307,7 +307,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
       if (reset_time.has_value()) {
         final_reset_time = timepoint_from_milliseconds(reset_time.value());
       }
-      activations.emplace_back(alarm_id, activation_id, description, details, tlocale.value(), activation_level,
+      activations.emplace_back(alarm_id, activation_id, description, details, activation_level,
                                static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
                                timepoint_from_milliseconds(activation_time), final_reset_time, in_locale);
     };

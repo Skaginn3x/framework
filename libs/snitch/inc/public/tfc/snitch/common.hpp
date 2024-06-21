@@ -48,7 +48,6 @@ struct activation {
   std::uint64_t activation_id;
   std::string description;
   std::string details;
-  std::string locale;
   bool active{};
   level_e lvl{ level_e::unknown };
   bool latching{};
