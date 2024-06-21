@@ -14,11 +14,13 @@
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/snitch/common.hpp>
+#include <tfc/dbus/exception.hpp>
 
 namespace tfc::themis {
 
 using enum tfc::snitch::level_e;
 using tfc::snitch::api::time_point;
+using dbus_error = tfc::dbus::exception::runtime;
 
 class error_log {
 public:
@@ -115,7 +117,7 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
           ms_count_registered_at);
       auto insert_id = db_.last_insert_rowid();
       if (insert_id < 0) {
-        throw std::runtime_error("Failed to insert alarm into database");
+        throw dbus_error("Failed to insert alarm into database");
       }
       alarm_id = static_cast<snitch::api::alarm_id_t>(insert_id);
       add_alarm_translation(alarm_id, "en", description, details);
@@ -199,6 +201,13 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return count > 0;
   }
 
+  [[nodiscard]] auto count_active_alarms() -> std::int64_t {
+    std::int64_t count = 0;
+    db_ << fmt::format("SELECT COUNT(*) FROM AlarmActivations WHERE activation_level = 1;") >>
+        [&](std::int64_t c) { count = c; };
+    return count;
+  }
+
   [[nodiscard]] auto is_activation_high(snitch::api::alarm_id_t activation_id) -> bool {
     bool active = false;
     db_ << fmt::format("SELECT activation_level FROM AlarmActivations WHERE activation_id = {} AND activation_level = 1;",
@@ -213,6 +222,10 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return count;
   }
 
+  [[nodiscard]] auto is_some_alarm_active() -> bool {
+    return active_alarm_count() > 0;
+  }
+
   /**
    * @brief Set an alarm in the database
    * @param alarm_id the id of the alarm
@@ -224,7 +237,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
                                const std::unordered_map<std::string, std::string>& variables,
                                std::optional<tfc::snitch::api::time_point> tp = {}) -> std::uint64_t {
     if (is_alarm_active(alarm_id)) {
-      throw std::runtime_error("Alarm is already active");
+      throw dbus_error("Alarm is already active");
     }
     db_ << "BEGIN;";
     std::uint64_t activation_id;
@@ -246,7 +259,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
   }
   auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
     if (!is_activation_high(activation_id)) {
-      throw std::runtime_error("Cannot reset an inactive activation");
+      throw dbus_error("Cannot reset an inactive activation");
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = 0, reset_time = {} WHERE activation_id = {};",
                        milliseconds_since_epoch(tp), activation_id);
@@ -298,7 +311,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
                                   std::optional<std::string> backup_description,
                                   bool alarm_latching, std::int8_t alarm_level) {
       if (!backup_description.has_value() || !backup_details.has_value()) {
-        throw std::runtime_error("Backup message not found for alarm translation. This should never happen.");
+        throw dbus_error("Backup message not found for alarm translation. This should never happen.");
       }
       std::string details = primary_details.value_or(backup_details.value());
       std::string description = primary_description.value_or(backup_description.value());

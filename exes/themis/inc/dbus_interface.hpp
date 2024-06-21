@@ -13,11 +13,13 @@
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/asio/property.hpp>
 #include <tfc/dbus/match_rules.hpp>
+#include <tfc/dbus/exception.hpp>
 
 
 namespace tfc::themis {
 using namespace tfc::snitch::api::dbus;
 using std::string_view_literals::operator""sv;
+using dbus_error = tfc::dbus::exception::runtime;
 
 class interface {
 public:
@@ -49,14 +51,22 @@ public:
                                      });
     interface_->register_method(std::string(methods::try_reset),
                                      [&](snitch::api::alarm_id_t alarm_id) -> void {
-                                       auto message = interface_->new_signal(signals::try_reset.data());
-                                       message.append(alarm_id);
-                                       message.signal_send();
+                                       if (database.is_alarm_active(alarm_id)){
+                                         auto message = interface_->new_signal(signals::try_reset.data());
+                                         message.append(alarm_id);
+                                         message.signal_send();
+                                       } else {
+                                         throw dbus_error("Alarm is not active");
+                                       }
                                      });
     interface_->register_method(std::string(methods::try_reset_all),
                                      [&]() -> void {
-                                       auto message = interface_->new_signal(signals::try_reset_all.data());
-                                       message.signal_send();
+                                      if(database.is_some_alarm_active()){
+                                        auto message = interface_->new_signal(signals::try_reset_all.data());
+                                        message.signal_send();
+                                      } else {
+                                        throw dbus_error("No alarm is active");
+                                      }
                                      });
     using tfc::snitch::api::active_e;
     using tfc::snitch::level_e;

@@ -100,6 +100,6 @@ using warning_latched = alarm<variance{ .resettable = true, .lvl = level_e::warn
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
 using warning_resettable = warning_latched<description, details>;
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
-using error = alarm<variance{ .resettable = false, .lvl = level_e::error }, description, details>;
+using error = alarm<variance{ .resettable = true, .lvl = level_e::error }, description, details>;
 
 }  // namespace tfc::snitch
