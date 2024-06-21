@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <tfc/stx/string_view_join.hpp>
+#include <tfc/stx/to_string_view.hpp>
 
 namespace tfc::dbus::match::rules {
 namespace type {
@@ -27,6 +28,7 @@ static constexpr std::string_view member_prefix{ "member=" };
 static constexpr std::string_view path_prefix{ "path=" };
 static constexpr std::string_view path_namespace_prefix{ "path_namespace=" };
 static constexpr std::string_view destination_prefix{ "destination=" };
+static constexpr std::string_view arg_prefix{ "arg" };
 
 template <std::string_view const& key, std::string_view const& value>
 static constexpr std::string_view filter{ stx::string_view_join_v<key, detail::quote, value, detail::quote, detail::comma> };
@@ -61,9 +63,8 @@ static constexpr std::string_view member{ detail::filter<detail::member_prefix, 
 
 /// \brief make dbus `path` match rule
 /// \tparam path_in filter value
-/// \note Match messages sent over or to a particular interface.
-/// An example of an interface match is interface='org.freedesktop.Hal.Manager'.
-/// If a message omits the interface header, it must not match any rule that specifies this key.
+/// \note Match messages sent over or to a particular path.
+/// An example of an path match is path='/org/freedesktop/Hal/Manager'.
 /// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& path_in>
 static constexpr std::string_view path{ detail::filter<detail::path_prefix, path_in> };
@@ -86,6 +87,9 @@ static constexpr std::string_view path_namespace{ detail::filter<detail::path_na
 /// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& destination_in>
 static constexpr std::string_view destination{ detail::filter<detail::destination_prefix, destination_in> };
+
+template <std::uint8_t arg_nr, std::string_view const& arg_in>
+static constexpr std::string_view arg{ detail::filter<stx::string_view_join_v<detail::arg_prefix, stx::to_string_view_v<arg_nr>>, arg_in> };
 
 /// \brief make complete dbus match rule
 /// \tparam service_name service name

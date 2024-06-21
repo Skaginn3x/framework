@@ -30,12 +30,16 @@ public:
   auto operator=(alarm_impl&&) -> alarm_impl& = delete;
   ~alarm_impl() = default;
 
-  auto const& default_values() const noexcept { return default_values_; }
+  auto default_values() const noexcept -> auto const& { return default_values_; }
   void on_try_reset(std::function<void()> callback);
   void set(std::string_view description_formatted, std::string_view details_formatted, std::unordered_map<std::string, std::string>&& args, std::function<void(std::error_code)>&& on_set_finished);
   void reset();
 
+  auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> { return alarm_id_; }
+  auto activation_id() const noexcept -> std::optional<api::activation_id_t> { return activation_id_; }
+
 private:
+  void on_daemon_alive();
   void register_alarm();
   void set(std::unordered_map<std::string, std::string>&& args, std::function<void(std::error_code)>&& on_set_finished);
   std::optional<api::activation_id_t> activation_id_{};

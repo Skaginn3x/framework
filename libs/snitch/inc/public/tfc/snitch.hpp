@@ -75,6 +75,15 @@ public:
     impl_.reset();
   }
 
+  auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> {
+    return impl_.alarm_id();
+  }
+
+  auto activation_id() const noexcept -> std::optional<api::activation_id_t> {
+    return impl_.activation_id();
+  }
+
+
 private:
   detail::alarm_impl impl_;
 };

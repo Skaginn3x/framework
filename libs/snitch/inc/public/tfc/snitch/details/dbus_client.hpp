@@ -31,10 +31,13 @@ public:
   auto on_try_reset_alarm(std::function<void(api::alarm_id_t)>) -> void;
 
   auto on_try_reset_all_alarms(std::function<void()>) -> void;
+
+  auto on_daemon_alive(std::function<void()>) -> void;
 private:
   std::shared_ptr<sdbusplus::asio::connection> dbus_;
   std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> try_reset_;
   std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> try_reset_all_;
+  std::unique_ptr<sdbusplus::bus::match::match, std::function<void(sdbusplus::bus::match::match*)>> daemon_alive_;
   const std::string service_name_{ api::dbus::service_name };
   const std::string interface_name_{ api::dbus::interface_name };
   const std::string object_path_{ api::dbus::object_path };

@@ -13,6 +13,24 @@ namespace tfc::snitch::detail {
 static constexpr auto try_reset_match_{ dbus::match::rules::make_match_rule<api::dbus::service_name, api::dbus::interface_name, api::dbus::object_path, api::dbus::signals::try_reset, dbus::match::rules::type::signal>() };
 static constexpr auto try_reset_all_match_{ dbus::match::rules::make_match_rule<api::dbus::service_name, api::dbus::interface_name, api::dbus::object_path, api::dbus::signals::try_reset_all, dbus::match::rules::type::signal>() };
 
+using std::string_view_literals::operator""sv;
+static constexpr std::string_view dbus_service_name = "org.freedesktop.DBus"sv;
+static constexpr std::string_view dbus_interface = "org.freedesktop.DBus"sv;
+static constexpr std::string_view dbus_path = "/org/freedesktop/DBus"sv;
+static constexpr std::string_view dbus_signal = "NameOwnerChanged"sv;
+static constexpr std::string_view dbus_arg0 = api::dbus::service_name;
+static constexpr std::string_view daemon_alive_match_{
+  stx::string_view_join_v<dbus::match::rules::type::signal,
+                          dbus::match::rules::sender<dbus_service_name>,
+                          dbus::match::rules::interface<dbus_interface>,
+                          dbus::match::rules::path<dbus_path>,
+                          dbus::match::rules::member<dbus_signal>,
+                          dbus::match::rules::arg<0, dbus_arg0>
+  >
+};
+
+
+
 dbus_client::dbus_client(std::shared_ptr<sdbusplus::asio::connection> conn) : dbus_{ std::move(conn) } {}
 auto dbus_client::register_alarm(std::string_view tfc_id,
                                  std::string_view description,
@@ -95,6 +113,11 @@ auto dbus_client::on_try_reset_alarm(std::function<void(api::alarm_id_t)> token)
 }
 auto dbus_client::on_try_reset_all_alarms(std::function<void()> token) -> void {
   try_reset_all_ = std::make_unique<sdbusplus::bus::match_t>(*dbus_, try_reset_all_match_.data(), [token_mv = std::move(token)](sdbusplus::message_t&) {
+    std::invoke(token_mv);
+  });
+}
+auto dbus_client::on_daemon_alive(std::function<void()> token) -> void {
+  daemon_alive_ = std::make_unique<sdbusplus::bus::match_t>(*dbus_, daemon_alive_match_.data(), [token_mv = std::move(token)](sdbusplus::message_t&) {
     std::invoke(token_mv);
   });
 }
