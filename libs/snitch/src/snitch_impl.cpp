@@ -70,7 +70,10 @@ void alarm_impl::set(std::unordered_map<std::string, std::string>&& params, std:
   } else {
     retry_timer_.expires_after(std::chrono::seconds(1));
     retry_timer_.async_wait([this, params_mv = std::move(params), cb = std::move(on_set_finished)](std::error_code const& ec) mutable {
-      if (ec) {
+      if (ec == std::errc::operation_canceled && alarm_id_.has_value()) {
+        // timer was cancelled, but alarm id was set in the meantime
+      }
+      else if (ec) {
         logger_->info("Retry set timer failed: {}", ec.message());
         return;
       }
@@ -103,6 +106,7 @@ void alarm_impl::register_alarm() {
                                    return;
                                  }
                                  alarm_id_ = id;
+                                 retry_timer_.cancel();
                                });
 }
 
