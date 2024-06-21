@@ -52,7 +52,7 @@ auto main(int argc, char** argv) -> int {
     asio::io_context ctx;
     auto connection = std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system());
     tfc::snitch::info<"short desc {name}", "long desc {name} {index}"> tank(connection, "unique_id", fmt::arg("name", "hello"), fmt::arg("index", 42));
-    tank.set();
+    tank.set([](auto){});
 
     // warn.on_ack([]{});
 

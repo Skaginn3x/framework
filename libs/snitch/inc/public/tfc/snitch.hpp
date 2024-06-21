@@ -60,7 +60,7 @@ public:
     impl_.on_try_reset(std::forward<callback_t>(callback));
   }
 
-  void set(named_arg auto&&... args) {
+  void set(std::function<void(std::error_code)> on_set_finished, named_arg auto&&... args) {
     fmt::dynamic_format_arg_store<fmt::format_context> store;
     for (auto const& [key, value] : impl_.default_values()) {
       store.push_back(fmt::arg(key.c_str(), value));
@@ -68,7 +68,7 @@ public:
     (store.push_back(args), ...);
     std::string description_formatted = fmt::vformat(description, store);
     std::string details_formatted = fmt::vformat(details, store);
-    impl_.set(description_formatted, details_formatted, { std::make_pair(args.name, fmt::format("{}", args.value))... });
+    impl_.set(description_formatted, details_formatted, { std::make_pair(args.name, fmt::format("{}", args.value))... }, std::move(on_set_finished));
   }
 
   void reset() {

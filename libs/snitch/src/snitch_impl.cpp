@@ -1,5 +1,6 @@
 
 #include <sdbusplus/asio/connection.hpp>
+
 #include <tfc/logger.hpp>
 #include <tfc/snitch/details/dbus_client.hpp>
 #include <tfc/snitch/details/snitch_impl.hpp>
@@ -34,7 +35,7 @@ void alarm_impl::on_try_reset(std::function<void()> callback) {
   });
 }
 
-void alarm_impl::set(std::string_view description_formatted, std::string_view details_formatted, std::unordered_map<std::string, std::string>&& args) {
+void alarm_impl::set(std::string_view description_formatted, std::string_view details_formatted, std::unordered_map<std::string, std::string>&& args, std::function<void(std::error_code)>&& on_set_finished) {
   if (activation_id_) {
     logger_->info("alarm already active with id: {}, not doing anything", activation_id_.value());
     return;
@@ -46,30 +47,34 @@ void alarm_impl::set(std::string_view description_formatted, std::string_view de
   auto params{ default_values_ };
   params.merge(std::move(args));
 
-  set(true, std::move(params));
+  set(std::move(params), std::move(on_set_finished));
 }
 
-void alarm_impl::set(bool new_set, std::unordered_map<std::string, std::string>&& params) {
-  if (new_set) {
+void alarm_impl::set(std::unordered_map<std::string, std::string>&& params, std::function<void(std::error_code)>&& on_set_finished) {
+  auto const now = decltype(retry_timer_)::clock_type::now();
+  if (now > retry_timer_.expiry()) {
     retry_timer_.cancel();
   }
   if (alarm_id_) {
-    dbus_client_->set_alarm(alarm_id_.value(), params, [this](std::error_code const& ec, api::activation_id_t id) {
+    dbus_client_->set_alarm(alarm_id_.value(), params, [this, cb = std::move(on_set_finished)](std::error_code const& ec, api::activation_id_t id) {
       if (ec) {
         logger_->error("Failed to set alarm: {}", ec.message());
-        return;
+        // todo: should we call test here?
       }
-      activation_id_ = id;
+      else {
+        activation_id_ = id;
+      }
+      std::invoke(cb, ec);
     });
   } else {
     retry_timer_.expires_after(std::chrono::seconds(1));
-    retry_timer_.async_wait([this, params_mv = std::move(params)](std::error_code const& ec) mutable {
+    retry_timer_.async_wait([this, params_mv = std::move(params), cb = std::move(on_set_finished)](std::error_code const& ec) mutable {
       if (ec) {
-        logger_->error("Retry set timer failed: {}", ec.message());
+        logger_->info("Retry set timer failed: {}", ec.message());
         return;
       }
       logger_->debug("Retrying set alarm");
-      set(false, std::move(params_mv));
+      set(std::move(params_mv), std::move(cb));
     });
   }
 }
