@@ -58,8 +58,10 @@ public:
                                        auto message = interface_->new_signal(signals::try_reset_all.data());
                                        message.signal_send();
                                      });
+    using tfc::snitch::api::active_e;
+    using tfc::snitch::level_e;
     interface_->register_method(std::string(methods::list_activations),
-                                     [&](const std::string& locale, std::uint64_t start_count, std::uint64_t count, int alarm_level, int active, int64_t start, int64_t end) -> std::string {
+                                     [&](const std::string& locale, std::uint64_t start_count, std::uint64_t count, std::underlying_type_t<level_e> alarm_level, std::underlying_type_t<active_e> active, int64_t start, int64_t end) -> std::string {
                                        auto cstart = tfc::themis::alarm_database::timepoint_from_milliseconds(start);
                                        auto cend   = tfc::themis::alarm_database::timepoint_from_milliseconds(end);
                                        return glz::write_json(database.list_activations(locale, start_count, count, static_cast<tfc::snitch::level_e>(alarm_level), static_cast<tfc::snitch::api::active_e>(active), cstart, cend));
