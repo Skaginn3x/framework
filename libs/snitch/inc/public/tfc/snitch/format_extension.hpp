@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <string_view>
+#include <span>
 
 #include <fmt/core.h>
 
