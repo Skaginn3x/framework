@@ -1,16 +1,18 @@
 #pragma once
 
-#include <fmt/args.h>
-#include <fmt/format.h>
-#include <openssl/sha.h>
-#include <sqlite_modern_cpp.h>
-#include <sqlite_modern_cpp/log.h>
 #include <array>
 #include <cstddef>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
+
+#include <fmt/args.h>
+#include <fmt/format.h>
+#include <openssl/sha.h>
+#include <sqlite_modern_cpp.h>
+#include <sqlite_modern_cpp/log.h>
+
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/snitch/common.hpp>
