@@ -12,7 +12,9 @@ auto main(int argc, char** argv) -> int {
 
   asio::io_context ctx{};
 
-  tfc::operation::interface mode{ ctx };
+  tfc::operation::interface mode {
+    ctx
+  };
 
   mode.on_leave(tfc::operation::mode_e::stopped, [](tfc::operation::mode_e new_mode, tfc::operation::mode_e old_mode) {
     fmt::print("Leaving {} and going to: {}", enum_name(old_mode), enum_name(new_mode));
