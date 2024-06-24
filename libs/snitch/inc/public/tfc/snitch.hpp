@@ -44,7 +44,7 @@ public:
   alarm(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_id, named_arg auto&&... default_args)
       : impl_{ conn, unique_id, description, details, var.resettable, var.lvl, { std::make_pair(default_args.name, fmt::format("{}", default_args.value))... } }
   {
-    static_assert(detail::check_all_arguments_named(description), "All arguments must be named");
+    static_assert(detail::check_all_arguments_named(description), "All arguments must be named, e.g. {name}");
     static_assert(detail::check_all_arguments_no_format(description), "All arguments may not have format specifiers");
     [[maybe_unused]] static constexpr int num_args = sizeof...(default_args);
     static_assert(num_args <= keys_count, "Too many default arguments");

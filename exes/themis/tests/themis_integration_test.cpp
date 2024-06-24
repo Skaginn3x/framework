@@ -203,5 +203,18 @@ int main(int argc, char** argv) {
     expect(t.ran[2]);
     expect(t.ran[3]);
   };
+
+  "alarm with declared params but no params provided"_test = [] {
+    test_setup t;
+    info<"desc {foo}", "details {bar} {foo}"> i(t.connection, "first_test");
+    try {
+      i.set();
+      expect(false) << "Should have thrown";
+    }
+    catch (std::exception&) {
+      expect(true);
+    }
+  };
+
   return 0;
 }
