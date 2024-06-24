@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/ut.hpp>
 #include <tfc/ec/devices/schneider/atv320.hpp>
 #include <tfc/ec/devices/util.hpp>

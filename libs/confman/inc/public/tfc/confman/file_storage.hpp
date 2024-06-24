@@ -102,7 +102,11 @@ public:
   /// \brief generate json form of storage
   auto to_json() const noexcept -> std::string {
     std::string buffer{};  // this can throw, meaning memory error
-    glz::write<glz::opts{ .prettify = true }>(storage_, buffer);
+    auto const err{ glz::write<glz::opts{ .prettify = true }>(storage_, buffer) };
+    if (err) {
+      logger_.error(R"(Error: "{}" writing to json)", glz::format_error(err));
+      return {};
+    }
     return buffer;
   }
 

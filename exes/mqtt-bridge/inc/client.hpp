@@ -8,7 +8,7 @@
 #include <tuple>
 
 #include <async_mqtt/all.hpp>
-#include <async_mqtt/buffer.hpp>
+#include <async_mqtt/error.hpp>
 #include <boost/asio.hpp>
 
 #include <tfc/logger.hpp>
@@ -67,7 +67,7 @@ public:
 
     logger_.trace("Sending MQTT connection packet...");
 
-    auto send_error = co_await endpoint_client_->send(connect_packet(), asio::use_awaitable);
+    auto [send_error] = co_await endpoint_client_->send(connect_packet(), as_tuple(asio::use_awaitable));
 
     if (send_error) {
       co_return false;
@@ -102,10 +102,10 @@ public:
       p_id = 0;
     }
 
-    auto pub_packet = async_mqtt::v5::publish_packet{ p_id.value(), async_mqtt::allocate_buffer(topic),
-                                                      async_mqtt::allocate_buffer(payload), qos };
+    auto pub_packet = async_mqtt::v5::publish_packet{ p_id.value(), topic, payload, qos };
 
-    co_return !(co_await endpoint_client_->send(pub_packet, asio::use_awaitable));
+    auto [error] = co_await endpoint_client_->send(pub_packet, as_tuple(asio::use_awaitable));
+    co_return !error;
   }
 
   auto subscribe_to_topic(std::string topic) -> asio::awaitable<bool> {
@@ -116,13 +116,11 @@ public:
 
     p_id = endpoint_client_->acquire_unique_packet_id();
 
-    std::string_view topic_view{ topic };
-
     auto sub_packet = async_mqtt::v5::subscribe_packet{
-      p_id.value(), { { async_mqtt::buffer(topic_view), async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } }
+      p_id.value(), { { topic, async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } }
     };
 
-    auto send_error = co_await endpoint_client_->send(sub_packet, asio::use_awaitable);
+    auto [send_error] = co_await endpoint_client_->send(sub_packet, as_tuple(asio::use_awaitable));
 
     if (send_error) {
       co_return !send_error;
@@ -145,7 +143,7 @@ public:
     for (auto const& entry : suback_packet.entries()) {
       if (entry != async_mqtt::suback_reason_code::granted_qos_0) {
         logger_.error("Error subscribing to topic: {}, reason code: {}", topic.data(),
-                      async_mqtt::suback_reason_code_to_str(entry));
+                      async_mqtt::suback_reason_code_to_string(entry));
         co_return false;
       }
     }
@@ -173,13 +171,13 @@ public:
 
       logger_.trace("Received PUBLISH packet. Parsing payload...");
 
-      for (uint64_t i = 0; i < publish_packet->payload().size(); i++) {
-        process_payload(publish_packet->payload()[i], *publish_packet);
+      for (auto const& itm : publish_packet->payload_as_buffer()) {
+        process_payload(itm, *publish_packet);
       }
     }
   }
 
-  auto strand() -> asio::strand<asio::any_io_executor> { return endpoint_client_->strand(); }
+  auto get_executor() -> asio::any_io_executor { return endpoint_client_->get_executor(); }
 
   auto set_initial_message(std::string const& topic, std::string const& payload, async_mqtt::qos const& qos) -> void {
     initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{ topic, payload, qos };
@@ -197,24 +195,24 @@ public:
     if (config_.value().username.empty() || config_.value().password.empty()) {
       return async_mqtt::v5::connect_packet{ true,
                                              std::chrono::seconds(100).count(),
-                                             async_mqtt::allocate_buffer(config_.value().client_id),
+                                             config_.value().client_id,
                                              async_mqtt::will(
-                                                 async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                                 mqtt_will_topic_,
                                                  async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
                                                  { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
-                                             async_mqtt::nullopt,
-                                             async_mqtt::nullopt,
+                                             std::nullopt,
+                                             std::nullopt,
                                              { async_mqtt::property::session_expiry_interval{ 0 } } };
     }
     return async_mqtt::v5::connect_packet{ true,
                                            std::chrono::seconds(100).count(),
-                                           async_mqtt::allocate_buffer(config_.value().client_id),
+                                           config_.value().client_id,
                                            async_mqtt::will(
-                                               async_mqtt::allocate_buffer(mqtt_will_topic_),
+                                               mqtt_will_topic_,
                                                async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
                                                { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
-                                           async_mqtt::allocate_buffer(config_.value().username),
-                                           async_mqtt::allocate_buffer(config_.value().password),
+                                           config_.value().username,
+                                           config_.value().password,
                                            { async_mqtt::property::session_expiry_interval{ 0 } } };
   }
 

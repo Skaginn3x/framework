@@ -11,8 +11,7 @@ target_link_libraries(test_glaze_meta
     Boost::ut
     glaze::glaze
     fmt::fmt
-    mp-units::si
-    mp-units::isq
+    mp-units::systems
     mp-units::core
 )
 

@@ -123,7 +123,7 @@ public:
 
       mqtt_client_->set_initial_message(topic, payload_string, async_mqtt::qos::at_most_once);
 
-      asio::co_spawn(mqtt_client_->strand(),
+      asio::co_spawn(mqtt_client_->get_executor(),
                      mqtt_client_->send_message(topic, payload_string, async_mqtt::qos::at_most_once), asio::detached);
     }
   }
@@ -141,7 +141,7 @@ public:
   }
 
   auto update_value(structs::spark_plug_b_variable& variable) -> void {
-    asio::co_spawn(strand(), update_value_impl(variable), asio::detached);
+    asio::co_spawn(get_executor(), update_value_impl(variable), asio::detached);
   }
 
   auto update_value_impl(structs::spark_plug_b_variable& variable) -> asio::awaitable<void> {
@@ -245,7 +245,7 @@ public:
     }
   }
 
-  auto strand() -> asio::strand<asio::any_io_executor> { return mqtt_client_->strand(); }
+  auto get_executor() const -> asio::any_io_executor { return mqtt_client_->get_executor(); }
 
   static auto set_value_payload(Payload_Metric* metric, std::optional<std::any> const& value, logger::logger const& logger)
       -> void {

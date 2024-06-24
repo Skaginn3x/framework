@@ -5,10 +5,10 @@
 #include <string_view>
 
 #include <mp-units/bits/ratio.h>
-#include <mp-units/quantity.h>
-#include <mp-units/systems/angular/angular.h>
+#include <mp-units/framework/quantity.h>
+#include <mp-units/systems/angular.h>
 #include <mp-units/systems/si/units.h>
-#include <mp-units/unit.h>
+#include <mp-units/framework/unit.h>
 
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/utils/json_schema.hpp>
@@ -19,8 +19,8 @@ consteval auto dimension_name() -> std::string_view;
 }  // namespace tfc::unit
 
 template <>
-struct glz::meta<mp_units::ratio> {
-  static constexpr auto value{ glz::object("numerator", &mp_units::ratio::num, "denominator", &mp_units::ratio::den) };
+struct glz::meta<mp_units::detail::ratio> {
+  static constexpr auto value{ glz::object("numerator", &mp_units::detail::ratio::num, "denominator", &mp_units::detail::ratio::den) };
   static constexpr auto name{ "units::ratio" };
 };
 
@@ -85,7 +85,7 @@ struct to_json_schema<mp_units::quantity<ref_t, rep_t>> {
   static_assert(unit_ascii[0] != 0);
   static_assert(unit_unicode[0] != 0);
 
-  static constexpr mp_units::ratio ratio{ mp_units::as_ratio(ref_t) };
+  static constexpr mp_units::detail::ratio ratio{ mp_units::detail::as_ratio(ref_t) };
   static constexpr auto dimension{ tfc::unit::dimension_name<ref_t>() };
   template <auto opts>
   static void op([[maybe_unused]] auto& schema, [[maybe_unused]] auto& defs) {

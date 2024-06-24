@@ -9,6 +9,7 @@
 
 #include <fmt/format.h>
 #include <boost/asio.hpp>
+#include <glaze/core/common.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
@@ -55,7 +56,11 @@ void config_dbus_client::initialize() {
           return 1;
         },
         [this]([[maybe_unused]] std::string const& value) -> std::string {  // getter
-          return this->value_call_();
+          const auto val{ this->value_call_() };
+          if (!val) {
+            throw tfc::dbus::exception::runtime{ fmt::format("Unable to get value: '{}'", glz::format_error(val.error())) };
+          }
+          return val.value();
         });
     dbus_interface_->register_property_r<std::string>(
         schema_property_name_, sdbusplus::vtable::property_::const_,

@@ -27,7 +27,7 @@ auto make() -> item {
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   return make(seed_source);
 }
-auto item::from_json(std::string_view json) -> std::expected<item, glz::parse_error> {
+auto item::from_json(std::string_view json) -> std::expected<item, glz::error_ctx> {
   auto temporary = glz::read_json<item>(json);
   if (!temporary.has_value()) {
     return temporary;
@@ -36,7 +36,7 @@ auto item::from_json(std::string_view json) -> std::expected<item, glz::parse_er
   temporary->last_exchange = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
   return temporary;
 }
-auto item::to_json() const -> std::string {
+auto item::to_json() const -> std::expected<std::string, glz::error_ctx> {
   return glz::write_json(*this);
 }
 auto item::id() const -> std::string {

@@ -4,8 +4,8 @@
 
 #include <glaze/glaze.hpp>
 
-#include <mp-units/bits/quantity_concepts.h>
-#include <mp-units/bits/value_cast.h>
+#include <mp-units/framework/quantity_concepts.h>
+#include <mp-units/framework/value_cast.h>
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/string_view_join.hpp>

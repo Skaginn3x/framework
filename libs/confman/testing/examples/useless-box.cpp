@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 

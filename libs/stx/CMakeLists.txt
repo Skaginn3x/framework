@@ -9,6 +9,7 @@ target_include_directories(stx
     $<INSTALL_INTERFACE:include>
 )
 
+find_package(gsl-lite CONFIG REQUIRED) # todo remove, mp-units should take care of this
 find_package(mp-units CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
 find_package(stduuid CONFIG REQUIRED)
@@ -16,7 +17,7 @@ find_package(stduuid CONFIG REQUIRED)
 target_link_libraries(stx
   INTERFACE
     glaze::glaze
-    mp-units::si
+    mp-units::systems
     mp-units::core
     stduuid
 )

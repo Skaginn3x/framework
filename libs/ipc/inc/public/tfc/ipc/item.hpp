@@ -9,9 +9,10 @@
 #include <string>
 #include <vector>
 
-#include <mp-units/systems/angular/angular.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/angular.h>
+#include <mp-units/systems/si.h>
 #include <stduuid/uuid.h>
+#include <glaze/core/context.hpp>
 
 #include <tfc/stx/basic_fixed_string.hpp>
 
@@ -209,8 +210,8 @@ struct item;
 struct item {
   using time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
 
-  [[nodiscard]] static auto from_json(std::string_view json) -> std::expected<item, glz::parse_error>;
-  [[nodiscard]] auto to_json() const -> std::string;
+  [[nodiscard]] static auto from_json(std::string_view json) -> std::expected<item, glz::error_ctx>;
+  [[nodiscard]] auto to_json() const -> std::expected<std::string, glz::error_ctx>;
   [[nodiscard]] auto id() const -> std::string;
 
   // ids

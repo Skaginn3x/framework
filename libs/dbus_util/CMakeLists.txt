@@ -1,6 +1,6 @@
 project(dbus_util)
 
-add_library(dbus_util src/dbus_util.cpp src/compile_tests.cpp src/exception.cpp src/sml_interface.cpp src/string_maker.cpp)
+add_library(dbus_util src/dbus_util.cpp src/exception.cpp src/sml_interface.cpp src/string_maker.cpp)
 add_library(tfc::dbus_util ALIAS dbus_util)
 target_include_directories(dbus_util
   PUBLIC

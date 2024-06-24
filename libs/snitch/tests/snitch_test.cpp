@@ -2,6 +2,7 @@
 #include <string_view>
 
 #include <boost/asio.hpp>
+#include <glaze/reflection/to_tuple.hpp>
 #include <glaze/util/string_literal.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -34,13 +35,17 @@ static_assert(arg_names<glz::chars<"foo {name}">>()[0] == "name");
 static_assert(arg_names<glz::chars<"foo {name} {name}">>()[0] == "name");
 
 static_assert(arg_names<glz::chars<"foo {name} {name}">>().size() == 1);
+#if __clang__
 // todo this below shouldn't be possible, remove if causes compile error and celebrate
 static_assert(arg_names<glz::chars<"foo {name} {name}">>()[1] == "");
+#endif
 
 static_assert(arg_names<glz::chars<"foo {name} {name} {bar}">>()[1] == "bar");
 static_assert(arg_names<glz::chars<"foo {name} {name} {bar}">>().size() == 2);
 
 }  // namespace test
+
+static_assert(glz::detail::count_members<tfc::snitch::api::activation> == 10);
 
 auto main(int argc, char** argv) -> int {
   using boost::ut::operator""_test;

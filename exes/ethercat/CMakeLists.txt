@@ -3,6 +3,7 @@ project(ec)
 find_path(BEXT_SML_INCLUDE_DIRS "boost/sml.hpp")
 find_package(fmt CONFIG REQUIRED)
 find_package(soem CONFIG REQUIRED)
+find_package(gsl-lite CONFIG REQUIRED) # todo remove when mp-units
 find_package(mp-units CONFIG REQUIRED)
 
 add_library(ec src/ec.cpp src/devices/beckhoff.cpp src/common.cpp)
@@ -25,7 +26,7 @@ target_link_libraries(ec
     tfc::soem_interface
     tfc::stx
     tfc::motor
-    mp-units::si
+    mp-units::systems
     fmt::fmt
 )
 

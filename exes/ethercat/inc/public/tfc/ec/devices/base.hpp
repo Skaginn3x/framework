@@ -9,7 +9,7 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <mp-units/bits/quantity_concepts.h>
+#include <mp-units/framework/quantity_concepts.h>
 
 #include <tfc/ec/soem_interface.hpp>
 #include <tfc/logger.hpp>

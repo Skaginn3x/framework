@@ -4,7 +4,7 @@
 #include <string_view>
 
 #include <fmt/chrono.h>
-#include <mp-units/chrono.h>
+#include <mp-units/systems/si/chrono.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 

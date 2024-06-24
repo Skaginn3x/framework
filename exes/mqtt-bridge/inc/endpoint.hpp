@@ -6,9 +6,11 @@
 #include <utility>
 
 #include <openssl/ssl.h>
+#include <async_mqtt/all.hpp>
 #include <async_mqtt/endpoint.hpp>
 #include <async_mqtt/packet/control_packet_type.hpp>
-#include <async_mqtt/predefined_underlying_layer.hpp>
+#include <async_mqtt/predefined_layer/mqtts.hpp>
+#include <async_mqtt/predefined_layer/mqtt.hpp>
 #include <async_mqtt/protocol_version.hpp>
 
 #include <boost/asio.hpp>
@@ -35,34 +37,34 @@ public:
     }
   }
 
-  auto strand() -> asio::strand<asio::any_io_executor> {
+  auto get_executor() const -> asio::any_io_executor {
     if (mqtts_client_) {
-      return mqtts_client_->strand();
+      return mqtts_client_->get_executor();
     }
-    return mqtt_client_->strand();
+    return mqtt_client_->get_executor();
   }
 
   auto recv(async_mqtt::control_packet_type packet_t) {
     if (mqtts_client_) {
-      return mqtts_client_->recv(async_mqtt::filter::match, { packet_t }, asio::use_awaitable);
+      return mqtts_client_->async_recv(async_mqtt::filter::match, { packet_t }, asio::use_awaitable);
     }
-    return mqtt_client_->recv(async_mqtt::filter::match, { packet_t }, asio::use_awaitable);
+    return mqtt_client_->async_recv(async_mqtt::filter::match, { packet_t }, asio::use_awaitable);
   }
 
   template <typename... args_t>
   auto send(args_t&&... args) {
     if (mqtts_client_) {
-      return mqtts_client_->send(std::forward<decltype(args)>(args)...);
+      return mqtts_client_->async_send(std::forward<decltype(args)>(args)...);
     }
-    return mqtt_client_->send(std::forward<decltype(args)>(args)...);
+    return mqtt_client_->async_send(std::forward<decltype(args)>(args)...);
   }
 
   template <typename... args_t>
   auto close(args_t&&... args) {
     if (mqtts_client_) {
-      return mqtts_client_->close(std::forward<decltype(args)>(args)...);
+      return mqtts_client_->async_close(std::forward<decltype(args)>(args)...);
     }
-    return mqtt_client_->close(std::forward<decltype(args)>(args)...);
+    return mqtt_client_->async_close(std::forward<decltype(args)>(args)...);
   }
 
   auto acquire_unique_packet_id() {
