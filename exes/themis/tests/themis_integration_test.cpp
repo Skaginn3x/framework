@@ -54,6 +54,10 @@ struct test_setup_c {
   test_setup_c()
       : connection{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
         client(connection) {}
+  ~test_setup_c() {
+    expect(connection.use_count() == 2);
+    connection->close();
+  }
 };
 
 struct test_setup {
@@ -314,7 +318,8 @@ int main(int argc, char** argv) {
   "An alarm that is lost shall have its activations status set to unknown"_test = [] {
     test_setup_s server;
     test_setup_c* client = new test_setup_c();
-    info<"desc", "details"> i(client->connection, "dead_client_test");
+    info<"desc", "details">* i = new info<"desc", "details">(client->connection, "dead_client_test");
+    client->connection->request_name("com.skaginn3x.test_this_name");
     client->client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
       expect(!err) << err.message();
       expect(alarms.size() == 1);
@@ -322,16 +327,18 @@ int main(int argc, char** argv) {
     });
     client->ctx.run_for(2ms);
     expect(client->ran[0]);
-    i.set([&](auto err) {
+    i->set([&](auto err) {
       expect(!err) << fmt::format("Received error: {}", err.message());
       client->ran[1] = true;
     });
     client->ctx.run_for(2ms);
     expect(client->ran[1]);
+    delete i;
     delete client;
+    fmt::println(stderr, "Client has been killed");
     test_setup_c new_client;
     new_client.client.list_activations(
-        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::unknown,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
         [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {

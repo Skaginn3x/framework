@@ -18,9 +18,7 @@ namespace tfc::dbus::sml {
 
 namespace tags {
 static constexpr std::string_view state_machine{ "StateMachine" };
-static constexpr std::string_view interface {
-  const_dbus_name<state_machine>
-};
+static constexpr std::string_view interface{ const_dbus_name<state_machine> };
 }  // namespace tags
 
 namespace detail {

@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
       db_ << fmt::format(
           "INSERT INTO Alarms(tfc_id, sha1sum, alarm_level, alarm_latching, registered_at) VALUES('{}','{}',{}, {}, {}) ON "
           "CONFLICT (tfc_id, sha1sum) DO UPDATE SET registered_at={};",
-          tfc_id, sha1_ascii, static_cast<std::uint8_t>(alarm_level), latching ? 1 : 0, ms_count_registered_at,
+          tfc_id, sha1_ascii, std::to_underlying(alarm_level), latching ? 1 : 0, ms_count_registered_at,
           ms_count_registered_at);
       auto insert_id = db_.last_insert_rowid();
       if (insert_id < 0) {
@@ -156,8 +156,9 @@ LEFT JOIN AlarmTranslations
 ON Alarms.sha1sum = AlarmTranslations.sha1sum;
 )";
     // Accept the second table paramters as unique ptr's as the values can be null, and we want to preserve that
-    db_ << query >> [&](snitch::api::alarm_id_t alarm_id, std::string tfc_id, std::string sha1sum, std::uint8_t alarm_level,
-                        bool alarm_latching, std::optional<int64_t> registered_at, std::optional<std::string> locale,
+    db_ << query >> [&](snitch::api::alarm_id_t alarm_id, std::string tfc_id, std::string sha1sum,
+                        std::underlying_type_t<tfc::snitch::level_e> alarm_level, bool alarm_latching,
+                        std::optional<int64_t> registered_at, std::optional<std::string> locale,
                         std::optional<std::string> translated_description, std::optional<std::string> translated_details) {
       auto iterator = alarms.find(alarm_id);
       if (iterator == alarms.end()) {
@@ -243,9 +244,8 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     std::uint64_t activation_id;
     try {
       db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},{})",
-                         alarm_id, milliseconds_since_epoch(tp),
-                         static_cast<std::int16_t>(tfc::snitch::api::active_e::active));
-      activation_id = static_cast<std::uint64_t>(db_.last_insert_rowid());
+                         alarm_id, milliseconds_since_epoch(tp), std::to_underlying(tfc::snitch::api::active_e::active));
+      activation_id = static_cast<tfc::snitch::api::activation_id_t>(db_.last_insert_rowid());
 
       for (auto& [key, value] : variables) {
         db_ << fmt::format("INSERT INTO AlarmVariables(activation_id, variable_key, variable_value) VALUES({},'{}','{}');",
@@ -263,8 +263,23 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
       throw dbus_error("Cannot reset an inactive activation");
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {}, reset_time = {} WHERE activation_id = {};",
-                       static_cast<std::int16_t>(tfc::snitch::api::active_e::inactive), milliseconds_since_epoch(tp),
+                       std::to_underlying(tfc::snitch::api::active_e::inactive), milliseconds_since_epoch(tp),
                        activation_id);
+  }
+  auto set_activation_status(snitch::api::alarm_id_t activation_id, tfc::snitch::api::active_e activation) -> void {
+    if (!is_activation_high(activation_id)) {
+      throw dbus_error("Cannot reset an inactive activation");
+    }
+    db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {} WHERE activation_id = {};",
+                       std::to_underlying(activation), activation_id);
+  }
+
+  auto get_activation_id_for_active_alarm(snitch::api::alarm_id_t alarm_id) -> std::optional<snitch::api::activation_id_t> {
+    std::optional<snitch::api::activation_id_t> activation_id = std::nullopt;
+    db_ << fmt::format("SELECT activation_id FROM AlarmActivations WHERE alarm_id = {} AND activation_level = {};", alarm_id,
+                       std::to_underlying(tfc::snitch::api::active_e::active)) >>
+        [&](std::uint64_t id) { activation_id = id; };
+    return activation_id;
   }
 
   [[nodiscard]] auto list_activations(std::string_view locale,
@@ -297,21 +312,21 @@ LEFT OUTER JOIN AlarmTranslations as backup_text on (Alarms.alarm_id = backup_te
 WHERE activation_time >= {} AND activation_time <= {})",
                                               locale, milliseconds_since_epoch(start), milliseconds_since_epoch(end));
     if (level != tfc::snitch::level_e::all) {
-      populated_query += fmt::format(" AND alarm_level = {}", static_cast<std::uint8_t>(level));
+      populated_query += fmt::format(" AND alarm_level = {}", std::to_underlying(level));
     }
     if (active != tfc::snitch::api::active_e::all) {
-      populated_query += fmt::format(" AND activation_level = {}", static_cast<std::uint8_t>(active));
+      populated_query += fmt::format(" AND activation_level = {}", std::to_underlying(active));
     }
     populated_query += fmt::format(" LIMIT {} OFFSET {};", count, start_count);
 
     std::vector<tfc::snitch::api::activation> activations;
 
-    db_ << populated_query >> [&](std::uint64_t activation_id, snitch::api::alarm_id_t alarm_id,
+    db_ << populated_query >> [&](snitch::api::activation_id_t activation_id, snitch::api::alarm_id_t alarm_id,
                                   std::int64_t activation_time, std::optional<std::int64_t> reset_time,
-                                  std::int64_t activation_level, std::optional<std::string> primary_details,
-                                  std::optional<std::string> primary_description, std::optional<std::string> backup_details,
-                                  std::optional<std::string> backup_description, bool alarm_latching,
-                                  std::int8_t alarm_level) {
+                                  std::underlying_type_t<snitch::api::active_e> activation_level,
+                                  std::optional<std::string> primary_details, std::optional<std::string> primary_description,
+                                  std::optional<std::string> backup_details, std::optional<std::string> backup_description,
+                                  bool alarm_latching, std::underlying_type_t<snitch::level_e> alarm_level) {
       if (!backup_description.has_value() || !backup_details.has_value()) {
         throw dbus_error("Backup message not found for alarm translation. This should never happen.");
       }
@@ -323,8 +338,8 @@ WHERE activation_time >= {} AND activation_time <= {})",
         final_reset_time = timepoint_from_milliseconds(reset_time.value());
       }
       activations.emplace_back(alarm_id, activation_id, description, details,
-                               static_cast<tfc::snitch::api::active_e>(activation_level),
-                               static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
+                               static_cast<snitch::api::active_e>(activation_level),
+                               static_cast<snitch::level_e>(alarm_level), alarm_latching,
                                timepoint_from_milliseconds(activation_time), final_reset_time, in_locale);
     };
     for (auto& activation : activations) {

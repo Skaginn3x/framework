@@ -42,7 +42,7 @@ public:
   /// \param unique_id A unique identifier for the alarm within this process
   /// \param default_args Default fmt::arg values to populate the alarm with, e.g. fmt::arg("index", 1) for tank 1 etc.
   alarm(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_id, named_arg auto&&... default_args)
-      : impl_{ conn,
+      : impl_{ std::move(conn),
                unique_id,
                description,
                details,

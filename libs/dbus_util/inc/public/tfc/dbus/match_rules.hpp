@@ -50,9 +50,7 @@ static constexpr std::string_view sender{ detail::filter<detail::sender_prefix, 
 /// If a message omits the interface header, it must not match any rule that specifies this key.
 /// Reference: https://dbus.freedesktop.org/doc/dbus-specification.html
 template <std::string_view const& interface_in>
-static constexpr std::string_view interface {
-  detail::filter<detail::interface_prefix, interface_in>
-};
+static constexpr std::string_view interface{ detail::filter<detail::interface_prefix, interface_in> };
 
 /// \brief make dbus `member` match rule
 /// \tparam member_in filter value
