@@ -61,6 +61,10 @@ public:
     impl_.on_try_reset(std::forward<callback_t>(callback));
   }
 
+  void set(named_arg auto&&... args) {
+    set([](auto){}, std::forward<decltype(args)>(args)...);
+  }
+
   void set(std::function<void(std::error_code)> on_set_finished, named_arg auto&&... args) {
     fmt::dynamic_format_arg_store<fmt::format_context> store;
     for (auto const& [key, value] : impl_.default_values()) {
