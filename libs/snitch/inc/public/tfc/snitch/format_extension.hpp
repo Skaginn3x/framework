@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstddef>
-#include <string_view>
 #include <span>
+#include <string_view>
 
 #include <fmt/core.h>
 
@@ -67,18 +67,13 @@ consteval auto arg_count(std::basic_string_view<Char> format_str) -> std::size_t
   return handler.num_args;
 }
 
-
 template <typename Char, std::size_t N>
 struct custom_handler_names {
   constexpr void on_text(const Char*, const Char*) {}
 
-  constexpr auto on_arg_id() -> int {
-    return 0;
-  }
+  constexpr auto on_arg_id() -> int { return 0; }
 
-  constexpr auto on_arg_id([[maybe_unused]] int id) -> int {
-    return 0;
-  }
+  constexpr auto on_arg_id([[maybe_unused]] int id) -> int { return 0; }
 
   constexpr auto on_arg_id(fmt::basic_string_view<Char> id) -> int {
     if (auto it{ std::ranges::find_if(names, [id](const auto& name) { return name == id; }) }; it == names.end()) {
@@ -91,9 +86,7 @@ struct custom_handler_names {
     // todo
   }
 
-  constexpr auto on_format_specs(int id, const Char* begin, const Char*) -> const Char* {
-    return begin;
-  }
+  constexpr auto on_format_specs(int id, const Char* begin, const Char*) -> const Char* { return begin; }
 
   constexpr void on_error(const char* msg) {
     // todo
@@ -127,4 +120,4 @@ consteval auto arg_names() -> decltype(auto) {
   return arg_names_impl<format_str>::value;
 }
 
-} // namespace tfc::snitch::detail
+}  // namespace tfc::snitch::detail

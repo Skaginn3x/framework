@@ -24,12 +24,10 @@ template <typename value_t, typename enable_t>
 struct type_id;
 
 template <>
-struct type_id<long long> : tuple_type_id<SD_BUS_TYPE_INT64>
-{};
+struct type_id<long long> : tuple_type_id<SD_BUS_TYPE_INT64> {};
 
 template <>
-struct type_id<unsigned long long> : tuple_type_id<SD_BUS_TYPE_UINT64>
-{};
+struct type_id<unsigned long long> : tuple_type_id<SD_BUS_TYPE_UINT64> {};
 
 template <concepts::dbus_reflectable struct_t>
 struct type_id<struct_t, void> {

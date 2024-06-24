@@ -13,10 +13,10 @@
 #include <sqlite_modern_cpp.h>
 #include <sqlite_modern_cpp/log.h>
 
+#include <tfc/dbus/exception.hpp>
 #include <tfc/logger.hpp>
 #include <tfc/progbase.hpp>
 #include <tfc/snitch/common.hpp>
-#include <tfc/dbus/exception.hpp>
 
 namespace tfc::themis {
 
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
       add_alarm_translation(alarm_id, "en", description, details);
 
       // Reset the alarm if high on register
-      if (is_alarm_active(alarm_id)){
+      if (is_alarm_active(alarm_id)) {
         reset_alarm(alarm_id);
       }
       db_ << "COMMIT;";
@@ -224,9 +224,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     return count;
   }
 
-  [[nodiscard]] auto is_some_alarm_active() -> bool {
-    return active_alarm_count() > 0;
-  }
+  [[nodiscard]] auto is_some_alarm_active() -> bool { return active_alarm_count() > 0; }
 
   /**
    * @brief Set an alarm in the database
@@ -245,7 +243,8 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     std::uint64_t activation_id;
     try {
       db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},{})",
-                         alarm_id, milliseconds_since_epoch(tp), static_cast<std::int16_t>(tfc::snitch::api::active_e::active));
+                         alarm_id, milliseconds_since_epoch(tp),
+                         static_cast<std::int16_t>(tfc::snitch::api::active_e::active));
       activation_id = static_cast<std::uint64_t>(db_.last_insert_rowid());
 
       for (auto& [key, value] : variables) {
@@ -264,8 +263,8 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
       throw dbus_error("Cannot reset an inactive activation");
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {}, reset_time = {} WHERE activation_id = {};",
-                       static_cast<std::int16_t>(tfc::snitch::api::active_e::inactive),
-                       milliseconds_since_epoch(tp), activation_id);
+                       static_cast<std::int16_t>(tfc::snitch::api::active_e::inactive), milliseconds_since_epoch(tp),
+                       activation_id);
   }
 
   [[nodiscard]] auto list_activations(std::string_view locale,
@@ -311,8 +310,8 @@ WHERE activation_time >= {} AND activation_time <= {})",
                                   std::int64_t activation_time, std::optional<std::int64_t> reset_time,
                                   std::int64_t activation_level, std::optional<std::string> primary_details,
                                   std::optional<std::string> primary_description, std::optional<std::string> backup_details,
-                                  std::optional<std::string> backup_description,
-                                  bool alarm_latching, std::int8_t alarm_level) {
+                                  std::optional<std::string> backup_description, bool alarm_latching,
+                                  std::int8_t alarm_level) {
       if (!backup_description.has_value() || !backup_details.has_value()) {
         throw dbus_error("Backup message not found for alarm translation. This should never happen.");
       }
@@ -323,7 +322,8 @@ WHERE activation_time >= {} AND activation_time <= {})",
       if (reset_time.has_value()) {
         final_reset_time = timepoint_from_milliseconds(reset_time.value());
       }
-      activations.emplace_back(alarm_id, activation_id, description, details, static_cast<tfc::snitch::api::active_e>(activation_level),
+      activations.emplace_back(alarm_id, activation_id, description, details,
+                               static_cast<tfc::snitch::api::active_e>(activation_level),
                                static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
                                timepoint_from_milliseconds(activation_time), final_reset_time, in_locale);
     };

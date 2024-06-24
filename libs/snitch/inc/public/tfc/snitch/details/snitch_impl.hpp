@@ -1,15 +1,15 @@
 #pragma once
 
-#include <unordered_map>
 #include <functional>
 #include <memory>
-#include <string>
 #include <optional>
+#include <string>
+#include <unordered_map>
 
 #include <boost/asio/steady_timer.hpp>
 
-#include <tfc/snitch/common.hpp>
 #include <tfc/dbus/sdbusplus_fwd.hpp>
+#include <tfc/snitch/common.hpp>
 
 namespace tfc::logger {
 class logger;
@@ -23,7 +23,13 @@ class dbus_client;
 
 class alarm_impl {
 public:
-  alarm_impl(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_id, std::string_view description, std::string_view details, bool resettable, level_e lvl, std::unordered_map<std::string, std::string>&& default_args);
+  alarm_impl(std::shared_ptr<sdbusplus::asio::connection> conn,
+             std::string_view unique_id,
+             std::string_view description,
+             std::string_view details,
+             bool resettable,
+             level_e lvl,
+             std::unordered_map<std::string, std::string>&& default_args);
   alarm_impl(alarm_impl const&) = delete;
   auto operator=(alarm_impl const&) -> alarm_impl& = delete;
   alarm_impl(alarm_impl&&) = delete;
@@ -32,7 +38,10 @@ public:
 
   auto default_values() const noexcept -> auto const& { return default_values_; }
   void on_try_reset(std::function<void()> callback);
-  void set(std::string_view description_formatted, std::string_view details_formatted, std::unordered_map<std::string, std::string>&& args, std::function<void(std::error_code)>&& on_set_finished);
+  void set(std::string_view description_formatted,
+           std::string_view details_formatted,
+           std::unordered_map<std::string, std::string>&& args,
+           std::function<void(std::error_code)>&& on_set_finished);
   void reset(std::function<void(std::error_code)>&& on_reset_finished);
 
   auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> { return alarm_id_; }
@@ -57,4 +66,4 @@ private:
   asio::steady_timer retry_timer_;
 };
 
-} // namespace tfc::snitch::detail
+}  // namespace tfc::snitch::detail

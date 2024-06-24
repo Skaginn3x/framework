@@ -7,13 +7,7 @@
 namespace tfc::snitch {
 
 // std::int8_t is not in the dbus spec, so we use std::int16_t instead
-enum struct level_e : std::int16_t {
-  all = -1,
-  info = 0,
-  warning = 1,
-  error = 2,
-  unknown = 32767
-};
+enum struct level_e : std::int16_t { all = -1, info = 0, warning = 1, error = 2, unknown = 32767 };
 
 namespace api {
 
@@ -22,12 +16,7 @@ using alarm_id_t = std::uint64_t;
 using activation_id_t = alarm_id_t;
 
 // std::int8_t is not in the dbus spec, so we use std::int16_t instead
-enum struct active_e : std::int16_t {
-  all = -1,
-  inactive = 0,
-  active = 1,
-  unknown = 32767
-};
+enum struct active_e : std::int16_t { all = -1, inactive = 0, active = 1, unknown = 32767 };
 
 struct alarm {
   alarm_id_t alarm_id;
@@ -60,24 +49,22 @@ namespace dbus {
 static constexpr std::string_view service_name = "com.skaginn3x.Alarm";
 static constexpr std::string_view interface_name = "com.skaginn3x.Alarm";
 static constexpr std::string_view object_path = "/com/skaginn3x/Alarm";
-namespace properties {
-
-}
+namespace properties {}
 namespace methods {
-  static constexpr std::string_view register_alarm = "RegisterAlarm";
-  static constexpr std::string_view list_alarms = "ListAlarms";
-  static constexpr std::string_view list_activations = "ListActivations";
-  static constexpr std::string_view set_alarm = "SetAlarm";
-  static constexpr std::string_view reset_alarm = "ResetAlarm";
-  static constexpr std::string_view try_reset = "TryReset";
-  static constexpr std::string_view try_reset_all = "TryResetAll";
-}
+static constexpr std::string_view register_alarm = "RegisterAlarm";
+static constexpr std::string_view list_alarms = "ListAlarms";
+static constexpr std::string_view list_activations = "ListActivations";
+static constexpr std::string_view set_alarm = "SetAlarm";
+static constexpr std::string_view reset_alarm = "ResetAlarm";
+static constexpr std::string_view try_reset = "TryReset";
+static constexpr std::string_view try_reset_all = "TryResetAll";
+}  // namespace methods
 namespace signals {
-  static constexpr std::string_view alarm_activation_changed = "AlarmActivationChanged";
-  static constexpr std::string_view try_reset = methods::try_reset;
-  static constexpr std::string_view try_reset_all = methods::try_reset_all;
-}
-}
-} // namespace api
+static constexpr std::string_view alarm_activation_changed = "AlarmActivationChanged";
+static constexpr std::string_view try_reset = methods::try_reset;
+static constexpr std::string_view try_reset_all = methods::try_reset_all;
+}  // namespace signals
+}  // namespace dbus
+}  // namespace api
 
-} // namespace tfc::snitch
+}  // namespace tfc::snitch

@@ -19,8 +19,8 @@ using boost::ut::operator""_test;
 using boost::ut::operator|;
 using boost::ut::operator/;
 using boost::ut::expect;
-using boost::ut::throws;
 using boost::ut::fatal;
+using boost::ut::throws;
 using tfc::snitch::error;
 using tfc::snitch::info;
 using tfc::snitch::warning;
@@ -230,13 +230,13 @@ int main(int argc, char** argv) {
   "alarm with declared params but no params provided"_test = [] {
     test_setup t;
     info<"desc {foo}", "details {bar} {foo}"> i(t.connection, "first_test");
-    expect(throws([&]{ i.set(); }));
+    expect(throws([&] { i.set(); }));
   };
 
   "alarm with wrong named params"_test = [] {
     test_setup t;
     info<"desc {foo}", "details {bar} {foo}"> i(t.connection, "first_test");
-    expect(throws([&]{ i.set(fmt::arg("ababa", 1), fmt::arg("some_other name", 2)); }));
+    expect(throws([&] { i.set(fmt::arg("ababa", 1), fmt::arg("some_other name", 2)); }));
   };
 
   "alarm with params"_test = [] {
@@ -267,16 +267,15 @@ int main(int argc, char** argv) {
   };
 
   // TODO: The alarm is recreated but its state is not set again.
-  "Alarm loses database connection set forgotten"_test = []{
-    test_setup_s *server = new test_setup_s();
+  "Alarm loses database connection set forgotten"_test = [] {
+    test_setup_s* server = new test_setup_s();
     test_setup_c client;
     info<"desc", "details"> i(client.connection, "dead_server_test");
     {
-      i.set(
-          [&](auto err) {
-            expect(!err) << fmt::format("Received error: {}", err.message());
-            client.ran[0] = true;
-          });
+      i.set([&](auto err) {
+        expect(!err) << fmt::format("Received error: {}", err.message());
+        client.ran[0] = true;
+      });
       client.ctx.run_for(2ms);
       expect(client.ran[0]);
       delete server;
@@ -284,9 +283,9 @@ int main(int argc, char** argv) {
     {
       // This servers database is started in ram again.
       // should the alarm should be populated and set again.
-      client.ran[0] = false; // Reset the set callback. Should probably be called again.
+      client.ran[0] = false;  // Reset the set callback. Should probably be called again.
       client.ctx.run_for(2ms);
-      test_setup_s *server2 = new test_setup_s();
+      test_setup_s* server2 = new test_setup_s();
       client.ctx.run_for(2ms);
       expect(client.ran[0]);
       client.client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
@@ -311,10 +310,10 @@ int main(int argc, char** argv) {
     }
   };
 
-  //TODO: An extra alarm could be created that warns of the lost connection.
-  "An alarm that is lost shall have its activations status set to unknown"_test = []{
+  // TODO: An extra alarm could be created that warns of the lost connection.
+  "An alarm that is lost shall have its activations status set to unknown"_test = [] {
     test_setup_s server;
-    test_setup_c *client = new test_setup_c();
+    test_setup_c* client = new test_setup_c();
     info<"desc", "details"> i(client->connection, "dead_client_test");
     client->client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
       expect(!err) << err.message();
@@ -323,11 +322,10 @@ int main(int argc, char** argv) {
     });
     client->ctx.run_for(2ms);
     expect(client->ran[0]);
-    i.set(
-        [&](auto err) {
-          expect(!err) << fmt::format("Received error: {}", err.message());
-          client->ran[1] = true;
-        });
+    i.set([&](auto err) {
+      expect(!err) << fmt::format("Received error: {}", err.message());
+      client->ran[1] = true;
+    });
     client->ctx.run_for(2ms);
     expect(client->ran[1]);
     delete client;

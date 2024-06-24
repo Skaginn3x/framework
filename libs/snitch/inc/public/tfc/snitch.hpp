@@ -8,8 +8,8 @@
 #include <fmt/args.h>
 #include <fmt/core.h>
 
-#include <tfc/snitch/details/snitch_impl.hpp>
 #include <tfc/snitch/common.hpp>
+#include <tfc/snitch/details/snitch_impl.hpp>
 #include <tfc/snitch/format_extension.hpp>
 #include <tfc/stx/basic_fixed_string.hpp>
 #include <tfc/stx/concepts.hpp>
@@ -42,8 +42,13 @@ public:
   /// \param unique_id A unique identifier for the alarm within this process
   /// \param default_args Default fmt::arg values to populate the alarm with, e.g. fmt::arg("index", 1) for tank 1 etc.
   alarm(std::shared_ptr<sdbusplus::asio::connection> conn, std::string_view unique_id, named_arg auto&&... default_args)
-      : impl_{ conn, unique_id, description, details, var.resettable, var.lvl, { std::make_pair(default_args.name, fmt::format("{}", default_args.value))... } }
-  {
+      : impl_{ conn,
+               unique_id,
+               description,
+               details,
+               var.resettable,
+               var.lvl,
+               { std::make_pair(default_args.name, fmt::format("{}", default_args.value))... } } {
     static_assert(detail::check_all_arguments_named(description), "All arguments must be named, e.g. {name}");
     static_assert(detail::check_all_arguments_no_format(description), "All arguments may not have format specifiers");
     [[maybe_unused]] static constexpr int num_args = sizeof...(default_args);
@@ -62,7 +67,7 @@ public:
   }
 
   void set(named_arg auto&&... args) {
-    set([](auto){}, std::forward<decltype(args)>(args)...);
+    set([](auto) {}, std::forward<decltype(args)>(args)...);
   }
 
   void set(std::function<void(std::error_code)> on_set_finished, named_arg auto&&... args) {
@@ -73,27 +78,21 @@ public:
     (store.push_back(args), ...);
     std::string description_formatted = fmt::vformat(description, store);
     std::string details_formatted = fmt::vformat(details, store);
-    impl_.set(description_formatted, details_formatted, { std::make_pair(args.name, fmt::format("{}", args.value))... }, std::move(on_set_finished));
+    impl_.set(description_formatted, details_formatted, { std::make_pair(args.name, fmt::format("{}", args.value))... },
+              std::move(on_set_finished));
   }
 
-  void reset(std::function<void(std::error_code)> on_reset_finished = [](auto){}) {
+  void reset(std::function<void(std::error_code)> on_reset_finished = [](auto) {}) {
     impl_.reset(std::move(on_reset_finished));
   }
 
-  auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> {
-    return impl_.alarm_id();
-  }
+  auto alarm_id() const noexcept -> std::optional<api::alarm_id_t> { return impl_.alarm_id(); }
 
-  auto activation_id() const noexcept -> std::optional<api::activation_id_t> {
-    return impl_.activation_id();
-  }
-
+  auto activation_id() const noexcept -> std::optional<api::activation_id_t> { return impl_.activation_id(); }
 
 private:
   detail::alarm_impl impl_;
 };
-
-
 
 template <stx::basic_fixed_string description, stx::basic_fixed_string details = "">
 using info = alarm<variance{ .resettable = false, .lvl = level_e::info }, description, details>;
