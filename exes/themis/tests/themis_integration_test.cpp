@@ -30,6 +30,32 @@ using tfc::snitch::detail::dbus_client;
 using tfc::themis::alarm_database;
 using tfc::themis::interface;
 
+struct test_setup_s {
+  asio::io_context ctx;
+  alarm_database db;
+  std::shared_ptr<sdbusplus::asio::connection> connection;
+  interface face;
+  std::thread t;
+  test_setup_s()
+      : db(true), connection{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
+        face(connection, db), t([&] { ctx.run(); }) {}
+  ~test_setup_s() {
+    ctx.stop();
+    t.join();
+  }
+};
+
+struct test_setup_c {
+  asio::io_context ctx;
+  std::shared_ptr<sdbusplus::asio::connection> connection;
+  std::array<bool, 10> ran{};
+  std::array<std::uint64_t, 10> ids{};
+  dbus_client client;
+  test_setup_c()
+      : connection{ std::make_shared<sdbusplus::asio::connection>(ctx, tfc::dbus::sd_bus_open_system()) },
+        client(connection) {}
+};
+
 struct test_setup {
   asio::io_context ctx;
   asio::io_context sctx;
@@ -240,5 +266,88 @@ int main(int argc, char** argv) {
     expect(t.ran[1]);
   };
 
+  // TODO: The alarm is recreated but its state is not set again.
+  "Alarm loses database connection set forgotten"_test = []{
+    test_setup_s *server = new test_setup_s();
+    test_setup_c client;
+    info<"desc", "details"> i(client.connection, "dead_server_test");
+    {
+      i.set(
+          [&](auto err) {
+            expect(!err) << fmt::format("Received error: {}", err.message());
+            client.ran[0] = true;
+          });
+      client.ctx.run_for(2ms);
+      expect(client.ran[0]);
+      delete server;
+    }
+    {
+      // This servers database is started in ram again.
+      // should the alarm should be populated and set again.
+      client.ran[0] = false; // Reset the set callback. Should probably be called again.
+      client.ctx.run_for(2ms);
+      test_setup_s *server2 = new test_setup_s();
+      client.ctx.run_for(2ms);
+      expect(client.ran[0]);
+      client.client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
+        expect(!err) << err.message();
+        expect(alarms.size() == 1);
+        client.ran[1] = true;
+      });
+      client.ctx.run_for(2ms);
+      expect(client.ran[1]);
+      client.client.list_activations(
+          "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+          tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+          tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
+          [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
+            expect(!err) << err.message();
+            expect(act.size() == 1);
+            client.ran[2] = true;
+          });
+      client.ctx.run_for(2ms);
+      expect(client.ran[2]);
+      delete server2;
+    }
+  };
+
+  //TODO: An extra alarm could be created that warns of the lost connection.
+  "An alarm that is lost shall have its activations status set to unknown"_test = []{
+    test_setup_s server;
+    test_setup_c *client = new test_setup_c();
+    info<"desc", "details"> i(client->connection, "dead_client_test");
+    client->client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
+      expect(!err) << err.message();
+      expect(alarms.size() == 1);
+      client->ran[0] = true;
+    });
+    client->ctx.run_for(2ms);
+    expect(client->ran[0]);
+    i.set(
+        [&](auto err) {
+          expect(!err) << fmt::format("Received error: {}", err.message());
+          client->ran[1] = true;
+        });
+    client->ctx.run_for(2ms);
+    expect(client->ran[1]);
+    delete client;
+    test_setup_c new_client;
+    new_client.client.list_activations(
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        tfc::themis::alarm_database::timepoint_from_milliseconds(0),
+        tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
+        [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
+          expect(!err) << err.message();
+          expect(act.size() == 1);
+          auto const& alarm = act.at(0);
+          expect(alarm.description == "desc");
+          expect(alarm.details == "details");
+          expect(alarm.lvl == tfc::snitch::level_e::info);
+          expect(alarm.active == tfc::snitch::api::active_e::unknown);
+          new_client.ran[0] = true;
+        });
+    new_client.ctx.run_for(2ms);
+    expect(new_client.ran[0]);
+  };
   return 0;
 }

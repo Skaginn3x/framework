@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS AlarmActivations(
   alarm_id INTEGER NOT NULL,
   activation_time LONG INTEGER NOT NULL,
   reset_time LONG INTEGER,
-  activation_level BOOLEAN NOT NULL,
+  activation_level SHORT INTEGER NOT NULL,
   inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(alarm_id) REFERENCES Alarms(alarm_id)
 );
@@ -244,8 +244,8 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     db_ << "BEGIN;";
     std::uint64_t activation_id;
     try {
-      db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},1)",
-                         alarm_id, milliseconds_since_epoch(tp));
+      db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},{})",
+                         alarm_id, milliseconds_since_epoch(tp), static_cast<std::int16_t>(tfc::snitch::api::active_e::active));
       activation_id = static_cast<std::uint64_t>(db_.last_insert_rowid());
 
       for (auto& [key, value] : variables) {
@@ -263,7 +263,8 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     if (!is_activation_high(activation_id)) {
       throw dbus_error("Cannot reset an inactive activation");
     }
-    db_ << fmt::format("UPDATE AlarmActivations SET activation_level = 0, reset_time = {} WHERE activation_id = {};",
+    db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {}, reset_time = {} WHERE activation_id = {};",
+                       static_cast<std::int16_t>(tfc::snitch::api::active_e::inactive),
                        milliseconds_since_epoch(tp), activation_id);
   }
 
@@ -308,7 +309,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
 
     db_ << populated_query >> [&](std::uint64_t activation_id, snitch::api::alarm_id_t alarm_id,
                                   std::int64_t activation_time, std::optional<std::int64_t> reset_time,
-                                  bool activation_level, std::optional<std::string> primary_details,
+                                  std::int64_t activation_level, std::optional<std::string> primary_details,
                                   std::optional<std::string> primary_description, std::optional<std::string> backup_details,
                                   std::optional<std::string> backup_description,
                                   bool alarm_latching, std::int8_t alarm_level) {
@@ -322,7 +323,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
       if (reset_time.has_value()) {
         final_reset_time = timepoint_from_milliseconds(reset_time.value());
       }
-      activations.emplace_back(alarm_id, activation_id, description, details, activation_level,
+      activations.emplace_back(alarm_id, activation_id, description, details, static_cast<tfc::snitch::api::active_e>(activation_level),
                                static_cast<tfc::snitch::level_e>(alarm_level), alarm_latching,
                                timepoint_from_milliseconds(activation_time), final_reset_time, in_locale);
     };

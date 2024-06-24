@@ -9,10 +9,10 @@ namespace tfc::snitch {
 // std::int8_t is not in the dbus spec, so we use std::int16_t instead
 enum struct level_e : std::int16_t {
   all = -1,
-  unknown,
-  info,
-  warning,
-  error,
+  info = 0,
+  warning = 1,
+  error = 2,
+  unknown = 32767
 };
 
 namespace api {
@@ -25,7 +25,8 @@ using activation_id_t = alarm_id_t;
 enum struct active_e : std::int16_t {
   all = -1,
   inactive = 0,
-  active = 1
+  active = 1,
+  unknown = 32767
 };
 
 struct alarm {
@@ -48,7 +49,7 @@ struct activation {
   std::uint64_t activation_id;
   std::string description;
   std::string details;
-  bool active{};
+  active_e active{ active_e::unknown };
   level_e lvl{ level_e::unknown };
   bool latching{};
   time_point set_timestamp;
