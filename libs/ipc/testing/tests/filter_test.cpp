@@ -163,11 +163,11 @@ auto main(int, char**) -> int {
     // down to business, 1 second has elapsed since the timer was made with 42 second wait, let's change the value
     expect(!finished);
 
-    auto generic_config = glz::read_json<glz::json_t>(config.string());
+    auto generic_config = glz::read_json<glz::json_t>(config.string().value_or(""));
     expect(generic_config.has_value() >> fatal);
     generic_config->at("time_on") = 1;  // reduce time to only 1 millisecond
     generic_config->at("time_off") = 1;
-    expect(!config.from_string(glz::write_json(generic_config.value())) >> fatal);
+    expect(!config.from_string(glz::write_json(generic_config.value()).value_or("")) >> fatal);
     expect(config->time_on == 1ms);
     expect(config->time_off == 1ms);
 

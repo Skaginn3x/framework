@@ -30,7 +30,13 @@ public:
     interface_ = object_server_->add_unique_interface(object_path.data(), interface_name.data());
 
     interface_->register_method(std::string(methods::list_alarms),
-                                [&]() -> std::string { return glz::write_json(database.list_alarms()); });
+                                [&]() -> std::string {
+                                  auto const alarms_str{ glz::write_json(database.list_alarms()) };
+                                  if (!alarms_str) {
+                                    throw dbus_error("Failed to serialize alarms");
+                                  }
+                                  return alarms_str.value();
+                                });
 
     interface_->register_method(
         std::string(methods::register_alarm),
@@ -78,9 +84,13 @@ public:
                                     int64_t start, int64_t end) -> std::string {
                                   auto cstart = tfc::themis::alarm_database::timepoint_from_milliseconds(start);
                                   auto cend = tfc::themis::alarm_database::timepoint_from_milliseconds(end);
-                                  return glz::write_json(database.list_activations(
+                                  auto const activations_str{ glz::write_json(database.list_activations(
                                       locale, start_count, count, static_cast<tfc::snitch::level_e>(alarm_level),
-                                      static_cast<tfc::snitch::api::active_e>(active), cstart, cend));
+                                      static_cast<tfc::snitch::api::active_e>(active), cstart, cend)) };
+                                  if (!activations_str) {
+                                    throw dbus_error("Failed to serialize activations");
+                                  }
+                                  return activations_str.value();
                                 });
 
     // Signal alarm_id, current_activation, ack_status

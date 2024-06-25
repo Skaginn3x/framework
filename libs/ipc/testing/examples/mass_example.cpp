@@ -6,7 +6,7 @@
 #include <tfc/ipc/details/dbus_client_iface_mock.hpp>
 #include <tfc/progbase.hpp>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
