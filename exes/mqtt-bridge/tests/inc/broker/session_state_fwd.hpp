@@ -7,7 +7,7 @@
 #if !defined(ASYNC_MQTT_BROKER_SESSION_STATE_FWD_HPP)
 #define ASYNC_MQTT_BROKER_SESSION_STATE_FWD_HPP
 
-#include <functional> // reference_wrapper
+#include <functional>  // reference_wrapper
 
 namespace async_mqtt {
 
@@ -17,6 +17,6 @@ struct session_state;
 template <typename Sp>
 using session_state_ref = std::reference_wrapper<session_state<Sp>>;
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // ASYNC_MQTT_BROKER_SESSION_STATE_FWD_HPP
+#endif  // ASYNC_MQTT_BROKER_SESSION_STATE_FWD_HPP

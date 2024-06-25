@@ -13,7 +13,6 @@ namespace async_mqtt {
 
 using mutex = std::shared_timed_mutex;
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-
-#endif // ASYNC_MQTT_BROKER_MUTEX_HPP
+#endif  // ASYNC_MQTT_BROKER_MUTEX_HPP

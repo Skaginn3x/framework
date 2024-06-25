@@ -79,7 +79,9 @@ public:
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   /// \return storage_t as json string
-  [[nodiscard]] auto string() const -> std::expected<std::string, glz::error_ctx> { return glz::write_json(storage_.value()); }
+  [[nodiscard]] auto string() const -> std::expected<std::string, glz::error_ctx> {
+    return glz::write_json(storage_.value());
+  }
 
   /// TODO can we do this differently, jsonforms requires object as root element
   /// an example of failure would be confman<std::vector<int>> as the json schema root element would be array

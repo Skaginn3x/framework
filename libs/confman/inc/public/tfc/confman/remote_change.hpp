@@ -25,8 +25,7 @@ template <typename config_storage_t>
     handler(std::make_error_code(std::errc::invalid_argument));
     return;
   }
-  return set_config_impl(dbus, service, key, write.value(),
-                         std::forward<decltype(handler)>(handler));
+  return set_config_impl(dbus, service, key, write.value(), std::forward<decltype(handler)>(handler));
 }
 
 // todo get_config

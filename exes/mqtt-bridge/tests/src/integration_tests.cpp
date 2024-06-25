@@ -98,9 +98,7 @@ public:
 
   auto send_subscribe() -> asio::awaitable<void> {
     std::optional<async_mqtt::packet_id_type> packet_id = amep_->acquire_unique_packet_id();
-    auto sub_packet =
-        async_mqtt::v5::subscribe_packet{ packet_id.value(),
-                                          { { topic_, async_mqtt::qos::at_most_once } } };
+    auto sub_packet = async_mqtt::v5::subscribe_packet{ packet_id.value(), { { topic_, async_mqtt::qos::at_most_once } } };
     co_await amep_->async_send(sub_packet, asio::use_awaitable);
     co_await amep_->async_recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::suback }, asio::use_awaitable);
     co_await receive_publish_packets();
@@ -108,8 +106,8 @@ public:
 
   auto receive_publish_packets() -> asio::awaitable<void> {
     while (true) {
-      auto p =
-          co_await amep_->async_recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::publish }, asio::use_awaitable);
+      auto p = co_await amep_->async_recv(async_mqtt::filter::match, { async_mqtt::control_packet_type::publish },
+                                          asio::use_awaitable);
       async_mqtt::v5::publish_packet const& p2 = p.template get<async_mqtt::v5::publish_packet>();
       for (auto& payload : p2.payload_as_buffer()) {
         messages_.push_back(payload);

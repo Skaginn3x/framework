@@ -13,15 +13,14 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-
 namespace async_mqtt {
 
 inline std::string create_uuid_string() {
-    // See https://github.com/boostorg/uuid/issues/121
-    thread_local boost::uuids::random_generator gen;
-    return boost::uuids::to_string(gen());
+  // See https://github.com/boostorg/uuid/issues/121
+  thread_local boost::uuids::random_generator gen;
+  return boost::uuids::to_string(gen());
 }
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // ASYNC_MQTT_BROKER_UUID_HPP
+#endif  // ASYNC_MQTT_BROKER_UUID_HPP

@@ -62,7 +62,8 @@ public:
       io_ctx_.run_for(std::chrono::seconds{ 1 });
 
       while (!restart_needed) {
-        co_await asio::steady_timer{ sp_interface_.get_executor(), std::chrono::seconds{ 5 } }.async_wait(asio::use_awaitable);
+        co_await asio::steady_timer{ sp_interface_.get_executor(), std::chrono::seconds{ 5 } }.async_wait(
+            asio::use_awaitable);
       }
 
       cancel_signal.emit(asio::cancellation_type::all);

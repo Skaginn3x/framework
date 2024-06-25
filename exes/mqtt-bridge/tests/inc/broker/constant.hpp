@@ -13,6 +13,6 @@ namespace async_mqtt {
 
 static constexpr std::size_t max_cn_size = 0xffff;
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // ASYNC_MQTT_BROKER_CONSTANT_HPP
+#endif  // ASYNC_MQTT_BROKER_CONSTANT_HPP

@@ -17,26 +17,25 @@
 namespace async_mqtt {
 
 inline void map_core_to_this_thread(std::size_t core) {
-    cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(static_cast<int>(core), &mask);
-    int ret = sched_setaffinity(0, sizeof(mask), &mask);
-    BOOST_ASSERT(ret == 0);
+  cpu_set_t mask;
+  CPU_ZERO(&mask);
+  CPU_SET(static_cast<int>(core), &mask);
+  int ret = sched_setaffinity(0, sizeof(mask), &mask);
+  BOOST_ASSERT(ret == 0);
 }
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
 #else  // defined(_GNU_SOURCE)
 
 namespace async_mqtt {
 
 inline void map_core_to_this_thread(std::size_t /*core*/) {
-    ASYNC_MQTT_LOG("mqtt_broker", warning)
-        << "map_core_to_this_thread() is called but do nothing";
+  ASYNC_MQTT_LOG("mqtt_broker", warning) << "map_core_to_this_thread() is called but do nothing";
 }
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // defined(_GNU_SOURCE)
+#endif  // defined(_GNU_SOURCE)
 
-#endif // ASYNC_MQTT_BROKER_FIXED_CORE_MAP_HPP
+#endif  // ASYNC_MQTT_BROKER_FIXED_CORE_MAP_HPP

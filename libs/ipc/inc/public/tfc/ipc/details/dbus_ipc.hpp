@@ -48,8 +48,7 @@ public:
     interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::none,
                                              [this](const auto&) { return value_; });
     interface_->register_property_r<std::string>(
-        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::const_,
-        []([[maybe_unused]] std::string& old_value) {
+        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::const_, []([[maybe_unused]] std::string& old_value) {
           auto const val{ tfc::json::write_json_schema<value_t>() };
           if (!val) {
             fmt::println(stderr, "Unable to get schema: '{}'", glz::format_error(val.error()));

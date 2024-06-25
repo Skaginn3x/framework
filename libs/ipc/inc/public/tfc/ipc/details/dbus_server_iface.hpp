@@ -282,8 +282,7 @@ public:
         });
 
     dbus_interface_->register_property_r<std::string>(
-        std::string(consts::signals_property), sdbusplus::vtable::property_::emits_change,
-        [&](const auto&) {
+        std::string(consts::signals_property), sdbusplus::vtable::property_::emits_change, [&](const auto&) {
           auto const write{ glz::write_json(ipc_manager_->get_all_signals()) };
           if (!write) {
             fmt::println(stderr, "Failed to write signals to json: {}", format_error(write.error()));
@@ -293,8 +292,7 @@ public:
         });
 
     dbus_interface_->register_property_r<std::string>(
-        std::string(consts::slots_property), sdbusplus::vtable::property_::emits_change,
-        [&](const auto&) {
+        std::string(consts::slots_property), sdbusplus::vtable::property_::emits_change, [&](const auto&) {
           auto const write{ glz::write_json(ipc_manager_->get_all_slots()) };
           if (!write) {
             fmt::println(stderr, "Failed to write signals to json: {}", format_error(write.error()));
@@ -304,8 +302,7 @@ public:
         });
 
     dbus_interface_->register_property_r<std::string>(
-        std::string(consts::connections_property), sdbusplus::vtable::property_::emits_change,
-        [&](const auto&) {
+        std::string(consts::connections_property), sdbusplus::vtable::property_::emits_change, [&](const auto&) {
           auto const write{ glz::write_json(ipc_manager_->get_all_connections()) };
           if (!write) {
             fmt::println(stderr, "Failed to write signals to json: {}", format_error(write.error()));

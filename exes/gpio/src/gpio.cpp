@@ -16,8 +16,8 @@ void gpio::pin_direction_change(pin_index_t idx,
                                 gpiod::line::direction new_value,
                                 [[maybe_unused]] gpiod::line::direction old_value) noexcept {
   try {
-    logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")", glz::write_json(new_value).value_or(""),
-                  glz::write_json(old_value).value_or(""));
+    logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")",
+                  glz::write_json(new_value).value_or(""), glz::write_json(old_value).value_or(""));
     if (new_value == gpiod::line::direction::OUTPUT) {
       pins_.at(idx).emplace<ipc_input_t>(ctx_, manager_client_, fmt::format("in.{}", idx),
                                          std::bind_front(&gpio::ipc_event, this, idx));

@@ -9,8 +9,8 @@
 #include <async_mqtt/all.hpp>
 #include <async_mqtt/endpoint.hpp>
 #include <async_mqtt/packet/control_packet_type.hpp>
-#include <async_mqtt/predefined_layer/mqtts.hpp>
 #include <async_mqtt/predefined_layer/mqtt.hpp>
+#include <async_mqtt/predefined_layer/mqtts.hpp>
 #include <async_mqtt/protocol_version.hpp>
 
 #include <boost/asio.hpp>

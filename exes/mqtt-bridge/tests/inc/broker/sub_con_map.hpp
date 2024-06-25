@@ -7,14 +7,14 @@
 #if !defined(ASYNC_MQTT_BROKER_SUB_CON_MAP_HPP)
 #define ASYNC_MQTT_BROKER_SUB_CON_MAP_HPP
 
-#include <broker/subscription_map.hpp>
 #include <broker/subscription.hpp>
+#include <broker/subscription_map.hpp>
 
 namespace async_mqtt {
 
 template <typename Sp>
 using sub_con_map = multiple_subscription_map<std::string, subscription<Sp>>;
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // ASYNC_MQTT_BROKER_SUB_CON_MAP_HPP
+#endif  // ASYNC_MQTT_BROKER_SUB_CON_MAP_HPP

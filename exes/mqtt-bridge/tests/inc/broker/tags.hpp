@@ -11,8 +11,8 @@ namespace async_mqtt {
 
 struct tag_seq {};
 struct tag_con {};
-struct tag_topic{};
-struct tag_topic_filter{};
+struct tag_topic {};
+struct tag_topic_filter {};
 struct tag_con_topic_filter {};
 struct tag_cid {};
 struct tag_cid_topic_filter {};
@@ -21,6 +21,6 @@ struct tag_pid {};
 struct tag_sn_tp {};
 struct tag_cid_sn {};
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // ASYNC_MQTT_BROKER_TAGS_HPP
+#endif  // ASYNC_MQTT_BROKER_TAGS_HPP

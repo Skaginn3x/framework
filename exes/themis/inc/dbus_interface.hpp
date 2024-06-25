@@ -29,14 +29,13 @@ public:
     connection_->request_name(service_name.data());
     interface_ = object_server_->add_unique_interface(object_path.data(), interface_name.data());
 
-    interface_->register_method(std::string(methods::list_alarms),
-                                [&]() -> std::string {
-                                  auto const alarms_str{ glz::write_json(database.list_alarms()) };
-                                  if (!alarms_str) {
-                                    throw dbus_error("Failed to serialize alarms");
-                                  }
-                                  return alarms_str.value();
-                                });
+    interface_->register_method(std::string(methods::list_alarms), [&]() -> std::string {
+      auto const alarms_str{ glz::write_json(database.list_alarms()) };
+      if (!alarms_str) {
+        throw dbus_error("Failed to serialize alarms");
+      }
+      return alarms_str.value();
+    });
 
     interface_->register_method(
         std::string(methods::register_alarm),

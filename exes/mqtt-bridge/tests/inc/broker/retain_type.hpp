@@ -9,40 +9,36 @@
 
 #include <boost/asio/steady_timer.hpp>
 
-#include <async_mqtt/util/buffer.hpp>
 #include <async_mqtt/packet/property_variant.hpp>
 #include <async_mqtt/packet/subopts.hpp>
+#include <async_mqtt/util/buffer.hpp>
 
 namespace async_mqtt {
 
 // A collection of messages that have been retained in
 // case clients add a new subscription to the associated topics.
 struct retain_type {
-    retain_type(
-        std::string topic,
-        std::vector<buffer> payload,
-        properties props,
-        qos qos_value,
-        std::shared_ptr<as::steady_timer> tim_message_expiry = std::shared_ptr<as::steady_timer>())
-        :topic(force_move(topic)),
-         props(force_move(props)),
-         qos_value(qos_value),
-         tim_message_expiry(force_move(tim_message_expiry))
-    {
-        auto it = std::cbegin(payload);
-        auto end = std::cend(payload);
-        for (; it != end; ++it) {
-            this->payload.emplace_back(*it);
-        }
+  retain_type(std::string topic,
+              std::vector<buffer> payload,
+              properties props,
+              qos qos_value,
+              std::shared_ptr<as::steady_timer> tim_message_expiry = std::shared_ptr<as::steady_timer>())
+      : topic(force_move(topic)), props(force_move(props)), qos_value(qos_value),
+        tim_message_expiry(force_move(tim_message_expiry)) {
+    auto it = std::cbegin(payload);
+    auto end = std::cend(payload);
+    for (; it != end; ++it) {
+      this->payload.emplace_back(*it);
     }
+  }
 
-    std::string topic;
-    std::vector<buffer> payload;
-    properties props;
-    qos qos_value;
-    std::shared_ptr<as::steady_timer> tim_message_expiry;
+  std::string topic;
+  std::vector<buffer> payload;
+  properties props;
+  qos qos_value;
+  std::shared_ptr<as::steady_timer> tim_message_expiry;
 };
 
-} // namespace async_mqtt
+}  // namespace async_mqtt
 
-#endif // ASYNC_MQTT_BROKER_RETAIN_TYPE_HPP
+#endif  // ASYNC_MQTT_BROKER_RETAIN_TYPE_HPP

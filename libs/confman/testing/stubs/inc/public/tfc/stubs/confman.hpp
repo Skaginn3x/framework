@@ -38,7 +38,9 @@ public:
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   [[nodiscard]] auto string() const -> std::expected<std::string, glz::error_ctx> { return glz::write_json(storage_); }
-  [[nodiscard]] auto schema() const -> std::expected<std::string, glz::error_ctx> { return glz::write_json_schema<storage_t>(); }
+  [[nodiscard]] auto schema() const -> std::expected<std::string, glz::error_ctx> {
+    return glz::write_json_schema<storage_t>();
+  }
 
   auto set_changed() const noexcept -> std::error_code { return {}; }
 

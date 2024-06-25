@@ -65,7 +65,8 @@ int main(int argc, char** argv) {
 
   tfc::confman::config<tfc::confman::observable<std::vector<with_variant>>> const config{ dbus, "key" };
   config->observe([](auto const& new_value, auto const& old_value) {
-    fmt::print("new value:\n{}\n\n\nold value:\n{}\n", glz::write_json(new_value).value(), glz::write_json(old_value).value());
+    fmt::print("new value:\n{}\n\n\nold value:\n{}\n", glz::write_json(new_value).value(),
+               glz::write_json(old_value).value());
   });
 
   fmt::print("Schema is: {}\n", config.schema());

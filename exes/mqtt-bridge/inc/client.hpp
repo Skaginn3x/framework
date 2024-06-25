@@ -116,9 +116,9 @@ public:
 
     p_id = endpoint_client_->acquire_unique_packet_id();
 
-    auto sub_packet = async_mqtt::v5::subscribe_packet{
-      p_id.value(), { { topic, async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } }
-    };
+    auto sub_packet =
+        async_mqtt::v5::subscribe_packet{ p_id.value(),
+                                          { { topic, async_mqtt::qos::at_most_once | async_mqtt::sub::nl::yes } } };
 
     auto [send_error] = co_await endpoint_client_->send(sub_packet, as_tuple(asio::use_awaitable));
 
@@ -193,23 +193,22 @@ public:
 
   auto connect_packet() -> async_mqtt::v5::connect_packet {
     if (config_.value().username.empty() || config_.value().password.empty()) {
-      return async_mqtt::v5::connect_packet{ true,
-                                             std::chrono::seconds(100).count(),
-                                             config_.value().client_id,
-                                             async_mqtt::will(
-                                                 mqtt_will_topic_,
-                                                 async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
-                                                 { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
-                                             std::nullopt,
-                                             std::nullopt,
-                                             { async_mqtt::property::session_expiry_interval{ 0 } } };
+      return async_mqtt::v5::connect_packet{
+        true,
+        std::chrono::seconds(100).count(),
+        config_.value().client_id,
+        async_mqtt::will(mqtt_will_topic_, async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                         { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
+        std::nullopt,
+        std::nullopt,
+        { async_mqtt::property::session_expiry_interval{ 0 } }
+      };
     }
     return async_mqtt::v5::connect_packet{ true,
                                            std::chrono::seconds(100).count(),
                                            config_.value().client_id,
                                            async_mqtt::will(
-                                               mqtt_will_topic_,
-                                               async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
+                                               mqtt_will_topic_, async_mqtt::buffer(std::string_view{ mqtt_will_payload_ }),
                                                { async_mqtt::qos::at_least_once | async_mqtt::pub::retain::no }),
                                            config_.value().username,
                                            config_.value().password,

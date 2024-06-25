@@ -6,9 +6,9 @@
 
 #include <mp-units/bits/ratio.h>
 #include <mp-units/framework/quantity.h>
+#include <mp-units/framework/unit.h>
 #include <mp-units/systems/angular.h>
 #include <mp-units/systems/si/units.h>
-#include <mp-units/framework/unit.h>
 
 #include <tfc/stx/string_view_join.hpp>
 #include <tfc/utils/json_schema.hpp>
@@ -20,7 +20,9 @@ consteval auto dimension_name() -> std::string_view;
 
 template <>
 struct glz::meta<mp_units::detail::ratio> {
-  static constexpr auto value{ glz::object("numerator", &mp_units::detail::ratio::num, "denominator", &mp_units::detail::ratio::den) };
+  static constexpr auto value{
+    glz::object("numerator", &mp_units::detail::ratio::num, "denominator", &mp_units::detail::ratio::den)
+  };
   static constexpr auto name{ "units::ratio" };
 };
 
