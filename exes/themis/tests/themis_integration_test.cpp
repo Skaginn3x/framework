@@ -354,5 +354,16 @@ int main(int argc, char** argv) {
     new_client.ctx.run_for(2ms);
     expect(new_client.ran[0]);
   };
+
+  "When no alarm has been registered an empty list shall be returned"_test = [] {
+    test_setup t;
+    t.client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
+      expect(!err) << err.message();
+      expect(alarms.size() == 0);
+      t.ran[0] = true;
+    });
+    t.ctx.run_for(2ms);
+    expect(t.ran[0]);
+  };
   return 0;
 }
