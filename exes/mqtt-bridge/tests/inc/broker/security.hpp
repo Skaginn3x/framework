@@ -1,3 +1,4 @@
+#pragma once
 // Copyright Wouter van Kleunen 2021
 //
 // Distributed under the Boost Software License, Version 1.0.
