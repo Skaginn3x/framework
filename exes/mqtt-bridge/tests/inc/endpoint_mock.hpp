@@ -88,8 +88,8 @@ public:
   }
 
   template <typename... args_t>
-  auto send(args_t&&...) -> asio::awaitable<bool> {
-    co_return false;
+  auto send(args_t&&...) -> asio::awaitable<std::tuple<std::error_code>> {
+    co_return std::make_tuple(std::error_code{});
   }
 
   template <typename... args_t>
