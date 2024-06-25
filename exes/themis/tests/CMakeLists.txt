@@ -35,3 +35,6 @@ target_include_directories(themis_integration_test
     PRIVATE
     ../inc
 )
+
+add_test(NAME themis_database_test COMMAND themis_database_test)
+add_test(NAME themis_integration_test COMMAND themis_integration_test)
