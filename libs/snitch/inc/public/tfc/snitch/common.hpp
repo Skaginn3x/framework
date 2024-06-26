@@ -16,7 +16,7 @@ using alarm_id_t = std::uint64_t;
 using activation_id_t = alarm_id_t;
 
 // std::int8_t is not in the dbus spec, so we use std::int16_t instead
-enum struct active_e : std::int16_t { all = -1, inactive = 0, active = 1, unknown = 32767 };
+enum struct state_e : std::int16_t { all = -1, inactive = 0, active = 1, unknown = 32767 };
 
 struct alarm {
   alarm_id_t alarm_id;
@@ -38,7 +38,7 @@ struct activation {
   std::uint64_t activation_id;
   std::string description;
   std::string details;
-  active_e active{ active_e::unknown };
+  state_e active{ state_e::unknown };
   level_e lvl{ level_e::unknown };
   bool latching{};
   time_point set_timestamp;

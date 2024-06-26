@@ -239,7 +239,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     std::uint64_t activation_id;
     try {
       db_ << fmt::format("INSERT INTO AlarmActivations(alarm_id, activation_time, activation_level) VALUES({},{},{})",
-                         alarm_id, milliseconds_since_epoch(tp), std::to_underlying(tfc::snitch::api::active_e::active));
+                         alarm_id, milliseconds_since_epoch(tp), std::to_underlying(tfc::snitch::api::state_e::active));
       activation_id = static_cast<tfc::snitch::api::activation_id_t>(db_.last_insert_rowid());
 
       for (auto& [key, value] : variables) {
@@ -258,10 +258,10 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
       throw dbus_error("Cannot reset an inactive activation");
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {}, reset_time = {} WHERE activation_id = {};",
-                       std::to_underlying(tfc::snitch::api::active_e::inactive), milliseconds_since_epoch(tp),
+                       std::to_underlying(tfc::snitch::api::state_e::inactive), milliseconds_since_epoch(tp),
                        activation_id);
   }
-  auto set_activation_status(snitch::api::alarm_id_t activation_id, tfc::snitch::api::active_e activation) -> void {
+  auto set_activation_status(snitch::api::alarm_id_t activation_id, tfc::snitch::api::state_e activation) -> void {
     if (!is_activation_high(activation_id)) {
       throw dbus_error("Cannot reset an inactive activation");
     }
@@ -272,7 +272,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
   auto get_activation_id_for_active_alarm(snitch::api::alarm_id_t alarm_id) -> std::optional<snitch::api::activation_id_t> {
     std::optional<snitch::api::activation_id_t> activation_id = std::nullopt;
     db_ << fmt::format("SELECT activation_id FROM AlarmActivations WHERE alarm_id = {} AND activation_level = {};", alarm_id,
-                       std::to_underlying(tfc::snitch::api::active_e::active)) >>
+                       std::to_underlying(tfc::snitch::api::state_e::active)) >>
         [&](std::uint64_t id) { activation_id = id; };
     return activation_id;
   }
@@ -281,7 +281,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
                                       std::uint64_t start_count,
                                       std::uint64_t count,
                                       tfc::snitch::level_e level,
-                                      tfc::snitch::api::active_e active,
+                                      tfc::snitch::api::state_e active,
                                       std::optional<tfc::snitch::api::time_point> start,
                                       std::optional<tfc::snitch::api::time_point> end)
       -> std::vector<tfc::snitch::api::activation> {
@@ -309,7 +309,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
     if (level != tfc::snitch::level_e::all) {
       populated_query += fmt::format(" AND alarm_level = {}", std::to_underlying(level));
     }
-    if (active != tfc::snitch::api::active_e::all) {
+    if (active != tfc::snitch::api::state_e::all) {
       populated_query += fmt::format(" AND activation_level = {}", std::to_underlying(active));
     }
     populated_query += fmt::format(" LIMIT {} OFFSET {};", count, start_count);
@@ -318,7 +318,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
 
     db_ << populated_query >> [&](snitch::api::activation_id_t activation_id, snitch::api::alarm_id_t alarm_id,
                                   std::int64_t activation_time, std::optional<std::int64_t> reset_time,
-                                  std::underlying_type_t<snitch::api::active_e> activation_level,
+                                  std::underlying_type_t<snitch::api::state_e> activation_level,
                                   std::optional<std::string> primary_details, std::optional<std::string> primary_description,
                                   std::optional<std::string> backup_details, std::optional<std::string> backup_description,
                                   bool alarm_latching, std::underlying_type_t<snitch::level_e> alarm_level) {
@@ -333,7 +333,7 @@ WHERE activation_time >= {} AND activation_time <= {})",
         final_reset_time = timepoint_from_milliseconds(reset_time.value());
       }
       activations.emplace_back(alarm_id, activation_id, description, details,
-                               static_cast<snitch::api::active_e>(activation_level),
+                               static_cast<snitch::api::state_e>(activation_level),
                                static_cast<snitch::level_e>(alarm_level), alarm_latching,
                                timepoint_from_milliseconds(activation_time), final_reset_time, in_locale);
     };

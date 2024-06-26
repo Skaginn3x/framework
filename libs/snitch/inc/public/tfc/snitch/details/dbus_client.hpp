@@ -27,7 +27,7 @@ public:
                         std::uint64_t start_count,
                         std::uint64_t count,
                         level_e,
-                        api::active_e,
+                        api::state_e,
                         api::time_point start,
                         api::time_point end,
                         std::function<void(std::error_code const&, std::vector<api::activation>)> token) -> void;

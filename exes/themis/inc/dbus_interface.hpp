@@ -71,20 +71,22 @@ public:
       }
     });
     using tfc::snitch::level_e;
-    using tfc::snitch::api::active_e;
+    using tfc::snitch::api::state_e;
     interface_->register_method(std::string(methods::list_activations),
                                 [&](const std::string& locale, std::uint64_t start_count, std::uint64_t count,
-                                    std::underlying_type_t<level_e> alarm_level, std::underlying_type_t<active_e> active,
+                                    std::underlying_type_t<level_e> alarm_level, std::underlying_type_t<state_e> active,
                                     int64_t start, int64_t end) -> std::string {
                                   auto cstart = tfc::themis::alarm_database::timepoint_from_milliseconds(start);
                                   auto cend = tfc::themis::alarm_database::timepoint_from_milliseconds(end);
                                   return glz::write_json(database.list_activations(
                                       locale, start_count, count, static_cast<tfc::snitch::level_e>(alarm_level),
-                                      static_cast<tfc::snitch::api::active_e>(active), cstart, cend));
+                                      static_cast<tfc::snitch::api::state_e>(active), cstart, cend));
                                 });
 
     // Signal alarm_id, current_activation, ack_status
-    interface_->register_signal<std::tuple<std::uint64_t, bool, bool>>(std::string(signals::alarm_activation_changed));
+    interface_->register_signal<std::tuple<tfc::snitch::api::alarm_id_t, std::underlying_type_t<tfc::snitch::level_e>,
+                                           std::underlying_type_t<tfc::snitch::api::state_e>>>(
+        std::string(signals::alarm_activation_changed));
     interface_->register_signal<std::uint64_t>(std::string(signals::try_reset));
     interface_->register_signal<void>(std::string(signals::try_reset_all));
     name_lost_match_ = std::make_unique<sdbusplus::bus::match::match>(*connection_, match_rule_.data(),
@@ -112,7 +114,7 @@ private:
           for (auto& alarm_id : alarm_vec) {
             auto activation = database_.get_activation_id_for_active_alarm(alarm_id);
             if (activation.has_value()) {
-              database_.set_activation_status(activation.value(), tfc::snitch::api::active_e::unknown);
+              database_.set_activation_status(activation.value(), tfc::snitch::api::state_e::unknown);
             }
           }
         }
