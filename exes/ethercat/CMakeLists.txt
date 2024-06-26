@@ -25,7 +25,7 @@ target_link_libraries(ec
     tfc::soem_interface
     tfc::stx
     tfc::motor
-    mp-units::si
+    mp-units::systems
     fmt::fmt
 )
 

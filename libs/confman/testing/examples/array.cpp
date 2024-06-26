@@ -1,5 +1,5 @@
 #include <fmt/core.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   tfc::confman::config<std::vector<object_in_array>> const config{ dbus, "key" };
 
   fmt::print("Schema is: {}\n", config.schema());
-  fmt::print("Config is: {}\n", config.string());
+  fmt::print("Config is: {}\n", config.string().value());
 
   dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
 

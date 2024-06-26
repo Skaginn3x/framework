@@ -8,8 +8,8 @@
 #include <string_view>
 #include <variant>
 
-#include <mp-units/systems/international/international.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/international.h>
+#include <mp-units/systems/si.h>
 
 #include <tfc/confman/observable.hpp>
 #include <tfc/motor/errors.hpp>

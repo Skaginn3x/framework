@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <mp-units/systems/si/units.h>
 #include <glaze/util/string_literal.hpp>
 

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/ut.hpp>
 #include <tfc/ec/devices/schneider/atv320.hpp>
 #include <tfc/ec/devices/util.hpp>
@@ -49,8 +49,8 @@ auto main(int, char**) -> int {
   "setting to json"_test = []() {
     [[maybe_unused]] example::trivial_type_setting const test{};
     auto const json = glz::write_json(test);
-    expect(json == "13") << "got: " << json;
-    auto const exp = glz::read_json<example::trivial_type_setting>(json);
+    expect(json == "13") << "got: " << json.value_or("");
+    auto const exp = glz::read_json<example::trivial_type_setting>(json.value_or(""));
     expect(exp.has_value() >> fatal);
     expect(exp.value() == test);
   };

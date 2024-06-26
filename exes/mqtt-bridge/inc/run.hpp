@@ -55,14 +55,15 @@ public:
       bool restart_needed = false;
 
       co_spawn(
-          sp_interface_.strand(),
+          sp_interface_.get_executor(),
           sp_interface_.wait_for_payloads(std::bind_front(&spark_plug::process_payload, &sp_interface_), restart_needed),
           bind_cancellation_slot(cancel_signal.slot(), asio::detached));
 
       io_ctx_.run_for(std::chrono::seconds{ 1 });
 
       while (!restart_needed) {
-        co_await asio::steady_timer{ sp_interface_.strand(), std::chrono::seconds{ 5 } }.async_wait(asio::use_awaitable);
+        co_await asio::steady_timer{ sp_interface_.get_executor(), std::chrono::seconds{ 5 } }.async_wait(
+            asio::use_awaitable);
       }
 
       cancel_signal.emit(asio::cancellation_type::all);

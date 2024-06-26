@@ -1,6 +1,6 @@
 #pragma once
 #include <mp-units/math.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 
 namespace tfc::ec::devices::schneider::atv320::detail {
 
