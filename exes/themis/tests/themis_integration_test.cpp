@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
       expect(!err) << err.message();
       t.ran[0] = true;
     });
-    for (std::size_t i{}; i < 6; ++i) {
+    for (std::size_t cnt{}; cnt < 6; ++cnt) {
       t.ctx.run_one_for(2ms);
     }
     expect(t.ran[0]);
