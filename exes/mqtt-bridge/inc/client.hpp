@@ -177,7 +177,7 @@ public:
     }
   }
 
-  auto get_executor() -> asio::any_io_executor { return endpoint_client_->get_executor(); }
+  auto get_executor() const -> asio::any_io_executor { return endpoint_client_->get_executor(); }
 
   auto set_initial_message(std::string const& topic, std::string const& payload, async_mqtt::qos const& qos) -> void {
     initial_message_ = std::tuple<std::string, std::string, async_mqtt::qos>{ topic, payload, qos };
