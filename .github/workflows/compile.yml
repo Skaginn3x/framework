@@ -28,6 +28,13 @@ jobs:
       matrix:
         presets: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
 
+    # permissions to publish test results
+    permissions:
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: write
+
     steps:
       - uses: actions/checkout@v4
         with:
