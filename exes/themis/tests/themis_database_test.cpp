@@ -260,4 +260,32 @@ auto main(int argc, char** argv) -> int {
     expect(alarm_id == new_alarm_id);
     expect(!db.is_alarm_active(alarm_id));
   };
+  "empty alarm list"_test = [] {
+    auto db = tfc::themis::alarm_database(true);
+    auto alarms = db.list_alarms();
+    expect(alarms.size() == 0);
+  };
+  "Second time an alarm is registered it should get the correct insert id"_test = []{
+      auto db = tfc::themis::alarm_database(true);
+      auto alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+      auto alarm_id2 = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+      auto alarms = db.list_alarms();
+      expect(alarm_id == alarm_id2);
+      expect(alarms.size() == 1);
+      expect(alarms.at(0).alarm_id == alarm_id);
+  };
+
+  "Second time an alarm is registered it should get the correct insert id with a different alarm registered in the middle"_test = []{
+    auto db = tfc::themis::alarm_database(true);
+    auto alarm_id_first_time = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    auto alarms = db.list_alarms();
+    expect(alarms.size() == 1);
+    auto other_alarm = db.register_alarm_en("tfc_other", "description", "details", false, tfc::snitch::level_e::info);
+    auto alarm_id_second_time = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
+    alarms = db.list_alarms();
+    expect(alarm_id_first_time == alarm_id_second_time);
+    expect(alarm_id_first_time != other_alarm);
+    expect(alarms.size() == 2);
+    expect(alarms.at(0).alarm_id == alarm_id_first_time);
+  };
 }

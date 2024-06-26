@@ -114,14 +114,9 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
       db_ << "BEGIN;";
       db_ << fmt::format(
           "INSERT INTO Alarms(tfc_id, sha1sum, alarm_level, alarm_latching, registered_at) VALUES('{}','{}',{}, {}, {}) ON "
-          "CONFLICT (tfc_id, sha1sum) DO UPDATE SET registered_at={};",
+          "CONFLICT (tfc_id, sha1sum) DO UPDATE SET registered_at={} RETURNING alarm_id;",
           tfc_id, sha1_ascii, std::to_underlying(alarm_level), latching ? 1 : 0, ms_count_registered_at,
-          ms_count_registered_at);
-      auto insert_id = db_.last_insert_rowid();
-      if (insert_id < 0) {
-        throw dbus_error("Failed to insert alarm into database");
-      }
-      alarm_id = static_cast<snitch::api::alarm_id_t>(insert_id);
+          ms_count_registered_at) >> [&](snitch::api::alarm_id_t id) { alarm_id = id; };
       add_alarm_translation(alarm_id, "en", description, details);
 
       // Reset the alarm if high on register

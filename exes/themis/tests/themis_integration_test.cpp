@@ -365,5 +365,11 @@ int main(int argc, char** argv) {
     t.ctx.run_for(2ms);
     expect(t.ran[0]);
   };
+  "When no alarm has been registered an empty list shall be returned no integration"_test = [] {
+    test_setup_s s;
+    auto vec = s.db.list_alarms();
+    auto json = glz::write_json(vec);
+    expect(json == "[]") << json;
+  };
   return 0;
 }
