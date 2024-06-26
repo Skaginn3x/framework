@@ -254,12 +254,20 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
     db_ << "COMMIT;";
     return activation_id;
   }
-  auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> void {
+  /**
+   * @brief Reset an alarm in the database
+   * @param activation_id the activation_id of the alarm to reset
+   * @param tp an optional timepoint
+   * @return true if the alarm was reset
+   */
+  auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> bool {
     if (!is_activation_high(activation_id)) {
-      throw dbus_error("Cannot reset an inactive activation");
+      return false;
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {}, reset_time = {} WHERE activation_id = {};",
-                       std::to_underlying(tfc::snitch::api::state_e::inactive), milliseconds_since_epoch(tp), activation_id);
+                       std::to_underlying(tfc::snitch::api::state_e::inactive), milliseconds_since_epoch(tp),
+                       activation_id);
+    return true;
   }
   auto set_activation_status(snitch::api::alarm_id_t activation_id, tfc::snitch::api::state_e activation) -> void {
     if (!is_activation_high(activation_id)) {

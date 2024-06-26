@@ -29,7 +29,7 @@ The alarm system is exposed through the `com.skaginn3x.Alarm` interface.
     TryReset(i: alarm_id) # Transmits a signal to the alarm to reset itself
     TryResetAll() # Transmits a signal to all alarms to reset themselfs
 ### Signals
-    AlarmActivationChanged(i: alarm_id, n: level, n: state)
+    AlarmChanged(i: alarm_id, n: state)
     TryReset(i: alarm_id)
     TryResetAll()
 ### Properties
