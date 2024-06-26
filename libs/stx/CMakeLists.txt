@@ -16,7 +16,7 @@ find_package(stduuid CONFIG REQUIRED)
 target_link_libraries(stx
   INTERFACE
     glaze::glaze
-    mp-units::si
+    mp-units::systems
     mp-units::core
     stduuid
 )

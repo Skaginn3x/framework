@@ -1,7 +1,7 @@
 #include <fmt/format.h>
-#include <mp-units/systems/international/international.h>
-#include <mp-units/systems/isq/isq.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/international.h>
+#include <mp-units/systems/isq.h>
+#include <mp-units/systems/si.h>
 
 #include <boost/ut.hpp>
 #include <glaze/glaze.hpp>
@@ -42,25 +42,28 @@ auto main() -> int {
   "chrono"_test = [] {
     using test_t = std::chrono::duration<uint16_t, std::deci>;
     test_t foo{ std::chrono::seconds(32) };
-    std::string const json{ glz::write_json(foo) };
-    ut::expect(json == "320") << "got: " << json;
-    ut::expect(glz::read_json<test_t>(json).value() == foo);
+    auto const json{ glz::write_json(foo) };
+    ut::expect(fatal(json.has_value()));
+    ut::expect(json == "320") << "got: " << json.value();
+    ut::expect(glz::read_json<test_t>(json.value()).value() == foo);
   };
   "mp"_test = [] {
     using namespace mp_units::si::unit_symbols;
     auto foo{ 42 * (km / h) };
-    std::string const json{ glz::write_json(foo) };
-    ut::expect(json == "42") << "got: " << json;
-    [[maybe_unused]] auto bar = glz::read_json<decltype(foo)>(json);
+    auto const json{ glz::write_json(foo) };
+    ut::expect(fatal(json.has_value()));
+    ut::expect(json.value() == "42") << "got: " << json.value();
+    [[maybe_unused]] auto bar = glz::read_json<decltype(foo)>(json.value());
     if (!bar.has_value()) {
-      fmt::print("{}\n", glz::format_error(bar.error(), json));
+      fmt::print("{}\n", glz::format_error(bar.error(), json.value()));
     }
-    ut::expect(glz::read_json<decltype(foo)>(json).has_value());
+    ut::expect(glz::read_json<decltype(foo)>(json.value()).has_value());
   };
   "fixed_string_to_json"_test = [] {
     tfc::stx::basic_fixed_string foo{ "HelloWorld" };
     auto foo_json{ glz::write_json(foo) };
-    ut::expect(foo_json == R"("HelloWorld")") << glz::write_json(foo);
+    ut::expect(fatal(foo_json.has_value()));
+    ut::expect(foo_json.value() == R"("HelloWorld")") << glz::write_json(foo).value();
   };
   "fixed_string_from_json"_test = [] {
     auto foo = glz::read_json<tfc::stx::basic_fixed_string<char, 5>>("\"Hello\"");
@@ -82,7 +85,8 @@ auto main() -> int {
   "millisecond clock"_test = [] {
     auto now{ std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()) };
     auto json{ glz::write_json(now) };
-    ut::expect(glz::read_json<decltype(now)>(json).value() == now);
+    ut::expect(fatal(json.has_value()));
+    ut::expect(glz::read_json<decltype(now)>(json.value()).value() == now);
   };
   return EXIT_SUCCESS;
 }

@@ -10,7 +10,7 @@
 #include <span>
 #include <variant>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio/io_context.hpp>
 
 #include <tfc/confman/observable.hpp>

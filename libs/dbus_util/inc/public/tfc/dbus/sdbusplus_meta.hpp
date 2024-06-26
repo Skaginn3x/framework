@@ -86,7 +86,7 @@ struct append_single<struct_t, void> {
 
 template <mp_units::Quantity quantity_t>
 struct append_single<quantity_t> {
-  static void op(auto* interface, auto* sd_bus_msg, mp_units::Quantity auto&& item) {
+  static void op(auto* interface, auto* sd_bus_msg, quantity_t const& item) {
     using value_t = typename quantity_t::rep;
     append_single<value_t>::op(interface, sd_bus_msg, item.numerical_value_ref_in(quantity_t::unit));
   }

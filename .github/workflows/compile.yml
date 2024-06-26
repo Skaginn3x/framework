@@ -28,6 +28,13 @@ jobs:
       matrix:
         presets: [ gcc-debug, gcc-release, clang-debug, clang-release, gcc-debug-dynamic, clang-debug-dynamic ]
 
+    # permissions to publish test results
+    permissions:
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: write
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,3 +65,10 @@ jobs:
           configurePreset: '${{ matrix.presets }}'
           buildPreset: '${{ matrix.presets }}'
           testPreset: '${{ matrix.presets }}'
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            */**/test-results.xml

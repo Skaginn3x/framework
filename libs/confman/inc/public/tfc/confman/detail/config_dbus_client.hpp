@@ -1,10 +1,13 @@
 #pragma once
 
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <string_view>
 #include <system_error>
+
+#include <glaze/core/context.hpp>
 
 #include <tfc/dbus/sdbusplus_fwd.hpp>
 #include <tfc/dbus/string_maker.hpp>
@@ -35,7 +38,7 @@ public:
   /// \note Should only be used for testing !!!
   explicit config_dbus_client(dbus_connection_t);
 
-  using value_call_t = std::function<std::string()>;
+  using value_call_t = std::function<std::expected<std::string, glz::error_ctx>()>;
   using schema_call_t = std::function<std::string()>;
   using change_call_t = std::function<std::error_code(std::string_view)>;
   /// \brief make dbus client using given dbus connection

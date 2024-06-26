@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
       [](bool new_value, bool old_value) { fmt::print("new value: {}, old value: {}\n", new_value, old_value); });
 
   fmt::print("Schema is: {}\n", config.schema());
-  fmt::print("Config is: {}\n", config.string());
+  fmt::print("Config is: {}\n", config.string().value());
 
   dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
 

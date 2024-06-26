@@ -5,8 +5,8 @@
 #include <system_error>
 
 #include <gmock/gmock.h>
-#include <mp-units/quantity.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/framework/quantity.h>
+#include <mp-units/systems/si.h>
 
 #include <tfc/motor.hpp>
 

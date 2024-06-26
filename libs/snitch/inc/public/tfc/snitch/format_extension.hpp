@@ -24,21 +24,22 @@ struct custom_handler {
     return 0;
   }
 
-  constexpr auto on_arg_id(fmt::basic_string_view<Char> id) -> int {
+  constexpr auto on_arg_id([[maybe_unused]] fmt::basic_string_view<Char> id) -> int {
     num_args++;
     return 0;
   }
 
-  constexpr void on_replacement_field(int id, const Char* begin) {
+  constexpr void on_replacement_field([[maybe_unused]] int id, [[maybe_unused]] const Char* begin) {
     // todo
   }
 
-  constexpr auto on_format_specs(int id, const Char* begin, const Char*) -> const Char* {
+  constexpr auto on_format_specs([[maybe_unused]] int id, [[maybe_unused]] const Char* begin, [[maybe_unused]] const Char*)
+      -> const Char* {
     has_format_specs = true;
     return begin;
   }
 
-  constexpr void on_error(const char* msg) {
+  constexpr void on_error([[maybe_unused]] const char* msg) {
     // todo
   }
   std::size_t num_args{ 0 };
@@ -82,13 +83,13 @@ struct custom_handler_names {
     return 0;
   }
 
-  constexpr void on_replacement_field(int id, const Char* begin) {
+  constexpr void on_replacement_field([[maybe_unused]] int id, [[maybe_unused]] const Char* begin) {
     // todo
   }
 
-  constexpr auto on_format_specs(int id, const Char* begin, const Char*) -> const Char* { return begin; }
+  constexpr auto on_format_specs([[maybe_unused]] int id, const Char* begin, const Char*) -> const Char* { return begin; }
 
-  constexpr void on_error(const char* msg) {
+  constexpr void on_error([[maybe_unused]] const char* msg) {
     // todo
   }
   std::array<std::basic_string_view<Char>, N> names{};

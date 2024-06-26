@@ -47,9 +47,7 @@ public:
     interface_->register_signal<value_t>(std::string{ dbus::tags::value });
     interface_->register_property_r<value_t>(std::string{ dbus::tags::value }, sdbusplus::vtable::property_::none,
                                              [this](const auto&) { return value_; });
-    interface_->register_property_r<std::string>(
-        std::string{ dbus::tags::type }, sdbusplus::vtable::property_::const_,
-        []([[maybe_unused]] std::string& old_value) { return tfc::json::write_json_schema<value_t>(); });
+    interface_->register_property(std::string{ dbus::tags::type }, schema);
 
     interface_->initialize();
   }
@@ -70,6 +68,7 @@ public:
 private:
   std::shared_ptr<sdbusplus::asio::dbus_interface> interface_{};
   value_t value_{};
+  std::string const schema{ tfc::json::write_json_schema<value_t>().value() };
 };
 
 }  // namespace tfc::ipc::details

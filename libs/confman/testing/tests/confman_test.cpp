@@ -77,7 +77,7 @@ auto main(int argc, char** argv) -> int {
                              .a = observable<int>{ 1 }, .b = observable<int>{ 2 }, .c = observable<std::string>{ "bar" } } };
     auto const json_str{ test.config.string() };
     glz::json_t json{};
-    std::ignore = glz::read_json(json, json_str);
+    std::ignore = glz::read_json(json, json_str.value_or(""));
     ut::expect(static_cast<int>(json["a"].get<double>()) == 1);
     ut::expect(static_cast<int>(json["b"].get<double>()) == 2);
     ut::expect(json["c"].get<std::string>() == "bar");
@@ -102,7 +102,7 @@ auto main(int argc, char** argv) -> int {
     json["a"] = 11;
     json["b"] = 22;
     json["c"] = "meeoow";
-    test.config.from_string(glz::write_json(json));
+    test.config.from_string(glz::write_json(json).value());
     ut::expect(11 == test.config->a);
     ut::expect(22 == test.config->b);
     ut::expect("meeoow" == test.config->c);
@@ -123,7 +123,7 @@ auto main(int argc, char** argv) -> int {
     json["a"] = 11;
     json["b"] = 22;
     json["c"] = "meeoow";
-    test.config.from_string(glz::write_json(json));
+    test.config.from_string(glz::write_json(json).value());
 
     ut::expect(1 == c_called);
   };

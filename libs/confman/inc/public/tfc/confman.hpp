@@ -79,7 +79,9 @@ public:
   auto operator->() const noexcept -> storage_t const* { return std::addressof(value()); }
 
   /// \return storage_t as json string
-  [[nodiscard]] auto string() const -> std::string { return glz::write_json(storage_.value()); }
+  [[nodiscard]] auto string() const -> std::expected<std::string, glz::error_ctx> {
+    return glz::write_json(storage_.value());
+  }
 
   /// TODO can we do this differently, jsonforms requires object as root element
   /// an example of failure would be confman<std::vector<int>> as the json schema root element would be array
@@ -95,11 +97,21 @@ public:
 
   /// \return storage_t json schema
   [[nodiscard]] auto schema() const -> std::string {
-    return tfc::json::write_json_schema<object_wrapper<config_storage_t>>();
+    auto const value{ tfc::json::write_json_schema<object_wrapper<config_storage_t>>() };
+    if (!value.has_value()) {
+      logger_.error("Error writing json schema: {}", glz::format_error(value.error()));
+      return {};
+    }
+    return value.value();
   }
 
   auto set_changed() const noexcept -> std::error_code {
-    client_.set(this->string());
+    auto value{ this->string() };
+    if (!value.has_value()) {
+      logger_.error("Error writing string: {}", glz::format_error(value.error()));
+      return std::make_error_code(std::errc::io_error);
+    }
+    client_.set(std::move(value.value()));
     return storage_.set_changed();
   }
 

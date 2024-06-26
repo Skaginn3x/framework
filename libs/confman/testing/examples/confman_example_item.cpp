@@ -1,5 +1,5 @@
 #include <fmt/core.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -22,11 +22,11 @@ int main(int argc, char** argv) {
 
   tfc::confman::config<tfc::confman::observable<tfc::ipc::item::item>> const config{ dbus, "key" };
   config->observe([](auto new_value, auto old_value) {
-    fmt::print("new value: {}, old value: {}\n", new_value.to_json(), old_value.to_json());
+    fmt::print("new value: {}, old value: {}\n", new_value.to_json().value(), old_value.to_json().value());
   });
 
   fmt::print("Schema is: {}\n", config.schema());
-  fmt::print("Config is: {}\n", config.string());
+  fmt::print("Config is: {}\n", config.string().value());
 
   dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
 

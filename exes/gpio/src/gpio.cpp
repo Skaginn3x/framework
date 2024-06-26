@@ -16,8 +16,8 @@ void gpio::pin_direction_change(pin_index_t idx,
                                 gpiod::line::direction new_value,
                                 [[maybe_unused]] gpiod::line::direction old_value) noexcept {
   try {
-    logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")", glz::write_json(new_value),
-                  glz::write_json(old_value));
+    logger_.trace(R"(Got new direction change with new value: "{}", old value: "{}")",
+                  glz::write_json(new_value).value_or(""), glz::write_json(old_value).value_or(""));
     if (new_value == gpiod::line::direction::OUTPUT) {
       pins_.at(idx).emplace<ipc_input_t>(ctx_, manager_client_, fmt::format("in.{}", idx),
                                          std::bind_front(&gpio::ipc_event, this, idx));
@@ -46,8 +46,8 @@ void gpio::pin_direction_change(pin_index_t idx,
 void gpio::pin_edge_change(pin_index_t idx,
                            gpiod::line::edge new_value,
                            [[maybe_unused]] gpiod::line::edge old_value) noexcept {
-  logger_.trace(R"(Got new edge change with new value: "{}", old value: "{}")", glz::write_json(new_value),
-                glz::write_json(old_value));
+  logger_.trace(R"(Got new edge change with new value: "{}", old value: "{}")", glz::write_json(new_value).value_or(""),
+                glz::write_json(old_value).value_or(""));
   auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(idx) };
   settings.set_edge_detection(new_value);
   chip_.prepare_request().add_line_settings(idx, settings);
@@ -60,8 +60,8 @@ void gpio::pin_edge_change(pin_index_t idx,
 void gpio::pin_bias_change(pin_index_t idx,
                            gpiod::line::bias new_value,
                            [[maybe_unused]] gpiod::line::bias old_value) noexcept {
-  logger_.trace(R"(Got new bias change with new value: "{}", old value: "{}")", glz::write_json(new_value),
-                glz::write_json(old_value));
+  logger_.trace(R"(Got new bias change with new value: "{}", old value: "{}")", glz::write_json(new_value).value_or(""),
+                glz::write_json(old_value).value_or(""));
   auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(idx) };
   settings.set_bias(new_value);
   chip_.prepare_request().add_line_settings(idx, settings).do_request();
@@ -69,8 +69,8 @@ void gpio::pin_bias_change(pin_index_t idx,
 void gpio::pin_force_change(pin_index_t idx,
                             pin::out::force_e new_value,
                             [[maybe_unused]] pin::out::force_e old_value) noexcept {
-  logger_.trace(R"(Got new force change with new value: "{}", old value: "{}")", glz::write_json(new_value),
-                glz::write_json(old_value));
+  logger_.trace(R"(Got new force change with new value: "{}", old value: "{}")", glz::write_json(new_value).value_or(""),
+                glz::write_json(old_value).value_or(""));
   auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(idx) };
   switch (new_value) {
     using enum pin::out::force_e;
@@ -104,8 +104,8 @@ void gpio::pin_force_change(pin_index_t idx,
 void gpio::pin_drive_change(pin_index_t idx,
                             gpiod::line::drive new_value,
                             [[maybe_unused]] gpiod::line::drive old_value) noexcept {
-  logger_.trace(R"(Got new drive change with new value: "{}", old value: "{}")", glz::write_json(new_value),
-                glz::write_json(old_value));
+  logger_.trace(R"(Got new drive change with new value: "{}", old value: "{}")", glz::write_json(new_value).value_or(""),
+                glz::write_json(old_value).value_or(""));
   auto settings{ chip_.prepare_request().get_line_config().get_line_settings().at(idx) };
   settings.set_drive(new_value);
   chip_.prepare_request().add_line_settings(idx, settings).do_request();

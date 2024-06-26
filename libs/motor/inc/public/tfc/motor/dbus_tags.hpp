@@ -3,7 +3,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 
 #include <tfc/dbus/string_maker.hpp>
 #include <tfc/motor/errors.hpp>

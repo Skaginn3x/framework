@@ -12,3 +12,7 @@ static_assert("path_namespace='foo'," == path_namespace<foo>);
 static_assert("destination='foo'," == destination<foo>);
 
 }  // namespace tfc::dbus::match::rules::test
+
+int main() {
+  return 0;
+}

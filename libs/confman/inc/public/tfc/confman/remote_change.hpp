@@ -20,8 +20,12 @@ template <typename config_storage_t>
                                         std::string_view key,
                                         config_storage_t&& storage,
                                         std::invocable<std::error_code> auto&& handler) {
-  return set_config_impl(dbus, service, key, glz::write_json(std::forward<config_storage_t>(storage)),
-                         std::forward<decltype(handler)>(handler));
+  auto const write{ glz::write_json(std::forward<config_storage_t>(storage)) };
+  if (!write) {
+    handler(std::make_error_code(std::errc::invalid_argument));
+    return;
+  }
+  return set_config_impl(dbus, service, key, write.value(), std::forward<decltype(handler)>(handler));
 }
 
 // todo get_config

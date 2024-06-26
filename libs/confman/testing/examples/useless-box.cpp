@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-#include <mp-units/systems/si/si.h>
+#include <mp-units/systems/si.h>
 #include <boost/asio.hpp>
 #include <sdbusplus/asio/connection.hpp>
 
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
   });
 
   fmt::println("Schema is: {}", config.schema());
-  fmt::println("Config is: {}", config.string());
+  fmt::println("Config is: {}", config.string().value());
 
   dbus->request_name(tfc::dbus::make_dbus_process_name().c_str());
 

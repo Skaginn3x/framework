@@ -13,8 +13,9 @@ auto main(int, char**) -> int {
   };
   "glaze conversion test"_test = []() {
     tfc::confman::observable<int> const observed_value(25);
-    std::string const value_as_str = glz::write_json(observed_value);
-    expect(value_as_str == "25");
+    auto const value_as_str = glz::write_json(observed_value);
+    expect(fatal(value_as_str.has_value()));
+    expect(value_as_str.value() == "25");
   };
   "std containers"_test = []() {
     std::array<int, 3> array{ 1, 2, 3 };
