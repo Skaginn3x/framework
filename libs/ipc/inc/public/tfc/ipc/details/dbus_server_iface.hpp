@@ -286,7 +286,7 @@ public:
           auto const write{ glz::write_json(ipc_manager_->get_all_signals()) };
           if (!write) {
             fmt::println(stderr, "Failed to write signals to json: {}", format_error(write.error()));
-            return std::string{};
+            throw dbus_error("Failed to write signals to json");
           }
           return write.value();
         });
@@ -295,8 +295,8 @@ public:
         std::string(consts::slots_property), sdbusplus::vtable::property_::emits_change, [&](const auto&) {
           auto const write{ glz::write_json(ipc_manager_->get_all_slots()) };
           if (!write) {
-            fmt::println(stderr, "Failed to write signals to json: {}", format_error(write.error()));
-            return std::string{};
+            fmt::println(stderr, "Failed to write slots to json: {}", format_error(write.error()));
+            throw dbus_error("Failed to write slots to json");
           }
           return write.value();
         });
@@ -305,8 +305,8 @@ public:
         std::string(consts::connections_property), sdbusplus::vtable::property_::emits_change, [&](const auto&) {
           auto const write{ glz::write_json(ipc_manager_->get_all_connections()) };
           if (!write) {
-            fmt::println(stderr, "Failed to write signals to json: {}", format_error(write.error()));
-            return std::string{};
+            fmt::println(stderr, "Failed to write connections to json: {}", format_error(write.error()));
+            throw dbus_error("Failed to write connections to json");
           }
           return write.value();
         });
