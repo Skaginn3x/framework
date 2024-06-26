@@ -1,7 +1,6 @@
 add_executable(tfcctl src/tfcctl.cpp)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
-find_package(gsl-lite CONFIG REQUIRED) # todo remove when mp-units does this on its own
 find_package(mp-units CONFIG REQUIRED)
 
 target_link_libraries(tfcctl

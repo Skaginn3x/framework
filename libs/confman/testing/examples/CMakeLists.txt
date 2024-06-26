@@ -1,4 +1,3 @@
-find_package(gsl-lite CONFIG REQUIRED) # todo remove, mp-units should take care of this
 find_package(mp-units CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
