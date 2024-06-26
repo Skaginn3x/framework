@@ -97,7 +97,9 @@ int main(int argc, char** argv) {
       expect(!err) << err.message();
       t.ran[0] = true;
     });
-    t.ctx.run_for(2ms);
+    for (std::size_t i{}; i < 6; ++i) {
+      t.ctx.run_one_for(2ms);
+    }
     expect(t.ran[0]);
     t.client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
       expect(!err) << err.message();
