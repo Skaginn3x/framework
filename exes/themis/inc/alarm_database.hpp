@@ -116,7 +116,8 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
           "INSERT INTO Alarms(tfc_id, sha1sum, alarm_level, alarm_latching, registered_at) VALUES('{}','{}',{}, {}, {}) ON "
           "CONFLICT (tfc_id, sha1sum) DO UPDATE SET registered_at={} RETURNING alarm_id;",
           tfc_id, sha1_ascii, std::to_underlying(alarm_level), latching ? 1 : 0, ms_count_registered_at,
-          ms_count_registered_at) >> [&](snitch::api::alarm_id_t id) { alarm_id = id; };
+          ms_count_registered_at) >>
+          [&](snitch::api::alarm_id_t id) { alarm_id = id; };
       add_alarm_translation(alarm_id, "en", description, details);
 
       // Reset the alarm if high on register
@@ -258,8 +259,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
       throw dbus_error("Cannot reset an inactive activation");
     }
     db_ << fmt::format("UPDATE AlarmActivations SET activation_level = {}, reset_time = {} WHERE activation_id = {};",
-                       std::to_underlying(tfc::snitch::api::state_e::inactive), milliseconds_since_epoch(tp),
-                       activation_id);
+                       std::to_underlying(tfc::snitch::api::state_e::inactive), milliseconds_since_epoch(tp), activation_id);
   }
   auto set_activation_status(snitch::api::alarm_id_t activation_id, tfc::snitch::api::state_e activation) -> void {
     if (!is_activation_high(activation_id)) {
