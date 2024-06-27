@@ -20,9 +20,9 @@ using namespace tfc::snitch::api::dbus;
 using std::string_view_literals::operator""sv;
 using dbus_error = tfc::dbus::exception::runtime;
 
-using tfc::snitch::api::state_e;
-using tfc::snitch::api::alarm_id_t;
 using tfc::snitch::level_e;
+using tfc::snitch::api::alarm_id_t;
+using tfc::snitch::api::state_e;
 
 class interface {
 public:
@@ -124,7 +124,7 @@ private:
   static constexpr std::string_view match_rule_ = tfc::dbus::match::rules::
       make_match_rule<dbus_name_, dbus_interface_, dbus_path_, name_owner_changed_, tfc::dbus::match::rules::type::signal>();
 
-  auto notify_alarm_state (alarm_id_t alarm_id, state_e state) -> void {
+  auto notify_alarm_state(alarm_id_t alarm_id, state_e state) -> void {
     sdbusplus::message_t alarm_change_message = interface_->new_signal(signals::alarm_activation_changed.data());
     alarm_change_message.append(std::tuple(alarm_id, std::to_underlying(state)));
     alarm_change_message.signal_send();
