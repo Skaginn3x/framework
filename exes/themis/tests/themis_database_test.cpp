@@ -94,7 +94,7 @@ auto main(int argc, char** argv) -> int {
     // Add some activations
     for (int i = 0; i < 10; i++) {
       auto activation_id = alarm_db.set_alarm(insert_id, {});
-      alarm_db.reset_alarm(activation_id);
+      expect(alarm_db.reset_alarm(activation_id));
     }
     // Insert an invalid activation
     expect(throws([&] { [[maybe_unused]] auto _ = alarm_db.set_alarm(999, {}); }));
@@ -211,7 +211,7 @@ auto main(int argc, char** argv) -> int {
     expect(activations.at(0).set_timestamp == time);
     expect(!activations.at(0).reset_timestamp.has_value());
     auto reset_time = alarm_database::timepoint_from_milliseconds(2);
-    db.reset_alarm(activation_id, reset_time);
+    expect(db.reset_alarm(activation_id, reset_time));
     activations =
         db.list_activations("en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::all, min_time, max_time);
     expect(!db.is_alarm_active(alarm_id));
@@ -225,8 +225,8 @@ auto main(int argc, char** argv) -> int {
     auto alarm_id = db.register_alarm_en("tfc_id", "description", "details", false, tfc::snitch::level_e::info);
     auto activation_id = db.set_alarm(alarm_id, {});
     expect(throws([&] { [[maybe_unused]] auto _ = db.set_alarm(alarm_id, {}); }));
-    db.reset_alarm(activation_id);
-    expect(throws([&] { db.reset_alarm(activation_id, {}); }));
+    expect(db.reset_alarm(activation_id));
+    expect(!db.reset_alarm(activation_id));
   };
   "Verify alarm id when replacing reinstantiating alarms"_test = [] {
     tfc::themis::alarm_database db(true);

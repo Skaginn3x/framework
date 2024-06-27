@@ -121,9 +121,7 @@ CREATE TABLE IF NOT EXISTS AlarmVariables(
       add_alarm_translation(alarm_id, "en", description, details);
 
       // Reset the alarm if high on register
-      if (is_alarm_active(alarm_id)) {
-        reset_alarm(alarm_id);
-      }
+      [[maybe_unused]] bool was_reset = reset_alarm(alarm_id);
       db_ << "COMMIT;";
     } catch (std::exception& e) {
       // Rollback the transaction and rethrow
@@ -260,7 +258,7 @@ ON Alarms.sha1sum = AlarmTranslations.sha1sum;
    * @param tp an optional timepoint
    * @return true if the alarm was reset
    */
-  auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> bool {
+  [[nodiscard]] auto reset_alarm(snitch::api::alarm_id_t activation_id, std::optional<tfc::snitch::api::time_point> tp = {}) -> bool {
     if (!is_activation_high(activation_id)) {
       return false;
     }
