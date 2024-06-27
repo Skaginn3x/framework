@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     expect(t.ran[5]);
 
     t.client.list_activations(
-        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::active,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
         [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
     t.ctx.run_for(2ms);
     expect(t.ran[2]);
     t.client.list_activations(
-        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::active,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
         [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
           t.ran[3] = true;
         });
     t.client.list_activations(
-        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::inactive,
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::inactive,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
         [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
           t.ran[0] = true;
 
           t.client.list_activations(
-              "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+              "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::active,
               tfc::themis::alarm_database::timepoint_from_milliseconds(0),
               tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
               [&](auto list_err, std::vector<tfc::snitch::api::activation> const& act) {
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
       client.ctx.run_for(2ms);
       expect(client.ran[1]);
       client.client.list_activations(
-          "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::active,
+          "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::active,
           tfc::themis::alarm_database::timepoint_from_milliseconds(0),
           tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
           [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
@@ -338,7 +338,7 @@ int main(int argc, char** argv) {
     fmt::println(stderr, "Client has been killed");
     test_setup_c new_client;
     new_client.client.list_activations(
-        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::active_e::unknown,
+        "en", 0, 10000, tfc::snitch::level_e::info, tfc::snitch::api::state_e::unknown,
         tfc::themis::alarm_database::timepoint_from_milliseconds(0),
         tfc::themis::alarm_database::timepoint_from_milliseconds(std::numeric_limits<std::int64_t>::max()),
         [&](const std::error_code& err, std::vector<tfc::snitch::api::activation> act) {
@@ -348,11 +348,28 @@ int main(int argc, char** argv) {
           expect(alarm.description == "desc");
           expect(alarm.details == "details");
           expect(alarm.lvl == tfc::snitch::level_e::info);
-          expect(alarm.active == tfc::snitch::api::active_e::unknown);
+          expect(alarm.active == tfc::snitch::api::state_e::unknown);
           new_client.ran[0] = true;
         });
     new_client.ctx.run_for(2ms);
     expect(new_client.ran[0]);
+  };
+
+  "When no alarm has been registered an empty list shall be returned"_test = [] {
+    test_setup t;
+    t.client.list_alarms([&](const std::error_code& err, std::vector<tfc::snitch::api::alarm> alarms) {
+      expect(!err) << err.message();
+      expect(alarms.size() == 0);
+      t.ran[0] = true;
+    });
+    t.ctx.run_for(2ms);
+    expect(t.ran[0]);
+  };
+  "When no alarm has been registered an empty list shall be returned no integration"_test = [] {
+    test_setup_s s;
+    auto vec = s.db.list_alarms();
+    auto json = glz::write_json(vec);
+    expect(json == "[]") << json.value_or("");
   };
   return 0;
 }

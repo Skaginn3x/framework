@@ -69,7 +69,7 @@ auto dbus_client::list_activations(std::string_view locale,
                                    std::uint64_t start_count,
                                    std::uint64_t count,
                                    level_e lvl,
-                                   api::active_e active,
+                                   api::state_e active,
                                    api::time_point start,
                                    api::time_point end,
                                    std::function<void(std::error_code const&, std::vector<api::activation>)> token) -> void {
