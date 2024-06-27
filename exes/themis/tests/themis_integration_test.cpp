@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
     test_setup_s s;
     auto vec = s.db.list_alarms();
     auto json = glz::write_json(vec);
-    expect(json == "[]") << json;
+    expect(json == "[]") << json.value_or("");
   };
   return 0;
 }
