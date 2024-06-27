@@ -14,7 +14,6 @@
     "boost-coroutine2",
     "boost-stacktrace",
     "boost-uuid",
-    "boost-hana",
     "date",
     "fmt",
     {
