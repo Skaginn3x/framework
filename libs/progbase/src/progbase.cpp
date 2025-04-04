@@ -150,7 +150,7 @@ auto make_config_file_name(std::string_view filename, std::string_view extension
 }
 
 auto is_stdout_enabled() noexcept -> bool {
-  return options::instance().get_stdout();
+  return options::instance().get_stdout() || isatty(STDOUT_FILENO);
 }
 
 auto is_noeffect_enabled() noexcept -> bool {
